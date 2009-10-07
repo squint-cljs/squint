@@ -1,0 +1,51 @@
+<project name="scriptjure" default="test">
+
+  <property name="src" location="src"/>
+  <property name="build" location="classes"/>
+
+  <available property="hasclojure" file="${clojure.jar}"/>
+  <available property="hasclojurecontrib" file="${clojure-contrib.jar}"/>
+
+  <target name="check_hasclojure"
+          description="Print a warning message if clojure.jar is undefined"
+          unless="hasclojure">
+    <echo>WARNING: You have not defined a path to clojure.jar
+      To enable compiling, run "ant -Dclojure.jar=&lt;...path to clojure.jar..&gt;"
+    </echo>
+  </target>
+
+  <target name="check_hasclojurecontrib"
+          description="Print a warning message if clojure-contrib.jar is undefined"
+	  unless="hasclojurecontrib">
+    <echo>WARNING: You have not defined a path to clojure-contrib.jar
+    run "ant -Dclojure-contrib.jar=&lt;...path to clojure-contrib.jar..&gt;"
+    </echo>
+  </target>
+
+  <target name="init">
+    <tstamp/>
+    <mkdir dir="${build}"/>
+  </target>
+
+  <target name="clean" description="Remove generated files and directories.">
+    <delete file="${jarfile}"/>
+    <delete file="${slimjarfile}"/>
+    <delete dir="${build}"/>
+  </target>
+
+  <target name="test"
+          description="Run the tests"
+	  depends="check_hasclojure,check_hasclojurecontrib">
+    <fail unless="hasclojure"></fail>
+    <fail unless="hasclojurecontrib"></fail>
+    <java fork="true" classname="clojure.main">
+      <classpath>
+        <path location="${build}"/>
+        <path location="${src}"/>
+        <path location="${clojure.jar}"/>
+        <path location="${clojure-contrib.jar}"/>
+      </classpath>
+      <arg value="test/test.clj"/>
+    </java>
+  </target>
+</project>
