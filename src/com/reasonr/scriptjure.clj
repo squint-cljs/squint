@@ -63,7 +63,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'new]))
+(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'new 'do]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '||]))
 
@@ -105,6 +105,9 @@
 
 (defn emit-do [exprs]
   (str/join "" (map (comp statement emit) exprs)))
+
+(defmethod emit-special 'do [type [ do & exprs]]
+  (emit-do exprs))
 
 (defn emit-function [name sig body]
   (assert (or (symbol? name) (nil? name)))

@@ -97,6 +97,16 @@ Results in a new statement. The first argument is the object. All remaining item
     (js (new google.visualization.Query url)) 
     => "new google.visualization.Query(url)"
 
+**do**
+   (do & exprs)
+
+Returns the series of expressions, separated by semicolons
+  
+    (js (do
+             (var x 3)
+             (var y 4)))
+    => "var x = 3;\n var y = 4;"
+
 **dot Method calls**
     (. method Obj & args)
 
@@ -142,3 +152,21 @@ To get the value of a clojure expression into javascript, use (clj)
     (js (fn (clj foo) [x] (return x))) 
 
 This will return a javascript function, with the name being whatever Clojure value foo resolves to.
+
+
+Tips and Tricks
+------------
+
+* If you want to pass a js form from one clojure function to another, use a quote and do. For example:
+
+    (let [extra-js (quote (do (baz x) (var y 4)))]
+         (defn gen-js [extra-js]
+             (js (fn foo [x]
+                      (bar x)
+                      (clj extra-js)))))
+
+   => "function foo(x) {
+              bar(x);
+	      baz(x);
+              var y = 4;
+         }"

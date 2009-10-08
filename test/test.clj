@@ -63,4 +63,10 @@
 	   (var y 4)
 	   (+ x y))) "var x = 3; var y = 4; (x + y);")))
 
+(deftest test-combine-forms
+  (let [stuff (quote (do
+		       (var x 3)
+		       (var y 4)))]
+    (is (= (strip-whitespace (js (fn foo [x] (clj stuff))))
+	   "function foo(x) { var x = 3; var y = 4; }"))))
 (run-tests)
