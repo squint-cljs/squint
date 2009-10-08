@@ -38,7 +38,7 @@ Clojure symbols and keywords are converted to javascript symbols:
     (js :bar) 
     => "bar"
 
-Since JS is a macro, symbols will not be evaluated, so there is no need to quote them. Actually, (js 'foo) will be interpreted as (js (quote foo)), which is probably not what you want. Scriptjure makes no attempt to verify that a generated symbol is valid.
+Since JS is a macro, symbols will not be evaluated, so there is no need to quote them. Actually, (js 'foo) will be interpreted as (js (quote foo)), which is probably not what you want. Scriptjure makes no attempt to verify that a generated symbol is defined in the JS environment.
 
 Arrays, Maps
 ----------
@@ -129,13 +129,13 @@ If the head of the list is a symbol in the infix operator list, the list results
 
 ** Getting data into JS **
   
-To get the value of a clojure symbol into a javascript call, use (clj)
+To get the value of a clojure expression into javascript, use (clj)
 
     (let [foo 42]
         (js (+ 3 (clj foo)))) 
     => (js (+ 3 42)) => "(3 + 42)"
 
-clj is a "marker" in the js macro. The contents of the `clj` form are evaluated according to normal Clojure rules, and the result is passed into `(js)`. Since `clj` is not a var, it never needs to be qualified. The clj form is only valid inside a `(js)` form. The `clj` form is allowed to return anything that scriptjure knows how to handle.
+`clj` is a "marker" in the js macro. The `clj` can contain arbitrary normal Clojure, and the result is passed into `(js)`. The `clj` form is allowed to return anything that scriptjure knows how to handle. Since `clj` is not a var, it never needs to be qualified. The clj form is only valid inside a `(js)` form. 
 
 `clj` can be use anywhere in a `js` form:
 
