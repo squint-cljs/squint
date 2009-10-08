@@ -2,6 +2,7 @@
 
   <property name="src" location="src"/>
   <property name="build" location="classes"/>
+  <property name="jarfile" location="scriptjure.jar"/>
 
   <available property="hasclojure" file="${clojure.jar}"/>
   <available property="hasclojurecontrib" file="${clojure-contrib.jar}"/>
@@ -48,4 +49,32 @@
       <arg value="test/test.clj"/>
     </java>
   </target>
+
+  <target name="compile"
+	  depends="init,check_hasclojure,check_hasclojurecontrib">
+    <fail unless="hasclojure"></fail>
+    <fail unless="hasclojurecontrib"></fail>
+    <java classname="clojure.lang.Compile">
+      <classpath>
+	<path location="${build}"/>
+	<path location="${src}"/>
+	<path location="${clojure.jar}"/>
+	<path location="${clojure-contrib.jar}"/>
+      </classpath>
+      <sysproperty key="clojure.compile.path" value="${build}"/>
+      <sysproperty key="java.awt.headless" value="true"/>
+      <arg value="com.reasonr.scriptjure"/>
+    </java>
+  </target>
+
+  <target name="jar" description="Create a jar" depends="compile">
+    <jar jarfile="${jarfile}">
+      <fileset dir="${src}" includes="**/*.clj"/>
+      <fileset dir="${build}" includes="**/*.class"/>
+      <manifest>
+        <attribute name="Class-Path" value="."/>
+      </manifest>
+    </jar>
+  </target>
+
 </project>
