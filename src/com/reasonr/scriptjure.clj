@@ -18,9 +18,9 @@
 ;;
 ;; See the README and the tests for more information on what is supported.
 ;; 
-;; The library is intended to generate glue code in Clojure
+;; The library is intended to generate javascript glue code in Clojure
 ;; webapps. One day it might become useful enough to write entirely
-;; libraries in clojure, but it's not there yet.
+;; JS libraries in clojure, but it's not there yet.
 ;;
 ;;
 
@@ -168,12 +168,12 @@
 
 (declare inner-walk outer-walk)
 
-(defn inner-walk [form]
+(defn- inner-walk [form]
   (cond 
     (unquote? form) (handle-unquote form)
     :else (walk inner-walk outer-walk form)))
 
-(defn outer-walk [form]
+(defn- outer-walk [form]
   (cond
     (symbol? form) (list 'quote form)
     (seq? form) (list* 'list form)
@@ -183,6 +183,8 @@
   (let [post-form (walk inner-walk outer-walk form)]
     post-form))
 
-(defmacro js [& forms]
+(defmacro js 
+  "takes one or more forms. Returns a string of the forms translated into javascript"
+  [& forms]
   `(_js (quasiquote ~forms)))
 
