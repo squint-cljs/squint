@@ -90,6 +90,15 @@
 (defmethod emit-special '. [type [period method obj & args]]
   (emit-method obj method args))
 
+(defmethod emit-special 'if [type [if test true-form & false-form]]
+  (str "if (" (emit test) ") { \n"
+       (emit true-form)
+       "\n }"
+       (when (first false-form)
+	 (str " else { \n"
+	      (emit (first false-form))
+	      " }"))))
+       
 (defmethod emit-special 'dot-method [type [method obj & args]]
   (let [method (symbol (str/drop (str method) 1))]
     (emit-method obj method args)))

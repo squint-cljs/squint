@@ -82,6 +82,18 @@ Takes two arguments, assignment.
     (js (set! x 5)) 
     => "x = 5;"
 
+**if**
+    (if test true-form & false-form)
+Returns a javascript if statement. Like Clojure, true-form and false-form take one form each. If you want multiple statements in the body, combine with a do statement.
+
+    (js (if (== foo 3) (foo x) (bar y)))
+    => "if ( (foo == 3) ) {
+       foo(x);
+       }
+       else {
+       bar(y);
+       }"
+
 **return**
     (return value)
 

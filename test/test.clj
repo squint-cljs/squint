@@ -37,6 +37,12 @@
 (deftest test-dot-method-call
   (is (= (js (.bar google.chart :a :b)) "google.chart.bar(a, b)")))
 
+(deftest test-if
+  (is (= (strip-whitespace (js (if (&& (== foo bar) (!= foo baz)) (.draw google.chart))))
+	 "if (((foo == bar) && (foo != baz))) { google.chart.draw() }"))
+  (is (= (strip-whitespace (js (if foo (do (var x 3) (foo x)) (do (var y 4) (bar y)))))
+	 "if (foo) { var x = 3; foo(x); } else { var y = 4; bar(y); }")))
+          
 (deftest test-new-operator
   (is (= (js (new google.visualization.ColumnChart (.getElementById document "chart_div"))) "new google.visualization.ColumnChart(document.getElementById(\"chart_div\"))")))
 
