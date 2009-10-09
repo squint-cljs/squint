@@ -51,6 +51,9 @@
 (defmethod emit java.lang.Integer [expr]
   (str expr))
 
+(defmethod emit clojure.lang.Ratio [expr]
+  (str (float expr)))
+
 (defmethod emit clojure.lang.Keyword [expr]
   (str (name expr)))
 

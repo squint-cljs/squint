@@ -9,7 +9,8 @@
   (str/trim (str/replace (str/replace str #"\n" " ") #"[ ]+" " ")))
   
 (deftest int-literal
-  (is (= (js 42) "42")))
+  (is (= (js 42) "42"))
+  (is (= (js 1/2) "0.5")))
 
 (deftest test-var-expr
   (is (= (js (var x 42)) "var x = 42")))
