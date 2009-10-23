@@ -53,7 +53,7 @@ Note that JSON map keys aren't necessarily converted to strings. If you want the
 
 Lists
 ----
-Lists where the first element is a symbol are converted to function calls, and "special forms." The list of special forms is currently [var . if fn set! return new]. If the head of the list is not one of the special forms, a list returns a normal function call
+Lists where the first element is a symbol are converted to function calls, and "special forms." If the head of the list is not one of the special forms, a list returns a normal function call.
 
 Normal Function Calls
 -----------------
@@ -102,6 +102,14 @@ Takes one argument, results in a return statement
     (js (return x)) 
     => "return x;"
 
+**delete**
+    (delete value)
+
+Takes one argument, results in a delete statement
+
+    (js (delete x)) 
+    => "delete x;"
+
 **new**
     (new Obj & args)
 
@@ -117,7 +125,8 @@ Returns the series of expressions, separated by semicolons
     (js (do
              (var x 3)
              (var y 4)))
-    => "var x = 3;\n var y = 4;"
+    => "var x = 3;
+        var y = 4;"
 
 **dot Method calls**
     (. method Obj & args)
@@ -169,16 +178,15 @@ This will return a javascript function, with the name being whatever Clojure val
 Tips and Tricks
 ------------
 
-* If you want to pass a js form from one clojure function to another, use a quote and do. For example:
+If you want to pass a js form from one clojure function to another, use a quote and do. For example:
 
     (let [extra-js (quote (do (baz x) (var y 4)))]
          (defn gen-js [extra-js]
              (js (fn foo [x]
                       (bar x)
                       (clj extra-js)))))
-
-   => "function foo(x) {
+    => "function foo(x) {
               bar(x);
-	      baz(x);
+              baz(x);
               var y = 4;
          }"
