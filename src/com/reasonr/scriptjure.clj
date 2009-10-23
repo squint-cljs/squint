@@ -137,9 +137,9 @@
       (emit-function nil signature body))))
 
 (defmethod emit clojure.lang.Cons [expr]
-  (emit (reverse (into '() expr))))
+  (emit (list* expr)))
 
-(defmethod emit clojure.lang.PersistentList [expr]
+(defmethod emit clojure.lang.IPersistentList [expr]
   (if (symbol? (first expr))
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
 	  expr (conj (rest expr) head)]
@@ -150,21 +150,15 @@
 	:else (emit-special 'funcall expr)))
     (throw (new Exception (str "invalid form: " expr)))))
 
-(defmethod emit clojure.lang.LazilyPersistentVector [expr]
+(defmethod emit clojure.lang.IPersistentVector [expr]
   (str "[" (str/join ", " (map emit expr)) "]"))
 
-(defmethod emit clojure.lang.LazySeq [expr]
-  (emit (into [] expr)))
+;(defmethod emit clojure.lang.LazySeq [expr]
+;  (emit (into [] expr)))
 
-(defn emit-map [expr]
+(defmethod emit clojure.lang.IPersistentMap [expr]
   (letfn [(json-pair [pair] (str (emit (key pair)) ": " (emit (val pair))))]
     (str "{" (str/join ", " (map json-pair (seq expr))) "}")))
-
-(defmethod emit clojure.lang.PersistentArrayMap [expr]
-  (emit-map expr))
-
-(defmethod emit clojure.lang.PersistentHashMap [expr]
-  (emit-map expr))
 
 (defn _js [forms]
   (let [code (if (> (count forms) 1)
@@ -174,7 +168,7 @@
     code))
 
 (defn- unquote?
-  "Tests whether the given form is of the form (unquote ...)."
+  "Tests whether the form is (unquote ...)."
   [form]
   (and (seq? form) (symbol? (first form)) (= (symbol (name (first form))) 'clj)))
 

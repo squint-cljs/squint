@@ -8,7 +8,7 @@
   [str]
   (str/trim (str/replace (str/replace str #"\n" " ") #"[ ]+" " ")))
   
-(deftest int-literal
+(deftest number-literal
   (is (= (js 42) "42"))
   (is (= (js 1/2) "0.5")))
 
