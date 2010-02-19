@@ -1,4 +1,4 @@
-(ns scriptjure
+(ns test-scriptjure
   (:use clojure.test)
   (:use com.reasonr.scriptjure)
   (:require [clojure.contrib.str-utils2 :as str]))
@@ -52,6 +52,9 @@
 
 (deftest test-array
   (is (= (js [1 "2" :foo]) "[1, \"2\", foo]")))
+
+(deftest test-aget
+  (is (= (js (aget foo 2)) "foo[2]")))
 
 (deftest test-map
   (is (= (strip-whitespace (js {:packages ["columnchart"]})) "{packages: [\"columnchart\"]}")))
