@@ -117,6 +117,16 @@ Results in a new statement. The first argument is the object. All remaining item
     (js (new google.visualization.Query url)) 
     => "new google.visualization.Query(url)"
 
+**aget**
+    (aget obj index)
+
+    (js (aget foo 42))
+    => "foo[42]"
+
+To set an array, combine with set!
+ 
+    (js (set! (aget foo 42) 13))
+
 **do**
    (do & exprs)
 
