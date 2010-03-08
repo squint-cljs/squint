@@ -90,7 +90,7 @@
 (defn emit-method [obj method args]
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
 
-(defmethod emit-special '. [type [period method obj & args]]
+(defmethod emit-special '. [type [period obj method & args]]
   (emit-method obj method args))
 
 (defmethod emit-special 'if [type [if test true-form & false-form]]

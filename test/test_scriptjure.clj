@@ -32,8 +32,8 @@
     (is (= (js (clj foo)) "42"))))
 	 
 (deftest test-dot-fn-call
-  (is (= (js (. bar foo :a :b)) "foo.bar(a, b)"))
-  (is (= (js (. bar google.chart :a :b)) "google.chart.bar(a, b)")))
+  (is (= (js (. foo bar :a :b)) "foo.bar(a, b)"))
+  (is (= (js (. google.chart bar :a :b)) "google.chart.bar(a, b)")))
 
 (deftest test-dot-method-call
   (is (= (js (.bar google.chart :a :b)) "google.chart.bar(a, b)")))
