@@ -27,11 +27,10 @@
 (ns #^{:author "Allen Rohner"
        :doc "A library for generating javascript from Clojure."}
        com.reasonr.scriptjure
-  (:require [clojure.contrib.str-utils2 :as str])
-  (:use clojure.walk))
+       (:require [clojure.contrib.str-utils2 :as str])
+       (:use clojure.walk))
 
-(defmulti emit (fn [ expr ] (do ; (println "emit-dispatch: " expr (type expr)) 
-				(type expr))))
+(defmulti emit (fn [ expr ] (type expr)))
 
 (defmulti emit-special (fn [ & args] (identity (first args))))
 
@@ -142,10 +141,10 @@
 	  body (rest expr)]
       (emit-function nil signature body))))
 
-(defmethod emit clojure.lang.Cons [expr]
-  (emit (list* expr)))
+(derive clojure.lang.Cons ::list)
+(derive clojure.lang.IPersistentList ::list)
 
-(defmethod emit clojure.lang.IPersistentList [expr]
+(defmethod emit ::list [expr]
   (if (symbol? (first expr))
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
 	  expr (conj (rest expr) head)]
@@ -185,8 +184,8 @@
 
 (defn- inner-walk [form]
   (cond 
-    (unquote? form) (handle-unquote form)
-    :else (walk inner-walk outer-walk form)))
+   (unquote? form) (handle-unquote form)
+   :else (walk inner-walk outer-walk form)))
 
 (defn- outer-walk [form]
   (cond
@@ -198,8 +197,14 @@
   (let [post-form (walk inner-walk outer-walk form)]
     post-form))
 
+(defmacro js*
+  "returns a fragment of 'uncompiled' javascript. Compile to a string using js."
+  [& forms]
+  (if (= (count forms) 1)
+    `(quasiquote ~(first forms))
+    `(quasiquote ~forms)))
+
 (defmacro js 
   "takes one or more forms. Returns a string of the forms translated into javascript"
   [& forms]
   `(_js (quasiquote ~forms)))
-

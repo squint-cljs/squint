@@ -184,13 +184,11 @@ To get the value of a clojure expression into javascript, use (clj)
 
 This will return a javascript function, with the name being whatever Clojure value foo resolves to.
 
+** Composing JS in Clojure **
 
-Tips and Tricks
-------------
+If you want to pass a js form from one clojure function to another, use js*
 
-If you want to pass a js form from one clojure function to another, use a quote and do. For example:
-
-    (let [extra-js (quote (do (baz x) (var y 4)))]
+    (let [extra-js (js* (do (baz x) (var y 4)))]
          (defn gen-js [extra-js]
              (js (fn foo [x]
                       (bar x)
