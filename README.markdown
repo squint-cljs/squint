@@ -142,7 +142,7 @@ Returns the series of expressions, separated by semicolons
     (. method Obj & args)
 
 Works like the dot form in Clojure. If the first item in the list is a dot, calls method on Obj. All remaining items are arguments to the method call
-    (js (. bar google.chart :a :b)) 
+    (js (. google.chart bar :a :b))
     => "google.chart.bar(a,b)"
 
    .method also works:
