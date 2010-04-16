@@ -27,7 +27,7 @@
 (ns #^{:author "Allen Rohner"
        :doc "A library for generating javascript from Clojure."}
        com.reasonr.scriptjure
-       (:require [clojure.contrib.str-utils2 :as str])
+       (:require [clojure.contrib.string :as str])
        (:use clojure.walk))
 
 (defmulti emit (fn [ expr ] (type expr)))
@@ -37,7 +37,7 @@
 (def statement-separator ";\n")
 
 (defn statement [expr]
-  (if (not (= statement-separator (str/tail expr (count statement-separator))))
+  (if (not (= statement-separator (str/tail (count statement-separator) expr)))
     (str expr statement-separator)
     expr))
 
@@ -102,7 +102,7 @@
 	      " }"))))
        
 (defmethod emit-special 'dot-method [type [method obj & args]]
-  (let [method (symbol (str/drop (str method) 1))]
+  (let [method (symbol (str/drop 1 (str method)))]
     (emit-method obj method args)))
 
 (defmethod emit-special 'return [type [return expr]]
@@ -149,7 +149,7 @@
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
 	  expr (conj (rest expr) head)]
       (cond 
-	(and (= (str/get (str head) 0) \.) (> (count (str head)) 1)) (emit-special 'dot-method expr)
+       (and (= (str/get (str head) 0) \.) (> (count (str head)) 1)) (emit-special 'dot-method expr)
 	(special-form? head) (emit-special head expr)
 	(infix-operator? head) (emit-infix head expr)
 	:else (emit-special 'funcall expr)))
