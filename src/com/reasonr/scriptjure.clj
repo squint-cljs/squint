@@ -202,7 +202,8 @@
   [& forms]
   (if (= (count forms) 1)
     `(quasiquote ~(first forms))
-    `(quasiquote ~forms)))
+    (let [do-form `(do ~@forms)]
+      `(quasiquote ~do-form))))
 
 (defmacro js 
   "takes one or more forms. Returns a string of the forms translated into javascript"

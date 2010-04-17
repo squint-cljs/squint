@@ -80,4 +80,12 @@
     (is (= (strip-whitespace (js (fn foo [x] (clj stuff))))
 	   "function foo(x) { var x = 3; var y = 4; }"))))
 
+(deftest test-js*-adds-implicit-do
+  (let [one (js* (var x 3)
+                 (var y 4))
+        two (js* (do
+                   (var x 3)
+                   (var y 4)))]
+    (is (= (js (clj one)) (js (clj two))))))
+
 (run-tests)
