@@ -199,4 +199,4 @@ If you want to pass a js form from one clojure function to another, use js*
               var y = 4;
          }"
 
-cljs and cljs* are shortcuts for (js (clj ...)) and (js* (clj ..)) respectively. Note that cljs and cljs* only take one form. 
+`cljs` and `cljs*` are shortcuts for `(js (clj ...))` and `(js* (clj ..))` respectively. Note that both only take one form. 
