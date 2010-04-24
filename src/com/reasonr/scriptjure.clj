@@ -205,6 +205,16 @@
     (let [do-form `(do ~@forms)]
       `(quasiquote ~do-form))))
 
+(defmacro cljs*
+  "equivalent to (js* (clj form))"
+  [form]
+  `(js* (~'clj ~form)))
+
+(defmacro cljs
+  "equivalent to (js (clj form))"
+  [form]
+  `(js (clj ~form)))
+
 (defmacro js 
   "takes one or more forms. Returns a string of the forms translated into javascript"
   [& forms]

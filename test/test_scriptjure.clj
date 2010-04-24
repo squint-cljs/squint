@@ -88,4 +88,12 @@
                    (var y 4)))]
     (is (= (js (clj one)) (js (clj two))))))
 
+(deftest test-cljs
+  (let [foo 42]
+    (is (= (cljs foo) (js (clj foo))))))
+
+(deftest test-cljs*
+  (let [foo (fn [] (+ 1 2))]
+    (is (= (cljs* foo) (js* (clj foo))))))
+
 (run-tests)
