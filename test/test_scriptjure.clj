@@ -45,26 +45,26 @@
 	 "if (foo) { var x = 3; foo(x); } else { var y = 4; bar(y); }")))
           
 (deftest test-new-operator
-  (is (= (js (new google.visualization.ColumnChart (.getElementById document "chart_div"))) "new google.visualization.ColumnChart(document.getElementById(\"chart_div\"))")))
+  (is (= (js (new google.visualization.ColumnChart (.getElementById document "chart_div"))) "new google.visualization.ColumnChart(document.getElementById('chart_div'))")))
 
 (deftest test-fn
   (is (= (strip-whitespace (js (fn foo [x] (foo a) (bar b)))) "function foo(x) { foo(a); bar(b); }")))
 
 (deftest test-array
-  (is (= (js [1 "2" :foo]) "[1, \"2\", foo]")))
+  (is (= (js [1 "2" :foo]) "[1, '2', foo]")))
 
 (deftest test-aget
   (is (= (js (aget foo 2)) "foo[2]")))
 
 (deftest test-map
-  (is (= (strip-whitespace (js {:packages ["columnchart"]})) "{packages: [\"columnchart\"]}")))
+  (is (= (strip-whitespace (js {:packages ["columnchart"]})) "{packages: ['columnchart']}")))
 
 (deftest jquery
   (is (= (strip-whitespace (js (.ready ($j document) 
 				       (fn [] 
 					 (.bind ($j "div-id") "click" 
 						(fn [e] 
-						  (.cookie $j "should-display-make-public" true))))))) "$j(document).ready(function () { $j(\"div-id\").bind(\"click\", function (e) { $j.cookie(\"should-display-make-public\", true); } ); } )" )))
+						  (.cookie $j "should-display-make-public" true))))))) "$j(document).ready(function () { $j('div-id').bind('click', function (e) { $j.cookie('should-display-make-public', true); } ); } )" )))
 
 (deftest test-do
   (is (= (strip-whitespace 
