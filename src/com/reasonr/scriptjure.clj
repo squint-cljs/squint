@@ -67,7 +67,7 @@
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget]))
 
-(def infix-operators (set ['+ '- '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '||]))
+(def infix-operators (set ['+ '- '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
 
 (defn special-form? [expr]
   (contains? special-forms expr))
