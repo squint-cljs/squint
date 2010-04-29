@@ -97,9 +97,9 @@
        (emit true-form)
        "\n }"
        (when (first false-form)
-	 (str " else { \n"
-	      (emit (first false-form))
-	      " }"))))
+         (str " else { \n"
+              (emit (first false-form))
+              " }"))))
        
 (defmethod emit-special 'dot-method [type [method obj & args]]
   (let [method (symbol (str/drop 1 (str method)))]
@@ -134,11 +134,11 @@
 (defmethod emit-special 'fn [type [fn & expr]]
   (if (symbol? (first expr))
     (let [name (first expr)
-	  signature (second expr)
-	  body (rest (rest expr))]
+          signature (second expr)
+          body (rest (rest expr))]
       (emit-function name signature body))
     (let [signature (first expr)
-	  body (rest expr)]
+          body (rest expr)]
       (emit-function nil signature body))))
 
 (derive clojure.lang.Cons ::list)
@@ -147,12 +147,12 @@
 (defmethod emit ::list [expr]
   (if (symbol? (first expr))
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
-	  expr (conj (rest expr) head)]
+          expr (conj (rest expr) head)]
       (cond 
        (and (= (str/get (str head) 0) \.) (> (count (str head)) 1)) (emit-special 'dot-method expr)
-	(special-form? head) (emit-special head expr)
-	(infix-operator? head) (emit-infix head expr)
-	:else (emit-special 'funcall expr)))
+        (special-form? head) (emit-special head expr)
+        (infix-operator? head) (emit-infix head expr)
+        :else (emit-special 'funcall expr)))
     (throw (new Exception (str "invalid form: " expr)))))
 
 (defmethod emit clojure.lang.IPersistentVector [expr]
@@ -167,8 +167,8 @@
 
 (defn _js [forms]
   (let [code (if (> (count forms) 1)
-	       (emit-do forms)
-	       (emit (first forms)))]
+               (emit-do forms)
+               (emit (first forms)))]
     ;(println "js " forms " => " code)
     code))
 

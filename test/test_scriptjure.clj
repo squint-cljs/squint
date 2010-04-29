@@ -30,7 +30,7 @@
 (deftest test-clj
   (let [foo 42]
     (is (= (js (clj foo)) "42"))))
-	 
+         
 (deftest test-dot-fn-call
   (is (= (js (. foo bar :a :b)) "foo.bar(a, b)"))
   (is (= (js (. google.chart bar :a :b)) "google.chart.bar(a, b)")))
@@ -40,9 +40,9 @@
 
 (deftest test-if
   (is (= (strip-whitespace (js (if (&& (== foo bar) (!= foo baz)) (.draw google.chart))))
-	 "if (((foo == bar) && (foo != baz))) { google.chart.draw() }"))
+         "if (((foo == bar) && (foo != baz))) { google.chart.draw() }"))
   (is (= (strip-whitespace (js (if foo (do (var x 3) (foo x)) (do (var y 4) (bar y)))))
-	 "if (foo) { var x = 3; foo(x); } else { var y = 4; bar(y); }")))
+         "if (foo) { var x = 3; foo(x); } else { var y = 4; bar(y); }")))
           
 (deftest test-new-operator
   (is (= (js (new google.visualization.ColumnChart (.getElementById document "chart_div"))) "new google.visualization.ColumnChart(document.getElementById('chart_div'))")))
@@ -61,24 +61,24 @@
 
 (deftest jquery
   (is (= (strip-whitespace (js (.ready ($j document) 
-				       (fn [] 
-					 (.bind ($j "div-id") "click" 
-						(fn [e] 
-						  (.cookie $j "should-display-make-public" true))))))) "$j(document).ready(function () { $j('div-id').bind('click', function (e) { $j.cookie('should-display-make-public', true); } ); } )" )))
+                                       (fn [] 
+                                         (.bind ($j "div-id") "click" 
+                                                (fn [e] 
+                                                  (.cookie $j "should-display-make-public" true))))))) "$j(document).ready(function () { $j('div-id').bind('click', function (e) { $j.cookie('should-display-make-public', true); } ); } )" )))
 
 (deftest test-do
   (is (= (strip-whitespace 
-	  (js 
-	   (var x 3)
-	   (var y 4)
-	   (+ x y))) "var x = 3; var y = 4; (x + y);")))
+          (js 
+           (var x 3)
+           (var y 4)
+           (+ x y))) "var x = 3; var y = 4; (x + y);")))
 
 (deftest test-combine-forms
   (let [stuff (js* (do
-		       (var x 3)
-		       (var y 4)))]
+                       (var x 3)
+                       (var y 4)))]
     (is (= (strip-whitespace (js (fn foo [x] (clj stuff))))
-	   "function foo(x) { var x = 3; var y = 4; }"))))
+           "function foo(x) { var x = 3; var y = 4; }"))))
 
 (deftest test-js*-adds-implicit-do
   (let [one (js* (var x 3)
