@@ -73,6 +73,12 @@
            (var y 4)
            (+ x y))) "var x = 3; var y = 4; (x + y);")))
 
+(deftest test-doseq
+  (is (= (strip-whitespace (js (doseq [i [1 2 3]] (foo i))))
+	 "for (i in [1 2 3]) { foo(i); }"))
+  (is (= (strip-whitespace (js (doseq [i [1 2 3] j [4 5]] (foo i j))))
+	 "for (i in [1 2 3]) { for (j in [4 5]) { foo(i, j); } }")))
+
 (deftest test-combine-forms
   (let [stuff (js* (do
                        (var x 3)
