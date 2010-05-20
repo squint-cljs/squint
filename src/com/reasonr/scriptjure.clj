@@ -65,7 +65,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'doseq]))
+(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'doseq 'str]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
 
@@ -85,6 +85,9 @@
 
 (defmethod emit-special 'funcall [type [name & args]]
   (str (emit name) (comma-list (map emit args))))
+
+(defmethod emit-special 'str [type [str & args]]
+  (apply clojure.core/str (interpose "+" (map emit args))))
 
 (defn emit-method [obj method args]
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
