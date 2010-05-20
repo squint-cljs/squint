@@ -65,7 +65,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget]))
+(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'doseq]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
 
@@ -125,6 +125,13 @@
 
 (defmethod emit-special 'do [type [ do & exprs]]
   (emit-do exprs))
+
+(defmethod emit-special 'doseq [type [doseq bindings & body]]
+  (str "for (" (emit (first bindings)) " in " (second bindings) ") { \n"
+       (if-let [more (nnext bindings)]
+         (emit (list* 'doseq more body))
+         (emit-do body))
+       "\n }"))
 
 (defn emit-function [name sig body]
   (assert (or (symbol? name) (nil? name)))
