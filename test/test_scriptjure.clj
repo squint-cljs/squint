@@ -30,7 +30,11 @@
 (deftest test-clj
   (let [foo 42]
     (is (= (js (clj foo)) "42"))))
-         
+
+(deftest test-str
+  (is (= (strip-whitespace (js (str "s" 1)))
+	 "'s'+1")))
+
 (deftest test-dot-fn-call
   (is (= (js (. foo bar :a :b)) "foo.bar(a, b)"))
   (is (= (js (. google.chart bar :a :b)) "google.chart.bar(a, b)")))
