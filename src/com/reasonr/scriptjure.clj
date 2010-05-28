@@ -28,6 +28,7 @@
        :doc "A library for generating javascript from Clojure."}
        com.reasonr.scriptjure
        (:require [clojure.contrib.string :as str])
+       (:use [clojure.contrib.except :only (throwf)])
        (:use clojure.walk))
 
 (defmulti emit (fn [ expr ] (type expr)))
@@ -60,12 +61,14 @@
   (str \' expr \'))
 
 (defmethod emit clojure.lang.Symbol [expr]
+  (when (.contains (str expr) "-")
+    (throwf "'-' is not allowed in javascript symbols"))
   (str expr))
 
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'doseq 'str]))
+(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'for 'doseq 'str 'inc! 'dec!]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
 
@@ -123,11 +126,21 @@
 (defmethod emit-special 'aget [type [aget var idx]]
   (str (emit var) "[" (emit idx) "]"))
 
+(defmethod emit-special 'inc! [type [inc var]]
+  (str (emit var) "++"))
+
+(defmethod emit-special 'dec! [type [dec var]]
+  (str (emit var) "++"))
+
 (defn emit-do [exprs]
   (str/join "" (map (comp statement emit) exprs)))
 
 (defmethod emit-special 'do [type [ do & exprs]]
   (emit-do exprs))
+
+(defmethod emit-special 'for [type [for [start test post] & body]]
+  (str "for (" (emit start) ";" (emit test) ";" (emit post) ") { \n"
+       (emit-do body)))
 
 (defmethod emit-special 'doseq [type [doseq bindings & body]]
   (str "for (" (emit (first bindings)) " in " (second bindings) ") { \n"
