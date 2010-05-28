@@ -15,6 +15,9 @@
 (deftest test-var-expr
   (is (= (js (var x 42)) "var x = 42")))
 
+(deftest test-invalid-variables-throw
+  (is (thrown? Exception (js (var invalid-symbol 42)))))
+
 (deftest test-simple-funcall
   (is (= (js (a b)) "a(b)")))
 
