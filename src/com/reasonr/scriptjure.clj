@@ -68,7 +68,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'doseq 'str]))
+(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'doseq 'str]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
 
@@ -97,6 +97,9 @@
 
 (defmethod emit-special '. [type [period obj method & args]]
   (emit-method obj method args))
+
+(defmethod emit-special '.. [type [dotdot & args]]
+  (apply str (interpose "." (map emit args))))
 
 (defmethod emit-special 'if [type [if test true-form & false-form]]
   (str "if (" (emit test) ") { \n"
@@ -161,8 +164,10 @@
   (if (symbol? (first expr))
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
           expr (conj (rest expr) head)]
-      (cond 
-       (and (= (str/get (str head) 0) \.) (> (count (str head)) 1)) (emit-special 'dot-method expr)
+      (cond
+       (and (= (str/get (str head) 0) \.)
+            (> (count (str head)) 1)
+            (not (= (str/get (str head) 1) \.))) (emit-special 'dot-method expr)
         (special-form? head) (emit-special head expr)
         (infix-operator? head) (emit-infix head expr)
         :else (emit-special 'funcall expr)))
