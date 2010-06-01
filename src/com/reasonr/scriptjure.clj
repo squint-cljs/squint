@@ -62,6 +62,9 @@
 (defmethod emit clojure.lang.Symbol [expr]
   (str expr))
 
+(defmethod emit java.util.regex.Pattern [expr]
+  (str \/ expr \/))
+
 (defmethod emit :default [expr]
   (str expr))
 
