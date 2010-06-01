@@ -45,6 +45,9 @@
 (deftest test-dot-method-call
   (is (= (js (.bar google.chart :a :b)) "google.chart.bar(a, b)")))
 
+(deftest test-dotdot
+  (is (= (js (.. google chart (bar :a :b))) "google.chart.bar(a, b)")))
+
 (deftest test-if
   (is (= (strip-whitespace (js (if (&& (== foo bar) (!= foo baz)) (.draw google.chart))))
          "if (((foo == bar) && (foo != baz))) { google.chart.draw() }"))
