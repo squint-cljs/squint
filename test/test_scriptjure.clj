@@ -12,6 +12,9 @@
   (is (= (js 42) "42"))
   (is (= (js 1/2) "0.5")))
 
+(deftest regex-literal
+  (is (= "/^abc/" (js #"^abc"))))
+
 (deftest test-var-expr
   (is (= (js (var x 42)) "var x = 42")))
 
