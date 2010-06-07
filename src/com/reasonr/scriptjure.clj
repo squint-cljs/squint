@@ -130,7 +130,7 @@
   (str (emit var) "++"))
 
 (defmethod emit-special 'dec! [type [dec var]]
-  (str (emit var) "++"))
+  (str (emit var) "--"))
 
 (defn emit-do [exprs]
   (str/join "" (map (comp statement emit) exprs)))
