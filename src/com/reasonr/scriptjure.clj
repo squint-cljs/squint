@@ -68,7 +68,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'for 'doseq 'str 'inc! 'dec!]))
+(def special-forms (set ['var '. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'for 'while 'doseq 'str 'inc! 'dec!]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
 
@@ -138,9 +138,10 @@
 (defmethod emit-special 'do [type [ do & exprs]]
   (emit-do exprs))
 
-(defmethod emit-special 'for [type [for [start test post] & body]]
-  (str "for (" (emit start) ";" (emit test) ";" (emit post) ") { \n"
-       (emit-do body)))
+(defmethod emit-special 'while [type [while test & body]]
+  (str "while (" (emit test) ") { \n"
+       (emit-do body)
+       "\n }"))
 
 (defmethod emit-special 'doseq [type [doseq bindings & body]]
   (str "for (" (emit (first bindings)) " in " (second bindings) ") { \n"
