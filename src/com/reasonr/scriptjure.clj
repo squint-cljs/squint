@@ -150,7 +150,7 @@
        "\n }"))
 
 (defmethod emit-special 'doseq [type [doseq bindings & body]]
-  (str "for (" (emit (first bindings)) " in " (second bindings) ") { \n"
+  (str "for (" (emit (first bindings)) " in " (emit (second bindings)) ") { \n"
        (if-let [more (nnext bindings)]
          (emit (list* 'doseq more body))
          (emit-do body))
