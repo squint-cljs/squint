@@ -33,7 +33,7 @@
 
 (defmulti emit (fn [ expr ] (type expr)))
 
-(defmulti emit-special (fn [ & args] (identity (first args))))
+(defmulti emit-special (fn [ & args] (first args)))
 
 (def statement-separator ";\n")
 
