@@ -86,8 +86,16 @@
     (throw (Exception. "not supported yet")))
   (str "(" (emit (first args)) " " operator " " (emit (second args)) ")" ))
 
-(defmethod emit-special 'var [type [var name expr]]
-  (str "var " (emit name) " = " (emit expr)))
+(def var-declarations nil)
+
+(defmethod emit-special 'var [type [var & more]]
+  (assert (even? (count more)))
+  (if var-declarations
+    (apply swap! var-declarations conj (filter identity (map (fn [name i] (when (odd? i) name)) more (iterate inc 1)))))
+  (apply str (interpose statement-separator
+                        (map (fn [[name expr]]
+                               (str (when-not var-declarations "var ") (emit name) " = " (emit expr)))
+                             (partition 2 more)))))
 
 (defmethod emit-special 'funcall [type [name & args]]
   (str (emit name) (comma-list (map emit args))))
@@ -156,10 +164,16 @@
          (emit-do body))
        "\n }"))
 
+(defn emit-var-declarations []
+  (when-not (empty? @var-declarations)
+    (apply str "var " (str/join ", " (map emit @var-declarations)) statement-separator)))
+
 (defn emit-function [name sig body]
   (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
-  (str "function " name (comma-list sig) " {\n" (emit-do body) " }\n"))
+  (binding [var-declarations (atom [])]
+    (let [body (emit-do body)]
+      (str "function " name (comma-list sig) " {\n" (emit-var-declarations)  body " }\n"))))
 
 (defmethod emit-special 'fn [type [fn & expr]]
   (if (symbol? (first expr))
