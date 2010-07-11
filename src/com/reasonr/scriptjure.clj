@@ -58,7 +58,7 @@
   (str (name expr)))
 
 (defmethod emit java.lang.String [expr]
-  (str \' expr \'))
+  (str \" (.replace expr "\"" "\\\"") \"))
 
 (defmethod emit clojure.lang.Symbol [expr]
   (when (.contains (str expr) "-")
