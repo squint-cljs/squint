@@ -16,7 +16,8 @@
   (is (= "/^abc/" (js #"^abc"))))
 
 (deftest test-var-expr
-  (is (= (js (var x 42)) "var x = 42")))
+  (is (= (js (var x 42)) "var x = 42"))
+  (is (= (strip-whitespace (js (var x 1 y 2))) (strip-whitespace "var x = 1; var y = 2"))))
 
 (deftest test-invalid-variables-throw
   (is (thrown? Exception (js (var invalid-symbol 42)))))
@@ -97,7 +98,7 @@
                        (var x 3)
                        (var y 4)))]
     (is (= (strip-whitespace (js (fn foo [x] (clj stuff))))
-           "function foo(x) { var x = 3; var y = 4; }"))))
+           "function foo(x) { var x, y; x = 3; y = 4; }"))))
 
 (deftest test-js*-adds-implicit-do
   (let [one (js* (var x 3)
