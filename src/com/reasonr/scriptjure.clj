@@ -190,8 +190,8 @@
 (defmethod emit clojure.lang.IPersistentVector [expr]
   (str "[" (str/join ", " (map emit expr)) "]"))
 
-;(defmethod emit clojure.lang.LazySeq [expr]
-;  (emit (into [] expr)))
+(defmethod emit clojure.lang.LazySeq [expr]
+  (emit (into [] expr)))
 
 (defmethod emit clojure.lang.IPersistentMap [expr]
   (letfn [(json-pair [pair] (str (emit (key pair)) ": " (emit (val pair))))]
