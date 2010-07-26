@@ -108,6 +108,10 @@
                    (var y 4)))]
     (is (= (js (clj one)) (js (clj two))))))
 
+(deftest test-lazy-seq-expands-to-array-inside-clj
+  (let [vals (range 20)]
+    (is (= (js (clj vals)) "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]"))))
+
 (deftest test-cljs
   (let [foo 42]
     (is (= (cljs foo) (js (clj foo))))))
