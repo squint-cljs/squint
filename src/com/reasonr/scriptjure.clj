@@ -71,9 +71,9 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec!]))
+(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc '? 'and 'or]))
 
-(def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
+(def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '|| '= 'not=]))
 
 (defn special-form? [expr]
   (contains? special-forms expr))
@@ -84,7 +84,8 @@
 (defn emit-infix [type [operator & args]]
   (when (< (count args) 2)
     (throw (Exception. "not supported yet")))
-  (str "(" (emit (first args)) " " operator " " (emit (second args)) ")" ))
+  (let [substitutions {'= '=== '!= '!== 'not= '!==}]
+    (str "(" (emit (first args)) " " (or (substitutions operator) operator) " " (emit (second args)) ")" )))
 
 (def var-declarations nil)
 
@@ -148,6 +149,21 @@
 (defmethod emit-special 'dec! [type [dec var]]
   (str (emit var) "--"))
 
+(defmethod emit-special 'dec [type [_ var]]
+  (str (emit var) "-" 1))
+
+(defmethod emit-special 'inc [type [_ var]]
+  (str (emit var) "+" 1))
+
+(defmethod emit-special '? [type [_ var]]
+  (str "typeof " (emit var) " !== \"undefined\" && " (emit var) " !== null"))
+
+(defmethod emit-special 'and [type [_ & more]]
+  (apply str (interpose "&&" (map emit more))))
+
+(defmethod emit-special 'or [type [_ & more]]
+  (apply str (interpose "||" (map emit more))))
+
 (defn emit-do [exprs]
   (str/join "" (map (comp statement emit) exprs)))
 
@@ -192,16 +208,19 @@
 
 (defmethod emit ::list [expr]
   (if (symbol? (first expr))
-    (let [head (symbol (name (first expr)))  ; remove any ns resolution
+    (let [head (symbol (name (first expr))) ; remove any ns resolution
           expr (conj (rest expr) head)]
       (cond
        (and (= (str/get (str head) 0) \.)
             (> (count (str head)) 1)
             (not (= (str/get (str head) 1) \.))) (emit-special 'dot-method expr)
-        (special-form? head) (emit-special head expr)
-        (infix-operator? head) (emit-infix head expr)
-        :else (emit-special 'funcall expr)))
-    (throw (new Exception (str "invalid form: " expr)))))
+       (special-form? head) (emit-special head expr)
+       (infix-operator? head) (emit-infix head expr)
+       :else (emit-special 'funcall expr)))
+    (if (and (= 1 (count expr)) (list? expr))
+      (str (emit (first expr)) "()")
+      (throw (new Exception (str "invalid form: " expr))))
+    ))
 
 (defmethod emit clojure.lang.IPersistentVector [expr]
   (str "[" (str/join ", " (map emit expr)) "]"))
