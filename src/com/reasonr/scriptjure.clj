@@ -131,8 +131,10 @@
 (defmethod emit-special 'delete [type [return expr]]
   (str "delete " (emit expr)))
 
-(defmethod emit-special 'set! [type [set! var val]]
-  (str (emit var) " = " (emit val)))
+(defmethod emit-special 'set! [type [set! var val & more]]
+  (assert (or (nil? more) (even? (count more))))
+  (str (emit var) " = " (emit val)
+       (if more (str statement-separator (emit (cons 'set! more))))))
 
 (defmethod emit-special 'new [type [new class & args]]
   (str "new " (emit class) (comma-list (map emit args))))
