@@ -101,7 +101,7 @@
   (str (emit name) (comma-list (map emit args))))
 
 (defmethod emit-special 'str [type [str & args]]
-  (apply clojure.core/str (interpose "+" (map emit args))))
+  (apply clojure.core/str (interpose " + " (map emit args))))
 
 (defn emit-method [obj method args]
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
