@@ -71,7 +71,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc '? 'and 'or]))
+(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or]))
 
 (def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '|| '= 'not=]))
 
@@ -155,7 +155,7 @@
 (defmethod emit-special 'inc [type [_ var]]
   (str (emit var) "+" 1))
 
-(defmethod emit-special '? [type [_ var]]
+(defmethod emit-special 'defined? [type [_ var]]
   (str "typeof " (emit var) " !== \"undefined\" && " (emit var) " !== null"))
 
 (defmethod emit-special 'and [type [_ & more]]
