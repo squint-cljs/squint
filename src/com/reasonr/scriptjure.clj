@@ -93,10 +93,10 @@
   (assert (even? (count more)))
   (if var-declarations
     (apply swap! var-declarations conj (filter identity (map (fn [name i] (when (odd? i) name)) more (iterate inc 1)))))
-  (apply str (interpose statement-separator
-                        (map (fn [[name expr]]
-                               (str (when-not var-declarations "var ") (emit name) " = " (emit expr)))
-                             (partition 2 more)))))
+  (apply str (interleave (map (fn [[name expr]]
+                                (str (when-not var-declarations "var ") (emit name) " = " (emit expr)))
+                              (partition 2 more))
+                         (repeat statement-separator))))
 
 (defmethod emit-special 'funcall [type [name & args]]
   (str (emit name) (comma-list (map emit args))))
