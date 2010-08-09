@@ -194,7 +194,7 @@
   (assert (vector? sig))
   (binding [var-declarations (atom [])]
     (let [body (emit-do body)]
-      (str "function " name (comma-list sig) " {\n" (emit-var-declarations)  body " }\n"))))
+      (str "(function " name (comma-list sig) " {\n" (emit-var-declarations)  body " })"))))
 
 (defmethod emit-special 'fn [type [fn & expr]]
   (if (symbol? (first expr))
@@ -220,8 +220,8 @@
        (special-form? head) (emit-special head expr)
        (infix-operator? head) (emit-infix head expr)
        :else (emit-special 'funcall expr)))
-    (if (and (= 1 (count expr)) (list? expr))
-      (str (emit (first expr)) "()")
+    (if (list? expr)
+      (emit-special 'funcall expr)
       (throw (new Exception (str "invalid form: " expr))))
     ))
 
