@@ -28,7 +28,10 @@
   (is (= (js (a b c)) "a(b, c)")))
 
 (deftest test-arithmetic 
-  (is (= (js (* x y)) "(x * y)")))
+  (is (= (js (* x y)) "(x * y)"))
+  (is (= (js (+ x y)) "(x + y)"))
+  (is (= (js (* x y z a b c)) "(x * y * z * a * b * c)"))
+  (is (= (js (+ x y z a b c)) "(x + y + z + a + b + c)")))
 
 (deftest test-return
   (is (= (strip-whitespace (js (return 42))) "return 42;")))
