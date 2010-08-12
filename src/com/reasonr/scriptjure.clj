@@ -79,6 +79,8 @@
 
 (def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
 
+(def chainable-infix-operators (set ['+ '- '* '/ '& '| '&& '||]))
+
 (defn special-form? [expr]
   (contains? special-forms expr))
 
@@ -88,7 +90,9 @@
 (defn emit-infix [type [operator & args]]
   (when (< (count args) 2)
     (throw (Exception. "not supported yet")))
-  (str "(" (emit (first args)) " " operator " " (emit (second args)) ")" ))
+  (when (and (not (chainable-infix-operators operator)) (> (count args) 2))
+    (throw (Exception. (str "operator " operator " supports only 2 arguments"))))
+  (str "(" (str/join (str " " operator " ") (map emit args)) ")"))
 
 (defmethod emit-special 'var [type [var name expr]]
   (statement (str "var " (emit name) " = " (emit expr))))
