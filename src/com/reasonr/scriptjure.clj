@@ -99,7 +99,10 @@
                          (repeat statement-separator))))
 
 (defmethod emit-special 'funcall [type [name & args]]
-  (str (emit name) (comma-list (map emit args))))
+  (str (if (and (list? name) (= 'fn (first name))) ; function literal call
+         (str "(" (emit name) ")")
+         (emit name))
+       (comma-list (map emit args))))
 
 (defmethod emit-special 'str [type [str & args]]
   (apply clojure.core/str (interpose " + " (map emit args))))
@@ -194,7 +197,7 @@
   (assert (vector? sig))
   (binding [var-declarations (atom [])]
     (let [body (emit-do body)]
-      (str "(function " name (comma-list sig) " {\n" (emit-var-declarations)  body " })"))))
+      (str "function " name (comma-list sig) " {\n" (emit-var-declarations)  body " }"))))
 
 (defmethod emit-special 'fn [type [fn & expr]]
   (if (symbol? (first expr))
