@@ -60,9 +60,13 @@
 (defmethod emit java.lang.String [expr]
   (str \' expr \'))
 
+(defn valid-symbol? [sym]
+  ;;; This is incomplete, it disallows unicode
+  (boolean (re-matches #"[_$\p{Alpha}][.\w]*" (str sym))))
+
 (defmethod emit clojure.lang.Symbol [expr]
-  (when (.contains (str expr) "-")
-    (throwf "'-' is not allowed in javascript symbols"))
+  (when-not (valid-symbol? (str expr))
+    (throwf "%s is not a valid javascript symbol" expr))
   (str expr))
 
 (defmethod emit java.util.regex.Pattern [expr]
@@ -87,7 +91,7 @@
   (str "(" (emit (first args)) " " operator " " (emit (second args)) ")" ))
 
 (defmethod emit-special 'var [type [var name expr]]
-  (str "var " (emit name) " = " (emit expr)))
+  (statement (str "var " (emit name) " = " (emit expr))))
 
 (defmethod emit-special 'funcall [type [name & args]]
   (str (emit name) (comma-list (map emit args))))
@@ -118,7 +122,7 @@
     (emit-method obj method args)))
 
 (defmethod emit-special 'return [type [return expr]]
-  (str "return " (emit expr)))
+  (statement (str "return " (emit expr))))
 
 (defmethod emit-special 'delete [type [return expr]]
   (str "delete " (emit expr)))
