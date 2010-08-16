@@ -89,10 +89,13 @@
 
 (def var-declarations nil)
 
+(defmacro with-var-declarations [& body]
+  `(binding [var-declarations (atom [])]
+     ~@body))
+
 (defmethod emit-special 'var [type [var & more]]
   (assert (even? (count more)))
-  (if var-declarations
-    (apply swap! var-declarations conj (filter identity (map (fn [name i] (when (odd? i) name)) more (iterate inc 1)))))
+  (apply swap! var-declarations conj (filter identity (map (fn [name i] (when (odd? i) name)) more (iterate inc 1))))
   (apply str (interleave (map (fn [[name expr]]
                                 (str (when-not var-declarations "var ") (emit name) " = " (emit expr)))
                               (partition 2 more))
@@ -190,24 +193,29 @@
 
 (defn emit-var-declarations []
   (when-not (empty? @var-declarations)
-    (apply str "var " (str/join ", " (map emit @var-declarations)) statement-separator)))
+    (apply str "var "
+           (str/join ", " (map emit @var-declarations))
+           statement-separator)))
 
 (defn emit-function [name sig body]
   (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
-  (binding [var-declarations (atom [])]
+  (with-var-declarations
     (let [body (emit-do body)]
-      (str "function " name (comma-list sig) " {\n" (emit-var-declarations)  body " }"))))
+      (str "function " (comma-list sig) " {\n"
+           (emit-var-declarations) body " }"))))
 
 (defmethod emit-special 'fn [type [fn & expr]]
-  (if (symbol? (first expr))
-    (let [name (first expr)
-          signature (second expr)
-          body (rest (rest expr))]
-      (emit-function name signature body))
-    (let [signature (first expr)
-          body (rest expr)]
-      (emit-function nil signature body))))
+  (let [name (when (symbol? (first expr)) (first expr))]
+    (when name
+      (swap! var-declarations conj name))
+    (if name
+      (let [signature (second expr)
+            body (rest (rest expr))]
+        (str name " = " (emit-function name signature body)))
+      (let [signature (first expr)
+            body (rest expr)]
+        (str (emit-function nil signature body))))))
 
 (derive clojure.lang.Cons ::list)
 (derive clojure.lang.IPersistentList ::list)
@@ -239,11 +247,12 @@
     (str "{" (str/join ", " (map json-pair (seq expr))) "}")))
 
 (defn _js [forms]
-  (let [code (if (> (count forms) 1)
-               (emit-do forms)
-               (emit (first forms)))]
-    ;(println "js " forms " => " code)
-    code))
+  (with-var-declarations
+       (let [code (if (> (count forms) 1)
+                    (emit-do forms)
+                    (emit (first forms)))]
+         ;;(println "js " forms " => " code)
+         (str (emit-var-declarations) code))))
 
 (defn- unquote?
   "Tests whether the form is (unquote ...)."
