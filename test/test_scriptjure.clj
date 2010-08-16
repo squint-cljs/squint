@@ -16,7 +16,7 @@
   (is (= "/^abc/" (js #"^abc"))))
 
 (deftest test-var-expr
-  (is (= (js (var x 42)) "var x = 42")))
+  (is (= (strip-whitespace (js (var x 42))) "var x = 42;")))
 
 (deftest test-invalid-variables-throw
   (is (thrown? Exception (js (var invalid-symbol 42)))))
@@ -31,7 +31,7 @@
   (is (= (js (* x y)) "(x * y)")))
 
 (deftest test-return
-  (is (= (strip-whitespace (js (return 42))) "return 42")))
+  (is (= (strip-whitespace (js (return 42))) "return 42;")))
 
 (deftest test-clj
   (let [foo 42]
