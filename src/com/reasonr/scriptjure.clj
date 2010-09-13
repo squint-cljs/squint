@@ -55,15 +55,17 @@
 (defmethod emit clojure.lang.Ratio [expr]
   (str (float expr)))
 
-(defmethod emit clojure.lang.Keyword [expr]
-  (str (name expr)))
-
 (defmethod emit java.lang.String [expr]
   (str \' expr \'))
 
 (defn valid-symbol? [sym]
   ;;; This is incomplete, it disallows unicode
   (boolean (re-matches #"[_$\p{Alpha}][.\w]*" (str sym))))
+
+(defmethod emit clojure.lang.Keyword [expr]
+  (when-not (valid-symbol? (str expr))
+    (throwf "%s is not a valid javascript symbol" expr))
+  (str (name expr)))
 
 (defmethod emit clojure.lang.Symbol [expr]
   (when-not (valid-symbol? (str expr))
@@ -78,6 +80,10 @@
 
 (def special-forms (set ['var '. '.. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec!]))
 
+(def prefix-unary-operators (set ['!]))
+
+(def suffix-unary-operators (set ['++ '--]))
+
 (def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
 
 (def chainable-infix-operators (set ['+ '- '* '/ '& '| '&& '||]))
@@ -87,6 +93,18 @@
 
 (defn infix-operator? [expr]
   (contains? infix-operators expr))
+
+(defn prefix-unary? [expr]
+  (contains? prefix-unary-operators expr))
+
+(defn suffix-unary? [expr]
+  (contains? suffix-unary-operators expr))
+
+(defn emit-prefix-unary [type [operator arg]]
+  (str operator arg))
+
+(defn emit-suffix-unary [type [operator arg]]
+  (str arg operator))
 
 (defn emit-infix [type [operator & args]]
   (when (< (count args) 2)
@@ -193,6 +211,8 @@
             (not (= (cstr/get (str head) 1) \.))) (emit-special 'dot-method expr)
         (special-form? head) (emit-special head expr)
         (infix-operator? head) (emit-infix head expr)
+        (prefix-unary? head) (emit-prefix-unary expr)
+        (suffix-unary? head) (emit-suffix-unary expr)
         :else (emit-special 'funcall expr)))
     (throw (new Exception (str "invalid form: " expr)))))
 
