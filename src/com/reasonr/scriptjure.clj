@@ -101,10 +101,10 @@
   (contains? suffix-unary-operators expr))
 
 (defn emit-prefix-unary [type [operator arg]]
-  (str operator arg))
+  (str operator (emit arg)))
 
 (defn emit-suffix-unary [type [operator arg]]
-  (str arg operator))
+  (str (emit arg) operator))
 
 (defn emit-infix [type [operator & args]]
   (when (< (count args) 2)
