@@ -1,4 +1,4 @@
-(defproject scriptjure "0.1.14"
+(defproject scriptjure "0.1.15"
   :description "a clojure DSL for generating javascript"
   :url "http://github.com/arohner/scriptjure"
   :dependencies [[org.clojure/clojure "1.2.0"]
