@@ -33,6 +33,13 @@
   (is (= (js (* x y z a b c)) "(x * y * z * a * b * c)"))
   (is (= (js (+ x y z a b c)) "(x + y + z + a + b + c)")))
 
+(deftest test-prefix-unary
+  (is (= (js (! x) "!x"))))
+
+(deftest test-suffix-unary
+  (is (= (js (++ x) "x++")))
+  (is (= (js (-- x) "x--"))))
+
 (deftest test-return
   (is (= (strip-whitespace (js (return 42))) "return 42;")))
 
