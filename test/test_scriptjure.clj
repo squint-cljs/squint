@@ -19,7 +19,12 @@
   (is (= (strip-whitespace (js (var x 42))) "var x = 42;")))
 
 (deftest test-invalid-variables-throw
+  (is (= (js valid_symbol)) "valid_symbol")
   (is (thrown? Exception (js (var invalid-symbol 42)))))
+
+(deftest test-valid-keyword
+  (is (= (js :foo)) "foo")
+  (is (thrown? Exception (js :invalid-symbol))))
 
 (deftest test-simple-funcall
   (is (= (js (a b)) "a(b)")))
