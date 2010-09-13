@@ -39,10 +39,12 @@
   (is (= (js (+ x y z a b c)) "(x + y + z + a + b + c)")))
 
 (deftest test-prefix-unary
-  (is (= (js (! x) "!x"))))
+  (is (= (js (! x) "!x")))
+  (is (= (js (! (+ x 1))) "!(x + 1)")))
 
 (deftest test-suffix-unary
   (is (= (js (++ x) "x++")))
+  (is (= (js (++ (+ x 1)) "(x + 1)++")))
   (is (= (js (-- x) "x--"))))
 
 (deftest test-return
