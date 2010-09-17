@@ -135,4 +135,28 @@
   (let [foo (fn [] (+ 1 2))]
     (is (= (cljs* foo) (js* (clj foo))))))
 
+(deftest test-literal-fn-call
+  (is (= (strip-whitespace (js ((fn [x] (return x)) 1)))
+         "(function (x) { return x; })(1)"))
+  (is (= (strip-whitespace (js ((fn foo [x] (return x)) 1)))
+         "var foo; (foo = function (x) { return x; })(1)")))
+
+(deftest test-ternary-if
+  (is (= (strip-whitespace (js (? (= 1 2) 3 4)))
+         "(1 === 2) ? 3 : 4")))
+
+(deftest test-dec
+  (is (= (strip-whitespace(js (dec x)))
+         "(x - 1)")))
+
+(deftest test-inc
+  (is (= (strip-whitespace(js (inc x)))
+         "(x + 1)")))
+
+(deftest test-set!
+  (is (= (strip-whitespace (js (set! x 1)))
+         "x = 1;"))
+  (is (= (strip-whitespace(js (set! x 1 y 2)))
+         "x = 1; y = 2;")))
+
 (run-tests)
