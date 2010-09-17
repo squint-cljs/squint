@@ -16,11 +16,16 @@
   (is (= "/^abc/" (js #"^abc"))))
 
 (deftest test-var-expr
-  (is (= (js (var x 42)) "var x = 42"))
+  (is (= (strip-whitespace (js (var x 42))) "var x = 42;"))
   (is (= (strip-whitespace (js (var x 1 y 2))) (strip-whitespace "var x = 1; var y = 2"))))
 
 (deftest test-invalid-variables-throw
+  (is (= (js valid_symbol)) "valid_symbol")
   (is (thrown? Exception (js (var invalid-symbol 42)))))
+
+(deftest test-valid-keyword
+  (is (= (js :foo)) "foo")
+  (is (thrown? Exception (js :invalid-symbol))))
 
 (deftest test-simple-funcall
   (is (= (js (a b)) "a(b)")))
@@ -29,10 +34,20 @@
   (is (= (js (a b c)) "a(b, c)")))
 
 (deftest test-arithmetic 
-  (is (= (js (* x y)) "(x * y)")))
+  (is (= (js (* x y)) "(x * y)"))
+  (is (= (js (+ x y)) "(x + y)"))
+  (is (= (js (* x y z a b c)) "(x * y * z * a * b * c)"))
+  (is (= (js (+ x y z a b c)) "(x + y + z + a + b + c)")))
+
+(deftest test-prefix-unary
+  (is (= (js (! x) "!x"))))
+
+(deftest test-suffix-unary
+  (is (= (js (++ x) "x++")))
+  (is (= (js (-- x) "x--"))))
 
 (deftest test-return
-  (is (= (strip-whitespace (js (return 42))) "return 42")))
+  (is (= (strip-whitespace (js (return 42))) "return 42;")))
 
 (deftest test-clj
   (let [foo 42]

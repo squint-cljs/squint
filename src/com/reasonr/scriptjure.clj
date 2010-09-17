@@ -27,7 +27,8 @@
 (ns #^{:author "Allen Rohner"
        :doc "A library for generating javascript from Clojure."}
        com.reasonr.scriptjure
-       (:require [clojure.contrib.string :as str])
+       (:require [clojure.string :as str])
+       (:require [clojure.contrib.string :as cstr])
        (:use [clojure.contrib.except :only (throwf)])
        (:use clojure.walk))
 
@@ -38,7 +39,7 @@
 (def statement-separator ";\n")
 
 (defn statement [expr]
-  (if (not (= statement-separator (str/tail (count statement-separator) expr)))
+  (if (not (= statement-separator (cstr/tail (count statement-separator) expr)))
     (str expr statement-separator)
     expr))
 
@@ -54,15 +55,21 @@
 (defmethod emit clojure.lang.Ratio [expr]
   (str (float expr)))
 
-(defmethod emit clojure.lang.Keyword [expr]
-  (str (name expr)))
-
 (defmethod emit java.lang.String [expr]
   (str \" (.replace expr "\"" "\\\"") \"))
 
+(defn valid-symbol? [sym]
+  ;;; This is incomplete, it disallows unicode
+  (boolean (re-matches #"[_$\p{Alpha}][.\w]*" (str sym))))
+
+(defmethod emit clojure.lang.Keyword [expr]
+  (when-not (valid-symbol? (name expr))
+    (throwf "%s is not a valid javascript symbol" expr))
+  (str (name expr)))
+
 (defmethod emit clojure.lang.Symbol [expr]
-  (when (.contains (str expr) "-")
-    (throwf "'-' is not allowed in javascript symbols"))
+  (when-not (valid-symbol? (str expr))
+    (throwf "%s is not a valid javascript symbol" expr))
   (str expr))
 
 (defmethod emit java.util.regex.Pattern [expr]
@@ -73,7 +80,14 @@
 
 (def special-forms (set ['var '. '.. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '?]))
 
-(def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '|| '= 'not=]))
+(def prefix-unary-operators (set ['!]))
+
+(def suffix-unary-operators (set ['++ '--]))
+
+(def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=f== '< '> '<= '>= '!=
+                           '<< '>> '<<< '>>> '!== '& '| '&& '|| '= 'not=]))
+
+(def chainable-infix-operators (set ['+ '- '* '/ '& '| '&& '||]))
 
 (defn special-form? [expr]
   (contains? special-forms expr))
@@ -81,11 +95,24 @@
 (defn infix-operator? [expr]
   (contains? infix-operators expr))
 
+(defn prefix-unary? [expr]
+  (contains? prefix-unary-operators expr))
+
+(defn suffix-unary? [expr]
+  (contains? suffix-unary-operators expr))
+
+(defn emit-prefix-unary [type [operator arg]]
+  (str operator arg))
+
+(defn emit-suffix-unary [type [operator arg]]
+  (str arg operator))
+
 (defn emit-infix [type [operator & args]]
-  (when (< (count args) 2)
-    (throw (Exception. "not supported yet")))
+  (when (and (not (chainable-infix-operators operator)) (> (count args) 2))
+    (throw (Exception. (str "operator " operator " supports only 2 arguments"))))
   (let [substitutions {'= '=== '!= '!== 'not= '!==}]
-    (str "(" (emit (first args)) " " (or (substitutions operator) operator) " " (emit (second args)) ")" )))
+    (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
+                       (map emit args)) ")")))
 
 (def var-declarations nil)
 
@@ -129,11 +156,11 @@
               " }"))))
        
 (defmethod emit-special 'dot-method [type [method obj & args]]
-  (let [method (symbol (str/drop 1 (str method)))]
+  (let [method (symbol (cstr/drop 1 (str method)))]
     (emit-method obj method args)))
 
 (defmethod emit-special 'return [type [return expr]]
-  (str "return " (emit expr)))
+  (statement (str "return " (emit expr))))
 
 (defmethod emit-special 'delete [type [return expr]]
   (str "delete " (emit expr)))
@@ -225,16 +252,18 @@
     (let [head (symbol (name (first expr))) ; remove any ns resolution
           expr (conj (rest expr) head)]
       (cond
-       (and (= (str/get (str head) 0) \.)
+       (and (= (cstr/get (str head) 0) \.)
             (> (count (str head)) 1)
-            (not (= (str/get (str head) 1) \.))) (emit-special 'dot-method expr)
+
+            (not (= (cstr/get (str head) 1) \.))) (emit-special 'dot-method expr)
        (special-form? head) (emit-special head expr)
        (infix-operator? head) (emit-infix head expr)
+        (prefix-unary? head) (emit-prefix-unary head expr)
+        (suffix-unary? head) (emit-suffix-unary head expr)
        :else (emit-special 'funcall expr)))
     (if (list? expr)
       (emit-special 'funcall expr)
-      (throw (new Exception (str "invalid form: " expr))))
-    ))
+      (throw (new Exception (str "invalid form: " expr))))))
 
 (defmethod emit clojure.lang.IPersistentVector [expr]
   (str "[" (str/join ", " (map emit expr)) "]"))
