@@ -55,7 +55,7 @@
 
 (deftest test-str
   (is (= (strip-whitespace (js (str "s" 1)))
-	 "'s'+1")))
+	 "\"s\" + 1")))
 
 (deftest test-dot-fn-call
   (is (= (js (. foo bar :a :b)) "foo.bar(a, b)"))
