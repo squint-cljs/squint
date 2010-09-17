@@ -167,8 +167,8 @@
 
 (defmethod emit-special 'set! [type [set! var val & more]]
   (assert (or (nil? more) (even? (count more))))
-  (str (emit var) " = " (emit val)
-       (if more (str statement-separator (emit (cons 'set! more))))))
+  (str (emit var) " = " (emit val) statement-separator
+       (if more (str (emit (cons 'set! more))))))
 
 (defmethod emit-special 'new [type [new class & args]]
   (str "new " (emit class) (comma-list (map emit args))))
@@ -183,10 +183,10 @@
   (str (emit var) "--"))
 
 (defmethod emit-special 'dec [type [_ var]]
-  (str (emit var) "-" 1))
+  (str "(" (emit var) " - " 1 ")"))
 
 (defmethod emit-special 'inc [type [_ var]]
-  (str (emit var) "+" 1))
+  (str "(" (emit var) " + " 1 ")"))
 
 (defmethod emit-special 'defined? [type [_ var]]
   (str "typeof " (emit var) " !== \"undefined\" && " (emit var) " !== null"))
