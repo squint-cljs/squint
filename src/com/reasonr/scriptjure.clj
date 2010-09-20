@@ -34,7 +34,7 @@
 
 (defmulti emit (fn [ expr ] (type expr)))
 
-(defmulti emit-special (fn [ & args] (identity (first args))))
+(defmulti emit-special (fn [ & args] (first args)))
 
 (def statement-separator ";\n")
 
@@ -56,7 +56,7 @@
   (str (float expr)))
 
 (defmethod emit java.lang.String [expr]
-  (str \' expr \'))
+  (str \" (.replace expr "\"" "\\\"") \"))
 
 (defn valid-symbol? [sym]
   ;;; This is incomplete, it disallows unicode
@@ -78,13 +78,14 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec!]))
+(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '?]))
 
 (def prefix-unary-operators (set ['!]))
 
 (def suffix-unary-operators (set ['++ '--]))
 
-(def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
+(def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=f== '< '> '<= '>= '!=
+                           '<< '>> '<<< '>>> '!== '& '| '&& '|| '= 'not=]))
 
 (def chainable-infix-operators (set ['+ '- '* '/ '& '| '&& '||]))
 
@@ -107,20 +108,34 @@
   (str (emit arg) operator))
 
 (defn emit-infix [type [operator & args]]
-  (when (< (count args) 2)
-    (throw (Exception. "not supported yet")))
   (when (and (not (chainable-infix-operators operator)) (> (count args) 2))
     (throw (Exception. (str "operator " operator " supports only 2 arguments"))))
-  (str "(" (str/join (str " " operator " ") (map emit args)) ")"))
+  (let [substitutions {'= '=== '!= '!== 'not= '!==}]
+    (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
+                       (map emit args)) ")")))
 
-(defmethod emit-special 'var [type [var name expr]]
-  (statement (str "var " (emit name) " = " (emit expr))))
+(def var-declarations nil)
+
+(defmacro with-var-declarations [& body]
+  `(binding [var-declarations (atom [])]
+     ~@body))
+
+(defmethod emit-special 'var [type [var & more]]
+  (assert (even? (count more)))
+  (apply swap! var-declarations conj (filter identity (map (fn [name i] (when (odd? i) name)) more (iterate inc 1))))
+  (apply str (interleave (map (fn [[name expr]]
+                                (str (when-not var-declarations "var ") (emit name) " = " (emit expr)))
+                              (partition 2 more))
+                         (repeat statement-separator))))
 
 (defmethod emit-special 'funcall [type [name & args]]
-  (str (emit name) (comma-list (map emit args))))
+  (str (if (and (list? name) (= 'fn (first name))) ; function literal call
+         (str "(" (emit name) ")")
+         (emit name))
+       (comma-list (map emit args))))
 
 (defmethod emit-special 'str [type [str & args]]
-  (apply clojure.core/str (interpose "+" (map emit args))))
+  (apply clojure.core/str (interpose " + " (map emit args))))
 
 (defn emit-method [obj method args]
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
@@ -150,8 +165,10 @@
 (defmethod emit-special 'delete [type [return expr]]
   (str "delete " (emit expr)))
 
-(defmethod emit-special 'set! [type [set! var val]]
-  (str (emit var) " = " (emit val)))
+(defmethod emit-special 'set! [type [set! var val & more]]
+  (assert (or (nil? more) (even? (count more))))
+  (str (emit var) " = " (emit val) statement-separator
+       (if more (str (emit (cons 'set! more))))))
 
 (defmethod emit-special 'new [type [new class & args]]
   (str "new " (emit class) (comma-list (map emit args))))
@@ -164,6 +181,24 @@
 
 (defmethod emit-special 'dec! [type [dec var]]
   (str (emit var) "--"))
+
+(defmethod emit-special 'dec [type [_ var]]
+  (str "(" (emit var) " - " 1 ")"))
+
+(defmethod emit-special 'inc [type [_ var]]
+  (str "(" (emit var) " + " 1 ")"))
+
+(defmethod emit-special 'defined? [type [_ var]]
+  (str "typeof " (emit var) " !== \"undefined\" && " (emit var) " !== null"))
+
+(defmethod emit-special '? [type [_ test then else]]
+  (str (emit test) " ? " (emit then) " : " (emit else)))
+
+(defmethod emit-special 'and [type [_ & more]]
+  (apply str (interpose "&&" (map emit more))))
+
+(defmethod emit-special 'or [type [_ & more]]
+  (apply str (interpose "||" (map emit more))))
 
 (defn emit-do [exprs]
   (str/join "" (map (comp statement emit) exprs)))
@@ -183,38 +218,52 @@
          (emit-do body))
        "\n }"))
 
+(defn emit-var-declarations []
+  (when-not (empty? @var-declarations)
+    (apply str "var "
+           (str/join ", " (map emit @var-declarations))
+           statement-separator)))
+
 (defn emit-function [name sig body]
   (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
-  (str "function " name (comma-list sig) " {\n" (emit-do body) " }\n"))
+  (with-var-declarations
+    (let [body (emit-do body)]
+      (str "function " (comma-list sig) " {\n"
+           (emit-var-declarations) body " }"))))
 
 (defmethod emit-special 'fn [type [fn & expr]]
-  (if (symbol? (first expr))
-    (let [name (first expr)
-          signature (second expr)
-          body (rest (rest expr))]
-      (emit-function name signature body))
-    (let [signature (first expr)
-          body (rest expr)]
-      (emit-function nil signature body))))
+  (let [name (when (symbol? (first expr)) (first expr))]
+    (when name
+      (swap! var-declarations conj name))
+    (if name
+      (let [signature (second expr)
+            body (rest (rest expr))]
+        (str name " = " (emit-function name signature body)))
+      (let [signature (first expr)
+            body (rest expr)]
+        (str (emit-function nil signature body))))))
 
 (derive clojure.lang.Cons ::list)
 (derive clojure.lang.IPersistentList ::list)
 
 (defmethod emit ::list [expr]
   (if (symbol? (first expr))
-    (let [head (symbol (name (first expr)))  ; remove any ns resolution
+    (let [head (symbol (name (first expr))) ; remove any ns resolution
           expr (conj (rest expr) head)]
       (cond
        (and (= (cstr/get (str head) 0) \.)
             (> (count (str head)) 1)
+
             (not (= (cstr/get (str head) 1) \.))) (emit-special 'dot-method expr)
-        (special-form? head) (emit-special head expr)
-        (infix-operator? head) (emit-infix head expr)
+       (special-form? head) (emit-special head expr)
+       (infix-operator? head) (emit-infix head expr)
         (prefix-unary? head) (emit-prefix-unary head expr)
         (suffix-unary? head) (emit-suffix-unary head expr)
-        :else (emit-special 'funcall expr)))
-    (throw (new Exception (str "invalid form: " expr)))))
+       :else (emit-special 'funcall expr)))
+    (if (list? expr)
+      (emit-special 'funcall expr)
+      (throw (new Exception (str "invalid form: " expr))))))
 
 (defmethod emit clojure.lang.IPersistentVector [expr]
   (str "[" (str/join ", " (map emit expr)) "]"))
@@ -227,11 +276,12 @@
     (str "{" (str/join ", " (map json-pair (seq expr))) "}")))
 
 (defn _js [forms]
-  (let [code (if (> (count forms) 1)
-               (emit-do forms)
-               (emit (first forms)))]
-    ;(println "js " forms " => " code)
-    code))
+  (with-var-declarations
+       (let [code (if (> (count forms) 1)
+                    (emit-do forms)
+                    (emit (first forms)))]
+         ;;(println "js " forms " => " code)
+         (str (emit-var-declarations) code))))
 
 (defn- unquote?
   "Tests whether the form is (unquote ...)."
