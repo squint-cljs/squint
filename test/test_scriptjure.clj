@@ -16,7 +16,8 @@
   (is (= "/^abc/" (js #"^abc"))))
 
 (deftest test-var-expr
-  (is (= (strip-whitespace (js (var x 42))) "var x = 42;")))
+  (is (= (strip-whitespace (js (var x 42))) "var x; x = 42;"))
+  (is (= (strip-whitespace (js (var x 1 y 2))) (strip-whitespace "var x, y; x = 1; y = 2;"))))
 
 (deftest test-invalid-variables-throw
   (is (= (js valid_symbol)) "valid_symbol")
@@ -56,7 +57,7 @@
 
 (deftest test-str
   (is (= (strip-whitespace (js (str "s" 1)))
-	 "'s'+1")))
+	 "\"s\" + 1")))
 
 (deftest test-dot-fn-call
   (is (= (js (. foo bar :a :b)) "foo.bar(a, b)"))
@@ -69,39 +70,39 @@
   (is (= (js (.. google chart (bar :a :b))) "google.chart.bar(a, b)")))
 
 (deftest test-if
-  (is (= (strip-whitespace (js (if (&& (== foo bar) (!= foo baz)) (.draw google.chart))))
-         "if (((foo == bar) && (foo != baz))) { google.chart.draw() }"))
+  (is (= (strip-whitespace (js (if (&& (= foo bar) (!= foo baz)) (.draw google.chart))))
+         "if (((foo === bar) && (foo !== baz))) { google.chart.draw() }"))
   (is (= (strip-whitespace (js (if foo (do (var x 3) (foo x)) (do (var y 4) (bar y)))))
-         "if (foo) { var x = 3; foo(x); } else { var y = 4; bar(y); }")))
+         "var x, y; if (foo) { x = 3; foo(x); } else { y = 4; bar(y); }")))
           
 (deftest test-new-operator
-  (is (= (js (new google.visualization.ColumnChart (.getElementById document "chart_div"))) "new google.visualization.ColumnChart(document.getElementById('chart_div'))")))
+  (is (= (js (new google.visualization.ColumnChart (.getElementById document "chart_div"))) "new google.visualization.ColumnChart(document.getElementById(\"chart_div\"))")))
 
 (deftest test-fn
-  (is (= (strip-whitespace (js (fn foo [x] (foo a) (bar b)))) "function foo(x) { foo(a); bar(b); }")))
+  (is (= (strip-whitespace (js (fn foo [x] (foo a) (bar b)))) "var foo; foo = function (x) { foo(a); bar(b); }")))
 
 (deftest test-array
-  (is (= (js [1 "2" :foo]) "[1, '2', foo]")))
+  (is (= (js [1 "2" :foo]) "[1, \"2\", foo]")))
 
 (deftest test-aget
   (is (= (js (aget foo 2)) "foo[2]")))
 
 (deftest test-map
-  (is (= (strip-whitespace (js {:packages ["columnchart"]})) "{packages: ['columnchart']}")))
+  (is (= (strip-whitespace (js {:packages ["columnchart"]})) "{packages: [\"columnchart\"]}")))
 
 (deftest jquery
   (is (= (strip-whitespace (js (.ready ($j document) 
                                        (fn [] 
                                          (.bind ($j "div-id") "click" 
                                                 (fn [e] 
-                                                  (.cookie $j "should-display-make-public" true))))))) "$j(document).ready(function () { $j('div-id').bind('click', function (e) { $j.cookie('should-display-make-public', true); } ); } )" )))
+                                                  (.cookie $j "should-display-make-public" true))))))) "$j(document).ready(function () { $j(\"div-id\").bind(\"click\", function (e) { $j.cookie(\"should-display-make-public\", true); }); })" )))
 
 (deftest test-do
   (is (= (strip-whitespace 
           (js 
            (var x 3)
            (var y 4)
-           (+ x y))) "var x = 3; var y = 4; (x + y);")))
+           (+ x y))) "var x, y; x = 3; y = 4; (x + y);")))
 
 (deftest test-doseq
   (is (= (strip-whitespace (js (doseq [i [1 2 3]] (foo i))))
@@ -114,7 +115,7 @@
                        (var x 3)
                        (var y 4)))]
     (is (= (strip-whitespace (js (fn foo [x] (clj stuff))))
-           "function foo(x) { var x = 3; var y = 4; }"))))
+           "var foo; foo = function (x) { var x, y; x = 3; y = 4; }"))))
 
 (deftest test-js*-adds-implicit-do
   (let [one (js* (var x 3)
@@ -135,5 +136,29 @@
 (deftest test-cljs*
   (let [foo (fn [] (+ 1 2))]
     (is (= (cljs* foo) (js* (clj foo))))))
+
+(deftest test-literal-fn-call
+  (is (= (strip-whitespace (js ((fn [x] (return x)) 1)))
+         "(function (x) { return x; })(1)"))
+  (is (= (strip-whitespace (js ((fn foo [x] (return x)) 1)))
+         "var foo; (foo = function (x) { return x; })(1)")))
+
+(deftest test-ternary-if
+  (is (= (strip-whitespace (js (? (= 1 2) 3 4)))
+         "(1 === 2) ? 3 : 4")))
+
+(deftest test-dec
+  (is (= (strip-whitespace(js (dec x)))
+         "(x - 1)")))
+
+(deftest test-inc
+  (is (= (strip-whitespace(js (inc x)))
+         "(x + 1)")))
+
+(deftest test-set!
+  (is (= (strip-whitespace (js (set! x 1)))
+         "x = 1;"))
+  (is (= (strip-whitespace(js (set! x 1 y 2)))
+         "x = 1; y = 2;")))
 
 (run-tests)
