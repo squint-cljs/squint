@@ -55,7 +55,7 @@
 (defmethod emit clojure.lang.Ratio [expr]
   (str (float expr)))
 
-(defmethod emit java.lang.String [expr]
+(defmethod emit java.lang.String [^String expr]
   (str \" (.replace expr "\"" "\\\"") \"))
 
 (defn valid-symbol? [sym]
