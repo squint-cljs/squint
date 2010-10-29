@@ -16,6 +16,7 @@
   (is (= "/^abc/" (js #"^abc"))))
 
 (deftest test-var-expr
+  (is (= (strip-whitespace (js (var x)))) "var x;")
   (is (= (strip-whitespace (js (var x 42))) "var x; x = 42;"))
   (is (= (strip-whitespace (js (var x 1 y 2))) (strip-whitespace "var x, y; x = 1; y = 2;"))))
 

@@ -121,7 +121,6 @@
      ~@body))
 
 (defmethod emit-special 'var [type [var & more]]
-  (assert (even? (count more)))
   (apply swap! var-declarations conj (filter identity (map (fn [name i] (when (odd? i) name)) more (iterate inc 1))))
   (apply str (interleave (map (fn [[name expr]]
                                 (str (when-not var-declarations "var ") (emit name) " = " (emit expr)))
