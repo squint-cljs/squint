@@ -78,7 +78,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '?]))
+(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '?]))
 
 (def prefix-unary-operators (set ['!]))
 
@@ -198,6 +198,9 @@
 
 (defmethod emit-special 'or [type [_ & more]]
   (apply str (interpose "||" (map emit more))))
+
+(defmethod emit-special 'quote [type [_ & more]]
+  (apply str more))
 
 (defn emit-do [exprs]
   (str/join "" (map (comp statement emit) exprs)))
