@@ -111,6 +111,10 @@
   (is (= (strip-whitespace (js (doseq [i [1 2 3] j [4 5]] (foo i j))))
          "for (i in [1, 2, 3]) { for (j in [4, 5]) { foo(i, j); } }")))
 
+(deftest test-quote
+  (is (= (strip-whitespace (js (do (+ 1 1) (quote "alert()"))))
+         "(1 + 1); alert();")))
+
 (deftest test-combine-forms
   (let [stuff (js* (do
                        (var x 3)
