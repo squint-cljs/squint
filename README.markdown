@@ -200,3 +200,7 @@ If you want to pass a js form from one clojure function to another, use js*
          }"
 
 `cljs` and `cljs*` are shortcuts for `(js (clj ...))` and `(js* (clj ..))` respectively. Note that both only take one form. 
+
+License
+=======
+Scriptjure is licensed under the EPL, the same as Clojure core. See epl-v10.html in the root directory for more information.
