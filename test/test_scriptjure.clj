@@ -1,7 +1,7 @@
 (ns test-scriptjure
   (:use clojure.test)
-  (:use com.reasonr.scriptjure)
-  (:require [clojure.contrib.str-utils2 :as str]))
+  (:require [clojure.string :as str])
+  (:use com.reasonr.scriptjure))
 
 (defn strip-whitespace 
   "strip extraneous whitespace so tests don't fail because of differences in whitespace"
