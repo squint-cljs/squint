@@ -28,10 +28,11 @@
        :doc "A library for generating javascript from Clojure."}
        com.reasonr.scriptjure
        (:require [clojure.string :as str])
-       (:require [clojure.contrib.string :as cstr])
-       (:use [clojure.contrib.except :only (throwf)])
+       (:require [com.reasonr.string :as rstr])
        (:use clojure.walk))
 
+(defn throwf [& message]
+  (throw (Exception. (apply format message))))
 (defmulti emit (fn [ expr ] (type expr)))
 
 (defmulti emit-special (fn [ & args] (first args)))
@@ -39,7 +40,7 @@
 (def statement-separator ";\n")
 
 (defn statement [expr]
-  (if (not (= statement-separator (cstr/tail (count statement-separator) expr)))
+  (if (not (= statement-separator (rstr/tail (count statement-separator) expr)))
     (str expr statement-separator)
     expr))
 
@@ -155,7 +156,7 @@
               " }"))))
        
 (defmethod emit-special 'dot-method [type [method obj & args]]
-  (let [method (symbol (cstr/drop 1 (str method)))]
+  (let [method (symbol (rstr/drop 1 (str method)))]
     (emit-method obj method args)))
 
 (defmethod emit-special 'return [type [return expr]]
@@ -254,10 +255,10 @@
     (let [head (symbol (name (first expr))) ; remove any ns resolution
           expr (conj (rest expr) head)]
       (cond
-       (and (= (cstr/get (str head) 0) \.)
+       (and (= (rstr/get (str head) 0) \.)
             (> (count (str head)) 1)
 
-            (not (= (cstr/get (str head) 1) \.))) (emit-special 'dot-method expr)
+            (not (= (rstr/get (str head) 1) \.))) (emit-special 'dot-method expr)
        (special-form? head) (emit-special head expr)
        (infix-operator? head) (emit-infix head expr)
         (prefix-unary? head) (emit-prefix-unary head expr)
