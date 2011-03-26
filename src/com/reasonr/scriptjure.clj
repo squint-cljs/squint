@@ -31,8 +31,9 @@
        (:require [com.reasonr.string :as rstr])
        (:use clojure.walk))
 
-(defn throwf [& message]
+(defn- throwf [& message]
   (throw (Exception. (apply format message))))
+
 (defmulti emit (fn [ expr ] (type expr)))
 
 (defmulti emit-special (fn [ & args] (first args)))
@@ -65,12 +66,12 @@
 
 (defmethod emit clojure.lang.Keyword [expr]
   (when-not (valid-symbol? (name expr))
-    (throwf "%s is not a valid javascript symbol" expr))
+    (#'throwf "%s is not a valid javascript symbol" expr))
   (str (name expr)))
 
 (defmethod emit clojure.lang.Symbol [expr]
   (when-not (valid-symbol? (str expr))
-    (throwf "%s is not a valid javascript symbol" expr))
+    (#' throwf "%s is not a valid javascript symbol" expr))
   (str expr))
 
 (defmethod emit java.util.regex.Pattern [expr]
