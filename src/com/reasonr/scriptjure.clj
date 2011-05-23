@@ -87,7 +87,7 @@
 (def suffix-unary-operators (set ['++ '--]))
 
 (def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=== '< '> '<= '>= '!=
-                           '<< '>> '<<< '>>> '!== '& '| '&& '|| '= 'not=]))
+                           '<< '>> '<<< '>>> '!== '& '| '&& '|| '= 'not= 'instanceof]))
 
 (def chainable-infix-operators (set ['+ '- '* '/ '& '| '&& '||]))
 
