@@ -114,6 +114,7 @@ Takes one argument, results in a delete statement
     (new Obj & args)
 
 Results in a new statement. The first argument is the object. All remaining items in the list are treated as arguments to the contructor.
+
     (js (new google.visualization.Query url)) 
     => "new google.visualization.Query(url)"
 
