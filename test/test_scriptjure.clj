@@ -86,7 +86,9 @@
   (is (= (js [1 "2" :foo]) "[1, \"2\", foo]")))
 
 (deftest test-aget
-  (is (= (js (aget foo 2)) "foo[2]")))
+  (is (= (js (aget foo 2)) "foo[2]"))
+  (is (= (js (aget foo bar baz) "foo[bar][baz]")))
+  (is (= (js (aget foo "bar" "baz") "foo[\"bar\"][\"baz\"]"))))
 
 (deftest test-map
   (is (= (strip-whitespace (js {:packages ["columnchart"]})) "{packages: [\"columnchart\"]}")))
