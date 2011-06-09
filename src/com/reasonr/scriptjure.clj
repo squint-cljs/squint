@@ -345,18 +345,26 @@
 ;; Custom forms
 ;;**********************************************************
 
+(defonce custom-forms (atom {}))
+
+(defmacro defjsmacro [nme params & body]
+  `(do
+     (defn ~nme ~params
+       (js*
+         ~@body))
+     (add-custom-form '~nme ~nme)))
+
 (defn add-custom-form [form func]
   (swap! custom-forms assoc form func))
 
 (defn get-custom [form]
   (get @custom-forms form))
 
+(defn custom-form? [expr]
+  (get-custom expr))
+
 (defn emit-custom [head expr]
   (when-let [func (get-custom head)]
     (let [v (apply func (next expr))]
       (emit v))))
 
-(defonce custom-forms (atom {}))
-
-(defn custom-form? [expr]
-  (get @custom-forms expr))
