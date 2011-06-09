@@ -91,8 +91,10 @@
 
 (def chainable-infix-operators (set ['+ '- '* '/ '& '| '&& '||]))
 
+
 (defn special-form? [expr]
   (contains? special-forms expr))
+
 
 (defn infix-operator? [expr]
   (contains? infix-operators expr))
@@ -248,6 +250,8 @@
             body (rest expr)]
         (str (emit-function nil signature body))))))
 
+(declare emit-custom custom-form?)
+
 (derive clojure.lang.Cons ::list)
 (derive clojure.lang.IPersistentList ::list)
 
@@ -260,6 +264,7 @@
             (> (count (str head)) 1)
 
             (not (= (rstr/get (str head) 1) \.))) (emit-special 'dot-method expr)
+        (custom-form? head) (emit-custom head expr)
        (special-form? head) (emit-special head expr)
        (infix-operator? head) (emit-infix head expr)
         (prefix-unary? head) (emit-prefix-unary head expr)
@@ -334,3 +339,24 @@
   "takes one or more forms. Returns a string of the forms translated into javascript"
   [& forms]
   `(_js (quasiquote ~forms)))
+
+
+;;**********************************************************
+;; Custom forms
+;;**********************************************************
+
+(defn add-custom-form [form func]
+  (swap! custom-forms assoc form func))
+
+(defn get-custom [form]
+  (get @custom-forms form))
+
+(defn emit-custom [head expr]
+  (when-let [func (get-custom head)]
+    (let [v (apply func (next expr))]
+      (emit v))))
+
+(defonce custom-forms (atom {}))
+
+(defn custom-form? [expr]
+  (get @custom-forms expr))
