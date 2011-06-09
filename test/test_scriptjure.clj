@@ -7,7 +7,10 @@
   "strip extraneous whitespace so tests don't fail because of differences in whitespace"
   [str]
   (str/trim (str/replace (str/replace str #"\n" " ") #"[ ]+" " ")))
-  
+
+(defn prn-hw [n z]
+ (js* (alert (str "hello world " (clj n)))))
+
 (deftest number-literal
   (is (= (js 42) "42"))
   (is (= (js 1/2) "0.5")))
@@ -165,5 +168,12 @@
          "x = 1;"))
   (is (= (strip-whitespace(js (set! x 1 y 2)))
          "x = 1; y = 2;")))
+
+(deftest custom-form-add
+         (add-custom-form 'prn-hw prn-hw))
+         (is (contains? @custom-forms 'prn-hw))
+
+(deftest custom-form-use
+         (is (= (js (prn-hw "chris"))) "alert(\"hello world chris\")"))
 
 (run-tests)
