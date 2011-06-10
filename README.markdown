@@ -114,14 +114,20 @@ Takes one argument, results in a delete statement
     (new Obj & args)
 
 Results in a new statement. The first argument is the object. All remaining items in the list are treated as arguments to the contructor.
+
     (js (new google.visualization.Query url)) 
     => "new google.visualization.Query(url)"
 
 **aget**
-    (aget obj index)
+    (aget obj & indexes)
 
     (js (aget foo 42))
     => "foo[42]"
+
+Array access can also be chained.  This is helpful not only for multidimensional arrays, but for reaching deep into objects using a series of keys (similar to `clojure.core/get-in`)
+
+    (js (aget foo bar "baz"))
+    => "foo[bar][\"baz\"]"
 
 To set an array, combine with set!
  

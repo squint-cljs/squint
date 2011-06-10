@@ -176,8 +176,10 @@
 (defmethod emit-special 'new [type [new class & args]]
   (str "new " (emit class) (comma-list (map emit args))))
 
-(defmethod emit-special 'aget [type [aget var idx]]
-  (str (emit var) "[" (emit idx) "]"))
+(defmethod emit-special 'aget [type [aget var & idxs]]
+  (apply str
+         (emit var)
+         (interleave (repeat "[") (map emit idxs) (repeat "]"))))
 
 (defmethod emit-special 'inc! [type [inc var]]
   (str (emit var) "++"))
