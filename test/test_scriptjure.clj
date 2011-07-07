@@ -177,4 +177,47 @@
 (deftest custom-form-use
          (is (= (js (prn-hw "custom"))) "alert(\"hello world custom\")"))
 
+(deftest test-try
+  (testing "Normal cases for try / catch / finally"
+    (is (= (strip-whitespace (js (try (set! x 5)
+                                      (catch e (print (+ "BOOM: " e)))
+                                      (finally (print "saved!")))))
+           "try{ x = 5; } catch(e){ print((\"BOOM: \" + e)); } finally{ print(\"saved!\"); }")
+        "Try with catch and finally is OK")
+    (is (= (strip-whitespace (js (try (set! x 5)
+                                      (catch e (print (+ "BOOM: " e))))))
+           "try{ x = 5; } catch(e){ print((\"BOOM: \" + e)); }")
+        "Try with just a catch clause is OK")
+    (is (= (strip-whitespace (js (try (set! x 5)
+                                      (finally (print "saved!")))))
+           "try{ x = 5; } finally{ print(\"saved!\"); }")
+        "Try with just a finally clause is OK")
+    (is (= (strip-whitespace (js (try (set! x 5)
+                                      (print "doin' stuff")
+                                      (print "doin' more stuff")
+                                      (catch e
+                                             (print (+ "BOOM: " e))
+                                             (print "ouch"))
+                                      (finally (print "saved!")
+                                               (print "yippee!")))))
+           "try{ x = 5; print(\"doin' stuff\"); print(\"doin' more stuff\"); } catch(e){ print((\"BOOM: \" + e)); print(\"ouch\"); } finally{ print(\"saved!\"); print(\"yippee!\"); }")
+        "Try, catch, and finally all use implicit 'do' for multiple statements"))
+  (testing "Exceptional cases for try / catch / finally"
+    (is (thrown-with-msg? Exception
+          #"Must supply a catch or finally clause \(or both\) in a try statement! \(try \(set! x 5\)\)"
+          (js (try (set! x 5))))
+        "Try with no catch and no finally should throw an exception")
+    (is (thrown-with-msg? Exception
+          #"Multiple catch clauses in a try statement are not currently supported! \(try \(set! x 5\) \(catch e \(print \"foo\"\)\) \(catch ee \(print \"bar\"\)\)\)"
+          (js (try (set! x 5)
+                   (catch e (print "foo"))
+                   (catch ee (print "bar")))))
+        "Multiple catch clauses are not supported")
+    (is (thrown-with-msg? Exception
+          #"Cannot supply more than one finally clause in a try statement! \(try \(set! x 5\) \(finally \(print \"foo\"\)\) \(finally \(print \"bar\"\)\)\)"
+          (js (try (set! x 5)
+                   (finally (print "foo"))
+                   (finally (print "bar")))))
+        "Cannot supply more than one finally clause")))
+
 (run-tests)
