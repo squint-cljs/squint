@@ -80,7 +80,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '?]))
+(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '? 'try]))
 
 (def prefix-unary-operators (set ['!]))
 
@@ -251,6 +251,36 @@
       (let [signature (first expr)
             body (rest expr)]
         (str (emit-function nil signature body))))))
+
+(defmethod emit-special 'try [type [try & body :as expression]]
+  (let [try-body (remove #(contains? #{'catch 'finally} (first %))
+                         body)
+        catch-clause (filter #(= 'catch (first %))
+                             body)
+        finally-clause (filter #(= 'finally (first %))
+                               body)]
+    (cond
+     (and (empty? catch-clause)
+          (empty? finally-clause))
+     (throw (new Exception (str "Must supply a catch or finally clause (or both) in a try statement! " expression)))
+
+     (> (count catch-clause) 1)
+     (throw (new Exception (str "Multiple catch clauses in a try statement are not currently supported! " expression)))
+
+     (> (count finally-clause) 1)
+     (throw (new Exception (str "Cannot supply more than one finally clause in a try statement! " expression)))
+
+     :true (str "try{\n"
+                (emit-do try-body)
+                "}\n"
+                (if-let [[_ exception & catch-body] (first catch-clause)]
+                  (str "catch(" (emit exception) "){\n"
+                       (emit-do catch-body)
+                       "}\n"))
+                (if-let [[_ & finally-body] (first finally-clause)]
+                  (str "finally{\n"
+                       (emit-do finally-body)
+                       "}\n"))))))
 
 (declare emit-custom custom-form?)
 

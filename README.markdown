@@ -94,6 +94,32 @@ Returns a javascript if statement. Like Clojure, true-form and false-form take o
        bar(y);
        }"
 
+**try / catch / finally**
+
+    (try expr* catch-clause? finally-clause?)
+    catch-clause -> (catch e expr*)
+    finally-clause -> (finally expr*)
+
+Returns a JavaScript `try` / `catch` / `finally` block.  All non-`catch` and non-`finally` forms within a `try` form are executed in an implicit `do` statement.  The `catch` clause (if present) generates an unconditional `catch` block (multiple conditional `catch` blocks are not supported at this time), with `e` bound to the exception object. The `finally` clause (if present) is used to generate a `finally` block.  All expressions in the `catch` and `finally` clauses are executed in implicit `do` statements.
+
+    (js (try
+          (set! x 5)
+        (catch e
+          (print (+ "BOOM: " e)))
+        (finally
+          (print "saved!"))))
+    => "try{
+        x = 5;
+        }
+        catch(e){
+        print((\"BOOM: \" + e));
+        }
+        finally{
+        print(\"saved!\");
+        }"
+
+An Exception will be thrown if there are no `catch` or `finally` clauses, or if there are more than one of either.
+
 **return**
     (return value)
 
