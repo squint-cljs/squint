@@ -118,7 +118,7 @@
     (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
                        (map emit args)) ")")))
 
-(def var-declarations nil)
+(def ^{:dynamic true} var-declarations nil)
 
 (defmacro with-var-declarations [& body]
   `(binding [var-declarations (atom [])]
