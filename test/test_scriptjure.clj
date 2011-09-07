@@ -220,4 +220,8 @@
                    (finally (print "bar")))))
         "Cannot supply more than one finally clause")))
 
+(deftest test-break
+  (is (= (strip-whitespace (js (break)))
+         "break;")))
+
 (run-tests)
