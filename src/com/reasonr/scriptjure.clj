@@ -80,7 +80,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '? 'try]))
+(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '? 'try 'break]))
 
 (def prefix-unary-operators (set ['!]))
 
@@ -281,6 +281,9 @@
                   (str "finally{\n"
                        (emit-do finally-body)
                        "}\n"))))))
+
+(defmethod emit-special 'break [type [break]]
+  (statement "break"))
 
 (declare emit-custom custom-form?)
 
