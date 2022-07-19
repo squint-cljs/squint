@@ -180,10 +180,20 @@
          (str " else { \n"
               (emit (first false-form))
               " }"))))
-       
+
+(defn emit-aget [var idxs]
+  (apply str
+         (emit var)
+         (interleave (repeat "[") (map emit idxs) (repeat "]"))))
+
+(defmethod emit-special 'aget [type [_aget var & idxs]]
+  (emit-aget var idxs))
+
 (defmethod emit-special 'dot-method [type [method obj & args]]
-  (let [method (symbol (rstr/drop 1 (str method)))]
-    (emit-method obj method args)))
+  (let [method (rstr/drop 1 (str method))]
+    (if (str/starts-with? method "-")
+      (emit-aget obj [(subs method 1)])
+      (emit-method obj method args))))
 
 (defmethod emit-special 'return [type [return expr]]
   (statement (str "return " (emit expr))))
@@ -198,11 +208,6 @@
 
 (defmethod emit-special 'new [type [new class & args]]
   (str "new " (emit class) (comma-list (map emit args))))
-
-(defmethod emit-special 'aget [type [aget var & idxs]]
-  (apply str
-         (emit var)
-         (interleave (repeat "[") (map emit idxs) (repeat "]"))))
 
 (defmethod emit-special 'inc! [type [inc var]]
   (str (emit var) "++"))
