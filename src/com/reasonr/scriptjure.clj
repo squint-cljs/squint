@@ -245,22 +245,24 @@
            (str/join ", " (map emit @var-declarations))
            statement-separator)))
 
-(defn emit-function [name sig body]
+(defn emit-function [name sig body & [elide-function?]]
   (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
   (with-var-declarations
     (let [body (emit-do body)]
-      (str "function " (comma-list sig) " {\n"
+      (str (when-not elide-function? "function ") (comma-list sig) " {\n"
            (emit-var-declarations) body " }"))))
 
 (defmethod emit-special 'fn [type [fn & expr]]
-  (let [name (when (symbol? (first expr)) (first expr))]
-    (when name
+  (let [name (when (symbol? (first expr)) (first expr))
+        async? (:async (meta name))]
+    (when (and name (not async?))
       (swap! var-declarations conj name))
     (if name
       (let [signature (second expr)
             body (rest (rest expr))]
-        (str name " = " (emit-function name signature body)))
+        (str (when async?
+               "async ") "function " name " " (emit-function name signature body true)))
       (let [signature (first expr)
             body (rest expr)]
         (str (emit-function nil signature body))))))
