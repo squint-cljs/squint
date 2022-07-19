@@ -80,7 +80,11 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '? 'try 'break 'await]))
+(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set!
+                         'return 'delete 'new 'do 'aget 'while 'doseq
+                         'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or
+                         '? 'try 'break
+                         'await 'const]))
 
 (def prefix-unary-operators (set ['!]))
 
@@ -128,6 +132,12 @@
   (apply swap! var-declarations conj (filter identity (map (fn [name i] (when (odd? i) name)) more (iterate inc 1))))
   (apply str (interleave (map (fn [[name expr]]
                                 (str (when-not var-declarations "var ") (emit name) " = " (emit expr)))
+                              (partition 2 more))
+                         (repeat statement-separator))))
+
+(defmethod emit-special 'const [_type [const & more]]
+  (apply str (interleave (map (fn [[name expr]]
+                                (str "const " (emit name) " = " (emit expr)))
                               (partition 2 more))
                          (repeat statement-separator))))
 
