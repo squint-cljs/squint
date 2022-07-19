@@ -84,7 +84,7 @@
                          'return 'delete 'new 'do 'aget 'while 'doseq
                          'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
-                         'await 'const]))
+                         'await 'const 'defn]))
 
 (def prefix-unary-operators (set ['!]))
 
@@ -253,7 +253,7 @@
       (str (when-not elide-function? "function ") (comma-list sig) " {\n"
            (emit-var-declarations) body " }"))))
 
-(defmethod emit-special 'fn [type [fn & expr]]
+(defn emit-function* [expr]
   (let [name (when (symbol? (first expr)) (first expr))
         async? (:async (meta name))]
     (when (and name (not async?))
@@ -266,6 +266,12 @@
       (let [signature (first expr)
             body (rest expr)]
         (str (emit-function nil signature body))))))
+
+(defmethod emit-special 'fn [type [fn & expr]]
+  (emit-function* expr ))
+
+(defmethod emit-special 'defn [type [fn & expr]]
+  (emit-function* expr))
 
 (defmethod emit-special 'try [type [try & body :as expression]]
   (let [try-body (remove #(contains? #{'catch 'finally} (first %))
