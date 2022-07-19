@@ -80,7 +80,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '? 'try 'break]))
+(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set! 'return 'delete 'new 'do 'aget 'while 'doseq 'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or '? 'try 'break 'await]))
 
 (def prefix-unary-operators (set ['!]))
 
@@ -130,6 +130,9 @@
                                 (str (when-not var-declarations "var ") (emit name) " = " (emit expr)))
                               (partition 2 more))
                          (repeat statement-separator))))
+
+(defmethod emit-special 'await [_ [_await more]]
+  (str "await " (emit more)))
 
 (defmethod emit-special 'funcall [type [name & args]]
   (str (if (and (list? name) (= 'fn (first name))) ; function literal call
