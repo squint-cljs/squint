@@ -84,7 +84,7 @@
                          'return 'delete 'new 'do 'aget 'while 'doseq
                          'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
-                         'await 'const 'defn]))
+                         'await 'const 'defn 'let]))
 
 (def prefix-unary-operators (set ['!]))
 
@@ -140,6 +140,16 @@
                                 (str "const " (emit name) " = " (emit expr)))
                               (partition 2 more))
                          (repeat statement-separator))))
+
+(declare emit-do)
+
+(defmethod emit-special 'let [type [_let bindings & more]]
+  (str "{" (apply str (interleave (map (fn [[name expr]]
+                                         (str "const " (emit name) " = " (emit expr)))
+                                       (partition 2 bindings))
+                                  (repeat statement-separator)))
+       (emit-do more)
+       "}"))
 
 (defmethod emit-special 'await [_ [_await more]]
   (str "await " (emit more)))
