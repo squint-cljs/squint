@@ -8,7 +8,8 @@ Experimental and tiny CLJS transpiler
 Primary goal of cherry:
 
 - Have fun, experiment and learn. This will probably be my summer vacation
-  project during some travel in August.
+  project during some travel in August. At this point, you can consider it just
+  a toy.
 
 Goals of cherry:
 
@@ -45,7 +46,7 @@ community, the above goals may or may not be pursued.
 
 Cherry started out as a fork of
 [Scriptjure](https://github.com/arohner/scriptjure). Currently it's being
-reworked to meet the below goals. If you are interested in these goals, post a
+reworked to meet the above goals. If you are interested in these goals, post a
 message on [Github Discussions](https://github.com/borkdude/cherry/discussions).
 
 Run `bb transpile_and_run.clj corpus/foo.cljs` to see an example transpilation +
