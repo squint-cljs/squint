@@ -17,7 +17,8 @@ Goals of cherry:
 - Transpiled JS files are linked to one shared NPM module which contains
   `"cherry/cljs.core"`, `"cherry/cljs.string"`, etc.  such that libraries
   written in cherry can be transpiled, tree-shaken with ES6 tooling and then
-  hosted on NPM. Output linked to older versions of cherry will work with newer
+  hosted on NPM.
+- Output linked to older versions of cherry will work with newer
   versions of cherry: i.e. 'binary' compatibility.
 - Light-weight and fast: heavy lifting such as optimizations are expected to be
   done by JS tooling
