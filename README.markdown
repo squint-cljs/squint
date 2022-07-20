@@ -31,6 +31,7 @@ Goals of cherry:
 - Macro support
 - REPL support
 - Async/await support
+- Native support for JS object destructuring
 
 Cherry may introduce new constructs such as `await` which won't be compatible
 with current CLJS. Also it might not support all features that CLJS offers. As
