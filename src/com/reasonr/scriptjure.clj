@@ -40,6 +40,8 @@
 
 (def statement-separator ";\n")
 
+(def ^:dynamic *async* false)
+
 (defn statement [expr]
   (if (not (= statement-separator (rstr/tail (count statement-separator) expr)))
     (str expr statement-separator)
@@ -143,16 +145,28 @@
 
 (declare emit-do)
 
-(defmethod emit-special 'let [type [_let bindings & more]]
-  (str "{" (apply str (interleave (map (fn [[name expr]]
-                                         (str "const " (emit name) " = " (emit expr)))
-                                       (partition 2 bindings))
-                                  (repeat statement-separator)))
-       (emit-do more)
-       "}"))
+(defn wrap-await [s]
+  (format "(%s)" (str "await " s)))
 
 (defmethod emit-special 'await [_ [_await more]]
-  (str "await " (emit more)))
+  (wrap-await (emit more)))
+
+(defn wrap-iife [s & [{:keys [async?]}]]
+  (cond-> (format "(%sfunction () { %s })()" (if async? "async " "") s)
+    async? (wrap-await)))
+
+(defn return [s]
+  (format "return %s;" s))
+
+(defmethod emit-special 'let [type [_let bindings & more]]
+  (wrap-iife
+   (str
+    (apply str (interleave (map (fn [[name expr]]
+                                  (str "const " (emit name) " = " (emit expr)))
+                                (partition 2 bindings))
+                           (repeat statement-separator)))
+    (return (emit-do more)))
+   {:async? *async*}))
 
 (defmethod emit-special 'funcall [type [name & args]]
   (str (if (and (list? name) (= 'fn (first name))) ; function literal call
@@ -236,8 +250,15 @@
 (defmethod emit-special 'quote [type [_ & more]]
   (apply str more))
 
-(defn emit-do [exprs]
-  (str/join "" (map (comp statement emit) exprs)))
+(defn emit-do [exprs & [{:keys [top-level?]
+                         :as opts}]]
+  (let [bl (butlast exprs)
+        l (last exprs)]
+    (cond-> (str (str/join "" (map (comp statement emit) bl))
+                 (cond-> (emit l)
+                   (not top-level?)
+                   (return)))
+      (not top-level?) (wrap-iife opts))))
 
 (defmethod emit-special 'do [type [ do & exprs]]
   (emit-do exprs))
@@ -260,11 +281,11 @@
            (str/join ", " (map emit @var-declarations))
            statement-separator)))
 
-(defn emit-function [name sig body & [elide-function?]]
+(defn emit-function [name sig body & [elide-function? async?]]
   (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
   (with-var-declarations
-    (let [body (emit-do body)]
+    (let [body (return (emit-do body {:async? async?}))]
       (str (when-not elide-function? "function ") (comma-list sig) " {\n"
            (emit-var-declarations) body " }"))))
 
@@ -277,7 +298,9 @@
       (let [signature (second expr)
             body (rest (rest expr))]
         (str (when async?
-               "async ") "function " name " " (emit-function name signature body true)))
+               "async ") "function " name " "
+             (binding [*async* async?]
+               (emit-function name signature body true async?))))
       (let [signature (first expr)
             body (rest expr)]
         (str (emit-function nil signature body))))))
@@ -358,7 +381,7 @@
 (defn _js [forms]
   (with-var-declarations
        (let [code (if (> (count forms) 1)
-                    (emit-do forms)
+                    (emit-do forms {:top-level? true})
                     (emit (first forms)))]
          ;;(println "js " forms " => " code)
          (str (emit-var-declarations) code))))
