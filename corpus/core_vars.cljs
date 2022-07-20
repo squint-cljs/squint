@@ -9,3 +9,7 @@
 (js/console.log (get clj-map :foo/bar)) ;; => 6
 
 (js/console.log (str clj-map))
+
+(def log js/console.log)
+
+(log (first [1 2 3]))
