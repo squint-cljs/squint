@@ -20,8 +20,10 @@ Goals of cherry:
   debugging
 - Transpiled JS files are linked to one shared NPM module `"cherry-cljs"` which
   contains `cljs.core.js`, `cljs.string`, etc.  such that libraries written in
-  cherry can be transpiled, optionally processed with ES6 tooling and then
-  hosted on NPM. See [this tweet](https://twitter.com/borkdude/status/1549830159326404616) on how that looks.
+  cherry can be transpiled and hosted on NPM, while all sharing the same
+  standard library and data structures. See [this
+  tweet](https://twitter.com/borkdude/status/1549830159326404616) on how that
+  looks.
 - Output linked to older versions of cherry will work with newer
   versions of cherry: i.e. 'binary' compatibility.
 - Light-weight and fast: heavy lifting such as optimizations are expected to be
