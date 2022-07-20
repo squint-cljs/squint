@@ -13,7 +13,7 @@ message on [Github Discussions](https://github.com/borkdude/cherry/discussions).
 Primary goal of cherry:
 
 - Have fun, experiment and learn. This will probably be my summer vacation
-  project during some time off in August.
+  project during some travel in August.
 
 Goals of cherry:
 
