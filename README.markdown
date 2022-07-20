@@ -2,7 +2,7 @@ NOTE: cherry started out as a fork of [Scriptjure](https://github.com/arohner/sc
 
 Currently it's being reworked to meet the below goals.
 
-> :warning This code is experimental and not recommended to be used in production. It currently has many bugs and will undergo many breaking changes.
+> :warning: This code is experimental and not recommended to be used in production. It currently has many bugs and will undergo many breaking changes.
 
 Goals of cherry:
 
