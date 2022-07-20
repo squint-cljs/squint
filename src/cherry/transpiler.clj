@@ -472,7 +472,7 @@
           transpiled
           (let [next-js (js (clj next-form))]
             (recur (str transpiled next-js (when-not (str/blank? next-js)
-                                             "\n")))))))))
+                                             ";\n")))))))))
 
 (defn transpile-file [{:keys [in-file out-file]}]
   (let [out-file (or out-file
