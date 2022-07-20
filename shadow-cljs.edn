@@ -1,0 +1,24 @@
+{:deps {:aliases [:cljs]}
+ :builds
+ {:cherry
+  {:js-options {;; don't bundle any npm libs
+                :js-provider :import}
+   :compiler-options {:infer-externs :auto}
+   :target :esm
+   :runtime :node
+   :output-dir "lib"
+   :modules
+   {:cljs_core {:exports {assoc cljs.core/assoc
+                          map cljs.core/map
+                          str cljs.core/str
+                          keyword cljs.core/keyword
+                          symbol cljs.core/symbol
+                          vector cljs.core/vector
+                          toJs cljs.core/clj->js
+                          toCljs cljs.core/js->clj
+                          dissoc cljs.core/dissoc
+                          conj cljs.core/conj
+                          get cljs.core/get}}
+    #_#_:transpiler {}}
+   :build-hooks [(shadow.cljs.build-report/hook
+                  {:output-to "report.html"})]}}}

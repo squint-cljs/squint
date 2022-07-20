@@ -67,16 +67,21 @@
   ;;; This is incomplete, it disallows unicode
   (boolean (re-matches #"[_$\p{Alpha}][.\w]*" (str sym))))
 
+;; TODO: move to context argument
+(def ^:dynamic *imported-core-vars* (atom #{}))
+
 (defmethod emit clojure.lang.Keyword [expr]
   (when-not (valid-symbol? (name expr))
     (#'throwf "%s is not a valid javascript symbol" expr))
-  (str (name expr)))
+  (swap! *imported-core-vars* conj 'keyword)
+  (str (format "keyword(%s)" (pr-str (subs (str expr) 1)))))
 
 (defmethod emit clojure.lang.Symbol [expr]
   (let [expr (if (and (qualified-symbol? expr)
                       (= "js" (namespace expr)))
                (name expr)
-               expr)]
+               expr)
+        expr (symbol (munge expr))]
     (when-not (valid-symbol? (str expr))
       (#' throwf "%s is not a valid javascript symbol" expr))
     (str expr)))
@@ -89,9 +94,15 @@
 
 (def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while 'doseq
-                         'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or
+                         'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
                          'await 'const 'defn 'let 'ns 'def]))
+
+(def core-vars (set '[map assoc str keyword symbol
+                      dissoc conj vector clj->js js->clj get]))
+
+(def core->js '{clj->js toJs
+                js->cljs toCljs})
 
 (def prefix-unary-operators (set ['!]))
 
@@ -183,10 +194,16 @@
   ;; TODO
   )
 
-(defmethod emit-special 'funcall [type [name & args]]
+(defmethod emit-special 'funcall [_type [name & args]]
   (str (if (and (list? name) (= 'fn (first name))) ; function literal call
          (str "(" (emit name) ")")
-         (emit name))
+         (let [name
+               (if (contains? core-vars name)
+                 (let [name (get core->js name name)]
+                   (swap! *imported-core-vars* conj name)
+                   name)
+                 name)]
+           (emit name)))
        (comma-list (map emit args))))
 
 (defmethod emit-special 'str [type [str & args]]
@@ -484,7 +501,15 @@
             (recur (str transpiled next-js))))))))
 
 (defn transpile-file [{:keys [in-file out-file]}]
-  (let [out-file (or out-file
-                     (str/replace in-file #".cljs$" ".mjs"))]
-    (spit out-file (transpile-string (slurp in-file)))
-    {:out-file out-file}))
+  (let [core-vars (atom #{})]
+    (binding [*imported-core-vars* core-vars]
+      (let [out-file (or out-file
+                         (str/replace in-file #".cljs$" ".mjs"))
+            transpiled (transpile-string (slurp in-file))
+            transpiled (if-let [core-vars (seq @core-vars)]
+                         (str (format "import { %s } from 'cherry-cljs/cljs.core.js'\n\n"
+                                      (str/join ", " core-vars))
+                              transpiled)
+                         transpiled)]
+        (spit out-file transpiled)
+        {:out-file out-file}))))

@@ -1,7 +1,6 @@
 {:deps {borkdude/edamame {:mvn/version "1.0.0"}}
-
  :aliases
- {:cljs {:extra-deps {org.clojure/clojurescript {:mvn/version "1.11.60"}}}
+ {:cljs {:extra-deps {thheller/shadow-cljs {:mvn/version "2.19.6"}}}
   :test ;; added by neil
   {:extra-paths ["test"]
    :extra-deps {io.github.cognitect-labs/test-runner
