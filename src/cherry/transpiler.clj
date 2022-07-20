@@ -73,9 +73,13 @@
   (str (name expr)))
 
 (defmethod emit clojure.lang.Symbol [expr]
-  (when-not (valid-symbol? (str expr))
-    (#' throwf "%s is not a valid javascript symbol" expr))
-  (str expr))
+  (let [expr (if (and (qualified-symbol? expr)
+                      (= "js" (namespace expr)))
+               (name expr)
+               expr)]
+    (when-not (valid-symbol? (str expr))
+      (#' throwf "%s is not a valid javascript symbol" expr))
+    (str expr)))
 
 (defmethod emit java.util.regex.Pattern [expr]
   (str \/ expr \/))
@@ -87,7 +91,7 @@
                          'return 'delete 'new 'do 'aget 'while 'doseq
                          'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
-                         'await 'const 'defn 'let 'ns]))
+                         'await 'const 'defn 'let 'ns 'def]))
 
 (def prefix-unary-operators (set ['!]))
 
@@ -138,11 +142,17 @@
                               (partition 2 more))
                          (repeat statement-separator))))
 
-(defmethod emit-special 'const [_type [const & more]]
+(defn emit-const [more]
   (apply str (interleave (map (fn [[name expr]]
                                 (str "const " (emit name) " = " (emit expr)))
                               (partition 2 more))
                          (repeat statement-separator))))
+
+(defmethod emit-special 'const [_type [_const & more]]
+  (emit-const more))
+
+(defmethod emit-special 'def [_type [_const & more]]
+  (emit-const more))
 
 (declare emit-do)
 
