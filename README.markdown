@@ -2,7 +2,8 @@ NOTE: cherry started out as a fork of [Scriptjure](https://github.com/arohner/sc
 
 Currently it's being reworked to meet the below goals.
 
-> :warning: This code is experimental and not recommended to be used in production. It currently has many bugs and will undergo many breaking changes.
+> :warning: This code is experimental and not recommended to be used in
+> production. It currently has many bugs and will undergo many breaking changes.
 
 Goals of cherry:
 
@@ -19,10 +20,10 @@ Goals of cherry:
 - REPL support
 - Async/await support
 
-Cherry may introduce new constructs such as `await` which won't be compatible
-with current CLJS. Also it might not support all features that CLJS offers. As
-such, using existing libraries from the CLJS ecosystem or compiling Cherry CLJS
-code with the normal CLJS compiler may become challenging.
+> :warning: Cherry may introduce new constructs such as `await` which won't be
+> compatible with current CLJS. Also it might not support all features that CLJS
+> offers. As such, using existing libraries from the CLJS ecosystem or compiling
+> Cherry CLJS code with the normal CLJS compiler may become challenging.
 
 Also see [test/cherry_test.clj](test/cherry_test.clj).
 
