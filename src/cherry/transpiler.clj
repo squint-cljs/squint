@@ -1,7 +1,7 @@
 ;;; scriptjure -- a library for generating javascript from Clojure s-exprs
 
 ;; by Allen Rohner, http://arohner.blogspot.com
-;;                  http://www.reasonr.com  
+;;                  http://www.reasonr.com
 ;; October 7, 2009
 
 ;; Copyright (c) Allen Rohner, 2009. All rights reserved.  The use
@@ -12,12 +12,12 @@
 ;; agreeing to be bound by the terms of this license.  You must not
 ;; remove this notice, or any other, from this software.
 
-;; This library generates javascript from Clojure s-exprs. To use it, 
+;; This library generates javascript from Clojure s-exprs. To use it,
 ;; (js (fn foo [x] (var x (+ 3 5)) (return x)))
 ;;  returns a string, "function foo (x) { var x = (3 + 5); return x; }"
 ;;
 ;; See the README and the tests for more information on what is supported.
-;; 
+;;
 ;; The library is intended to generate javascript glue code in Clojure
 ;; webapps. One day it might become useful enough to write entirely
 ;; JS libraries in clojure, but it's not there yet.
@@ -26,10 +26,11 @@
 
 (ns #^{:author "Allen Rohner"
        :doc "A library for generating javascript from Clojure."}
-       cherry.compiler
-       (:require [clojure.string :as str])
-       (:require [com.reasonr.string :as rstr])
-       (:use clojure.walk))
+    cherry.transpiler
+  (:require [clojure.string :as str]
+            [com.reasonr.string :as rstr]
+            [edamame.core :as e])
+  (:use clojure.walk))
 
 (defn- throwf [& message]
   (throw (Exception. (apply format message))))
@@ -86,7 +87,7 @@
                          'return 'delete 'new 'do 'aget 'while 'doseq
                          'str 'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
-                         'await 'const 'defn 'let]))
+                         'await 'const 'defn 'let 'ns]))
 
 (def prefix-unary-operators (set ['!]))
 
@@ -167,6 +168,10 @@
                            (repeat statement-separator)))
     (return (emit-do more)))
    {:async? *async*}))
+
+(defmethod emit-special 'ns [_ & _]
+  ;; TODO
+  )
 
 (defmethod emit-special 'funcall [type [name & args]]
   (str (if (and (list? name) (= 'fn (first name))) ; function literal call
@@ -316,27 +321,27 @@
         finally-clause (filter #(= 'finally (first %))
                                body)]
     (cond
-     (and (empty? catch-clause)
-          (empty? finally-clause))
-     (throw (new Exception (str "Must supply a catch or finally clause (or both) in a try statement! " expression)))
+      (and (empty? catch-clause)
+           (empty? finally-clause))
+      (throw (new Exception (str "Must supply a catch or finally clause (or both) in a try statement! " expression)))
 
-     (> (count catch-clause) 1)
-     (throw (new Exception (str "Multiple catch clauses in a try statement are not currently supported! " expression)))
+      (> (count catch-clause) 1)
+      (throw (new Exception (str "Multiple catch clauses in a try statement are not currently supported! " expression)))
 
-     (> (count finally-clause) 1)
-     (throw (new Exception (str "Cannot supply more than one finally clause in a try statement! " expression)))
+      (> (count finally-clause) 1)
+      (throw (new Exception (str "Cannot supply more than one finally clause in a try statement! " expression)))
 
-     :true (str "try{\n"
-                (emit-do try-body)
-                "}\n"
-                (if-let [[_ exception & catch-body] (first catch-clause)]
-                  (str "catch(" (emit exception) "){\n"
-                       (emit-do catch-body)
-                       "}\n"))
-                (if-let [[_ & finally-body] (first finally-clause)]
-                  (str "finally{\n"
-                       (emit-do finally-body)
-                       "}\n"))))))
+      :true (str "try{\n"
+                 (emit-do try-body)
+                 "}\n"
+                 (if-let [[_ exception & catch-body] (first catch-clause)]
+                   (str "catch(" (emit exception) "){\n"
+                        (emit-do catch-body)
+                        "}\n"))
+                 (if-let [[_ & finally-body] (first finally-clause)]
+                   (str "finally{\n"
+                        (emit-do finally-body)
+                        "}\n"))))))
 
 (defmethod emit-special 'break [type [break]]
   (statement "break"))
@@ -351,16 +356,16 @@
     (let [head (symbol (name (first expr))) ; remove any ns resolution
           expr (conj (rest expr) head)]
       (cond
-       (and (= (rstr/get (str head) 0) \.)
-            (> (count (str head)) 1)
+        (and (= (rstr/get (str head) 0) \.)
+             (> (count (str head)) 1)
 
-            (not (= (rstr/get (str head) 1) \.))) (emit-special 'dot-method expr)
+             (not (= (rstr/get (str head) 1) \.))) (emit-special 'dot-method expr)
         (custom-form? head) (emit-custom head expr)
-       (special-form? head) (emit-special head expr)
-       (infix-operator? head) (emit-infix head expr)
+        (special-form? head) (emit-special head expr)
+        (infix-operator? head) (emit-infix head expr)
         (prefix-unary? head) (emit-prefix-unary head expr)
         (suffix-unary? head) (emit-suffix-unary head expr)
-       :else (emit-special 'funcall expr)))
+        :else (emit-special 'funcall expr)))
     (if (list? expr)
       (emit-special 'funcall expr)
       (throw (new Exception (str "invalid form: " expr))))))
@@ -377,11 +382,11 @@
 
 (defn _js [forms]
   (with-var-declarations
-       (let [code (if (> (count forms) 1)
-                    (emit-do forms {:top-level? true})
-                    (emit (first forms)))]
-         ;;(println "js " forms " => " code)
-         (str (emit-var-declarations) code))))
+    (let [code (if (> (count forms) 1)
+                 (emit-do forms {:top-level? true})
+                 (emit (first forms)))]
+      ;;(println "js " forms " => " code)
+      (str (emit-var-declarations) code))))
 
 (defn- unquote?
   "Tests whether the form is (unquote ...)."
@@ -394,9 +399,9 @@
 (declare inner-walk outer-walk)
 
 (defn- inner-walk [form]
-  (cond 
-   (unquote? form) (handle-unquote form)
-   :else (walk inner-walk outer-walk form)))
+  (cond
+    (unquote? form) (handle-unquote form)
+    :else (walk inner-walk outer-walk form)))
 
 (defn- outer-walk [form]
   (cond
@@ -426,7 +431,7 @@
   [form]
   `(js (clj ~form)))
 
-(defmacro js 
+(defmacro js
   "takes one or more forms. Returns a string of the forms translated into javascript"
   [& forms]
   `(_js (quasiquote ~forms)))
@@ -442,7 +447,7 @@
   `(do
      (defn ~nme ~params
        (js*
-         ~@body))
+        ~@body))
      (add-custom-form '~nme ~nme)))
 
 (defn add-custom-form [form func]
@@ -459,3 +464,18 @@
     (let [v (apply func (next expr))]
       (emit v))))
 
+(defn transpile-string [s]
+  (let [rdr (e/reader s)]
+    (loop [transpiled ""]
+      (let [next-form (e/parse-next rdr)]
+        (if (= ::e/eof next-form)
+          transpiled
+          (let [next-js (js (clj next-form))]
+            (recur (str transpiled next-js (when-not (str/blank? next-js)
+                                             "\n")))))))))
+
+(defn transpile-file [{:keys [in-file out-file]}]
+  (let [out-file (or out-file
+                     (str/replace in-file #".cljs$" ".mjs"))]
+    (spit out-file (transpile-string (slurp in-file)))
+    {:out-file out-file}))

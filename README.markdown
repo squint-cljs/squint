@@ -10,12 +10,13 @@ Discussions](https://github.com/borkdude/cherry/discussions).
 Goals of cherry:
 
 - Transpile `.cljs` files on the fly into ES6-compatible `.js` (or `.mjs`) files.
-- Compiler will be available on npm and can be used from JS tooling, but isn't
-  part of the compiled output unless explicitly used.
-- Transpiled JS files are fairly readable and have source map support for debugging
+- Transpiler will be available on npm and can be used from JS tooling, but isn't
+  part of the transpiled output unless explicitly used.
+- Transpiled JS files are fairly readable and have source map support for
+  debugging
 - Transpiled JS files are linked to one shared NPM module which contains
   `"cherry/cljs.core"`, `"cherry/cljs.string"`, etc.  such that libraries
-  written in cherry can be compiled, tree-shaken with ES6 tooling and then
+  written in cherry can be transpiled, tree-shaken with ES6 tooling and then
   hosted on NPM. Output linked to older versions of cherry will work with newer
   versions of cherry: i.e. 'binary' compatibility.
 - Light-weight and fast: heavy lifting such as optimizations are expected to be
@@ -30,7 +31,7 @@ Goals of cherry:
 Cherry may introduce new constructs such as `await` which won't be compatible
 with current CLJS. Also it might not support all features that CLJS offers. As
 such, using existing libraries from the CLJS ecosystem or compiling Cherry CLJS
-code with the normal CLJS compiler may become challenging. However, some results
+code with the CLJS compiler may become challenging. However, some results
 of this experiment may end up as improvements in the CLJS compiler if they turn
 out to be of value.
 
