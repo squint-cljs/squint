@@ -1,3 +1,9 @@
+NOTE: cherry started out as a fork of [Scriptjure](https://github.com/arohner/scriptjure).
+
+Currently it's being reworked to make the code more compatible with the existing CLJS tooling.
+
+====
+
 Scriptjure is a Clojure library for generating javascript from Clojure forms. Its primary goal is to make it simple to embed "glue" javascript in Clojure webapps. Generated Scriptjure javascript is intended to be readable.
 
 At the moment, Scriptjure is very simple, but is still under active development.
