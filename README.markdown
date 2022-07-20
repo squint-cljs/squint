@@ -12,9 +12,9 @@ Goals of cherry:
 - Transpiled JS files are fairly readable and have source map support for debugging
 - Transpiled JS files are linked to one shared NPM module which contains
   `"cherry/cljs.core"`, `"cherry/cljs.string"`, etc.  such that libraries
-  written in cherry, can be compiled, hosted on NPM and be re-used. Output
-  linked to older versions of cherry will work with newer versions of cherry:
-  i.e. 'binary' compatibility.
+  written in cherry, can be compiled, tree-shaken with ES6 tooling and then
+  hosted on NPM. Output linked to older versions of cherry will work with newer
+  versions of cherry: i.e. 'binary' compatibility.
 - Macro support
 - REPL support
 - Async/await support
