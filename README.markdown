@@ -2,6 +2,22 @@ NOTE: cherry started out as a fork of [Scriptjure](https://github.com/arohner/sc
 
 Currently it's being reworked to make the code more compatible with the existing CLJS tooling.
 
+This code is experimental and not recommended to be used in production. It will undergo many breaking changes in the near future.
+
+Goals of cherry:
+
+- Transpile `.cljs` files on the fly into ES6-compatible `.js` (or `.mjs`) files.
+- Compiler will be available on npm and can be used from other JS tooling
+- Transpiled JS files are fairly readable and have source map support for debugging
+- Transpiled JS files are linked to one shared NPM module which contains
+  `"cherry/cljs.core"`, `"cherry/cljs.string"`, etc.  such that libraries
+  written in cherry, can be compiled, hosted on NPM and be re-used. Output
+  linked to older versions of cherry will work with newer versions of cherry:
+  i.e. 'binary' compatibility.
+- Macro support
+- REPL support
+- Async/await support
+
 ====
 
 Scriptjure is a Clojure library for generating javascript from Clojure forms. Its primary goal is to make it simple to embed "glue" javascript in Clojure webapps. Generated Scriptjure javascript is intended to be readable.
