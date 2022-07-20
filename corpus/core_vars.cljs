@@ -13,3 +13,8 @@
 (def log js/console.log)
 
 (log (first [1 2 3]))
+
+(defn foo [x]
+  (dissoc x :foo))
+
+(log (str (foo {:foo 1 :bar 2})))
