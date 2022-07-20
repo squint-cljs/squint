@@ -26,7 +26,7 @@
 
 (ns #^{:author "Allen Rohner"
        :doc "A library for generating javascript from Clojure."}
-       com.reasonr.scriptjure
+       cherry.compiler
        (:require [clojure.string :as str])
        (:require [com.reasonr.string :as rstr])
        (:use clojure.walk))
