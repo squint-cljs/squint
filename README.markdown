@@ -10,6 +10,11 @@ message on [Github Discussions](https://github.com/borkdude/cherry/discussions).
 > :warning: This project is an experiment and not recommended to be used in
 > production. It currently has many bugs and will undergo many breaking changes.
 
+Primary goal of cherry:
+
+- Have fun, experiment and learn. This will probably be my summer vacation
+  project during some time off in August.
+
 Goals of cherry:
 
 - Transpile `.cljs` files on the fly into ES6-compatible `.js` (or `.mjs`) files.
@@ -40,7 +45,7 @@ code with the CLJS compiler may become challenging. However, some results
 of this experiment may end up as improvements in the CLJS compiler if they turn
 out to be of value.
 
-Also see [test/cherry_test.clj](test/cherry_test.clj).
+Depending on interest, the above goals may or may not be achieved.
 
 Run `bb transpile_and_run.clj corpus/foo.cljs` to see an example transpilation +
 run in Node.js.
