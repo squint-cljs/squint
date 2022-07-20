@@ -45,7 +45,8 @@ code with the CLJS compiler may become challenging. However, some results
 of this experiment may end up as improvements in the CLJS compiler if they turn
 out to be of value.
 
-Depending on interest, the above goals may or may not be achieved.
+Depending on interest both from people working on this and the broader
+community, the above goals may or may not be pursued.
 
 Run `bb transpile_and_run.clj corpus/foo.cljs` to see an example transpilation +
 run in Node.js.
