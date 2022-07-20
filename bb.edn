@@ -1,0 +1,2 @@
+{:tasks {test {:doc "Run tests"
+               :task (clojure "-M:cljs:test")}}}
