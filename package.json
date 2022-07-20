@@ -3,7 +3,12 @@
   "name": "cherry-cljs",
   "sideEffects": false,
   "version": "0.0.0-alpha.4",
-  "files": ["cljs.core.js",
-            "lib/cljs_core.js"],
-  "devDependencies": {"cherry-cljs": "."}
+  "files": [
+    "cljs.core.js",
+    "lib/cljs_core.js"
+  ],
+  "devDependencies": {
+    "@vercel/ncc": "^0.34.0",
+    "cherry-cljs": "."
+  }
 }
