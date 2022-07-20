@@ -3,3 +3,7 @@
 package-lock.json
 target
 node_modules
+.shadow-cljs
+lib
+report.html
+test/scratch.js
