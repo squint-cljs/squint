@@ -102,7 +102,9 @@
                       dissoc conj vector clj->js js->clj get]))
 
 (def core->js '{clj->js toJs
-                js->cljs toCljs})
+                js->cljs toCljs
+                hash-map hashMap
+                array-map arrayMap})
 
 (def prefix-unary-operators (set ['!]))
 
@@ -404,8 +406,13 @@
   (emit (into [] expr)))
 
 (defmethod emit clojure.lang.IPersistentMap [expr]
-  (letfn [(json-pair [pair] (str (emit (key pair)) ": " (emit (val pair))))]
-    (str "{" (str/join ", " (map json-pair (seq expr))) "}")))
+  (let [map-fn
+        (if (<= (count expr) 8)
+          'arrayMap
+          'hashMap)]
+    (swap! *imported-core-vars* conj map-fn)
+    (letfn [(mk-pair [pair] (str (emit (key pair)) ", " (emit (val pair))))]
+      (format "%s(%s)" map-fn (str/join ", " (map mk-pair (seq expr)))))))
 
 (defn _js [forms]
   (with-var-declarations
