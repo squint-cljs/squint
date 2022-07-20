@@ -44,13 +44,15 @@ out to be of value.
 Depending on interest both from people working on this and the broader
 community, the above goals may or may not be pursued.
 
+Run `bb transpile_and_run.clj corpus/foo.cljs` to see an example transpilation +
+run in Node.js.
+
 Cherry started out as a fork of
 [Scriptjure](https://github.com/arohner/scriptjure). Currently it's being
 reworked to meet the above goals. If you are interested in these goals, post a
 message on [Github Discussions](https://github.com/borkdude/cherry/discussions).
 
-Run `bb transpile_and_run.clj corpus/foo.cljs` to see an example transpilation +
-run in Node.js.
+Here is the original readme of Scriptjure:
 
 ====
 
