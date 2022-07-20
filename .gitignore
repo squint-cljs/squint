@@ -7,3 +7,4 @@ node_modules
 lib
 report.html
 test/scratch.js
+dist

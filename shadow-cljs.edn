@@ -18,7 +18,9 @@
                           toCljs cljs.core/js->clj
                           dissoc cljs.core/dissoc
                           conj cljs.core/conj
-                          get cljs.core/get}}
+                          get cljs.core/get
+                          arrayMap cljs.core/array-map
+                          hashMap cljs.core/hash-map}}
     #_#_:transpiler {}}
    :build-hooks [(shadow.cljs.build-report/hook
                   {:output-to "report.html"})]}}}
