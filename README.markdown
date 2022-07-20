@@ -20,6 +20,9 @@ Goals of cherry:
   versions of cherry: i.e. 'binary' compatibility.
 - Light-weight and fast: heavy lifting such as optimizations are expected to be
   done by JS tooling
+- No dependency on Google Closure: this project will use it for bootstrapping
+  itself (by using the CLJS compiler), but users of this project won't see any
+  `goog.*` stuff.
 - Macro support
 - REPL support
 - Async/await support
