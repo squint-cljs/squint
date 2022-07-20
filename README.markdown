@@ -29,7 +29,7 @@ with current CLJS. Also it might not support all features that CLJS offers. As
 such, using existing libraries from the CLJS ecosystem or compiling Cherry CLJS
 code with the normal CLJS compiler may become challenging. However, some results
 of this experiment may end up as improvements in the CLJS compiler if they turn
-out to be fruitful.
+out to be of value.
 
 Also see [test/cherry_test.clj](test/cherry_test.clj).
 
