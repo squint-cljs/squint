@@ -31,7 +31,7 @@ Goals of cherry:
   `goog.*` stuff.
 - Macro support
 - REPL support
-- Async/await support
+- Async/await support. See [this tweet](https://twitter.com/borkdude/status/1549843802604638209) for a demo.
 - Native support for JS object destructuring
 
 Cherry may introduce new constructs such as `await` which won't be compatible
