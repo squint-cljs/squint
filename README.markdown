@@ -20,6 +20,11 @@ Goals of cherry:
 - REPL support
 - Async/await support
 
+Cherry may introduce new constructs such as `await` which won't be compatible
+with current CLJS. Also it might not support all features that CLJS offers. As
+such, using existing libraries from the CLJS ecosystem or compiling Cherry CLJS
+code with the normal CLJS compiler may become challenging.
+
 Also see [test/cherry_test.clj](test/cherry_test.clj).
 
 ====
