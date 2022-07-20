@@ -8,7 +8,7 @@ Goals of cherry:
 
 - Transpile `.cljs` files on the fly into ES6-compatible `.js` (or `.mjs`) files.
 - Compiler will be available on npm and can be used from JS tooling, but isn't
-  part of the compiled output (unless explicitly used)
+  part of the compiled output unless explicitly used.
 - Transpiled JS files are fairly readable and have source map support for debugging
 - Transpiled JS files are linked to one shared NPM module which contains
   `"cherry/cljs.core"`, `"cherry/cljs.string"`, etc.  such that libraries
