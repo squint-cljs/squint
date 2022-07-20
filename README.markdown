@@ -37,6 +37,9 @@ out to be of value.
 
 Also see [test/cherry_test.clj](test/cherry_test.clj).
 
+Run `bb transpile_and_run.clj corpus/foo.cljs` to see an example transpilation +
+run in Node.js.
+
 ====
 
 Scriptjure is a Clojure library for generating javascript from Clojure forms. Its primary goal is to make it simple to embed "glue" javascript in Clojure webapps. Generated Scriptjure javascript is intended to be readable.
