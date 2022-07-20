@@ -2,11 +2,10 @@
 
 Experimental and tiny CLJS transpiler
 
-NOTE: cherry started out as a fork of [Scriptjure](https://github.com/arohner/scriptjure).
-
-Currently it's being reworked to meet the below goals. If you are interested in
-these goals, post a message on [Github
-Discussions](https://github.com/borkdude/cherry/discussions).
+NOTE: cherry started out as a fork of
+[Scriptjure](https://github.com/arohner/scriptjure). Currently it's being
+reworked to meet the below goals. If you are interested in these goals, post a
+message on [Github Discussions](https://github.com/borkdude/cherry/discussions).
 
 > :warning: This project is an experiment and not recommended to be used in
 > production. It currently has many bugs and will undergo many breaking changes.
