@@ -28,7 +28,8 @@ Cherry may introduce new constructs such as `await` which won't be compatible
 with current CLJS. Also it might not support all features that CLJS offers. As
 such, using existing libraries from the CLJS ecosystem or compiling Cherry CLJS
 code with the normal CLJS compiler may become challenging. However, some results
-or insights of this experiment may end up as improvements in the CLJS compiler.
+of this experiment may end up as improvements in the CLJS compiler if they turn
+out to be fruitful.
 
 Also see [test/cherry_test.clj](test/cherry_test.clj).
 
