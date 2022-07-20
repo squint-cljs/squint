@@ -1,4 +1,4 @@
-:cherries:
+## Cherry :cherries:
 
 NOTE: cherry started out as a fork of [Scriptjure](https://github.com/arohner/scriptjure).
 
