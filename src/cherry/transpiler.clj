@@ -163,7 +163,7 @@
   (wrap-await (emit more)))
 
 (defn wrap-iife [s & [{:keys [async?]}]]
-  (cond-> (format "(%sfunction () { %s })()" (if async? "async " "") s)
+  (cond-> (format "(%sfunction () {\n %s\n})()" (if async? "async " "") s)
     async? (wrap-await)))
 
 (defn return [s]
@@ -301,7 +301,7 @@
   (assert (vector? sig))
   (let [body (return (emit-do body {:async? async?}))]
     (str (when-not elide-function? "function ") (comma-list sig) " {\n"
-         (emit-var-declarations) body " }")))
+         (emit-var-declarations) body "\n}")))
 
 (defn emit-function* [expr]
   (let [name (when (symbol? (first expr)) (first expr))
@@ -480,9 +480,8 @@
       (let [next-form (e/parse-next rdr)]
         (if (= ::e/eof next-form)
           transpiled
-          (let [next-js (js (clj next-form))]
-            (recur (str transpiled next-js (when-not (str/blank? next-js)
-                                             ";\n")))))))))
+          (let [next-js (some-> (js (clj next-form)) not-empty (statement))]
+            (recur (str transpiled next-js))))))))
 
 (defn transpile-file [{:keys [in-file out-file]}]
   (let [out-file (or out-file
