@@ -2,7 +2,7 @@ NOTE: cherry started out as a fork of [Scriptjure](https://github.com/arohner/sc
 
 Currently it's being reworked to make the code more compatible with the existing CLJS tooling.
 
-This code is experimental and not recommended to be used in production. It will undergo many breaking changes in the near future.
+This code is experimental and not recommended to be used in production. It will undergo many breaking changes.
 
 Goals of cherry:
 
