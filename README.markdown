@@ -19,6 +19,8 @@ Goals of cherry:
 - REPL support
 - Async/await support
 
+Also see [test/cherry_test.clj](test/cherry_test.clj).
+
 ====
 
 Scriptjure is a Clojure library for generating javascript from Clojure forms. Its primary goal is to make it simple to embed "glue" javascript in Clojure webapps. Generated Scriptjure javascript is intended to be readable.
