@@ -204,10 +204,10 @@
   (emit-aget var idxs))
 
 (defmethod emit-special 'dot-method [type [method obj & args]]
-  (let [method (rstr/drop 1 (str method))]
-    (if (str/starts-with? method "-")
-      (emit-aget obj [(subs method 1)])
-      (emit-method obj method args))))
+  (let [method-str (rstr/drop 1 (str method))]
+    (if (str/starts-with? method-str "-")
+      (emit-aget obj [(subs method-str 1)])
+      (emit-method obj (symbol method-str) args))))
 
 (defmethod emit-special 'return [type [return expr]]
   (statement (str "return " (emit expr))))
@@ -284,16 +284,13 @@
 (defn emit-function [name sig body & [elide-function? async?]]
   (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
-  (with-var-declarations
-    (let [body (return (emit-do body {:async? async?}))]
-      (str (when-not elide-function? "function ") (comma-list sig) " {\n"
-           (emit-var-declarations) body " }"))))
+  (let [body (return (emit-do body {:async? async?}))]
+    (str (when-not elide-function? "function ") (comma-list sig) " {\n"
+         (emit-var-declarations) body " }")))
 
 (defn emit-function* [expr]
   (let [name (when (symbol? (first expr)) (first expr))
         async? (:async (meta name))]
-    (when (and name (not async?))
-      (swap! var-declarations conj name))
     (if name
       (let [signature (second expr)
             body (rest (rest expr))]
