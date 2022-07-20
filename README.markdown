@@ -18,6 +18,8 @@ Goals of cherry:
   written in cherry can be compiled, tree-shaken with ES6 tooling and then
   hosted on NPM. Output linked to older versions of cherry will work with newer
   versions of cherry: i.e. 'binary' compatibility.
+- Light-weight and fast: heavy lifting such as optimizations are expected to be
+  done by JS tooling
 - Macro support
 - REPL support
 - Async/await support
