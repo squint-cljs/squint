@@ -4,6 +4,8 @@
 
 (js/console.log js-map)
 
-(def clj-map (assoc nil :foo (+ 1 2 3)))
+(def clj-map (assoc nil :foo/bar (+ 1 2 3)))
 
-(js/console.log (get clj-map :foo)) ;; => 6
+(js/console.log (get clj-map :foo/bar)) ;; => 6
+
+(js/console.log (str clj-map))
