@@ -1,8 +1,12 @@
 (ns foo)
 
-(js/console.log "hello")
-(js/console.log (+ 1 2 3))
+(def log js/console.log)
 
-(let [x (do (js/console.log "in do")
-            12)]
-  (js/console.log "x + 1 =" (inc x)))
+(log "hello")
+(log (+ 1 2 3))
+
+(let [y (let [x (do (log "in do")
+                   12)]
+         (log "x + 1 =" (inc x))
+         (+ x 13))]
+  (log "y =" y))
