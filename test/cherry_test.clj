@@ -1,18 +1,15 @@
 (ns cherry-test
   (:require
-   [cljs.core.server]
-   [cljs.repl.node]
+   [babashka.fs :as fs]
+   [cherry.compiler :refer [js]]
    [clojure.java.shell :refer [sh]]
-   [clojure.test :as t :refer [deftest is]]
-   [com.reasonr.scriptjure :refer [js]]
    [clojure.string :as str]
-   [clojure.java.io :as io]
-   [babashka.fs :as fs]))
+   [clojure.test :as t :refer [deftest is]]))
 
 (defn js-eval [expr]
   (fs/create-dirs "target")
   (spit "target/out.mjs" expr)
-  (let [res (sh "node" "--experimental-fetch" "test/out.mjs")]
+  (let [res (sh "node" "--experimental-fetch" "target/out.mjs")]
     (if (not (zero? (:exit res)))
       (throw (Exception. (:err res)))
       (:out res))))
