@@ -1,7 +1,7 @@
 (ns cherry-test
   (:require
    [babashka.fs :as fs]
-   [cherry.compiler :refer [js]]
+   [cherry.transpiler :refer [js]]
    [clojure.java.shell :refer [sh]]
    [clojure.string :as str]
    [clojure.test :as t :refer [deftest is]]))

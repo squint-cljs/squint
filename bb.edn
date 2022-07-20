@@ -1,2 +1,3 @@
-{:tasks {test {:doc "Run tests"
+{:paths ["src"]
+ :tasks {test {:doc "Run tests"
                :task (clojure "-M:cljs:test")}}}
