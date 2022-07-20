@@ -4,7 +4,7 @@ Currently it's being reworked to meet the below goals. If you are interested in
 these goals, post a message on [Github
 Discussions](https://github.com/borkdude/cherry/discussions).
 
-> :warning: This code is experimental and not recommended to be used in
+> :warning: This project is an experiment and not recommended to be used in
 > production. It currently has many bugs and will undergo many breaking changes.
 
 Goals of cherry:
@@ -24,10 +24,11 @@ Goals of cherry:
 - REPL support
 - Async/await support
 
-> :warning: Cherry may introduce new constructs such as `await` which won't be
-> compatible with current CLJS. Also it might not support all features that CLJS
-> offers. As such, using existing libraries from the CLJS ecosystem or compiling
-> Cherry CLJS code with the normal CLJS compiler may become challenging.
+Cherry may introduce new constructs such as `await` which won't be compatible
+with current CLJS. Also it might not support all features that CLJS offers. As
+such, using existing libraries from the CLJS ecosystem or compiling Cherry CLJS
+code with the normal CLJS compiler may become challenging. Some results or
+insights of this experiment may end up as improvements in the CLJS compiler.
 
 Also see [test/cherry_test.clj](test/cherry_test.clj).
 
