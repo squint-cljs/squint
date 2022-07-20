@@ -99,7 +99,8 @@
                          'await 'const 'defn 'let 'ns 'def]))
 
 (def core-vars (set '[map assoc str keyword symbol
-                      dissoc conj vector clj->js js->clj get]))
+                      dissoc conj vector clj->js js->clj get
+                      hash-map array-map first rest next nth seq]))
 
 (def core->js '{clj->js toJs
                 js->cljs toCljs
@@ -400,7 +401,8 @@
       (throw (new Exception (str "invalid form: " expr))))))
 
 (defmethod emit clojure.lang.IPersistentVector [expr]
-  (str "[" (str/join ", " (map emit expr)) "]"))
+  (swap! *imported-core-vars* conj 'vector)
+  (format "vector(%s)" (str/join ", " (map emit expr))))
 
 (defmethod emit clojure.lang.LazySeq [expr]
   (emit (into [] expr)))

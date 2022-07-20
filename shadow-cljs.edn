@@ -20,7 +20,13 @@
                           conj cljs.core/conj
                           get cljs.core/get
                           arrayMap cljs.core/array-map
-                          hashMap cljs.core/hash-map}}
+                          hashMap cljs.core/hash-map
+                          first cljs.core/first
+                          rest cljs.core/rest
+                          next cljs.core/next
+                          nth cljs.core/nth
+                          seq cljs.core/seq
+                          }}
     #_#_:transpiler {}}
    :build-hooks [(shadow.cljs.build-report/hook
                   {:output-to "report.html"})]}}}
