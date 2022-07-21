@@ -105,8 +105,6 @@
 
 (def core-vars (:vars core-config))
 
-(def core->js (:to-js core-config))
-
 (def prefix-unary-operators (set ['!]))
 
 (def suffix-unary-operators (set ['++ '--]))
@@ -202,7 +200,7 @@
          (str "(" (emit name) ")")
          (let [name
                (if (contains? core-vars name)
-                 (let [name (get core->js name name)]
+                 (let [name (symbol (munge name))]
                    (swap! *imported-core-vars* conj name)
                    name)
                  name)]
