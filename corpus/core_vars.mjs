@@ -1,4 +1,4 @@
-import { first, dissoc, map, reverse, get, prn, vector, keyword, str, clj__GT_js, arrayMap } from 'cherry-cljs/cljs.core.js'
+import { first, dissoc, map, reverse, get, prn, vector, derive, keyword, str, clj__GT_js, isa_QMARK_, arrayMap } from 'cherry-cljs/cljs.core.js'
 
 const js_map = clj__GT_js(arrayMap(keyword("foo"), keyword("bar")));
 console.log(js_map);
@@ -18,3 +18,5 @@ return (function () {
  return (x + 1);
 })();
 }, vector(1, 2, 3))));
+derive(keyword("foo/bar"), keyword("foo/baz"));
+prn(isa_QMARK_(keyword("foo/bar"), keyword("foo/baz")));

@@ -20,3 +20,7 @@
 (log (str (foo {:foo 1 :bar 2})))
 
 (prn (reverse (map (fn [x] (inc x)) [1 2 3])))
+
+(derive :foo/bar :foo/baz)
+
+(prn (isa? :foo/bar :foo/baz))
