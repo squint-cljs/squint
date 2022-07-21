@@ -1,8 +1,6 @@
-import { vector, str } from 'cherry-cljs/cljs.core.js'
-
 function foo () {
 return (function () {
- return vector();
+ return "hello";
 })();
 };
-console.log(str(foo()));
+console.log(foo());
