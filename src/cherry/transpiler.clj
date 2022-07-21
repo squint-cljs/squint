@@ -28,6 +28,7 @@
        :doc "A library for generating javascript from Clojure."}
     cherry.transpiler
   (:require
+   [cherry.internal.destructure :refer [core-let]]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as str]
@@ -99,7 +100,7 @@
                          'return 'delete 'new 'do 'aget 'while 'doseq
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
-                         'await 'const 'defn 'let 'ns 'def]))
+                         'await 'const 'defn 'let 'let* 'ns 'def]))
 
 (def core-config (edn/read-string (slurp (io/resource "cherry/cljs.core.edn"))))
 
@@ -181,31 +182,42 @@
 (defn return [s]
   (format "return %s;" s))
 
+(defmethod emit-special 'let* [type [_let bindings & more]]
+  (let [partitioned (partition 2 bindings)]
+    (wrap-iife
+     (str
+      (let [names (distinct (map (fn [[name _]]
+                                   name)
+                                 partitioned))]
+        (statement (str "let " (str/join ", " names))))
+      (apply str (interleave (map (fn [[name expr]]
+                                    (str (emit name) " = " (emit expr)))
+                                  partitioned)
+                             (repeat statement-separator)))
+      (return (emit-do more)))
+     {:async? *async*})))
+
 (defmethod emit-special 'let [type [_let bindings & more]]
-  (wrap-iife
-   (str
-    (apply str (interleave (map (fn [[name expr]]
-                                  (str "const " (emit name) " = " (emit expr)))
-                                (partition 2 bindings))
-                           (repeat statement-separator)))
-    (return (emit-do more)))
-   {:async? *async*}))
+  (emit (core-let bindings more))
+  #_(prn (core-let bindings more)))
 
 (defmethod emit-special 'ns [_ & _]
   ;; TODO
   )
 
 (defmethod emit-special 'funcall [_type [name & args]]
-  (str (if (and (list? name) (= 'fn (first name))) ; function literal call
-         (str "(" (emit name) ")")
-         (let [name
-               (if (contains? core-vars name)
-                 (let [name (symbol (munge name))]
-                   (swap! *imported-core-vars* conj name)
-                   name)
-                 name)]
-           (emit name)))
-       (comma-list (map emit args))))
+  (if (= "cljs.core" (namespace name))
+    (emit (list* (symbol (clojure.core/name name)) args))
+    (str (if (and (list? name) (= 'fn (first name))) ; function literal call
+           (str "(" (emit name) ")")
+           (let [name
+                 (if (contains? core-vars name)
+                   (let [name (symbol (munge name))]
+                     (swap! *imported-core-vars* conj name)
+                     name)
+                   name)]
+             (emit name)))
+         (comma-list (map emit args)))))
 
 (defmethod emit-special 'str [type [str & args]]
   (apply clojure.core/str (interpose " + " (map emit args))))
