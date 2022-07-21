@@ -432,11 +432,15 @@
 
 (defmethod emit clojure.lang.IPersistentMap [expr]
   (let [map-fn
-        (if (<= (count expr) 8)
-          'arrayMap
-          'hashMap)]
+        (if (::js (meta expr))
+          'js_obj
+          (if (<= (count expr) 8)
+            'arrayMap
+            'hashMap))
+        key-fn (if (= map-fn 'js_obj)
+                  name identity)]
     (swap! *imported-core-vars* conj map-fn)
-    (letfn [(mk-pair [pair] (str (emit (key pair)) ", " (emit (val pair))))]
+    (letfn [(mk-pair [pair] (str (emit (key-fn (key pair))) ", " (emit (val pair))))]
       (format "%s(%s)" map-fn (str/join ", " (map mk-pair (seq expr)))))))
 
 (defn _js [forms]
@@ -526,7 +530,7 @@
 (defn transpile-string [s]
   (let [rdr (e/reader s)]
     (loop [transpiled ""]
-      (let [next-form (e/parse-next rdr)]
+      (let [next-form (e/parse-next rdr {:readers {'js #(vary-meta % assoc ::js true)}})]
         (if (= ::e/eof next-form)
           transpiled
           (let [next-js (some-> (js (clj next-form)) not-empty (statement))]

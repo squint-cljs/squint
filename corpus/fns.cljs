@@ -9,3 +9,8 @@
   (+ a b))
 
 (prn (bar {:a 1 :b 2}))
+
+(defn baz [^js {:keys [a b]}]
+  (+ a b))
+
+(prn (baz #js {:a 1 :b 2}))
