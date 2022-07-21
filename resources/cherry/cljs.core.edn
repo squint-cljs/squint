@@ -447,4 +447,7 @@
          with-meta
          write-all
          zero?
-         zipmap}}
+         zipmap
+         ;; manually added:
+         --destructure-map
+         }}
