@@ -57,10 +57,12 @@
                                            (if (keyword? mk)
                                              (let [mkns (namespace mk)
                                                    mkn (name mk)]
-                                               (cond (= mkn "keys") (assoc transforms mk #(keyword (or mkns (namespace %)) (name %)))
-                                                     (= mkn "syms") (assoc transforms mk #(list `quote (symbol (or mkns (namespace %)) (name %))))
-                                                     (= mkn "strs") (assoc transforms mk str)
-                                                     :else transforms))
+                                               (cond
+                                                 (= mk "js/keys") (assoc transforms mk str)
+                                                 (= mkn "keys") (assoc transforms mk #(keyword (or mkns (namespace %)) (name %)))
+                                                 (= mkn "syms") (assoc transforms mk #(list `quote (symbol (or mkns (namespace %)) (name %))))
+                                                 (= mkn "strs") (assoc transforms mk str)
+                                                 :else transforms))
                                              transforms))
                                          {}
                                          (keys b))]
@@ -79,8 +81,12 @@
                                          (with-meta (symbol nil (name bb)) (meta bb))
                                          bb)
                                  bv (if (contains? defaults local)
-                                      (list 'cljs.get gmap bk (defaults local))
-                                      (list 'cljs.core/get gmap bk))]
+                                      (if (= "js" (namespace bk))
+                                        (list 'cljs.core/aget gmap (name bk) (defaults local))
+                                        (list 'cljs.core/get gmap bk (defaults local)))
+                                      (if (= "js" (namespace bk))
+                                        (list 'cljs.core/aget gmap (name bk))
+                                        (list 'cljs.core/get gmap bk)))]
                              (recur
                               (if (or (keyword? bb) (symbol? bb)) ;(ident? bb)
                                 (-> ret (conj local bv))
