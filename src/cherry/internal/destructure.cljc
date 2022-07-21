@@ -112,23 +112,6 @@
             :cljs (new js/Error (str "Unsupported binding key: " (ffirst kwbs)))))
         (reduce process-entry [] bents)))))
 
-(defn maybe-destructured
-  [params body]
-  (if (every? symbol? params)
-    (cons params body)
-    (loop [params params
-           new-params (with-meta [] (meta params))
-           lets []]
-      (if params
-        (if (symbol? (first params))
-          (recur (next params) (conj new-params (first params)) lets)
-          (let [gparam (gensym "p__")]
-            (recur (next params) (conj new-params gparam)
-                   (-> lets (conj (first params)) (conj gparam)))))
-        `(~new-params
-          (let ~lets
-            ~@body))))))
-
 (defn core-let
   [bindings body]
   #_(assert-args let

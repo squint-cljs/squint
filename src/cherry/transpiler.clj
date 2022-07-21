@@ -29,6 +29,7 @@
     cherry.transpiler
   (:require
    [cherry.internal.destructure :refer [core-let]]
+   [cherry.internal.fn :refer [core-defn core-fn]]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as str]
@@ -96,7 +97,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'quote 'set!
+(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while 'doseq
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
@@ -321,24 +322,31 @@
        "\n }"))
 
 (defn emit-var-declarations []
-  (when-not (empty? @var-declarations)
+  #_(when-not (empty? @var-declarations)
     (apply str "var "
            (str/join ", " (map emit @var-declarations))
            statement-separator)))
 
+(declare emit-function*)
+
 (defn emit-function [name sig body & [elide-function? async?]]
-  (assert (or (symbol? name) (nil? name)))
-  (assert (vector? sig))
-  (let [body (return (emit-do body {:async? async?}))]
-    (str (when-not elide-function? "function ") (comma-list sig) " {\n"
-         (emit-var-declarations) body "\n}")))
+  (do (assert (or (symbol? name) (nil? name)))
+      (assert (vector? sig))
+      (let [body (return (emit-do body {:async? async?}))]
+        (str (when-not elide-function? "function ") (comma-list sig) " {\n"
+             #_(emit-var-declarations) body "\n}"))))
 
 (defn emit-function* [expr]
   (let [name (when (symbol? (first expr)) (first expr))
-        async? (:async (meta name))]
+        expr (if name (rest expr) expr)
+        async? (:async (meta name))
+        expr (if (seq? (first expr))
+               ;; TODO: multi-arity:
+               (first expr)
+               expr)]
     (if name
-      (let [signature (second expr)
-            body (rest (rest expr))]
+      (let [signature (first expr)
+            body (rest expr)]
         (str (when async?
                "async ") "function " name " "
              (binding [*async* async?]
@@ -347,11 +355,16 @@
             body (rest expr)]
         (str (emit-function nil signature body))))))
 
-(defmethod emit-special 'fn [type [fn & expr]]
-  (emit-function* expr ))
+(defmethod emit-special 'fn* [type [fn & sigs]]
+  (emit-function* sigs))
 
-(defmethod emit-special 'defn [type [fn & expr]]
-  (emit-function* expr))
+(defmethod emit-special 'fn [type [fn & sigs :as expr]]
+  (let [expanded (core-fn expr sigs)]
+    (emit expanded)))
+
+(defmethod emit-special 'defn [type [fn name & args :as expr]]
+  (let [expanded (core-defn expr {} name args)]
+    (emit expanded)))
 
 (defmethod emit-special 'try [type [try & body :as expression]]
   (let [try-body (remove #(contains? #{'catch 'finally} (first %))
