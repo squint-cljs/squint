@@ -2,6 +2,6 @@
          dissoc conj vector clj->js js->clj get
          hash-map array-map first rest next nth seq}
  :to-js {clj->js toJs
-         js->cljs toCljs
+         js->clj toCljs
          hash-map hashMap
          array-map arrayMap}}
