@@ -1,0 +1,7 @@
+{:vars #{map assoc str keyword symbol
+         dissoc conj vector clj->js js->clj get
+         hash-map array-map first rest next nth seq}
+ :to-js {clj->js toJs
+         js->cljs toCljs
+         hash-map hashMap
+         array-map arrayMap}}

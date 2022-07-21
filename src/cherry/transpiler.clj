@@ -27,10 +27,13 @@
 (ns #^{:author "Allen Rohner"
        :doc "A library for generating javascript from Clojure."}
     cherry.transpiler
-  (:require [clojure.string :as str]
-            [com.reasonr.string :as rstr]
-            [edamame.core :as e])
-  (:use clojure.walk))
+  (:require
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
+   [clojure.string :as str]
+   [clojure.walk :as walk]
+   [com.reasonr.string :as rstr]
+   [edamame.core :as e]))
 
 (defn- throwf [& message]
   (throw (Exception. (apply format message))))
@@ -98,14 +101,13 @@
                          '? 'try 'break
                          'await 'const 'defn 'let 'ns 'def]))
 
-(def core-vars (set '[map assoc str keyword symbol
-                      dissoc conj vector clj->js js->clj get
-                      hash-map array-map first rest next nth seq]))
+(def core-config (edn/read-string (slurp (io/resource "cherry/cljs.core.edn"))))
 
-(def core->js '{clj->js toJs
-                js->cljs toCljs
-                hash-map hashMap
-                array-map arrayMap})
+(def core-vars (:vars core-config))
+
+(def core->js (:to-js core-config))
+
+(prn core->js)
 
 (def prefix-unary-operators (set ['!]))
 
@@ -437,7 +439,7 @@
 (defn- inner-walk [form]
   (cond
     (unquote? form) (handle-unquote form)
-    :else (walk inner-walk outer-walk form)))
+    :else (walk/walk inner-walk outer-walk form)))
 
 (defn- outer-walk [form]
   (cond
@@ -446,7 +448,7 @@
     :else form))
 
 (defmacro quasiquote [form]
-  (let [post-form (walk inner-walk outer-walk form)]
+  (let [post-form (walk/walk inner-walk outer-walk form)]
     post-form))
 
 (defmacro js*
