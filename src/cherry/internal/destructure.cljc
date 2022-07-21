@@ -43,7 +43,9 @@
                            ret))))
                    pmap
                    (fn [bvec b v]
-                     (let [gmap (gensym "map__")
+                     (let [m (meta b)
+                           js-keys? (= 'js (:tag m))
+                           gmap (gensym "map__")
                            defaults (:or b)]
                        (loop [ret (-> bvec (conj gmap) (conj v)
                                       (conj gmap) (conj (list 'cljs.core/--destructure-map gmap))
@@ -58,7 +60,7 @@
                                              (let [mkns (namespace mk)
                                                    mkn (name mk)]
                                                (cond
-                                                 (= mk "js/keys") (assoc transforms mk str)
+                                                 js-keys? (assoc transforms mk #(subs (str (keyword (or mkns (namespace %)) (name %))) 1))
                                                  (= mkn "keys") (assoc transforms mk #(keyword (or mkns (namespace %)) (name %)))
                                                  (= mkn "syms") (assoc transforms mk #(list `quote (symbol (or mkns (namespace %)) (name %))))
                                                  (= mkn "strs") (assoc transforms mk str)
@@ -81,11 +83,11 @@
                                          (with-meta (symbol nil (name bb)) (meta bb))
                                          bb)
                                  bv (if (contains? defaults local)
-                                      (if (= "js" (namespace bk))
-                                        (list 'cljs.core/aget gmap (name bk) (defaults local))
+                                      (if js-keys?
+                                        (list 'cljs.core/aget gmap bk (defaults local))
                                         (list 'cljs.core/get gmap bk (defaults local)))
-                                      (if (= "js" (namespace bk))
-                                        (list 'cljs.core/aget gmap (name bk))
+                                      (if js-keys?
+                                        (list 'cljs.core/aget gmap bk)
                                         (list 'cljs.core/get gmap bk)))]
                              (recur
                               (if (or (keyword? bb) (symbol? bb)) ;(ident? bb)
