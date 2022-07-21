@@ -107,8 +107,6 @@
 
 (def core->js (:to-js core-config))
 
-(prn core->js)
-
 (def prefix-unary-operators (set ['!]))
 
 (def suffix-unary-operators (set ['++ '--]))
