@@ -18,3 +18,5 @@
   (dissoc x :foo))
 
 (log (str (foo {:foo 1 :bar 2})))
+
+(prn (reverse (map (fn [x] (inc x)) [1 2 3])))

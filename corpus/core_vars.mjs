@@ -1,6 +1,6 @@
-import { toJs, first, dissoc, get, vector, keyword, str, arrayMap } from 'cherry-cljs/cljs.core.js'
+import { first, dissoc, map, reverse, get, prn, vector, keyword, str, clj__GT_js, arrayMap } from 'cherry-cljs/cljs.core.js'
 
-const js_map = toJs(arrayMap(keyword("foo"), keyword("bar")));
+const js_map = clj__GT_js(arrayMap(keyword("foo"), keyword("bar")));
 console.log(js_map);
 const clj_map = arrayMap(keyword("foo/bar"), (1 + 2 + 3));
 console.log(get(clj_map, keyword("foo/bar")));
@@ -13,3 +13,8 @@ return (function () {
 })();
 };
 log(str(foo(arrayMap(keyword("foo"), 1, keyword("bar"), 2))));
+prn(reverse(map(function (x) {
+return (function () {
+ return (x + 1);
+})();
+}, vector(1, 2, 3))));
