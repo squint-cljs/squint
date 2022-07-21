@@ -9,7 +9,8 @@
   ],
   "devDependencies": {
     "@vercel/ncc": "^0.34.0",
+    "chalk": "^5.0.1",
     "cherry-cljs": ".",
-    "chalk": "^5.0.1"
+    "esbuild": "^0.14.49"
   }
 }
