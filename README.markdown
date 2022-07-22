@@ -5,6 +5,32 @@ Experimental and tiny CLJS transpiler
 > :warning: This project is an experiment and not recommended to be used in
 > production. It currently has many bugs and will undergo many breaking changes.
 
+## Quickstart
+
+``` shell
+$ mkdir cherry-test && cd cherry-test
+$ npm init -y
+$ npm install cherry-cljs
+```
+
+Create a `.cljs` file, e.g. `index.cljs`:
+
+```
+(defn foo [{:keys [a b c]}]
+  (+ a b c))
+
+(js/console.log (foo {:a 1 :b 2 :c 3}))
+```
+
+Then run: `npx cherry index.cljs`. This will produce `index.mjs` which you can run with Node.js:
+
+```
+$ node index.mjs
+6
+```
+
+## Project goals
+
 Primary goal of cherry:
 
 - Have fun, experiment and learn. This will probably be my summer vacation
@@ -34,7 +60,7 @@ Goals of cherry:
 - Macro support
 - REPL support
 - Async/await support. See [this tweet](https://twitter.com/borkdude/status/1549843802604638209) for a demo.
-- Native support for JS object destructuring
+- Native support for JS object destructuring: `[^js {:keys [a b]} #js {:a 1 :b 2}]`
 
 Cherry may introduce new constructs such as `await` which won't be compatible
 with current CLJS. Also it might not support all features that CLJS offers. As
@@ -53,6 +79,8 @@ Cherry started out as a fork of
 [Scriptjure](https://github.com/arohner/scriptjure). Currently it's being
 reworked to meet the above goals. If you are interested in these goals, post a
 message on [Github Discussions](https://github.com/borkdude/cherry/discussions).
+
+
 
 Here is the original readme of Scriptjure:
 
