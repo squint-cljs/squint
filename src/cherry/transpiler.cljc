@@ -52,7 +52,10 @@
 
 (def statement-separator ";\n")
 
+;; TODO: move to context argument
 (def ^:dynamic *async* false)
+(def ^:dynamic *imported-core-vars* (atom #{}))
+(def ^:dynamic *public-vars* (atom #{}))
 
 (defn statement [expr]
   (if (not (= statement-separator (rstr/tail (count statement-separator) expr)))
@@ -74,8 +77,6 @@
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr]
   (str \" (.replace expr "\"" "\\\"") \"))
 
-;; TODO: move to context argument
-(def ^:dynamic *imported-core-vars* (atom #{}))
 
 (defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr]
   #_(when-not (valid-symbol? (name expr))
@@ -174,7 +175,9 @@
   (emit-const more))
 
 (defmethod emit-special 'def [_type [_const & more]]
-  (emit-const more))
+  (let [name (first more)]
+    (swap! *public-vars* conj (munge name))
+    (emit-const more)))
 
 (declare emit-do)
 
@@ -491,8 +494,10 @@
      (fs/writeFileSync f s "utf-8")))
 
 (defn transpile-file [{:keys [in-file out-file]}]
-  (let [core-vars (atom #{})]
-    (binding [*imported-core-vars* core-vars]
+  (let [core-vars (atom #{})
+        public-vars (atom #{})]
+    (binding [*imported-core-vars* core-vars
+              *public-vars* public-vars]
       (let [out-file (or out-file
                          (str/replace in-file #".cljs$" ".mjs"))
             transpiled (transpile-string (slurp in-file))
@@ -500,6 +505,9 @@
                          (str (format "import { %s } from 'cherry-cljs/cljs.core.js'\n"
                                       (str/join ", " core-vars))
                               transpiled)
-                         transpiled)]
+                         transpiled)
+            transpiled (str transpiled
+                            (format "\nexport { %s }\n"
+                                    (str/join ", " @public-vars)))]
         (spit out-file transpiled)
         {:out-file out-file}))))
