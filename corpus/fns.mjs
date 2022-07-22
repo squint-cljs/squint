@@ -1,13 +1,13 @@
-import { get, js_obj, prn, __destructure_map, keyword, arrayMap } from 'cherry-cljs/cljs.core.js'
+import { __destructure_map, get, keyword, prn, arrayMap, js_obj } from 'cherry-cljs/cljs.core.js'
 
-const foo = function foo (p__1204) {
+const foo = function foo (p__1) {
 return (function () {
  return (function () {
- let map__1205, a, b;
-map__1205 = p__1204;
-map__1205 = __destructure_map(map__1205);
-a = get(map__1205, keyword("a"));
-b = get(map__1205, keyword("b"));
+ let map__2, a, b;
+map__2 = p__1;
+map__2 = __destructure_map(map__2);
+a = get(map__2, keyword("a"));
+b = get(map__2, keyword("b"));
 return (function () {
  return (a + b);
 })();
@@ -15,14 +15,14 @@ return (function () {
 })();
 };
 prn(foo(arrayMap(keyword("a"), 1, keyword("b"), 2)));
-const bar = function (p__1207) {
+const bar = function (p__3) {
 return (function () {
  return (function () {
- let map__1208, a, b;
-map__1208 = p__1207;
-map__1208 = __destructure_map(map__1208);
-a = get(map__1208, keyword("a"));
-b = get(map__1208, keyword("b"));
+ let map__4, a, b;
+map__4 = p__3;
+map__4 = __destructure_map(map__4);
+a = get(map__4, keyword("a"));
+b = get(map__4, keyword("b"));
 return (function () {
  return (a + b);
 })();
@@ -30,14 +30,14 @@ return (function () {
 })();
 };
 prn(bar(arrayMap(keyword("a"), 1, keyword("b"), 2)));
-const baz = function (p__1210) {
+const baz = function (p__5) {
 return (function () {
  return (function () {
- let map__1211, a, b;
-map__1211 = p__1210;
-map__1211 = __destructure_map(map__1211);
-a = map__1211["a"];
-b = map__1211["b"];
+ let map__6, a, b;
+map__6 = p__5;
+map__6 = __destructure_map(map__6);
+a = map__6["a"];
+b = map__6["b"];
 return (function () {
  return (a + b);
 })();

@@ -18,3 +18,8 @@
   (fs/create-dirs ".work")
   (spit ".work/config-merge.edn" (shadow-extra-config))
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn release cherry"))
+
+(defn watch-cherry []
+  (fs/create-dirs ".work")
+  (spit ".work/config-merge.edn" (shadow-extra-config))
+  (shell "npx shadow-cljs --config-merge .work/config-merge.edn watch cherry"))

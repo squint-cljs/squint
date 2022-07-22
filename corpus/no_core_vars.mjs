@@ -1,4 +1,4 @@
-function foo () {
+const foo = function () {
 return (function () {
  return "hello";
 })();

@@ -79,7 +79,7 @@
     to the var metadata. prepost-map defines a map with optional keys
     :pre and :post that contain collections of pre or post conditions."
     :arglists '([name doc-string? attr-map? [params*] prepost-map? body]
-                 [name doc-string? attr-map? ([params*] prepost-map? body)+ attr-map?])}
+                [name doc-string? attr-map? ([params*] prepost-map? body)+ attr-map?])}
   core-defn [_&form _&env name fdecl]
   ;; Note: Cannot delegate this check to def because of the call to (with-meta name ..)
   (if (instance? #?(:clj clojure.lang.Symbol :cljs Symbol) name)
@@ -88,28 +88,28 @@
      #?(:clj (IllegalArgumentException. "First argument to defn must be a symbol")
         :cljs (js/Error. "First argument to defn must be a symbol"))))
   (let [m (if (string? (first fdecl))
-                 {:doc (first fdecl)}
-                 {})
-             fdecl (if (string? (first fdecl))
-                     (next fdecl)
-                     fdecl)
-             m (if (map? (first fdecl))
-                 (conj m (first fdecl))
-                 m)
-             fdecl (if (map? (first fdecl))
-                     (next fdecl)
-                     fdecl)
-             fdecl (if (vector? (first fdecl))
-                     (list fdecl)
-                     fdecl)
-             m (if (map? (last fdecl))
-                 (conj m (last fdecl))
-                 m)
-             fdecl (if (map? (last fdecl))
-                     (butlast fdecl)
-                     fdecl)
-             m m #_(conj {:arglists (list 'quote (sigs fdecl))} m)
-             ;; no support for :inline
+            {:doc (first fdecl)}
+            {})
+        fdecl (if (string? (first fdecl))
+                (next fdecl)
+                fdecl)
+        m (if (map? (first fdecl))
+            (conj m (first fdecl))
+            m)
+        fdecl (if (map? (first fdecl))
+                (next fdecl)
+                fdecl)
+        fdecl (if (vector? (first fdecl))
+                (list fdecl)
+                fdecl)
+        m (if (map? (last fdecl))
+            (conj m (last fdecl))
+            m)
+        fdecl (if (map? (last fdecl))
+                (butlast fdecl)
+                fdecl)
+        m m #_(conj {:arglists (list 'quote (sigs fdecl))} m)
+        ;; no support for :inline
                                         ;m (let [inline (:inline m)
                                         ;             ifn (first inline)
                                         ;             iname (second inline)]
@@ -125,22 +125,22 @@
                                         ;                          (.concat (.getName ^clojure.lang.Symbol name) "__inliner"))
                                         ;                    (next inline))))
                                         ;      m))
-             m (conj (if (meta name) (meta name) {}) m)]
+        m (conj (if (meta name) (meta name) {}) m)]
     (cond
       #_(multi-arity-fn? fdecl)
       #_(multi-arity-fn name
-                      (if (comp/checking-types?)
-                        (update-in m [:jsdoc] conj "@param {...*} var_args")
-                        m) fdecl (:def-emits-var &env))
+                        (if (comp/checking-types?)
+                          (update-in m [:jsdoc] conj "@param {...*} var_args")
+                          m) fdecl (:def-emits-var &env))
 
       #_(variadic-fn? fdecl)
       #_(variadic-fn name
-                   (if (comp/checking-types?)
-                     (update-in m [:jsdoc] conj "@param {...*} var_args")
-                     m) fdecl (:def-emits-var &env))
+                     (if (comp/checking-types?)
+                       (update-in m [:jsdoc] conj "@param {...*} var_args")
+                       m) fdecl (:def-emits-var &env))
 
       :else
       (list 'def (with-meta name m)
-                 ;;todo - restore propagation of fn name
-                 ;;must figure out how to convey primitive hints to self calls first
-                 (cons `fn fdecl)))))
+            ;;todo - restore propagation of fn name
+            ;;must figure out how to convey primitive hints to self calls first
+            (with-meta (cons `fn fdecl) m)))))

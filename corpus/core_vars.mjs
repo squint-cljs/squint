@@ -7,7 +7,7 @@ console.log(get(clj_map, keyword("foo/bar")));
 console.log(str(clj_map));
 const log = console.log;
 log(first(vector(1, 2, 3)));
-function foo (x) {
+const foo = function (x) {
 return (function () {
  return dissoc(x, keyword("foo"));
 })();
