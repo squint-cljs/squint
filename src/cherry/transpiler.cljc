@@ -226,7 +226,8 @@
 
 (defmethod emit-special 'funcall [_type [name & args :as expr]]
   (if (= "cljs.core" (namespace name))
-    (emit (list* (symbol (clojure.core/name name)) args))
+    (emit (with-meta (list* (symbol (clojure.core/name name)) args)
+            (meta expr)))
     (str (if (and (list? name) (= 'fn (first name))) ; function literal call
            (str "(" (emit name) ")")
            (let [name
@@ -383,7 +384,9 @@
     (emit expanded)))
 
 (defmethod emit-special 'defn [type [fn name & args :as expr]]
-  (let [expanded (core-defn expr {} name args)]
+  (let [;;async (:async (meta name))
+        [_def _name _fn-expr :as expanded] (core-defn expr {} name args)]
+    ;; (prn fn-expr (meta fn-expr))
     (emit expanded)))
 
 (defmethod emit-special 'try [type [try & body :as expression]]
