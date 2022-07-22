@@ -12,12 +12,19 @@ Although it's early days and far from complete, you're welcome to try out cherry
 ``` shell
 $ mkdir cherry-test && cd cherry-test
 $ npm init -y
-$ npm install cherry-cljs
+$ npm install cherry-cljs@latest
 ```
 
 Create a `.cljs` file, e.g. `index.cljs`:
 
 ``` clojure
+(ns index
+  (:require ["fs" :as fs]
+            ["url" :refer [fileURLToPath]]))
+
+(prn (subs (fs/readFileSync (fileURLToPath js/import.meta.url) "utf-8")
+           0 100))
+
 (defn foo [{:keys [a b c]}]
   (+ a b c))
 
@@ -30,6 +37,7 @@ Then transpile and run:
 $ npx cherry index.cljs && node index.mjs
 Transpiling CLJS file: index.cljs
 Wrote JS file: index.mjs
+"import { prn, subs, __destructure_map, get, keyword, arrayMap } from 'cherry-cljs/cljs.core.js'\nimpo"
 6
 ```
 

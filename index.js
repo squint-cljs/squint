@@ -1,4 +1,4 @@
-mport { transpileFile as t} from  './lib/transpiler.js'
+import { transpileFile as t} from  './lib/transpiler.js'
 import { js__GT_clj, keyword, clj__GT_js, str } from './cljs.core.js'
 
 function transpileFile({ inFile }) {

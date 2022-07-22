@@ -1,5 +1,4 @@
 import { first, dissoc, map, reverse, get, prn, vector, derive, keyword, str, clj__GT_js, isa_QMARK_, arrayMap } from 'cherry-cljs/cljs.core.js'
-
 const js_map = clj__GT_js(arrayMap(keyword("foo"), keyword("bar")));
 console.log(js_map);
 const clj_map = arrayMap(keyword("foo/bar"), (1 + 2 + 3));
