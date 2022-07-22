@@ -15,7 +15,7 @@ $ npm install cherry-cljs
 
 Create a `.cljs` file, e.g. `index.cljs`:
 
-```
+``` clojure
 (defn foo [{:keys [a b c]}]
   (+ a b c))
 
