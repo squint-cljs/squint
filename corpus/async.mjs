@@ -11,3 +11,5 @@ return (await (async function () {
 })());
 };
 console.log("status:", await(status()));
+
+export { status }

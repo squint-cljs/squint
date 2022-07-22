@@ -1,4 +1,4 @@
-import { __destructure_map, get, keyword, prn, arrayMap, js_obj } from 'cherry-cljs/cljs.core.js'
+import { __destructure_map, get, keyword, prn, arrayMap } from 'cherry-cljs/cljs.core.js'
 const foo = function foo (p__1) {
 return (function () {
  return (function () {
@@ -43,4 +43,6 @@ return (function () {
 })();
 })();
 };
-prn(baz(js_obj("a", 1, "b", 2)));
+prn(baz({ "a": 1, "b": 2 }));
+
+export { foo, bar, baz }

@@ -470,16 +470,20 @@
 (defmethod emit #?(:clj clojure.lang.IPersistentMap
                    :cljs ::map) [expr]
   (let [map-fn
-        (if (::js (meta expr))
-          'js_obj
+        (when-not (::js (meta expr))
           (if (<= (count expr) 8)
             'arrayMap
             'hashMap))
-        key-fn (if (= map-fn 'js_obj)
-                  name identity)]
-    (swap! *imported-core-vars* conj map-fn)
-    (letfn [(mk-pair [pair] (str (emit (key-fn (key pair))) ", " (emit (val pair))))]
-      (format "%s(%s)" map-fn (str/join ", " (map mk-pair (seq expr)))))))
+        key-fn (if-not map-fn
+                 name identity)
+        mk-pair (fn [pair] (str (emit (key-fn (key pair))) (if map-fn ", " ": ")
+                                (emit (val pair))))
+        keys (str/join ", " (map mk-pair (seq expr)))]
+    (when map-fn
+      (swap! *imported-core-vars* conj map-fn))
+    (if map-fn
+      (format "%s(%s)" map-fn keys)
+      (format "{ %s }" keys))))
 
 (defn transpile-string [s]
   (let [rdr (e/reader s)]
