@@ -75,8 +75,7 @@
          (str (float expr))))
 
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr]
-  (str \" (.replace expr "\"" "\\\"") \"))
-
+  (pr-str expr))
 
 (defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr]
   #_(when-not (valid-symbol? (name expr))
