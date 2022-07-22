@@ -84,13 +84,20 @@
   (swap! *imported-core-vars* conj 'keyword)
   (str (format "keyword(%s)" (pr-str (subs (str expr) 1)))))
 
+(defn munge* [expr]
+  (let [munged (str (munge expr))]
+    (cond-> munged
+      (and (str/ends-with? munged "$")
+           (not= (str expr) "default"))
+      (str/replace #"\$$" ""))))
+
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr]
   (let [expr-ns (namespace expr)
         js? (= "js" expr-ns)
         expr-ns (when-not js? expr-ns)
         expr (str expr-ns (when expr-ns
                                      ".")
-                  (str/replace (str (munge (name expr))) #"\$$" ""))]
+                  (munge* (name expr)))]
     #_(when-not (valid-symbol? (str expr))
       (#' throwf "%s is not a valid javascript symbol" expr))
     (str expr)))
@@ -176,7 +183,7 @@
 
 (defmethod emit-special 'def [_type [_const & more]]
   (let [name (first more)]
-    (swap! *public-vars* conj (munge name))
+    (swap! *public-vars* conj (munge* name))
     (emit-const more)))
 
 (declare emit-do)
@@ -236,7 +243,7 @@
            (str "(" (emit name) ")")
            (let [name
                  (if (contains? core-vars name)
-                   (let [name (symbol (munge name))]
+                   (let [name (symbol (munge* name))]
                      (swap! *imported-core-vars* conj name)
                      name)
                    name)]
@@ -508,6 +515,8 @@
                          transpiled)
             transpiled (str transpiled
                             (format "\nexport { %s }\n"
-                                    (str/join ", " @public-vars)))]
+                                    (str/join ", " (disj @public-vars "default$")))
+                            (when (contains? @public-vars "default$")
+                              "export default default$\n"))]
         (spit out-file transpiled)
         {:out-file out-file}))))
