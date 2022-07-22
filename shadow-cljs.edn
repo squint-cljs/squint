@@ -8,6 +8,7 @@
    :runtime :node
    :output-dir "lib"
    :modules
+   ;; note: this is overriden in bb build-cherry
    {:cljs_core {:exports {assoc cljs.core/assoc
                           map cljs.core/map
                           str cljs.core/str
@@ -27,6 +28,10 @@
                           nth cljs.core/nth
                           seq cljs.core/seq
                           }}
-    #_#_:transpiler {}}
+    :transpiler {:depends-on #{:cljs_core}
+                 :exports
+                 {transpileFile cherry.transpiler/transpile-file}}
+    :cli {:depends-on #{:transpiler}
+          :init-fn cherry.internal.cli/init}}
    :build-hooks [(shadow.cljs.build-report/hook
                   {:output-to "report.html"})]}}}

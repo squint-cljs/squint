@@ -28,14 +28,20 @@
        :doc "A library for generating javascript from Clojure."}
     cherry.transpiler
   (:require
+   #?(:cljs ["fs" :as fs])
+   #?(:cljs [goog.string.format])
+   #?(:cljs [goog.string :as gstring])
    [cherry.internal.destructure :refer [core-let]]
    [cherry.internal.fn :refer [core-defn core-fn]]
-   [clojure.edn :as edn]
-   [clojure.java.io :as io]
+   #?(:clj [cherry.resource :as resource])
    [clojure.string :as str]
-   [clojure.walk :as walk]
    [com.reasonr.string :as rstr]
-   [edamame.core :as e]))
+   [edamame.core :as e])
+  #?(:cljs (:require-macros [cherry.resource :as resource])))
+
+#?(:cljs (def Exception js/Error))
+
+#?(:cljs (def format gstring/format))
 
 (defn- throwf [& message]
   (throw (Exception. (apply format message))))
@@ -59,42 +65,39 @@
 (defmethod emit nil [expr]
   "null")
 
-(defmethod emit java.lang.Integer [expr]
+(defmethod emit #?(:clj java.lang.Integer :cljs js/Number) [expr]
   (str expr))
 
-(defmethod emit clojure.lang.Ratio [expr]
-  (str (float expr)))
+#?(:clj (defmethod emit clojure.lang.Ratio [expr]
+         (str (float expr))))
 
-(defmethod emit java.lang.String [^String expr]
+(defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr]
   (str \" (.replace expr "\"" "\\\"") \"))
-
-(defn valid-symbol? [sym]
-  ;;; This is incomplete, it disallows unicode
-  (boolean (re-matches #"[_$\p{Alpha}][.\w]*" (str sym))))
 
 ;; TODO: move to context argument
 (def ^:dynamic *imported-core-vars* (atom #{}))
 
-(defmethod emit clojure.lang.Keyword [expr]
-  (when-not (valid-symbol? (name expr))
+(defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr]
+  #_(when-not (valid-symbol? (name expr))
     (#'throwf "%s is not a valid javascript symbol" expr))
   (swap! *imported-core-vars* conj 'keyword)
   (str (format "keyword(%s)" (pr-str (subs (str expr) 1)))))
 
-(defmethod emit clojure.lang.Symbol [expr]
+(defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr]
   (let [expr (if (and (qualified-symbol? expr)
                       (= "js" (namespace expr)))
                (name expr)
                expr)
-        expr (symbol (munge expr))]
-    (when-not (valid-symbol? (str expr))
+        expr (symbol (str/replace (str (munge expr)) #"\$$" ""))]
+    #_(when-not (valid-symbol? (str expr))
       (#' throwf "%s is not a valid javascript symbol" expr))
     (str expr)))
 
-(defmethod emit java.util.regex.Pattern [expr]
+(defmethod emit #?(:clj java.util.regex.Pattern :cljs js/RegExp) [expr]
   (str \/ expr \/))
 
 (defmethod emit :default [expr]
+  (prn :WARNING "Unhandled type" (type expr))
   (str expr))
 
 (def special-forms (set ['var '. '.. 'if 'funcall 'fn 'fn* 'quote 'set!
@@ -103,7 +106,7 @@
                          '? 'try 'break
                          'await 'const 'defn 'let 'let* 'ns 'def]))
 
-(def core-config (edn/read-string (slurp (io/resource "cherry/cljs.core.edn"))))
+(def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
 (def core-vars (:vars core-config))
 
@@ -176,9 +179,9 @@
 (defmethod emit-special 'await [_ [_await more]]
   (wrap-await (emit more)))
 
-(defn wrap-iife [s & [{:keys [async?]}]]
-  (cond-> (format "(%sfunction () {\n %s\n})()" (if async? "async " "") s)
-    async? (wrap-await)))
+(defn wrap-iife [s]
+  (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
+    *async* (wrap-await)))
 
 (defn return [s]
   (format "return %s;" s))
@@ -195,18 +198,17 @@
                                     (str (emit name) " = " (emit expr)))
                                   partitioned)
                              (repeat statement-separator)))
-      (return (emit-do more)))
-     {:async? *async*})))
+      (return (emit-do more))))))
 
 (defmethod emit-special 'let [type [_let bindings & more]]
   (emit (core-let bindings more))
   #_(prn (core-let bindings more)))
 
 (defmethod emit-special 'ns [_ & _]
-  ;; TODO
+  "" ;; TODO
   )
 
-(defmethod emit-special 'funcall [_type [name & args]]
+(defmethod emit-special 'funcall [_type [name & args :as expr]]
   (if (= "cljs.core" (namespace name))
     (emit (list* (symbol (clojure.core/name name)) args))
     (str (if (and (list? name) (= 'fn (first name))) ; function literal call
@@ -297,14 +299,14 @@
   (apply str more))
 
 (defn emit-do [exprs & [{:keys [top-level?]
-                         :as opts}]]
+                         }]]
   (let [bl (butlast exprs)
         l (last exprs)]
     (cond-> (str (str/join "" (map (comp statement emit) bl))
                  (cond-> (emit l)
                    (not top-level?)
                    (return)))
-      (not top-level?) (wrap-iife opts))))
+      (not top-level?) (wrap-iife))))
 
 (defmethod emit-special 'do [type [ do & exprs]]
   (emit-do exprs))
@@ -329,17 +331,18 @@
 
 (declare emit-function*)
 
-(defn emit-function [name sig body & [elide-function? async?]]
-  (do (assert (or (symbol? name) (nil? name)))
-      (assert (vector? sig))
-      (let [body (return (emit-do body {:async? async?}))]
-        (str (when-not elide-function? "function ") (comma-list sig) " {\n"
-             #_(emit-var-declarations) body "\n}"))))
+(defn emit-function [name sig body & [elide-function?]]
+  (assert (or (symbol? name) (nil? name)))
+  (assert (vector? sig))
+  (let [body (return (emit-do body))]
+    (str (when-not elide-function?
+           (str (when *async*
+                  "async ") "function ")) (comma-list sig) " {\n"
+         #_(emit-var-declarations) body "\n}")))
 
 (defn emit-function* [expr]
   (let [name (when (symbol? (first expr)) (first expr))
         expr (if name (rest expr) expr)
-        async? (:async (meta name))
         expr (if (seq? (first expr))
                ;; TODO: multi-arity:
                (first expr)
@@ -347,16 +350,17 @@
     (if name
       (let [signature (first expr)
             body (rest expr)]
-        (str (when async?
+        (str (when *async*
                "async ") "function " name " "
-             (binding [*async* async?]
-               (emit-function name signature body true async?))))
+             (emit-function name signature body true)))
       (let [signature (first expr)
             body (rest expr)]
         (str (emit-function nil signature body))))))
 
-(defmethod emit-special 'fn* [type [fn & sigs]]
-  (emit-function* sigs))
+(defmethod emit-special 'fn* [type [fn & sigs :as expr]]
+  (let [async? (:async (meta expr))]
+    (binding [*async* async?]
+      (emit-function* sigs))))
 
 (defmethod emit-special 'fn [type [fn & sigs :as expr]]
   (let [expanded (core-fn expr sigs)]
@@ -399,21 +403,20 @@
 (defmethod emit-special 'break [type [break]]
   (statement "break"))
 
-(declare emit-custom custom-form?)
-
-(derive clojure.lang.Cons ::list)
-(derive clojure.lang.IPersistentList ::list)
+(derive #?(:clj clojure.lang.Cons :cljs Cons) ::list)
+(derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)
+#?(:cljs (derive List ::list))
 
 (defmethod emit ::list [expr]
   (if (symbol? (first expr))
     (let [head (symbol (name (first expr))) ; remove any ns resolution
-          expr (conj (rest expr) head)]
+          expr (with-meta (conj (rest expr) head)
+                 (meta expr))]
       (cond
         (and (= (rstr/get (str head) 0) \.)
              (> (count (str head)) 1)
 
              (not (= (rstr/get (str head) 1) \.))) (emit-special 'dot-method expr)
-        (custom-form? head) (emit-custom head expr)
         (special-form? head) (emit-special head expr)
         (infix-operator? head) (emit-infix head expr)
         (prefix-unary? head) (emit-prefix-unary head expr)
@@ -423,14 +426,22 @@
       (emit-special 'funcall expr)
       (throw (new Exception (str "invalid form: " expr))))))
 
-(defmethod emit clojure.lang.IPersistentVector [expr]
+#?(:cljs (derive PersistentVector ::vector))
+
+(defmethod emit #?(:clj clojure.lang.IPersistentVector
+                   :cljs ::vector) [expr]
   (swap! *imported-core-vars* conj 'vector)
   (format "vector(%s)" (str/join ", " (map emit expr))))
 
-(defmethod emit clojure.lang.LazySeq [expr]
+(defmethod emit #?(:clj clojure.lang.LazySeq
+                   :cljs LazySeq) [expr]
   (emit (into [] expr)))
 
-(defmethod emit clojure.lang.IPersistentMap [expr]
+#?(:cljs (derive PersistentArrayMap ::map))
+#?(:cljs (derive PersistentHashMap ::map))
+
+(defmethod emit #?(:clj clojure.lang.IPersistentMap
+                   :cljs ::map) [expr]
   (let [map-fn
         (if (::js (meta expr))
           'js_obj
@@ -443,98 +454,23 @@
     (letfn [(mk-pair [pair] (str (emit (key-fn (key pair))) ", " (emit (val pair))))]
       (format "%s(%s)" map-fn (str/join ", " (map mk-pair (seq expr)))))))
 
-(defn _js [forms]
-  (with-var-declarations
-    (let [code (if (> (count forms) 1)
-                 (emit-do forms {:top-level? true})
-                 (emit (first forms)))]
-      ;;(println "js " forms " => " code)
-      (str (emit-var-declarations) code))))
-
-(defn- unquote?
-  "Tests whether the form is (unquote ...)."
-  [form]
-  (and (seq? form) (symbol? (first form)) (= (symbol (name (first form))) 'clj)))
-
-(defn handle-unquote [form]
-  (second form))
-
-(declare inner-walk outer-walk)
-
-(defn- inner-walk [form]
-  (cond
-    (unquote? form) (handle-unquote form)
-    :else (walk/walk inner-walk outer-walk form)))
-
-(defn- outer-walk [form]
-  (cond
-    (symbol? form) (list 'quote form)
-    (seq? form) (list* 'list form)
-    :else form))
-
-(defmacro quasiquote [form]
-  (let [post-form (walk/walk inner-walk outer-walk form)]
-    post-form))
-
-(defmacro js*
-  "returns a fragment of 'uncompiled' javascript. Compile to a string using js."
-  [& forms]
-  (if (= (count forms) 1)
-    `(quasiquote ~(first forms))
-    (let [do-form `(do ~@forms)]
-      `(quasiquote ~do-form))))
-
-(defmacro cljs*
-  "equivalent to (js* (clj form))"
-  [form]
-  `(js* (~'clj ~form)))
-
-(defmacro cljs
-  "equivalent to (js (clj form))"
-  [form]
-  `(js (clj ~form)))
-
-(defmacro js
-  "takes one or more forms. Returns a string of the forms translated into javascript"
-  [& forms]
-  `(_js (quasiquote ~forms)))
-
-
-;;**********************************************************
-;; Custom forms
-;;**********************************************************
-
-(defonce custom-forms (atom {}))
-
-(defmacro defjsmacro [nme params & body]
-  `(do
-     (defn ~nme ~params
-       (js*
-        ~@body))
-     (add-custom-form '~nme ~nme)))
-
-(defn add-custom-form [form func]
-  (swap! custom-forms assoc form func))
-
-(defn get-custom [form]
-  (get @custom-forms form))
-
-(defn custom-form? [expr]
-  (get-custom expr))
-
-(defn emit-custom [head expr]
-  (when-let [func (get-custom head)]
-    (let [v (apply func (next expr))]
-      (emit v))))
-
 (defn transpile-string [s]
   (let [rdr (e/reader s)]
     (loop [transpiled ""]
       (let [next-form (e/parse-next rdr {:readers {'js #(vary-meta % assoc ::js true)}})]
         (if (= ::e/eof next-form)
           transpiled
-          (let [next-js (some-> (js (clj next-form)) not-empty (statement))]
+          (let [next-t (emit next-form)
+                next-js (some-> next-t not-empty (statement))]
             (recur (str transpiled next-js))))))))
+
+#?(:cljs
+   (defn slurp [f]
+     (fs/readFileSync f "utf-8")))
+
+#?(:cljs
+   (defn spit [f s]
+     (fs/writeFileSync f s "utf-8")))
 
 (defn transpile-file [{:keys [in-file out-file]}]
   (let [core-vars (atom #{})]

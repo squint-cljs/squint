@@ -1,11 +1,12 @@
-async function status () {
+const status = async function () {
 return (await (async function () {
  return (await (async function () {
- const resp = (await fetch("https://clojure.org"));
-const status = (await resp["status"]);
-return (function () {
+ let resp, status;
+resp = (await fetch("https://clojure.org"));
+status = (await resp["status"]);
+return (await (async function () {
  return status;
-})();
+})());
 })());
 })());
 };

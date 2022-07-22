@@ -1,5 +1,6 @@
 {:paths ["src" "resources" "bb"]
  :tasks {:requires ([tasks :as t])
-         build-cherry (t/build-cherry-npm-package)
+         build (t/build-cherry-npm-package)
+         watch (t/watch-cherry)
          test {:doc "Run tests"
                :task (clojure "-M:cljs:test")}}}
