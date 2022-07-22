@@ -5,6 +5,4 @@
         status (js/await (.-status resp))]
     status))
 
-(def chalk (.-default (js/await (js/import "chalk"))))
-
-(js/console.log "status:" (chalk.green (js/await (status))))
+(js/console.log "status:" (js/await (status)))
