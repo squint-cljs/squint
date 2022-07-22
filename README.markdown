@@ -22,10 +22,12 @@ Create a `.cljs` file, e.g. `index.cljs`:
 (js/console.log (foo {:a 1 :b 2 :c 3}))
 ```
 
-Then run: `npx cherry index.cljs`. This will produce `index.mjs` which you can run with Node.js:
+Then transpile and run:
 
 ```
-$ node index.mjs
+$ npx cherry index.cljs && node index.mjs
+Transpiling CLJS file: index.cljs
+Wrote JS file: index.mjs
 6
 ```
 
