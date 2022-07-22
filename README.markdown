@@ -15,15 +15,14 @@ $ npm init -y
 $ npm install cherry-cljs@latest
 ```
 
-Create a `.cljs` file, e.g. `index.cljs`:
+Create a `.cljs` file, e.g. `example.cljs`:
 
 ``` clojure
-(ns index
+(ns example
   (:require ["fs" :as fs]
             ["url" :refer [fileURLToPath]]))
 
-(prn (subs (fs/readFileSync (fileURLToPath js/import.meta.url) "utf-8")
-           0 100))
+(prn (fs/existsSync (fileURLToPath js/import.meta.url)))
 
 (defn foo [{:keys [a b c]}]
   (+ a b c))
@@ -31,13 +30,11 @@ Create a `.cljs` file, e.g. `index.cljs`:
 (js/console.log (foo {:a 1 :b 2 :c 3}))
 ```
 
-Then transpile and run:
+Then transpile and run (`run` does both):
 
 ```
-$ npx cherry index.cljs && node index.mjs
-Transpiling CLJS file: index.cljs
-Wrote JS file: index.mjs
-"import { prn, subs, __destructure_map, get, keyword, arrayMap } from 'cherry-cljs/cljs.core.js'\nimpo"
+$ npx cherry run example.cljs
+true
 6
 ```
 
