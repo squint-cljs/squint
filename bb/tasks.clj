@@ -16,8 +16,15 @@
 
 (defn build-cherry-npm-package []
   (fs/create-dirs ".work")
+  (fs/delete-tree "lib")
+  (fs/delete-tree ".shadow-cljs")
   (spit ".work/config-merge.edn" (shadow-extra-config))
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn release cherry"))
+
+(defn publish []
+  (build-cherry-npm-package)
+  (run! fs/delete (fs/glob "lib" "*.map"))
+  (shell "npm publish"))
 
 (defn watch-cherry []
   (fs/create-dirs ".work")
