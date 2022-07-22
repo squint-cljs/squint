@@ -84,11 +84,12 @@
   (str (format "keyword(%s)" (pr-str (subs (str expr) 1)))))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr]
-  (let [expr (if (and (qualified-symbol? expr)
-                      (= "js" (namespace expr)))
-               (name expr)
-               expr)
-        expr (symbol (str/replace (str (munge expr)) #"\$$" ""))]
+  (let [expr-ns (namespace expr)
+        js? (= "js" expr-ns)
+        expr-ns (when-not js? expr-ns)
+        expr (str expr-ns (when expr-ns
+                                     ".")
+                  (str/replace (str (munge (name expr))) #"\$$" ""))]
     #_(when-not (valid-symbol? (str expr))
       (#' throwf "%s is not a valid javascript symbol" expr))
     (str expr)))
@@ -208,9 +209,20 @@
   (emit (core-let bindings more))
   #_(prn (core-let bindings more)))
 
-(defmethod emit-special 'ns [_ & _]
-  "" ;; TODO
-  )
+(defn process-require-clause [[libname & {:keys [refer as]}]]
+  (str (when as
+         (statement (format "import * as %s from '%s'" as libname)))
+       (when refer
+         (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname)))))
+
+(defmethod emit-special 'ns [_type [_ns _name & clauses]]
+  (reduce (fn [acc [k & exprs]]
+            (if (= :require k)
+              (str acc (str/join "" (map process-require-clause exprs)))
+              acc))
+          ""
+          clauses
+          ))
 
 (defmethod emit-special 'funcall [_type [name & args :as expr]]
   (if (= "cljs.core" (namespace name))
@@ -413,9 +425,7 @@
 
 (defmethod emit ::list [expr]
   (if (symbol? (first expr))
-    (let [head (symbol (name (first expr))) ; remove any ns resolution
-          expr (with-meta (conj (rest expr) head)
-                 (meta expr))]
+    (let [head (first expr)]
       (cond
         (and (= (rstr/get (str head) 0) \.)
              (> (count (str head)) 1)
@@ -483,7 +493,7 @@
                          (str/replace in-file #".cljs$" ".mjs"))
             transpiled (transpile-string (slurp in-file))
             transpiled (if-let [core-vars (seq @core-vars)]
-                         (str (format "import { %s } from 'cherry-cljs/cljs.core.js'\n\n"
+                         (str (format "import { %s } from 'cherry-cljs/cljs.core.js'\n"
                                       (str/join ", " core-vars))
                               transpiled)
                          transpiled)]

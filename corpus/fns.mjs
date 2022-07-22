@@ -1,5 +1,4 @@
 import { __destructure_map, get, keyword, prn, arrayMap, js_obj } from 'cherry-cljs/cljs.core.js'
-
 const foo = function foo (p__1) {
 return (function () {
  return (function () {
