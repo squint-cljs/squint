@@ -31,9 +31,10 @@
    #?(:cljs ["fs" :as fs])
    #?(:cljs [goog.string.format])
    #?(:cljs [goog.string :as gstring])
+   #?(:clj [cherry.resource :as resource])
    [cherry.internal.destructure :refer [core-let]]
    [cherry.internal.fn :refer [core-defn core-fn]]
-   #?(:clj [cherry.resource :as resource])
+   [cherry.internal.macros :as macros]
    [clojure.string :as str]
    [com.reasonr.string :as rstr]
    [edamame.core :as e])
@@ -72,14 +73,14 @@
   (str expr))
 
 #?(:clj (defmethod emit clojure.lang.Ratio [expr]
-         (str (float expr))))
+          (str (float expr))))
 
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr]
   (pr-str expr))
 
 (defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr]
   #_(when-not (valid-symbol? (name expr))
-    (#'throwf "%s is not a valid javascript symbol" expr))
+      (#'throwf "%s is not a valid javascript symbol" expr))
   (swap! *imported-core-vars* conj 'keyword)
   (str (format "keyword(%s)" (pr-str (subs (str expr) 1)))))
 
@@ -95,10 +96,10 @@
         js? (= "js" expr-ns)
         expr-ns (when-not js? expr-ns)
         expr (str expr-ns (when expr-ns
-                                     ".")
+                            ".")
                   (munge* (name expr)))]
     #_(when-not (valid-symbol? (str expr))
-      (#' throwf "%s is not a valid javascript symbol" expr))
+        (#' throwf "%s is not a valid javascript symbol" expr))
     (str expr)))
 
 #?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr]
@@ -117,6 +118,26 @@
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
                          'await 'const 'defn 'let 'let* 'ns 'def]))
+
+(def built-in-macros {'-> macros/core->
+                      '->> macros/core->>
+                      'as-> macros/core-as->
+                      'comment macros/core-comment
+                      'dotimes macros/core-dotimes
+                      'if-not macros/core-if-not
+                      'when macros/core-when
+                      'when-not macros/core-when-not
+                      'doto macros/core-doto
+                      'cond macros/core-cond
+                      'cond-> macros/core-cond->
+                      'cond->> macros/core-cond->>
+                      'if-let macros/core-if-let
+                      'if-some macros/core-if-some
+                      'when-let macros/core-when-let
+                      'when-first macros/core-when-first
+                      'when-some macros/core-when-some
+                      'some-> macros/core-some->
+                      'some>> macros/core-some->>})
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
@@ -352,9 +373,9 @@
 
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)
-    (apply str "var "
-           (str/join ", " (map emit @var-declarations))
-           statement-separator)))
+      (apply str "var "
+             (str/join ", " (map emit @var-declarations))
+             statement-separator)))
 
 (declare emit-function*)
 
@@ -444,6 +465,8 @@
              (> (count (str head)) 1)
 
              (not (= (rstr/get (str head) 1) \.))) (emit-special 'dot-method expr)
+        (contains? built-in-macros head) (let [macro (built-in-macros head)]
+                                           (emit (apply macro expr {} (rest expr))))
         (special-form? head) (emit-special head expr)
         (infix-operator? head) (emit-infix head expr)
         (prefix-unary? head) (emit-prefix-unary head expr)
