@@ -19,3 +19,5 @@ return (function () {
 }, vector(1, 2, 3))));
 derive(keyword("foo/bar"), keyword("foo/baz"));
 prn(isa_QMARK_(keyword("foo/bar"), keyword("foo/baz")));
+
+export { js_map, clj_map, log, foo }

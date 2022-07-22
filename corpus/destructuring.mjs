@@ -24,3 +24,5 @@ return (function () {
  return prn(m, a, b, c, d, e, f);
 })();
 })();
+
+export {  }

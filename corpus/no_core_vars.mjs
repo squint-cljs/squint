@@ -4,3 +4,5 @@ return (function () {
 })();
 };
 console.log(foo());
+
+export { foo }
