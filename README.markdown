@@ -7,7 +7,7 @@ Experimental and tiny CLJS transpiler
 
 ## Quickstart
 
-Although it's early days, you're welcome to try out cherry and submit issues.
+Although it's early days and far from complete, you're welcome to try out cherry and submit issues.
 
 ``` shell
 $ mkdir cherry-test && cd cherry-test
