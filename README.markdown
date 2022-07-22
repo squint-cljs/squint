@@ -62,25 +62,24 @@ Goals of cherry:
 - Async/await support. See [this tweet](https://twitter.com/borkdude/status/1549843802604638209) for a demo.
 - Native support for JS object destructuring: `[^js {:keys [a b]} #js {:a 1 :b 2}]`
 
-Cherry may introduce new constructs such as `await` which won't be compatible
+Cherry may introduce new constructs such as `js/await` which won't be compatible
 with current CLJS. Also it might not support all features that CLJS offers. As
 such, using existing libraries from the CLJS ecosystem or compiling Cherry CLJS
-code with the CLJS compiler may become challenging. However, some results
-of this experiment may end up as improvements in the CLJS compiler if they turn
-out to be of value.
+code with the CLJS compiler may become challenging. However, some results of
+this experiment may end up as improvements in the CLJS compiler if they turn out
+to be of value.
 
 Depending on interest both from people working on this and the broader
-community, the above goals may or may not be pursued.
+community, the above goals may or may not be pursued. If you are interested in
+maturing cherry, please submit
+[issues](https://github.com/borkdude/cherry/issues) for bug reports or share
+your thoughts on [Github
+Discussions](https://github.com/borkdude/cherry/discussions).
 
-Run `bb transpile_and_run.clj corpus/foo.cljs` to see an example transpilation +
-run in Node.js.
 
 Cherry started out as a fork of
 [Scriptjure](https://github.com/arohner/scriptjure). Currently it's being
-reworked to meet the above goals. If you are interested in these goals, post a
-message on [Github Discussions](https://github.com/borkdude/cherry/discussions).
-
-
+reworked to meet the above goals.
 
 Here is the original readme of Scriptjure:
 
