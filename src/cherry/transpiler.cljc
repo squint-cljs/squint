@@ -93,12 +93,16 @@
       (#' throwf "%s is not a valid javascript symbol" expr))
     (str expr)))
 
-(defmethod emit #?(:clj java.util.regex.Pattern :cljs js/RegExp) [expr]
-  (str \/ expr \/))
+#?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr]
+          (str \/ expr \/)))
 
 (defmethod emit :default [expr]
-  (prn :WARNING "Unhandled type" (type expr))
-  (str expr))
+  ;; RegExp case moved here:
+  ;; References to the global RegExp object prevents optimization of regular expressions.
+  #?(:cljs (if (instance? js/RegExp expr)
+             (str \/ expr \/)
+             (str expr))
+     :clj (str expr)))
 
 (def special-forms (set ['var '. '.. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while 'doseq
