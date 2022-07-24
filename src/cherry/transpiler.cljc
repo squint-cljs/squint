@@ -239,8 +239,9 @@
               (when is-loop
                 (str "while(true){\n"))
               ;; TODO: move this to env arg?
-              (binding [*recur-targets* (if is-loop (map first partitioned)
-                                            *recur-targets*)]
+              (binding [*recur-targets*
+                        (if is-loop (map var->ident (map first partitioned))
+                            *recur-targets*)]
                 (emit-do (if iife?
                            (assoc enc-env :context :return)
                            enc-env) body))
@@ -277,7 +278,7 @@ break; }"
      (str/join ""
                (map (fn [binding temp]
                       (statement (format "%s = %s"
-                                         (emit binding env) temp)))
+                                         binding temp)))
                     bindings temps)
                )
      "continue;\n")))
