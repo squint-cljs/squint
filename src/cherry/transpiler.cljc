@@ -355,19 +355,20 @@ break; }"
 
 (defmethod emit-special 'if [_type env [_if test true-form false-form]]
   (swap! *imported-core-vars* conj 'truth_)
-  (if (= :expr (:context env))
-    (format "(%s) ? (%s) : (%s)"
-            (emit test env)
-            (emit true-form env)
-            (emit false-form env))
-    (->> (str (format "if (truth_(%s)) { \n" (emit test env))
-              (emit true-form env)
-              "\n }"
-              (when (some? false-form)
-                (str " else { \n"
-                     (emit false-form env)
-                     " }")))
-         (emit-wrap env))))
+  (->> (if (not= :statement (:context env))
+        (let [env (assoc env :context :expr)]
+          (format "(%s) ? (%s) : (%s)"
+                  (emit test env)
+                  (emit true-form env)
+                  (emit false-form env)))
+        (str (format "if (truth_(%s)) { \n" (emit test env))
+             (emit true-form env)
+             "\n }"
+             (when (some? false-form)
+               (str " else { \n"
+                    (emit false-form env)
+                    " }"))))
+       (emit-wrap env)))
 
 (defn emit-aget [env var idxs]
   (apply str
