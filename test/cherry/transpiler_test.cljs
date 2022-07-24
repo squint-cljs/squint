@@ -129,7 +129,8 @@
     (is (= 3 (js/eval s)))))
 
 (deftest doseq-test
-  #_(let [s (jss! "(doseq [x [1 2 3]] (prn x))")]
+  (let [s (jss! "(doseq [x [1 2 3]] (prn x))")]
+    (println s)
     ;; TODO fix
     #_(js/eval s))
   )

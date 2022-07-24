@@ -180,7 +180,6 @@
   bindings and filtering as provided by \"for\".  Does not retain
   the head of the sequence. Returns nil."
   [_ _ seq-exprs & body]
-  (prn :seq-exprs seq-exprs)
   #_(assert-args doseq
     (vector? seq-exprs) "a vector for its binding"
     (even? (count seq-exprs)) "an even number of forms in binding vector")
