@@ -18,6 +18,10 @@
 (aset js/globalThis "prn" cljs.core/prn)
 (aset js/globalThis "next" cljs.core/next)
 (aset js/globalThis "truth_" cljs.core/truth_)
+(aset js/globalThis "atom" cljs.core/atom)
+(aset js/globalThis "swap_BANG_" cljs.core/swap!)
+(aset js/globalThis "conj" cljs.core/conj)
+(aset js/globalThis "deref" cljs.core/deref)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -129,8 +133,15 @@
     (is (= 3 (js/eval s)))))
 
 (deftest doseq-test
-  (let [s (jss! "(doseq [x [1 2 3]] (prn x))")]
-    (println s)
-    ;; TODO fix
-    #_(js/eval s))
-  )
+  (let [s (jss! '(let [a (atom [])]
+                   (doseq [x [1 2 3]]
+                     (swap! a conj x))
+                   (deref a)))]
+    (is (= [1 2 3] (js/eval s))))
+  (let [s (jss! '(let [a (atom [])]
+                   (doseq [x [1 2 3]
+                           y [4 5 6]]
+                     (swap! a conj x y))
+                   (deref a)))]
+    (is (=  [1 4 1 5 1 6 2 4 2 5 2 6 3 4 3 5 3 6]
+            (js/eval s)))))
