@@ -1,12 +1,8 @@
 const foo = function () {
-return (function () {
- return "Hello";
-})();
+return "Hello";
 };
 const default$ = function () {
-return (function () {
- return "Default";
-})();
+return "Default";
 };
 
 export { foo }
