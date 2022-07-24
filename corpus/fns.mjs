@@ -1,4 +1,4 @@
-import { __destructure_map, get, keyword, prn, arrayMap } from 'cherry-cljs/cljs.core.js'
+import { __destructure_map, get, keyword, prn, arrayMap, truth_, pos_QMARK_ } from 'cherry-cljs/cljs.core.js'
 const foo = function foo (p__1) {
 let map__23 = p__1;
 let map__24 = __destructure_map(map__23);
@@ -23,5 +23,16 @@ let b18 = map__1416["b"];
 return (a17 + b18);
 };
 prn(baz({ "a": 1, "b": 2 }));
+const quux = function (x) {
+while(true){
+if (truth_(pos_QMARK_(x))) {
+let G__19 = (x - 1);
+x = G__19;
+continue;
+} else {
+return x;}
+break;}
+};
+prn(quux(5));
 
-export { foo, bar, baz }
+export { foo, bar, baz, quux }

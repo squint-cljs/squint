@@ -163,7 +163,6 @@
 (defn special-form? [expr]
   (contains? special-forms expr))
 
-
 (defn infix-operator? [expr]
   (contains? infix-operators expr))
 
@@ -179,13 +178,17 @@
 (defn emit-suffix-unary [_type [operator arg]]
   (str (emit arg) operator))
 
+(defn emit-args [env args]
+  (let [env (assoc env :context :expr)]
+    (map #(emit % env) args)))
+
 (defn emit-infix [_type enc-env [operator & args]]
   (let [env (assoc enc-env :context :expr)]
     (when (and (not (chainable-infix-operators operator)) (> (count args) 2))
       (throw (Exception. (str "operator " operator " supports only 2 arguments"))))
     (->> (let [substitutions {'= '=== '!= '!== 'not= '!==}]
            (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
-                              (map #(emit % env) args)) ")"))
+                              (emit-args env args)) ")"))
          (emit-wrap enc-env))))
 
 (def ^{:dynamic true} var-declarations nil)
@@ -265,14 +268,20 @@
 break; }"
             (emit (list* 'let bindings body) env)))
 
+(defn expr-env [env]
+  (assoc env :context :expr))
+
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [bindings *recur-targets*
-        temps (repeatedly (count exprs) gensym)]
+        temps (repeatedly (count exprs) gensym)
+        eenv (expr-env env)]
+    (when-let [cb (:recur-callback env)]
+      (cb bindings))
     (str
      (str/join ""
                (map (fn [temp expr]
                       (statement (format "let %s = %s"
-                                         temp (emit expr env))))
+                                         temp (emit expr eenv))))
                     temps exprs)
                )
      (str/join ""
@@ -319,10 +328,6 @@ break; }"
           clauses
           ))
 
-(defn emit-args [env args]
-  (let [env (assoc env :context :expr)]
-    (map #(emit % env) args)))
-
 (defmethod emit-special 'funcall [_type env [name & args :as expr]]
   (let [s (if (and (symbol? name)
                    (= "cljs.core" (namespace name)))
@@ -356,20 +361,22 @@ break; }"
 
 (defmethod emit-special 'if [_type env [_if test true-form false-form]]
   (swap! *imported-core-vars* conj 'truth_)
-  (->> (if (not= :statement (:context env))
-        (let [env (assoc env :context :expr)]
-          (format "(%s) ? (%s) : (%s)"
-                  (emit test env)
-                  (emit true-form env)
-                  (emit false-form env)))
-        (str (format "if (truth_(%s)) {\n" (emit test env))
-             (emit true-form env)
-             "}"
-             (when (some? false-form)
-               (str " else {\n"
-                    (emit false-form env)
-                    "}"))))
-       (emit-wrap env)))
+  (if (= :expr (:context env))
+    (->> (let [env (assoc env :context :expr)]
+           (format "(%s) ? (%s) : (%s)"
+                   (emit test env)
+                   (emit true-form env)
+                   (emit false-form env)))
+         (emit-wrap env))
+    (str (format "if (truth_(%s)) {\n"
+                 (emit test (assoc env :context :expr)))
+         (emit true-form env)
+         "}"
+         (when (some? false-form)
+           (str " else {\n"
+                (emit false-form env)
+                "}"))))
+  #_(emit-wrap env))
 
 (defn emit-aget [env var idxs]
   (apply str
@@ -400,22 +407,22 @@ break; }"
 (defmethod emit-special 'new [_type env [_new class & args]]
   (str "new " (emit class env) (comma-list (emit-args env args))))
 
-(defmethod emit-special 'inc! [_type env [_inc var]]
+#_(defmethod emit-special 'inc! [_type env [_inc var]]
   (str (emit var env) "++"))
 
-(defmethod emit-special 'dec! [_type env [_dec var]]
+#_(defmethod emit-special 'dec! [_type env [_dec var]]
   (str (emit var env) "--"))
 
 (defmethod emit-special 'dec [_type env [_ var]]
-  (str "(" (emit var env) " - " 1 ")"))
+  (emit-wrap env (str "(" (emit var (assoc env :context :expr)) " - " 1 ")")))
 
 (defmethod emit-special 'inc [_type env [_ var]]
-  (str "(" (emit var env) " + " 1 ")"))
+  (emit-wrap env (str "(" (emit var (assoc env :context :expr)) " + " 1 ")")))
 
-(defmethod emit-special 'defined? [_type env [_ var]]
+#_(defmethod emit-special 'defined? [_type env [_ var]]
   (str "typeof " (emit var env) " !== \"undefined\" && " (emit var env) " !== null"))
 
-(defmethod emit-special '? [_type env [_ test then else]]
+#_(defmethod emit-special '? [_type env [_ test then else]]
   (str (emit test env) " ? " (emit then env) " : " (emit else env)))
 
 (defmethod emit-special 'and [_type env [_ & more]]
@@ -469,11 +476,22 @@ break; }"
 (defn emit-function [env name sig body & [elide-function?]]
   (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
-  (let [body (emit-do (assoc env :context :return) body)]
-    (str (when-not elide-function?
-           (str (when *async*
-                  "async ") "function ")) (comma-list sig) " {\n"
-         body "\n}")))
+  (binding [*recur-targets* sig]
+    (let [recur? (volatile! nil)
+          env (assoc env :recur-callback
+                     (fn [coll]
+                       (when (identical? sig coll)
+                         (vreset! recur? true))))
+          body (emit-do (assoc env :context :return) body)
+          body (if @recur?
+                 (format "while(true){
+%s
+break;}" body)
+                 body)]
+      (str (when-not elide-function?
+             (str (when *async*
+                    "async ") "function ")) (comma-list sig) " {\n"
+           body "\n}"))))
 
 (defn emit-function* [env expr]
   (let [name (when (symbol? (first expr)) (first expr))

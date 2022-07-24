@@ -110,7 +110,21 @@
                      (foo {:a 1 :foo :bar})))]
     (is (= {:a 1} (js/eval s))))
   (let [s (jss! "(do (defn f [^js {:keys [a b c]}] (+ a b c)) f)")]
-    (is (= 6 ((js/eval s) #js {:a 1 :b 2 :c 3})))))
+    (is (= 6 ((js/eval s) #js {:a 1 :b 2 :c 3}))))
+  (let [s (jss! '(do (defn quux [x]
+                       (if (pos? x)
+                         1
+                         2))
+                     (quux 1)))]
+    (is (= 1 (js/eval s)))))
+
+(deftest defn-recur-test
+  (let [s (jss! '(do (defn quux [x]
+                       (if (pos? x)
+                         (recur (dec x))
+                         x))
+                     (quux 1)))]
+    (is (zero? (js/eval s)))))
 
 (deftest loop-test
   (let [s (jss! '(loop [x 1] (+ 1 2 x)))]

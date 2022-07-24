@@ -14,3 +14,10 @@
   (+ a b))
 
 (prn (baz #js {:a 1 :b 2}))
+
+(defn quux [x]
+  (if (pos? x)
+    (recur (dec x))
+    x))
+
+(prn (quux 5))
