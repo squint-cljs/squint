@@ -118,7 +118,7 @@
                       (str expr)))))
 
 (def special-forms (set ['var '. '.. 'if 'funcall 'fn 'fn* 'quote 'set!
-                         'return 'delete 'new 'do 'aget 'while 'doseq
+                         'return 'delete 'new 'do 'aget 'while
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
                          'await 'const 'defn 'let 'let* 'ns 'def 'loop*
@@ -143,7 +143,8 @@
                       'when-some macros/core-when-some
                       'some-> macros/core-some->
                       'some>> macros/core-some->>
-                      'loop loop/core-loop})
+                      'loop loop/core-loop
+                      'doseq macros/core-doseq})
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
@@ -237,7 +238,9 @@
                                      (repeat statement-separator)))
               (when is-loop
                 (str "while(true){\n"))
-              (binding [*recur-targets* (map first partitioned)]
+              ;; TODO: move this to env arg?
+              (binding [*recur-targets* (if is-loop (map first partitioned)
+                                            *recur-targets*)]
                 (emit-do (if iife?
                            (assoc enc-env :context :return)
                            enc-env) body))
@@ -350,14 +353,21 @@ break; }"
 (defmethod emit-special '.. [type env [dotdot & args]]
   (apply str (interpose "." (emit-args env args))))
 
-(defmethod emit-special 'if [type env [if test true-form & false-form]]
-  (str "if (" (emit test env) ") { \n"
-       (emit true-form env)
-       "\n }"
-       (when (first false-form)
-         (str " else { \n"
-              (emit (first false-form) env)
-              " }"))))
+(defmethod emit-special 'if [_type env [_if test true-form false-form]]
+  (swap! *imported-core-vars* conj 'truth_)
+  (if (= :expr (:context env))
+    (format "(%s) ? (%s) : (%s)"
+            (emit test env)
+            (emit true-form env)
+            (emit false-form env))
+    (->> (str (format "if (truth_(%s)) { \n" (emit test env))
+              (emit true-form env)
+              "\n }"
+              (when (some? false-form)
+                (str " else { \n"
+                     (emit false-form env)
+                     " }")))
+         (emit-wrap env))))
 
 (defn emit-aget [env var idxs]
   (apply str
@@ -439,12 +449,12 @@ break; }"
        "\n }"))
 
 ;; TODO: re-implement
-(defmethod emit-special 'doseq [_type env [_doseq bindings & body]]
-  (str "for (" (emit (first bindings) env) " in " (emit (second bindings) env) ") { \n"
-       (if-let [more (nnext bindings)]
-         (emit (list* 'doseq more body) env)
-         (emit-do body env))
-       "\n }"))
+#_(defmethod emit-special 'doseq [_type env [_doseq bindings & body]]
+    (str "for (" (emit (first bindings) env) " in " (emit (second bindings) env) ") { \n"
+         (if-let [more (nnext bindings)]
+           (emit (list* 'doseq more body) env)
+           (emit-do body env))
+         "\n }"))
 
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)

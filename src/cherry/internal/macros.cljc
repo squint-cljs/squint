@@ -174,3 +174,60 @@
        ~(if (empty? steps)
           g
           (last steps)))))
+
+(defn core-doseq
+  "Repeatedly executes body (presumably for side-effects) with
+  bindings and filtering as provided by \"for\".  Does not retain
+  the head of the sequence. Returns nil."
+  [_ _ seq-exprs & body]
+  (prn :seq-exprs seq-exprs)
+  #_(assert-args doseq
+    (vector? seq-exprs) "a vector for its binding"
+    (even? (count seq-exprs)) "an even number of forms in binding vector")
+  (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
+             step (fn step [recform exprs]
+                    (if-not exprs
+                      [true `(do ~@body nil)]
+                      (let [k (first exprs)
+                                 v (second exprs)
+
+                                 seqsym (gensym "seq__")
+                                 recform (if (keyword? k) recform `(recur (next ~seqsym) nil 0 0))
+                                 steppair (step recform (nnext exprs))
+                                 needrec (steppair 0)
+                                 subform (steppair 1)]
+                        (cond
+                          (= k :let) [needrec `(let ~v ~subform)]
+                          (= k :while) [false `(when ~v
+                                                 ~subform
+                                                 ~@(when needrec [recform]))]
+                          (= k :when) [false `(if ~v
+                                                (do
+                                                  ~subform
+                                                  ~@(when needrec [recform]))
+                                                ~recform)]
+                          (keyword? k) (err "Invalid 'doseq' keyword" k)
+                          :else (let [chunksym (with-meta (gensym "chunk__")
+                                                      {:tag 'not-native})
+                                           countsym (gensym "count__")
+                                           isym     (gensym "i__")
+                                           recform-chunk  `(recur ~seqsym ~chunksym ~countsym (unchecked-inc ~isym))
+                                           steppair-chunk (step recform-chunk (nnext exprs))
+                                           subform-chunk  (steppair-chunk 1)]
+                                  [true `(loop [~seqsym   (seq ~v)
+                                                ~chunksym nil
+                                                ~countsym 0
+                                                ~isym     0]
+                                           (if (< ~isym ~countsym)
+                                             (let [~k (-nth ~chunksym ~isym)]
+                                               ~subform-chunk
+                                               ~@(when needrec [recform-chunk]))
+                                             (when-let [~seqsym (seq ~seqsym)]
+                                               (if (chunked-seq? ~seqsym)
+                                                 (let [c# (chunk-first ~seqsym)]
+                                                   (recur (chunk-rest ~seqsym) c#
+                                                     (count c#) 0))
+                                                 (let [~k (first ~seqsym)]
+                                                   ~subform
+                                                   ~@(when needrec [recform]))))))])))))]
+    (nth (step nil (seq seq-exprs)) 1)))

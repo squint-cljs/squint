@@ -12,6 +12,12 @@
 (aset js/globalThis "get" cljs.core/get)
 (aset js/globalThis "pos_QMARK_" cljs.core/pos?)
 (aset js/globalThis "dec" cljs.core/dec)
+(aset js/globalThis "seq" cljs.core/seq)
+(aset js/globalThis "chunked_seq_QMARK_" cljs.core/chunked-seq?)
+(aset js/globalThis "first" cljs.core/first)
+(aset js/globalThis "prn" cljs.core/prn)
+(aset js/globalThis "next" cljs.core/next)
+(aset js/globalThis "truth_" cljs.core/truth_)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -110,3 +116,17 @@
                      (recur (dec x))
                      x)))]
     (is (zero? (js/eval s)))))
+
+(deftest if-test
+  (is (true? (jsv! "(if 0 true false)")))
+  (let [s (jss! "[(if false true false)]")]
+    (false? (first (js/eval s))))
+  (let [s (jss! "(let [x (if (inc 1) (inc 2) (inc 3))]
+                   x)")]
+    (is (= 3 (js/eval s)))))
+
+(deftest doseq-test
+  (let [s (jss! "(doseq [x [1 2 3]] (prn x))")]
+    ;; TODO fix
+    #_(js/eval s))
+  )
