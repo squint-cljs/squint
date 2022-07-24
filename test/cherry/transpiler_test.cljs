@@ -123,10 +123,13 @@
     (false? (first (js/eval s))))
   (let [s (jss! "(let [x (if (inc 1) (inc 2) (inc 3))]
                    x)")]
+    (is (= 3 (js/eval s))))
+  (let [s (jss! "(let [x (do 1 (if (inc 1) (inc 2) (inc 3)))]
+                   x)")]
     (is (= 3 (js/eval s)))))
 
 (deftest doseq-test
-  (let [s (jss! "(doseq [x [1 2 3]] (prn x))")]
+  #_(let [s (jss! "(doseq [x [1 2 3]] (prn x))")]
     ;; TODO fix
     #_(js/eval s))
   )
