@@ -268,13 +268,13 @@ break; }"
   (let [bindings *recur-targets*
         temps (repeatedly (count exprs) gensym)]
     (str
-     (str/join "\n"
+     (str/join ""
                (map (fn [temp expr]
-                      (statement (format "%s = %s"
+                      (statement (format "let %s = %s"
                                          temp (emit expr env))))
                     temps exprs)
                )
-     (str/join "\n"
+     (str/join ""
                (map (fn [binding temp]
                       (statement (format "%s = %s"
                                          (emit binding env) temp)))
@@ -361,13 +361,13 @@ break; }"
                   (emit test env)
                   (emit true-form env)
                   (emit false-form env)))
-        (str (format "if (truth_(%s)) { \n" (emit test env))
+        (str (format "if (truth_(%s)) {\n" (emit test env))
              (emit true-form env)
-             "\n }"
+             "}"
              (when (some? false-form)
-               (str " else { \n"
+               (str " else {\n"
                     (emit false-form env)
-                    " }"))))
+                    "}"))))
        (emit-wrap env)))
 
 (defn emit-aget [env var idxs]
