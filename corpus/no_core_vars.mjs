@@ -1,7 +1,5 @@
 const foo = function () {
-return (function () {
- return "hello";
-})();
+return "hello";
 };
 console.log(foo());
 
