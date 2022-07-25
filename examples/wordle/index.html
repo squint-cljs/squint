@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Wordle!</title>
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
+    <script type="importmap">
+      {
+        "imports": {
+          "cherry-cljs/cljs.core.js": "https://cdn.jsdelivr.net/npm/cherry-cljs@0.0.0-alpha.28/cljs.core.js"
+        }
+      }
+    </script>
+    <script type="module" src="/examples/wordle/wordle.mjs"></script>
+    <style type="text/css">
+      #app {
+        background-color: #121212;
+      }
+      #app .board {
+        display: grid;
+        grid-template-columns: repeat(5, 60px);
+      }
+      #app .cell {
+        color: white;
+        font-weight: bold;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: sans-serif;
+        font-size: 1.5rem;
+        width: 50px;
+        height: 50px;
+        margin: 10px;
+        border: 2px solid gray;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="board">Wordle by <a href="https://github.com/oxalorg/wordle-clojurescript">@oxalorg</a>.
+      Play the game by typing letters and then hit return. The source code is loaded from <a href="https://raw.githubusercontent.com/oxalorg/wordle-clojurescript/main/src/wordle/core2.cljs">here</a>.
+    </p>
+    <div id="app"></div>
+  </body>
+</html>
