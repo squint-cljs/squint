@@ -1,5 +1,9 @@
 ;; (sort (keys (ns-publics 'cljs.core)))
-{:vars #{aclone
+{:vars #{
+         ->LazySeq
+         LazySeq
+
+         aclone
          ;; add-tap
          ;; add-to-string-hash-cache
          add-watch

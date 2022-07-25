@@ -95,10 +95,24 @@
            (not= (str expr) "default"))
       (str/replace #"\$$" ""))))
 
+(declare core-vars)
+
+(defn maybe-core-var [sym]
+  (if (contains? core-vars sym)
+    (let [sym (symbol (munge* sym))]
+      (swap! *imported-core-vars* conj sym)
+      sym)
+    sym))
+
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
-  (let [expr-ns (namespace expr)
-        js? (= "js" expr-ns)
-        expr-ns (when-not js? expr-ns)
+  (let [expr (if-let [sym-ns (namespace expr)]
+               (or (when (= "cljs.core" (namespace expr))
+                     (maybe-core-var (symbol (name expr))))
+                   (when (= "js" sym-ns)
+                     (symbol (name expr)))
+                   expr)
+               (maybe-core-var expr))
+        expr-ns (namespace expr)
         expr (if-let [renamed (get (:var->ident env) expr)]
                (str renamed)
                (str expr-ns (when expr-ns
@@ -144,7 +158,9 @@
                       'some-> macros/core-some->
                       'some>> macros/core-some->>
                       'loop loop/core-loop
-                      'doseq macros/core-doseq})
+                      'doseq macros/core-doseq
+                      'for macros/core-for
+                      'lazy-seq macros/core-lazy-seq})
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
@@ -328,24 +344,11 @@ break; }"
           clauses
           ))
 
-(defmethod emit-special 'funcall [_type env [name & args :as expr]]
-  (let [s (if (and (symbol? name)
-                   (= "cljs.core" (namespace name)))
-            (emit (with-meta (list* (symbol (clojure.core/name name)) args)
-                    (meta expr)) env)
-            (emit-wrap env
-                       (str (if (and (list? name) (= 'fn (first name))) ; function literal call
-                              (str "(" (emit name env) ")")
-                              (let [name
-                                    (if (contains? core-vars name)
-                                      (let [name (symbol (munge* name))]
-                                        (swap! *imported-core-vars* conj name)
-                                        name)
-                                      name)]
-                                (emit name (assoc env :context :expr))))
-                            (comma-list (emit-args env args)))))]
-    ;; (prn :-> s)
-    s #_(emit-wrap env s)))
+(defmethod emit-special 'funcall [_type env [fname & args :as expr]]
+  (emit-wrap env
+             (str
+              (emit fname (expr-env env))
+              (comma-list (emit-args env args)))))
 
 (defmethod emit-special 'str [type env [str & args]]
   (apply clojure.core/str (interpose " + " (emit-args env args))))
@@ -405,13 +408,13 @@ break; }"
        (when more (str (emit (cons 'set! more) env)))))
 
 (defmethod emit-special 'new [_type env [_new class & args]]
-  (str "new " (emit class env) (comma-list (emit-args env args))))
+  (emit-wrap env (str "new " (emit class (expr-env env)) (comma-list (emit-args env args)))))
 
 #_(defmethod emit-special 'inc! [_type env [_inc var]]
-  (str (emit var env) "++"))
+    (str (emit var env) "++"))
 
 #_(defmethod emit-special 'dec! [_type env [_dec var]]
-  (str (emit var env) "--"))
+    (str (emit var env) "--"))
 
 (defmethod emit-special 'dec [_type env [_ var]]
   (emit-wrap env (str "(" (emit var (assoc env :context :expr)) " - " 1 ")")))
@@ -420,10 +423,10 @@ break; }"
   (emit-wrap env (str "(" (emit var (assoc env :context :expr)) " + " 1 ")")))
 
 #_(defmethod emit-special 'defined? [_type env [_ var]]
-  (str "typeof " (emit var env) " !== \"undefined\" && " (emit var env) " !== null"))
+    (str "typeof " (emit var env) " !== \"undefined\" && " (emit var env) " !== null"))
 
 #_(defmethod emit-special '? [_type env [_ test then else]]
-  (str (emit test env) " ? " (emit then env) " : " (emit else env)))
+    (str (emit test env) " ? " (emit then env) " : " (emit else env)))
 
 (defmethod emit-special 'and [_type env [_ & more]]
   (apply str (interpose "&&" (emit-args env more))))
@@ -439,15 +442,14 @@ break; }"
         l (last exprs)
         ctx (:context env)
         statement-env (assoc env :context :statement)
-        iife? (and (seq bl) (= :expr ctx))]
-    (let [s (cond-> (str (str/join "" (map #(statement (emit % statement-env)) bl))
-                         (emit l (assoc env :context
-                                        (if iife? :return
-                                            ctx))))
-              iife?
-              (wrap-iife))]
-      ;;(prn exprs '-> s)
-      s)))
+        iife? (and (seq bl) (= :expr ctx))
+        s (cond-> (str (str/join "" (map #(statement (emit % statement-env)) bl))
+                       (emit l (assoc env :context
+                                      (if iife? :return
+                                          ctx))))
+            iife?
+            (wrap-iife))]
+    s))
 
 (defmethod emit-special 'do [_type env [_ & exprs]]
   (emit-do env exprs))
@@ -562,13 +564,25 @@ break;}" body)
 (derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)
 #?(:cljs (derive List ::list))
 
+(defn strip-core-symbol [sym]
+  (let [sym-ns (namespace sym)]
+    (if (and sym-ns
+             (or (= "clojure.core" sym-ns)
+                 (= "cljs.core" sym-ns)))
+      (symbol (name sym))
+      sym)))
+
 (defmethod emit ::list [expr env]
   (if (symbol? (first expr))
-    (let [head (first expr)]
+    (let [head* (first expr)
+          head (strip-core-symbol head*)
+          expr (if (not= head head*)
+                 (with-meta (cons head (rest expr))
+                   (meta expr))
+                 expr)]
       (cond
         (and (= (rstr/get (str head) 0) \.)
              (> (count (str head)) 1)
-
              (not (= (rstr/get (str head) 1) \.))) (emit-special 'dot-method env expr)
         (contains? built-in-macros head) (let [macro (built-in-macros head)]
                                            (emit (apply macro expr {} (rest expr)) env))
