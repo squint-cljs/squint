@@ -140,7 +140,7 @@
                          'return 'delete 'new 'do 'aget 'while
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
-                         'await 'const 'defn 'let 'let* 'ns 'def 'loop*
+                         'js/await 'const 'defn 'let 'let* 'ns 'def 'loop*
                          'recur 'js*]))
 
 (def built-in-macros {'-> macros/core->
@@ -324,7 +324,7 @@ break; }"
 (defn wrap-await [s]
   (format "(%s)" (str "await " s)))
 
-(defmethod emit-special 'await [_ env [_await more]]
+(defmethod emit-special 'js/await [_ env [_await more]]
   (wrap-await (emit more env)))
 
 (defn wrap-iife [s]
