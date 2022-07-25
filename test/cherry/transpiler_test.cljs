@@ -94,6 +94,11 @@
   (let [s (jss! '(let [name (fn [_] 1)]
                    (map name [1 2 3])))]
     (is (= '(1 1 1)
+           (js/eval s))))
+  (let [s (jss! '(let [name (fn [_] 1)
+                       name (fn [_] 2)]
+                   (map name [1 2 3])))]
+    (is (= '(2 2 2)
            (js/eval s)))))
 
 (deftest destructure-test
