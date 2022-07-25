@@ -11,3 +11,4 @@ dist
 .work
 test/scratch.cjs
 corpus/*.mjs
+test/*.mjs
