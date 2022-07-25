@@ -50,7 +50,7 @@ Primary goal of cherry:
 
 Goals of cherry:
 
-- Transpile `.cljs` files on the fly into ES6-compatible `.js` (or `.mjs`) files.
+- Transpile `.cljs` files on the fly into ES6-compatible `.mjs` files.
 - Transpiler will be available on NPM and can be used from JS tooling, but isn't
   part of the transpiled output unless explicitly used.
 - Transpiled JS files are fairly readable and have source map support for
