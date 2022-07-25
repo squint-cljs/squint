@@ -85,6 +85,12 @@
                 (let [{:keys [a b]} {:a 1 :b (+ 1 2 3)}]
                   (+ a b)))))))
 
+(deftest let-shadow-test
+  (is (= 1 (jsv! '(let [name 1]
+                    name))))
+  (is (= 1 (jsv! '(let [name (fn [] 1)]
+                    (name))))))
+
 (deftest destructure-test
   (let [s (jss! "(let [^js {:keys [a b c]} #js {:a 1 :b 2 :c 3}]
                    (+ a b c))")]
