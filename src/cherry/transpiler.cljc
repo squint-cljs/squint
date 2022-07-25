@@ -95,10 +95,11 @@
   (emit-wrap env (str (format "keyword(%s)" (pr-str (subs (str expr) 1))))))
 
 (defn munge* [expr]
-  (let [munged (str (munge expr))]
+  (let [munged (str (munge expr))
+        keep #{"import" "await"}]
     (cond-> munged
       (and (str/ends-with? munged "$")
-           (not= (str expr) "default"))
+           (contains? keep (str expr)))
       (str/replace #"\$$" ""))))
 
 (declare core-vars)
@@ -336,10 +337,16 @@ break; }"
   #_(prn (core-let bindings more)))
 
 (defn process-require-clause [[libname & {:keys [refer as]}]]
-  (str (when as
-         (statement (format "import * as %s from '%s'" as libname)))
-       (when refer
-         (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname)))))
+  (let [[libname suffix] (.split libname "$" 2)
+        [p & _props] (when suffix
+                       (.split suffix "."))]
+    (str
+     (when (and as (= "default" p))
+       (statement (format "import %s from '%s'" as libname)))
+     (when (and as (not p))
+       (statement (format "import * as %s from '%s'" as libname)))
+     (when refer
+       (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
 
 (defmethod emit-special 'ns [_type _env [_ns _name & clauses]]
   (reduce (fn [acc [k & exprs]]
