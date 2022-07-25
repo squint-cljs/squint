@@ -1,4 +1,5 @@
-(ns cherry.internal.macros)
+(ns cherry.internal.macros
+  (:require [clojure.string :as str]))
 
 (defn core->
   [_ _ x & forms]
@@ -325,3 +326,35 @@
                                                    ~subform
                                                    ~@(when needrec [recform]))))))])))))]
     (nth (step nil (seq seq-exprs)) 1)))
+
+(defn core-defonce
+  "defs name to have the root value of init iff the named var has no root value,
+  else init is unevaluated"
+  [_&form &env x init]
+  (let [qualified (if (namespace x)
+                         x
+                         (symbol (str (-> &env :ns :name)) (name x)))]
+    `(when-not (exists? ~qualified)
+       (def ~x ~init))))
+
+(defn- bool-expr [e]
+  (vary-meta e assoc :tag 'boolean))
+
+(defn core-exists?
+  "Return true if argument exists, analogous to usage of typeof operator
+   in JavaScript."
+  [_ _&env x]
+  (if (symbol? x)
+    (let [x     (cond-> (:name nil
+                               ;; TODO
+                               #_(cljs.analyzer/resolve-var &env x))
+                  (= "js" (namespace x)) name)
+          segs  (str/split (str (str/replace-first (str x) "/" ".")) #"\.")
+          n     (count segs)
+          syms  (map
+                 #(vary-meta (symbol "js" (str/join "." %))
+                             assoc :cljs.analyzer/no-resolve true)
+                 (reverse (take n (iterate butlast segs))))
+          js    (str/join " && " (repeat n "(typeof ~{} !== 'undefined')"))]
+      (bool-expr (concat (list 'js* js) syms)))
+    `(some? ~x)))
