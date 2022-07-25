@@ -7,7 +7,7 @@
   (assert/deepEqual (clj->js x) (clj->js y)))
 
 (defn ^:async foo []
-  (try (let [{:keys [results]} (js/await (js/import "../corpus/fns.mjs"))]
+  (try (let [^:js {:keys [results]} (js/await (js/import "../corpus/fns.mjs"))]
          (eq [3 3 3 0] @results))
        (catch :default e
          (assert/fail (ex-message e)))))
