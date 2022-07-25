@@ -256,6 +256,7 @@
          not=
          ;; ns-interns*
          ;; ns-name
+         -nth
          nth
          nthnext
          nthrest

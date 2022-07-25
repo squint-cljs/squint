@@ -330,10 +330,12 @@
 (defn core-defonce
   "defs name to have the root value of init iff the named var has no root value,
   else init is unevaluated"
-  [_&form &env x init]
+  [_&form _&env x init]
   (let [qualified (if (namespace x)
                          x
-                         (symbol (str (-> &env :ns :name)) (name x)))]
+                         x
+                         ;; TODO:
+                         #_(symbol (str (-> &env :ns :name)) (name x)))]
     `(when-not (exists? ~qualified)
        (def ~x ~init))))
 
@@ -345,10 +347,10 @@
    in JavaScript."
   [_ _&env x]
   (if (symbol? x)
-    (let [x     (cond-> (:name nil
+    (let [x     (cond-> x #_(:name nil
                                ;; TODO
                                #_(cljs.analyzer/resolve-var &env x))
-                  (= "js" (namespace x)) name)
+                        (= "js" (namespace x)) name)
           segs  (str/split (str (str/replace-first (str x) "/" ".")) #"\.")
           n     (count segs)
           syms  (map

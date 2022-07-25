@@ -87,6 +87,12 @@
                 (let [{:keys [a b]} {:a 1 :b (+ 1 2 3)}]
                   (+ a b)))))))
 
+(deftest let-interop-test
+  (is (= "f" (jsv! '(let [x "foo"]
+                      (.substring x 0 1)))))
+  (is (= 3 (jsv! '(let [x "foo"]
+                    (.-length x))))))
+
 (deftest let-shadow-test
   (is (= 1 (jsv! '(let [name 1]
                     name))))

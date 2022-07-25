@@ -53,8 +53,11 @@
 
 (defmulti emit-special (fn [disp _env & _args] disp))
 
-(defmethod emit-special 'js* [_ _ [_ expr]]
-  (str expr))
+(defmethod emit-special 'js* [_ env [_js* template & substitutions]]
+  (reduce (fn [template substitution]
+            (str/replace-first template "~{}" (emit substitution env)))
+          template
+          substitutions))
 
 (def statement-separator ";\n")
 
@@ -101,11 +104,14 @@
 (declare core-vars)
 
 (defn maybe-core-var [sym]
-  (if (contains? core-vars sym)
-    (let [sym (symbol (munge* sym))]
-      (swap! *imported-core-vars* conj sym)
-      sym)
-    sym))
+  (let [;; temp workaround
+        sym (if (= '-nth sym) 'nth sym)]
+    (if (contains? core-vars sym)
+      (let [sym (symbol (munge* sym))
+            ]
+        (swap! *imported-core-vars* conj sym)
+        sym)
+      sym)))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (let [expr (if-let [sym-ns (namespace expr)]
@@ -219,15 +225,6 @@
                                 (partition 2 more))
                            (repeat statement-separator))))
 
-(defn emit-const [more env]
-  (apply str
-         (interleave (map (fn [[name expr]]
-                            (str "const " (emit name env) " = "
-                                 (emit expr (assoc env :context :expr))))
-                          (partition 2 more))
-                     (repeat statement-separator))))
-
-
 (def ^:dynamic *recur-targets* [])
 
 (declare emit-do wrap-iife)
@@ -311,10 +308,18 @@ break; }"
                )
      "continue;\n")))
 
+(defn emit-var [more env]
+  (apply str
+         (interleave (map (fn [[name expr]]
+                            (str "var " (emit name env) " = "
+                                 (emit expr (assoc env :context :expr))))
+                          (partition 2 more))
+                     (repeat statement-separator))))
+
 (defmethod emit-special 'def [_type env [_const & more]]
   (let [name (first more)]
     (swap! *public-vars* conj (munge* name))
-    (emit-const more env)))
+    (emit-var more env)))
 
 (declare emit-do)
 
@@ -357,7 +362,7 @@ break; }"
   (apply clojure.core/str (interpose " + " (emit-args env args))))
 
 (defn emit-method [env obj method args]
-  (str (emit obj) "." (emit method) (comma-list (emit-args env args))))
+  (str (emit obj (expr-env env)) "." (emit method (expr-env)) (comma-list (emit-args env args))))
 
 (defmethod emit-special '. [type env [period obj method & args]]
   (emit-method env obj method args))
