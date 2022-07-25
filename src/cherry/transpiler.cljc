@@ -104,14 +104,12 @@
 (declare core-vars)
 
 (defn maybe-core-var [sym]
-  (let [;; temp workaround
-        sym (if (= '-nth sym) 'nth sym)]
-    (if (contains? core-vars sym)
-      (let [sym (symbol (munge* sym))
-            ]
-        (swap! *imported-core-vars* conj sym)
-        sym)
-      sym)))
+  (if (contains? core-vars sym)
+    (let [sym (symbol (munge* sym))
+          ]
+      (swap! *imported-core-vars* conj sym)
+      sym)
+    sym))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (let [expr (if-let [sym-ns (namespace expr)]
@@ -180,7 +178,7 @@
 (def suffix-unary-operators (set ['++ '--]))
 
 (def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=== '< '> '<= '>= '!=
-                           '<< '>> '<<< '>>> '!== '& '| '&& '|| '= 'not= 'instanceof]))
+                           '<< '>> '<<< '>>> '!== '& '| '&& '|| 'not= 'instanceof]))
 
 (def chainable-infix-operators (set ['+ '- '* '/ '& '| '&& '||]))
 
@@ -211,7 +209,7 @@
   (let [env (assoc enc-env :context :expr)]
     (when (and (not (chainable-infix-operators operator)) (> (count args) 2))
       (throw (Exception. (str "operator " operator " supports only 2 arguments"))))
-    (->> (let [substitutions {'= '=== '!= '!== 'not= '!==}]
+    (->> (let [substitutions {'== '=== '!= '!== 'not= '!==}]
            (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
                               (emit-args env args)) ")"))
          (emit-wrap enc-env))))
@@ -362,7 +360,8 @@ break; }"
   (apply clojure.core/str (interpose " + " (emit-args env args))))
 
 (defn emit-method [env obj method args]
-  (str (emit obj (expr-env env)) "." (emit method (expr-env)) (comma-list (emit-args env args))))
+  (let [eenv (expr-env env)]
+    (emit-wrap env (str (emit obj eenv) "." (emit method eenv) (comma-list (emit-args env args))))))
 
 (defmethod emit-special '. [type env [period obj method & args]]
   (emit-method env obj method args))
@@ -390,9 +389,9 @@ break; }"
   #_(emit-wrap env))
 
 (defn emit-aget [env var idxs]
-  (apply str
-         (emit var env)
-         (interleave (repeat "[") (emit-args env idxs) (repeat "]"))))
+  (emit-wrap env (apply str
+                        (emit var (expr-env env))
+                        (interleave (repeat "[") (emit-args env idxs) (repeat "]")))))
 
 (defmethod emit-special 'aget [type env [_aget var & idxs]]
   (emit-aget env var idxs))
