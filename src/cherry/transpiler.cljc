@@ -536,11 +536,14 @@ break;}" body)
     (emit expanded env)))
 
 (defmethod emit-special 'try [_type env [_try & body :as expression]]
-  (let [try-body (remove #(contains? #{'catch 'finally} (first %))
+  (let [try-body (remove #(contains? #{'catch 'finally} (and (seq? %)
+                                                             (first %)))
                          body)
-        catch-clause (filter #(= 'catch (first %))
+        catch-clause (filter #(= 'catch (and (seq? %)
+                                             (first %)))
                              body)
-        finally-clause (filter #(= 'finally (first %))
+        finally-clause (filter #(= 'finally (and (seq? %)
+                                                 (first %)))
                                body)]
     (cond
       (and (empty? catch-clause)
@@ -553,17 +556,22 @@ break;}" body)
       (> (count finally-clause) 1)
       (throw (new Exception (str "Cannot supply more than one finally clause in a try statement! " expression)))
 
-      :true (str "try{\n"
-                 (emit-do env try-body)
-                 "}\n"
-                 (if-let [[_ exception & catch-body] (first catch-clause)]
-                   (str "catch(" (emit env exception) "){\n"
-                        (emit-do env catch-body)
-                        "}\n"))
-                 (if-let [[_ & finally-body] (first finally-clause)]
-                   (str "finally{\n"
-                        (emit-do env finally-body)
-                        "}\n"))))))
+      :else
+      (->> (cond-> (str "try{\n"
+                        (emit-do env try-body)
+                        "}\n"
+                        (when-let [[_ _exception binding & catch-body] (first catch-clause)]
+                          ;; TODO: only bind when exception type matches
+                          (str "catch(" (emit binding (expr-env env)) "){\n"
+                               (emit-do env catch-body)
+                               "}\n"))
+                        (when-let [[_ & finally-body] (first finally-clause)]
+                          (str "finally{\n"
+                               (emit-do (assoc env :context :statement) finally-body)
+                               "}\n")))
+             (not= :statement (:context env))
+             (wrap-iife))
+           (emit-wrap env)))))
 
 #_(defmethod emit-special 'break [_type _env [_break]]
     (statement "break"))

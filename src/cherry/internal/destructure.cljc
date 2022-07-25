@@ -44,7 +44,8 @@
                    pmap
                    (fn [bvec b v]
                      (let [m (meta b)
-                           js-keys? (= 'js (:tag m))
+                           js-keys? (or (:js m)
+                                        (= 'js (:tag m)))
                            gmap (gensym "map__")
                            defaults (:or b)]
                        (loop [ret (-> bvec (conj gmap) (conj v)
