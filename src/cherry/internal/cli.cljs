@@ -49,7 +49,8 @@ help                      Print this help"))
 
 (def table
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
-   {:cmds ["transpile"]  :fn transpile-files}
+   {:cmds ["transpile"]  :fn (fn [{:keys [rest-cmds]}]
+                               (transpile-files rest-cmds))}
    #_{:cmds ["compile"]    :fn compile-form}
    {:cmds []             :fn fallback}])
 

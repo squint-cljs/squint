@@ -53,6 +53,9 @@
 
 (defmulti emit-special (fn [disp _env & _args] disp))
 
+(defmethod emit-special 'js* [_ _ [_ expr]]
+  (str expr))
+
 (def statement-separator ";\n")
 
 ;; TODO: move to context argument
@@ -127,16 +130,14 @@
    (defmethod emit :default [expr env]
      ;; RegExp case moved here:
      ;; References to the global RegExp object prevents optimization of regular expressions.
-     (emit-wrap env (if (instance? js/RegExp expr)
-                      (str \/ expr \/)
-                      (str expr)))))
+     (emit-wrap env (str expr))))
 
 (def special-forms (set ['var '. '.. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
                          'await 'const 'defn 'let 'let* 'ns 'def 'loop*
-                         'recur]))
+                         'recur 'js*]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -160,7 +161,9 @@
                       'loop loop/core-loop
                       'doseq macros/core-doseq
                       'for macros/core-for
-                      'lazy-seq macros/core-lazy-seq})
+                      'lazy-seq macros/core-lazy-seq
+                      'defonce macros/core-defonce
+                      'exists? macros/core-exists?})
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
@@ -237,7 +240,7 @@
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
         (reduce (fn [[acc var->ident] [var-name rhs]]
-                  (let [renamed (gensym var-name)
+                  (let [renamed (munge (gensym var-name))
                         lhs (str renamed)
                         rhs (emit rhs (assoc env :var->ident var->ident))
                         expr (format "let %s = %s;\n" lhs rhs)
@@ -404,8 +407,9 @@ break; }"
 
 (defmethod emit-special 'set! [_type env [_set! var val & more]]
   (assert (or (nil? more) (even? (count more))))
-  (str (emit var) " = " (emit val env) statement-separator
-       (when more (str (emit (cons 'set! more) env)))))
+  (let [eenv (expr-env env)]
+    (emit-wrap env (str (emit var eenv) " = " (emit val eenv) statement-separator
+                        #_(when more (str (emit (cons 'set! more) env)))))))
 
 (defmethod emit-special 'new [_type env [_new class & args]]
   (emit-wrap env (str "new " (emit class (expr-env env)) (comma-list (emit-args env args)))))
@@ -562,6 +566,7 @@ break;}" body)
 
 (derive #?(:clj clojure.lang.Cons :cljs Cons) ::list)
 (derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)
+(derive #?(:clj clojure.lang.LazySeq :cljs LazySeq) ::list)
 #?(:cljs (derive List ::list))
 
 (defn strip-core-symbol [sym]
@@ -609,10 +614,6 @@ break;}" body)
   (emit-wrap env (format "vector(%s)"
                          (str/join ", " (emit-args env expr)))))
 
-(defmethod emit #?(:clj clojure.lang.LazySeq
-                   :cljs LazySeq) [expr env]
-  (emit (into [] expr) env))
-
 #?(:cljs (derive PersistentArrayMap ::map))
 #?(:cljs (derive PersistentHashMap ::map))
 
@@ -640,9 +641,13 @@ break;}" body)
   (emit f {:context :statement}))
 
 (defn transpile-string* [s]
-  (let [rdr (e/reader s)]
+  (let [rdr (e/reader s)
+        opts (e/normalize-opts {:all true
+                                :end-location false
+                                :location? seq?
+                                :readers {'js #(vary-meta % assoc ::js true)}})]
     (loop [transpiled ""]
-      (let [next-form (e/parse-next rdr {:readers {'js #(vary-meta % assoc ::js true)}})]
+      (let [next-form (e/parse-next rdr opts)]
         (if (= ::e/eof next-form)
           transpiled
           (let [next-t (transpile-form next-form)
