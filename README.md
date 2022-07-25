@@ -38,7 +38,7 @@ true
 6
 ```
 
-Also see the [wordle](https://borkdude.github.io/cherry/examples/wordle/index.html) example.
+Also see the [wordle](https://borkdude.github.io/cherry/examples/wordle/index.html) and [react](https://borkdude.github.io/cherry/examples/react/index.html) examples.
 
 ## Project goals
 
