@@ -26,6 +26,7 @@
 (aset js/globalThis "rest" cljs.core/rest)
 (aset js/globalThis "concat" cljs.core/concat)
 (aset js/globalThis "LazySeq" cljs.core/LazySeq)
+(aset js/globalThis "map" cljs.core/map)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -89,7 +90,11 @@
   (is (= 1 (jsv! '(let [name 1]
                     name))))
   (is (= 1 (jsv! '(let [name (fn [] 1)]
-                    (name))))))
+                    (name)))))
+  (let [s (jss! '(let [name (fn [_] 1)]
+                   (map name [1 2 3])))]
+    (is (= '(1 1 1)
+           (js/eval s)))))
 
 (deftest destructure-test
   (let [s (jss! "(let [^js {:keys [a b c]} #js {:a 1 :b 2 :c 3}]
