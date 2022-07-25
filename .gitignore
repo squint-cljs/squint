@@ -12,3 +12,4 @@ dist
 test/scratch.cjs
 corpus/*.mjs
 test/*.mjs
+example.mjs
