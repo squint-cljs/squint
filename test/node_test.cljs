@@ -13,5 +13,4 @@
     (eq [3 3 3 0] x)))
 
 (describe
- "fns works"
- (js/await (foo)))
+ "fns works" foo)
