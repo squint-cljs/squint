@@ -38,6 +38,8 @@ true
 6
 ```
 
+Also see the [wordle](https://borkdude.github.io/cherry/examples/wordle/index.html) example.
+
 ## Project goals
 
 Primary goal of cherry:
