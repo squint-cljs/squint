@@ -283,8 +283,57 @@
 (defmethod emit-special 'loop* [_ env [_ bindings & body]]
   (emit-let env bindings body true))
 
-(defmethod emit-special 'case* [_ _env [_x & _body]]
-  (throw (Exception. "Should not reach here yet. When case + keyword optimization is implemented, you will.")))
+#_(defmethod emit* :case
+    [{v :test :keys [nodes default env]}]
+    (when (= (:context env) :expr)
+      (emitln "(function(){"))
+    (let [gs (gensym "caseval__")]
+      (when (= :expr (:context env))
+        (emitln "var " gs ";"))
+      (emitln "switch (" v ") {")
+      (doseq [{ts :tests {:keys [then]} :then} nodes]
+        (doseq [test (map :test ts)]
+          (emitln "case " test ":"))
+        (if (= :expr (:context env))
+          (emitln gs "=" then)
+          (emitln then))
+        (emitln "break;"))
+      (when default
+        (emitln "default:")
+        (if (= :expr (:context env))
+          (emitln gs "=" default)
+          (emitln default)))
+      (emitln "}")
+      (when (= :expr (:context env))
+        (emitln "return " gs ";})()"))))
+
+(defmethod emit-special 'case* [_ env [_ v tests thens default]]
+  (let [expr? (= :expr (:context env))
+        gs (gensym "caseval__")
+        eenv (expr-env env)]
+    (cond-> (str
+             (when expr?
+               (str "var " gs ";\n"))
+             (str "switch (" (emit v eenv) ") {")
+             (str/join (map (fn [test then]
+                              (str/join
+                               (map (fn [test]
+                                      (str (str "case " (emit test eenv) ":\n")
+                                           (if expr?
+                                             (str gs " = " then)
+                                             (emit-wrap env (emit then eenv)))
+                                           "\nbreak;\n"))
+                                    test)))
+                            tests thens))
+             (when default
+               (str "default:\n"
+                    (if expr?
+                      (str gs " = " (emit default eenv))
+                      (emit default eenv))))
+             (when expr?
+               (str "return " gs ";"))
+             "}")
+      expr? (wrap-iife))))
 
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [bindings *recur-targets*
