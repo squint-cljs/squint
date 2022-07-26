@@ -26,3 +26,10 @@
     x))
 
 (add! (quux 5))
+
+(defn mfoo
+  ([x] x)
+  ([_x y] y))
+
+(add! (mfoo 1))
+(add! (mfoo 1 2))

@@ -8,7 +8,7 @@
 
 (defn ^:async foo []
   (try (let [^:js {:keys [results]} (js/await (js/import "../corpus/fns.mjs"))]
-         (eq [3 3 3 0] @results))
+         (eq [3 3 3 0 1 2] @results))
        (catch :default e
          (assert/fail (ex-message e)))))
 
