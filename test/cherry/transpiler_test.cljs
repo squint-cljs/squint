@@ -236,4 +236,6 @@
   (let [s (jss! "(do (def x (.x #js {:x (fn [x] x)} 1)) x)")]
     (is (= 1 (js/eval s))))
   (let [s (jss! "(do (def x (. #js {:x (fn [x] x)} x 1)) x)")]
+    (is (= 1 (js/eval s))))
+  (let [s (jss! "(do (def x (. #js {:x (fn [x] x)} (x 1))) x)")]
     (is (= 1 (js/eval s)))))
