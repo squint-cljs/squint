@@ -360,3 +360,92 @@
           js    (str/join " && " (repeat n "(typeof ~{} !== 'undefined')"))]
       (bool-expr (concat (list 'js* js) syms)))
     `(some? ~x)))
+
+(defn- assoc-test [m test expr env]
+  (if (contains? m test)
+    (throw
+     #?(:clj (clojure.IllegalArgumentException.
+              (str "Duplicate case test constant '"
+                        test "'"
+                        (when (:line env)
+                          (str " on line " (:line env) " "
+                                    #_cljs.analyzer/*cljs-file*))))
+        :cljs (js/Error.
+               (str "Duplicate case test constant '"
+                         test "'"
+                         (when (:line env)
+                           (str " on line " (:line env) " "
+                                     #_cljs.analyzer/*cljs-file*))))))
+    (assoc m test expr)))
+
+(defn- const? [env x]
+  (let [m (and (list? x)
+               ;; TODO
+               #_(ana/resolve-var env (last x)))]
+    (when m (get m :const))))
+
+(defn core-case
+  "Takes an expression, and a set of clauses.
+  Each clause can take the form of either:
+  test-constant result-expr
+  (test-constant1 ... test-constantN)  result-expr
+  The test-constants are not evaluated. They must be compile-time
+  literals, and need not be quoted.  If the expression is equal to a
+  test-constant, the corresponding result-expr is returned. A single
+  default expression can follow the clauses, and its value will be
+  returned if no clause matches. If no default expression is provided
+  and no clause matches, an Error is thrown.
+  Unlike cond and condp, case does a constant-time dispatch, the
+  clauses are not considered sequentially.  All manner of constant
+  expressions are acceptable in case, including numbers, strings,
+  symbols, keywords, and (ClojureScript) composites thereof. Note that since
+  lists are used to group multiple constants that map to the same
+  expression, a vector can be used to match a list if needed. The
+  test-constants need not be all of the same type."
+  [_ &env e & clauses]
+  (let [esym    (gensym)
+             default (if (odd? (count clauses))
+                       (last clauses)
+                       `(throw
+                          (js/Error.
+                            (cljs.str "No matching clause: " ~esym))))
+             env     &env
+             pairs   (reduce
+                       (fn [m [test expr]]
+                         (cond
+                           (seq? test)
+                           (reduce
+                             (fn [m test]
+                               (let [test (if (symbol? test)
+                                                 (list 'quote test)
+                                                 test)]
+                                 (assoc-test m test expr env)))
+                             m test)
+                           (symbol? test)
+                           (assoc-test m (list 'quote test) expr env)
+                           :else
+                           (assoc-test m test expr env)))
+                     {} (partition 2 clauses))
+             tests   (keys pairs)]
+    (cond
+      (every? (some-fn number? string? #?(:clj char? :cljs (fnil char? :nonchar)) #(const? env %)) tests)
+      (let [no-default (if (odd? (count clauses)) (butlast clauses) clauses)
+                 tests      (mapv #(if (seq? %) (vec %) [%]) (take-nth 2 no-default))
+                 thens      (vec (take-nth 2 (drop 1 no-default)))]
+        `(let [~esym ~e] (case* ~esym ~tests ~thens ~default)))
+
+      (every? keyword? tests)
+      (let [no-default (if (odd? (count clauses)) (butlast clauses) clauses)
+                 kw-str #(.substring (str %) 1)
+                 tests (mapv #(if (seq? %) (mapv kw-str %) [(kw-str %)]) (take-nth 2 no-default))
+                 thens (vec (take-nth 2 (drop 1 no-default)))]
+        `(let [~esym ~e
+               ~esym (if (keyword? ~esym) (.-fqn ~(vary-meta esym assoc :tag 'cljs.Keyword)) nil)]
+           (case* ~esym ~tests ~thens ~default)))
+
+      ;; equality
+      :else
+      `(let [~esym ~e]
+         (cond
+           ~@(mapcat (fn [[m c]] `((cljs.core/= ~m ~esym) ~c)) pairs)
+           :else ~default)))))
