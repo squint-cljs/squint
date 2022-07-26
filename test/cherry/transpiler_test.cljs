@@ -208,4 +208,6 @@
   (is (= '(def x 1) (jsv! (list 'quote '(def x 1))))))
 
 (deftest case-test
-  (is (= 2 (jsv! '(case 'x x 2)))))
+  (is (= 2 (jsv! '(case 'x x 2))))
+  (is (thrown-with-msg? js/Error #"No matching clause"
+                        (jsv! '(case 'x y 2)))))

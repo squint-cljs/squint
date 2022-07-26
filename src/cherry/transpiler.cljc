@@ -248,7 +248,10 @@
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
         (reduce (fn [[acc var->ident] [var-name rhs]]
-                  (let [renamed (munge (gensym var-name))
+                  (let [renamed (let [vstr (str var-name)]
+                                  (if (str/starts-with? vstr "G__")
+                                    var-name
+                                    (munge (gensym var-name))))
                         lhs (str renamed)
                         rhs (emit rhs (assoc env :var->ident var->ident))
                         expr (format "let %s = %s;\n" lhs rhs)
