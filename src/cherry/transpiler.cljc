@@ -120,7 +120,9 @@
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
-    (emit-wrap env (emit (list 'cljs.core/symbol (str expr))))
+    (emit-wrap env
+               (emit (list 'cljs.core/symbol
+                           (str expr))))
     (let [expr (if-let [sym-ns (namespace expr)]
                  (or (when (= "cljs.core" (namespace expr))
                        (maybe-core-var (symbol (name expr))))
@@ -248,10 +250,7 @@
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
         (reduce (fn [[acc var->ident] [var-name rhs]]
-                  (let [renamed (let [vstr (str var-name)]
-                                  (if (str/starts-with? vstr "G__")
-                                    var-name
-                                    (munge (gensym var-name))))
+                  (let [renamed (munge (gensym var-name))
                         lhs (str renamed)
                         rhs (emit rhs (assoc env :var->ident var->ident))
                         expr (format "let %s = %s;\n" lhs rhs)
@@ -261,14 +260,7 @@
                 partitioned)
         enc-env (assoc enc-env :var->ident var->ident)]
     (cond->> (str
-              #_(let [names renamed]
-                  (statement (str "let " (str/join ", " names))))
-              bindings #_(apply str (interleave
-                                     (map (fn [[name expr]]
-                                            (str (emit name env) " = "
-                                                 (emit expr env)))
-                                          partitioned)
-                                     (repeat statement-separator)))
+              bindings
               (when is-loop
                 (str "while(true){\n"))
               ;; TODO: move this to env arg?
@@ -391,24 +383,23 @@ break; }"
 (defmethod emit-special '.. [type env [dotdot & args]]
   (apply str (interpose "." (emit-args env args))))
 
-(defmethod emit-special 'if [_type env [_if test true-form false-form]]
+(defmethod emit-special 'if [_type env [_if test then else]]
   (swap! *imported-core-vars* conj 'truth_)
   (if (= :expr (:context env))
     (->> (let [env (assoc env :context :expr)]
            (format "(%s) ? (%s) : (%s)"
                    (emit test env)
-                   (emit true-form env)
-                   (emit false-form env)))
+                   (emit then env)
+                   (emit else env)))
          (emit-wrap env))
     (str (format "if (truth_(%s)) {\n"
                  (emit test (assoc env :context :expr)))
-         (emit true-form env)
+         (emit then env)
          "}"
-         (when (some? false-form)
+         (when (some? else)
            (str " else {\n"
-                (emit false-form env)
-                "}"))))
-  #_(emit-wrap env))
+                (emit else env)
+                "}")))))
 
 (defn emit-aget [env var idxs]
   (emit-wrap env (apply str
@@ -629,7 +620,8 @@ break;}" body)
           (contains? built-in-macros head) (let [macro (built-in-macros head)]
                                              (emit (apply macro expr {} (rest expr)) env))
           (str/ends-with? head-str ".")
-          (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr)))
+          (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
+                env)
           (special-form? head) (emit-special head env expr)
           (infix-operator? head) (emit-infix head env expr)
           (prefix-unary? head) (emit-prefix-unary head expr)
