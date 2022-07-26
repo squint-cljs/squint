@@ -220,7 +220,7 @@
   (let [s (jss! '(let [x (case 1 1 2 3 4)]
                    (inc x)))]
     (is (= 3 (js/eval s))))
-  #_(let [s (jss! '(do (defn foo []
+  (let [s (jss! '(do (defn foo []
                        (case 1 1 2 3 4))
                      (foo)))]
-    (is (= 3 (js/eval s)))))
+    (is (= 2 (js/eval s)))))
