@@ -225,3 +225,15 @@
                        (case 1 1 2 3 4))
                      (foo)))]
     (is (= 2 (js/eval s)))))
+
+(deftest dot-test
+  (let [s (jss! "(do (def x (.-x #js {:x 1})) x)")]
+    (is (= 1 (js/eval s))))
+  (let [s (jss! "(do (def x (. #js {:x 1} -x)) x)")]
+    (is (= 1 (js/eval s))))
+  (let [s (jss! "(do (def x (.x #js {:x (fn [] 1)})) x)")]
+    (is (= 1 (js/eval s))))
+  (let [s (jss! "(do (def x (.x #js {:x (fn [x] x)} 1)) x)")]
+    (is (= 1 (js/eval s))))
+  (let [s (jss! "(do (def x (. #js {:x (fn [x] x)} x 1)) x)")]
+    (is (= 1 (js/eval s)))))

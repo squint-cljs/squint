@@ -419,8 +419,16 @@
   (let [eenv (expr-env env)]
     (emit-wrap env (str (emit obj eenv) "." (emit method eenv) (comma-list (emit-args env args))))))
 
-(defmethod emit-special '. [type env [period obj method & args]]
-  (emit-method env obj method args))
+(defn emit-aget [env var idxs]
+  (emit-wrap env (apply str
+                        (emit var (expr-env env))
+                        (interleave (repeat "[") (emit-args env idxs) (repeat "]")))))
+
+(defmethod emit-special '. [type env [_period obj method & args]]
+  (let [method-str (str method)]
+    (if (str/starts-with? method-str "-")
+      (emit-aget env obj [(subs method-str 1)])
+      (emit-method env obj (symbol method-str) args))) #_(emit-method env obj method args))
 
 (defmethod emit-special '.. [type env [dotdot & args]]
   (apply str (interpose "." (emit-args env args))))
@@ -443,19 +451,8 @@
                 (emit else env)
                 "}")))))
 
-(defn emit-aget [env var idxs]
-  (emit-wrap env (apply str
-                        (emit var (expr-env env))
-                        (interleave (repeat "[") (emit-args env idxs) (repeat "]")))))
-
 (defmethod emit-special 'aget [type env [_aget var & idxs]]
   (emit-aget env var idxs))
-
-(defmethod emit-special 'dot-method [_type env [method obj & args]]
-  (let [method-str (rstr/drop 1 (str method))]
-    (if (str/starts-with? method-str "-")
-      (emit-aget env obj [(subs method-str 1)])
-      (emit-method env obj (symbol method-str) args))))
 
 ;; TODO: this should not be reachable in user space
 (defmethod emit-special 'return [_type env [_return expr]]
@@ -584,7 +581,6 @@ break;}" body)
 (defmethod emit-special 'defn [_type env [fn name & args :as expr]]
   (let [;;async (:async (meta name))
         [_def _name _fn-expr :as expanded] (core-defn expr {} name args)]
-    ;; (prn fn-expr (meta fn-expr))
     (emit expanded env)))
 
 (defmethod emit-special 'try [_type env [_try & body :as expression]]
@@ -656,12 +652,18 @@ break;}" body)
                    expr)
             head-str (str head)]
         (cond
-          (and (= (rstr/get head-str 0) \.)
+          (and (= (.charAt head-str 0) \.)
                (> (count head-str) 1)
-               (not (= (rstr/get head-str 1) \.))) (emit-special 'dot-method env expr)
+               (not (= ".." head-str)))
+          (emit-special '. env
+                        (list* '.
+                               (second expr)
+                               (symbol (subs head-str 1))
+                               (nnext expr)))
           (contains? built-in-macros head) (let [macro (built-in-macros head)]
                                              (emit (apply macro expr {} (rest expr)) env))
-          (str/ends-with? head-str ".")
+          (and (> (count head-str) 1)
+               (str/ends-with? head-str "."))
           (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
                 env)
           (special-form? head) (emit-special head env expr)
