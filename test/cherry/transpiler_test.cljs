@@ -28,6 +28,7 @@
 (aset js/globalThis "LazySeq" cljs.core/LazySeq)
 (aset js/globalThis "map" cljs.core/map)
 (aset js/globalThis "re_seq" cljs.core/re-seq)
+(aset js/globalThis "str" cljs.core/str)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -195,3 +196,6 @@
 (deftest regex-test
   (is (= '("foo" "foo")
          (jsv! '(re-seq #"foo" "foo foo")))))
+
+(deftest new-test
+  (is (= "hello" (jsv! '(str (js/String. "hello"))))))
