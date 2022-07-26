@@ -31,6 +31,7 @@
 (aset js/globalThis "str" cljs.core/str)
 (aset js/globalThis "symbol" cljs.core/symbol)
 (aset js/globalThis "list" cljs.core/list)
+(aset js/globalThis "_EQ_" cljs.core/=)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -205,3 +206,6 @@
 (deftest quote-test
   (is (= '{x 1} (jsv! (list 'quote '{x 1}))))
   (is (= '(def x 1) (jsv! (list 'quote '(def x 1))))))
+
+(deftest case-test
+  (is (= 2 (jsv! '(case 'x x 2)))))

@@ -73,6 +73,89 @@
         (cons 'fn* new-sigs))
       (meta &form))))
 
+(defn- multi-arity-fn [name meta fdecl emit-var?]
+  (letfn [(dest-args [c]
+            (map (fn [n] `(unchecked-get (js-arguments) ~n))
+                 (range c)))
+          (fixed-arity [rname sig]
+            (let [c (count sig)]
+              [c `(. ~rname
+                     (~(symbol
+                        (str "cljs$core$IFn$_invoke$arity$" c))
+                      ~@(dest-args c)))]))
+          (fn-method [name [sig & body :as method]]
+            (if
+                ;; TODO
+                false #_(some '#{&} sig)
+                #_(variadic-fn* name method false)
+                ;; fix up individual :fn-method meta for
+                ;; cljs.analyzer/parse 'set! :top-fn handling
+                `(set!
+                  (. ~(vary-meta name update :top-fn merge
+                                 {:variadic? false :fixed-arity (count sig)})
+                     ~(symbol (str "-cljs$core$IFn$_invoke$arity$"
+                                   (count sig))))
+                  (fn ~method))))]
+    (let [rname    (symbol
+                    ;; TODO:
+                    #_(str  ana/*cljs-ns*) (str name))
+          arglists (map first fdecl)
+          macro?   (:macro meta)
+          varsig?  #(boolean (some '#{&} %))
+          {sigs false var-sigs true} (group-by varsig? arglists)
+          variadic? (pos? (count var-sigs))
+          variadic-params  (if variadic?
+                             (cond-> (remove '#{&} (first var-sigs))
+                               true count
+                               macro? (- 2))
+                             0)
+          maxfa    (apply max
+                          (concat
+                           (map count sigs)
+                           [(- (count (first var-sigs)) 2)]))
+          mfa      (cond-> maxfa macro? (- 2))
+          meta     (assoc meta
+                          :top-fn
+                          {:variadic? variadic?
+                           :fixed-arity mfa
+                           :max-fixed-arity mfa
+                           :method-params (cond-> sigs #_#_macro? elide-implicit-macro-args)
+                           :arglists (cond-> arglists #_#_macro? elide-implicit-macro-args)
+                           :arglists-meta (doall (map meta arglists))})
+          args-sym (gensym "args")
+          param-counts (map count arglists)
+          name     (with-meta name meta)]
+      #_(when (< 1 (count var-sigs))
+          (ana/warning :multiple-variadic-overloads {} {:name name}))
+      #_(when (and (pos? variadic-params)
+                   (not (== variadic-params (+ 1 mfa))))
+          (ana/warning :variadic-max-arity {} {:name name}))
+      #_(when (not= (distinct param-counts) param-counts)
+          (ana/warning :overload-arity {} {:name name}))
+      `(do
+         (def ~name
+           (fn [~'var_args]
+             (case (alength (js-arguments))
+               ~@(mapcat #(fixed-arity rname %) sigs)
+               ~(if variadic?
+                  `(let [args-arr# (array)]
+                     (copy-arguments args-arr#)
+                     (let [argseq# (new #_:ana/no-resolve cljs.IndexedSeq
+                                        (.slice args-arr# ~maxfa) 0 nil)]
+                       (. ~rname
+                          (~'cljs$core$IFn$_invoke$arity$variadic
+                           ~@(dest-args maxfa)
+                           argseq#))))
+                  (if (:macro meta)
+                    `(throw (js/Error.
+                             (str "Invalid arity: " (- (alength (js-arguments)) 2))))
+                    `(throw (js/Error.
+                             (str "Invalid arity: " (alength (js-arguments))))))))))
+         ~@(map #(fn-method name %) fdecl)
+         ;; optimization properties
+         (set! (. ~name ~'-cljs$lang$maxFixedArity) ~maxfa)
+         ~(when emit-var? `(var ~name))))))
+
 (defn
   ^{:doc "Same as (def name (core/fn [params* ] exprs*)) or (def
     name (core/fn ([params* ] exprs*)+)) with any doc-string or attrs added
@@ -80,7 +163,7 @@
     :pre and :post that contain collections of pre or post conditions."
     :arglists '([name doc-string? attr-map? [params*] prepost-map? body]
                 [name doc-string? attr-map? ([params*] prepost-map? body)+ attr-map?])}
-  core-defn [_&form _&env name fdecl]
+  core-defn [_&form &env name fdecl]
   ;; Note: Cannot delegate this check to def because of the call to (with-meta name ..)
   (if (instance? #?(:clj clojure.lang.Symbol :cljs Symbol) name)
     nil
@@ -127,9 +210,10 @@
                                         ;      m))
         m (conj (if (meta name) (meta name) {}) m)]
     (cond
-      #_(multi-arity-fn? fdecl)
-      #_(multi-arity-fn name
-                        (if (comp/checking-types?)
+      ;; multi arity fn
+      (< 1 (count fdecl))
+      (multi-arity-fn name
+                      (if false #_(comp/checking-types?)
                           (update-in m [:jsdoc] conj "@param {...*} var_args")
                           m) fdecl (:def-emits-var &env))
 

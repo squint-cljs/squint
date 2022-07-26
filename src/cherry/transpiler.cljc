@@ -144,7 +144,7 @@
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break
                          'js/await 'const 'defn 'let 'let* 'ns 'def 'loop*
-                         'recur 'js*]))
+                         'recur 'js* 'case*]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -170,7 +170,8 @@
                       'for macros/core-for
                       'lazy-seq macros/core-lazy-seq
                       'defonce macros/core-defonce
-                      'exists? macros/core-exists?})
+                      'exists? macros/core-exists?
+                      'case macros/core-case})
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
@@ -283,6 +284,9 @@
 
 (defmethod emit-special 'loop* [_ env [_ bindings & body]]
   (emit-let env bindings body true))
+
+(defmethod emit-special 'case* [_ env [x & body]]
+  (prn x body))
 
 #_(binding [*recur-targets* bindings]
     (format "while (true) {
