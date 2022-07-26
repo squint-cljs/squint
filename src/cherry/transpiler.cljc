@@ -603,13 +603,16 @@ break;}" body)
           expr (if (not= head head*)
                  (with-meta (cons head (rest expr))
                    (meta expr))
-                 expr)]
+                 expr)
+          head-str (str head)]
       (cond
-        (and (= (rstr/get (str head) 0) \.)
-             (> (count (str head)) 1)
-             (not (= (rstr/get (str head) 1) \.))) (emit-special 'dot-method env expr)
+        (and (= (rstr/get head-str 0) \.)
+             (> (count head-str) 1)
+             (not (= (rstr/get head-str 1) \.))) (emit-special 'dot-method env expr)
         (contains? built-in-macros head) (let [macro (built-in-macros head)]
                                            (emit (apply macro expr {} (rest expr)) env))
+        (str/ends-with? head-str ".")
+        (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr)))
         (special-form? head) (emit-special head env expr)
         (infix-operator? head) (emit-infix head env expr)
         (prefix-unary? head) (emit-prefix-unary head expr)
