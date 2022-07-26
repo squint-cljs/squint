@@ -211,8 +211,16 @@
 (deftest case-test
   (let [s (jss! '(case 'x x 2))]
     (is (= 2 (js/eval s))))
+  (is (= 2 (jsv! '(case 1 1 2 3 4))))
+  (is (= 5 (jsv! '(case 6 1 2 3 4 (inc 4)))))
   (is (= 2 (jsv! '(case 1 :foo :bar 1 2))))
-  ;; TODO: optimize this case, by implementing case*
   (is (= :bar (jsv! '(case :foo :foo :bar))))
   (is (thrown-with-msg? js/Error #"No matching clause"
-                        (jsv! '(case 'x y 2)))))
+                        (jsv! '(case 'x y 2))))
+  (let [s (jss! '(let [x (case 1 1 2 3 4)]
+                   (inc x)))]
+    (is (= 3 (js/eval s))))
+  #_(let [s (jss! '(do (defn foo []
+                       (case 1 1 2 3 4))
+                     (foo)))]
+    (is (= 3 (js/eval s)))))
