@@ -32,6 +32,7 @@
 (aset js/globalThis "symbol" cljs.core/symbol)
 (aset js/globalThis "list" cljs.core/list)
 (aset js/globalThis "_EQ_" cljs.core/=)
+(aset js/globalThis "keyword_QMARK_" cljs.core/keyword?)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -211,5 +212,7 @@
   (let [s (jss! '(case 'x x 2))]
     (is (= 2 (js/eval s))))
   (is (= 2 (jsv! '(case 1 :foo :bar 1 2))))
+  ;; TODO: optimize this case, by implementing case*
+  (is (= :bar (jsv! '(case :foo :foo :bar))))
   (is (thrown-with-msg? js/Error #"No matching clause"
                         (jsv! '(case 'x y 2)))))

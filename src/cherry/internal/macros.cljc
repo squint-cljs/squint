@@ -434,7 +434,9 @@
             thens      (vec (take-nth 2 (drop 1 no-default)))]
         `(let [~esym ~e] (case* ~esym ~tests ~thens ~default)))
 
-      (every? keyword? tests)
+      false
+      ;; TODO: keyword optimization
+      #_(every? keyword? tests)
       (let [no-default (if (odd? (count clauses)) (butlast clauses) clauses)
             kw-str #(.substring (str %) 1)
             tests (mapv #(if (seq? %) (mapv kw-str %) [(kw-str %)]) (take-nth 2 no-default))
