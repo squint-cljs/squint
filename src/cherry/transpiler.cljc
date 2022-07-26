@@ -424,7 +424,7 @@
                         (emit var (expr-env env))
                         (interleave (repeat "[") (emit-args env idxs) (repeat "]")))))
 
-(defmethod emit-special '. [type env [_period obj method & args]]
+(defmethod emit-special '. [_type env [_period obj method & args]]
   (let [[method args] (if (seq? method)
                         [(first method) (rest method)]
                         [method args])
@@ -433,7 +433,7 @@
       (emit-aget env obj [(subs method-str 1)])
       (emit-method env obj (symbol method-str) args))) #_(emit-method env obj method args))
 
-(defmethod emit-special '.. [type env [dotdot & args]]
+(defmethod emit-special '.. [_type env [_dotdot & args]]
   (apply str (interpose "." (emit-args env args))))
 
 (defmethod emit-special 'if [_type env [_if test then else]]
