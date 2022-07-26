@@ -59,6 +59,18 @@
           template
           substitutions))
 
+(defn emit-wrap [env s]
+  ;; (prn :wrap s (:contet env))
+  (if (= :return (:context env))
+    (format "return %s;" s)
+    s))
+
+(defn expr-env [env]
+  (assoc env :context :expr))
+
+(defmethod emit-special 'throw [_ env [_ expr]]
+  (emit-wrap env (str "throw " (emit expr (expr-env env)))))
+
 (def statement-separator ";\n")
 
 ;; TODO: move to context argument
@@ -73,12 +85,6 @@
 
 (defn comma-list [coll]
   (str "(" (str/join ", " coll) ")"))
-
-(defn emit-wrap [env s]
-  ;; (prn :wrap s (:contet env))
-  (if (= :return (:context env))
-    (format "return %s;" s)
-    s))
 
 (defmethod emit nil [_ env]
   (emit-wrap env "null"))
@@ -142,7 +148,7 @@
 (def special-forms (set ['var '. '.. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
-                         '? 'try 'break
+                         '? 'try 'break 'throw
                          'js/await 'const 'defn 'let 'let* 'ns 'def 'loop*
                          'recur 'js* 'case*]))
 
@@ -228,9 +234,6 @@
                            (repeat statement-separator))))
 
 (def ^:dynamic *recur-targets* [])
-
-(defn expr-env [env]
-  (assoc env :context :expr))
 
 (declare emit-do wrap-iife)
 
