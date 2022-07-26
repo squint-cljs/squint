@@ -33,6 +33,7 @@
 (aset js/globalThis "list" cljs.core/list)
 (aset js/globalThis "_EQ_" cljs.core/=)
 (aset js/globalThis "keyword_QMARK_" cljs.core/keyword?)
+(aset js/globalThis "subs" cljs.core/subs)
 
 (defn jss! [expr]
   (if (string? expr)
