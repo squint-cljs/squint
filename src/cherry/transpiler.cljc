@@ -425,7 +425,10 @@
                         (interleave (repeat "[") (emit-args env idxs) (repeat "]")))))
 
 (defmethod emit-special '. [type env [_period obj method & args]]
-  (let [method-str (str method)]
+  (let [[method args] (if (seq? method)
+                        [(first method) (rest method)]
+                        [method args])
+        method-str (str method)]
     (if (str/starts-with? method-str "-")
       (emit-aget env obj [(subs method-str 1)])
       (emit-method env obj (symbol method-str) args))) #_(emit-method env obj method args))
