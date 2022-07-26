@@ -283,15 +283,8 @@
 (defmethod emit-special 'loop* [_ env [_ bindings & body]]
   (emit-let env bindings body true))
 
-(defmethod emit-special 'case* [_ env [x & body]]
-  (prn x body))
-
-#_(binding [*recur-targets* bindings]
-    (format "while (true) {
-%s
-
-break; }"
-            (emit (list* 'let bindings body) env)))
+(defmethod emit-special 'case* [_ _env [_x & _body]]
+  (throw (Exception. "Should not reach here yet. When case + keyword optimization is implemented, you will.")))
 
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [bindings *recur-targets*
