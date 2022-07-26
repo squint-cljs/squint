@@ -34,6 +34,7 @@
 (aset js/globalThis "_EQ_" cljs.core/=)
 (aset js/globalThis "keyword_QMARK_" cljs.core/keyword?)
 (aset js/globalThis "subs" cljs.core/subs)
+(aset js/globalThis "alength" cljs.core/alength)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -150,6 +151,14 @@
                          2))
                      (quux 1)))]
     (is (= 1 (js/eval s)))))
+
+(deftest defn-multi-arity-test
+  (is (= 1 (jsv! '(do
+                   (defn foo ([x] x) ([x y] y))
+                   (foo 1)))))
+  (is (= 2 (jsv! '(do
+                    (defn foo ([x] 1) ([x y] y))
+                    (foo 1 2))))))
 
 (deftest defn-recur-test
   (let [s (jss! '(do (defn quux [x]
