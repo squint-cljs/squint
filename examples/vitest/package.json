@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "vitest": "^0.19.1"
+  },
+  "dependencies": {
+    "cherry-cljs": "^0.0.0-alpha.33"
+  }
+}
