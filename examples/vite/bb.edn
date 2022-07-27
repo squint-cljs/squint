@@ -1,0 +1,13 @@
+{:pods {org.babashka/fswatcher {:version "0.0.3"}}
+ :paths ["."]
+ :tasks
+ {:requires ([tasks :as t])
+
+  vite-dev (shell "npm run dev")
+
+  watch-cljs (t/watch-cljs {})
+
+  -dev {:depends [vite-dev watch-cljs]}
+
+  dev {:doc "Run vite dev + watcher to re-build cherry.cljs"
+       :task (run '-dev {:parallel true})}}}

@@ -10,6 +10,7 @@ test/scratch.js
 dist
 .work
 test/scratch.cjs
-corpus/*.mjs
+*.mjs
 test/*.mjs
 example.mjs
+/examples/vite/vite-project/cherry.mjs
