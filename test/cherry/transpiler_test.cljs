@@ -252,3 +252,6 @@
 (deftest dotdot-test
   (let [s (jss! "(.. #js {:foo #js {:bar 2}} -foo -bar)")]
     (is (= 2 (js/eval s)))))
+
+(defn init []
+  (cljs.test/run-tests 'cherry.transpiler-test))
