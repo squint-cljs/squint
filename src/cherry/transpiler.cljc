@@ -147,7 +147,7 @@
      ;; References to the global RegExp object prevents optimization of regular expressions.
      (emit-wrap env (str expr))))
 
-(def special-forms (set ['var '. '.. 'if 'funcall 'fn 'fn* 'quote 'set!
+(def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break 'throw
@@ -179,7 +179,8 @@
                       'lazy-seq macros/core-lazy-seq
                       'defonce macros/core-defonce
                       'exists? macros/core-exists?
-                      'case macros/core-case})
+                      'case macros/core-case
+                      '.. macros/core-..})
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
@@ -432,9 +433,6 @@
     (if (str/starts-with? method-str "-")
       (emit-aget env obj [(subs method-str 1)])
       (emit-method env obj (symbol method-str) args))) #_(emit-method env obj method args))
-
-(defmethod emit-special '.. [_type env [_dotdot & args]]
-  (apply str (interpose "." (emit-args env args))))
 
 (defmethod emit-special 'if [_type env [_if test then else]]
   (swap! *imported-core-vars* conj 'truth_)
@@ -712,7 +710,7 @@ break;}" body)
       (swap! *imported-core-vars* conj map-fn))
     (->> (if map-fn
            (format "%s(%s)" map-fn keys)
-           (format "{ %s }" keys))
+           (format "({ %s })" keys))
          (emit-wrap env))))
 
 (defn transpile-form [f]
