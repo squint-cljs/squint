@@ -1,6 +1,6 @@
 ## Cherry :cherries:
 
-Experimental and tiny CLJS transpiler
+Experimental CLJS compiler: lowering the barrier to ClojureScript entry for JS developers.
 
 > :warning: This project is an experiment and not recommended to be used in
 > production. It currently has many bugs and will undergo many breaking changes.
