@@ -38,12 +38,16 @@ true
 6
 ```
 
-Also see these examples:
+## Examples
+
+A few examples of currenly working projects compiled by cherry:
 
 - [wordle](https://borkdude.github.io/cherry/examples/wordle/index.html)
 - [react](https://borkdude.github.io/cherry/examples/react/index.html)
 - [vite](examples/vite)
 - [cherry-action-example](https://github.com/borkdude/cherry-action-example)
+
+See the [examples](examples) directory for more.
 
 ## Project goals
 
