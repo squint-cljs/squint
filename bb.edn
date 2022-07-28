@@ -4,4 +4,4 @@
          publish (t/publish)
          watch (t/watch-cherry)
          test {:doc "Run tests"
-               :task (clojure "-M:cljs:test")}}}
+               :task (t/test-cherry)}}}
