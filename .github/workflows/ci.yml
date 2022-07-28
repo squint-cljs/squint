@@ -18,7 +18,7 @@ jobs:
       uses: actions/setup-java@v2
       with:
         distribution: "adopt"
-        java-version: ${{ matrix.java-version }}
+        java-version: 11
 
     - name: "Restore Cache"
       uses: "actions/cache@v1"
