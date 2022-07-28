@@ -101,6 +101,14 @@ Cherry started out as a fork of
 [Scriptjure](https://github.com/arohner/scriptjure). Currently it's being
 reworked to meet the above goals.
 
+## Funding
+
+This project is developed with the following partners, either by funding time
+and/or money:
+
+- [Nextjournal](https://nextjournal.com/)
+- [Github Sponsors](https://github.com/sponsors/borkdude)
+
 Here is the original readme of Scriptjure:
 
 ====
