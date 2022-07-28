@@ -107,7 +107,7 @@ This project is developed with the following partners, either by funding time
 and/or money:
 
 - [Nextjournal](https://nextjournal.com/)
-- [Github Sponsors](https://github.com/sponsors/borkdude)
+- The main author's [Github Sponsors](https://github.com/sponsors/borkdude)
 
 Here is the original readme of Scriptjure:
 
