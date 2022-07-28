@@ -180,7 +180,7 @@
                       'defonce macros/core-defonce
                       'exists? macros/core-exists?
                       'case macros/core-case
-                      '.. macros/core-..})
+                      '.. macros/core-dotdot})
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 

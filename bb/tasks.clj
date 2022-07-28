@@ -4,6 +4,7 @@
    [babashka.process :refer [shell]]
    [clojure.edn :as edn]
    [clojure.java.io :as io]))
+
 (defn shadow-extra-config
   []
   (let [core-config (edn/read-string (slurp (io/resource "cherry/cljs.core.edn")))
@@ -13,6 +14,17 @@
         core-map (zipmap ks vs)]
     {:modules
      {:cljs_core {:exports core-map}}}))
+
+(def test-config
+  '{:compiler-options {:load-tests true}
+    :modules {:cherry_tests {:init-fn cherry.transpiler-test/init
+                             :depends-on #{:transpiler}}}})
+
+(defn shadow-extra-test-config []
+  (merge-with
+   merge
+   (shadow-extra-config)
+   test-config))
 
 (defn build-cherry-npm-package []
   (fs/create-dirs ".work")
@@ -28,5 +40,11 @@
 
 (defn watch-cherry []
   (fs/create-dirs ".work")
-  (spit ".work/config-merge.edn" (shadow-extra-config))
+  (spit ".work/config-merge.edn" (shadow-extra-test-config))
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn watch cherry"))
+
+(defn test-cherry []
+  (fs/create-dirs ".work")
+  (spit ".work/config-merge.edn" (shadow-extra-test-config))
+  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release cherry")
+  (shell "node lib/cherry_tests.js"))

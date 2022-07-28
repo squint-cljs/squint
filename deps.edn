@@ -13,5 +13,4 @@
                 babashka/fs {:mvn/version "0.1.6"}}
    :main-opts ["-m" "cognitect.test-runner"]
    :exec-fn cognitect.test-runner.api/test}}
-
  }

@@ -449,7 +449,7 @@
            ~@(mapcat (fn [[m c]] `((cljs.core/= ~m ~esym) ~c)) pairs)
            :else ~default)))))
 
-(defn core-..
+(defn core-dotdot
   "form => fieldName-symbol or (instanceMethodName-symbol args*)
      Expands into a member access (.) of the first member on the first
      argument, followed by the next member on the result, etc. For
