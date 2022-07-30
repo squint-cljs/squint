@@ -7,8 +7,6 @@
 (defn $
   "Render element (keyword or symbol) with optional props"
   ([elt] ($ elt nil))
-  ([elt props]
-   ($ elt props nil))
   ([elt props & children]
    (let [[props children]
          (if (map? props)

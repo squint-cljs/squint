@@ -9,9 +9,6 @@ let G__56 = alength(arguments);
 switch (G__56) {case 1:
 return f1.cljs$core$IFn$_invoke$arity$1((arguments[0]));
 break;
-case 2:
-return f1.cljs$core$IFn$_invoke$arity$2((arguments[0]), (arguments[1]));
-break;
 default:
 let args_arr38 = array();
 let len__22076__auto__9 = alength(arguments);
@@ -30,9 +27,6 @@ return f1.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), (arguments[1]), a
 };
 f1["cljs$core$IFn$_invoke$arity$1"] = function (elt) {
 return $(elt, null);
-};
-f1["cljs$core$IFn$_invoke$arity$2"] = function (elt, props) {
-return $(elt, props, null);
 };
 f1["cljs$core$IFn$_invoke$arity$variadic"] = function (elt, props, children) {
 let vec__1619 = (map_QMARK_(props)) ? (vector(clj__GT_js(props), children)) : (vector(null, cons(props, children)));
