@@ -251,7 +251,10 @@
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
         (reduce (fn [[acc var->ident] [var-name rhs]]
-                  (let [renamed (munge (gensym var-name))
+                  (let [vm (meta var-name)
+                        rename? (not (:cherry.compiler/no-rename vm))
+                        renamed (if rename? (munge (gensym var-name))
+                                    var-name)
                         lhs (str renamed)
                         rhs (emit rhs (assoc env :var->ident var->ident))
                         expr (format "let %s = %s;\n" lhs rhs)
@@ -283,30 +286,6 @@
 
 (defmethod emit-special 'loop* [_ env [_ bindings & body]]
   (emit-let env bindings body true))
-
-#_(defmethod emit* :case
-    [{v :test :keys [nodes default env]}]
-    (when (= (:context env) :expr)
-      (emitln "(function(){"))
-    (let [gs (gensym "caseval__")]
-      (when (= :expr (:context env))
-        (emitln "var " gs ";"))
-      (emitln "switch (" v ") {")
-      (doseq [{ts :tests {:keys [then]} :then} nodes]
-        (doseq [test (map :test ts)]
-          (emitln "case " test ":"))
-        (if (= :expr (:context env))
-          (emitln gs "=" then)
-          (emitln then))
-        (emitln "break;"))
-      (when default
-        (emitln "default:")
-        (if (= :expr (:context env))
-          (emitln gs "=" default)
-          (emitln default)))
-      (emitln "}")
-      (when (= :expr (:context env))
-        (emitln "return " gs ";})()"))))
 
 (defmethod emit-special 'case* [_ env [_ v tests thens default]]
   (let [expr? (= :expr (:context env))
@@ -576,7 +555,7 @@ break;}" body)
       (emit-function* env sigs))))
 
 (defmethod emit-special 'fn [_type env [fn & sigs :as expr]]
-  (let [expanded (core-fn expr sigs)]
+  (let [expanded (apply core-fn expr {} sigs)]
     (emit expanded env)))
 
 (defmethod emit-special 'defn [_type env [fn name & args :as expr]]
