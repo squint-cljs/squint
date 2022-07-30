@@ -1,4 +1,4 @@
-import { IndexedSeq, first, alength, truth_, keyword_QMARK_, name, map_QMARK_, nth, array, vector, keyword, next, into_array, count, clj__GT_js, arrayMap } from 'cherry-cljs/cljs.core.js'
+import { IndexedSeq, first, alength, truth_, keyword_QMARK_, name, map_QMARK_, nth, array, vector, keyword, next, count, clj__GT_js, arrayMap } from 'cherry-cljs/cljs.core.js'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti';
 import * as react from 'https://cdn.skypack.dev/react';
 import { useEffect } from 'https://cdn.skypack.dev/react';
@@ -31,8 +31,8 @@ return $(elt, null);
 f1["cljs$core$IFn$_invoke$arity$variadic"] = function (elt, props, children) {
 let elt16 = (keyword_QMARK_(elt)) ? (name(elt)) : (elt);
 if (truth_(map_QMARK_(props))) {
-return react.createElement(elt16, clj__GT_js(props), into_array(children));} else {
-return react.createElement(elt16, ({  }), props, into_array(children));}
+return react.createElement(elt16, clj__GT_js(props), children);} else {
+return react.createElement(elt16, ({  }), props, children);}
 };
 f1["cljs$lang$applyTo"] = function (seq13) {
 let G__1417 = first(seq13);

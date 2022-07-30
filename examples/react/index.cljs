@@ -12,8 +12,8 @@
                (name elt)
                elt)]
      (if (map? props)
-       (react/createElement elt (clj->js props) (into-array children))
-       (react/createElement elt #js {} props (into-array children))))))
+       (react/createElement elt (clj->js props) children)
+       (react/createElement elt #js {} props children)))))
 
 (defn App []
   (useEffect (fn [] (confetti)) #js [])
