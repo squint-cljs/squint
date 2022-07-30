@@ -2,6 +2,8 @@
 {:vars #{=
          ->LazySeq
          LazySeq
+         ->IndexedSeq
+         IndexedSeq
 
          aclone
          ;; add-tap
