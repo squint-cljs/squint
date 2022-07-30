@@ -87,6 +87,42 @@
            (.push ~dest ~(core-unchecked-get (core-js-arguments) i-sym))
            (recur (inc ~i-sym)))))))
 
+(defn- variadic-fn*
+  ([sym method]
+   (variadic-fn* sym method true))
+  ([sym [arglist & body :as method] solo]
+   (let [sig (remove '#{&} arglist)
+         restarg (gensym "seq")]
+     (letfn [(get-delegate []
+               'cljs$core$IFn$_invoke$arity$variadic)
+             (get-delegate-prop []
+               (symbol (str "-" (get-delegate))))
+             (param-bind [param]
+               `[~param (^:ana/no-resolve first ~restarg)
+                 ~restarg (^:ana/no-resolve next ~restarg)])
+             (apply-to []
+               (if (< 1 (count sig))
+                 (let [params (repeatedly (dec (count sig)) gensym)]
+                   `(fn
+                      ([~restarg]
+                       (let [~@(mapcat param-bind params)]
+                         (this-as self#
+                           (. self# (~(get-delegate) ~@params ~restarg)))))))
+                 `(fn
+                    ([~restarg]
+                     (this-as self#
+                       (. self# (~(get-delegate) (seq ~restarg))))))))]
+       `(do
+          (set! (. ~sym ~(get-delegate-prop))
+                (fn (~(vec sig) ~@body)))
+          ~@(when solo
+              `[(set! (. ~sym ~'-cljs$lang$maxFixedArity)
+                      ~(dec (count sig)))])
+          #_(js-inline-comment " @this {Function} ")
+          ;; dissoc :top-fn so this helper gets ignored in cljs.analyzer/parse 'set!
+          (set! (. ~(vary-meta sym dissoc :top-fn) ~'-cljs$lang$applyTo)
+                ~(apply-to)))))))
+
 (defn- multi-arity-fn [name meta fdecl emit-var?]
   (letfn [(dest-args [c]
             (map (fn [n] (core-unchecked-get (core-js-arguments) n))
@@ -100,7 +136,7 @@
           (fn-method [name [sig & body :as method]]
             (if
                 (some '#{&} sig)
-              nil #_(variadic-fn* name method false)
+              (variadic-fn* name method false)
               ;; fix up individual :fn-method meta for
               ;; cljs.analyzer/parse 'set! :top-fn handling
               `(set!
@@ -173,43 +209,6 @@
 (defn- variadic-fn? [fdecl]
   (and (= 1 (count fdecl))
        (some '#{&} (ffirst fdecl))))
-
-
-(defn- variadic-fn*
-  ([sym method]
-   (variadic-fn* sym method true))
-  ([sym [arglist & body :as method] solo]
-   (let [sig (remove '#{&} arglist)
-         restarg (gensym "seq")]
-     (letfn [(get-delegate []
-               'cljs$core$IFn$_invoke$arity$variadic)
-             (get-delegate-prop []
-               (symbol (str "-" (get-delegate))))
-             (param-bind [param]
-               `[~param (^:ana/no-resolve first ~restarg)
-                 ~restarg (^:ana/no-resolve next ~restarg)])
-             (apply-to []
-               (if (< 1 (count sig))
-                 (let [params (repeatedly (dec (count sig)) gensym)]
-                   `(fn
-                      ([~restarg]
-                       (let [~@(mapcat param-bind params)]
-                         (this-as self#
-                           (. self# (~(get-delegate) ~@params ~restarg)))))))
-                 `(fn
-                    ([~restarg]
-                     (this-as self#
-                       (. self# (~(get-delegate) (seq ~restarg))))))))]
-       `(do
-          (set! (. ~sym ~(get-delegate-prop))
-                (fn (~(vec sig) ~@body)))
-          ~@(when solo
-              `[(set! (. ~sym ~'-cljs$lang$maxFixedArity)
-                      ~(dec (count sig)))])
-          #_(js-inline-comment " @this {Function} ")
-          ;; dissoc :top-fn so this helper gets ignored in cljs.analyzer/parse 'set!
-          (set! (. ~(vary-meta sym dissoc :top-fn) ~'-cljs$lang$applyTo)
-                ~(apply-to)))))))
 
 (defn- elide-implicit-macro-args [arglists]
   (map (fn [arglist]
