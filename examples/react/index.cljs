@@ -5,25 +5,26 @@
    ["https://cdn.skypack.dev/react-dom" :as rdom]))
 
 (defn $
-  "Out of lack of varargs in cherry right now, we pass children as a vector"
-  [elt props children]
-  (let [props (clj->js props)
+  "Render element (keyword or symbol) with optional props"
+  [elt props & children]
+  (let [[props children]
+        (if (map? props)
+          [(clj->js props) children]
+          [nil (cons props children)])
         elt (if (keyword? elt)
               (name elt)
               elt)]
-    (if (vector? children)
-      (apply react/createElement elt props children)
-      (react/createElement elt props children))))
+    (react/createElement elt props (into-array children))))
 
 (defn App []
   (useEffect (fn [] (confetti)) #js [])
   (let [[count setCount] (react/useState 0)]
-    ($ :div nil
-       [($ :p nil ["You clicked " count " times!"])
-        ($ :button {:onClick (fn []
-                               (confetti)
-                               (setCount (inc count)))}
-           "Click me")])))
+    ($ :div
+       ($ :p "You clicked " count " times!")
+       ($ :button {:onClick (fn []
+                              (confetti)
+                              (setCount (inc count)))}
+          "Click me"))))
 
 (rdom/render
  ($ App nil [])
