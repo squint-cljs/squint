@@ -26,6 +26,7 @@
 (aset js/globalThis "rest" cljs.core/rest)
 (aset js/globalThis "concat" cljs.core/concat)
 (aset js/globalThis "LazySeq" cljs.core/LazySeq)
+(aset js/globalThis "IndexedSeq" cljs.core/IndexedSeq)
 (aset js/globalThis "map" cljs.core/map)
 (aset js/globalThis "re_seq" cljs.core/re-seq)
 (aset js/globalThis "str" cljs.core/str)
@@ -35,6 +36,7 @@
 (aset js/globalThis "keyword_QMARK_" cljs.core/keyword?)
 (aset js/globalThis "subs" cljs.core/subs)
 (aset js/globalThis "alength" cljs.core/alength)
+(aset js/globalThis "array" cljs.core/array)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -167,6 +169,10 @@
                          x))
                      (quux 1)))]
     (is (zero? (js/eval s)))))
+
+(deftest defn-varargs-test
+  (let [s (jss! '(do (defn foo [x & args] args) (foo 1 2 3)))]
+    (is (= '(2 3) (js/eval s)))))
 
 (deftest loop-test
   (let [s (jss! '(loop [x 1] (+ 1 2 x)))]
