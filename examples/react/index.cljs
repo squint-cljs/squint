@@ -6,15 +6,18 @@
 
 (defn $
   "Render element (keyword or symbol) with optional props"
-  [elt props & children]
-  (let [[props children]
-        (if (map? props)
-          [(clj->js props) children]
-          [nil (cons props children)])
-        elt (if (keyword? elt)
-              (name elt)
-              elt)]
-    (react/createElement elt props (into-array children))))
+  ([elt] ($ elt nil))
+  ([elt props]
+   ($ elt props nil))
+  ([elt props & children]
+   (let [[props children]
+         (if (map? props)
+           [(clj->js props) children]
+           [nil (cons props children)])
+         elt (if (keyword? elt)
+               (name elt)
+               elt)]
+     (react/createElement elt props (into-array children)))))
 
 (defn App []
   (useEffect (fn [] (confetti)) #js [])
@@ -27,5 +30,5 @@
           "Click me"))))
 
 (rdom/render
- ($ App nil [])
+ ($ App)
  (js/document.getElementById "app"))
