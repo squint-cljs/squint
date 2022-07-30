@@ -32,7 +32,7 @@ f1["cljs$core$IFn$_invoke$arity$variadic"] = function (elt, props, children) {
 let elt16 = (keyword_QMARK_(elt)) ? (name(elt)) : (elt);
 if (truth_(map_QMARK_(props))) {
 return react.createElement(elt16, clj__GT_js(props), into_array(children));} else {
-return react.createElement(elt16, ({  }), props, 1, 2, 3, into_array(children));}
+return react.createElement(elt16, ({  }), props, into_array(children));}
 };
 f1["cljs$lang$applyTo"] = function (seq13) {
 let G__1417 = first(seq13);
