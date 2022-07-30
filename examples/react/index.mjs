@@ -1,4 +1,4 @@
-import { IndexedSeq, first, cons, alength, truth_, keyword_QMARK_, name, map_QMARK_, nth, array, vector, keyword, next, into_array, count, clj__GT_js, arrayMap } from 'cherry-cljs/cljs.core.js'
+import { IndexedSeq, first, alength, truth_, keyword_QMARK_, name, map_QMARK_, nth, array, vector, keyword, next, into_array, count, clj__GT_js, arrayMap } from 'cherry-cljs/cljs.core.js'
 import confetti from 'https://cdn.skypack.dev/canvas-confetti';
 import * as react from 'https://cdn.skypack.dev/react';
 import { useEffect } from 'https://cdn.skypack.dev/react';
@@ -29,18 +29,17 @@ f1["cljs$core$IFn$_invoke$arity$1"] = function (elt) {
 return $(elt, null);
 };
 f1["cljs$core$IFn$_invoke$arity$variadic"] = function (elt, props, children) {
-let vec__1619 = (map_QMARK_(props)) ? (vector(clj__GT_js(props), children)) : (vector(null, cons(props, children)));
-let props20 = nth(vec__1619, 0, null);
-let children21 = nth(vec__1619, 1, null);
-let elt22 = (keyword_QMARK_(elt)) ? (name(elt)) : (elt);
-return react.createElement(elt22, props20, into_array(children21));
+let elt16 = (keyword_QMARK_(elt)) ? (name(elt)) : (elt);
+if (truth_(map_QMARK_(props))) {
+return react.createElement(elt16, clj__GT_js(props), into_array(children));} else {
+return react.createElement(elt16, ({  }), props, 1, 2, 3, into_array(children));}
 };
 f1["cljs$lang$applyTo"] = function (seq13) {
-let G__1423 = first(seq13);
-let seq1324 = next(seq13);
-let G__1525 = first(seq1324);
-let seq1326 = next(seq1324);
-return this_as(self__22079__auto__, self__22079__auto__.cljs$core$IFn$_invoke$arity$variadic(G__1423, G__1525, seq1326));
+let G__1417 = first(seq13);
+let seq1318 = next(seq13);
+let G__1519 = first(seq1318);
+let seq1320 = next(seq1318);
+return this_as(self__22079__auto__, self__22079__auto__.cljs$core$IFn$_invoke$arity$variadic(G__1417, G__1519, seq1320));
 };
 f1["cljs$lang$maxFixedArity"] = 2;
 return f1;
@@ -49,12 +48,12 @@ var App = function () {
 useEffect(function () {
 return confetti();
 }, vector());
-let vec__2730 = react.useState(0);
-let count31 = nth(vec__2730, 0, null);
-let setCount32 = nth(vec__2730, 1, null);
-return $(keyword("div"), $(keyword("p"), "You clicked ", count31, " times!"), $(keyword("button"), arrayMap(keyword("onClick"), function () {
+let vec__2124 = react.useState(0);
+let count25 = nth(vec__2124, 0, null);
+let setCount26 = nth(vec__2124, 1, null);
+return $(keyword("div"), $(keyword("p"), "You clicked ", count25, " times!"), $(keyword("button"), arrayMap(keyword("onClick"), function () {
 confetti();
-return setCount32((count31 + 1));
+return setCount26((count25 + 1));
 }), "Click me"));
 };
 rdom.render($(App), document.getElementById("app"));

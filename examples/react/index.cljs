@@ -8,14 +8,12 @@
   "Render element (keyword or symbol) with optional props"
   ([elt] ($ elt nil))
   ([elt props & children]
-   (let [[props children]
-         (if (map? props)
-           [(clj->js props) children]
-           [nil (cons props children)])
-         elt (if (keyword? elt)
+   (let [elt (if (keyword? elt)
                (name elt)
                elt)]
-     (react/createElement elt props (into-array children)))))
+     (if (map? props)
+       (react/createElement elt (clj->js props) (into-array children))
+       (react/createElement elt #js {} props (into-array children))))))
 
 (defn App []
   (useEffect (fn [] (confetti)) #js [])
