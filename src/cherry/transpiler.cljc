@@ -69,7 +69,7 @@
   (assoc env :context :expr))
 
 (defmethod emit-special 'throw [_ env [_ expr]]
-  (emit-wrap env (str "throw " (emit expr (expr-env env)))))
+  (str "throw " (emit expr (expr-env env))))
 
 (def statement-separator ";\n")
 
@@ -322,7 +322,7 @@
                                       (str (str "case " (emit test eenv) ":\n")
                                            (if expr?
                                              (str gs " = " then)
-                                             (emit-wrap env (emit then eenv)))
+                                             (emit then env))
                                            "\nbreak;\n"))
                                     test)))
                             tests thens))
@@ -330,7 +330,7 @@
                (str "default:\n"
                     (if expr?
                       (str gs " = " (emit default eenv))
-                      (emit default eenv))))
+                      (emit default env))))
              (when expr?
                (str "return " gs ";"))
              "}")
