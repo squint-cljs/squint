@@ -1,6 +1,6 @@
-(ns cherry.transpiler-test
+(ns cherry.compiler-test
   (:require
-   [cherry.transpiler :as cherry]
+   [cherry.compiler :as cherry]
    [clojure.string :as str]
    [clojure.test :as t :refer [deftest is]]))
 
@@ -37,6 +37,9 @@
 (aset js/globalThis "subs" cljs.core/subs)
 (aset js/globalThis "alength" cljs.core/alength)
 (aset js/globalThis "array" cljs.core/array)
+(aset js/globalThis "sequence" cljs.core/sequence)
+(aset js/globalThis "apply" cljs.core/apply)
+(aset js/globalThis "array_map" cljs.core/array-map)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -137,14 +140,17 @@
     (is (= 1 ((js/eval s) 1)))))
 
 (deftest fn-varargs-test
-  (is (= '(3 4) (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2 3 4))))))
+  (is (= '(3 4) (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2 3 4)))))
+  (is (nil? (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2))))))
 
 (deftest fn-multi-arity-test
   (is (= 1 (jsv! '(let [f (fn foo ([x] x) ([x y] y))] (f 1)))))
   (is (= 2 (jsv! '(let [f (fn foo ([x] x) ([x y] y))] (f 1 2))))))
 
 (deftest fn-multi-varargs-test
-  (is (= '(3 4) (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1 2 3 4))))))
+  (is (= 1 (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1)))))
+  (is (= '(3 4) (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1 2 3 4)))))
+  (is (nil? (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1 2))))))
 
 (deftest defn-test
   (let [s (jss! '(do (defn f [x] x) f))]
@@ -281,5 +287,8 @@
 #_(js-delete js/require.cache (js/require.resolve "/tmp/debug.js"))
 #_(js/require "/tmp/debug.js")
 
+(deftest backtick-test
+  (is (= '(assoc {} :foo :bar) (jsv! "`(assoc {} :foo :bar)"))))
+
 (defn init []
-  #_(cljs.test/run-tests 'cherry.transpiler-test))
+  (cljs.test/run-tests 'cherry.compiler-test))

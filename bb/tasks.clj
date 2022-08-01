@@ -17,8 +17,8 @@
 
 (def test-config
   '{:compiler-options {:load-tests true}
-    :modules {:cherry_tests {:init-fn cherry.transpiler-test/init
-                             :depends-on #{:transpiler}}}})
+    :modules {:cherry_tests {:init-fn cherry.compiler-test/init
+                             :depends-on #{:compiler}}}})
 
 (defn shadow-extra-test-config []
   (merge-with

@@ -460,3 +460,12 @@
      but is easier to write, read, and understand."
   ([_ _ x form] `(. ~x ~form))
   ([_ _ x form & more] `(.. (. ~x ~form) ~@more)))
+
+(defn ^:private js-this []
+  (list 'js* "this"))
+
+(defn core-this-as
+  "Defines a scope where JavaScript's implicit \"this\" is bound to the name provided."
+  [_ _ name & body]
+  `(let [~name ~(js-this)]
+     ~@body))
