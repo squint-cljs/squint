@@ -28,10 +28,10 @@
                           nth cljs.core/nth
                           seq cljs.core/seq
                           }}
-    :transpiler {:depends-on #{:cljs_core}
+    :compiler {:depends-on #{:cljs_core}
                  :exports
-                 {transpileFile cherry.transpiler/transpile-file}}
-    :cli {:depends-on #{:transpiler}
+                 {transpileFile cherry.compiler/transpile-file}}
+    :cli {:depends-on #{:compiler}
           :init-fn cherry.internal.cli/init}}
    :build-hooks [(shadow.cljs.build-report/hook
                   {:output-to "report.html"})]}}}

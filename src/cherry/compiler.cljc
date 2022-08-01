@@ -26,14 +26,14 @@
 
 (ns #^{:author "Allen Rohner"
        :doc "A library for generating javascript from Clojure."}
-    cherry.transpiler
+    cherry.compiler
   (:require
    #?(:cljs ["fs" :as fs])
    #?(:cljs [goog.string.format])
    #?(:cljs [goog.string :as gstring])
    #?(:clj [cherry.resource :as resource])
    [cherry.internal.destructure :refer [core-let]]
-   [cherry.internal.fn :refer [core-defn core-fn]]
+   [cherry.internal.fn :refer [core-defn core-fn core-defmacro]]
    [cherry.internal.loop :as loop]
    [cherry.internal.macros :as macros]
    [clojure.string :as str]
@@ -124,7 +124,8 @@
                (emit (list 'cljs.core/symbol
                            (str expr))))
     (let [expr (if-let [sym-ns (namespace expr)]
-                 (or (when (= "cljs.core" (namespace expr))
+                 (or (when (or (= "cljs.core" sym-ns)
+                               (= "clojure.core" sym-ns))
                        (maybe-core-var (symbol (name expr))))
                      (when (= "js" sym-ns)
                        (symbol (name expr)))
@@ -180,7 +181,9 @@
                       'defonce macros/core-defonce
                       'exists? macros/core-exists?
                       'case macros/core-case
-                      '.. macros/core-dotdot})
+                      '.. macros/core-dotdot
+                      'defmacro core-defmacro
+                      'this-as macros/core-this-as})
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
@@ -529,7 +532,8 @@ break;}" body)
                  body)]
       (str (when-not elide-function?
              (str (when *async*
-                    "async ") "function ")) (comma-list sig) " {\n"
+                    "async ") "function "))
+           (comma-list (map munge sig)) " {\n"
            body "\n}"))))
 
 (defn emit-function* [env expr]
@@ -640,8 +644,9 @@ break;}" body)
                                (second expr)
                                (symbol (subs head-str 1))
                                (nnext expr)))
-          (contains? built-in-macros head) (let [macro (built-in-macros head)]
-                                             (emit (apply macro expr {} (rest expr)) env))
+          (contains? built-in-macros head) (let [macro (built-in-macros head)
+                                                 new-expr (apply macro expr {} (rest expr))]
+                                             (emit new-expr env))
           (and (> (count head-str) 1)
                (str/ends-with? head-str "."))
           (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
@@ -695,12 +700,16 @@ break;}" body)
 (defn transpile-form [f]
   (emit f {:context :statement}))
 
+(def cherry-parse-opts
+  (e/normalize-opts
+   {:all true
+    :end-location false
+    :location? seq?
+    :readers {'js #(vary-meta % assoc ::js true)}}))
+
 (defn transpile-string* [s]
   (let [rdr (e/reader s)
-        opts (e/normalize-opts {:all true
-                                :end-location false
-                                :location? seq?
-                                :readers {'js #(vary-meta % assoc ::js true)}})]
+        opts cherry-parse-opts]
     (loop [transpiled ""]
       (let [next-form (e/parse-next rdr opts)]
         (if (= ::e/eof next-form)
@@ -740,12 +749,55 @@ break;}" body)
    (defn spit [f s]
      (fs/writeFileSync f s "utf-8")))
 
+#?(:cljs
+   (defn resolve-file [prefix suffix]
+     (if (str/starts-with? suffix "./")
+       (str/join "/" (concat [(js/process.cwd)]
+                             (butlast (str/split prefix "/"))
+                             [(subs suffix 2)]))
+       suffix)))
+
+#?(:cljs
+   (def dyn-import (js/eval "(x) => { return import(x) }")))
+
+#?(:cljs
+   (defn scan-macros [file]
+     (let [s (slurp file)
+           maybe-ns (e/parse-next (e/reader s) cherry-parse-opts)]
+       (when (and (seq? maybe-ns)
+                  (= 'ns (first maybe-ns)))
+         (let [[_ns _name & clauses] maybe-ns
+               require-macros (some #(when (and (seq? %)
+                                                (= :require-macros (first %)))
+                                       (rest %))
+                                    clauses)]
+           (when require-macros
+             (reduce (fn [prev require-macros]
+                       (.then prev
+                              (fn [_]
+                                (let [[f & {:keys [refer]}] require-macros
+                                      f (resolve-file file f)
+                                      macros (-> (dyn-import f)
+                                                 (.then (fn [macros]
+                                                          (zipmap
+                                                           refer
+                                                           (map #(aget macros (munge %)) refer)))))]
+                                  (.then macros
+                                         (fn [macros]
+                                           (set! built-in-macros
+                                                 ;; hack
+                                                 (merge built-in-macros macros))))))))
+                     (js/Promise.resolve nil)
+                     require-macros)))))))
+
 (defn transpile-file [{:keys [in-file out-file]}]
   (let [out-file (or out-file
-                     (str/replace in-file #".cljs$" ".mjs"))
-        transpiled (transpile-string (slurp in-file))]
-    (spit out-file transpiled)
-    {:out-file out-file}))
+                     (str/replace in-file #".cljs$" ".mjs"))]
+    (-> #?(:cljs (js/Promise.resolve (scan-macros in-file)))
+        (.then #(transpile-string (slurp in-file)))
+        (.then (fn [transpiled]
+                 (spit out-file transpiled)
+                 {:out-file out-file})))))
 
 #_(defn compile! [s]
     (prn :s s)

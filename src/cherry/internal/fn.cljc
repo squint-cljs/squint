@@ -60,7 +60,8 @@
                        (. self# (~(get-delegate) (seq ~restarg))))))))]
        `(do
           (set! (. ~sym ~(get-delegate-prop))
-                (fn (~(vec sig) ~@body)))
+                (fn (~(vec sig)
+                     ~@body)))
           ~@(when solo
               `[(set! (. ~sym ~'-cljs$lang$maxFixedArity)
                       ~(dec (count sig)))])
@@ -144,7 +145,7 @@
                            (. ~rname
                               (~'cljs$core$IFn$_invoke$arity$variadic
                                ~@(dest-args maxfa)
-                               argseq#))))
+                               (seq argseq#)))))
                       (if (:macro meta)
                         `(throw (js/Error.
                                  (str "Invalid arity: " (- (alength ~(core-js-arguments)) 2))))
@@ -304,3 +305,44 @@
         m (conj (if (meta name) (meta name) {}) m)]
     (list 'def (with-meta name m)
           (with-meta (cons `fn fdecl) m))))
+
+(defn core-defmacro
+  "Like defn, but the resulting function name is declared as a
+  macro and will be used as a macro by the compiler when it is
+  called."
+  {:arglists '([name doc-string? attr-map? [params*] body]
+               [name doc-string? attr-map? ([params*] body)+ attr-map?])
+   :macro true}
+  [_&form _&env name & args]
+  (let [prefix (loop [p (list (vary-meta name assoc :macro true)) args args]
+                      (let [f (first args)]
+                        (if (string? f)
+                          (recur (cons f p) (next args))
+                          (if (map? f)
+                            (recur (cons f p) (next args))
+                            p))))
+             fdecl (loop [fd args]
+                     (if (string? (first fd))
+                       (recur (next fd))
+                       (if (map? (first fd))
+                         (recur (next fd))
+                         fd)))
+             fdecl (if (vector? (first fdecl))
+                     (list fdecl)
+                     fdecl)
+             add-implicit-args (fn [fd]
+                                 (let [args (first fd)]
+                                   (cons (vec (cons '&form (cons '&env args))) (next fd))))
+             add-args (fn [acc ds]
+                        (if (nil? ds)
+                          acc
+                          (let [d (first ds)]
+                            (if (map? d)
+                              (conj acc d)
+                              (recur (conj acc (add-implicit-args d)) (next ds))))))
+             fdecl (seq (add-args [] fdecl))
+             decl (loop [p prefix d fdecl]
+                    (if p
+                      (recur (next p) (cons (first p) d))
+                      d))]
+    (cons `defn decl)))
