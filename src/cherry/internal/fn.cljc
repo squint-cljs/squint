@@ -140,12 +140,13 @@
                    ~(if variadic?
                       `(let [~args-arr (array)]
                          ~(core-copy-arguments args-arr)
-                         (let [argseq# (new #_:ana/no-resolve cljs.core/IndexedSeq
-                                            (.slice ~args-arr ~maxfa) 0 nil)]
+                         (let [argseq# (when (< ~maxfa (alength ~args-arr))
+                                         (new #_:ana/no-resolve cljs.core/IndexedSeq
+                                              (.slice ~args-arr ~maxfa) 0 nil))]
                            (. ~rname
                               (~'cljs$core$IFn$_invoke$arity$variadic
                                ~@(dest-args maxfa)
-                               (seq argseq#)))))
+                               argseq#))))
                       (if (:macro meta)
                         `(throw (js/Error.
                                  (str "Invalid arity: " (- (alength ~(core-js-arguments)) 2))))
