@@ -1,6 +1,8 @@
 ## Cherry :cherries:
 
-Experimental CLJS compiler: reducing friction between ClojureScript and JS tooling
+Experimental ClojureScript to ES6 module compiler.
+
+Reducing friction between ClojureScript and JS tooling.
 
 > :warning: This project is an experiment and not recommended to be used in
 > production. It currently has many bugs and will undergo many breaking changes.
