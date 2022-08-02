@@ -5,11 +5,18 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io]))
 
+(defn munge* [s reserved]
+  (let [s (str (munge s))]
+    (if (contains? reserved s)
+      (str s "$")
+      s)))
+
 (defn shadow-extra-config
   []
   (let [core-config (edn/read-string (slurp (io/resource "cherry/cljs.core.edn")))
+        reserved (edn/read-string (slurp (io/resource "cherry/js_reserved.edn")))
         vars (:vars core-config)
-        ks (map #(symbol (munge %)) vars)
+        ks (map #(symbol (munge* % reserved)) vars)
         vs (map #(symbol "cljs.core" (str %)) vars)
         core-map (zipmap ks vs)]
     {:modules

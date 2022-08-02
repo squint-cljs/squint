@@ -40,6 +40,7 @@
 (aset js/globalThis "sequence" cljs.core/sequence)
 (aset js/globalThis "apply" cljs.core/apply)
 (aset js/globalThis "array_map" cljs.core/array-map)
+(aset js/globalThis "boolean$" cljs.core/boolean)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -291,6 +292,9 @@
 
 (deftest backtick-test
   (is (= '(assoc {} :foo :bar) (jsv! "`(assoc {} :foo :bar)"))))
+
+(deftest munged-core-name-test
+  (is (jsv! '(boolean 1))))
 
 (defn init []
   (cljs.test/run-tests 'cherry.compiler-test))
