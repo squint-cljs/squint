@@ -1,8 +1,4 @@
-;;; scriptjure -- a library for generating javascript from Clojure s-exprs
-
-;; by Allen Rohner, http://arohner.blogspot.com
-;;                  http://www.reasonr.com
-;; October 7, 2009
+;; Adapted from Scriptjure. Original copyright notice:
 
 ;; Copyright (c) Allen Rohner, 2009. All rights reserved.  The use
 ;; and distribution terms for this software are covered by the Eclipse
@@ -12,21 +8,7 @@
 ;; agreeing to be bound by the terms of this license.  You must not
 ;; remove this notice, or any other, from this software.
 
-;; This library generates javascript from Clojure s-exprs. To use it,
-;; (js (fn foo [x] (var x (+ 3 5)) (return x)))
-;;  returns a string, "function foo (x) { var x = (3 + 5); return x; }"
-;;
-;; See the README and the tests for more information on what is supported.
-;;
-;; The library is intended to generate javascript glue code in Clojure
-;; webapps. One day it might become useful enough to write entirely
-;; JS libraries in clojure, but it's not there yet.
-;;
-;;
-
-(ns #^{:author "Allen Rohner"
-       :doc "A library for generating javascript from Clojure."}
-    cherry.compiler
+(ns cherry.compiler
   (:require
    #?(:cljs ["fs" :as fs])
    #?(:cljs [goog.string.format])
