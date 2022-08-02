@@ -1,3 +1,13 @@
+;; Adapted from CLJS core.cljc. Original copyright notice:
+
+;;   Copyright (c) Rich Hickey. All rights reserved.  The use and distribution
+;;   terms for this software are covered by the Eclipse Public License
+;;   1.0 (http://opensource.org/licenses/eclipse-1.0.php) which can be found in
+;;   the file epl-v10.html at the root of this distribution.  By using this
+;;   software in any fashion, you are agreeing to be bound by the terms of this
+;;   license.  You must not remove this notice, or any other, from this
+;;   software.
+
 (ns cherry.internal.fn)
 
 #?(:cljs (def Exception js/Error))
@@ -316,34 +326,34 @@
    :macro true}
   [_&form _&env name & args]
   (let [prefix (loop [p (list (vary-meta name assoc :macro true)) args args]
-                      (let [f (first args)]
-                        (if (string? f)
-                          (recur (cons f p) (next args))
-                          (if (map? f)
-                            (recur (cons f p) (next args))
-                            p))))
-             fdecl (loop [fd args]
-                     (if (string? (first fd))
-                       (recur (next fd))
-                       (if (map? (first fd))
-                         (recur (next fd))
-                         fd)))
-             fdecl (if (vector? (first fdecl))
-                     (list fdecl)
-                     fdecl)
-             add-implicit-args (fn [fd]
-                                 (let [args (first fd)]
-                                   (cons (vec (cons '&form (cons '&env args))) (next fd))))
-             add-args (fn [acc ds]
-                        (if (nil? ds)
-                          acc
-                          (let [d (first ds)]
-                            (if (map? d)
-                              (conj acc d)
-                              (recur (conj acc (add-implicit-args d)) (next ds))))))
-             fdecl (seq (add-args [] fdecl))
-             decl (loop [p prefix d fdecl]
-                    (if p
-                      (recur (next p) (cons (first p) d))
-                      d))]
+                 (let [f (first args)]
+                   (if (string? f)
+                     (recur (cons f p) (next args))
+                     (if (map? f)
+                       (recur (cons f p) (next args))
+                       p))))
+        fdecl (loop [fd args]
+                (if (string? (first fd))
+                  (recur (next fd))
+                  (if (map? (first fd))
+                    (recur (next fd))
+                    fd)))
+        fdecl (if (vector? (first fdecl))
+                (list fdecl)
+                fdecl)
+        add-implicit-args (fn [fd]
+                            (let [args (first fd)]
+                              (cons (vec (cons '&form (cons '&env args))) (next fd))))
+        add-args (fn [acc ds]
+                   (if (nil? ds)
+                     acc
+                     (let [d (first ds)]
+                       (if (map? d)
+                         (conj acc d)
+                         (recur (conj acc (add-implicit-args d)) (next ds))))))
+        fdecl (seq (add-args [] fdecl))
+        decl (loop [p prefix d fdecl]
+               (if p
+                 (recur (next p) (cons (first p) d))
+                 d))]
     (cons `defn decl)))
