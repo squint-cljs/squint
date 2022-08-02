@@ -20,10 +20,6 @@
    [cherry.internal.macros :as macros]
    [clojure.string :as str]
    [com.reasonr.string :as rstr]
-   #_[cherry.vendor.cljs.analyzer :as ana]
-   #_[cherry.vendor.cljs.compiler :as compiler]
-   #_[cljs.analyzer.api :as ana-api]
-   #_[cljs.env]
    [edamame.core :as e])
   #?(:cljs (:require-macros [cherry.resource :as resource])))
 
@@ -382,7 +378,9 @@
 
 (defn emit-method [env obj method args]
   (let [eenv (expr-env env)]
-    (emit-wrap env (str (emit obj eenv) "." (emit method eenv) (comma-list (emit-args env args))))))
+    (emit-wrap env (str (emit obj eenv) "."
+                        (str method)
+                        (comma-list (emit-args env args))))))
 
 (defn emit-aget [env var idxs]
   (emit-wrap env (apply str
