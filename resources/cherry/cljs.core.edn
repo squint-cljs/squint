@@ -1,5 +1,6 @@
 ;; (sort (keys (ns-publics 'cljs.core)))
-{:vars #{=
+{:vars #{+ - < > <= =>
+         =
          ->LazySeq
          LazySeq
          ->IndexedSeq
