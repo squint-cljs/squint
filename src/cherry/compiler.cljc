@@ -19,6 +19,7 @@
    [cherry.internal.loop :as loop]
    [cherry.internal.macros :as macros]
    [cherry.internal.protocols :as protocols]
+   [cherry.internal.deftype :as deftype]
    [clojure.string :as str]
    [com.reasonr.string :as rstr]
    [edamame.core :as e])
@@ -132,7 +133,7 @@
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break 'throw
                          'js/await 'const 'defn 'let 'let* 'ns 'def 'loop*
-                         'recur 'js* 'case*]))
+                         'recur 'js* 'case* 'deftype*]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -167,7 +168,7 @@
                       'unchecked-set macros/core-unchecked-set
                       'defprotocol protocols/core-defprotocol
                       'extend-type protocols/core-extend-type
-                      })
+                      'deftype deftype/core-deftype})
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
@@ -270,6 +271,42 @@
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
+
+(defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
+  (let [fields (map munge fields)]
+    (str "var " (munge t) " = " (format "function %s {
+%s
+%s
+%s
+}"
+                                 (comma-list fields)
+                                 (str/join "\n"
+                                           (map (fn [fld]
+                                                  (str "this." fld " = " fld ";"))
+                                                fields))
+                                 (str/join "\n"
+                                           (map (fn [[pno pmask]]
+                                                  (str "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
+                                                pmasks))
+                                 (emit body env)))))
+
+
+#_(defmethod emit* :deftype
+  [{:keys [t fields pmasks body protocols]}]
+  (let [fields (map munge fields)]
+    (emitln "")
+    (emitln "/**")
+    (emitln "* @constructor")
+    (doseq [protocol protocols]
+      (emitln " * @implements {" (munge (str protocol)) "}"))
+    (emitln "*/")
+    (emitln (munge t) " = (function (" (comma-sep fields) "){")
+    (doseq [fld fields]
+      (emitln "this." fld " = " fld ";"))
+    (doseq [[pno pmask] pmasks]
+      (emitln "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
+    (emitln "});")
+    (emit body)))
 
 (defmethod emit-special 'loop* [_ env [_ bindings & body]]
   (emit-let env bindings body true))

@@ -56,6 +56,7 @@
 (aset js/globalThis "not" cljs.core/not)
 (aset js/globalThis "nil_QMARK_" cljs.core/nil?)
 (aset js/globalThis "goog_typeOf" goog/typeOf)
+(aset js/globalThis "PROTOCOL_SENTINEL" PROTOCOL_SENTINEL)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -313,6 +314,16 @@
 
 (deftest defprotocol-extend-type-string-test
   (is (= :foo (jsv! '(do (defprotocol IFoo (foo [_])) (extend-type string IFoo (foo [_] :foo)) (foo "bar"))))))
+
+(deftest deftype-test
+  (is (= 1 (jsv! '(do (deftype Foo [x]) (.-x (->Foo 1))))))
+  (is (= [:foo :bar]
+         (jsv! '(do
+                  (defprotocol IFoo (foo [_]) (bar [_]))
+                  (deftype Foo [x] IFoo (foo [_] :foo)
+                           (bar [_] :bar))
+                  (let [x (->Foo 1)]
+                    [(foo x) (bar x)]))))))
 
 (defn init []
   (cljs.test/run-tests 'cherry.compiler-test))
