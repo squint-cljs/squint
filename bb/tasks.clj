@@ -18,7 +18,8 @@
         vars (:vars core-config)
         ks (map #(symbol (munge* % reserved)) vars)
         vs (map #(symbol "cljs.core" (str %)) vars)
-        core-map (zipmap ks vs)]
+        core-map (zipmap ks vs)
+        core-map (assoc core-map 'goog_typeOf 'goog/typeOf)]
     {:modules
      {:cljs_core {:exports core-map}}}))
 

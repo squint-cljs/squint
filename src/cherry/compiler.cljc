@@ -18,6 +18,7 @@
    [cherry.internal.fn :refer [core-defn core-fn core-defmacro]]
    [cherry.internal.loop :as loop]
    [cherry.internal.macros :as macros]
+   [cherry.internal.protocols :as protocols]
    [clojure.string :as str]
    [com.reasonr.string :as rstr]
    [edamame.core :as e])
@@ -161,11 +162,16 @@
                       'case macros/core-case
                       '.. macros/core-dotdot
                       'defmacro core-defmacro
-                      'this-as macros/core-this-as})
+                      'this-as macros/core-this-as
+                      'unchecked-get macros/core-unchecked-get
+                      'unchecked-set macros/core-unchecked-set
+                      'defprotocol protocols/core-defprotocol
+                      'extend-type protocols/core-extend-type
+                      })
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
-(def core-vars (:vars core-config))
+(def core-vars (conj (:vars core-config) 'goog_typeOf))
 
 (def prefix-unary-operators (set ['!]))
 
