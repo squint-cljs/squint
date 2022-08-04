@@ -4,6 +4,18 @@
    [clojure.string :as str]
    [clojure.test :as t :refer [deftest is]]))
 
+(def old-fail (get-method t/report [:cljs.test/default :fail]))
+
+(defmethod t/report [:cljs.test/default :fail] [m]
+  (set! js/process.exitCode 1)
+  (old-fail m))
+
+(def old-error (get-method t/report [:cljs.test/default :fail]))
+
+(defmethod t/report [:cljs.test/default :error] [m]
+  (set! js/process.exitCode 1)
+  (old-error m))
+
 (aset js/globalThis "__destructure_map" cljs.core/--destructure-map)
 (aset js/globalThis "vector" cljs.core/vector)
 (aset js/globalThis "arrayMap" cljs.core/array-map)
@@ -41,6 +53,9 @@
 (aset js/globalThis "apply" cljs.core/apply)
 (aset js/globalThis "array_map" cljs.core/array-map)
 (aset js/globalThis "boolean$" cljs.core/boolean)
+(aset js/globalThis "not" cljs.core/not)
+(aset js/globalThis "nil_QMARK_" cljs.core/nil?)
+(aset js/globalThis "goog_typeOf" goog/typeOf)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -295,6 +310,9 @@
 
 (deftest munged-core-name-test
   (is (jsv! '(boolean 1))))
+
+(deftest defprotocol-extend-type-string-test
+  (is (= :foo (jsv! '(do (defprotocol IFoo (foo [_])) (extend-type string IFoo (foo [_] :foo)) (foo "bar"))))))
 
 (defn init []
   (cljs.test/run-tests 'cherry.compiler-test))
