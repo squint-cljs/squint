@@ -5,6 +5,7 @@
          LazySeq
          ->IndexedSeq
          IndexedSeq
+         PROTOCOL_SENTINEL
 
          aclone
          ;; add-tap
