@@ -323,7 +323,16 @@
                   (deftype Foo [x] IFoo (foo [_] :foo)
                            (bar [_] :bar))
                   (let [x (->Foo 1)]
-                    [(foo x) (bar x)]))))))
+                    [(foo x) (bar x)])))))
+  (is (= [:foo 2]
+         (jsv! '(do (defprotocol IFoo (foo [_]) (bar [_]))
+                    (deftype Foo [^:mutable x]
+                      IFoo
+                      (foo [_] [:foo x])
+                      (bar [_] :bar))
+                    (def x  (->Foo 1))
+                    (set! (.-x x) 2)
+                    (foo x))))))
 
 (defn init []
   (cljs.test/run-tests 'cherry.compiler-test))

@@ -279,34 +279,46 @@
 %s
 %s
 }"
-                                 (comma-list fields)
-                                 (str/join "\n"
-                                           (map (fn [fld]
-                                                  (str "this." fld " = " fld ";"))
-                                                fields))
-                                 (str/join "\n"
-                                           (map (fn [[pno pmask]]
-                                                  (str "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
-                                                pmasks))
-                                 (emit body env)))))
+                                        (comma-list fields)
+                                        (str/join "\n"
+                                                  (map (fn [fld]
+                                                         (str "this." fld " = " fld ";"))
+                                                       fields))
+                                        (str/join "\n"
+                                                  (map (fn [[pno pmask]]
+                                                         (str "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
+                                                       pmasks))
+                                        (emit body
+                                              (->
+                                               env
+                                               (update
+                                                :var->ident
+                                                (fn [vi]
+                                                  (merge
+                                                   vi
+                                                   (zipmap fields
+                                                           (map (fn [fld]
+                                                                  (symbol (str "self__." fld)))
+                                                                fields)))))
+                                               (assoc :type true)))))))
 
 
 #_(defmethod emit* :deftype
-  [{:keys [t fields pmasks body protocols]}]
-  (let [fields (map munge fields)]
-    (emitln "")
-    (emitln "/**")
-    (emitln "* @constructor")
-    (doseq [protocol protocols]
-      (emitln " * @implements {" (munge (str protocol)) "}"))
-    (emitln "*/")
-    (emitln (munge t) " = (function (" (comma-sep fields) "){")
-    (doseq [fld fields]
-      (emitln "this." fld " = " fld ";"))
-    (doseq [[pno pmask] pmasks]
-      (emitln "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
-    (emitln "});")
-    (emit body)))
+    [{:keys [t fields pmasks body protocols]}]
+    (let [fields (map munge fields)]
+      (emitln "")
+      (emitln "/**")
+      (emitln "* @constructor")
+      (doseq [protocol protocols]
+        (emitln " * @implements {" (munge (str protocol)) "}"))
+      (emitln "*/")
+      (emitln (munge t) " = (function (" (comma-sep fields) "){")
+      (doseq [fld fields]
+        (emitln "this." fld " = " fld ";"))
+      (doseq [[pno pmask] pmasks]
+        (emitln "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
+      (emitln "});")
+      (emit body)))
 
 (defmethod emit-special 'loop* [_ env [_ bindings & body]]
   (emit-let env bindings body true))
@@ -557,6 +569,8 @@ break;}" body)
              (str (when *async*
                     "async ") "function "))
            (comma-list (map munge sig)) " {\n"
+           (when (:type env)
+             (str "var self__ = this;"))
            body "\n}"))))
 
 (defn emit-function* [env expr]
