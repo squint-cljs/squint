@@ -57,6 +57,8 @@
 (aset js/globalThis "nil_QMARK_" cljs.core/nil?)
 (aset js/globalThis "goog_typeOf" goog/typeOf)
 (aset js/globalThis "PROTOCOL_SENTINEL" PROTOCOL_SENTINEL)
+(aset js/globalThis "into" into)
+(aset js/globalThis "hash_set" hash-set)
 
 (defn jss! [expr]
   (if (string? expr)
@@ -333,6 +335,9 @@
                     (def x  (->Foo 1))
                     (set! (.-x x) 2)
                     (foo x))))))
+
+(deftest set-test
+  (is (= #{1 2 3 4 5 6} (jsv! '(into #{1 2 3} #{4 5 6})))))
 
 (defn init []
   (cljs.test/run-tests 'cherry.compiler-test))

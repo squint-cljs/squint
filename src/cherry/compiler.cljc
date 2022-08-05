@@ -132,7 +132,7 @@
                          'return 'delete 'new 'do 'aget 'while
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break 'throw
-                         'js/await 'const 'defn 'let 'let* 'ns 'def 'loop*
+                         'js/await 'const 'let 'let* 'ns 'def 'loop*
                          'recur 'js* 'case* 'deftype*]))
 
 (def built-in-macros {'-> macros/core->
@@ -168,7 +168,9 @@
                       'unchecked-set macros/core-unchecked-set
                       'defprotocol protocols/core-defprotocol
                       'extend-type protocols/core-extend-type
-                      'deftype deftype/core-deftype})
+                      'deftype deftype/core-deftype
+                      'defn core-defn
+                      'defn- core-defn})
 
 (def core-config (resource/edn-resource "cherry/cljs.core.edn"))
 
@@ -599,11 +601,6 @@ break;}" body)
   (let [expanded (apply core-fn expr {} sigs)]
     (emit expanded env)))
 
-(defmethod emit-special 'defn [_type env [fn name & args :as expr]]
-  (let [;;async (:async (meta name))
-        [_def _name _fn-expr :as expanded] (core-defn expr {} name args)]
-    (emit expanded env)))
-
 (defmethod emit-special 'try [_type env [_try & body :as expression]]
   (let [try-body (remove #(contains? #{'catch 'finally} (and (seq? %)
                                                              (first %)))
@@ -734,6 +731,14 @@ break;}" body)
            (format "({ %s })" keys))
          (emit-wrap env))))
 
+(defmethod emit #?(:clj clojure.lang.PersistentHashSet
+                   :cljs PersistentHashSet)
+  [expr env]
+  (swap! *imported-core-vars* conj 'hash_set)
+  (emit-wrap env
+             (format "%s%s" "hash_set"
+                     (comma-list (emit-args env expr)))))
+
 (defn transpile-form [f]
   (emit f {:context :statement}))
 
@@ -742,7 +747,9 @@ break;}" body)
    {:all true
     :end-location false
     :location? seq?
-    :readers {'js #(vary-meta % assoc ::js true)}}))
+    :readers {'js #(vary-meta % assoc ::js true)}
+    :read-cond :allow
+    :features #{:cljc}}))
 
 (defn transpile-string* [s]
   (let [rdr (e/reader s)
@@ -829,7 +836,7 @@ break;}" body)
 
 (defn transpile-file [{:keys [in-file out-file]}]
   (let [out-file (or out-file
-                     (str/replace in-file #".cljs$" ".mjs"))]
+                     (str/replace in-file #".clj(s|c)$" ".mjs"))]
     (-> #?(:cljs (js/Promise.resolve (scan-macros in-file)))
         (.then #(transpile-string (slurp in-file)))
         (.then (fn [transpiled]
