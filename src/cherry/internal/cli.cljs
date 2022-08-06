@@ -30,8 +30,7 @@ help                      Print this help"))
 
 (defn fallback [{:keys [rest-cmds opts]}]
   (if-let [e (:e opts)]
-    (let [{:keys [header body footer]} (t/compile-string e)
-          res (str header body footer)
+    (let [res (t/compile-string e)
           dir (fs/mkdtempSync ".tmp")
           f (str dir "/cherry.mjs")]
       (fs/writeFileSync f res "utf-8")

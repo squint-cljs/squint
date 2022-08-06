@@ -767,8 +767,8 @@ break;}" body)
                 next-js (some-> next-t not-empty (statement))]
             (recur (str transpiled next-js))))))))
 
-(defn compile-string
-  ([s] (compile-string s nil))
+(defn compile-string*
+  ([s] (compile-string* s nil))
   ([s {:keys [elide-exports
               elide-imports]}]
    (let [core-vars (atom #{})
@@ -787,9 +787,17 @@ break;}" body)
                                         (str/join ", " vars))
                                 (when (contains? @public-vars "default$")
                                   "export default default$\n")))))]
-         {:header imports
-          :footer exports
+         {:imports imports
+          :exports exports
           :body transpiled})))))
+
+(defn compile-string
+  ([s] (compile-string s nil))
+  ([s opts]
+
+   (let [{:keys [imports exports body]}
+         (compile-string* s opts)]
+     (str imports body exports))))
 
 #?(:cljs
    (defn slurp [f]
@@ -845,7 +853,7 @@ break;}" body)
      (let [out-file (or out-file
                         (str/replace in-file #".clj(s|c)$" ".mjs"))]
        (-> #?(:cljs (js/Promise.resolve (scan-macros in-file)))
-           (.then #(compile-string (slurp in-file)))
+           (.then #(compile-string* (slurp in-file)))
            (.then (fn [{:keys [header footer body]}]
                     (spit out-file (str header body footer))
                     {:out-file out-file}))))))
