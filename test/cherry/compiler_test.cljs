@@ -62,7 +62,7 @@
 
 (defn jss! [expr]
   (if (string? expr)
-    (:body (cherry/compile-string expr))
+    (:body (cherry/compile-string* expr))
     (cherry/transpile-form expr)))
 
 (defn js! [expr]
