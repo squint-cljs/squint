@@ -62,8 +62,7 @@
 
 (defn jss! [expr]
   (if (string? expr)
-    (cherry/transpile-string expr {:elide-imports true
-                                   :elide-exports true})
+    (:body (cherry/compile-string expr))
     (cherry/transpile-form expr)))
 
 (defn js! [expr]
