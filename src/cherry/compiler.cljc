@@ -767,8 +767,8 @@ break;}" body)
                 next-js (some-> next-t not-empty (statement))]
             (recur (str transpiled next-js))))))))
 
-(defn transpile-string
-  ([s] (transpile-string s nil))
+(defn compile-string
+  ([s] (compile-string s nil))
   ([s {:keys [elide-exports
               elide-imports]}]
    (let [core-vars (atom #{})
@@ -776,19 +776,20 @@ break;}" body)
      (binding [*imported-core-vars* core-vars
                *public-vars* public-vars]
        (let [transpiled (transpile-string* s)
-             transpiled (if-let [core-vars (and (not elide-imports)
+             imports (when-let [core-vars (and (not elide-imports)
                                                 (seq @core-vars))]
                           (str (format "import { %s } from 'cherry-cljs/cljs.core.js'\n"
-                                       (str/join ", " core-vars))
-                               transpiled)
-                          transpiled)
-             transpiled (str transpiled
-                             (when-not elide-exports
-                               (str (format "\nexport { %s }\n"
-                                            (str/join ", " (disj @public-vars "default$")))
-                                    (when (contains? @public-vars "default$")
-                                      "export default default$\n"))))]
-         transpiled)))))
+                                       (str/join ", " core-vars))))
+             exports (when-not elide-exports
+                       (when-let [vars (disj @public-vars "default$")]
+                         (when (seq vars)
+                           (str (format "\nexport { %s }\n"
+                                        (str/join ", " vars))
+                                (when (contains? @public-vars "default$")
+                                  "export default default$\n")))))]
+         {:header imports
+          :footer exports
+          :body transpiled})))))
 
 #?(:cljs
    (defn slurp [f]
@@ -839,14 +840,15 @@ break;}" body)
                      (js/Promise.resolve nil)
                      require-macros)))))))
 
-(defn transpile-file [{:keys [in-file out-file]}]
-  (let [out-file (or out-file
-                     (str/replace in-file #".clj(s|c)$" ".mjs"))]
-    (-> #?(:cljs (js/Promise.resolve (scan-macros in-file)))
-        (.then #(transpile-string (slurp in-file)))
-        (.then (fn [transpiled]
-                 (spit out-file transpiled)
-                 {:out-file out-file})))))
+#?(:cljs
+   (defn transpile-file [{:keys [in-file out-file]}]
+     (let [out-file (or out-file
+                        (str/replace in-file #".clj(s|c)$" ".mjs"))]
+       (-> #?(:cljs (js/Promise.resolve (scan-macros in-file)))
+           (.then #(compile-string (slurp in-file)))
+           (.then (fn [{:keys [header footer body]}]
+                    (spit out-file (str header body footer))
+                    {:out-file out-file}))))))
 
 #_(defn compile! [s]
     (prn :s s)

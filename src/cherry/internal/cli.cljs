@@ -30,7 +30,8 @@ help                      Print this help"))
 
 (defn fallback [{:keys [rest-cmds opts]}]
   (if-let [e (:e opts)]
-    (let [res (t/transpile-string e)
+    (let [{:keys [header body footer]} (t/compile-string e)
+          res (str header body footer)
           dir (fs/mkdtempSync ".tmp")
           f (str dir "/cherry.mjs")]
       (fs/writeFileSync f res "utf-8")
@@ -59,7 +60,7 @@ help                      Print this help"))
 (def table
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
    {:cmds ["compile"]    :fn (fn [{:keys [rest-cmds]}]
-                             (compile-files rest-cmds))}
+                               (compile-files rest-cmds))}
    {:cmds []             :fn fallback}])
 
 (defn init []
