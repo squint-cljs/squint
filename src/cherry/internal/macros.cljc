@@ -374,7 +374,7 @@
 (defn- assoc-test [m test expr env]
   (if (contains? m test)
     (throw
-     #?(:clj (clojure.IllegalArgumentException.
+     #?(:clj (IllegalArgumentException.
               (str "Duplicate case test constant '"
                    test "'"
                    (when (:line env)

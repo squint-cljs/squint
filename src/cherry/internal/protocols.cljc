@@ -10,7 +10,7 @@
 (defn core-unchecked-get [obj key]
   (list 'js* "(~{}[~{}])" obj key))
 
-(core/defmacro core-defprotocol
+(core/defn core-defprotocol
   "A protocol is a named set of named methods and their signatures:
   (defprotocol AProtocolName
     ;optional doc string
@@ -43,7 +43,7 @@
         (bar-me [this] x)
         (bar-me [this y] x))))
   => 17"
-  [psym & doc+methods]
+  [&env _ psym & doc+methods]
   (core/let [p psym #_(:name (cljs.analyzer/resolve-var (dissoc &env :locals) psym))
              [opts methods]
              (core/loop [opts {:protocol-symbol true}
@@ -271,7 +271,7 @@
 
 (core/defn- adapt-obj-params [type [[this & args :as sig] & body]]
   (core/list (vec args)
-             (list* 'this-as (vary-meta this assoc :tag type) body)))
+             (list* 'cljs.core/this-as (vary-meta this assoc :tag type) body)))
 
 (core/defn- add-obj-methods [type type-sym sigs]
   (map (core/fn [[f & meths :as form]]
@@ -284,20 +284,20 @@
 
 (core/defn- adapt-ifn-invoke-params [type [[this & args :as sig] & body]]
   `(~(vec args)
-     (this-as ~(vary-meta this assoc :tag type)
+     (cljs.core/this-as ~(vary-meta this assoc :tag type)
        ~@body)))
 
 (core/defn- adapt-ifn-params [type [[this & args :as sig] & body]]
   (core/let [self-sym (with-meta 'self__ {:tag type})]
     `(~(vec (cons self-sym args))
-      (this-as ~self-sym
+      (cljs.core/this-as ~self-sym
         (let [~this ~self-sym]
           ~@body)))))
 
 (core/defn- adapt-proto-params [type [[this & args :as sig] & body]]
   (core/let [this' (vary-meta this assoc :tag type)]
     `(~(vec (cons this' args))
-      (this-as ~this'
+      (cljs.core/this-as ~this'
         ~@body))))
 
 (core/defn- ifn-invoke-methods [type type-sym [f & meths :as form]]
@@ -359,7 +359,7 @@
             (add-proto-methods* pprefix type type-sym sig)))
         sigs)))))
 
-(core/defmacro core-extend-type
+(core/defn core-extend-type
   "Extend a type to a series of protocols. Useful when you are
   supplying the definitions explicitly inline. Propagates the
   type as a type hint on the first argument of all fns.
@@ -381,7 +381,7 @@
     Foo
     (bar [x y] ...)
     (baz ([x] ...) ([x y] ...) ...)"
-  [type-sym & impls]
+  [&env _&form type-sym & impls]
   (core/let [env &env
              ;; _ (validate-impls env impls)
              resolve identity #_(partial resolve-var env)

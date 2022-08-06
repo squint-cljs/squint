@@ -32,23 +32,23 @@
   (core/let [resolve  identity #_(partial resolve-var env)
              impl-map (p/->impl-map impls)
              fpp-pbs  (seq
-                        (keep fast-path-protocols
-                          (map resolve
-                            (keys impl-map))))]
+                       (keep fast-path-protocols
+                             (map resolve
+                                  (keys impl-map))))]
     (if fpp-pbs
       (core/let [fpps  (into #{}
-                         (filter (partial contains? fast-path-protocols)
-                           (map resolve (keys impl-map))))
+                             (filter (partial contains? fast-path-protocols)
+                                     (map resolve (keys impl-map))))
                  parts (core/as-> (group-by first fpp-pbs) parts
                          (into {}
-                           (map (juxt key (comp (partial map peek) val))
-                             parts))
+                               (map (juxt key (comp (partial map peek) val))
+                                    parts))
                          (into {}
-                           (map (juxt key (comp (partial reduce core/bit-or) val))
-                             parts)))]
+                               (map (juxt key (comp (partial reduce core/bit-or) val))
+                                    parts)))]
         [fpps (reduce (core/fn [ps p] (update-in ps [p] (core/fnil identity 0)))
-                parts
-                (range fast-path-protocol-partitions-count))]))))
+                      parts
+                      (range fast-path-protocol-partitions-count))]))))
 
 (core/defn- collect-protocols [impls env]
   (core/->> impls
@@ -89,7 +89,7 @@
        [~@fields]
        (new ~rname ~@field-values))))
 
-(core/defmacro core-deftype
+(core/defn core-deftype
   "(deftype name [fields*]  options* specs*)
   Currently there are no options.
   Each spec consists of a protocol or interface name followed by zero
@@ -127,15 +127,15 @@
   should not be used when defining your own types.
   Given (deftype TypeName ...), a factory function called ->TypeName
   will be defined, taking positional parameters for the fields"
-  [t fields & impls]
+  [&env _&form t fields & impls]
   #_(validate-fields "deftype" t fields)
   (core/let [env &env
              r t #_(:name (cljs.analyzer/resolve-var (dissoc env :locals) t))
              [fpps pmasks] (prepare-protocol-masks env impls)
              protocols (collect-protocols impls env)
              t (vary-meta t assoc
-                 :protocols protocols
-                 :skip-protocol-flag fpps) ]
+                          :protocols protocols
+                          :skip-protocol-flag fpps) ]
     `(do
        (deftype* ~t ~fields ~pmasks
          ~(if (seq impls)
