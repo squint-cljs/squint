@@ -322,8 +322,7 @@
   macro and will be used as a macro by the compiler when it is
   called."
   {:arglists '([name doc-string? attr-map? [params*] body]
-               [name doc-string? attr-map? ([params*] body)+ attr-map?])
-   :macro true}
+               [name doc-string? attr-map? ([params*] body)+ attr-map?])}
   [_&form _&env name & args]
   (let [prefix (loop [p (list (vary-meta name assoc :macro true)) args args]
                  (let [f (first args)]
