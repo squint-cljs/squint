@@ -1,1 +1,1 @@
-export { compileString } from 'lib/compiler.js'
+export { compileString } from './lib/compiler.js'

@@ -10,7 +10,6 @@
 
 (ns cherry.compiler
   (:require
-   #?(:cljs ["fs" :as fs])
    #?(:cljs [goog.string.format])
    #?(:cljs [goog.string :as gstring])
    #?(:clj [cherry.resource :as resource])
