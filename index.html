@@ -16,14 +16,14 @@
     </script>
     <script type="module">
       import { compileString } from 'cherry-cljs'
-
+      var counter = 0;
       window.compile = () => {
+        counter = counter + 1;
         let code = document.querySelector('#cljsCode').value;
         let js = compileString(code);
         document.querySelector('#compiledCode').innerText = js;
         const encodedJs = encodeURIComponent(js);
-        const dataUri = 'data:text/javascript;charset=utf-8,'
-              + encodedJs;
+        const dataUri = 'data:text/javascript;charset=utf-8;eval=' + counter + ',' + encodedJs;
         import(dataUri);
       }
       console.log('done')
