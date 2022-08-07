@@ -397,7 +397,7 @@
   (format "(%s)" (str "await " s)))
 
 (defmethod emit-special 'js/await [_ env [_await more]]
-  (wrap-await (emit more env)))
+  (emit-wrap env (wrap-await (emit more (expr-env env)))))
 
 (defn wrap-iife [s]
   (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
@@ -586,22 +586,23 @@ break;}" body)
                ;; TODO: multi-arity:
                (first expr)
                expr)]
-    (if name
-      (let [signature (first expr)
-            body (rest expr)]
-        (str (when *async*
-               "async ") "function " name " "
-             (emit-function env name signature body true)))
-      (let [signature (first expr)
-            body (rest expr)]
-        (str (emit-function env nil signature body))))))
+    (->> (if name
+          (let [signature (first expr)
+                body (rest expr)]
+            (str (when *async*
+                   "async ") "function " name " "
+                 (emit-function env name signature body true)))
+          (let [signature (first expr)
+                body (rest expr)]
+            (str (emit-function env nil signature body))))
+         (emit-wrap env))))
 
 (defmethod emit-special 'fn* [_type env [_fn & sigs :as expr]]
   (let [async? (:async (meta expr))]
     (binding [*async* async?]
       (emit-function* env sigs))))
 
-(defmethod emit-special 'fn [_type env [fn & sigs :as expr]]
+(defmethod emit-special 'fn [_type env [_fn & sigs :as expr]]
   (let [expanded (apply core-fn expr {} sigs)]
     (emit expanded env)))
 
@@ -853,9 +854,9 @@ break;}" body)
      (let [out-file (or out-file
                         (str/replace in-file #".clj(s|c)$" ".mjs"))]
        (-> #?(:cljs (js/Promise.resolve (scan-macros in-file)))
-           (.then #(compile-string* (slurp in-file)))
-           (.then (fn [{:keys [header footer body]}]
-                    (spit out-file (str header body footer))
+           (.then #(compile-string (slurp in-file)))
+           (.then (fn [res]
+                    (spit out-file res)
                     {:out-file out-file}))))))
 
 #_(defn compile! [s]
