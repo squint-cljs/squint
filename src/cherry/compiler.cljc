@@ -428,13 +428,21 @@
           clauses
           ))
 
-(defmethod emit-special 'funcall [_type env [fname & args :as expr]]
-  (emit-wrap env
-             (str
-              (emit fname (expr-env env))
-              (comma-list (emit-args env args)))))
+(defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
+  (let [interop? (and (symbol? fname)
+                      (= "js" (namespace fname)))]
+    (emit-wrap env
+               (str
+                (emit fname (expr-env env))
+                ;; this is needed when calling keywords, symbols, etc. We could
+                ;; optimize this later by inferring that we're not directly
+                ;; calling a `function`.
+                (when-not interop? ".call")
+                (comma-list (emit-args env
+                                       (if interop? args
+                                           (cons nil args))))))))
 
-(defmethod emit-special 'str [_type env [str & args]]
+(defmethod emit-special 'str [_type env [_str & args]]
   (apply clojure.core/str (interpose " + " (emit-args env args))))
 
 (defn emit-method [env obj method args]
@@ -587,14 +595,14 @@ break;}" body)
                (first expr)
                expr)]
     (->> (if name
-          (let [signature (first expr)
-                body (rest expr)]
-            (str (when *async*
-                   "async ") "function " name " "
-                 (emit-function env name signature body true)))
-          (let [signature (first expr)
-                body (rest expr)]
-            (str (emit-function env nil signature body))))
+           (let [signature (first expr)
+                 body (rest expr)]
+             (str (when *async*
+                    "async ") "function " name " "
+                  (emit-function env name signature body true)))
+           (let [signature (first expr)
+                 body (rest expr)]
+             (str (emit-function env nil signature body))))
          (emit-wrap env))))
 
 (defmethod emit-special 'fn* [_type env [_fn & sigs :as expr]]
@@ -666,39 +674,40 @@ break;}" body)
       (swap! *imported-core-vars* conj 'list)
       (format "list(%s)"
               (str/join ", " (emit-args env expr))))
-    (if (symbol? (first expr))
-      (let [head* (first expr)
-            head (strip-core-symbol head*)
-            expr (if (not= head head*)
-                   (with-meta (cons head (rest expr))
-                     (meta expr))
-                   expr)
-            head-str (str head)]
-        (cond
-          (and (= (.charAt head-str 0) \.)
-               (> (count head-str) 1)
-               (not (= ".." head-str)))
-          (emit-special '. env
-                        (list* '.
-                               (second expr)
-                               (symbol (subs head-str 1))
-                               (nnext expr)))
-          (contains? built-in-macros head)
-          (let [macro (built-in-macros head)
-                new-expr (apply macro expr {} (rest expr))]
-            (emit new-expr env))
-          (and (> (count head-str) 1)
-               (str/ends-with? head-str "."))
-          (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
-                env)
-          (special-form? head) (emit-special head env expr)
-          (infix-operator? head) (emit-infix head env expr)
-          (prefix-unary? head) (emit-prefix-unary head expr)
-          (suffix-unary? head) (emit-suffix-unary head expr)
-          :else (emit-special 'funcall env expr)))
-      (if (list? expr)
-        (emit-special 'funcall env expr)
-        (throw (new Exception (str "invalid form: " expr)))))))
+    (cond (symbol? (first expr))
+          (let [head* (first expr)
+                head (strip-core-symbol head*)
+                expr (if (not= head head*)
+                       (with-meta (cons head (rest expr))
+                         (meta expr))
+                       expr)
+                head-str (str head)]
+            (cond
+              (and (= (.charAt head-str 0) \.)
+                   (> (count head-str) 1)
+                   (not (= ".." head-str)))
+              (emit-special '. env
+                            (list* '.
+                                   (second expr)
+                                   (symbol (subs head-str 1))
+                                   (nnext expr)))
+              (contains? built-in-macros head)
+              (let [macro (built-in-macros head)
+                    new-expr (apply macro expr {} (rest expr))]
+                (emit new-expr env))
+              (and (> (count head-str) 1)
+                   (str/ends-with? head-str "."))
+              (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
+                    env)
+              (special-form? head) (emit-special head env expr)
+              (infix-operator? head) (emit-infix head env expr)
+              (prefix-unary? head) (emit-prefix-unary head expr)
+              (suffix-unary? head) (emit-suffix-unary head expr)
+              :else (emit-special 'funcall env expr)))
+          (list? expr)
+          (emit-special 'funcall env expr)
+          :else
+          (throw (new Exception (str "invalid form: " expr))))))
 
 #?(:cljs (derive PersistentVector ::vector))
 
@@ -781,9 +790,9 @@ break;}" body)
                *public-vars* public-vars]
        (let [transpiled (transpile-string* s)
              imports (when-let [core-vars (and (not elide-imports)
-                                                (seq @core-vars))]
-                          (str (format "import { %s } from 'cherry-cljs/cljs.core.js'\n"
-                                       (str/join ", " core-vars))))
+                                               (seq @core-vars))]
+                       (str (format "import { %s } from 'cherry-cljs/cljs.core.js'\n"
+                                    (str/join ", " core-vars))))
              exports (when-not elide-exports
                        (when-let [vars (disj @public-vars "default$")]
                          (when (seq vars)

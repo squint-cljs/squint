@@ -1,5 +1,5 @@
-(require '[cherry.compiler :refer [transpile-string]])
+(require '[cherry.compiler :refer [compile-string*]])
 
 (let [{:keys [imports exports body]}
-      (transpile-string (slurp *in*))]
+      (compile-string* (slurp *in*))]
   (str imports exports body))

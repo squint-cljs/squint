@@ -362,5 +362,11 @@
     (is (= [1 2 2] (js->clj x))))
   (is (= 1 (jsv! "(aget  #js [1 2 3] 0)"))))
 
+(deftest keyword-call-test
+  (is (= :bar (jsv! '(:foo {:foo :bar}))))
+  (is (= :bar (jsv! '(let [x :foo]
+                       (x {:foo :bar})))))
+  (is (= :bar (jsv! '((keyword "foo") {:foo :bar})))))
+
 (defn init []
   (cljs.test/run-tests 'cherry.compiler-test))
