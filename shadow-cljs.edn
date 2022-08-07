@@ -30,7 +30,7 @@
                           goog_typeOf goog/typeOf}}
     :compiler {:depends-on #{:cljs_core}
                :exports
-               {transpileFile cherry.compiler/transpile-file}}
+               {compileString cherry.compiler/compile-string}}
     :cli {:depends-on #{:compiler}
           :init-fn cherry.internal.cli/init}}
    :build-hooks [(shadow.cljs.build-report/hook
