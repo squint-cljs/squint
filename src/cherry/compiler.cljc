@@ -710,9 +710,12 @@ break;}" body)
 
 (defmethod emit #?(:clj clojure.lang.IPersistentVector
                    :cljs ::vector) [expr env]
-  (swap! *imported-core-vars* conj 'vector)
-  (emit-wrap env (format "vector(%s)"
-                         (str/join ", " (emit-args env expr)))))
+  (if (::js (meta expr))
+    (emit-wrap env (format "[%s]"
+                           (str/join ", " (emit-args env expr))))
+    (do (swap! *imported-core-vars* conj 'vector)
+        (emit-wrap env (format "vector(%s)"
+                               (str/join ", " (emit-args env expr)))))))
 
 #?(:cljs (derive PersistentArrayMap ::map))
 #?(:cljs (derive PersistentHashMap ::map))

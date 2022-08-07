@@ -353,5 +353,14 @@
                    (is (= :hello v))
                    (done)))))
 
+(deftest native-js-array-test
+  (let [s (jss! "(let [x 2
+                       x #js [1 2 x]]
+                   x)")
+        x (js/eval s)]
+    (is (array? x))
+    (is (= [1 2 2] (js->clj x))))
+  (is (= 1 (jsv! "(aget  #js [1 2 3] 0)"))))
+
 (defn init []
   (cljs.test/run-tests 'cherry.compiler-test))
