@@ -2,7 +2,7 @@
   (:require
    [cherry.compiler :as cherry]
    [clojure.string :as str]
-   [clojure.test :as t :refer [deftest is]]))
+   [clojure.test :as t :refer [deftest is async]]))
 
 (def old-fail (get-method t/report [:cljs.test/default :fail]))
 
@@ -155,7 +155,8 @@
     (is (= 2 ((js/eval s) 1))))
   (let [s (jss! '(let [f (fn [x] 1 2 (do 1 x))]
                    f))]
-    (is (= 1 ((js/eval s) 1)))))
+    (is (= 1 ((js/eval s) 1))))
+  (is (= 1 (jsv! '(do (defn foo [] (fn [x] x)) ((foo) 1))))))
 
 (deftest fn-varargs-test
   (is (= '(3 4) (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2 3 4)))))
@@ -337,6 +338,20 @@
 
 (deftest set-test
   (is (= #{1 2 3 4 5 6} (jsv! '(into #{1 2 3} #{4 5 6})))))
+
+(deftest await-test
+  (async done
+         (.then  (jsv! '(do (defn ^:async foo []
+                              (js/await (js/Promise.resolve :hello)))
+
+                            (defn ^:async bar []
+                              (let [x (js/await (foo))]
+                                x))
+
+                            (bar)))
+                 (fn [v]
+                   (is (= :hello v))
+                   (done)))))
 
 (defn init []
   (cljs.test/run-tests 'cherry.compiler-test))
