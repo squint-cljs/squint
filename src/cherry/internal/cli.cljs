@@ -2,7 +2,8 @@
   (:require
    ["fs" :as fs]
    [babashka.cli :as cli]
-   [cherry.compiler :as t]
+   [cherry.compiler :as cc]
+   [cherry.compiler.node :as compiler]
    [shadow.esm :as esm]))
 
 (defn compile-files
@@ -12,7 +13,7 @@
                 (.then
                  #(do
                     (println "[cherry] Compiling CLJS file:" f)
-                    (t/transpile-file {:in-file f})))
+                    (compiler/compile-file {:in-file f})))
                 (.then (fn [{:keys [out-file]}]
                          (println "[cherry] Wrote JS file:" out-file)
                          out-file))))
@@ -30,7 +31,7 @@ help                      Print this help"))
 
 (defn fallback [{:keys [rest-cmds opts]}]
   (if-let [e (:e opts)]
-    (let [res (t/compile-string e)
+    (let [res (cc/compile-string e)
           dir (fs/mkdtempSync ".tmp")
           f (str dir "/cherry.mjs")]
       (fs/writeFileSync f res "utf-8")
@@ -48,7 +49,7 @@ help                      Print this help"))
 (defn run [{:keys [opts]}]
   (let [{:keys [file]} opts]
     (println "[cherry] Running" file)
-    (.then (t/transpile-file {:in-file file})
+    (.then (compiler/compile-file {:in-file file})
            (fn [{:keys [out-file]}]
              (esm/dynamic-import (str (js/process.cwd) "/" out-file))))))
 

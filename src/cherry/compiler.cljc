@@ -812,65 +812,6 @@ break;}" body)
          (compile-string* s opts)]
      (str imports body exports))))
 
-#?(:cljs
-   (defn slurp [f]
-     (fs/readFileSync f "utf-8")))
-
-#?(:cljs
-   (defn spit [f s]
-     (fs/writeFileSync f s "utf-8")))
-
-#?(:cljs
-   (defn resolve-file [prefix suffix]
-     (if (str/starts-with? suffix "./")
-       (str/join "/" (concat [(js/process.cwd)]
-                             (butlast (str/split prefix "/"))
-                             [(subs suffix 2)]))
-       suffix)))
-
-#?(:cljs
-   (def dyn-import (js/eval "(x) => { return import(x) }")))
-
-#?(:cljs
-   (defn scan-macros [file]
-     (let [s (slurp file)
-           maybe-ns (e/parse-next (e/reader s) cherry-parse-opts)]
-       (when (and (seq? maybe-ns)
-                  (= 'ns (first maybe-ns)))
-         (let [[_ns _name & clauses] maybe-ns
-               require-macros (some #(when (and (seq? %)
-                                                (= :require-macros (first %)))
-                                       (rest %))
-                                    clauses)]
-           (when require-macros
-             (reduce (fn [prev require-macros]
-                       (.then prev
-                              (fn [_]
-                                (let [[f & {:keys [refer]}] require-macros
-                                      f (resolve-file file f)
-                                      macros (-> (dyn-import f)
-                                                 (.then (fn [macros]
-                                                          (zipmap
-                                                           refer
-                                                           (map #(aget macros (munge %)) refer)))))]
-                                  (.then macros
-                                         (fn [macros]
-                                           (set! built-in-macros
-                                                 ;; hack
-                                                 (merge built-in-macros macros))))))))
-                     (js/Promise.resolve nil)
-                     require-macros)))))))
-
-#?(:cljs
-   (defn transpile-file [{:keys [in-file out-file]}]
-     (let [out-file (or out-file
-                        (str/replace in-file #".clj(s|c)$" ".mjs"))]
-       (-> #?(:cljs (js/Promise.resolve (scan-macros in-file)))
-           (.then #(compile-string (slurp in-file)))
-           (.then (fn [res]
-                    (spit out-file res)
-                    {:out-file out-file}))))))
-
 #_(defn compile! [s]
     (prn :s s)
     (let [expr (e/parse-string s {:row-key :line
