@@ -10,5 +10,5 @@
              (when
                  (and (#{:write :write|chmod} type)
                       (str/ends-with? path ".cljs"))
-               (shell "node node_modules/.bin/cherry" path))))
+               (shell {:continue true} "node node_modules/.bin/cherry" path))))
     @(promise)))
