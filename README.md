@@ -46,6 +46,7 @@ Run `npx cherry --help` to see all command line options.
 
 A few examples of currenly working projects compiled by cherry:
 
+- [playground](https://borkdude.github.io/cherry/)
 - [wordle](https://borkdude.github.io/cherry/examples/wordle/index.html)
 - [react](https://borkdude.github.io/cherry/examples/react/index.html)
 - [vite](examples/vite)
