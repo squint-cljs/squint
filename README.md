@@ -80,6 +80,7 @@ Goals of cherry:
 - REPL support
 - Async/await support. See [this tweet](https://twitter.com/borkdude/status/1549843802604638209) for a demo.
 - Native support for JS object destructuring: `[^:js {:keys [a b]} #js {:a 1 :b 2}]`
+- Native support for JSX via `#jsx` reader tag
 
 Cherry may introduce new constructs such as `js/await` which won't be compatible
 with current CLJS. Also it might not support all features that CLJS offers. As
