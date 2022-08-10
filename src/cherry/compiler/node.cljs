@@ -51,7 +51,7 @@
 
 (defn compile-file [{:keys [in-file out-file]}]
   (let [out-file (or out-file
-                     (str/replace in-file #".clj(s|c)$" ".mjs"))]
+                     (str/replace in-file #".clj(s|c)$" ".jsx"))]
     (-> (js/Promise.resolve (scan-macros in-file))
         (.then #(compiler/compile-string (slurp in-file)))
         (.then (fn [res]
