@@ -759,8 +759,18 @@ break;}" body)
 (defn transpile-form [f]
   (emit f {:context :statement}))
 
+(def ^:dynamic *jsx* false)
+
 (defn wrap-jsx [v]
   (list 'js* "{ ~{} }" v))
+
+(defn jsx-attrs [v]
+  (if v
+    (list* 'js*
+           (map (fn [[k v]]
+                  (str " " (name k) "=" (emit v (expr-env {})) " "))
+                v))
+    (list 'js* "")))
 
 (defn html [v]
   (cond (and (vector? v)
@@ -771,25 +781,25 @@ break;}" body)
               attrs (second v)
               attrs (when (map? attrs) attrs)
               elts (if attrs (nnext v) (next v))
-              tag-name (symbol tag)]
+              tag-name (symbol tag)
+              tag-name (if (= '<> tag-name)
+                         (symbol "")
+                         tag-name)]
           (wrap-jsx
-           (list 'let ['x (list* 'js* (format "<~{}~{}>%s</~{}>\n"
-                                              (str/join " " (repeat (count elts) "~{}"))) tag-name (html attrs)
-                                 (concat (map html elts) [tag-name]))]
+           (list 'let ['x
+                       (list* 'js*
+                              (format "<~{}~{}>%s</~{}>\n"
+                                      (str/join " " (repeat (count elts) "~{}")))
+                              tag-name
+                              (jsx-attrs attrs)
+                              (concat (map html elts) [tag-name]))]
                  'x)))
-        (map? v)
-        (list* 'js* (map (fn [[k v]]
-                           (str " " (name k) "=" (emit v (expr-env {})) " "))
-                         v))
         (nil? v) (list 'js* "")
         :else (wrap-jsx v)))
 
 (defn jsx [form]
-  (doto
-      (html form) #_(list 'js* (emit
-                  (html form)
-                  (expr-env {})))
-    #_(prn)))
+  (set! *jsx* true)
+  (html form))
 
 (def cherry-parse-opts
   (e/normalize-opts
@@ -819,7 +829,8 @@ break;}" body)
    (let [core-vars (atom #{})
          public-vars (atom #{})]
      (binding [*imported-core-vars* core-vars
-               *public-vars* public-vars]
+               *public-vars* public-vars
+               *jsx* false]
        (let [transpiled (transpile-string* s)
              imports (when-let [core-vars (and (not elide-imports)
                                                (seq @core-vars))]
@@ -834,12 +845,13 @@ break;}" body)
                                   "export default default$\n")))))]
          {:imports imports
           :exports exports
-          :body transpiled})))))
+          :body transpiled
+          :javascript (str imports transpiled exports)
+          :jsx *jsx*})))))
 
 (defn compile-string
   ([s] (compile-string s nil))
   ([s opts]
-
    (let [{:keys [imports exports body]}
          (compile-string* s opts)]
      (str imports body exports))))
