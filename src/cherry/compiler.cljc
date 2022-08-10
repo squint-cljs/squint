@@ -759,12 +759,33 @@ break;}" body)
 (defn transpile-form [f]
   (emit f {:context :statement}))
 
+(defn html [v]
+  (cond (vector? v)
+        (let [tag (first v)
+              attrs (second v)
+              attrs (when (map? attrs) attrs)
+              elts (if attrs (nnext v) (next v))
+              tag-name (symbol tag)]
+          (list 'let ['x (list* 'js* (format "<~{}~{}>%s</~{}>\n"
+                                             (str/join " " (repeat (count elts) "~{}"))
+                                             ) tag-name (html attrs)
+                                (concat (map html elts) [tag-name]))]
+                'x))
+        (map? v)
+        (emit v (expr-env {}))
+        (nil? v) (list 'js* "")
+        :else (list 'js* (format "{ %s }" (emit v (expr-env {}))))))
+
+(defn jsx [form]
+  (html form))
+
 (def cherry-parse-opts
   (e/normalize-opts
    {:all true
     :end-location false
     :location? seq?
-    :readers {'js #(vary-meta % assoc ::js true)}
+    :readers {'js #(vary-meta % assoc ::js true)
+              'jsx jsx}
     :read-cond :allow
     :features #{:cljc}}))
 
