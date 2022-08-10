@@ -763,7 +763,10 @@ break;}" body)
   (list 'js* "{ ~{} }" v))
 
 (defn html [v]
-  (cond (vector? v)
+  (cond (and (vector? v)
+             (let [f (first v)]
+               (or (keyword? f)
+                   (symbol? f))))
         (let [tag (first v)
               attrs (second v)
               attrs (when (map? attrs) attrs)
