@@ -759,6 +759,9 @@ break;}" body)
 (defn transpile-form [f]
   (emit f {:context :statement}))
 
+(defn wrap-jsx [v]
+  (list 'js* "{ ~{} }" v))
+
 (defn html [v]
   (cond (vector? v)
         (let [tag (first v)
@@ -766,18 +769,24 @@ break;}" body)
               attrs (when (map? attrs) attrs)
               elts (if attrs (nnext v) (next v))
               tag-name (symbol tag)]
-          (list 'let ['x (list* 'js* (format "<~{}~{}>%s</~{}>\n"
-                                             (str/join " " (repeat (count elts) "~{}"))
-                                             ) tag-name (html attrs)
-                                (concat (map html elts) [tag-name]))]
-                'x))
+          (wrap-jsx
+           (list 'let ['x (list* 'js* (format "<~{}~{}>%s</~{}>\n"
+                                              (str/join " " (repeat (count elts) "~{}"))) tag-name (html attrs)
+                                 (concat (map html elts) [tag-name]))]
+                 'x)))
         (map? v)
-        (emit v (expr-env {}))
+        (list* 'js* (map (fn [[k v]]
+                           (str " " (name k) "=" (emit v (expr-env {})) " "))
+                         v))
         (nil? v) (list 'js* "")
-        :else (list 'js* (format "{ %s }" (emit v (expr-env {}))))))
+        :else (wrap-jsx v)))
 
 (defn jsx [form]
-  (html form))
+  (doto
+      (html form) #_(list 'js* (emit
+                  (html form)
+                  (expr-env {})))
+    #_(prn)))
 
 (def cherry-parse-opts
   (e/normalize-opts
