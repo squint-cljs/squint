@@ -368,5 +368,9 @@
                        (x {:foo :bar})))))
   (is (= :bar (jsv! '((keyword "foo") {:foo :bar})))))
 
+(deftest minus-single-arg-test
+  (is (= -10 (jsv! '(- 10))))
+  (is (= -11 (jsv! '(- 10 21)))))
+
 (defn init []
   (cljs.test/run-tests 'cherry.compiler-test))

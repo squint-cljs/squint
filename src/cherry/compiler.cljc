@@ -212,13 +212,17 @@
     (map #(emit % env) args)))
 
 (defn emit-infix [_type enc-env [operator & args]]
-  (let [env (assoc enc-env :context :expr)]
-    (when (and (not (chainable-infix-operators operator)) (> (count args) 2))
+  (let [env (assoc enc-env :context :expr)
+        acount (count args)]
+    (when (and (not (chainable-infix-operators operator)) (> acount 2))
       (throw (Exception. (str "operator " operator " supports only 2 arguments"))))
-    (->> (let [substitutions {'== '=== '!= '!== 'not= '!==}]
-           (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
-                              (emit-args env args)) ")"))
-         (emit-wrap enc-env))))
+    (if (and (= '- operator)
+             (= 1 acount))
+      (str "-" (emit (first args) env))
+      (->> (let [substitutions {'== '=== '!= '!== 'not= '!==}]
+             (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
+                                (emit-args env args)) ")"))
+           (emit-wrap enc-env)))))
 
 (def ^{:dynamic true} var-declarations nil)
 
