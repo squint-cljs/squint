@@ -372,5 +372,8 @@
   (is (= -10 (jsv! '(- 10))))
   (is (= -11 (jsv! '(- 10 21)))))
 
+(deftest namespace-keywords
+  (is (= :hello/world (jsv! "(ns hello) ::world"))))
+
 (defn init []
   (cljs.test/run-tests 'cherry.compiler-test))

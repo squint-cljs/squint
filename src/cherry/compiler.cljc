@@ -53,6 +53,7 @@
 (def statement-separator ";\n")
 
 ;; TODO: move to context argument
+(def ^:dynamic *aliases* (atom {}))
 (def ^:dynamic *async* false)
 (def ^:dynamic *imported-core-vars* (atom #{}))
 (def ^:dynamic *public-vars* (atom #{}))
@@ -422,7 +423,19 @@
      (when refer
        (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
 
-(defmethod emit-special 'ns [_type _env [_ns _name & clauses]]
+(defmethod emit-special 'ns [_type _env [_ns name & clauses]]
+  (reset! *aliases*
+          (->> clauses
+               (some
+                (fn [[k & exprs]]
+                  (when (= :require k) exprs)))
+               (reduce
+                (fn [aliases [full as alias]]
+                  (case as
+                    (:as :as-alias)
+                    (assoc aliases alias full)
+                    aliases))
+                {:current name})))
   (reduce (fn [acc [k & exprs]]
             (if (= :require k)
               (str acc (str/join "" (map process-require-clause exprs)))
@@ -819,7 +832,8 @@ break;}" body)
   (let [rdr (e/reader s)
         opts cherry-parse-opts]
     (loop [transpiled ""]
-      (let [next-form (e/parse-next rdr opts)]
+      (let [opts (assoc opts :auto-resolve @*aliases*)
+            next-form (e/parse-next rdr opts)]
         (if (= ::e/eof next-form)
           transpiled
           (let [next-t (transpile-form next-form)
@@ -831,9 +845,11 @@ break;}" body)
   ([s {:keys [elide-exports
               elide-imports]}]
    (let [core-vars (atom #{})
-         public-vars (atom #{})]
+         public-vars (atom #{})
+         aliases (atom {})]
      (binding [*imported-core-vars* core-vars
                *public-vars* public-vars
+               *aliases* aliases
                *jsx* false]
        (let [transpiled (transpile-string* s)
              imports (when-let [core-vars (and (not elide-imports)
