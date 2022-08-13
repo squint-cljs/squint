@@ -8,6 +8,7 @@
 
 (aset js/globalThis "map" cl/map)
 (aset js/globalThis "dissoc_BANG_" cl/dissoc!)
+(aset js/globalThis "str" cl/dissoc!)
 
 (defn eq [a b]
   (ld/isEqual (clj->js a) (clj->js b)))
@@ -229,7 +230,7 @@
           (jsv! '(.match "foo foo" #"foo")))))
 
 (deftest new-test
-  (is (= "hello" (jsv! '(str (js/String. "hello"))))))
+  (is (eq "hello" (jsv! '(str (js/String. "hello"))))))
 
 (deftest quote-test
   (is (= '{x 1} (jsv! (list 'quote '{x 1}))))

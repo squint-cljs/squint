@@ -22,3 +22,9 @@ export function nth(coll, idx) {
 export function map(f, coll) {
   return coll.map(f);
 }
+
+export function str(...xs) {
+  let ret = "";
+  xs.forEach(x => ret = ret + x);
+  return ret;
+}
