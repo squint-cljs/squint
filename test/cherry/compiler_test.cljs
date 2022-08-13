@@ -192,7 +192,7 @@
     (is (zero? (js/eval s)))))
 
 (deftest if-test
-  (is (true? (jsv! "(if 0 true false)")))
+  (is (false? (jsv! "(if 0 true false)")))
   (let [s (jss! "[(if false true false)]")]
     (false? (first (js/eval s))))
   (let [s (jss! "(let [x (if (inc 1) (inc 2) (inc 3))]
@@ -203,27 +203,30 @@
     (is (= 3 (js/eval s)))))
 
 (deftest doseq-test
-  (let [s (jss! '(let [a (atom [])]
+  (let [s (jss! '(let [a []]
                    (doseq [x [1 2 3]]
-                     (swap! a conj x))
-                   (deref a)))]
-    (is (= [1 2 3] (js/eval s))))
-  (let [s (jss! '(let [a (atom [])]
+                     (.push a x))
+                   a))]
+    (is (eq [1 2 3] (js/eval s))))
+  ;; TODO:
+  #_(let [s (jss! '(let [a []]
                    (doseq [x [1 2 3]
                            y [4 5 6]]
-                     (swap! a conj x y))
-                   (deref a)))]
-    (is (=  [1 4 1 5 1 6 2 4 2 5 2 6 3 4 3 5 3 6]
+                     (.push a x))
+                   a))]
+    (println s)
+    (is (eq [1 4 1 5 1 6 2 4 2 5 2 6 3 4 3 5 3 6]
             (js/eval s)))))
 
-(deftest for-test
+;; TODO:
+#_(deftest for-test
   (let [s (jss! '(for [x [1 2 3] y [4 5 6]] [x y]))]
     (is (= '([1 4] [1 5] [1 6] [2 4] [2 5] [2 6] [3 4] [3 5] [3 6])
            (js/eval s)))))
 
 (deftest regex-test
-  (is (= '("foo" "foo")
-         (jsv! '(re-seq #"foo" "foo foo")))))
+  (is (eq '("foo")
+          (jsv! '(.match "foo foo" #"foo")))))
 
 (deftest new-test
   (is (= "hello" (jsv! '(str (js/String. "hello"))))))
