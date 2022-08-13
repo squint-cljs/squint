@@ -18,3 +18,7 @@ export function keyword(s) {
 export function prn(...args) {
   console.log(...args);
 }
+
+export function nth(coll, idx) {
+  return coll[idx];
+}
