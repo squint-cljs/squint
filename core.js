@@ -15,7 +15,7 @@ export function keyword(s) {
   return s;
 }
 
-export function prn(...args) {
+export function println(...args) {
   console.log(...args);
 }
 
