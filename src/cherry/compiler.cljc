@@ -772,10 +772,8 @@ break;}" body)
 (defmethod emit #?(:clj clojure.lang.PersistentHashSet
                    :cljs PersistentHashSet)
   [expr env]
-  (swap! *imported-core-vars* conj 'hash_set)
   (emit-wrap env
-             (format "%s%s" "hash_set"
-                     (comma-list (emit-args env expr)))))
+             (format "new Set([%s])" (str/join ", " (emit-args env expr)))))
 
 (defn transpile-form [f]
   (emit f {:context :statement}))
