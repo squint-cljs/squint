@@ -79,8 +79,7 @@
   (emit-wrap env (pr-str expr)))
 
 (defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr env]
-  (swap! *imported-core-vars* conj 'keyword)
-  (emit-wrap env (str (format "keyword(%s)" (pr-str (subs (str expr) 1))))))
+  (emit-wrap env (str (pr-str (subs (str expr) 1)))))
 
 (defn munge* [expr]
   (let [munged (str (munge expr))
@@ -180,7 +179,8 @@
                       'defn core-defn
                       'defn- core-defn})
 
-(def core-config {:vars '#{assoc! dissoc! println nth}})
+(def core-config {:vars '#{assoc! dissoc! println nth
+                           map}})
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 

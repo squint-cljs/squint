@@ -11,14 +11,14 @@ export function dissoc_BANG_(m, k) {
   return m;
 }
 
-export function keyword(s) {
-  return s;
-}
-
 export function println(...args) {
   console.log(...args);
 }
 
 export function nth(coll, idx) {
   return coll[idx];
+}
+
+export function map(f, coll) {
+  return coll.map(f);
 }
