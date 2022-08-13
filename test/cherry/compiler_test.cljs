@@ -267,7 +267,7 @@
   (let [s (jss! "(do (def x (. #js {:x (fn [x] x)} (x 1))) x)")]
     (is (= 1 (js/eval s))))
   (let [s (jss! "(.goto #js {:goto (fn [x] [:hello x])} 10)")]
-    (is (= [:hello 10] (js/eval s)))))
+    (is (eq [:hello 10] (js/eval s)))))
 
 (deftest dotdot-test
   (let [s (jss! "(.. #js {:foo #js {:bar 2}} -foo -bar)")]
