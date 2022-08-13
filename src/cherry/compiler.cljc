@@ -452,18 +452,16 @@
           ))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
-  (let [interop? (and (symbol? fname)
-                      (= "js" (namespace fname)))]
-    (emit-wrap env
-               (str
-                (emit fname (expr-env env))
-                ;; this is needed when calling keywords, symbols, etc. We could
-                ;; optimize this later by inferring that we're not directly
-                ;; calling a `function`.
-                #_(when-not interop? ".call")
-                (comma-list (emit-args env
-                                       args #_(if interop? args
-                                           (cons nil args))))))))
+  (emit-wrap env
+             (str
+              (emit fname (expr-env env))
+              ;; this is needed when calling keywords, symbols, etc. We could
+              ;; optimize this later by inferring that we're not directly
+              ;; calling a `function`.
+              #_(when-not interop? ".call")
+              (comma-list (emit-args env
+                                     args #_(if interop? args
+                                                (cons nil args)))))))
 
 (defmethod emit-special 'str [_type env [_str & args]]
   (apply clojure.core/str (interpose " + " (emit-args env args))))
@@ -726,6 +724,9 @@ break;}" body)
               (prefix-unary? head) (emit-prefix-unary head expr)
               (suffix-unary? head) (emit-suffix-unary head expr)
               :else (emit-special 'funcall env expr)))
+          (keyword? (first expr))
+          (let [[k obj] expr]
+            (emit (list 'aget obj k)))
           (list? expr)
           (emit-special 'funcall env expr)
           :else

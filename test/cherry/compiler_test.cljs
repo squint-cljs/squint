@@ -302,7 +302,7 @@
                      (set! (.-x x) 2)
                      (foo x))))))
 
-(deftest set-test
+#_(deftest set-test
   (is (= #{1 2 3 4 5 6} (jsv! '(into #{1 2 3} #{4 5 6})))))
 
 (deftest await-test
@@ -329,10 +329,7 @@
   (is (= 1 (jsv! "(aget  #js [1 2 3] 0)"))))
 
 (deftest keyword-call-test
-  (is (= "bar" (jsv! '(:foo {:foo :bar}))))
-  (is (= "bar" (jsv! '(let [x :foo]
-                        (x {:foo :bar})))))
-  (is (= "bar" (jsv! '((keyword "foo") {:foo :bar})))))
+  (is (= "bar" (jsv! '(:foo {:foo :bar})))))
 
 (deftest minus-single-arg-test
   (is (= -10 (jsv! '(- 10))))
