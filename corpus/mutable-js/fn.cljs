@@ -16,4 +16,11 @@
 (prn (bar {:a 1 :b 2 :c 3}))
 
 (let [[x y z] [1 2 3]]
-  (prn x y z))
+  (prn (dissoc! {:x x :y y :z z} :x)))
+
+
+
+
+
+
+
