@@ -12,16 +12,16 @@
             (-> (js/Promise.resolve prev)
                 (.then
                  #(do
-                    (println "[cherry] Compiling CLJS file:" f)
+                    (println "[clava] Compiling CLJS file:" f)
                     (compiler/compile-file {:in-file f})))
                 (.then (fn [{:keys [out-file]}]
-                         (println "[cherry] Wrote JS file:" out-file)
+                         (println "[clava] Wrote JS file:" out-file)
                          out-file))))
           nil
           files))
 
 (defn print-help []
-  (println "Cherry v0.0.0
+  (println "Clava v0.0.0
 
 Usage:
 
@@ -33,7 +33,7 @@ help                      Print this help"))
   (if-let [e (:e opts)]
     (let [res (cc/compile-string e)
           dir (fs/mkdtempSync ".tmp")
-          f (str dir "/cherry.mjs")]
+          f (str dir "/clava.mjs")]
       (fs/writeFileSync f res "utf-8")
       (when (:show opts)
         (println res))
@@ -48,7 +48,7 @@ help                      Print this help"))
 
 (defn run [{:keys [opts]}]
   (let [{:keys [file]} opts]
-    (println "[cherry] Running" file)
+    (println "[clava] Running" file)
     (.then (compiler/compile-file {:in-file file})
            (fn [{:keys [out-file]}]
              (esm/dynamic-import (str (js/process.cwd) "/" out-file))))))
