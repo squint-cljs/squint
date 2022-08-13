@@ -7,6 +7,7 @@
    [clojure.test :as t :refer [async deftest is]]))
 
 (aset js/globalThis "map" cl/map)
+(aset js/globalThis "dissoc_BANG_" cl/dissoc!)
 
 (defn eq [a b]
   (ld/isEqual (clj->js a) (clj->js b)))
@@ -140,9 +141,9 @@
   (let [s (jss! '(do (defn f [x] (let [y 1] (+ x y))) f))]
     (is (= 2 ((js/eval s) 1))))
   (let [s (jss! '(do (defn foo [x]
-                       (dissoc x :foo))
+                       (dissoc! x :foo))
                      (foo {:a 1 :foo :bar})))]
-    (is (= {:a 1} (js/eval s))))
+    (is (eq {:a 1} (js/eval s))))
   (let [s (jss! "(do (defn f [^js {:keys [a b c]}] (+ a b c)) f)")]
     (is (= 6 ((js/eval s) #js {:a 1 :b 2 :c 3}))))
   (let [s (jss! '(do (defn quux [x]
