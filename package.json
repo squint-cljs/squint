@@ -18,5 +18,8 @@
     "cherry-cljs": ".",
     "esbuild": "^0.14.49",
     "source-maps": "^1.0.12"
+  },
+  "dependencies": {
+    "argparse": "^2.0.1"
   }
 }

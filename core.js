@@ -1,12 +1,12 @@
-export function assoc(m, k, v, ...kvs) {
+export function assoc_BANG_(m, k, v, ...kvs) {
   m[k] = v;
   if (kvs.length != 0) {
-    return assoc(m, ...kvs);
+    return assoc_BANG_(m, ...kvs);
   }
   else return m;
 }
 
-export function dissoc(m, k) {
+export function dissoc_BANG_(m, k) {
   delete m[k];
   return m;
 }
@@ -15,3 +15,6 @@ export function keyword(s) {
   return s;
 }
 
+export function prn(...args) {
+  console.log(...args);
+}
