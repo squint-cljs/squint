@@ -1,6 +1,6 @@
 ## ClavaScript
 
-Experimental ClojureScript/Lisp syntax to JavaScript compiler.
+Experimental ClojureScript syntax to JavaScript compiler.
 
 > :warning: This project is an experiment and not recommended to be used in
 > production. It currently has many bugs and will undergo many breaking changes.
