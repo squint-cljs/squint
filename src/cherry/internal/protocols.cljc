@@ -106,7 +106,7 @@
                                      ;; then check protocol on js string,function,array,object (first dynamic check actually executed)
                                      check
                                      `(let [x# (if (nil? ~fsig) nil ~fsig)
-                                            m# (unchecked-get ~fqn-fname (cljs.core/goog_typeOf x#))]
+                                            m# (unchecked-get ~fqn-fname (~'typeof x#))]
                                         (if-not (nil? m#)
                                           (m# ~@sig)
                                           ~check))]

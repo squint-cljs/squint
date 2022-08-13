@@ -440,12 +440,12 @@
                  {} (partition 2 clauses))
         tests   (keys pairs)]
     (cond
-      (every? (some-fn number? string? #?(:clj char? :cljs (fnil char? :nonchar)) #(const? env %)) tests)
+      (every? (some-fn keyword? number? string? #?(:clj char? :cljs (fnil char? :nonchar)) #(const? env %)) tests)
       (let [no-default (if (odd? (count clauses)) (butlast clauses) clauses)
             tests      (mapv #(if (seq? %) (vec %) [%]) (take-nth 2 no-default))
             thens      (vec (take-nth 2 (drop 1 no-default)))]
         `(let [~esym ~e] (case* ~esym ~tests ~thens ~default)))
-      (every? keyword? tests)
+      #_#_(every? keyword? tests)
       (let [no-default (if (odd? (count clauses)) (butlast clauses) clauses)
             kw-str #(.substring (str %) 1)
             tests (mapv #(if (seq? %) (mapv kw-str %) [(kw-str %)]) (take-nth 2 no-default))
