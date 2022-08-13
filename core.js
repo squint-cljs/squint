@@ -36,3 +36,5 @@ export function not(expr) {
 export function nil_QMARK_(v) {
   return v == null;
 }
+
+export const PROTOCOL_SENTINEL = {};
