@@ -22,12 +22,12 @@ Create a `.cljs` file, e.g. `example.cljs`:
   (:require ["fs" :as fs]
             ["url" :refer [fileURLToPath]]))
 
-(prn (fs/existsSync (fileURLToPath js/import.meta.url)))
+(println (fs/existsSync (fileURLToPath js/import.meta.url)))
 
 (defn foo [{:keys [a b c]}]
   (+ a b c))
 
-(prn (foo {:a 1 :b 2 :c 3}))
+(println (foo {:a 1 :b 2 :c 3}))
 ```
 
 Then compile and run (`run` does both):
