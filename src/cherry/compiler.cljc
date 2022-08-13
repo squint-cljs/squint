@@ -108,21 +108,26 @@
                (emit (list 'cljs.core/symbol
                            (str expr))
                      (dissoc env :quote)))
-    (let [expr (if-let [sym-ns (namespace expr)]
-                 (or (when (or (= "cljs.core" sym-ns)
-                               (= "clojure.core" sym-ns))
-                       (maybe-core-var (symbol (name expr))))
-                     (when (= "js" sym-ns)
-                       (symbol (name expr)))
-                     expr)
-                 (maybe-core-var expr))
-          expr-ns (namespace expr)
-          expr (if-let [renamed (get (:var->ident env) expr)]
-                 (str renamed)
-                 (str expr-ns (when expr-ns
-                                ".")
-                      (munge* (name expr))))]
-      (emit-wrap env (str expr)))))
+    (if (str/includes? (str expr) ".")
+      (let [[fname path] (str/split (str expr) #"\." 2)
+            fname (symbol fname)]
+        (str (emit fname (expr-env env))
+             "." path))
+      (let [expr (if-let [sym-ns (namespace expr)]
+                   (or (when (or (= "cljs.core" sym-ns)
+                                 (= "clojure.core" sym-ns))
+                         (maybe-core-var (symbol (name expr))))
+                       (when (= "js" sym-ns)
+                         (symbol (name expr)))
+                       expr)
+                   (maybe-core-var expr))
+            expr-ns (namespace expr)
+            expr (if-let [renamed (get (:var->ident env) expr)]
+                   (str renamed)
+                   (str expr-ns (when expr-ns
+                                  ".")
+                        (munge* (name expr))))]
+        (emit-wrap env (str expr))))))
 
 #?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr _env]
           (str \/ expr \/)))
