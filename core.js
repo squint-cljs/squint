@@ -6,9 +6,32 @@ export function assoc_BANG_(m, k, v, ...kvs) {
   else return m;
 }
 
+let object = Object.getPrototypeOf({});
+let array = Object.getPrototypeOf([]);
+let set = Object.getPrototypeOf(new Set());
+
+export function conj(o, x) {
+  switch (Object.getPrototypeOf(o)) {
+    case object:
+      let o2 = {...o};
+      o2[x[0]] = x[1];
+      return o2;
+    case array:
+      return [...o, x];
+    case set:
+      return new Set([...o, x]);
+    default:
+      return o.conj(x);
+  }
+}
+
 export function dissoc_BANG_(m, k) {
   delete m[k];
   return m;
+}
+
+export function inc(n) {
+    return n+1;
 }
 
 export function println(...args) {
