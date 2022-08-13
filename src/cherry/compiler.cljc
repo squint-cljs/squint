@@ -488,7 +488,6 @@
       (emit-method env obj (symbol method-str) args))) #_(emit-method env obj method args))
 
 (defmethod emit-special 'if [_type env [_if test then else]]
-  (swap! *imported-core-vars* conj 'truth_)
   (if (= :expr (:context env))
     (->> (let [env (assoc env :context :expr)]
            (format "(%s) ? (%s) : (%s)"
@@ -496,7 +495,7 @@
                    (emit then env)
                    (emit else env)))
          (emit-wrap env))
-    (str (format "if (truth_(%s)) {\n"
+    (str (format "if (%s) {\n"
                  (emit test (assoc env :context :expr)))
          (emit then env)
          "}"
