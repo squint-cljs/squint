@@ -163,7 +163,7 @@
 
 (deftest defn-recur-test
   (let [s (jss! '(do (defn quux [x]
-                       (if (pos? x)
+                       (if (> x 0)
                          (recur (dec x))
                          x))
                      (quux 1)))]
