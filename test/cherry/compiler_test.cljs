@@ -186,7 +186,7 @@
   (let [s (jss! '(loop [x 1] (+ 1 2 x)))]
     (is (= 4 (js/eval s))))
   (let [s (jss! '(loop [x 10]
-                   (if (pos? x)
+                   (if (> x 0)
                      (recur (dec x))
                      x)))]
     (is (zero? (js/eval s)))))
