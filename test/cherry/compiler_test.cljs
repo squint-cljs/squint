@@ -1,8 +1,12 @@
 (ns cherry.compiler-test
   (:require
+   ["lodash$default" :as ld]
    [cherry.compiler :as cherry]
    [clojure.string :as str]
-   [clojure.test :as t :refer [deftest is async]]))
+   [clojure.test :as t :refer [async deftest is]]))
+
+(defn eq [a b]
+  (ld/isEqual a b))
 
 (def old-fail (get-method t/report [:cljs.test/default :fail]))
 
@@ -82,11 +86,11 @@
   (is (str/includes? (jss! "(do (def x (do 1 2 \"hello\")))")
                      "return"))
   (let [s (jss! "(do (def x (do 1 2 [1 2 3])) x)")]
-    (is (= [1 2 3] (js/eval s))))
+    (is (eq #js [1 2 3] (js/eval s))))
   (let [s (jss! "(do (def x (do 1 2 {:x 1 :y 2})) x)")]
-    (is (= {:x 1 :y 2} (js/eval s))))
+    (is (eq #js {:x 1 :y 2} (js/eval s))))
   (let [s (jss! "(do (def x (do 1 2 #js {:x 1 :y 2})) x)")]
-    (is (= (str #js {:x 1 :y 2}) (str (js/eval s))))))
+    (is (eq (str #js {:x 1 :y 2}) (str (js/eval s))))))
 
 (deftest do-test
   (let [[v s] (js! '(do 1 2 3))]
