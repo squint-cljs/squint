@@ -38,7 +38,7 @@ true
 6
 ```
 
-Run `npx cherry --help` to see all command line options.
+Run `npx clavascript --help` to see all command line options.
 
 ## Differences with ClojureScript
 
