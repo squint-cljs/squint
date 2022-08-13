@@ -1,5 +1,0 @@
-{
-  "imports": {
-    "cherry-cljs/cljs.core.js": "https://cdn.jsdelivr.net/npm/cherry-cljs@0.0.0-alpha.29/cljs.core.js"
-  }
-}
