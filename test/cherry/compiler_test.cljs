@@ -98,8 +98,8 @@
   (let [s (jss! '(let [name (fn [_] 1)
                        name (fn [_] 2)]
                    (map name [1 2 3])))]
-    (is (= '(2 2 2)
-           (js/eval s)))))
+    (is (eq #js [2 2 2]
+            (js/eval s)))))
 
 (deftest destructure-test
   (let [s (jss! "(let [^js {:keys [a b c]} #js {:a 1 :b 2 :c 3}]
