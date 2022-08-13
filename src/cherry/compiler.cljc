@@ -180,7 +180,7 @@
                       'defn- core-defn})
 
 (def core-config {:vars '#{assoc! dissoc! println nth
-                           map}})
+                           map str}})
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
