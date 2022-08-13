@@ -18,6 +18,7 @@
     "chalk": "^5.0.1",
     "clavascript": ".",
     "esbuild": "^0.14.49",
+    "shadow-cljs": "^2.19.8",
     "source-maps": "^1.0.12"
   },
   "dependencies": {
