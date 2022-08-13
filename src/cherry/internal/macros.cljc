@@ -297,7 +297,7 @@
                        v (second exprs)
 
                        seqsym (gensym "seq__")
-                       recform (if (keyword? k) recform `(recur (next ~seqsym) nil 0 0))
+                       recform (if (keyword? k) recform `(recur (.slice ~seqsym 1)#_(next ~seqsym) nil 0 0))
                        steppair (step recform (nnext exprs))
                        needrec (steppair 0)
                        subform (steppair 1)]
@@ -319,7 +319,7 @@
                                  recform-chunk  `(recur ~seqsym ~chunksym ~countsym (unchecked-inc ~isym))
                                  steppair-chunk (step recform-chunk (nnext exprs))
                                  subform-chunk  (steppair-chunk 1)]
-                             [true `(loop [~seqsym   (seq ~v)
+                             [true `(loop [~seqsym   ~v #_(seq ~v)
                                            ~chunksym nil
                                            ~countsym 0
                                            ~isym     0]
@@ -327,12 +327,14 @@
                                         (let [~k (-nth ~chunksym ~isym)]
                                           ~subform-chunk
                                           ~@(when needrec [recform-chunk]))
-                                        (when-let [~seqsym (seq ~seqsym)]
-                                          (if (chunked-seq? ~seqsym)
+                                        (when-let [~seqsym (when (> (.-length ~seqsym) 0
+                                                                    )
+                                                             ~seqsym)]
+                                          (if false #_(chunked-seq? ~seqsym)
                                             (let [c# (chunk-first ~seqsym)]
                                               (recur (chunk-rest ~seqsym) c#
                                                      (count c#) 0))
-                                            (let [~k (first ~seqsym)]
+                                            (let [~k (unchecked-get ~seqsym 0) #_(first ~seqsym)]
                                               ~subform
                                               ~@(when needrec [recform]))))))])))))]
     (nth (step nil (seq seq-exprs)) 1)))
