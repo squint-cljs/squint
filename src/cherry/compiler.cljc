@@ -108,7 +108,8 @@
                (emit (list 'cljs.core/symbol
                            (str expr))
                      (dissoc env :quote)))
-    (if (str/includes? (str expr) ".")
+    (if (and (simple-symbol? expr)
+             (str/includes? (str expr) "."))
       (let [[fname path] (str/split (str expr) #"\." 2)
             fname (symbol fname)]
         (str (emit fname (expr-env env))

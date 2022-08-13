@@ -54,12 +54,12 @@
                    pmap
                    (fn [bvec b v]
                      (let [m (meta b)
-                           js-keys? (or (:js m)
+                           js-keys? true #_(or (:js m)
                                         (= 'js (:tag m)))
                            gmap (gensym "map__")
                            defaults (:or b)]
                        (loop [ret (-> bvec (conj gmap) (conj v)
-                                      (conj gmap) (conj (list 'cljs.core/--destructure-map gmap))
+                                      #_#_(conj gmap) (conj gmap)
                                       ((fn [ret]
                                          (if (:as b)
                                            (conj ret (:as b) gmap)
@@ -73,8 +73,8 @@
                                                (cond
                                                  js-keys? (assoc transforms mk #(subs (str (keyword (or mkns (namespace %)) (name %))) 1))
                                                  (= mkn "keys") (assoc transforms mk #(keyword (or mkns (namespace %)) (name %)))
-                                                 (= mkn "syms") (assoc transforms mk #(list `quote (symbol (or mkns (namespace %)) (name %))))
-                                                 (= mkn "strs") (assoc transforms mk str)
+                                                 #_#_(= mkn "syms") (assoc transforms mk #(list `quote (symbol (or mkns (namespace %)) (name %))))
+                                                 #_#_(= mkn "strs") (assoc transforms mk str)
                                                  :else transforms))
                                              transforms))
                                          {}
@@ -114,14 +114,15 @@
                  :else (throw
                         #?(:clj (new Exception (str "Unsupported binding form: " b))
                            :cljs (new js/Error (str "Unsupported binding form: " b)))))))
-        process-entry (fn [bvec b] (pb bvec (first b) (second b)))]
-    (if (every? symbol? (map first bents))
-      bindings
-      (if-let [kwbs (seq (filter #(keyword? (first %)) bents))]
-        (throw
-         #?(:clj (new Exception (str "Unsupported binding key: " (ffirst kwbs)))
-            :cljs (new js/Error (str "Unsupported binding key: " (ffirst kwbs)))))
-        (reduce process-entry [] bents)))))
+        process-entry (fn [bvec b] (pb bvec (first b) (second b)))
+        ret (if (every? symbol? (map first bents))
+              bindings
+              (if-let [kwbs (seq (filter #(keyword? (first %)) bents))]
+                (throw
+                 #?(:clj (new Exception (str "Unsupported binding key: " (ffirst kwbs)))
+                    :cljs (new js/Error (str "Unsupported binding key: " (ffirst kwbs)))))
+                (reduce process-entry [] bents)))]
+    ret))
 
 (defn core-let
   [bindings body]
