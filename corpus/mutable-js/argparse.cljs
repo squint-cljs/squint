@@ -7,6 +7,9 @@
 
 (parser.add_argument "-f" "--foo" {:help "foo bar"})
 
-(def args (.slice js/process.argv 4))
+(def args (js/process.argv.slice 4))
 
-(js/console.dir (.parse_args parser args))
+(prn (parser.parse_args args))
+
+(let [x {:a {:b 2}}]
+  (prn x.a.b))
