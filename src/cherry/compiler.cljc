@@ -773,7 +773,8 @@ break;}" body)
                    :cljs PersistentHashSet)
   [expr env]
   (emit-wrap env
-             (format "new Set([%s])" (str/join ", " (emit-args env expr)))))
+             (format "new Set([%s])"
+                     (str/join ", " (emit-args (expr-env env) expr)))))
 
 (defn transpile-form [f]
   (emit f {:context :statement}))
