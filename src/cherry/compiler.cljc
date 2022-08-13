@@ -860,9 +860,8 @@ break;}" body)
        (let [transpiled (transpile-string* s)
              imports (when-let [core-vars (and (not elide-imports)
                                                (seq @core-vars))]
-                       (str (format "import { %s } from 'cherry-cljs/core.js'\n"
+                       (str (format "import { %s } from 'clavascript/core.js'\n"
                                     (str/join ", " core-vars))))
-             _ (prn @public-vars )
              exports (when-not elide-exports
                        (str
                         (when-let [vars (disj @public-vars "default$")]
