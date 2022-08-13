@@ -42,6 +42,7 @@ Run `npx clavascript --help` to see all command line options.
 
 ## Differences with ClojureScript
 
+- Expressions are translated to direct JavaScript: there is no CLJS standard library
 - Keywords are translated into strings
 - Maps and vectors are translated into objects and arrays
 - `assoc!` and `dissoc!` perform in place mutation on objects
