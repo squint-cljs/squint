@@ -9,7 +9,7 @@
 (aset js/globalThis "map" cl/map)
 
 (defn eq [a b]
-  (ld/isEqual a b))
+  (ld/isEqual (clj->js a) (clj->js b)))
 
 (def old-fail (get-method t/report [:cljs.test/default :fail]))
 
@@ -131,7 +131,7 @@
 
 (deftest fn-multi-varargs-test
   (is (= 1 (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1)))))
-  (is (= '(3 4) (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1 2 3 4)))))
+  (is (eq '(3 4) (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1 2 3 4)))))
   (is (nil? (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1 2))))))
 
 (deftest defn-test
