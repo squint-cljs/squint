@@ -147,7 +147,7 @@
   (let [s (jss! "(do (defn f [^js {:keys [a b c]}] (+ a b c)) f)")]
     (is (= 6 ((js/eval s) #js {:a 1 :b 2 :c 3}))))
   (let [s (jss! '(do (defn quux [x]
-                       (if (pos? x)
+                       (if (= 1 1)
                          1
                          2))
                      (quux 1)))]
