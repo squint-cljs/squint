@@ -233,7 +233,7 @@
   (is (eq "hello" (jsv! '(str (js/String. "hello"))))))
 
 (deftest quote-test
-  (is (= '{x 1} (jsv! (list 'quote '{x 1}))))
+  (is (eq '{x 1} (jsv! (list 'quote '{x 1}))))
   (is (= '(def x 1) (jsv! (list 'quote '(def x 1))))))
 
 (deftest case-test
