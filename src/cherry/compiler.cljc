@@ -753,6 +753,7 @@ break;}" body)
           (if (<= (count expr) 8)
             'arrayMap
             'hashMap))
+        map-fn nil
         key-fn (if-not map-fn
                  name identity)
         mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) (if map-fn ", " ": ")
@@ -854,7 +855,7 @@ break;}" body)
        (let [transpiled (transpile-string* s)
              imports (when-let [core-vars (and (not elide-imports)
                                                (seq @core-vars))]
-                       (str (format "import { %s } from 'cherry-cljs/cljs.core.js'\n"
+                       (str (format "import { %s } from 'cherry-cljs/core.js'\n"
                                     (str/join ", " core-vars))))
              exports (when-not elide-exports
                        (when-let [vars (disj @public-vars "default$")]
