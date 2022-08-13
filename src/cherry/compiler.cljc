@@ -863,13 +863,16 @@ break;}" body)
                                                (seq @core-vars))]
                        (str (format "import { %s } from 'cherry-cljs/core.js'\n"
                                     (str/join ", " core-vars))))
+             _ (prn @public-vars )
              exports (when-not elide-exports
-                       (when-let [vars (disj @public-vars "default$")]
-                         (when (seq vars)
-                           (str (format "\nexport { %s }\n"
-                                        (str/join ", " vars))
-                                (when (contains? @public-vars "default$")
-                                  "export default default$\n")))))]
+                       (str
+                        (when-let [vars (disj @public-vars "default$")]
+                          (when (seq vars)
+                            (str (format "\nexport { %s }\n"
+                                         (str/join ", " vars)))
+                            ))
+                        (when (contains? @public-vars "default$")
+                          "export default default$\n")))]
          {:imports imports
           :exports exports
           :body transpiled
