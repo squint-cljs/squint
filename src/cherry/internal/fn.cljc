@@ -150,7 +150,7 @@
                    ~(if variadic?
                       `(let [~args-arr [] #_(array)]
                          ~(core-copy-arguments args-arr)
-                         (let [argseq# (when (< ~maxfa (alength ~args-arr))
+                         (let [argseq# (when (< ~maxfa (.-length ~args-arr))
                                          (.slice ~args-arr ~maxfa) #_(new #_:ana/no-resolve cljs.core/IndexedSeq
                                                0 nil))]
                            (. ~rname
