@@ -171,7 +171,7 @@
 
 (deftest defn-varargs-test
   (let [s (jss! '(do (defn foo [x & args] args) (foo 1 2 3)))]
-    (is (= '(2 3) (js/eval s)))))
+    (is (eq '(2 3) (js/eval s)))))
 
 (deftest defn-multi-varargs-test
   (is (= [1 [1 2 '(3 4)]]
