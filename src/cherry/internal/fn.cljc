@@ -37,7 +37,7 @@
 
 (defn core-copy-arguments [dest]
   (let [i-sym (gensym "i")]
-    `(let [len# (alength ~(core-js-arguments))]
+    `(let [len# (.-length ~(core-js-arguments))]
        (loop [~i-sym 0]
          (when (< ~i-sym len#)
            (.push ~dest ~(core-unchecked-get (core-js-arguments) i-sym))
@@ -148,11 +148,11 @@
                  (case (alength ~(core-js-arguments))
                    ~@(mapcat #(fixed-arity rname %) sigs)
                    ~(if variadic?
-                      `(let [~args-arr (array)]
+                      `(let [~args-arr [] #_(array)]
                          ~(core-copy-arguments args-arr)
                          (let [argseq# (when (< ~maxfa (alength ~args-arr))
-                                         (new #_:ana/no-resolve cljs.core/IndexedSeq
-                                              (.slice ~args-arr ~maxfa) 0 nil))]
+                                         (.slice ~args-arr ~maxfa) #_(new #_:ana/no-resolve cljs.core/IndexedSeq
+                                               0 nil))]
                            (. ~rname
                               (~'cljs$core$IFn$_invoke$arity$variadic
                                ~@(dest-args maxfa)
@@ -201,11 +201,11 @@
           args-sym (gensym "args")]
       `(let [~name
              (fn [~'var_args]
-               (let [~args-sym (array)]
+               (let [~args-sym [] #_(array)]
                  ~(core-copy-arguments args-sym)
-                 (let [argseq# (when (< ~c-1 (alength ~args-sym))
-                                 (new ^:ana/no-resolve cljs.core/IndexedSeq
-                                      (.slice ~args-sym ~c-1) 0 nil))]
+                 (let [argseq# (when (< ~c-1 (.-length ~args-sym))
+                                 (.slice ~args-sym ~c-1) #_(new ^:ana/no-resolve cljs.core/IndexedSeq
+                                       0 nil))]
                    (. ~rname (~'cljs$core$IFn$_invoke$arity$variadic ~@(dest-args c-1) argseq#)))))]
          ~(variadic-fn* name method)
          ~name))))
