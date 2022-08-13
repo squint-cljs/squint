@@ -5,11 +5,9 @@
 (def parser (ArgumentParser. {:prog "example.cljs"
                               :description "Example!"}))
 
-(parser.add_argument "-f" "--foo" {:help "foo bar"})
+(parser.add_argument "-f" "--foo" {:help "foo bar yolo"})
 
 (def args (js/process.argv.slice 4))
 
-(prn (parser.parse_args args))
+(js/console.log (parser.parse_args args))
 
-(let [x {:a {:b 2}}]
-  (prn x.a.b))
