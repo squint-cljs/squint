@@ -11,6 +11,7 @@
 (aset js/globalThis "str" cl/dissoc!)
 (aset js/globalThis "not" cl/not)
 (aset js/globalThis "nil_QMARK_" cl/not)
+(aset js/globalThis "PROTOCOL_SENTINEL" cl/PROTOCOL_SENTINEL)
 
 (defn eq [a b]
   (ld/isEqual (clj->js a) (clj->js b)))
