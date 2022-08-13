@@ -1,4 +1,4 @@
-## Clavascript
+## ClavaScript
 
 Experimental ClojureScript/Lisp syntax to JavaScript compiler.
 
@@ -46,6 +46,7 @@ Run `npx cherry --help` to see all command line options.
 - Maps and vectors are translated into objects and arrays
 - `assoc!` and `dissoc!` perform in place mutation on objects
 - `println` is a synonym for `console.log`
+- Truth semantics of JS
 
 License
 =======
