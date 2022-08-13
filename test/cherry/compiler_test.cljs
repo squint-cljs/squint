@@ -122,7 +122,7 @@
   (is (= 1 (jsv! '(do (defn foo [] (fn [x] x)) ((foo) 1))))))
 
 (deftest fn-varargs-test
-  (is (= '(3 4) (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2 3 4)))))
+  (is (eq #js [3 4] (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2 3 4)))))
   (is (nil? (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2))))))
 
 (deftest fn-multi-arity-test
