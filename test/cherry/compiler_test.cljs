@@ -95,7 +95,7 @@
   (let [s (jss! '(let [name (fn [_] 1)]
                    (map name [1 2 3])))]
     (is (eq #js [1 1 1]
-                (js/eval s))))
+            (js/eval s))))
   (let [s (jss! '(let [name (fn [_] 1)
                        name (fn [_] 2)]
                    (map name [1 2 3])))]
@@ -174,13 +174,13 @@
     (is (eq '(2 3) (js/eval s)))))
 
 (deftest defn-multi-varargs-test
-  (is (= [1 [1 2 '(3 4)]]
-         (js/eval
-          (jss! '(do (defn foo
-                       ([x] x)
-                       ([x y & args]
-                        [x y args]))
-                     [(foo 1) (foo 1 2 3 4)]))))))
+  (is (eq [1 [1 2 '(3 4)]]
+          (js/eval
+           (jss! '(do (defn foo
+                        ([x] x)
+                        ([x y & args]
+                         [x y args]))
+                      [(foo 1) (foo 1 2 3 4)]))))))
 
 (deftest loop-test
   (let [s (jss! '(loop [x 1] (+ 1 2 x)))]
