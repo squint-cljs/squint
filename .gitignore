@@ -15,3 +15,4 @@ test/*.mjs
 example.mjs
 /examples/vite/vite-project/cherry.mjs
 .lein-repl-history
+scratch.cljs
