@@ -2,9 +2,10 @@
   "type": "module",
   "name": "cherry-cljs",
   "sideEffects": false,
-  "version": "0.0.0-alpha.51",
+  "version": "0.0.0-mutable-alpha.53",
   "files": [
     "cljs.core.js",
+    "core.js",
     "lib",
     "node_cli.js",
     "index.js"
