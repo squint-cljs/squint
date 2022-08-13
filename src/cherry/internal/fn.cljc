@@ -145,7 +145,7 @@
             (ana/warning :overload-arity {} {:name name}))
         `(let [~name
                (fn [~'var_args]
-                 (case (alength ~(core-js-arguments))
+                 (case (.-length ~(core-js-arguments))
                    ~@(mapcat #(fixed-arity rname %) sigs)
                    ~(if variadic?
                       `(let [~args-arr [] #_(array)]
