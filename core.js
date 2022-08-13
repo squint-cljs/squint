@@ -28,3 +28,11 @@ export function str(...xs) {
   xs.forEach(x => ret = ret + x);
   return ret;
 }
+
+export function not(expr) {
+  return !expr;
+}
+
+export function nil_QMARK_(v) {
+  return v == null;
+}

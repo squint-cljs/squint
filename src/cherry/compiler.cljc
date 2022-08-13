@@ -140,7 +140,7 @@
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break 'throw
                          'js/await 'const 'let 'let* 'ns 'def 'loop*
-                         'recur 'js* 'case* 'deftype*]))
+                         'recur 'js* 'case* 'deftype* 'typeof]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -244,6 +244,9 @@
 
 (defmethod emit-special 'quote [_ env [_ form]]
   (emit-wrap env (emit form (expr-env (assoc env :quote true)))))
+
+(defmethod emit-special 'typeof [_ env [_ form]]
+  (emit-wrap env (str "typeof " (emit form (expr-env env)))))
 
 (defn emit-let [enc-env bindings body is-loop]
   (let [context (:context enc-env)
