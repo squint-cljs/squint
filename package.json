@@ -16,7 +16,7 @@
   "devDependencies": {
     "@vercel/ncc": "^0.34.0",
     "chalk": "^5.0.1",
-    "cherry-cljs": ".",
+    "clavascript": ".",
     "esbuild": "^0.14.49",
     "source-maps": "^1.0.12"
   },

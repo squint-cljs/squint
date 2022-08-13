@@ -12,7 +12,6 @@
   (:require
    #?(:cljs [goog.string.format])
    #?(:cljs [goog.string :as gstring])
-   #?(:clj [cherry.resource :as resource])
    [cherry.internal.deftype :as deftype]
    [cherry.internal.destructure :refer [core-let]]
    [cherry.internal.fn :refer [core-defmacro core-defn core-fn]]
@@ -21,8 +20,7 @@
    [cherry.internal.protocols :as protocols]
    [clojure.string :as str]
    [com.reasonr.string :as rstr]
-   [edamame.core :as e])
-  #?(:cljs (:require-macros [cherry.resource :as resource])))
+   [edamame.core :as e]))
 
 #?(:cljs (def Exception js/Error))
 
@@ -182,7 +180,7 @@
                       'defn core-defn
                       'defn- core-defn})
 
-(def core-config (resource/edn-resource "cherry/cljs.core.edn"))
+(def core-config {:vars '#{assoc! dissoc! println nth}})
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
@@ -190,7 +188,7 @@
 
 (def suffix-unary-operators (set ['++ '--]))
 
-(def infix-operators (set ['+ '+= '- '-= '/ '* '% '== '=== '< '> '<= '>= '!=
+(def infix-operators (set ['+ '+= '- '-= '/ '* '% '= '== '=== '< '> '<= '>= '!=
                            '<< '>> '<<< '>>> '!== '& '| '&& '|| 'not= 'instanceof]))
 
 (def chainable-infix-operators (set ['+ '- '* '/ '& '| '&& '||]))
@@ -226,7 +224,7 @@
     (if (and (= '- operator)
              (= 1 acount))
       (str "-" (emit (first args) env))
-      (->> (let [substitutions {'== '=== '!= '!== 'not= '!==}]
+      (->> (let [substitutions {'= '=== '== '=== '!= '!== 'not= '!==}]
              (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
                                 (emit-args env args)) ")"))
            (emit-wrap enc-env)))))
