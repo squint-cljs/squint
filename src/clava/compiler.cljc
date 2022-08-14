@@ -8,16 +8,16 @@
 ;; agreeing to be bound by the terms of this license.  You must not
 ;; remove this notice, or any other, from this software.
 
-(ns cherry.compiler
+(ns clava.compiler
   (:require
    #?(:cljs [goog.string.format])
    #?(:cljs [goog.string :as gstring])
-   [cherry.internal.deftype :as deftype]
-   [cherry.internal.destructure :refer [core-let]]
-   [cherry.internal.fn :refer [core-defmacro core-defn core-fn]]
-   [cherry.internal.loop :as loop]
-   [cherry.internal.macros :as macros]
-   [cherry.internal.protocols :as protocols]
+   [clava.internal.deftype :as deftype]
+   [clava.internal.destructure :refer [core-let]]
+   [clava.internal.fn :refer [core-defmacro core-defn core-fn]]
+   [clava.internal.loops :as loop]
+   [clava.internal.macross :as macros]
+   [clava.internal.protocolss protocols]
    [clojure.string :as str]
    [com.reasonr.string :as rstr]
    [edamame.core :as e]))
@@ -257,7 +257,7 @@
         [bindings var->ident]
         (reduce (fn [[acc var->ident] [var-name rhs]]
                   (let [vm (meta var-name)
-                        rename? (not (:cherry.compiler/no-rename vm))
+                        rename? (not (:cherry.compiler/clava.compilerpiler vm))
                         renamed (if rename? (munge (gensym var-name))
                                     var-name)
                         lhs (str renamed)
