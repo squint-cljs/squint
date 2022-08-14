@@ -338,6 +338,7 @@
   (is (= -11 (jsv! '(- 10 21)))))
 
 (deftest namespace-keywords
+  (is (eq #js {"foo/bar" "baz"} (jsv! {:foo/bar :baz})))
   (is (eq "hello/world" (jsv! "(ns hello) ::world"))))
 
 (deftest pr-str-test

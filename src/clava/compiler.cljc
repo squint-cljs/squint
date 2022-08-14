@@ -761,22 +761,13 @@ break;}" body)
 (defmethod emit #?(:clj clojure.lang.IPersistentMap
                    :cljs ::map) [expr env]
   (let [expr-env (assoc env :context :expr)
-        map-fn
-        (when-not (::js (meta expr))
-          (if (<= (count expr) 8)
-            'arrayMap
-            'hashMap))
-        map-fn nil
-        key-fn (if-not map-fn
-                 name identity)
-        mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) (if map-fn ", " ": ")
+        key-fn (fn [k] (if-let [ns (namespace k)]
+                         (str ns "/" (name k))
+                         (name k)))
+        mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) ": "
                                 (emit (val pair) expr-env)))
         keys (str/join ", " (map mk-pair (seq expr)))]
-    (when map-fn
-      (swap! *imported-core-vars* conj map-fn))
-    (->> (if map-fn
-           (format "%s(%s)" map-fn keys)
-           (format "({ %s })" keys))
+    (->> (format "({ %s })" keys)
          (emit-wrap env))))
 
 (defmethod emit #?(:clj clojure.lang.PersistentHashSet
