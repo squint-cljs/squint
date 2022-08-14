@@ -742,12 +742,8 @@ break;}" body)
 
 (defmethod emit #?(:clj clojure.lang.IPersistentVector
                    :cljs ::vector) [expr env]
-  (if true #_(::js (meta expr))
-    (emit-wrap env (format "[%s]"
-                           (str/join ", " (emit-args env expr))))
-    (do (swap! *imported-core-vars* conj 'vector)
-        (emit-wrap env (format "vector(%s)"
-                               (str/join ", " (emit-args env expr)))))))
+  (emit-wrap env (format "[%s]"
+                         (str/join ", " (emit-args env expr)))))
 
 #?(:cljs (derive PersistentArrayMap ::map))
 #?(:cljs (derive PersistentHashMap ::map))
@@ -776,10 +772,9 @@ break;}" body)
 (defmethod emit #?(:clj clojure.lang.PersistentHashSet
                    :cljs PersistentHashSet)
   [expr env]
-  (swap! *imported-core-vars* conj 'hash_set)
   (emit-wrap env
-             (format "%s%s" "hash_set"
-                     (comma-list (emit-args env expr)))))
+             (format "new Set([%s])"
+                     (str/join ", " (emit-args (expr-env env) expr)))))
 
 (defn transpile-form [f]
   (emit f {:context :statement}))
