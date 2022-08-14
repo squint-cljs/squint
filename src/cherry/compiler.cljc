@@ -179,8 +179,12 @@
                       'defn core-defn
                       'defn- core-defn})
 
-(def core-config {:vars '#{assoc! dissoc! println nth
-                           map str}})
+(def core-config {:vars '#{assoc! assoc
+                           conj! conj
+                           disj! disj
+                           dissoc! dissoc
+                           println nth
+                           map str inc}})
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
