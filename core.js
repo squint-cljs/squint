@@ -30,6 +30,18 @@ export function conj(o, x) {
   }
 }
 
+export function disj_BANG_(s, ...xs) {
+  for (let x of xs) {
+    s.delete(x);
+  }
+  return s;
+}
+
+export function disj(s, ...xs) {
+  let s1 = new Set([...s]);
+  return disj_BANG_(s1, ...xs);
+}
+
 export function dissoc_BANG_(m, k) {
   delete m[k];
   return m;
