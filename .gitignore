@@ -11,6 +11,7 @@ dist
 .work
 test/scratch.cjs
 *.mjs
+!/examples/wordle/wordle.mjs
 test/*.mjs
 example.mjs
 /examples/vite/vite-project/cherry.mjs
