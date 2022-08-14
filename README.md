@@ -41,6 +41,15 @@ true
 
 Run `npx clava --help` to see all command line options.
 
+## Why Clava
+
+The selling point of clavascript is that you can write with CLJS syntax but get
+really small JS output, while still having parts of the standard library
+available (with caveats, based on mutable data structures). This may work for
+small projects e.g. that you'd like to deploy on CloudFlare workers, node
+scripts, Github actions, etc. that need the extra performance and small bundle
+size.
+
 ## Differences with ClojureScript
 
 - Clava does not protect you in any way from the pitfalls of JS with regards to truthiness, mutability and equality
