@@ -6,6 +6,11 @@ export function assoc_BANG_(m, k, v, ...kvs) {
   else return m;
 }
 
+export function assoc(o, k, v, ...kvs) {
+  let o2 = { ...o };
+  return assoc_BANG_(o2, k, v, ...kvs);
+}
+
 let object = Object.getPrototypeOf({});
 let array = Object.getPrototypeOf([]);
 let set = Object.getPrototypeOf(new Set());
