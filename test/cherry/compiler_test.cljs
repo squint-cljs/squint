@@ -302,8 +302,8 @@
                      (set! (.-x x) 2)
                      (foo x))))))
 
-#_(deftest set-test
-  (is (= #{1 2 3 4 5 6} (jsv! '(into #{1 2 3} #{4 5 6})))))
+(deftest set-test
+  (is (ld/isEqual (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
 
 (deftest await-test
   (async done
