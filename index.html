@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Cherry</title>
+    <title>Clava</title>
     <meta content="width=device-width, initial-scale=1" name="viewport">
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
     <meta content="utf-8" http-equiv="encoding">
@@ -9,13 +9,13 @@
     <script type="importmap">
       {
         "imports": {
-          "cherry-cljs": "https://cdn.jsdelivr.net/npm/cherry-cljs@0.0.0-alpha.51/index.js",
-          "cherry-cljs/cljs.core.js": "https://cdn.jsdelivr.net/npm/cherry-cljs@0.0.0-alpha.51/cljs.core.js"
+          "clavascript": "https://cdn.jsdelivr.net/npm/clavascript@0.0.0-alpha.7/index.js",
+          "clavascript/core.js": "https://cdn.jsdelivr.net/npm/clavascript@0.0.0-alpha.7/core.js"
         }
       }
     </script>
     <script type="module">
-      import { compileString } from 'cherry-cljs'
+      import { compileString } from 'clavascript'
       var counter = 0;
       window.compile = () => {
         counter = counter + 1;
