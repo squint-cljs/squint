@@ -1,6 +1,6 @@
-(ns cherry.internal.deftype
-  (:require [clojure.core :as core]
-            [cherry.internal.protocols :as p]))
+(ns clava.internal.deftype
+  (:require [clava.internal.protocols :as p]
+            [clojure.core :as core]))
 
 (def fast-path-protocols
   "protocol fqn -> [partition number, bit]"

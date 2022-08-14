@@ -1,8 +1,8 @@
 {:min-bb-version "0.9.161"
  :paths ["src" "resources" "bb"]
  :tasks {:requires ([tasks :as t])
-         build (t/build-cherry-npm-package)
+         build (t/build-clava-npm-package)
          publish (t/publish)
-         dev (t/watch-cherry)
+         dev (t/watch-clava)
          test {:doc "Run tests"
-               :task (t/test-cherry)}}}
+               :task (t/test-clava)}}}

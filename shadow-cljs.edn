@@ -1,6 +1,6 @@
 {:deps {:aliases [:cljs]}
  :builds
- {:cherry
+ {:clava
   {:js-options {;; don't bundle any npm libs
                 :js-provider :import}
    :compiler-options {:infer-externs :auto}
@@ -8,7 +8,7 @@
    :runtime :node
    :output-dir "lib"
    :modules
-   ;; note: this is overriden in bb build-cherry
+   ;; note: this is overriden in bb build-clava
    {:cljs_core {:exports {assoc cljs.core/assoc
                           map cljs.core/map
                           str cljs.core/str
@@ -30,8 +30,8 @@
                           goog_typeOf goog/typeOf}}
     :compiler {:depends-on #{:cljs_core}
                :exports
-               {compileString cherry.compiler/compile-string}}
+               {compileString clava.compiler/compile-string}}
     :cli {:depends-on #{:compiler}
-          :init-fn cherry.internal.cli/init}}
+          :init-fn clava.internal.cli/init}}
    :build-hooks [(shadow.cljs.build-report/hook
                   {:output-to "report.html"})]}}}
