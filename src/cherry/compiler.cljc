@@ -180,7 +180,8 @@
                       'defn- core-defn})
 
 (def core-config {:vars '#{assoc! assoc
-                           conj disj
+                           conj! conj
+                           disj
                            dissoc! dissoc
                            println nth
                            map str inc}})

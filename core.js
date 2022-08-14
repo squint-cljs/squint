@@ -15,18 +15,38 @@ let object = Object.getPrototypeOf({});
 let array = Object.getPrototypeOf([]);
 let set = Object.getPrototypeOf(new Set());
 
-export function conj(o, x) {
+export function conj_BANG_(o, x, ...xs) {
+  switch (Object.getPrototypeOf(o)) {
+    case object:
+      o[x[0]] = x[1];
+      break;
+    case array:
+      o.push(x);
+      break;
+    case set:
+      o.add(x);
+      break;
+    default:
+      o.conj_BANG_(x);
+  }
+  if (xs.length != 0) {
+    return conj_BANG_(o, ...xs);
+  }
+  return o;
+}
+
+export function conj(o, x, ...xs) {
   switch (Object.getPrototypeOf(o)) {
     case object:
       let o2 = {...o};
-      o2[x[0]] = x[1];
-      return o2;
+      console.log("obj")
+      return conj_BANG_(o2, x, ...xs);
     case array:
-      return [...o, x];
+      return [...o, x, ...xs];
     case set:
-      return new Set([...o, x]);
+      return new Set([...o, x, ...xs]);
     default:
-      return o.conj(x);
+      return o.conj(x, ...xs);
   }
 }
 
