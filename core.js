@@ -11,9 +11,9 @@ export function assoc(o, k, v, ...kvs) {
   return assoc_BANG_(o2, k, v, ...kvs);
 }
 
-let object = Object.getPrototypeOf({});
-let array = Object.getPrototypeOf([]);
-let set = Object.getPrototypeOf(new Set());
+const object = Object.getPrototypeOf({});
+const array = Object.getPrototypeOf([]);
+const set = Object.getPrototypeOf(new Set());
 
 export function conj_BANG_(o, x, ...xs) {
   switch (Object.getPrototypeOf(o)) {
@@ -39,7 +39,6 @@ export function conj(o, x, ...xs) {
   switch (Object.getPrototypeOf(o)) {
     case object:
       let o2 = {...o};
-      console.log("obj")
       return conj_BANG_(o2, x, ...xs);
     case array:
       return [...o, x, ...xs];
