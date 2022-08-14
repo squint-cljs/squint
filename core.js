@@ -35,6 +35,11 @@ export function dissoc_BANG_(m, k) {
   return m;
 }
 
+export function dissoc(m, k) {
+  let m2 = { ...m };
+  return dissoc_BANG_(m2, k);
+}
+
 export function inc(n) {
     return n+1;
 }
