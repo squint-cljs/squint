@@ -9,7 +9,7 @@
 ;;   software.
 
 (ns clava.internal.loop
-  (:require [cherry.internal.destructure :refer [destructure]]))
+  (:require [clava.internal.destructure :refer [destructure]]))
 
 (defn core-loop
   "Evaluates the exprs in a lexical context in which the symbols in

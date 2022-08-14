@@ -1,6 +1,6 @@
 {:deps {:aliases [:cljs]}
  :builds
- {:cherry
+ {:clava
   {:js-options {;; don't bundle any npm libs
                 :js-provider :import}
    :compiler-options {:infer-externs :auto}
@@ -8,7 +8,7 @@
    :runtime :node
    :output-dir "lib"
    :modules
-   ;; note: this is overriden in bb build-cherry
+   ;; note: this is overriden in bb build-clava
    {:cljs_core {:exports {assoc cljs.core/assoc
                           map cljs.core/map
                           str cljs.core/str

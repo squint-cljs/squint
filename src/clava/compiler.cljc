@@ -15,9 +15,9 @@
    [clava.internal.deftype :as deftype]
    [clava.internal.destructure :refer [core-let]]
    [clava.internal.fn :refer [core-defmacro core-defn core-fn]]
-   [clava.internal.loops :as loop]
-   [clava.internal.macross :as macros]
-   [clava.internal.protocolss protocols]
+   [clava.internal.loop :as loop]
+   [clava.internal.macros :as macros]
+   [clava.internal.protocols :as protocols]
    [clojure.string :as str]
    [com.reasonr.string :as rstr]
    [edamame.core :as e]))
@@ -261,7 +261,7 @@
         [bindings var->ident]
         (reduce (fn [[acc var->ident] [var-name rhs]]
                   (let [vm (meta var-name)
-                        rename? (not (:cherry.compiler/clava.compilerpiler vm))
+                        rename? (not (:clava.compiler/no-rename vm))
                         renamed (if rename? (munge (gensym var-name))
                                     var-name)
                         lhs (str renamed)
@@ -825,7 +825,7 @@ break;}" body)
   (set! *jsx* true)
   (html form))
 
-(def cherry-parse-opts
+(def clava-parse-opts
   (e/normalize-opts
    {:all true
     :end-location false
@@ -837,7 +837,7 @@ break;}" body)
 
 (defn transpile-string* [s]
   (let [rdr (e/reader s)
-        opts cherry-parse-opts]
+        opts clava-parse-opts]
     (loop [transpiled ""]
       (let [opts (assoc opts :auto-resolve @*aliases*)
             next-form (e/parse-next rdr opts)]
