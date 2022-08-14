@@ -30,8 +30,8 @@
                           goog_typeOf goog/typeOf}}
     :compiler {:depends-on #{:cljs_core}
                :exports
-               {compileString cherry.compiler/compile-string}}
+               {compileString clava.compiler/compile-string}}
     :cli {:depends-on #{:compiler}
-          :init-fn cherry.internal.cli/init}}
+          :init-fn clava.internal.cli/init}}
    :build-hooks [(shadow.cljs.build-report/hook
                   {:output-to "report.html"})]}}}
