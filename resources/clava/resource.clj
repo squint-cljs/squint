@@ -1,4 +1,4 @@
-(ns cherry.resource
+(ns clava.resource
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]))
 

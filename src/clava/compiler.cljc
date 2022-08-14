@@ -8,16 +8,16 @@
 ;; agreeing to be bound by the terms of this license.  You must not
 ;; remove this notice, or any other, from this software.
 
-(ns cherry.compiler
+(ns clava.compiler
   (:require
    #?(:cljs [goog.string.format])
    #?(:cljs [goog.string :as gstring])
-   [cherry.internal.deftype :as deftype]
-   [cherry.internal.destructure :refer [core-let]]
-   [cherry.internal.fn :refer [core-defmacro core-defn core-fn]]
-   [cherry.internal.loop :as loop]
-   [cherry.internal.macros :as macros]
-   [cherry.internal.protocols :as protocols]
+   [clava.internal.deftype :as deftype]
+   [clava.internal.destructure :refer [core-let]]
+   [clava.internal.fn :refer [core-defmacro core-defn core-fn]]
+   [clava.internal.loop :as loop]
+   [clava.internal.macros :as macros]
+   [clava.internal.protocols :as protocols]
    [clojure.string :as str]
    [com.reasonr.string :as rstr]
    [edamame.core :as e]))
@@ -261,7 +261,7 @@
         [bindings var->ident]
         (reduce (fn [[acc var->ident] [var-name rhs]]
                   (let [vm (meta var-name)
-                        rename? (not (:cherry.compiler/no-rename vm))
+                        rename? (not (:clava.compiler/no-rename vm))
                         renamed (if rename? (munge (gensym var-name))
                                     var-name)
                         lhs (str renamed)
@@ -825,7 +825,7 @@ break;}" body)
   (set! *jsx* true)
   (html form))
 
-(def cherry-parse-opts
+(def clava-parse-opts
   (e/normalize-opts
    {:all true
     :end-location false
@@ -837,7 +837,7 @@ break;}" body)
 
 (defn transpile-string* [s]
   (let [rdr (e/reader s)
-        opts cherry-parse-opts]
+        opts clava-parse-opts]
     (loop [transpiled ""]
       (let [opts (assoc opts :auto-resolve @*aliases*)
             next-form (e/parse-next rdr opts)]

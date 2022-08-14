@@ -8,7 +8,7 @@
 ;;   license.  You must not remove this notice, or any other, from this
 ;;   software.
 
-(ns cherry.internal.macros
+(ns clava.internal.macros
   (:require [clojure.string :as str]))
 
 (defn core->

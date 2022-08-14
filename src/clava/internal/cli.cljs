@@ -1,9 +1,9 @@
-(ns cherry.internal.cli
+(ns clava.internal.cli
   (:require
    ["fs" :as fs]
    [babashka.cli :as cli]
-   [cherry.compiler :as cc]
-   [cherry.compiler.node :as compiler]
+   [clava.compiler :as cc]
+   [clava.compiler.node :as compiler]
    [shadow.esm :as esm]))
 
 (defn compile-files

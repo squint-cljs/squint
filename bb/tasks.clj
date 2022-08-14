@@ -13,8 +13,8 @@
 
 (defn shadow-extra-config
   []
-  (let [core-config (edn/read-string (slurp (io/resource "cherry/cljs.core.edn")))
-        reserved (edn/read-string (slurp (io/resource "cherry/js_reserved.edn")))
+  (let [core-config (edn/read-string (slurp (io/resource "clava/cljs.core.edn")))
+        reserved (edn/read-string (slurp (io/resource "clava/js_reserved.edn")))
         vars (:vars core-config)
         ks (map #(symbol (munge* % reserved)) vars)
         vs (map #(symbol "cljs.core" (str %)) vars)
@@ -25,7 +25,7 @@
 
 (def test-config
   '{:compiler-options {:load-tests true}
-    :modules {:cherry_tests {:init-fn cherry.compiler-test/init
+    :modules {:clava_tests {:init-fn clava.compiler-test/init
                              :depends-on #{:compiler}}}})
 
 (defn shadow-extra-test-config []
@@ -34,25 +34,25 @@
    (shadow-extra-config)
    test-config))
 
-(defn build-cherry-npm-package []
+(defn build-clava-npm-package []
   (fs/create-dirs ".work")
   (fs/delete-tree "lib")
   (fs/delete-tree ".shadow-cljs")
   (spit ".work/config-merge.edn" (shadow-extra-config))
-  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release cherry"))
+  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release clava"))
 
 (defn publish []
-  (build-cherry-npm-package)
+  (build-clava-npm-package)
   (run! fs/delete (fs/glob "lib" "*.map"))
   (shell "npm publish"))
 
-(defn watch-cherry []
+(defn watch-clava []
   (fs/create-dirs ".work")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
-  (shell "npx shadow-cljs --config-merge .work/config-merge.edn watch cherry"))
+  (shell "npx shadow-cljs --config-merge .work/config-merge.edn watch clava"))
 
-(defn test-cherry []
+(defn test-clava []
   (fs/create-dirs ".work")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
-  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release cherry")
-  (shell "node lib/cherry_tests.js"))
+  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release clava")
+  (shell "node lib/clava_tests.js"))
