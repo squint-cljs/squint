@@ -12,6 +12,7 @@
 (aset js/globalThis "not" cl/not)
 (aset js/globalThis "nil_QMARK_" cl/not)
 (aset js/globalThis "pr_str" cl/pr_str)
+(aset js/globalThis "conj" cl/conj)
 (aset js/globalThis "PROTOCOL_SENTINEL" cl/PROTOCOL_SENTINEL)
 
 (defn eq [a b]
@@ -341,6 +342,9 @@
 
 (deftest pr-str-test
   (is (eq (js/Set. #js ["a" "b" "c"]) (js/Set. (js/JSON.parse (jsv! '(pr-str #{:a :b :c})))))))
+
+(deftest conj-test
+  (is (eq [1 2 3 4] (jsv! '(conj [1 2 3] 4)))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
