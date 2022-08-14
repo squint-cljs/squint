@@ -46,9 +46,10 @@ Run `npx clava --help` to see all command line options.
 - There is no CLJS standard library. The `"clavascript/core.js"` module has similar JS equivalents
 - Keywords are translated into strings
 - Maps and vectors are compiled as mutable objects and arrays
-- `assoc!`, `dissoc!`, `conj!` perform in place mutation on objects
-- `assoc`, `dissoc`, `conj` return a new shallow copy of objects
+- `assoc!`, `dissoc!`, `conj!`, etc. perform in place mutation on objects
+- `assoc`, `dissoc`, `conj`, etc. return a new shallow copy of objects
 - `println` is a synonym for `console.log`
+- `pr-str` and `prn` coerce values to a string using `JSON.stringify`
 
 ## Open questions
 
