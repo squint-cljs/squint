@@ -31,13 +31,12 @@
   </head>
   <body>
     <div>
-      <textarea rows="7" cols="80" id="cljsCode">(ns demo
-  (:require ["https://cdn.skypack.dev/canvas-confetti$default" :as confetti]))
+      <textarea rows="7" cols="80" id="cljsCode">(def x {:a 1})
 
-(defn go! []
-  (confetti))
+(assoc! x :b 2)
 
-(go!)</textarea>
+(js/alert (pr-str x))
+</textarea>
     </div>
     <div>
       <button onClick="compile()">
