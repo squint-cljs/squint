@@ -11,6 +11,7 @@
 (aset js/globalThis "str" cl/dissoc!)
 (aset js/globalThis "not" cl/not)
 (aset js/globalThis "nil_QMARK_" cl/not)
+(aset js/globalThis "pr_str" cl/pr_str)
 (aset js/globalThis "PROTOCOL_SENTINEL" cl/PROTOCOL_SENTINEL)
 
 (defn eq [a b]
@@ -337,6 +338,9 @@
 
 (deftest namespace-keywords
   (is (eq "hello/world" (jsv! "(ns hello) ::world"))))
+
+(deftest pr-str-test
+  (is (eq (js/Set. #js ["a" "b" "c"]) (js/Set. (js/JSON.parse (jsv! '(pr-str #{:a :b :c})))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))

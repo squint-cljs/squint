@@ -103,3 +103,18 @@ export function nil_QMARK_(v) {
 }
 
 export const PROTOCOL_SENTINEL = {};
+
+function pr_str_1(x) {
+  return JSON.stringify(
+    x,
+    (_key, value) => (value instanceof Set ? [...value] : value)
+  );
+}
+
+export function pr_str(...xs) {
+  return xs.map(pr_str_1).join(" ");
+}
+
+export function prn(...xs) {
+  println(pr_str(...xs));
+}

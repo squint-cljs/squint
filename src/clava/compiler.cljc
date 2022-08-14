@@ -184,7 +184,8 @@
                            disj! disj
                            dissoc! dissoc
                            println nth
-                           map str inc}})
+                           map str inc
+                           prn pr-str}})
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
