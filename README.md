@@ -1,6 +1,6 @@
 ## ClavaScript
 
-Experimental ClojureScript syntax to JavaScript compiler.
+ClavaScript, or clava for short is an experimental ClojureScript syntax to JavaScript compiler.
 
 > :warning: This project is an experiment and not recommended to be used in
 > production. It currently has many bugs and will undergo many breaking changes.
@@ -38,16 +38,21 @@ true
 6
 ```
 
-Run `npx clavascript --help` to see all command line options.
+Run `npx clava --help` to see all command line options.
 
 ## Differences with ClojureScript
 
-- There is no CLJS standard library
+- Clava does not protect you in any way from the pitfalls of JS with regards to truthiness, mutability and equality
+- There is no CLJS standard library. The `"clavascript/core.js"` module has similar JS equivalents
 - Keywords are translated into strings
-- Maps and vectors are translated into objects and arrays
-- `assoc!` and `dissoc!` perform in place mutation on objects
+- Maps and vectors are compiled as mutable objects and arrays
+- `assoc!`, `dissoc!`, `conj!` perform in place mutation on objects
+- `assoc`, `dissoc`, `conj` return a new shallow copy of objects
 - `println` is a synonym for `console.log`
-- Truth semantics of JS
+
+## Open questions
+
+- TC39 records and tuples are immutable but not widely supported. It's not yet sure how they will fit within clava.
 
 License
 =======
