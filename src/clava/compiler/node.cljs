@@ -22,7 +22,7 @@
 
 (defn scan-macros [file]
   (let [s (slurp file)
-        maybe-ns (e/parse-next (e/reader s) compiler/cherry-parse-opts)]
+        maybe-ns (e/parse-next (e/reader s) compiler/clava-parse-opts)]
     (when (and (seq? maybe-ns)
                (= 'ns (first maybe-ns)))
       (let [[_ns _name & clauses] maybe-ns
