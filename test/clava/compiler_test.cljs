@@ -1,8 +1,8 @@
-(ns cherry.compiler-test
+(ns clava.compiler-test
   (:require
    ["clavascript/core.js" :as cl]
    ["lodash$default" :as ld]
-   [cherry.compiler :as cherry]
+   [clava.compiler :as clava]
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is]]))
 
@@ -30,8 +30,8 @@
 
 (defn jss! [expr]
   (if (string? expr)
-    (:body (cherry/compile-string* expr))
-    (cherry/transpile-form expr)))
+    (:body (clava/compile-string* expr))
+    (clava/transpile-form expr)))
 
 (defn js! [expr]
   (let [js (jss! expr)]
@@ -339,4 +339,4 @@
   (is (eq "hello/world" (jsv! "(ns hello) ::world"))))
 
 (defn init []
-  (cljs.test/run-tests 'cherry.compiler-test))
+  (cljs.test/run-tests 'clava.compiler-test))

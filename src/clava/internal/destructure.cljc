@@ -8,7 +8,7 @@
 ;;   license.  You must not remove this notice, or any other, from this
 ;;   software.
 
-(ns cherry.internal.destructure
+(ns clava.internal.destructure
   (:refer-clojure :exclude [destructure]))
 
 (defn destructure [bindings]
