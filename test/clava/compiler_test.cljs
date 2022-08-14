@@ -4,7 +4,7 @@
    ["lodash$default" :as ld]
    [clava.compiler :as clava]
    [clojure.string :as str]
-   [clojure.test :as t :refer [async deftest is]]))
+   [clojure.test :as t :refer [async deftest is testing]]))
 
 (aset js/globalThis "map" cl/map)
 (aset js/globalThis "dissoc_BANG_" cl/dissoc!)
@@ -345,7 +345,33 @@
   (is (eq (js/Set. #js ["a" "b" "c"]) (js/Set. (js/JSON.parse (jsv! '(pr-str #{:a :b :c})))))))
 
 (deftest conj-test
-  (is (eq [1 2 3 4] (jsv! '(conj [1 2 3] 4)))))
+  (testing "corner cases"
+    (is (eq [], (jsv! '(conj))))
+    (is (eq [], (jsv! '(conj nil))))
+    (is (eq [1 2], (jsv! '(conj nil 1 2)))))
+  (testing "arrays"
+    (is (eq [1 2 3 4] (jsv! '(conj [1 2 3 4]))))
+    (is (eq [1 2 3 4] (jsv! '(conj [1 2 3] 4))))
+    (is (eq [1 2 3 4] (jsv! '(conj [1 2] 3 4)))))
+  (testing "sets"
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2 3 4}))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2 3} 4))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2} 3 4)))))
+  #_(testing "maps"
+    (is (eq (js/Map. #js [["a" "b"] ["c" "d"]]) (jsv! '(conj #js {"a" "b" "c" "d"}))))
+    (is (eq (js/Map. #js [[1 2] [3 4]]) (jsv! '(conj {1 2} [3 4]))))
+    (is (eq (js/Map. #js [[1 2] [3 4] [5 6]]) (jsv! '(conj {1 2} [3 4] [5 6])))))
+  #_(testing "objects"
+    (is (eq #js {"a" "b" "c" "d"} (jsv! '(conj #js {"a" "b" "c" "d"})))))
+  #_(testing "other types"
+    (is (isa? Error (jsv! '(conj "foo"))))))
+
+(deftest assoc-test
+  (testing "arrays"
+    (is (eq [1 2 8 4] (jsv! (assoc [1 2 3 4] 2 8))))
+    (is (eq [6 2 8 4] (jsv! (assoc [1 2 3 4] 2 8 0 6)))))
+  #_(testing "maps")
+  #_(testing "objects"))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))

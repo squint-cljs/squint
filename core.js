@@ -1,56 +1,104 @@
-export function assoc_BANG_(m, k, v, ...kvs) {
-  m[k] = v;
-  if (kvs.length != 0) {
-    return assoc_BANG_(m, ...kvs);
+function assoc_BANG_(m, k, v, ...kvs) {
+  if (kvs.length % 2 !== 0) {
+    throw new Error('Illegal argument: assoc expects an odd number of arguments.');
   }
-  else return m;
+
+  if (m instanceof Map) {
+    m.set(k, v);
+
+    for (let i = 0; i < kvs.length; i += 2) {
+      m.set(kvs[i], m[kvs[i + 1]]);
+    }
+  } else if (m instanceof Object) {
+    m[k] = v;
+
+    for (let i = 0; i < kvs.length; i += 2) {
+      m[kvs[i]] = m[kvs[i + 1]];
+    }
+  } else {
+    throw new Error(
+      'Illegal argument: assoc! expects a Map, Array, or Object as the first argument.'
+    );
+  }
+
+  return m;
 }
 
 export function assoc(o, k, v, ...kvs) {
-  let o2 = { ...o };
-  return assoc_BANG_(o2, k, v, ...kvs);
+  if (!o instanceof Object) {
+    throw new Error(
+      'Illegal argument: assoc expects a Map, Array, or Object as the first argument.'
+    );
+  }
+  return assoc_BANG_({ ...o }, k, v, ...kvs);
 }
 
-const object = Object.getPrototypeOf({});
-const array = Object.getPrototypeOf([]);
-const set = Object.getPrototypeOf(new Set());
+function conj_BANG_(...xs) {
+  let [o, ...rest] = xs;
 
-export function conj_BANG_(o, x, ...xs) {
-  switch (Object.getPrototypeOf(o)) {
-  case object:
-    o[x[0]] = x[1];
-    break;
-  case array:
-    o.push(x);
-    break;
-  case set:
-    o.add(x);
-    break;
-  default:
-    o.conj_BANG_(x);
+  if (o === null || o === undefined) {
+    o = [];
   }
-  if (xs.length != 0) {
-    return conj_BANG_(o, ...xs);
+
+  if (o instanceof Set) {
+    for (const x of rest) {
+      o.add(x);
+    }
+  } else if (o instanceof Array) {
+    o.push(...rest);
+  } else if (o instanceof Map) {
+    for (const x of rest) {
+      o.set(x[0], x[1]);
+    }
+  } else if (o instanceof Object) {
+    for (const x of rest) {
+      o[x[0]] = x[1];
+    }
+  } else {
+    throw new Error(
+      'Illegal argument: conj! expects a Set, Array, Map, or Object as the first argument.'
+    );
   }
+
   return o;
 }
 
-export function conj(o, x, ...xs) {
-  switch (Object.getPrototypeOf(o)) {
-  case object:
-    let o2 = {...o};
-    return conj_BANG_(o2, x, ...xs);
-  case array:
-    return [...o, x, ...xs];
-  case set:
-    return new Set([...o, x, ...xs]);
-  default:
-    return o.conj(x, ...xs);
+export function conj(...xs) {
+  let [o, ...rest] = xs;
+
+  if (o === null || o === undefined) {
+    o = [];
   }
+
+  if (o instanceof Set) {
+    return new Set([...o, ...rest]);
+  } else if (o instanceof Array) {
+    return [...o, ...rest];
+  } else if (o instanceof Map) {
+    const m = new Map(o);
+
+    for (const x of rest) {
+      m.set(x[0], x[1]);
+    }
+
+    return m;
+  } else if (o instanceof Object) {
+    const o2 = { ...o };
+
+    for (const x of rest) {
+      o2[x[0]] = x[1];
+    }
+
+    return o2;
+  }
+
+  throw new Error(
+    'Illegal argument: conj expects a Set, Array, Map, or Object as the first argument.'
+  );
 }
 
 export function disj_BANG_(s, ...xs) {
-  for (let x of xs) {
+  for (const x of xs) {
     s.delete(x);
   }
   return s;
