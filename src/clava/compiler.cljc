@@ -184,8 +184,13 @@
                            disj! disj
                            dissoc! dissoc
                            println nth
-                           map str inc
-                           prn pr-str}})
+                           map mapv map-indexed
+                           str inc dec
+                           prn pr-str
+                           atom Atom reset! swap! deref
+                           range re-matches
+                           subvec vector vec
+                           apply}})
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
