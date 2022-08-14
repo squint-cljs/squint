@@ -1,6 +1,7 @@
 ## ClavaScript
 
-ClavaScript, or clava for short is an experimental ClojureScript syntax to JavaScript compiler.
+ClavaScript, or clava for friends, is an experimental ClojureScript syntax to
+JavaScript compiler.
 
 > :warning: This project is an experiment and not recommended to be used in
 > production. It currently has many bugs and will undergo many breaking changes.
