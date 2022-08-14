@@ -25,7 +25,7 @@
 
 (def test-config
   '{:compiler-options {:load-tests true}
-    :modules {:cherry_tests {:init-fn cherry.compiler-test/init
+    :modules {:cherry_tests {:init-fn clava.compiler-test/init
                              :depends-on #{:compiler}}}})
 
 (defn shadow-extra-test-config []
