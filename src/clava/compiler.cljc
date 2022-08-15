@@ -761,7 +761,7 @@ break;}" body)
 (defmethod emit #?(:clj clojure.lang.IPersistentMap
                    :cljs ::map) [expr env]
   (let [expr-env (assoc env :context :expr)
-        key-fn (fn [k] (if-let [ns (namespace k)]
+        key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
                          (str ns "/" (name k))
                          (name k)))
         mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) ": "
