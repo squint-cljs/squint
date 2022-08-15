@@ -13,6 +13,7 @@
 (aset js/globalThis "nil_QMARK_" cl/not)
 (aset js/globalThis "pr_str" cl/pr_str)
 (aset js/globalThis "conj" cl/conj)
+(aset js/globalThis "conj_BANG_" cl/conj!)
 (aset js/globalThis "assoc" cl/assoc)
 (aset js/globalThis "assoc_BANG_" cl/assoc!)
 (aset js/globalThis "PROTOCOL_SENTINEL" cl/PROTOCOL_SENTINEL)
@@ -364,22 +365,116 @@
     (is (eq #js {"1" 2 "3" 4} (jsv! '(conj {"1" 2} ["3" 4]))))
     (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(conj {"1" 2} ["3" 4] ["5" 6])))))
   (testing "maps"
-    (is (eq (js/Map. #js [#js ["a" "b"] #js ["c" "d"]]) (jsv! '(conj (js/Map. [["a" "b"] ["c" "d"]])))))
-    (is (eq (js/Map. #js [#js [1 2] #js [3 4]]) (jsv! '(conj (js/Map. [[1 2]]) [3 4]))))
-    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]]) (jsv! '(conj (js/Map. [[1 2]]) [3 4] [5 6])))))
+    (is (eq (js/Map. #js [#js ["a" "b"] #js ["c" "d"]])
+            (jsv! '(conj (js/Map. [["a" "b"] ["c" "d"]])))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(conj (js/Map. [[1 2]]) [3 4]))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(conj (js/Map. [[1 2]]) [3 4] [5 6])))))
   (testing "other types"
     (is (thrown? js/Error (jsv! '(conj "foo"))))))
 
+(deftest conj!-test
+  (testing "corner cases"
+    (is (eq [], (jsv! '(conj!))))
+    (is (eq [], (jsv! '(conj! nil))))
+    (is (eq [1 2], (jsv! '(conj! nil 1 2)))))
+  (testing "arrays"
+    (is (eq [1 2 3 4] (jsv! '(conj! [1 2 3 4]))))
+    (is (eq [1 2 3 4] (jsv! '(conj! [1 2 3] 4))))
+    (is (eq [1 2 3 4] (jsv! '(let [x [1 2 3]]
+                               (conj! x 4)
+                               x))))
+    (is (eq [1 2 3 4] (jsv! '(conj! [1 2] 3 4))))
+    (is (eq [1 2 3 4] (jsv! '(let [x [1 2]]
+                               (conj! x 3 4)
+                               x)))))
+  (testing "sets"
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3 4}))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3} 4))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(let [x #{1 2 3}]
+                                             (conj! x 4)
+                                             x))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2} 3 4))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(let [x #{1 2}]
+                                             (conj! x 3 4)
+                                             x)))))
+  (testing "objects"
+    (is (eq #js {:a "b" :c "d"} (jsv! '(conj! {:a "b" :c "d"}))))
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(conj! {"1" 2} ["3" 4]))))
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(let [x {"1" 2}]
+                                       (conj! x ["3" 4])
+                                       x))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(conj! {"1" 2} ["3" 4] ["5" 6]))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(let [x {"1" 2}]
+                                             (conj! x ["3" 4] ["5" 6])
+                                             x)))))
+  (testing "maps"
+    (is (eq (js/Map. #js [#js ["a" "b"] #js ["c" "d"]])
+            (jsv! '(conj! (js/Map. [["a" "b"] ["c" "d"]])))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(conj! (js/Map. [[1 2]]) [3 4]))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(let [x (js/Map. [[1 2]])]
+                     (conj! x [3 4])))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(conj! (js/Map. [[1 2]]) [3 4] [5 6]))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(let [x (js/Map. [[1 2]])]
+                     (conj! x [3 4] [5 6])
+                     x)))))
+  (testing "other types"
+    (is (thrown? js/Error (jsv! '(conj! "foo"))))))
+
 (deftest assoc-test
   (testing "arrays"
-    (is (eq [1 2 8 4] (jsv! (assoc [1 2 3 4] 2 8))))
-    (is (eq [6 2 8 4] (jsv! (assoc [1 2 3 4] 2 8 0 6)))))
+    (is (eq [1 2 8 4] (jsv! '(assoc [1 2 3 4] 2 8))))
+    (is (eq [6 2 8 4] (jsv! '(assoc [1 2 3 4] 2 8 0 6)))))
   (testing "objects"
     (is (eq #js {"1" 2 "3" 4} (jsv! '(assoc {"1" 2} "3" 4))))
     (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(assoc {"1" 2} "3" 4 "5" 6)))))
   (testing "maps"
-    (is (eq (js/Map. #js [#js [1 2] #js [3 4]]) (jsv! '(assoc (js/Map. [[1 2]]) 3 4))))
-    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]]) (jsv! '(assoc (js/Map. [[1 2]]) 3 4 5 6))))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(assoc (js/Map. [[1 2]]) 3 4))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(assoc (js/Map. [[1 2]]) 3 4 5 6)))))
+  (testing "other types"
+    (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))))
+
+(deftest assoc!-test
+  (testing "arrays"
+    (is (eq [1 2 8 4] (jsv! '(assoc! [1 2 3 4] 2 8))))
+    (is (eq [1 2 8 4] (jsv! '(let [x [1 2 3 4]]
+                               (assoc! x 2 8)
+                               x))))
+    (is (eq [6 2 8 4] (jsv! '(assoc! [1 2 3 4] 2 8 0 6))))
+    (is (eq [6 2 8 4] (jsv! '(let [x [1 2 3 4]]
+                               (assoc! x 2 8 0 6)
+                               x)))))
+  (testing "objects"
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(assoc! {"1" 2} "3" 4))))
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(let [x {"1" 2}]
+                                       (assoc! x "3" 4)
+                                       x))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(assoc! {"1" 2} "3" 4 "5" 6))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(let [x {"1" 2}]
+                                             (assoc! x "3" 4 "5" 6)
+                                             x)))))
+  (testing "maps"
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(assoc! (js/Map. [[1 2]]) 3 4))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(let [x (js/Map. [[1 2]])]
+                     (assoc! x 3 4)
+                     x))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(assoc! (js/Map. [[1 2]]) 3 4 5 6))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(let [x (js/Map. [[1 2]])]
+                     (assoc! x 3 4 5 6)
+                     x)))))
+  (testing "other types"
+    (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))

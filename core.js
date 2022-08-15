@@ -33,6 +33,8 @@ export function assoc(o, k, v, ...kvs) {
 
   if (o instanceof Map) {
     return assoc_BANG_(new Map(o.entries()), k, v, ...kvs);
+  } else if (o instanceof Array) {
+    return assoc_BANG_([...o], k, v, ...kvs);
   }
 
   return assoc_BANG_({ ...o }, k, v, ...kvs);
@@ -125,11 +127,11 @@ export function dissoc(m, k) {
 }
 
 export function inc(n) {
-  return n+1;
+  return n + 1;
 }
 
 export function dec(n) {
-  return n-1;
+  return n - 1;
 }
 
 export function println(...args) {
@@ -145,8 +147,8 @@ export function map(f, coll) {
 }
 
 export function str(...xs) {
-  let ret = "";
-  xs.forEach(x => ret = ret + x);
+  let ret = '';
+  xs.forEach((x) => (ret = ret + x));
   return ret;
 }
 
@@ -161,14 +163,11 @@ export function nil_QMARK_(v) {
 export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
-  return JSON.stringify(
-    x,
-    (_key, value) => (value instanceof Set ? [...value] : value)
-  );
+  return JSON.stringify(x, (_key, value) => (value instanceof Set ? [...value] : value));
 }
 
 export function pr_str(...xs) {
-  return xs.map(pr_str_1).join(" ");
+  return xs.map(pr_str_1).join(' ');
 }
 
 export function prn(...xs) {
@@ -178,7 +177,7 @@ export function prn(...xs) {
 export function Atom(init) {
   this.val = init;
   this._deref = () => this.val;
-  this._reset_BANG_ = (x) => this.val = x;
+  this._reset_BANG_ = (x) => (this.val = x);
 }
 
 export function atom(init) {
@@ -200,9 +199,11 @@ export function swap_BANG_(atm, f, ...args) {
 }
 
 export function range(begin, end) {
-  let b = begin, e = end;
+  let b = begin,
+    e = end;
   if (e === undefined) {
-    e = b; b = 0;
+    e = b;
+    b = 0;
   }
   let ret = [];
   for (let x = b; x < e; x++) {
@@ -233,7 +234,7 @@ export function vector(...args) {
 export function map_indexed(f, coll) {
   let ctr = 0;
   let f2 = (x) => {
-    let res = f(ctr,x);
+    let res = f(ctr, x);
     ctr = ctr + 1;
     return res;
   };
