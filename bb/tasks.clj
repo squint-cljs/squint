@@ -56,6 +56,7 @@
 
 (defn watch-clava []
   (fs/create-dirs ".work")
+  (fs/delete-tree ".shadow-cljs/builds/clava/dev/ana/clava")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
   (bump-core-vars)
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn watch clava"))
