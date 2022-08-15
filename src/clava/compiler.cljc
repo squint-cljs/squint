@@ -20,7 +20,9 @@
    [clava.internal.protocols :as protocols]
    [clojure.string :as str]
    [com.reasonr.string :as rstr]
-   [edamame.core :as e]))
+   [edamame.core :as e]
+   #?(:clj [clava.resource :refer [edn-resource]]))
+  #?(:cljs (:require-macros [clava.resource :refer [edn-resource]])))
 
 #?(:cljs (def Exception js/Error))
 
@@ -179,18 +181,7 @@
                       'defn core-defn
                       'defn- core-defn})
 
-(def core-config {:vars '#{assoc! assoc
-                           conj! conj
-                           disj! disj
-                           dissoc! dissoc
-                           println nth
-                           map mapv map-indexed
-                           str inc dec
-                           prn pr-str
-                           atom Atom reset! swap! deref
-                           range re-matches
-                           subvec vector vec
-                           apply}})
+(def core-config {:vars (edn-resource "clava/core.edn")})
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
