@@ -357,14 +357,16 @@
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2 3 4}))))
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2 3} 4))))
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2} 3 4)))))
-  #_(testing "maps"
-    (is (eq (js/Map. #js [["a" "b"] ["c" "d"]]) (jsv! '(conj #js {"a" "b" "c" "d"}))))
-    (is (eq (js/Map. #js [[1 2] [3 4]]) (jsv! '(conj {1 2} [3 4]))))
-    (is (eq (js/Map. #js [[1 2] [3 4] [5 6]]) (jsv! '(conj {1 2} [3 4] [5 6])))))
-  #_(testing "objects"
-    (is (eq #js {"a" "b" "c" "d"} (jsv! '(conj #js {"a" "b" "c" "d"})))))
-  #_(testing "other types"
-    (is (isa? Error (jsv! '(conj "foo"))))))
+  (testing "objects"
+    (is (eq #js {:a "b" :c "d"} (jsv! '(conj {:a "b" :c "d"}))))
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(conj {"1" 2} ["3" 4]))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(conj {"1" 2} ["3" 4] ["5" 6])))))
+  (testing "maps"
+    (is (eq (js/Map. #js [#js ["a" "b"] #js ["c" "d"]]) (jsv! '(conj (js/Map. [["a" "b"] ["c" "d"]])))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]]) (jsv! '(conj (js/Map. [[1 2]]) [3 4]))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]]) (jsv! '(conj (js/Map. [[1 2]]) [3 4] [5 6])))))
+  (testing "other types"
+    (is (thrown? js/Error (jsv! '(conj "foo"))))))
 
 (deftest assoc-test
   (testing "arrays"
