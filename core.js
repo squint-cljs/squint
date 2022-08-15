@@ -42,31 +42,49 @@ export function assoc(o, k, v, ...kvs) {
   return assoc_BANG_({ ...o }, k, v, ...kvs);
 }
 
+const MAP_TYPE = 0;
+const ARRAY_TYPE = 1;
+const OBJECT_TYPE = 2;
+
+function newEmptyOfType(type) {
+  switch (type) {
+    case MAP_TYPE:
+      return new Map();
+      break;
+    case ARRAY_TYPE:
+      return [];
+      break;
+    case OBJECT_TYPE:
+      return {};
+      break;
+  }
+  return undefined;
+}
+
+function typeConst(obj) {
+  if (obj instanceof Map) return MAP_TYPE;
+  if (obj instanceof Array) return ARRAY_TYPE;
+  if (obj instanceof Object) return OBJECT_TYPE;
+  return undefined;
+}
+
 export function assoc_in(o, keys, value) {
-  if (!(o instanceof Object)) {
+  let baseType = typeConst(o);
+  if (!baseType)
     throw new Error(
       "Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object."
     );
-  }
-
-  if (!(keys instanceof Array)) {
-    throw new Error(
-      "Illegal argument: assoc-in expects the keys argument to be an Array."
-    );
-  }
 
   const chain = [o];
   let lastInChain = o;
 
   for (let i = 0; i < keys.length - 1; i += 1) {
-    const chainValue =
-      lastInChain instanceof Map
-        ? lastInChain.get(keys[i])
-        : lastInChain[keys[i]];
-    if (!(chainValue instanceof Object)) {
-      throw new Error(
-        "Illegal argument: assoc-in expects each intermediate value found via the keys array to be a Map, Array, or Object."
-      );
+    let k = keys[i];
+    let chainValue;
+    if (lastInChain instanceof Map) chainValue = lastInChain.get(k);
+    else chainValue = lastInChain[keys[i]];
+    if (!chainValue) {
+      chainValue = newEmptyOfType(baseType);
     }
     chain.push(chainValue);
     lastInChain = chainValue;
