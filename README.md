@@ -55,6 +55,8 @@ extra performance and small bundle size.
 - There is no CLJS standard library. The `"clavascript/core.js"` module has similar JS equivalents
 - Keywords are translated into strings
 - Maps and vectors are compiled as mutable objects and arrays
+- Supports async/await:`(def x (js/await y))`. Async functions must be marked
+  with `^:async`: `(defn ^:async foo []).
 - `assoc!`, `dissoc!`, `conj!`, etc. perform in place mutation on objects
 - `assoc`, `dissoc`, `conj`, etc. return a new shallow copy of objects
 - `println` is a synonym for `console.log`
