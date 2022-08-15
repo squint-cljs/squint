@@ -68,7 +68,7 @@ function typeConst(obj) {
   return undefined;
 }
 
-export function assoc_in(o, keys, value) {
+function assoc_in_with(f, o, keys, value) {
   let baseType = typeConst(o);
   if (!baseType)
     throw new Error(
@@ -82,7 +82,7 @@ export function assoc_in(o, keys, value) {
     let k = keys[i];
     let chainValue;
     if (lastInChain instanceof Map) chainValue = lastInChain.get(k);
-    else chainValue = lastInChain[keys[i]];
+    else chainValue = lastInChain[k];
     if (!chainValue) {
       chainValue = newEmptyOfType(baseType);
     }
@@ -93,49 +93,18 @@ export function assoc_in(o, keys, value) {
   chain.push(value);
 
   for (let i = chain.length - 2; i >= 0; i -= 1) {
-    chain[i] = assoc(chain[i], keys[i], chain[i + 1]);
+    chain[i] = f(chain[i], keys[i], chain[i + 1]);
   }
 
   return chain[0];
 }
 
+export function assoc_in(o, keys, value) {
+  return assoc_in_with(assoc, o, keys, value);
+}
+
 export function assoc_in_BANG_(o, keys, value) {
-  if (!(o instanceof Object)) {
-    throw new Error(
-      "Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object."
-    );
-  }
-
-  if (!(keys instanceof Array)) {
-    throw new Error(
-      "Illegal argument: assoc-in expects the keys argument to be an Array."
-    );
-  }
-
-  const chain = [o];
-  let lastInChain = o;
-
-  for (let i = 0; i < keys.length - 1; i += 1) {
-    const chainValue =
-      lastInChain instanceof Map
-        ? lastInChain.get(keys[i])
-        : lastInChain[keys[i]];
-    if (!(chainValue instanceof Object)) {
-      throw new Error(
-        "Illegal argument: assoc-in expects each intermediate value found via the keys array to be a Map, Array, or Object."
-      );
-    }
-    chain.push(chainValue);
-    lastInChain = chainValue;
-  }
-
-  chain.push(value);
-
-  for (let i = chain.length - 2; i >= 0; i -= 1) {
-    assoc_BANG_(chain[i], keys[i], chain[i + 1]);
-  }
-
-  return chain[0];
+  return assoc_in_with(assoc_BANG_, o, keys, value);
 }
 
 export function conj_BANG_(...xs) {

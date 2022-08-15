@@ -500,9 +500,9 @@
                           (and (= x (get (get z "1") 0))
                                (= y (get z "1"))
                                (= z z*)))))))
+  (is (eq #js {"0" #js {"1" 2}, "1" "foo"} (jsv! '(assoc-in! {"1" "foo"} [0 1] 2))))
   (testing "invalid data in path"
-    (is (thrown? js/Error (jsv! '(assoc-in! "foo" [0] 2))))
-    (is (thrown? js/Error (jsv! '(assoc-in! {"1" "foo"} [0 1] 2))))))
+    (is (thrown? js/Error (jsv! '(assoc-in! "foo" [0] 2))))))
 
 (deftest get-test
   (testing "maps"
