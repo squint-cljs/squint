@@ -518,5 +518,15 @@
     (is (eq nil (jsv! '(get {"my-key" 1} "bad-key"))))
     (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))))
 
+(deftest first-test
+  (is (= 1 (jsv! '(first [1 2 3]))))
+  (is (= 1 (jsv! '(first #{1 2 3}))))
+  (is (eq #js [1 2] (jsv! '(first (js/Map. [[1 2] [3 4]]))))))
+
+(deftest rest-test
+  (is (eq #js [2 3] (jsv! '(rest [1 2 3]))))
+  (is (eq #{2 3} (jsv! '(rest #{1 2 3}))))
+  (is (eq #js [#js [3 4]] (jsv! '(rest (js/Map. [[1 2] [3 4]]))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
