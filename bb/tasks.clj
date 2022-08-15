@@ -3,7 +3,8 @@
    [babashka.fs :as fs]
    [babashka.process :refer [shell]]
    [clojure.edn :as edn]
-   [clojure.java.io :as io]))
+   [clojure.java.io :as io]
+   [cheshire.core :as json]))
 
 (defn munge* [s reserved]
   (let [s (str (munge s))]
@@ -34,10 +35,17 @@
    (shadow-extra-config)
    test-config))
 
+(defn bump-core-vars []
+  (let [core-vars (:out (shell {:out :string}
+                               "node --input-type=module -e 'import * as clava from \"clavascript/core.js\";console.log(JSON.stringify(Object.keys(clava)))'"))
+        parsed (set (map symbol (json/parse-string core-vars)))]
+    (spit "resources/clava/core.edn" parsed)))
+
 (defn build-clava-npm-package []
   (fs/create-dirs ".work")
   (fs/delete-tree "lib")
   (fs/delete-tree ".shadow-cljs")
+  (bump-core-vars)
   (spit ".work/config-merge.edn" (shadow-extra-config))
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn release clava"))
 
@@ -49,10 +57,12 @@
 (defn watch-clava []
   (fs/create-dirs ".work")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
+  (bump-core-vars)
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn watch clava"))
 
 (defn test-clava []
   (fs/create-dirs ".work")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
+  (bump-core-vars)
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn release clava")
   (shell "node lib/clava_tests.js"))
