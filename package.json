@@ -2,7 +2,7 @@
   "type": "module",
   "name": "clavascript",
   "sideEffects": false,
-  "version": "0.0.0-alpha.10",
+  "version": "0.0.0-alpha.11",
   "files": [
     "cljs.core.js",
     "core.js",
