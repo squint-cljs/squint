@@ -94,12 +94,11 @@
 (declare core-vars)
 
 (defn maybe-core-var [sym]
-  (if (contains? core-vars sym)
-    (let [sym (symbol (munge* sym))
-          ]
-      (swap! *imported-core-vars* conj sym)
-      sym)
-    sym))
+  (let [m (munge sym)]
+    (if (contains? core-vars m)
+      (do (swap! *imported-core-vars* conj m)
+          m)
+      sym)))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
