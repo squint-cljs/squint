@@ -10,12 +10,15 @@
 (aset js/globalThis "dissoc_BANG_" cl/dissoc!)
 (aset js/globalThis "str" cl/dissoc!)
 (aset js/globalThis "not" cl/not)
+(aset js/globalThis "get" cl/get)
 (aset js/globalThis "nil_QMARK_" cl/not)
 (aset js/globalThis "pr_str" cl/pr_str)
 (aset js/globalThis "conj" cl/conj)
 (aset js/globalThis "conj_BANG_" cl/conj!)
 (aset js/globalThis "assoc" cl/assoc)
 (aset js/globalThis "assoc_BANG_" cl/assoc!)
+(aset js/globalThis "assoc_in" cl/assoc-in)
+(aset js/globalThis "assoc_in_BANG_" cl/assoc-in!)
 (aset js/globalThis "PROTOCOL_SENTINEL" cl/PROTOCOL_SENTINEL)
 
 (defn eq [a b]
@@ -475,6 +478,50 @@
                      x)))))
   (testing "other types"
     (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))))
+
+(deftest assoc-in-test
+  (testing "happy path"
+    (is (eq #js {"1" 3}
+            (jsv! '(assoc-in {"1" 2} ["1"] 3))))
+    (is (eq #js {"1" #js [(js/Map. #js [#js [8 9]])]}
+            (jsv! '(assoc-in {"1" [(js/Map. [[8 5]])]}
+                             ["1" 0 8]
+                             9)))))
+  (testing "invalid data in path"
+    (is (thrown? js/Error (jsv! '(assoc-in "foo" [0] 2))))
+    (is (thrown? js/Error (jsv! '(assoc-in {"1" "foo"} [0 1] 2))))))
+
+(deftest assoc-in!-test
+  (testing "happy path"
+    (is (eq #js {"1" 3}
+            (jsv! '(let [x {"1" 2}]
+                     (assoc-in! x ["1"] 3)
+                     x))))
+    (is (eq true (jsv! '(let [x (js/Map. [[8 5]])
+                              y [x]
+                              z {"1" y}
+                              z* z]
+                          (assoc-in! z ["1" 0 8] 9)
+                          (and (= x (get (get z "1") 0))
+                               (= y (get z "1"))
+                               (= z z*)))))))
+  (testing "invalid data in path"
+    (is (thrown? js/Error (jsv! '(assoc-in! "foo" [0] 2))))
+    (is (thrown? js/Error (jsv! '(assoc-in! {"1" "foo"} [0 1] 2))))))
+
+(deftest get-test
+  (testing "maps"
+    (is (eq 1 (jsv! '(get (js/Map. [["my-key" 1]]) "my-key"))))
+    (is (eq nil (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key"))))
+    (is (eq 3 (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key" 3)))))
+  (testing "arrays"
+    (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 1))))
+    (is (eq nil (jsv! '(get ["val1" "val2" "val3"] 10))))
+    (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 10 "val2")))))
+  (testing "objects"
+    (is (eq 1 (jsv! '(get {"my-key" 1} "my-key"))))
+    (is (eq nil (jsv! '(get {"my-key" 1} "bad-key"))))
+    (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))

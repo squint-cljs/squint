@@ -25,7 +25,7 @@ export function assoc_BANG_(m, k, v, ...kvs) {
 }
 
 export function assoc(o, k, v, ...kvs) {
-  if (!o instanceof Object) {
+  if (!(o instanceof Object)) {
     throw new Error(
       'Illegal argument: assoc expects a Map, Array, or Object as the first argument.'
     );
@@ -38,6 +38,74 @@ export function assoc(o, k, v, ...kvs) {
   }
 
   return assoc_BANG_({ ...o }, k, v, ...kvs);
+}
+
+export function assoc_in(o, keys, value) {
+  if (!(o instanceof Object)) {
+    throw new Error(
+      'Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object.'
+    );
+  }
+
+  if (!(keys instanceof Array)) {
+    throw new Error('Illegal argument: assoc-in expects the keys argument to be an Array.');
+  }
+
+  const chain = [o];
+  let lastInChain = o;
+
+  for (let i = 0; i < keys.length - 1; i += 1) {
+    const chainValue = lastInChain instanceof Map ? lastInChain.get(keys[i]) : lastInChain[keys[i]];
+    if (!(chainValue instanceof Object)) {
+      throw new Error(
+        'Illegal argument: assoc-in expects each intermediate value found via the keys array to be a Map, Array, or Object.'
+      );
+    }
+    chain.push(chainValue);
+    lastInChain = chainValue;
+  }
+
+  chain.push(value);
+
+  for (let i = chain.length - 2; i >= 0; i -= 1) {
+    chain[i] = assoc(chain[i], keys[i], chain[i + 1]);
+  }
+
+  return chain[0];
+}
+
+export function assoc_in_BANG_(o, keys, value) {
+  if (!(o instanceof Object)) {
+    throw new Error(
+      'Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object.'
+    );
+  }
+
+  if (!(keys instanceof Array)) {
+    throw new Error('Illegal argument: assoc-in expects the keys argument to be an Array.');
+  }
+
+  const chain = [o];
+  let lastInChain = o;
+
+  for (let i = 0; i < keys.length - 1; i += 1) {
+    const chainValue = lastInChain instanceof Map ? lastInChain.get(keys[i]) : lastInChain[keys[i]];
+    if (!(chainValue instanceof Object)) {
+      throw new Error(
+        'Illegal argument: assoc-in expects each intermediate value found via the keys array to be a Map, Array, or Object.'
+      );
+    }
+    chain.push(chainValue);
+    lastInChain = chainValue;
+  }
+
+  chain.push(value);
+
+  for (let i = chain.length - 2; i >= 0; i -= 1) {
+    assoc_BANG_(chain[i], keys[i], chain[i + 1]);
+  }
+
+  return chain[0];
 }
 
 export function conj_BANG_(...xs) {
@@ -127,11 +195,11 @@ export function dissoc(m, k) {
 }
 
 export function inc(n) {
-  return n+1;
+  return n + 1;
 }
 
 export function dec(n) {
-  return n-1;
+  return n - 1;
 }
 
 export function println(...args) {
@@ -142,13 +210,21 @@ export function nth(coll, idx) {
   return coll[idx];
 }
 
+export function get(coll, key, otherwise = undefined) {
+  if (coll instanceof Map) {
+    return coll.has(key) ? coll.get(key) : otherwise;
+  }
+
+  return key in coll ? coll[key] : otherwise;
+}
+
 export function map(f, coll) {
   return coll.map(f);
 }
 
 export function str(...xs) {
-  let ret = "";
-  xs.forEach(x => ret = ret + x);
+  let ret = '';
+  xs.forEach((x) => (ret = ret + x));
   return ret;
 }
 
@@ -163,14 +239,11 @@ export function nil_QMARK_(v) {
 export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
-  return JSON.stringify(
-    x,
-    (_key, value) => (value instanceof Set ? [...value] : value)
-  );
+  return JSON.stringify(x, (_key, value) => (value instanceof Set ? [...value] : value));
 }
 
 export function pr_str(...xs) {
-  return xs.map(pr_str_1).join(" ");
+  return xs.map(pr_str_1).join(' ');
 }
 
 export function prn(...xs) {
@@ -180,7 +253,7 @@ export function prn(...xs) {
 export function Atom(init) {
   this.val = init;
   this._deref = () => this.val;
-  this._reset_BANG_ = (x) => this.val = x;
+  this._reset_BANG_ = (x) => (this.val = x);
 }
 
 export function atom(init) {
@@ -202,9 +275,11 @@ export function swap_BANG_(atm, f, ...args) {
 }
 
 export function range(begin, end) {
-  let b = begin, e = end;
+  let b = begin,
+    e = end;
   if (e === undefined) {
-    e = b; b = 0;
+    e = b;
+    b = 0;
   }
   let ret = [];
   for (let x = b; x < e; x++) {
@@ -235,7 +310,7 @@ export function vector(...args) {
 export function map_indexed(f, coll) {
   let ctr = 0;
   let f2 = (x) => {
-    let res = f(ctr,x);
+    let res = f(ctr, x);
     ctr = ctr + 1;
     return res;
   };
