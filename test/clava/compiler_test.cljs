@@ -8,7 +8,7 @@
 
 (aset js/globalThis "map" cl/map)
 (aset js/globalThis "dissoc_BANG_" cl/dissoc!)
-(aset js/globalThis "str" cl/dissoc!)
+(aset js/globalThis "str" cl/str)
 (aset js/globalThis "not" cl/not)
 (aset js/globalThis "get" cl/get)
 (aset js/globalThis "nil_QMARK_" cl/not)
@@ -349,6 +349,12 @@
 
 (deftest pr-str-test
   (is (eq (js/Set. #js ["a" "b" "c"]) (js/Set. (js/JSON.parse (jsv! '(pr-str #{:a :b :c})))))))
+
+(deftest str-test
+  (is (eq "123" (jsv! '(str 1 2 3))))
+  (is (eq "foobarbaz", (jsv! '(str "foo" "bar" "baz"))))
+  (is (eq "1barfirst,second[object Object]"
+          (jsv! '(str 1 "bar" [:first :second] {"hello" "goodbye"})))))
 
 (deftest conj-test
   (testing "corner cases"

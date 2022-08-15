@@ -223,9 +223,7 @@ export function map(f, coll) {
 }
 
 export function str(...xs) {
-  let ret = '';
-  xs.forEach((x) => (ret = ret + x));
-  return ret;
+  return xs.join('');
 }
 
 export function not(expr) {
