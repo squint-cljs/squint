@@ -480,10 +480,11 @@
     (is (eq #js {"1" #js [(js/Map. #js [#js [8 9]])]}
             (jsv! '(assoc-in {"1" [(js/Map. [[8 5]])]}
                              ["1" 0 8]
-                             9)))))
+                             9))))
+    (is (eq {:foo {:bar :baz}} (jsv! (assoc-in {} [:foo :bar] :baz)))))
   (testing "invalid data in path"
     (is (thrown? js/Error (jsv! '(assoc-in "foo" [0] 2))))
-    (is (thrown? js/Error (jsv! '(assoc-in {"1" "foo"} [0 1] 2))))))
+    (is (eq #js {"0" #js {"1" 2}, "1" "foo"} (jsv! '(assoc-in {"1" "foo"} [0 1] 2))))))
 
 (deftest assoc-in!-test
   (testing "happy path"
