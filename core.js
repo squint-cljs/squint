@@ -42,9 +42,9 @@ export function assoc(o, k, v, ...kvs) {
   return assoc_BANG_({ ...o }, k, v, ...kvs);
 }
 
-const MAP_TYPE = 0;
-const ARRAY_TYPE = 1;
-const OBJECT_TYPE = 2;
+const MAP_TYPE = 1;
+const ARRAY_TYPE = 2;
+const OBJECT_TYPE = 3;
 
 function newEmptyOfType(type) {
   switch (type) {
