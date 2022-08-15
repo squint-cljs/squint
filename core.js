@@ -1,56 +1,179 @@
 export function assoc_BANG_(m, k, v, ...kvs) {
-  m[k] = v;
-  if (kvs.length != 0) {
-    return assoc_BANG_(m, ...kvs);
+  if (kvs.length % 2 !== 0) {
+    throw new Error('Illegal argument: assoc expects an odd number of arguments.');
   }
-  else return m;
+
+  if (m instanceof Map) {
+    m.set(k, v);
+
+    for (let i = 0; i < kvs.length; i += 2) {
+      m.set(kvs[i], kvs[i + 1]);
+    }
+  } else if (m instanceof Object) {
+    m[k] = v;
+
+    for (let i = 0; i < kvs.length; i += 2) {
+      m[kvs[i]] = kvs[i + 1];
+    }
+  } else {
+    throw new Error(
+      'Illegal argument: assoc! expects a Map, Array, or Object as the first argument.'
+    );
+  }
+
+  return m;
 }
 
 export function assoc(o, k, v, ...kvs) {
-  let o2 = { ...o };
-  return assoc_BANG_(o2, k, v, ...kvs);
+  if (!(o instanceof Object)) {
+    throw new Error(
+      'Illegal argument: assoc expects a Map, Array, or Object as the first argument.'
+    );
+  }
+
+  if (o instanceof Map) {
+    return assoc_BANG_(new Map(o.entries()), k, v, ...kvs);
+  } else if (o instanceof Array) {
+    return assoc_BANG_([...o], k, v, ...kvs);
+  }
+
+  return assoc_BANG_({ ...o }, k, v, ...kvs);
 }
 
-const object = Object.getPrototypeOf({});
-const array = Object.getPrototypeOf([]);
-const set = Object.getPrototypeOf(new Set());
+export function assoc_in(o, keys, value) {
+  if (!(o instanceof Object)) {
+    throw new Error(
+      'Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object.'
+    );
+  }
 
-export function conj_BANG_(o, x, ...xs) {
-  switch (Object.getPrototypeOf(o)) {
-  case object:
-    o[x[0]] = x[1];
-    break;
-  case array:
-    o.push(x);
-    break;
-  case set:
-    o.add(x);
-    break;
-  default:
-    o.conj_BANG_(x);
+  if (!(keys instanceof Array)) {
+    throw new Error('Illegal argument: assoc-in expects the keys argument to be an Array.');
   }
-  if (xs.length != 0) {
-    return conj_BANG_(o, ...xs);
+
+  const chain = [o];
+  let lastInChain = o;
+
+  for (let i = 0; i < keys.length - 1; i += 1) {
+    const chainValue = lastInChain instanceof Map ? lastInChain.get(keys[i]) : lastInChain[keys[i]];
+    if (!(chainValue instanceof Object)) {
+      throw new Error(
+        'Illegal argument: assoc-in expects each intermediate value found via the keys array to be a Map, Array, or Object.'
+      );
+    }
+    chain.push(chainValue);
+    lastInChain = chainValue;
   }
+
+  chain.push(value);
+
+  for (let i = chain.length - 2; i >= 0; i -= 1) {
+    chain[i] = assoc(chain[i], keys[i], chain[i + 1]);
+  }
+
+  return chain[0];
+}
+
+export function assoc_in_BANG_(o, keys, value) {
+  if (!(o instanceof Object)) {
+    throw new Error(
+      'Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object.'
+    );
+  }
+
+  if (!(keys instanceof Array)) {
+    throw new Error('Illegal argument: assoc-in expects the keys argument to be an Array.');
+  }
+
+  const chain = [o];
+  let lastInChain = o;
+
+  for (let i = 0; i < keys.length - 1; i += 1) {
+    const chainValue = lastInChain instanceof Map ? lastInChain.get(keys[i]) : lastInChain[keys[i]];
+    if (!(chainValue instanceof Object)) {
+      throw new Error(
+        'Illegal argument: assoc-in expects each intermediate value found via the keys array to be a Map, Array, or Object.'
+      );
+    }
+    chain.push(chainValue);
+    lastInChain = chainValue;
+  }
+
+  chain.push(value);
+
+  for (let i = chain.length - 2; i >= 0; i -= 1) {
+    assoc_BANG_(chain[i], keys[i], chain[i + 1]);
+  }
+
+  return chain[0];
+}
+
+export function conj_BANG_(...xs) {
+  let [o, ...rest] = xs;
+
+  if (o === null || o === undefined) {
+    o = [];
+  }
+
+  if (o instanceof Set) {
+    for (const x of rest) {
+      o.add(x);
+    }
+  } else if (o instanceof Array) {
+    o.push(...rest);
+  } else if (o instanceof Map) {
+    for (const x of rest) {
+      o.set(x[0], x[1]);
+    }
+  } else if (o instanceof Object) {
+    for (const x of rest) {
+      o[x[0]] = x[1];
+    }
+  } else {
+    throw new Error(
+      'Illegal argument: conj! expects a Set, Array, Map, or Object as the first argument.'
+    );
+  }
+
   return o;
 }
 
-export function conj(o, x, ...xs) {
-  switch (Object.getPrototypeOf(o)) {
-  case object:
-    let o2 = {...o};
-    return conj_BANG_(o2, x, ...xs);
-  case array:
-    return [...o, x, ...xs];
-  case set:
-    return new Set([...o, x, ...xs]);
-  default:
-    return o.conj(x, ...xs);
+export function conj(...xs) {
+  let [o, ...rest] = xs;
+
+  if (o === null || o === undefined) {
+    o = [];
   }
+
+  if (o instanceof Set) {
+    return new Set([...o, ...rest]);
+  } else if (o instanceof Array) {
+    return [...o, ...rest];
+  } else if (o instanceof Map) {
+    const m = new Map(o);
+
+    for (const x of rest) {
+      m.set(x[0], x[1]);
+    }
+
+    return m;
+  } else if (o instanceof Object) {
+    const o2 = { ...o };
+
+    for (const x of rest) {
+      o2[x[0]] = x[1];
+    }
+
+    return o2;
+  }
+
+  throw new Error(
+    'Illegal argument: conj expects a Set, Array, Map, or Object as the first argument.'
+  );
 }
 
 export function disj_BANG_(s, ...xs) {
-  for (let x of xs) {
+  for (const x of xs) {
     s.delete(x);
   }
   return s;
@@ -72,11 +195,11 @@ export function dissoc(m, k) {
 }
 
 export function inc(n) {
-  return n+1;
+  return n + 1;
 }
 
 export function dec(n) {
-  return n-1;
+  return n - 1;
 }
 
 export function println(...args) {
@@ -87,14 +210,20 @@ export function nth(coll, idx) {
   return coll[idx];
 }
 
+export function get(coll, key, otherwise = undefined) {
+  if (coll instanceof Map) {
+    return coll.has(key) ? coll.get(key) : otherwise;
+  }
+
+  return key in coll ? coll[key] : otherwise;
+}
+
 export function map(f, coll) {
   return coll.map(f);
 }
 
 export function str(...xs) {
-  let ret = "";
-  xs.forEach(x => ret = ret + x);
-  return ret;
+  return xs.join('');
 }
 
 export function not(expr) {
@@ -108,14 +237,11 @@ export function nil_QMARK_(v) {
 export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
-  return JSON.stringify(
-    x,
-    (_key, value) => (value instanceof Set ? [...value] : value)
-  );
+  return JSON.stringify(x, (_key, value) => (value instanceof Set ? [...value] : value));
 }
 
 export function pr_str(...xs) {
-  return xs.map(pr_str_1).join(" ");
+  return xs.map(pr_str_1).join(' ');
 }
 
 export function prn(...xs) {
@@ -125,7 +251,7 @@ export function prn(...xs) {
 export function Atom(init) {
   this.val = init;
   this._deref = () => this.val;
-  this._reset_BANG_ = (x) => this.val = x;
+  this._reset_BANG_ = (x) => (this.val = x);
 }
 
 export function atom(init) {
@@ -147,9 +273,11 @@ export function swap_BANG_(atm, f, ...args) {
 }
 
 export function range(begin, end) {
-  let b = begin, e = end;
+  let b = begin,
+    e = end;
   if (e === undefined) {
-    e = b; b = 0;
+    e = b;
+    b = 0;
   }
   let ret = [];
   for (let x = b; x < e; x++) {
@@ -180,7 +308,7 @@ export function vector(...args) {
 export function map_indexed(f, coll) {
   let ctr = 0;
   let f2 = (x) => {
-    let res = f(ctr,x);
+    let res = f(ctr, x);
     ctr = ctr + 1;
     return res;
   };

@@ -4,7 +4,7 @@
    ["lodash$default" :as ld]
    [clava.compiler :as clava]
    [clojure.string :as str]
-   [clojure.test :as t :refer [async deftest is]]))
+   [clojure.test :as t :refer [async deftest is testing]]))
 
 (doseq [k (js/Object.keys cl)]
   (aset js/globalThis k (aget cl k)))
@@ -338,8 +338,184 @@
 (deftest pr-str-test
   (is (eq (js/Set. #js ["a" "b" "c"]) (js/Set. (js/JSON.parse (jsv! '(pr-str #{:a :b :c})))))))
 
+(deftest str-test
+  (is (eq "123" (jsv! '(str 1 2 3))))
+  (is (eq "foobarbaz", (jsv! '(str "foo" "bar" "baz"))))
+  (is (eq "1barfirst,second[object Object]"
+          (jsv! '(str 1 "bar" [:first :second] {"hello" "goodbye"})))))
+
 (deftest conj-test
-  (is (eq [1 2 3 4] (jsv! '(conj [1 2 3] 4)))))
+  (testing "corner cases"
+    (is (eq [], (jsv! '(conj))))
+    (is (eq [], (jsv! '(conj nil))))
+    (is (eq [1 2], (jsv! '(conj nil 1 2)))))
+  (testing "arrays"
+    (is (eq [1 2 3 4] (jsv! '(conj [1 2 3 4]))))
+    (is (eq [1 2 3 4] (jsv! '(conj [1 2 3] 4))))
+    (is (eq [1 2 3 4] (jsv! '(conj [1 2] 3 4)))))
+  (testing "sets"
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2 3 4}))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2 3} 4))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2} 3 4)))))
+  (testing "objects"
+    (is (eq #js {:a "b" :c "d"} (jsv! '(conj {:a "b" :c "d"}))))
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(conj {"1" 2} ["3" 4]))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(conj {"1" 2} ["3" 4] ["5" 6])))))
+  (testing "maps"
+    (is (eq (js/Map. #js [#js ["a" "b"] #js ["c" "d"]])
+            (jsv! '(conj (js/Map. [["a" "b"] ["c" "d"]])))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(conj (js/Map. [[1 2]]) [3 4]))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(conj (js/Map. [[1 2]]) [3 4] [5 6])))))
+  (testing "other types"
+    (is (thrown? js/Error (jsv! '(conj "foo"))))))
+
+(deftest conj!-test
+  (testing "corner cases"
+    (is (eq [], (jsv! '(conj!))))
+    (is (eq [], (jsv! '(conj! nil))))
+    (is (eq [1 2], (jsv! '(conj! nil 1 2)))))
+  (testing "arrays"
+    (is (eq [1 2 3 4] (jsv! '(conj! [1 2 3 4]))))
+    (is (eq [1 2 3 4] (jsv! '(conj! [1 2 3] 4))))
+    (is (eq [1 2 3 4] (jsv! '(let [x [1 2 3]]
+                               (conj! x 4)
+                               x))))
+    (is (eq [1 2 3 4] (jsv! '(conj! [1 2] 3 4))))
+    (is (eq [1 2 3 4] (jsv! '(let [x [1 2]]
+                               (conj! x 3 4)
+                               x)))))
+  (testing "sets"
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3 4}))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3} 4))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(let [x #{1 2 3}]
+                                             (conj! x 4)
+                                             x))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2} 3 4))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(let [x #{1 2}]
+                                             (conj! x 3 4)
+                                             x)))))
+  (testing "objects"
+    (is (eq #js {:a "b" :c "d"} (jsv! '(conj! {:a "b" :c "d"}))))
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(conj! {"1" 2} ["3" 4]))))
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(let [x {"1" 2}]
+                                       (conj! x ["3" 4])
+                                       x))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(conj! {"1" 2} ["3" 4] ["5" 6]))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(let [x {"1" 2}]
+                                             (conj! x ["3" 4] ["5" 6])
+                                             x)))))
+  (testing "maps"
+    (is (eq (js/Map. #js [#js ["a" "b"] #js ["c" "d"]])
+            (jsv! '(conj! (js/Map. [["a" "b"] ["c" "d"]])))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(conj! (js/Map. [[1 2]]) [3 4]))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(let [x (js/Map. [[1 2]])]
+                     (conj! x [3 4])))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(conj! (js/Map. [[1 2]]) [3 4] [5 6]))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(let [x (js/Map. [[1 2]])]
+                     (conj! x [3 4] [5 6])
+                     x)))))
+  (testing "other types"
+    (is (thrown? js/Error (jsv! '(conj! "foo"))))))
+
+(deftest assoc-test
+  (testing "arrays"
+    (is (eq [1 2 8 4] (jsv! '(assoc [1 2 3 4] 2 8))))
+    (is (eq [6 2 8 4] (jsv! '(assoc [1 2 3 4] 2 8 0 6)))))
+  (testing "objects"
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(assoc {"1" 2} "3" 4))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(assoc {"1" 2} "3" 4 "5" 6)))))
+  (testing "maps"
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(assoc (js/Map. [[1 2]]) 3 4))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(assoc (js/Map. [[1 2]]) 3 4 5 6)))))
+  (testing "other types"
+    (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))))
+
+(deftest assoc!-test
+  (testing "arrays"
+    (is (eq [1 2 8 4] (jsv! '(assoc! [1 2 3 4] 2 8))))
+    (is (eq [1 2 8 4] (jsv! '(let [x [1 2 3 4]]
+                               (assoc! x 2 8)
+                               x))))
+    (is (eq [6 2 8 4] (jsv! '(assoc! [1 2 3 4] 2 8 0 6))))
+    (is (eq [6 2 8 4] (jsv! '(let [x [1 2 3 4]]
+                               (assoc! x 2 8 0 6)
+                               x)))))
+  (testing "objects"
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(assoc! {"1" 2} "3" 4))))
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(let [x {"1" 2}]
+                                       (assoc! x "3" 4)
+                                       x))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(assoc! {"1" 2} "3" 4 "5" 6))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(let [x {"1" 2}]
+                                             (assoc! x "3" 4 "5" 6)
+                                             x)))))
+  (testing "maps"
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(assoc! (js/Map. [[1 2]]) 3 4))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(let [x (js/Map. [[1 2]])]
+                     (assoc! x 3 4)
+                     x))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(assoc! (js/Map. [[1 2]]) 3 4 5 6))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(let [x (js/Map. [[1 2]])]
+                     (assoc! x 3 4 5 6)
+                     x)))))
+  (testing "other types"
+    (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))))
+
+(deftest assoc-in-test
+  (testing "happy path"
+    (is (eq #js {"1" 3}
+            (jsv! '(assoc-in {"1" 2} ["1"] 3))))
+    (is (eq #js {"1" #js [(js/Map. #js [#js [8 9]])]}
+            (jsv! '(assoc-in {"1" [(js/Map. [[8 5]])]}
+                             ["1" 0 8]
+                             9)))))
+  (testing "invalid data in path"
+    (is (thrown? js/Error (jsv! '(assoc-in "foo" [0] 2))))
+    (is (thrown? js/Error (jsv! '(assoc-in {"1" "foo"} [0 1] 2))))))
+
+(deftest assoc-in!-test
+  (testing "happy path"
+    (is (eq #js {"1" 3}
+            (jsv! '(let [x {"1" 2}]
+                     (assoc-in! x ["1"] 3)
+                     x))))
+    (is (eq true (jsv! '(let [x (js/Map. [[8 5]])
+                              y [x]
+                              z {"1" y}
+                              z* z]
+                          (assoc-in! z ["1" 0 8] 9)
+                          (and (= x (get (get z "1") 0))
+                               (= y (get z "1"))
+                               (= z z*)))))))
+  (testing "invalid data in path"
+    (is (thrown? js/Error (jsv! '(assoc-in! "foo" [0] 2))))
+    (is (thrown? js/Error (jsv! '(assoc-in! {"1" "foo"} [0 1] 2))))))
+
+(deftest get-test
+  (testing "maps"
+    (is (eq 1 (jsv! '(get (js/Map. [["my-key" 1]]) "my-key"))))
+    (is (eq nil (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key"))))
+    (is (eq 3 (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key" 3)))))
+  (testing "arrays"
+    (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 1))))
+    (is (eq nil (jsv! '(get ["val1" "val2" "val3"] 10))))
+    (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 10 "val2")))))
+  (testing "objects"
+    (is (eq 1 (jsv! '(get {"my-key" 1} "my-key"))))
+    (is (eq nil (jsv! '(get {"my-key" 1} "bad-key"))))
+    (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
