@@ -1,6 +1,8 @@
 export function assoc_BANG_(m, k, v, ...kvs) {
   if (kvs.length % 2 !== 0) {
-    throw new Error('Illegal argument: assoc expects an odd number of arguments.');
+    throw new Error(
+      "Illegal argument: assoc expects an odd number of arguments."
+    );
   }
 
   if (m instanceof Map) {
@@ -17,7 +19,7 @@ export function assoc_BANG_(m, k, v, ...kvs) {
     }
   } else {
     throw new Error(
-      'Illegal argument: assoc! expects a Map, Array, or Object as the first argument.'
+      "Illegal argument: assoc! expects a Map, Array, or Object as the first argument."
     );
   }
 
@@ -27,7 +29,7 @@ export function assoc_BANG_(m, k, v, ...kvs) {
 export function assoc(o, k, v, ...kvs) {
   if (!(o instanceof Object)) {
     throw new Error(
-      'Illegal argument: assoc expects a Map, Array, or Object as the first argument.'
+      "Illegal argument: assoc expects a Map, Array, or Object as the first argument."
     );
   }
 
@@ -43,22 +45,27 @@ export function assoc(o, k, v, ...kvs) {
 export function assoc_in(o, keys, value) {
   if (!(o instanceof Object)) {
     throw new Error(
-      'Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object.'
+      "Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object."
     );
   }
 
   if (!(keys instanceof Array)) {
-    throw new Error('Illegal argument: assoc-in expects the keys argument to be an Array.');
+    throw new Error(
+      "Illegal argument: assoc-in expects the keys argument to be an Array."
+    );
   }
 
   const chain = [o];
   let lastInChain = o;
 
   for (let i = 0; i < keys.length - 1; i += 1) {
-    const chainValue = lastInChain instanceof Map ? lastInChain.get(keys[i]) : lastInChain[keys[i]];
+    const chainValue =
+      lastInChain instanceof Map
+        ? lastInChain.get(keys[i])
+        : lastInChain[keys[i]];
     if (!(chainValue instanceof Object)) {
       throw new Error(
-        'Illegal argument: assoc-in expects each intermediate value found via the keys array to be a Map, Array, or Object.'
+        "Illegal argument: assoc-in expects each intermediate value found via the keys array to be a Map, Array, or Object."
       );
     }
     chain.push(chainValue);
@@ -77,22 +84,27 @@ export function assoc_in(o, keys, value) {
 export function assoc_in_BANG_(o, keys, value) {
   if (!(o instanceof Object)) {
     throw new Error(
-      'Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object.'
+      "Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object."
     );
   }
 
   if (!(keys instanceof Array)) {
-    throw new Error('Illegal argument: assoc-in expects the keys argument to be an Array.');
+    throw new Error(
+      "Illegal argument: assoc-in expects the keys argument to be an Array."
+    );
   }
 
   const chain = [o];
   let lastInChain = o;
 
   for (let i = 0; i < keys.length - 1; i += 1) {
-    const chainValue = lastInChain instanceof Map ? lastInChain.get(keys[i]) : lastInChain[keys[i]];
+    const chainValue =
+      lastInChain instanceof Map
+        ? lastInChain.get(keys[i])
+        : lastInChain[keys[i]];
     if (!(chainValue instanceof Object)) {
       throw new Error(
-        'Illegal argument: assoc-in expects each intermediate value found via the keys array to be a Map, Array, or Object.'
+        "Illegal argument: assoc-in expects each intermediate value found via the keys array to be a Map, Array, or Object."
       );
     }
     chain.push(chainValue);
@@ -131,7 +143,7 @@ export function conj_BANG_(...xs) {
     }
   } else {
     throw new Error(
-      'Illegal argument: conj! expects a Set, Array, Map, or Object as the first argument.'
+      "Illegal argument: conj! expects a Set, Array, Map, or Object as the first argument."
     );
   }
 
@@ -168,7 +180,7 @@ export function conj(...xs) {
   }
 
   throw new Error(
-    'Illegal argument: conj expects a Set, Array, Map, or Object as the first argument.'
+    "Illegal argument: conj expects a Set, Array, Map, or Object as the first argument."
   );
 }
 
@@ -223,7 +235,7 @@ export function map(f, coll) {
 }
 
 export function str(...xs) {
-  return xs.join('');
+  return xs.join("");
 }
 
 export function not(expr) {
@@ -237,11 +249,13 @@ export function nil_QMARK_(v) {
 export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
-  return JSON.stringify(x, (_key, value) => (value instanceof Set ? [...value] : value));
+  return JSON.stringify(x, (_key, value) =>
+    value instanceof Set ? [...value] : value
+  );
 }
 
 export function pr_str(...xs) {
-  return xs.map(pr_str_1).join(' ');
+  return xs.map(pr_str_1).join(" ");
 }
 
 export function prn(...xs) {
