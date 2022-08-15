@@ -230,6 +230,17 @@ export function get(coll, key, otherwise = undefined) {
   return key in coll ? coll[key] : otherwise;
 }
 
+export function first(coll) {
+  // destructuring uses iterable protocol
+  let [first] = coll;
+  return first;
+}
+
+export function rest(coll) {
+  let [_, ...rest] = coll;
+  return rest;
+}
+
 export function map(f, coll) {
   return coll.map(f);
 }
