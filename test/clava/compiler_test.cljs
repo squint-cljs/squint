@@ -6,20 +6,8 @@
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]))
 
-(aset js/globalThis "map" cl/map)
-(aset js/globalThis "dissoc_BANG_" cl/dissoc!)
-(aset js/globalThis "str" cl/str)
-(aset js/globalThis "not" cl/not)
-(aset js/globalThis "get" cl/get)
-(aset js/globalThis "nil_QMARK_" cl/not)
-(aset js/globalThis "pr_str" cl/pr_str)
-(aset js/globalThis "conj" cl/conj)
-(aset js/globalThis "conj_BANG_" cl/conj!)
-(aset js/globalThis "assoc" cl/assoc)
-(aset js/globalThis "assoc_BANG_" cl/assoc!)
-(aset js/globalThis "assoc_in" cl/assoc-in)
-(aset js/globalThis "assoc_in_BANG_" cl/assoc-in!)
-(aset js/globalThis "PROTOCOL_SENTINEL" cl/PROTOCOL_SENTINEL)
+(doseq [k (js/Object.keys cl)]
+  (aset js/globalThis k (aget cl k)))
 
 (defn eq [a b]
   (ld/isEqual (clj->js a) (clj->js b)))

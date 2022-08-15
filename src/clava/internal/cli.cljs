@@ -1,6 +1,7 @@
 (ns clava.internal.cli
   (:require
    ["fs" :as fs]
+   ["path" :as path]
    [babashka.cli :as cli]
    [clava.compiler :as cc]
    [clava.compiler.node :as compiler]
@@ -37,9 +38,11 @@ help                      Print this help"))
       (fs/writeFileSync f res "utf-8")
       (when (:show opts)
         (println res))
-      (-> (esm/dynamic-import (str (js/process.cwd) "/" f))
-          (.finally (fn [_]
-                      (fs/rmSync dir #js {:force true :recursive true})))))
+      (let [path (if (path/isAbsolute f) f
+                     (str (js/process.cwd) "/" f))]
+        (-> (esm/dynamic-import path)
+            (.finally (fn [_]
+                        (fs/rmSync dir #js {:force true :recursive true}))))))
     (if (or (:help opts)
             (= "help" (first rest-cmds))
             (empty? rest-cmds))
@@ -51,7 +54,9 @@ help                      Print this help"))
     (println "[clava] Running" file)
     (.then (compiler/compile-file {:in-file file})
            (fn [{:keys [out-file]}]
-             (esm/dynamic-import (str (js/process.cwd) "/" out-file))))))
+             (let [path (if (path/isAbsolute out-file) out-file
+                            (str (js/process.cwd) "/" out-file))]
+               (esm/dynamic-import path))))))
 
 #_(defn compile-form [{:keys [opts]}]
     (let [e (:e opts)]
