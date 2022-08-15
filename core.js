@@ -1,4 +1,4 @@
-function assoc_BANG_(m, k, v, ...kvs) {
+export function assoc_BANG_(m, k, v, ...kvs) {
   if (kvs.length % 2 !== 0) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
   }
@@ -7,13 +7,13 @@ function assoc_BANG_(m, k, v, ...kvs) {
     m.set(k, v);
 
     for (let i = 0; i < kvs.length; i += 2) {
-      m.set(kvs[i], m[kvs[i + 1]]);
+      m.set(kvs[i], kvs[i + 1]);
     }
   } else if (m instanceof Object) {
     m[k] = v;
 
     for (let i = 0; i < kvs.length; i += 2) {
-      m[kvs[i]] = m[kvs[i + 1]];
+      m[kvs[i]] = kvs[i + 1];
     }
   } else {
     throw new Error(
@@ -30,10 +30,15 @@ export function assoc(o, k, v, ...kvs) {
       'Illegal argument: assoc expects a Map, Array, or Object as the first argument.'
     );
   }
+
+  if (o instanceof Map) {
+    return assoc_BANG_(new Map(o.entries()), k, v, ...kvs);
+  }
+
   return assoc_BANG_({ ...o }, k, v, ...kvs);
 }
 
-function conj_BANG_(...xs) {
+export function conj_BANG_(...xs) {
   let [o, ...rest] = xs;
 
   if (o === null || o === undefined) {

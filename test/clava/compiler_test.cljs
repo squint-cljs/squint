@@ -13,6 +13,8 @@
 (aset js/globalThis "nil_QMARK_" cl/not)
 (aset js/globalThis "pr_str" cl/pr_str)
 (aset js/globalThis "conj" cl/conj)
+(aset js/globalThis "assoc" cl/assoc)
+(aset js/globalThis "assoc_BANG_" cl/assoc!)
 (aset js/globalThis "PROTOCOL_SENTINEL" cl/PROTOCOL_SENTINEL)
 
 (defn eq [a b]
@@ -372,8 +374,12 @@
   (testing "arrays"
     (is (eq [1 2 8 4] (jsv! (assoc [1 2 3 4] 2 8))))
     (is (eq [6 2 8 4] (jsv! (assoc [1 2 3 4] 2 8 0 6)))))
-  #_(testing "maps")
-  #_(testing "objects"))
+  (testing "objects"
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(assoc {"1" 2} "3" 4))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(assoc {"1" 2} "3" 4 "5" 6)))))
+  (testing "maps"
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]]) (jsv! '(assoc (js/Map. [[1 2]]) 3 4))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]]) (jsv! '(assoc (js/Map. [[1 2]]) 3 4 5 6))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
