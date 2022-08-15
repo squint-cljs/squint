@@ -68,11 +68,11 @@ function typeConst(obj) {
   return undefined;
 }
 
-function assoc_in_with(f, o, keys, value) {
+function assoc_in_with(f, fname, o, keys, value) {
   let baseType = typeConst(o);
   if (!baseType)
     throw new Error(
-      "Illegal argument: assoc-in expects the first argument to be a Map, Array, or Object."
+      `Illegal argument: ${fname} expects the first argument to be a Map, Array, or Object.`
     );
 
   const chain = [o];
@@ -100,11 +100,11 @@ function assoc_in_with(f, o, keys, value) {
 }
 
 export function assoc_in(o, keys, value) {
-  return assoc_in_with(assoc, o, keys, value);
+  return assoc_in_with(assoc, "assoc-in", o, keys, value);
 }
 
 export function assoc_in_BANG_(o, keys, value) {
-  return assoc_in_with(assoc_BANG_, o, keys, value);
+  return assoc_in_with(assoc_BANG_, "assoc-in!", o, keys, value);
 }
 
 export function conj_BANG_(...xs) {
