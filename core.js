@@ -217,15 +217,75 @@ export function get(coll, key, otherwise = undefined) {
   return key in coll ? coll[key] : otherwise;
 }
 
+export function iterable_QMARK_(x) {
+  // String is iterable but doesn't allow `m in s`
+  return x instanceof String || Symbol.iterator in x;
+}
+
+export function iterable(x) {
+  if (iterable_QMARK_(x)) {
+    return x;
+  }
+  return Object.entries(x);
+}
+
 export function first(coll) {
   // destructuring uses iterable protocol
   let [first] = coll;
   return first;
 }
 
+export function second(coll) {
+  let [_, v] = coll;
+  return v;
+}
+
 export function rest(coll) {
   let [_, ...rest] = coll;
   return rest;
+}
+
+class Reduced {
+  value;
+  constructor(x) {
+    this.value = x;
+  }
+  _deref() {
+    return this.value;
+  }
+}
+
+export function reduced(x) {
+  return new Reduced(x);
+}
+
+export function reduced_QMARK_(x) {
+  return x instanceof Reduced;
+}
+
+export function reduce(f, arg1, arg2) {
+  let coll, val;
+  if (arg2 === undefined) {
+    // (reduce f coll)
+    const [hd, ...more] = iterable(arg1);
+    val = hd;
+    coll = more;
+  } else {
+    // (reduce f val coll)
+    val = arg1;
+    coll = iterable(arg2);
+  }
+  if (val instanceof Reduced) {
+    return val.value;
+  }
+  for (const x of coll) {
+    val = f(val, x);
+    if (val instanceof Reduced) {
+      val = val.value;
+      break;
+    }
+  }
+  return val;
 }
 
 export function map(f, coll) {
