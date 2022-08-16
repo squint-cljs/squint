@@ -1,6 +1,6 @@
 {
-  "type": "module",
   "name": "clavascript",
+  "type": "module",
   "sideEffects": false,
   "version": "0.0.0-alpha.15",
   "files": [
