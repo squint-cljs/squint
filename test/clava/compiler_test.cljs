@@ -553,17 +553,29 @@
                             (range 5))))
         "reduced early")
     (is (= 11 (jsv! '(reduce #(if (< %2 4)
-                               (+ %1 %2)
-                               (reduced %1))
-                            5
-                            (range 5))))
+                                (+ %1 %2)
+                                (reduced %1))
+                             5
+                             (range 5))))
         "reduced last el")
     (is (= 5 (jsv! '(reduce #(reduced %1)
                             5
                             (range 5))))
         "reduced first el")
     (is (= 5 (jsv! '(reduce #(+ %2 %1) (reduced 5) (range 5))))
-        "reduced val")))
+        "reduced val"))
+  (testing "sets"
+    (is (= 10 (jsv! '(reduce #(+ %1 %2) #{1 2 3 4})))))
+  (testing "maps"
+    (is (= 10 (jsv! '(reduce #(+ %1 (second %2))
+                             0
+                             (js/Map. [[:a 1] [:b 2] [:c 3] [:d 4]]))))))
+  (testing "objects"
+    (is (thrown? js/Error
+                 (jsv! '(reduce #(+ %1 (second %2))
+                                0
+                                {:a 1 :b 2 :c 3 :d 4})))
+        "reducing an object throws because it's not iterable")))
 
 
 (deftest reduced-test

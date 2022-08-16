@@ -223,6 +223,11 @@ export function first(coll) {
   return first;
 }
 
+export function second(coll) {
+  let [_, v] = coll;
+  return v;
+}
+
 export function rest(coll) {
   let [_, ...rest] = coll;
   return rest;
