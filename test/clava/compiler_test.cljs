@@ -4,7 +4,7 @@
    ["lodash$default" :as ld]
    [clava.compiler :as clava]
    [clojure.string :as str]
-   [clojure.test :as t :refer [async deftest is testing]]))
+   [clojure.test :as t :refer [are async deftest is testing]]))
 
 (doseq [k (js/Object.keys cl)]
   (aset js/globalThis k (aget cl k)))
@@ -527,6 +527,26 @@
   (is (eq #js [2 3] (jsv! '(rest [1 2 3]))))
   (is (eq #{2 3} (jsv! '(rest #{1 2 3}))))
   (is (eq #js [#js [3 4]] (jsv! '(rest (js/Map. [[1 2] [3 4]]))))))
+
+(deftest map-test
+  (is (eq [1 2 3 4 5] (jsv! '(map inc [0 1 2 3 4]))))
+  (is (every? (set (jsv! '(map inc #{0 1 2 3 4})))
+              [1 2 3 4 5]))
+  (is (eq [1 2 3 4 5] (jsv! '(map inc (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
+                                          (js/Map.)
+                                          (.values)))))))
+
+(deftest map-indexed-test
+  (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
+          (jsv! '(map-indexed vector [0 1 2 3 4]))))
+  (is (= 20 (apply + (jsv! '(map-indexed + #{0 1 2 3 4})))))
+  (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
+          (jsv! '(map-indexed
+                  vector
+                  (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
+                      (js/Map.)
+                      (.values)))))))
+
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
