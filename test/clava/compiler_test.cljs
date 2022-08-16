@@ -6,7 +6,7 @@
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]))
 
-#_(doseq [k (js/Object.keys cl)]
+(doseq [k (js/Object.keys cl)]
   (aset js/globalThis k (aget cl k)))
 
 (defn eq [a b]
@@ -556,6 +556,62 @@
                       (js/Map.)
                       (.values)))))))
 
+(deftest reduce-test
+  (testing "no val"
+    (is (= 10 (jsv! '(reduce #(+ %1 %2) (range 5)))))
+    (is (= 3 (jsv! '(reduce #(if (< %2 3)
+                               (+ %1 %2)
+                               (reduced %1))
+                            (range 5))))
+        "reduced early")
+    (is (= 6 (jsv! '(reduce #(if (< %2 4)
+                               (+ %1 %2)
+                               (reduced %1))
+                            (range 5))))
+        "reduced last el")
+    (is (= 0 (jsv! '(reduce #(reduced %1)
+                            (range 5))))
+        "reduced first el"))
+  (testing "val"
+    (is (= 15 (jsv! '(reduce #(+ %1 %2) 5 (range 5)))))
+    (is (= 8 (jsv! '(reduce #(if (< %2 3)
+                               (+ %1 %2)
+                               (reduced %1))
+                            5
+                            (range 5))))
+        "reduced early")
+    (is (= 11 (jsv! '(reduce #(if (< %2 4)
+                                (+ %1 %2)
+                                (reduced %1))
+                             5
+                             (range 5))))
+        "reduced last el")
+    (is (= 5 (jsv! '(reduce #(reduced %1)
+                            5
+                            (range 5))))
+        "reduced first el")
+    (is (= 5 (jsv! '(reduce #(+ %2 %1) (reduced 5) (range 5))))
+        "reduced val"))
+  (testing "sets"
+    (is (= 10 (jsv! '(reduce #(+ %1 %2) #{1 2 3 4})))))
+  (testing "maps"
+    (is (= 10 (jsv! '(reduce #(+ %1 (second %2))
+                             0
+                             (js/Map. [[:a 1] [:b 2] [:c 3] [:d 4]]))))))
+  (testing "objects"
+    (is (= 10 (jsv! '(reduce #(+ %1 (second %2))
+                             0
+                             (js/Object.entries {:a 1 :b 2 :c 3 :d 4})))))
+    (is (= 10 (jsv! '(reduce #(+ %1 %2)
+                             0
+                             (js/Object.values {:a 1 :b 2 :c 3 :d 4})))))
+    (is (= 10 (jsv! '(reduce #(+ %1 (second %2))
+                             0
+                             {:a 1 :b 2 :c 3 :d 4}))))))
+
+(deftest reduced-test
+  (is (jsv! '(reduced? (reduced 5))))
+  (is (= 4 (jsv! '(deref (reduced 4))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
