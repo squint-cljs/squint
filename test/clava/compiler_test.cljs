@@ -481,6 +481,15 @@
             (jsv! '(assoc-in {"1" [(js/Map. [[8 5]])]}
                              ["1" 0 8]
                              9))))
+    (is (eq true (jsv! '(let [x (js/Map. [[8 5]])
+                              y [x]
+                              z {"1" y}
+                              z* (assoc-in z ["1" 0 8] 9)
+                              y* (get z* "1")
+                              x* (get y* 0)]
+                          (and (not= x y*)
+                               (not= y y*)
+                               (not= z z*))))))
     (is (eq {:foo {:bar :baz}} (jsv! (assoc-in {} [:foo :bar] :baz)))))
   (testing "invalid data in path"
     (is (thrown? js/Error (jsv! '(assoc-in "foo" [0] 2))))

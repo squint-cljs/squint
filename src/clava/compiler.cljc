@@ -184,14 +184,14 @@
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
-(def prefix-unary-operators (set ['!]))
+(def prefix-unary-operators '#{!})
 
-(def suffix-unary-operators (set ['++ '--]))
+(def suffix-unary-operators '#{++ --})
 
-(def infix-operators (set ['+ '+= '- '-= '/ '* '% '= '== '=== '< '> '<= '>= '!=
-                           '<< '>> '<<< '>>> '!== '& '| '&& '|| 'not= 'instanceof]))
+(def infix-operators '#{+ += - -= / * % = == === < > <= >= !=
+                        << >> <<< >>> !== & | && || not= instanceof})
 
-(def chainable-infix-operators (set ['+ '- '* '/ '& '| '&& '||]))
+(def chainable-infix-operators '#{+ - * / & | && ||})
 
 
 (defn special-form? [expr]
