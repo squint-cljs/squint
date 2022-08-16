@@ -198,7 +198,6 @@
   (contains? special-forms expr))
 
 (defn infix-operator? [expr]
-  (prn infix-operators expr (contains? infix-operators expr))
   (contains? infix-operators expr))
 
 (defn prefix-unary? [expr]
@@ -225,7 +224,9 @@
     (if (and (= '- operator)
              (= 1 acount))
       (str "-" (emit (first args) env))
-      (->> (let [substitutions {'= '=== '== '=== '!= '!== 'not= '!==}]
+      (->> (let [substitutions {'= "===" == "===" '!= "!=="
+                                'not= "!=="
+                                '+ "+"}]
              (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
                                 (emit-args env args)) ")"))
            (emit-wrap enc-env)))))
