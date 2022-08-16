@@ -46,7 +46,7 @@
   (fs/delete-tree "lib")
   (fs/delete-tree ".shadow-cljs")
   (bump-core-vars)
-  (spit ".work/config-merge.edn" (shadow-extra-config))
+  (spit ".work/config-merge.edn" (shadow-extra-test-config))
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn release clava"))
 
 (defn publish []

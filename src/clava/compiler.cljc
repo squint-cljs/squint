@@ -198,6 +198,7 @@
   (contains? special-forms expr))
 
 (defn infix-operator? [expr]
+  (prn infix-operators expr (contains? infix-operators expr))
   (contains? infix-operators expr))
 
 (defn prefix-unary? [expr]
