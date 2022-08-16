@@ -7,6 +7,7 @@
    :target :esm
    :runtime :node
    :output-dir "lib"
+   :output-feature-set :es-next
    :modules
    ;; note: this is overriden in bb build-clava
    {:cljs_core {:exports {assoc cljs.core/assoc

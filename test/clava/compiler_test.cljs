@@ -6,7 +6,7 @@
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]))
 
-(doseq [k (js/Object.keys cl)]
+#_(doseq [k (js/Object.keys cl)]
   (aset js/globalThis k (aget cl k)))
 
 (defn eq [a b]
