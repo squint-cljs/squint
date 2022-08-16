@@ -4,7 +4,7 @@
    ["lodash$default" :as ld]
    [clava.compiler :as clava]
    [clojure.string :as str]
-   [clojure.test :as t :refer [are async deftest is testing]]))
+   [clojure.test :as t :refer [async deftest is testing]]))
 
 (doseq [k (js/Object.keys cl)]
   (aset js/globalThis k (aget cl k)))
