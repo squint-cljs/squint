@@ -217,6 +217,18 @@ export function get(coll, key, otherwise = undefined) {
   return key in coll ? coll[key] : otherwise;
 }
 
+export function iterable_QMARK_(x) {
+  // String is iterable but doesn't allow `m in s`
+  return x instanceof String || Symbol.iterator in x;
+}
+
+export function iterable(x) {
+  if (iterable_QMARK_(x)) {
+    return x;
+  }
+  return Object.entries(x);
+}
+
 export function first(coll) {
   // destructuring uses iterable protocol
   let [first] = coll;
@@ -255,13 +267,13 @@ export function reduce(f, arg1, arg2) {
   let coll, val;
   if (arg2 === undefined) {
     // (reduce f coll)
-    const [hd, ...more] = arg1;
+    const [hd, ...more] = iterable(arg1);
     val = hd;
     coll = more;
   } else {
     // (reduce f val coll)
     val = arg1;
-    coll = arg2;
+    coll = iterable(arg2);
   }
   if (val instanceof Reduced) {
     return val.value;

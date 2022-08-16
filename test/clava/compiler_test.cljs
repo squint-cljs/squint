@@ -571,17 +571,15 @@
                              0
                              (js/Map. [[:a 1] [:b 2] [:c 3] [:d 4]]))))))
   (testing "objects"
-    (= 10 (jsv! '(reduce #(+ %1 (second %2))
-                         0
-                         (js/Object.entries {:a 1 :b 2 :c 3 :d 4}))))
-    (= 10 (jsv! '(reduce #(+ %1 %2)
-                         0
-                         (js/Object.values {:a 1 :b 2 :c 3 :d 4}))))
-    (is (thrown? js/Error
-                 (jsv! '(reduce #(+ %1 (second %2))
-                                0
-                                {:a 1 :b 2 :c 3 :d 4})))
-        "reducing an object throws because it's not iterable")))
+    (is (= 10 (jsv! '(reduce #(+ %1 (second %2))
+                             0
+                             (js/Object.entries {:a 1 :b 2 :c 3 :d 4})))))
+    (is (= 10 (jsv! '(reduce #(+ %1 %2)
+                             0
+                             (js/Object.values {:a 1 :b 2 :c 3 :d 4})))))
+    (is (= 10 (jsv! '(reduce #(+ %1 (second %2))
+                             0
+                             {:a 1 :b 2 :c 3 :d 4}))))))
 
 
 (deftest reduced-test
