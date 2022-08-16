@@ -255,12 +255,15 @@ export function reduce(f, arg1, arg2) {
     val = arg1;
     coll = arg2;
   }
+  if (val instanceof Reduced) {
+    return val.value;
+  }
   for (const x of coll) {
+    val = f(val, x);
     if (val instanceof Reduced) {
       val = val.value;
       break;
     }
-    val = f(val, x);
   }
   return val;
 }
