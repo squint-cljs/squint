@@ -228,6 +228,43 @@ export function rest(coll) {
   return rest;
 }
 
+class Reduced {
+  value;
+  constructor(x) {
+    this.value = x;
+  }
+}
+
+export function reduced(x) {
+  return new Reduced(x);
+}
+
+export function reduced_QMARK_(x) {
+  return x instanceof Reduced;
+}
+
+export function reduce(f, arg1, arg2) {
+  let coll, val;
+  if (arg2 === undefined) {
+    // (reduce f coll)
+    const [hd, ...more] = arg1;
+    val = hd;
+    coll = more;
+  } else {
+    // (reduce f val coll)
+    val = arg1;
+    coll = arg2;
+  }
+  for (const x of coll) {
+    if (val instanceof Reduced) {
+      val = val.value;
+      break;
+    }
+    val = f(val, x);
+  }
+  return val;
+}
+
 export function map(f, coll) {
   return coll.map(f);
 }
