@@ -528,5 +528,42 @@
   (is (eq #{2 3} (jsv! '(rest #{1 2 3}))))
   (is (eq #js [#js [3 4]] (jsv! '(rest (js/Map. [[1 2] [3 4]]))))))
 
+(deftest reduce-test
+  (testing "no val"
+    (is (= 10 (jsv! '(reduce #(+ %1 %2) (range 5)))))
+    (is (= 3 (jsv! '(reduce #(if (< %2 3)
+                               (+ %1 %2)
+                               (reduced %1))
+                            (range 5))))
+        "reduced early")
+    (is (= 6 (jsv! '(reduce #(if (< %2 4)
+                               (+ %1 %2)
+                               (reduced %1))
+                            (range 5))))
+        "reduced last el")
+    (is (= 0 (jsv! '(reduce #(reduced %1)
+                            (range 5))))
+        "reduced first el"))
+  (testing "val"
+    (is (= 15 (jsv! '(reduce #(+ %1 %2) 5 (range 5)))))
+    (is (= 8 (jsv! '(reduce #(if (< %2 3)
+                               (+ %1 %2)
+                               (reduced %1))
+                            5
+                            (range 5))))
+        "reduced early")
+    (is (= 11 (jsv! '(reduce #(if (< %2 4)
+                               (+ %1 %2)
+                               (reduced %1))
+                            5
+                            (range 5))))
+        "reduced last el")
+    (is (= 5 (jsv! '(reduce #(reduced %1)
+                            5
+                            (range 5))))
+        "reduced first el")
+    (is (= 5 (jsv! '(reduce #(+ %2 %1) (reduced 5) (range 5))))
+        "reduced val")))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
