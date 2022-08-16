@@ -13,19 +13,18 @@
   "bin": {
     "clava": "node_cli.js"
   },
-  "dependencies": {
-  },
   "devDependencies": {
     "@vercel/ncc": "^0.34.0",
+    "argparse": "^2.0.1",
     "chalk": "^5.0.1",
     "clavascript": ".",
     "esbuild": "^0.14.49",
-    "shadow-cljs": "^2.19.8",
-    "source-maps": "^1.0.12",
-    "argparse": "^2.0.1",
     "ink": "^3.2.0",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
-    "react": "^17.0.2"
+    "prettier": "^2.7.1",
+    "react": "^17.0.2",
+    "shadow-cljs": "^2.19.8",
+    "source-maps": "^1.0.12"
   }
 }

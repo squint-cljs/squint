@@ -1,0 +1,11 @@
+/.cpcache
+/.cache
+/target
+/node_modules
+/.shadow-cljs
+/lib
+/dist
+/.work
+*.mjs
+/.lein-repl-history
+/.vscode
