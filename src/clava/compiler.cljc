@@ -224,7 +224,9 @@
     (if (and (= '- operator)
              (= 1 acount))
       (str "-" (emit (first args) env))
-      (->> (let [substitutions {'= '=== '== '=== '!= '!== 'not= '!==}]
+      (->> (let [substitutions {'= "===" == "===" '!= "!=="
+                                'not= "!=="
+                                '+ "+"}]
              (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
                                 (emit-args env args)) ")"))
            (emit-wrap enc-env)))))
