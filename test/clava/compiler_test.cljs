@@ -565,5 +565,10 @@
     (is (= 5 (jsv! '(reduce #(+ %2 %1) (reduced 5) (range 5))))
         "reduced val")))
 
+
+(deftest reduced-test
+  (is (jsv! '(reduced? (reduced 5))))
+  (is (= 4 (jsv! '(deref (reduced 4))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))

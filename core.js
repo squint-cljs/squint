@@ -233,6 +233,9 @@ class Reduced {
   constructor(x) {
     this.value = x;
   }
+  _deref() {
+    return this.value;
+  }
 }
 
 export function reduced(x) {
