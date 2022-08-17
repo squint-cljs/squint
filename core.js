@@ -217,31 +217,46 @@ export function get(coll, key, otherwise = undefined) {
   return key in coll ? coll[key] : otherwise;
 }
 
-export function iterable_QMARK_(x) {
+export function seqable_QMARK_(x) {
   // String is iterable but doesn't allow `m in s`
-  return x instanceof String || Symbol.iterator in x;
+  return (
+    x instanceof String || x === null || x === undefined || Symbol.iterator in x
+  );
 }
 
 export function iterable(x) {
-  if (iterable_QMARK_(x)) {
+  // nil puns to empty iterable, support passing nil to first/rest/reduce, etc.
+  if (x === null || x === undefined) {
+    return [];
+  }
+  if (seqable_QMARK_(x)) {
     return x;
   }
   return Object.entries(x);
 }
 
+export function seq(x) {
+  let iter = iterable(x);
+  // return nil for terminal checking
+  if (iter.length === 0) {
+    return null;
+  }
+  return iter;
+}
+
 export function first(coll) {
   // destructuring uses iterable protocol
-  let [first] = coll;
+  let [first] = iterable(coll);
   return first;
 }
 
 export function second(coll) {
-  let [_, v] = coll;
+  let [_, v] = iterable(coll);
   return v;
 }
 
 export function rest(coll) {
-  let [_, ...rest] = coll;
+  let [_, ...rest] = iterable(coll);
   return rest;
 }
 
