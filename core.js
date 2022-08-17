@@ -238,7 +238,7 @@ export function iterable(x) {
 export function seq(x) {
   let iter = iterable(x);
   // return nil for terminal checking
-  if (iter.length === 0) {
+  if (iter.length === 0 || iter.size === 0) {
     return null;
   }
   return iter;
