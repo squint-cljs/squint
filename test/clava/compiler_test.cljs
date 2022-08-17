@@ -608,7 +608,7 @@
   (is (= 4 (jsv! '(deref (reduced 4))))))
 
 (deftest seq-test
-  (is (eq '("a" "b" "c") (jsv! '(seq "abc"))))
+  (is (= "abc" (jsv! '(seq "abc"))))
   (is (eq '(1 2 3) (jsv! '(seq [1 2 3]))))
   (is (eq '([:a 1] [:b 2]) (jsv! '(seq {:a 1 :b 2}))))
   (is (eq (js/Set. [1 2 3])
