@@ -62,6 +62,24 @@ extra performance and small bundle size.
 - `println` is a synonym for `console.log`
 - `pr-str` and `prn` coerce values to a string using `JSON.stringify`
 
+### seqs
+
+Clava does not implement Clojure seqs. Instead it uses the JavaScript
+[iteration protocols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols)
+to work with collections. What this means in practice is the following:
+
+- `seq` takes a collection and returns an Iterable of that collection, or nil if it's empty
+- `iterable` takes a collection and returns an Iterable of that collection, even if it's empty
+- `seqable?` can be used to check if you can call either one
+
+Most collections are iterable already, so `seq` and `iterable` will simply
+return them; an exception are objects created via `{:a 1}`, where `seq` and
+`iterable` will return the result of `Object.entries`.
+
+`first`, `rest`, `map`, `reduce` et al. call `iterable` on the collection before
+processing, and functions that typically return seqs instead return an array of
+the results.
+
 ## Open questions
 
 - TC39 records and tuples are immutable but not widely supported. It's not yet sure how they will fit within clava.

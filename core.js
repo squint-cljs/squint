@@ -1,8 +1,6 @@
 export function assoc_BANG_(m, k, v, ...kvs) {
   if (kvs.length % 2 !== 0) {
-    throw new Error(
-      "Illegal argument: assoc expects an odd number of arguments."
-    );
+    throw new Error('Illegal argument: assoc expects an odd number of arguments.');
   }
 
   if (m instanceof Map) {
@@ -19,7 +17,7 @@ export function assoc_BANG_(m, k, v, ...kvs) {
     }
   } else {
     throw new Error(
-      "Illegal argument: assoc! expects a Map, Array, or Object as the first argument."
+      'Illegal argument: assoc! expects a Map, Array, or Object as the first argument.'
     );
   }
 
@@ -29,7 +27,7 @@ export function assoc_BANG_(m, k, v, ...kvs) {
 export function assoc(o, k, v, ...kvs) {
   if (!(o instanceof Object)) {
     throw new Error(
-      "Illegal argument: assoc expects a Map, Array, or Object as the first argument."
+      'Illegal argument: assoc expects a Map, Array, or Object as the first argument.'
     );
   }
 
@@ -100,11 +98,11 @@ function assoc_in_with(f, fname, o, keys, value) {
 }
 
 export function assoc_in(o, keys, value) {
-  return assoc_in_with(assoc, "assoc-in", o, keys, value);
+  return assoc_in_with(assoc, 'assoc-in', o, keys, value);
 }
 
 export function assoc_in_BANG_(o, keys, value) {
-  return assoc_in_with(assoc_BANG_, "assoc-in!", o, keys, value);
+  return assoc_in_with(assoc_BANG_, 'assoc-in!', o, keys, value);
 }
 
 export function conj_BANG_(...xs) {
@@ -130,7 +128,7 @@ export function conj_BANG_(...xs) {
     }
   } else {
     throw new Error(
-      "Illegal argument: conj! expects a Set, Array, Map, or Object as the first argument."
+      'Illegal argument: conj! expects a Set, Array, Map, or Object as the first argument.'
     );
   }
 
@@ -167,7 +165,7 @@ export function conj(...xs) {
   }
 
   throw new Error(
-    "Illegal argument: conj expects a Set, Array, Map, or Object as the first argument."
+    'Illegal argument: conj expects a Set, Array, Map, or Object as the first argument.'
   );
 }
 
@@ -217,31 +215,44 @@ export function get(coll, key, otherwise = undefined) {
   return key in coll ? coll[key] : otherwise;
 }
 
-export function iterable_QMARK_(x) {
+export function seqable_QMARK_(x) {
   // String is iterable but doesn't allow `m in s`
-  return x instanceof String || Symbol.iterator in x;
+  return typeof x === 'string' || x === null || x === undefined || Symbol.iterator in x;
 }
 
 export function iterable(x) {
-  if (iterable_QMARK_(x)) {
+  // nil puns to empty iterable, support passing nil to first/rest/reduce, etc.
+  if (x === null || x === undefined) {
+    return [];
+  }
+  if (seqable_QMARK_(x)) {
     return x;
   }
   return Object.entries(x);
 }
 
+export function seq(x) {
+  let iter = iterable(x);
+  // return nil for terminal checking
+  if (iter.length === 0 || iter.size === 0) {
+    return null;
+  }
+  return iter;
+}
+
 export function first(coll) {
   // destructuring uses iterable protocol
-  let [first] = coll;
+  let [first] = iterable(coll);
   return first;
 }
 
 export function second(coll) {
-  let [_, v] = coll;
+  let [_, v] = iterable(coll);
   return v;
 }
 
 export function rest(coll) {
-  let [_, ...rest] = coll;
+  let [_, ...rest] = iterable(coll);
   return rest;
 }
 
@@ -293,7 +304,7 @@ export function map(f, coll) {
 }
 
 export function str(...xs) {
-  return xs.join("");
+  return xs.join('');
 }
 
 export function not(expr) {
@@ -307,13 +318,11 @@ export function nil_QMARK_(v) {
 export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
-  return JSON.stringify(x, (_key, value) =>
-    value instanceof Set ? [...value] : value
-  );
+  return JSON.stringify(x, (_key, value) => (value instanceof Set ? [...value] : value));
 }
 
 export function pr_str(...xs) {
-  return xs.map(pr_str_1).join(" ");
+  return xs.map(pr_str_1).join(' ');
 }
 
 export function prn(...xs) {
