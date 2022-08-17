@@ -595,5 +595,19 @@
   (is (jsv! '(reduced? (reduced 5))))
   (is (= 4 (jsv! '(deref (reduced 4))))))
 
+(deftest seq-test
+  (is (eq '(1 2 3) (jsv! '(seq [1 2 3]))))
+  (is (eq '([:a 1] [:b 2]) (jsv! '(seq {:a 1 :b 2}))))
+  (is (eq (js/Set. [1 2 3])
+          (jsv! '(seq #{1 2 3}))))
+  (is (eq (js/Map. #js[#js[1 2] #js[3 4]])
+          (jsv! '(seq (js/Map. [[1 2] [3 4]])))))
+  (testing "empty"
+    (is (= nil (jsv! '(seq nil))))
+    (is (= nil (jsv! '(seq []))))
+    (is (= nil (jsv! '(seq {}))))
+    (is (= nil (jsv! '(seq #{}))))
+    (is (= nil (jsv! '(seq (js/Map.)))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
