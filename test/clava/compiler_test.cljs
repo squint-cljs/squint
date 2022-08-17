@@ -535,7 +535,8 @@
   (is (= nil (jsv! '(first (js/Map. [])))))
   (is (= 1 (jsv! '(first [1 2 3]))))
   (is (= 1 (jsv! '(first #{1 2 3}))))
-  (is (eq #js [1 2] (jsv! '(first (js/Map. [[1 2] [3 4]]))))))
+  (is (eq #js [1 2] (jsv! '(first (js/Map. [[1 2] [3 4]])))))
+  (is (eq "a" (jsv! '(first "abc")))))
 
 (deftest rest-test
   (is (eq () (jsv! '(rest nil))))
@@ -545,7 +546,8 @@
   (is (eq () (jsv! '(rest (js/Map. [])))))
   (is (eq #js [2 3] (jsv! '(rest [1 2 3]))))
   (is (eq #{2 3} (jsv! '(rest #{1 2 3}))))
-  (is (eq #js [#js [3 4]] (jsv! '(rest (js/Map. [[1 2] [3 4]]))))))
+  (is (eq #js [#js [3 4]] (jsv! '(rest (js/Map. [[1 2] [3 4]])))))
+  (is (eq '("b" "c") (jsv! '(rest "abc")))))
 
 (deftest reduce-test
   (testing "no val"
@@ -606,6 +608,7 @@
   (is (= 4 (jsv! '(deref (reduced 4))))))
 
 (deftest seq-test
+  (is (eq '("a" "b" "c") (jsv! '(seq "abc"))))
   (is (eq '(1 2 3) (jsv! '(seq [1 2 3]))))
   (is (eq '([:a 1] [:b 2]) (jsv! '(seq {:a 1 :b 2}))))
   (is (eq (js/Set. [1 2 3])
