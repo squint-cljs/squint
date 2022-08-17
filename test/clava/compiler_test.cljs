@@ -528,11 +528,21 @@
     (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))))
 
 (deftest first-test
+  (is (= nil (jsv! '(first nil))))
+  (is (= nil (jsv! '(first []))))
+  (is (= nil (jsv! '(first #{}))))
+  (is (= nil (jsv! '(first {}))))
+  (is (= nil (jsv! '(first (js/Map. [])))))
   (is (= 1 (jsv! '(first [1 2 3]))))
   (is (= 1 (jsv! '(first #{1 2 3}))))
   (is (eq #js [1 2] (jsv! '(first (js/Map. [[1 2] [3 4]]))))))
 
 (deftest rest-test
+  (is (eq () (jsv! '(rest nil))))
+  (is (eq () (jsv! '(rest []))))
+  (is (eq () (jsv! '(rest #{}))))
+  (is (eq () (jsv! '(rest {}))))
+  (is (eq () (jsv! '(rest (js/Map. [])))))
   (is (eq #js [2 3] (jsv! '(rest [1 2 3]))))
   (is (eq #{2 3} (jsv! '(rest #{1 2 3}))))
   (is (eq #js [#js [3 4]] (jsv! '(rest (js/Map. [[1 2] [3 4]]))))))
@@ -607,7 +617,18 @@
     (is (= nil (jsv! '(seq []))))
     (is (= nil (jsv! '(seq {}))))
     (is (= nil (jsv! '(seq #{}))))
-    (is (= nil (jsv! '(seq (js/Map.)))))))
+    (is (= nil (jsv! '(seq (js/Map.))))))
+  (is (eq #js [0 2 4 6 8]
+          (jsv! '(loop [evens []
+                        nums (range 10)]
+                   (if-some [x (first nums)]
+                     (recur (if (case x
+                                  (0 2 4 6 8 10) true
+                                  false)
+                              (conj evens x)
+                              evens)
+                            (rest nums))
+                     evens))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
