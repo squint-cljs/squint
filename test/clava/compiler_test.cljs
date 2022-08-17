@@ -633,5 +633,25 @@
                             (rest nums))
                      evens))))))
 
+(deftest map-test
+  (is (eq [1 2 3 4 5] (jsv! '(map inc [0 1 2 3 4]))))
+  (is (every? (set (jsv! '(map inc #{0 1 2 3 4})))
+              [1 2 3 4 5]))
+  (is (eq [1 2 3 4 5] (jsv! '(map inc (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
+                                          (js/Map.)
+                                          (.values)))))))
+
+(deftest map-indexed-test
+  (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
+          (jsv! '(map-indexed vector [0 1 2 3 4]))))
+  (is (= 20 (apply + (jsv! '(map-indexed + #{0 1 2 3 4})))))
+  (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
+          (jsv! '(map-indexed
+                  vector
+                  (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
+                      (js/Map.)
+                      (.values)))))))
+
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))

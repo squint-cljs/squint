@@ -1,3 +1,11 @@
+export function _PLUS_(x, ...xs) {
+  let sum = x;
+  for (const y of xs) {
+    sum += y;
+  }
+  return sum;
+}
+
 export function assoc_BANG_(m, k, v, ...kvs) {
   if (kvs.length % 2 !== 0) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
@@ -300,7 +308,21 @@ export function reduce(f, arg1, arg2) {
 }
 
 export function map(f, coll) {
-  return coll.map(f);
+  let ret = [];
+  for (const x of coll) {
+    ret.push(f(x));
+  }
+  return ret;
+}
+
+export function map_indexed(f, coll) {
+  let ret = [];
+  let i = 0;
+  for (const x of coll) {
+    ret.push(f(i, x));
+    i++;
+  }
+  return ret;
 }
 
 export function str(...xs) {
@@ -384,16 +406,6 @@ export function subvec(arr, start, end) {
 
 export function vector(...args) {
   return args;
-}
-
-export function map_indexed(f, coll) {
-  let ctr = 0;
-  let f2 = (x) => {
-    let res = f(ctr, x);
-    ctr = ctr + 1;
-    return res;
-  };
-  return coll.map(f2);
 }
 
 export const mapv = map;
