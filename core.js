@@ -309,7 +309,7 @@ export function reduce(f, arg1, arg2) {
 
 export function map(f, coll) {
   let ret = [];
-  for (const x of coll) {
+  for (const x of iterable(coll)) {
     ret.push(f(x));
   }
   return ret;
@@ -318,7 +318,7 @@ export function map(f, coll) {
 export function map_indexed(f, coll) {
   let ret = [];
   let i = 0;
-  for (const x of coll) {
+  for (const x of iterable(coll)) {
     ret.push(f(i, x));
     i++;
   }

@@ -637,20 +637,37 @@
   (is (eq [1 2 3 4 5] (jsv! '(map inc [0 1 2 3 4]))))
   (is (every? (set (jsv! '(map inc #{0 1 2 3 4})))
               [1 2 3 4 5]))
-  (is (eq [1 2 3 4 5] (jsv! '(map inc (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
-                                          (js/Map.)
-                                          (.values)))))))
+  (is (eq [[:a 1] [:b 2]]
+          (jsv! '(map #(vector (first %) (inc (second %)))
+                      {:a 0 :b 1}))))
+  (is (eq ["A" "B" "C"]
+          (jsv! '(map #(.toUpperCase %) "abc"))))
+  (is (eq [[0 1] [1 2] [2 3] [3 4] [4 5]]
+          (jsv! '(map #(vector (first %) (inc (second %)))
+                      (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
+                          (js/Map.))))))
+  (testing "nil"
+    (is (eq () (jsv! '(map inc nil))))
+    (is (eq () (jsv! '(map inc js/undefined))))))
 
 (deftest map-indexed-test
   (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
           (jsv! '(map-indexed vector [0 1 2 3 4]))))
   (is (= 20 (apply + (jsv! '(map-indexed + #{0 1 2 3 4})))))
-  (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
+  (is (eq [[0 :a 1] [1 :b 2]]
+          (jsv! '(map-indexed #(vector %1 (first %2) (inc (second %2)))
+                              {:a 0 :b 1}))))
+  (is (eq [[0 "A"] [1 "B"] [2 "C"]]
+          (jsv! '(map-indexed #(vector %1 (.toUpperCase %2))
+                              "abc"))))
+  (is (eq [[0 0 1] [1 1 2] [2 2 3] [3 3 4] [4 4 5]]
           (jsv! '(map-indexed
-                  vector
+                  #(vector %1 (first %2) (inc (second %2)))
                   (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
-                      (js/Map.)
-                      (.values)))))))
+                      (js/Map.))))))
+  (testing "nil"
+    (is (eq () (jsv! '(map-indexed vector nil))))
+    (is (eq () (jsv! '(map-indexed vector js/undefined))))))
 
 
 (defn init []
