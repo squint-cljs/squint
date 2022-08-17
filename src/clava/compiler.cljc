@@ -141,7 +141,9 @@
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break 'throw
                          'js/await 'const 'let 'let* 'ns 'def 'loop*
-                         'recur 'js* 'case* 'deftype* 'typeof]))
+                         'recur 'js* 'case* 'deftype* 'typeof
+                         ;; prefixed to avoid conflicts
+                         'clava-compiler-jsx]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -742,10 +744,39 @@ break;}" body)
       :statement s
       :return s))
 
+(defn jsx-attrs [v env]
+  (let [env (expr-env env)]
+    (if v
+      (str " "
+           (str/join " "
+                     (map (fn [[k v]]
+                            (str (name k) "=" (emit v env)))
+                          v)))
+      "")))
+
 (defmethod emit #?(:clj clojure.lang.IPersistentVector
                    :cljs ::vector) [expr env]
-  (emit-wrap env (format "[%s]"
-                         (str/join ", " (emit-args env expr)))))
+  (if (and (:jsx env)
+           (let [f (first expr)]
+             (or (keyword? f)
+                 (symbol? f))))
+    (let [v expr
+          tag (first v)
+          attrs (second v)
+          attrs (when (map? attrs) attrs)
+          elts (if attrs (nnext v) (next v))
+          tag-name (symbol tag)
+          tag-name (if (= '<> tag-name)
+                     (symbol "")
+                     tag-name)]
+      (emit-wrap env (format "<%s%s>%s</%s>\n"
+                             tag-name
+                             (jsx-attrs attrs env)
+                             (let [env (expr-env env)]
+                               (str/join " " (map #(emit % env) elts)))
+                             tag-name)))
+    (emit-wrap env (format "[%s]"
+                           (str/join ", " (emit-args env expr))))))
 
 #?(:cljs (derive PersistentArrayMap ::map))
 #?(:cljs (derive PersistentHashMap ::map))
@@ -774,45 +805,48 @@ break;}" body)
 
 (def ^:dynamic *jsx* false)
 
-(defn wrap-jsx [v]
-  (list 'js* "{ ~{} }" v))
+#_(defn wrap-jsx [v]
+    (list 'js* "{ ~{} }" v))
 
-(defn jsx-attrs [v]
-  (if v
-    (list* 'js*
-           (map (fn [[k v]]
-                  (str " " (name k) "=" (emit v (expr-env {})) " "))
-                v))
-    (list 'js* "")))
+#_(defn jsx-attrs [v]
+    (if v
+      (list* 'js*
+             (map (fn [[k v]]
+                    (str " " (name k) "=" (emit v (expr-env {})) " "))
+                  v))
+      (list 'js* "")))
 
-(defn html [v]
-  (cond (and (vector? v)
-             (let [f (first v)]
-               (or (keyword? f)
-                   (symbol? f))))
-        (let [tag (first v)
-              attrs (second v)
-              attrs (when (map? attrs) attrs)
-              elts (if attrs (nnext v) (next v))
-              tag-name (symbol tag)
-              tag-name (if (= '<> tag-name)
-                         (symbol "")
-                         tag-name)]
-          (wrap-jsx
-           (list 'let ['x
-                       (list* 'js*
-                              (format "<~{}~{}>%s</~{}>\n"
-                                      (str/join " " (repeat (count elts) "~{}")))
-                              tag-name
-                              (jsx-attrs attrs)
-                              (concat (map html elts) [tag-name]))]
-                 'x)))
-        (nil? v) (list 'js* "")
-        :else (wrap-jsx v)))
+#_(defn html [v]
+    (cond (and (vector? v)
+               (let [f (first v)]
+                 (or (keyword? f)
+                     (symbol? f))))
+          (let [tag (first v)
+                attrs (second v)
+                attrs (when (map? attrs) attrs)
+                elts (if attrs (nnext v) (next v))
+                tag-name (symbol tag)
+                tag-name (if (= '<> tag-name)
+                           (symbol "")
+                           tag-name)]
+            (wrap-jsx
+             (list 'let ['x
+                         (list* 'js*
+                                (format "<~{}~{}>%s</~{}>\n"
+                                        (str/join " " (repeat (count elts) "~{}")))
+                                tag-name
+                                (jsx-attrs attrs)
+                                (concat (map html elts) [tag-name]))]
+                   'x)))
+          (nil? v) (list 'js* "")
+          :else (wrap-jsx v)))
 
 (defn jsx [form]
-  (set! *jsx* true)
-  (html form))
+  (list 'clava-compiler-jsx form))
+
+(defmethod emit-special 'clava-compiler-jsx [_ env [_ form]]
+  (let [env (assoc env :jsx true)]
+    (emit form env)))
 
 (def clava-parse-opts
   (e/normalize-opts
