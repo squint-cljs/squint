@@ -44,7 +44,7 @@ Run `npx clava --help` to see all command line options.
 
 ## Why Clava
 
-Clava let you write CLJS syntax but emits small JS output, while still having
+Clava lets you write CLJS syntax but emits small JS output, while still having
 parts of the CLJS standard library available (ported to mutable data structures,
 so with caveats). This may work especially well for projects e.g. that you'd
 like to deploy on CloudFlare workers, node scripts, Github actions, etc. that
