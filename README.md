@@ -3,12 +3,13 @@
 ClavaScript, or clava for friends, is an experimental ClojureScript syntax to
 JavaScript compiler.
 
-> :warning: This project is an experiment and not recommended to be used in
-> production. It currently has many bugs and will undergo many breaking changes.
+> :warning: This project should be considered experimental and may still undergo
+> breaking changes. It's fine to use it for non-critical projects but don't use
+> it in production yet.
 
 ## Quickstart
 
-Although it's early days and far from complete, you're welcome to try out `clava` and submit issues.
+Although it's early days, you're welcome to try out `clava` and submit issues.
 
 ``` shell
 $ mkdir clava-test && cd clava-test
