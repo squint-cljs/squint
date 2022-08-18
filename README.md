@@ -80,7 +80,7 @@ return them; an exception are objects created via `{:a 1}`, where `seq` and
 processing, and functions that typically return seqs instead return an array of
 the results.
 
-## Jsx
+## JSX
 
 You can produce JSX syntax using the `#jsx` tag:
 
