@@ -415,3 +415,11 @@ export const vec = (x) => x;
 export function apply(f, ...args) {
   return f.apply(null, ...args);
 }
+
+export function even_QMARK_(x) {
+  return x % 2 == 0;
+}
+
+export function odd_QMARK_(x) {
+  return !even_QMARK_(x);
+}
