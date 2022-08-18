@@ -109,8 +109,8 @@ Note that when using a Clojure expression, you escape the JSX context so when yo
 (let [x 1]
   #jsx [:div
          (if (odd? x]
-           #jsx [:<> "Odd"]
-           #jsx [:<> "Even]]]))
+           #jsx [:span "Odd"]
+           #jsx [:span "Even]]]))
 ```
 
 See an example of an application using JSX [here](https://clavascript.github.io/demos/clava/solidjs/) ([source](https://github.com/clavascript/clavascript/blob/main/examples/solidjs/src/App.cljs)).
