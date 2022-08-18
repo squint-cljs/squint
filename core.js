@@ -423,3 +423,7 @@ export function even_QMARK_(x) {
 export function odd_QMARK_(x) {
   return !even_QMARK_(x);
 }
+
+export function constantly(x) {
+  return (..._) => x;
+}

@@ -669,6 +669,12 @@
     (is (eq () (jsv! '(map-indexed vector nil))))
     (is (eq () (jsv! '(map-indexed vector js/undefined))))))
 
+(deftest constantly-test
+  (is (= "abc" (jsv! '((constantly "abc")))))
+  (is (= 10 (jsv! '((constantly 10)))))
+  (is (= true (jsv! '((constantly true)))))
+  (is (= nil (jsv! '((constantly nil)))))
+  (is (= nil (jsv! '((constantly nil) "with some" "args" 1 :a)))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
