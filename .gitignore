@@ -18,3 +18,5 @@ example.mjs
 .lein-repl-history
 scratch.cljs
 .vscode
+.nrepl-port
+.calva
