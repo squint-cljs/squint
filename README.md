@@ -124,6 +124,14 @@ Clava supports `async/await`:
 (println x) ;;=> 10
 ```
 
+## Core team
+
+The core team consists of:
+
+- Michiel Borkent ([@borkdude](https://github.com/borkdude))
+- Will Acton ([@lilactown](https://github.com/lilactown))
+- Cora Sutton ([@corasaurus-hex](https://github.com/corasaurus-hex))
+
 License
 =======
 
