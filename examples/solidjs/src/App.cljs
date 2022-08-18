@@ -6,11 +6,12 @@
 (defn Counter []
   (let [[counter setCount] (createSignal 0)]
     #jsx [:div
-          "Count:" (* 2 (counter))
-          [:button
-               {:onClick (fn []
-                           (setCount (inc (counter))))}
-               "Click me"]]))
+          "Count:" (.join (range (counter)) " ")
+          [:div
+           [:button
+            {:onClick (fn []
+                        (setCount (inc (counter))))}
+            "Click me"]]]))
 
 (defn App []
   #jsx [:div {:class styles.App}
