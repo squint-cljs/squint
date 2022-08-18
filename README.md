@@ -113,6 +113,8 @@ Note that when using a Clojure expression, you escape the JSX context so when yo
            #jsx [:<> "Even]]]))
 ```
 
+See an example of an application using JSX [here](https://clavascript.github.io/demos/clava/solidjs/) ([source](https://github.com/clavascript/clavascript/blob/main/examples/solidjs/src/App.cljs)).
+
 ## Async/await
 
 Clava supports `async/await`:
