@@ -62,7 +62,7 @@ extra performance and small bundle size.
 - `println` is a synonym for `console.log`
 - `pr-str` and `prn` coerce values to a string using `JSON.stringify`
 
-### seqs
+### Seqs
 
 Clava does not implement Clojure seqs. Instead it uses the JavaScript
 [iteration protocols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols)
@@ -80,9 +80,49 @@ return them; an exception are objects created via `{:a 1}`, where `seq` and
 processing, and functions that typically return seqs instead return an array of
 the results.
 
-## Open questions
+## Jsx
 
-- TC39 records and tuples are immutable but not widely supported. It's not yet sure how they will fit within clava.
+You can produce JSX syntax using the `#jsx` tag:
+
+``` clojure
+#jsx [:div "Hello"]
+```
+
+produces:
+
+``` html
+<div>Hello</div>
+```
+
+and outputs the `.jsx` extension automatically.
+
+You can use Clojure expressions within `#jsx` expressions:
+
+``` clojure
+(let [x 1] #jsx [:div (inc x)])
+```
+
+Note that when using a Clojure expression, you escape the JSX context so when you need to return more JSX, use the `#jsx` once again:
+
+``` clojure
+(let [x 1]
+  #jsx [:div
+         (if (odd? x]
+           #jsx [:<> "Odd"]
+           #jsx [:<> "Even]]]))
+```
+
+## Async/await
+
+Clava supports `async/await`:
+
+``` clojure
+(defn ^:async foo [] (js/Promise.resolve 10))
+
+(def x (js/await (foo)))
+
+(println x) ;;=> 10
+```
 
 License
 =======
