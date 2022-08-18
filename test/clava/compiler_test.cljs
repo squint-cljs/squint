@@ -423,6 +423,30 @@
   (testing "other types"
     (is (thrown? js/Error (jsv! '(conj! "foo"))))))
 
+(deftest contains?-test
+  (testing "corner cases"
+    (is (= false (jsv! '(contains? nil nil))))
+    (is (= false (jsv! '(contains? 1 nil))))
+    (is (= false (jsv! '(contains? 1 1))))
+    (is (= false (jsv! '(contains? "foo" "foo"))))
+    (is (= false (jsv! '(contains? "foo" nil)))))
+  (testing "arrays"
+    (is (= true (jsv! '(contains? [1 2 3] 0))))
+    (is (= true (jsv! '(contains? [1 2 3] 1))))
+    (is (= true (jsv! '(contains? [1 2 3] 2))))
+    (is (= false (jsv! '(contains? [1 2 3] 3)))))
+  (testing "sets"
+    (is (= false (jsv! '(contains? #{1 2 3} 0))))
+    (is (= true (jsv! '(contains? #{1 2 3} 1))))
+    (is (= true (jsv! '(contains? #{1 2 3} 2))))
+    (is (= true (jsv! '(contains? #{1 2 3} 3)))))
+  (testing "objects"
+    (is (= true (jsv! '(contains? {:a 1} :a))))
+    (is (= false (jsv! '(contains? {:a 1} :b)))))
+  (testing "maps"
+    (is (= true (jsv! '(contains? (js/Map. [[:a 1]]) :a))))
+    (is (= false (jsv! '(contains? (js/Map. [[:a 1]]) :b))))))
+
 (deftest assoc-test
   (testing "arrays"
     (is (eq [1 2 8 4] (jsv! '(assoc [1 2 3 4] 2 8))))
@@ -531,6 +555,11 @@
     (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 1))))
     (is (eq nil (jsv! '(get ["val1" "val2" "val3"] 10))))
     (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 10 "val2")))))
+  (testing "sets"
+    (is (= nil (jsv! '(get #{1 2 3} 0))))
+    (is (= 1 (jsv! '(get #{1 2 3} 1))))
+    (is (= 2 (jsv! '(get #{1 2 3} 2))))
+    (is (= 3 (jsv! '(get #{1 2 3} 3)))))
   (testing "objects"
     (is (eq nil (jsv! '(get {"my-key" 1} nil))))
     (is (eq 1 (jsv! '(get {"my-key" 1} "my-key"))))
