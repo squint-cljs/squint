@@ -38,11 +38,12 @@ help                      Print this help"))
       (fs/writeFileSync f res "utf-8")
       (when (:show opts)
         (println res))
-      (let [path (if (path/isAbsolute f) f
-                     (str (js/process.cwd) "/" f))]
-        (-> (esm/dynamic-import path)
-            (.finally (fn [_]
-                        (fs/rmSync dir #js {:force true :recursive true}))))))
+      (when-not (:no-run opts)
+        (let [path (if (path/isAbsolute f) f
+                       (str (js/process.cwd) "/" f))]
+          (-> (esm/dynamic-import path)
+              (.finally (fn [_]
+                          (fs/rmSync dir #js {:force true :recursive true})))))))
     (if (or (:help opts)
             (= "help" (first rest-cmds))
             (empty? rest-cmds))
