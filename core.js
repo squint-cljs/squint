@@ -216,6 +216,7 @@ export function nth(coll, idx) {
 }
 
 export function get(coll, key, otherwise = undefined) {
+  if (coll === null || typeof coll !== "object") return otherwise;
   if (coll instanceof Map) {
     return coll.has(key) ? coll.get(key) : otherwise;
   }
