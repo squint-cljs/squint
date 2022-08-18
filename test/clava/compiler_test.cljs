@@ -514,15 +514,25 @@
     (is (thrown? js/Error (jsv! '(assoc-in! "foo" [0] 2))))))
 
 (deftest get-test
+  (testing "corner cases"
+    (is (= nil (jsv! '(get nil nil))))
+    (is (= nil (jsv! '(get nil 0))))
+    (is (= nil (jsv! '(get 1 nil))))
+    (is (= nil (jsv! '(get "1" nil))))
+    (is (= nil (jsv! '(get true nil))))
+    (is (= nil (jsv! '(get :foo nil)))))
   (testing "maps"
+    (is (eq nil (jsv! '(get (js/Map. [["my-key" 1]]) nil))))
     (is (eq 1 (jsv! '(get (js/Map. [["my-key" 1]]) "my-key"))))
     (is (eq nil (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key"))))
     (is (eq 3 (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key" 3)))))
   (testing "arrays"
+    (is (eq nil (jsv! '(get ["val1" "val2" "val3"] nil))))
     (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 1))))
     (is (eq nil (jsv! '(get ["val1" "val2" "val3"] 10))))
     (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 10 "val2")))))
   (testing "objects"
+    (is (eq nil (jsv! '(get {"my-key" 1} nil))))
     (is (eq 1 (jsv! '(get {"my-key" 1} "my-key"))))
     (is (eq nil (jsv! '(get {"my-key" 1} "bad-key"))))
     (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))))
