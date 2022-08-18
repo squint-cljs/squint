@@ -127,6 +127,15 @@ Clava supports `async/await`:
 (println x) ;;=> 10
 ```
 
+## Roadmap
+
+In arbitrary order, these features are planned:
+
+- Macros
+- REPL
+- Protocols
+- Transducers
+
 ## Core team
 
 The core team consists of:
