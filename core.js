@@ -432,6 +432,10 @@ export function odd_QMARK_(x) {
   return !even_QMARK_(x);
 }
 
+export function complement(f) {
+  return (...args) => not(f(...args));
+}
+
 export function constantly(x) {
   return (..._) => x;
 }

@@ -708,6 +708,15 @@
     (is (eq () (jsv! '(map-indexed vector nil))))
     (is (eq () (jsv! '(map-indexed vector js/undefined))))))
 
+(deftest complement-test
+  (is (= false (jsv! '((complement (constantly true))))))
+  (is (= true (jsv! '((complement (constantly false))))))
+  (is (= true (jsv! '((complement (constantly false)) "with some" "args" 1 :a))))
+  (is (= true (jsv! '(let [first-elem-not-1? (complement (fn [x] (= 1 (first x))))]
+                       (first-elem-not-1? [2 3])))))
+  (is (= false (jsv! '(let [first-elem-not-1? (complement (fn [x] (= 1 (first x))))]
+                        (first-elem-not-1? [1 2]))))))
+
 (deftest constantly-test
   (is (= "abc" (jsv! '((constantly "abc")))))
   (is (= 10 (jsv! '((constantly 10)))))
