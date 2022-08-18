@@ -712,6 +712,10 @@
   (is (= false (jsv! '((complement (constantly true))))))
   (is (= true (jsv! '((complement (constantly false))))))
   (is (= true (jsv! '((complement (constantly false)) "with some" "args" 1 :a))))
+  (is (= true (jsv! '(let [not-contains? (complement contains?)]
+                       (not-contains? [2 3 4] 5)))))
+  (is (= false (jsv! '(let [not-contains? (complement contains?)]
+                        (not-contains? [2 3 4] 2)))))
   (is (= true (jsv! '(let [first-elem-not-1? (complement (fn [x] (= 1 (first x))))]
                        (first-elem-not-1? [2 3])))))
   (is (= false (jsv! '(let [first-elem-not-1? (complement (fn [x] (= 1 (first x))))]
