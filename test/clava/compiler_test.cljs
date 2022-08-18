@@ -673,7 +673,8 @@
   (is (= "abc" (jsv! '((constantly "abc")))))
   (is (= 10 (jsv! '((constantly 10)))))
   (is (= true (jsv! '((constantly true)))))
-  (is (= nil (jsv! '((constantly nil))))))
+  (is (= nil (jsv! '((constantly nil)))))
+  (is (= nil (jsv! '((constantly nil) "with some" "args" 1 :a)))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
