@@ -78,7 +78,9 @@
        (emit-wrap env)))
 
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
-  (emit-wrap env (pr-str expr)))
+  (if (:jsx env)
+    expr
+    (emit-wrap env (pr-str expr))))
 
 (defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr env]
   (emit-wrap env (str (pr-str (subs (str expr) 1)))))
@@ -100,12 +102,18 @@
           m)
       sym)))
 
+(defn escape-jsx [env expr]
+  (if (:jsx env)
+    (format "{%s}" expr)
+    expr))
+
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
     (emit-wrap env
-               (emit (list 'cljs.core/symbol
-                           (str expr))
-                     (dissoc env :quote)))
+               (escape-jsx env
+                           (emit (list 'cljs.core/symbol
+                                       (str expr))
+                                 (dissoc env :quote))))
     (if (and (simple-symbol? expr)
              (str/includes? (str expr) "."))
       (let [[fname path] (str/split (str expr) #"\." 2)
@@ -126,7 +134,9 @@
                    (str expr-ns (when expr-ns
                                   ".")
                         (munge* (name expr))))]
-        (emit-wrap env (str expr))))))
+        (emit-wrap env
+                   (escape-jsx env
+                               (str expr)))))))
 
 #?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr _env]
           (str \/ expr \/)))
@@ -693,48 +703,51 @@ break;}" body)
       sym)))
 
 (defmethod emit ::list [expr env]
-  (if (:quote env)
-    (do
-      (swap! *imported-core-vars* conj 'list)
-      (format "list(%s)"
-              (str/join ", " (emit-args env expr))))
-    (cond (symbol? (first expr))
-          (let [head* (first expr)
-                head (strip-core-symbol head*)
-                expr (if (not= head head*)
-                       (with-meta (cons head (rest expr))
-                         (meta expr))
-                       expr)
-                head-str (str head)]
-            (cond
-              (and (= (.charAt head-str 0) \.)
-                   (> (count head-str) 1)
-                   (not (= ".." head-str)))
-              (emit-special '. env
-                            (list* '.
-                                   (second expr)
-                                   (symbol (subs head-str 1))
-                                   (nnext expr)))
-              (contains? built-in-macros head)
-              (let [macro (built-in-macros head)
-                    new-expr (apply macro expr {} (rest expr))]
-                (emit new-expr env))
-              (and (> (count head-str) 1)
-                   (str/ends-with? head-str "."))
-              (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
-                    env)
-              (special-form? head) (emit-special head env expr)
-              (infix-operator? head) (emit-infix head env expr)
-              (prefix-unary? head) (emit-prefix-unary head expr)
-              (suffix-unary? head) (emit-suffix-unary head expr)
-              :else (emit-special 'funcall env expr)))
-          (keyword? (first expr))
-          (let [[k obj] expr]
-            (emit (list 'aget obj k)))
-          (list? expr)
-          (emit-special 'funcall env expr)
-          :else
-          (throw (new Exception (str "invalid form: " expr))))))
+  (escape-jsx
+   env
+   (let [env (dissoc env :jsx)]
+     (if (:quote env)
+       (do
+         (swap! *imported-core-vars* conj 'list)
+         (format "list(%s)"
+                 (str/join ", " (emit-args env expr))))
+       (cond (symbol? (first expr))
+             (let [head* (first expr)
+                   head (strip-core-symbol head*)
+                   expr (if (not= head head*)
+                          (with-meta (cons head (rest expr))
+                            (meta expr))
+                          expr)
+                   head-str (str head)]
+               (cond
+                 (and (= (.charAt head-str 0) \.)
+                      (> (count head-str) 1)
+                      (not (= ".." head-str)))
+                 (emit-special '. env
+                               (list* '.
+                                      (second expr)
+                                      (symbol (subs head-str 1))
+                                      (nnext expr)))
+                 (contains? built-in-macros head)
+                 (let [macro (built-in-macros head)
+                       new-expr (apply macro expr {} (rest expr))]
+                   (emit new-expr env))
+                 (and (> (count head-str) 1)
+                      (str/ends-with? head-str "."))
+                 (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
+                       env)
+                 (special-form? head) (emit-special head env expr)
+                 (infix-operator? head) (emit-infix head env expr)
+                 (prefix-unary? head) (emit-prefix-unary head expr)
+                 (suffix-unary? head) (emit-suffix-unary head expr)
+                 :else (emit-special 'funcall env expr)))
+             (keyword? (first expr))
+             (let [[k obj] expr]
+               (emit (list 'aget obj k)))
+             (list? expr)
+             (emit-special 'funcall env expr)
+             :else
+             (throw (new Exception (str "invalid form: " expr))))))))
 
 #?(:cljs (derive PersistentVector ::vector))
 
@@ -845,6 +858,7 @@ break;}" body)
   (list 'clava-compiler-jsx form))
 
 (defmethod emit-special 'clava-compiler-jsx [_ env [_ form]]
+  (set! *jsx* true)
   (let [env (assoc env :jsx true)]
     (emit form env)))
 
