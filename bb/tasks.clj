@@ -39,7 +39,6 @@
   (let [core-vars (:out (shell {:out :string}
                                "node --input-type=module -e 'import * as clava from \"clavascript/core.js\";console.log(JSON.stringify(Object.keys(clava)))'"))
         parsed (apply sorted-set (map symbol (json/parse-string core-vars)))]
-    (prn parsed)
     (spit "resources/clava/core.edn" (with-out-str
                                        ((requiring-resolve 'clojure.pprint/pprint)
                                         parsed)))))
