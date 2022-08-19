@@ -213,6 +213,18 @@ export function disj(s, ...xs) {
   return disj_BANG_(s1, ...xs);
 }
 
+export function contains_QMARK_(coll, v) {
+  switch (typeConst(coll)) {
+    case SET_TYPE:
+    case MAP_TYPE:
+      return coll.has(v);
+    case undefined:
+      return false;
+    default:
+      return v in coll;
+  }
+}
+
 export function dissoc_BANG_(m, k) {
   delete m[k];
   return m;
@@ -240,12 +252,22 @@ export function nth(coll, idx) {
 }
 
 export function get(coll, key, otherwise = undefined) {
-  if (coll === null || typeof coll !== 'object') return otherwise;
-  if (coll instanceof Map) {
-    return coll.has(key) ? coll.get(key) : otherwise;
+  let v;
+  switch(typeConst(coll)) {
+    case SET_TYPE:
+      if (coll.has(key))
+        v = key;
+      break;
+    case MAP_TYPE:
+      v = coll.get(key);
+      break;
+    case undefined:
+      break;
+    default:
+      v = coll[key];
+      break;
   }
-
-  return key in coll ? coll[key] : otherwise;
+  return v !== undefined ? v : otherwise;
 }
 
 export function seqable_QMARK_(x) {
