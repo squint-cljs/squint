@@ -495,3 +495,9 @@
   static analysis."
   [_ _ obj key val]
   (list 'js* "(~{}[~{}] = ~{})" obj key val))
+
+(defn core-instance? [_ _ c x]
+  (bool-expr (if (clojure.core/symbol? c)
+               (list 'js* "(~{} instanceof ~{})" x c)
+               `(let [c# ~c x# ~x]
+                  (~'js* "(~{} instanceof ~{})" x# c#)))))

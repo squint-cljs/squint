@@ -707,5 +707,9 @@
   (is (= nil (jsv! '((constantly nil)))))
   (is (= nil (jsv! '((constantly nil) "with some" "args" 1 :a)))))
 
+(deftest instance-test
+  (is (true? (jsv! '(instance? js/Array []))))
+  (is (false? (jsv! '(instance? js/String [])))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
