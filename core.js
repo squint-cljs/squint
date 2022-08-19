@@ -230,8 +230,9 @@ export function seqable_QMARK_(x) {
 }
 
 export function iterable(x) {
-  // nil puns to empty iterable, support passing nil to first/rest/reduce, etc.
-  if (x === null || x === undefined) {
+  // nil or primitive besides string puns to empty iterable,
+  // support passing nil to first/rest/reduce, etc.
+  if (x === null || (typeof x !== "string" && typeof x !== "object")) {
     return [];
   }
   if (seqable_QMARK_(x)) {
@@ -258,6 +259,10 @@ export function first(coll) {
 export function second(coll) {
   let [_, v] = iterable(coll);
   return v;
+}
+
+export function ffirst(coll) {
+  return first(first(coll));
 }
 
 export function rest(coll) {
