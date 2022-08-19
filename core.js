@@ -120,6 +120,10 @@ export function assoc_in_BANG_(o, keys, value) {
 }
 
 export function conj_BANG_(...xs) {
+  if (xs.length === 0) {
+    return vector();
+  }
+
   let [o, ...rest] = xs;
 
   if (o === null || o === undefined) {
@@ -157,6 +161,10 @@ export function conj_BANG_(...xs) {
 }
 
 export function conj(...xs) {
+  if (xs.length === 0) {
+    return vector();
+  }
+
   let [o, ...rest] = xs;
 
   if (o === null || o === undefined) {
@@ -232,7 +240,7 @@ export function nth(coll, idx) {
 }
 
 export function get(coll, key, otherwise = undefined) {
-  if (coll === null || typeof coll !== "object") return otherwise;
+  if (coll === null || typeof coll !== 'object') return otherwise;
   if (coll instanceof Map) {
     return coll.has(key) ? coll.get(key) : otherwise;
   }

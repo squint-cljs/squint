@@ -346,7 +346,7 @@
 
 (deftest conj-test
   (testing "corner cases"
-    (is (eq '(), (jsv! '(conj))))
+    (is (eq [], (jsv! '(conj))))
     (is (eq '(), (jsv! '(conj nil))))
     (is (eq '(2 1), (jsv! '(conj nil 1 2)))))
   (testing "arrays"
@@ -377,7 +377,7 @@
 
 (deftest conj!-test
   (testing "corner cases"
-    (is (eq '(), (jsv! '(conj!))))
+    (is (eq [], (jsv! '(conj!))))
     (is (eq '(), (jsv! '(conj! nil))))
     (is (eq '(2 1), (jsv! '(conj! nil 1 2)))))
   (testing "arrays"
