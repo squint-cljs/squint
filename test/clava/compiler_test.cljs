@@ -347,12 +347,18 @@
 (deftest conj-test
   (testing "corner cases"
     (is (eq [], (jsv! '(conj))))
-    (is (eq [], (jsv! '(conj nil))))
-    (is (eq [1 2], (jsv! '(conj nil 1 2)))))
+    (is (= true, (jsv! '(vector? (conj)))))
+    (is (eq '(), (jsv! '(conj nil))))
+    (is (= true, (jsv! '(list? (conj nil)))))
+    (is (eq '(2 1), (jsv! '(conj nil 1 2)))))
   (testing "arrays"
     (is (eq [1 2 3 4] (jsv! '(conj [1 2 3 4]))))
     (is (eq [1 2 3 4] (jsv! '(conj [1 2 3] 4))))
     (is (eq [1 2 3 4] (jsv! '(conj [1 2] 3 4)))))
+  (testing "lists"
+    (is (eq '(1 2 3 4) (jsv! '(conj '(1 2 3 4)))))
+    (is (eq '(1 2 3 4) (jsv! '(conj '(2 3 4) 1))))
+    (is (eq '(1 2 3 4) (jsv! '(conj '(3 4) 2 1)))))
   (testing "sets"
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2 3 4}))))
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2 3} 4))))
@@ -374,8 +380,8 @@
 (deftest conj!-test
   (testing "corner cases"
     (is (eq [], (jsv! '(conj!))))
-    (is (eq [], (jsv! '(conj! nil))))
-    (is (eq [1 2], (jsv! '(conj! nil 1 2)))))
+    (is (eq '(), (jsv! '(conj! nil))))
+    (is (eq '(2 1), (jsv! '(conj! nil 1 2)))))
   (testing "arrays"
     (is (eq [1 2 3 4] (jsv! '(conj! [1 2 3 4]))))
     (is (eq [1 2 3 4] (jsv! '(conj! [1 2 3] 4))))
@@ -385,6 +391,16 @@
     (is (eq [1 2 3 4] (jsv! '(conj! [1 2] 3 4))))
     (is (eq [1 2 3 4] (jsv! '(let [x [1 2]]
                                (conj! x 3 4)
+                               x)))))
+  (testing "lists"
+    (is (eq '(1 2 3 4) (jsv! '(conj '(1 2 3 4)))))
+    (is (eq '(1 2 3 4) (jsv! '(conj '(2 3 4) 1))))
+    (is (eq '(1 2 3 4) (jsv! '(let [x '(2 3 4)]
+                               (conj! x 1)
+                               x))))
+    (is (eq '(1 2 3 4) (jsv! '(conj! '(3 4) 2 1))))
+    (is (eq '(1 2 3 4) (jsv! '(let [x '(3 4)]
+                               (conj! x 2 1)
                                x)))))
   (testing "sets"
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3 4}))))
@@ -706,6 +722,21 @@
   (is (= true (jsv! '((constantly true)))))
   (is (= nil (jsv! '((constantly nil)))))
   (is (= nil (jsv! '((constantly nil) "with some" "args" 1 :a)))))
+
+(deftest list?-test
+  (is (= true (jsv! '(list? '(1 2 3 4)))))
+  (is (= true (jsv! '(list? (list 1 2 3)))))
+  (is (= false (jsv! '(list? nil))))
+  (is (= false (jsv! '(list? [1 2 3]))))
+  (is (= false (jsv! '(list? {:a :b}))))
+  (is (= false (jsv! '(list? #{:a :b})))))
+
+(deftest vector?-test
+  (is (= false (jsv! '(vector? '(1 2 3 4)))))
+  (is (= false (jsv! '(vector? nil))))
+  (is (= true (jsv! '(vector? [1 2 3]))))
+  (is (= false (jsv! '(vector? {:a :b}))))
+  (is (= false (jsv! '(vector? #{:a :b})))))
 
 (deftest instance-test
   (is (true? (jsv! '(instance? js/Array []))))
