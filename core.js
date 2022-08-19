@@ -443,6 +443,10 @@ export function vector(...args) {
   return args;
 }
 
+export function vector_QMARK_(x) {
+  return typeConst(x) === ARRAY_TYPE;
+}
+
 export const mapv = map;
 
 export const vec = (x) => x;
@@ -470,7 +474,7 @@ export function constantly(x) {
 class List extends Array {}
 
 export function list_QMARK_(x) {
-  return x instanceof List;
+  return typeConst(x) === LIST_TYPE;
 }
 
 export function list(...args) {

@@ -347,7 +347,9 @@
 (deftest conj-test
   (testing "corner cases"
     (is (eq [], (jsv! '(conj))))
+    (is (= true, (jsv! '(vector? (conj)))))
     (is (eq '(), (jsv! '(conj nil))))
+    (is (= true, (jsv! '(list? (conj nil)))))
     (is (eq '(2 1), (jsv! '(conj nil 1 2)))))
   (testing "arrays"
     (is (eq [1 2 3 4] (jsv! '(conj [1 2 3 4]))))
@@ -728,6 +730,13 @@
   (is (= false (jsv! '(list? [1 2 3]))))
   (is (= false (jsv! '(list? {:a :b}))))
   (is (= false (jsv! '(list? #{:a :b})))))
+
+(deftest vector?-test
+  (is (= false (jsv! '(vector? '(1 2 3 4)))))
+  (is (= false (jsv! '(vector? nil))))
+  (is (= true (jsv! '(vector? [1 2 3]))))
+  (is (= false (jsv! '(vector? {:a :b}))))
+  (is (= false (jsv! '(vector? #{:a :b})))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
