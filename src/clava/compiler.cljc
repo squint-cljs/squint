@@ -310,8 +310,8 @@
     (str "var " (munge t) " = " (format "function %s {
 %s
 %s
-%s
-}"
+};
+%s"
                                         (comma-list fields)
                                         (str/join "\n"
                                                   (map (fn [fld]
