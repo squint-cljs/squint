@@ -439,6 +439,31 @@
   (testing "other types"
     (is (thrown? js/Error (jsv! '(conj! "foo"))))))
 
+(deftest contains?-test
+  (testing "corner cases"
+    (is (= false (jsv! '(contains? nil nil))))
+    (is (= false (jsv! '(contains? 1 nil))))
+    (is (= false (jsv! '(contains? 1 1))))
+    (is (= false (jsv! '(contains? "foo" "foo"))))
+    (is (= false (jsv! '(contains? "foo" nil)))))
+  (testing "arrays"
+    (is (= true (jsv! '(contains? [1 2 3] 0))))
+    (is (= true (jsv! '(contains? [1 2 3] 1))))
+    (is (= true (jsv! '(contains? [1 2 3] 2))))
+    (is (= false (jsv! '(contains? [1 2 3] 3)))))
+  (testing "sets"
+    (is (= false (jsv! '(contains? #{1 2 3} 0))))
+    (is (= true (jsv! '(contains? #{1 2 3} 1))))
+    (is (= true (jsv! '(contains? #{1 2 3} 2))))
+    (is (= true (jsv! '(contains? #{1 2 3} 3))))
+    (is (= true (jsv! '(contains? #{1 2 3 nil} nil)))))
+  (testing "objects"
+    (is (= true (jsv! '(contains? {:a 1} :a))))
+    (is (= false (jsv! '(contains? {:a 1} :b)))))
+  (testing "maps"
+    (is (= true (jsv! '(contains? (js/Map. [[:a 1]]) :a))))
+    (is (= false (jsv! '(contains? (js/Map. [[:a 1]]) :b))))))
+
 (deftest assoc-test
   (testing "arrays"
     (is (eq [1 2 8 4] (jsv! '(assoc [1 2 3 4] 2 8))))
@@ -549,6 +574,12 @@
     (is (identical? js/undefined (jsv! '(get ["val1" "val2" "val3"] 10))))
     (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 10 "val2"))))
     (is (identical? nil (jsv! '(get [nil] 0)))))
+  (testing "sets"
+    (is (eq nil (jsv! '(get #{1 2 3} 0))))
+    (is (eq nil (jsv! '(get #{1 2 3 nil} nil))))
+    (is (eq 1 (jsv! '(get #{1 2 3} 1))))
+    (is (eq 2 (jsv! '(get #{1 2 3} 2))))
+    (is (eq 3 (jsv! '(get #{1 2 3} 3)))))
   (testing "objects"
     (is (eq nil (jsv! '(get {"my-key" 1} nil))))
     (is (eq 1 (jsv! '(get {"my-key" 1} "my-key"))))
@@ -701,7 +732,16 @@
                           (js/Map.))))))
   (testing "nil"
     (is (eq () (jsv! '(map inc nil))))
-    (is (eq () (jsv! '(map inc js/undefined))))))
+    (is (eq () (jsv! '(map inc js/undefined)))))
+  (testing "multiple colls"
+    (is (eq [4 6] (jsv! '(map + [1 2] [3 4]))))
+    (is (eq ["1y" "2o"] (jsv! '(map str [1 2] "yolo"))))
+    (is (eq [[1 4 7] [2 5 8] [3 6 9]]
+            (jsv! '(apply map vector [[1 2 3] [4 5 6] [7 8 9]]))))
+    (is (eq [[1,4],[2,5],[3,6]]
+            (jsv! ' (map vector [1 2 3] [4 5 6 7 8 9]))))
+    (is (eq []
+            (jsv! ' (map vector nil nil nil))))))
 
 (deftest filter-test
   (is (eq [2 4 6 8] (jsv! '(filter even? [1 2 3 4 5 6 7 8 9]))))
@@ -735,6 +775,10 @@
   (is (= false (jsv! '((complement (constantly true))))))
   (is (= true (jsv! '((complement (constantly false))))))
   (is (= true (jsv! '((complement (constantly false)) "with some" "args" 1 :a))))
+  (is (= true (jsv! '(let [not-contains? (complement contains?)]
+                       (not-contains? [2 3 4] 5)))))
+  (is (= false (jsv! '(let [not-contains? (complement contains?)]
+                        (not-contains? [2 3 4] 2)))))
   (is (= true (jsv! '(let [first-elem-not-1? (complement (fn [x] (= 1 (first x))))]
                        (first-elem-not-1? [2 3])))))
   (is (= false (jsv! '(let [first-elem-not-1? (complement (fn [x] (= 1 (first x))))]
