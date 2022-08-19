@@ -1,5 +1,3 @@
-//@ts-check
-
 export function _PLUS_(x, ...xs) {
   let sum = x;
   for (const y of xs) {
