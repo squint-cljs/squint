@@ -127,7 +127,7 @@ export function conj_BANG_(...xs) {
   let [o, ...rest] = xs;
 
   if (o === null || o === undefined) {
-    o = list();
+    o = [];
   }
 
   switch (typeConst(o)) {
@@ -168,7 +168,7 @@ export function conj(...xs) {
   let [o, ...rest] = xs;
 
   if (o === null || o === undefined) {
-    o = list();
+    o = [];
   }
 
   switch (typeConst(o)) {
@@ -506,4 +506,8 @@ export function list(...args) {
     return o;
   }
   return new List(...args);
+}
+
+export function array_QMARK_(x) {
+  return x instanceof Array;
 }
