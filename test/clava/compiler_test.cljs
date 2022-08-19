@@ -601,22 +601,8 @@
   (is (eq "a" (jsv! '(first :abd)))))
 
 (deftest ffirst-test
-  (is (= nil (jsv! '(ffirst nil))))
-  (is (= nil (jsv! '(ffirst []))))
-  (is (= nil (jsv! '(ffirst [[]]))))
-  (is (= nil (jsv! '(ffirst #{}))))
-  (is (= nil (jsv! '(ffirst #{#{}}))))
-  (is (= nil (jsv! '(ffirst {}))))
-  (is (= nil (jsv! '(ffirst (js/Map. [])))))
-  (is (= 1 (jsv! '(ffirst [[1 2 3]]))))
   (is (= "f" (jsv! '(ffirst ["foo"]))))
-  (is (= "f" (jsv! '(ffirst "foo"))))
-  ;; keywords are translated to strings
-  (is (= "f" (jsv! '(ffirst [:foo]))))
-  (is (= "f" (jsv! '(ffirst :foo))))
-  (is (= 1 (jsv! '(ffirst #{#{1 2 3}}))))
-  (is (= "foo" (jsv! '(ffirst {:foo 1}))))
-  (is (= "foo" (jsv! '(ffirst (js/Map. [[:foo 1] [:bar 2]]))))))
+  (is (= "f" (jsv! '(ffirst "foo")))))
 
 (deftest rest-test
   (is (eq () (jsv! '(rest nil))))
