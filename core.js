@@ -11,13 +11,7 @@ export function assoc_BANG_(m, k, v, ...kvs) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
   }
 
-  if (m === null || m === undefined) {
-    m = {};
-  }
-
-  let type = typeConst(m);
-
-  switch (type) {
+  switch (typeConst(m)) {
     case MAP_TYPE:
       m.set(k, v);
 
@@ -43,10 +37,6 @@ export function assoc_BANG_(m, k, v, ...kvs) {
 }
 
 export function assoc(o, k, v, ...kvs) {
-  if (o === null || o === undefined) {
-    o = {};
-  }
-
   switch (typeConst(o)) {
     case MAP_TYPE:
       return assoc_BANG_(new Map(o.entries()), k, v, ...kvs);
