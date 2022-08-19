@@ -489,3 +489,11 @@ export function list(...args) {
 export function array_QMARK_(x) {
   return x instanceof Array;
 }
+
+export function concat(...colls) {
+  var ret = [];
+  for (const x of colls) {
+    ret.push(...iterable(x));
+  }
+  return ret;
+}
