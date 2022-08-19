@@ -353,6 +353,10 @@
     (is (eq [1 2 3 4] (jsv! '(conj [1 2 3 4]))))
     (is (eq [1 2 3 4] (jsv! '(conj [1 2 3] 4))))
     (is (eq [1 2 3 4] (jsv! '(conj [1 2] 3 4)))))
+  (testing "lists"
+    (is (eq '(1 2 3 4) (jsv! '(conj '(1 2 3 4)))))
+    (is (eq '(1 2 3 4) (jsv! '(conj '(2 3 4) 1))))
+    (is (eq '(1 2 3 4) (jsv! '(conj '(3 4) 2 1)))))
   (testing "sets"
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2 3 4}))))
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj #{1 2 3} 4))))
@@ -385,6 +389,16 @@
     (is (eq [1 2 3 4] (jsv! '(conj! [1 2] 3 4))))
     (is (eq [1 2 3 4] (jsv! '(let [x [1 2]]
                                (conj! x 3 4)
+                               x)))))
+  (testing "lists"
+    (is (eq '(1 2 3 4) (jsv! '(conj '(1 2 3 4)))))
+    (is (eq '(1 2 3 4) (jsv! '(conj '(2 3 4) 1))))
+    (is (eq '(1 2 3 4) (jsv! '(let [x '(2 3 4)]
+                               (conj! x 1)
+                               x))))
+    (is (eq '(1 2 3 4) (jsv! '(conj! '(3 4) 2 1))))
+    (is (eq '(1 2 3 4) (jsv! '(let [x '(3 4)]
+                               (conj! x 2 1)
                                x)))))
   (testing "sets"
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3 4}))))
@@ -694,6 +708,14 @@
   (is (= true (jsv! '((constantly true)))))
   (is (= nil (jsv! '((constantly nil)))))
   (is (= nil (jsv! '((constantly nil) "with some" "args" 1 :a)))))
+
+(deftest list?-test
+  (is (= true (jsv! '(list? '(1 2 3 4)))))
+  (is (= true (jsv! '(list? (list 1 2 3)))))
+  (is (= false (jsv! '(list? nil))))
+  (is (= false (jsv! '(list? [1 2 3]))))
+  (is (= false (jsv! '(list? {:a :b}))))
+  (is (= false (jsv! '(list? #{:a :b})))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
