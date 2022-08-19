@@ -191,7 +191,8 @@
                       'extend-type protocols/core-extend-type
                       'deftype deftype/core-deftype
                       'defn core-defn
-                      'defn- core-defn})
+                      'defn- core-defn
+                      'instance? macros/core-instance?})
 
 (def core-config {:vars (edn-resource "clava/core.edn")})
 
