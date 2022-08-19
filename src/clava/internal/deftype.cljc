@@ -135,10 +135,10 @@
              protocols (collect-protocols impls env)
              t (vary-meta t assoc
                           :protocols protocols
-                          :skip-protocol-flag fpps) ]
+                          :skip-protocol-flag fpps)]
     `(do
        (deftype* ~t ~fields ~pmasks
-         ~(if (seq impls)
+         ~(when (seq impls)
             `(extend-type ~t ~@(dt->et t impls fields))))
        (set! (.-getBasis ~t) (fn [] '[~@fields]))
        (set! (.-cljs$lang$type ~t) true)
