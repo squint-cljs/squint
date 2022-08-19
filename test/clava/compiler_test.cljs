@@ -455,7 +455,8 @@
     (is (= false (jsv! '(contains? #{1 2 3} 0))))
     (is (= true (jsv! '(contains? #{1 2 3} 1))))
     (is (= true (jsv! '(contains? #{1 2 3} 2))))
-    (is (= true (jsv! '(contains? #{1 2 3} 3)))))
+    (is (= true (jsv! '(contains? #{1 2 3} 3))))
+    (is (= true (jsv! '(contains? #{1 2 3 nil} nil)))))
   (testing "objects"
     (is (= true (jsv! '(contains? {:a 1} :a))))
     (is (= false (jsv! '(contains? {:a 1} :b)))))
@@ -575,6 +576,7 @@
     (is (identical? nil (jsv! '(get [nil] 0)))))
   (testing "sets"
     (is (eq nil (jsv! '(get #{1 2 3} 0))))
+    (is (eq nil (jsv! '(get #{1 2 3 nil} nil))))
     (is (eq 1 (jsv! '(get #{1 2 3} 1))))
     (is (eq 2 (jsv! '(get #{1 2 3} 2))))
     (is (eq 3 (jsv! '(get #{1 2 3} 3)))))
