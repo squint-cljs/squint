@@ -258,10 +258,6 @@ export function iterable(x) {
   if (x === null || x === undefined) {
     return [];
   }
-  // primitives other than string are not iterable
-  if (typeof x !== "string" && typeof x !== "object") {
-    throw new Error(x + " is not iterable")
-  }
   if (seqable_QMARK_(x)) {
     return x;
   }
