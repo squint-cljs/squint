@@ -742,5 +742,11 @@
   (is (true? (jsv! '(instance? js/Array []))))
   (is (false? (jsv! '(instance? js/String [])))))
 
+(deftest concat-test
+  (is (eq [] (jsv! '(concat nil))))
+  (is (eq [1] (jsv! '(concat nil [] [1]))))
+  (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(concat [0 1 2 3] [4 5 6] [7 8 9]))))
+  (is (eq [["a" "b"] ["c" "d"] 2] (jsv! '(concat {"a" "b" "c" "d"} [2])))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
