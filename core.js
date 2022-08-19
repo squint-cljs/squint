@@ -348,7 +348,7 @@ export function map(f, ...colls) {
       }
       return ret;
     default:
-      const iters = colls.map(es6_iterator);
+      const iters = colls.map((coll) => es6_iterator(iterable(coll)));
       while (true) {
         let args = [];
         for (const i of iters) {
