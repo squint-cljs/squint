@@ -682,7 +682,9 @@
     (is (eq [4 6] (jsv! '(map + [1 2] [3 4]))))
     (is (eq ["1y" "2o"] (jsv! '(map str [1 2] "yolo"))))
     (is (eq [[1 4 7] [2 5 8] [3 6 9]]
-            (jsv! '(apply map vector [[1 2 3] [4 5 6] [7 8 9]]))))))
+            (jsv! '(apply map vector [[1 2 3] [4 5 6] [7 8 9]]))))
+    (is (eq [[1,4],[2,5],[3,6]]
+            (jsv! ' (map vector [1 2 3] [4 5 6 7 8 9]))))))
 
 (deftest filter-test
   (is (eq [2 4 6 8] (jsv! '(filter even? [1 2 3 4 5 6 7 8 9]))))
