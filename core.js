@@ -11,64 +11,70 @@ export function assoc_BANG_(m, k, v, ...kvs) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
   }
 
-  if (m instanceof Map) {
-    m.set(k, v);
+  switch (typeConst(m)) {
+    case MAP_TYPE:
+      m.set(k, v);
 
-    for (let i = 0; i < kvs.length; i += 2) {
-      m.set(kvs[i], kvs[i + 1]);
-    }
-  } else if (m instanceof Object) {
-    m[k] = v;
+      for (let i = 0; i < kvs.length; i += 2) {
+        m.set(kvs[i], kvs[i + 1]);
+      }
+      break;
+    case ARRAY_TYPE:
+    case OBJECT_TYPE:
+      m[k] = v;
 
-    for (let i = 0; i < kvs.length; i += 2) {
-      m[kvs[i]] = kvs[i + 1];
-    }
-  } else {
-    throw new Error(
-      'Illegal argument: assoc! expects a Map, Array, or Object as the first argument.'
-    );
+      for (let i = 0; i < kvs.length; i += 2) {
+        m[kvs[i]] = kvs[i + 1];
+      }
+      break;
+    default:
+      throw new Error(
+        'Illegal argument: assoc! expects a Map, Array, or Object as the first argument.'
+      );
   }
 
   return m;
 }
 
 export function assoc(o, k, v, ...kvs) {
-  if (!(o instanceof Object)) {
-    throw new Error(
-      'Illegal argument: assoc expects a Map, Array, or Object as the first argument.'
-    );
+  switch (typeConst(o)) {
+    case MAP_TYPE:
+      return assoc_BANG_(new Map(o.entries()), k, v, ...kvs);
+    case ARRAY_TYPE:
+      return assoc_BANG_([...o], k, v, ...kvs);
+    case OBJECT_TYPE:
+      return assoc_BANG_({ ...o }, k, v, ...kvs);
+    default:
+      throw new Error(
+        'Illegal argument: assoc expects a Map, Array, or Object as the first argument.'
+      );
   }
-
-  if (o instanceof Map) {
-    return assoc_BANG_(new Map(o.entries()), k, v, ...kvs);
-  } else if (o instanceof Array) {
-    return assoc_BANG_([...o], k, v, ...kvs);
-  }
-
-  return assoc_BANG_({ ...o }, k, v, ...kvs);
 }
 
 const MAP_TYPE = 1;
 const ARRAY_TYPE = 2;
 const OBJECT_TYPE = 3;
+const LIST_TYPE = 4;
+const SET_TYPE = 5;
 
 function newEmptyOfType(type) {
   switch (type) {
     case MAP_TYPE:
       return new Map();
-      break;
     case ARRAY_TYPE:
       return [];
-      break;
     case OBJECT_TYPE:
       return {};
-      break;
+    case LIST_TYPE:
+      return list();
   }
   return undefined;
 }
 
 function typeConst(obj) {
   if (obj instanceof Map) return MAP_TYPE;
+  if (obj instanceof Set) return SET_TYPE;
+  if (obj instanceof List) return LIST_TYPE;
   if (obj instanceof Array) return ARRAY_TYPE;
   if (obj instanceof Object) return OBJECT_TYPE;
   return undefined;
@@ -76,7 +82,7 @@ function typeConst(obj) {
 
 function assoc_in_with(f, fname, o, keys, value) {
   let baseType = typeConst(o);
-  if (!baseType)
+  if (baseType !== MAP_TYPE && baseType !== ARRAY_TYPE && baseType !== OBJECT_TYPE)
     throw new Error(
       `Illegal argument: ${fname} expects the first argument to be a Map, Array, or Object.`
     );
@@ -114,67 +120,85 @@ export function assoc_in_BANG_(o, keys, value) {
 }
 
 export function conj_BANG_(...xs) {
+  if (xs.length === 0) {
+    return vector();
+  }
+
   let [o, ...rest] = xs;
 
   if (o === null || o === undefined) {
-    o = [];
+    o = list();
   }
 
-  if (o instanceof Set) {
-    for (const x of rest) {
-      o.add(x);
-    }
-  } else if (o instanceof Array) {
-    o.push(...rest);
-  } else if (o instanceof Map) {
-    for (const x of rest) {
-      o.set(x[0], x[1]);
-    }
-  } else if (o instanceof Object) {
-    for (const x of rest) {
-      o[x[0]] = x[1];
-    }
-  } else {
-    throw new Error(
-      'Illegal argument: conj! expects a Set, Array, Map, or Object as the first argument.'
-    );
+  switch (typeConst(o)) {
+    case SET_TYPE:
+      for (const x of rest) {
+        o.add(x);
+      }
+      break;
+    case LIST_TYPE:
+      o.unshift(...rest.reverse());
+      break;
+    case ARRAY_TYPE:
+      o.push(...rest);
+      break;
+    case MAP_TYPE:
+      for (const x of rest) {
+        o.set(x[0], x[1]);
+      }
+    case OBJECT_TYPE:
+      for (const x of rest) {
+        o[x[0]] = x[1];
+      }
+      break;
+    default:
+      throw new Error(
+        'Illegal argument: conj! expects a Set, Array, List, Map, or Object as the first argument.'
+      );
   }
 
   return o;
 }
 
 export function conj(...xs) {
+  if (xs.length === 0) {
+    return vector();
+  }
+
   let [o, ...rest] = xs;
 
   if (o === null || o === undefined) {
-    o = [];
+    o = list();
   }
 
-  if (o instanceof Set) {
-    return new Set([...o, ...rest]);
-  } else if (o instanceof Array) {
-    return [...o, ...rest];
-  } else if (o instanceof Map) {
-    const m = new Map(o);
+  switch (typeConst(o)) {
+    case SET_TYPE:
+      return new Set([...o, ...rest]);
+    case LIST_TYPE:
+      return list(...rest.reverse(), ...o);
+    case ARRAY_TYPE:
+      return [...o, ...rest];
+    case MAP_TYPE:
+      const m = new Map(o);
 
-    for (const x of rest) {
-      m.set(x[0], x[1]);
-    }
+      for (const x of rest) {
+        m.set(x[0], x[1]);
+      }
 
-    return m;
-  } else if (o instanceof Object) {
-    const o2 = { ...o };
+      return m;
+    case OBJECT_TYPE:
+      const o2 = { ...o };
 
-    for (const x of rest) {
-      o2[x[0]] = x[1];
-    }
+      for (const x of rest) {
+        o2[x[0]] = x[1];
+      }
 
-    return o2;
+      return o2;
+    default:
+      throw new Error(
+        'Illegal argument: conj expects a Set, Array, List, Map, or Object as the first argument.'
+      );
   }
-
-  throw new Error(
-    'Illegal argument: conj expects a Set, Array, Map, or Object as the first argument.'
-  );
 }
 
 export function disj_BANG_(s, ...xs) {
@@ -216,7 +240,7 @@ export function nth(coll, idx) {
 }
 
 export function get(coll, key, otherwise = undefined) {
-  if (coll === null || typeof coll !== "object") return otherwise;
+  if (coll === null || typeof coll !== 'object') return otherwise;
   if (coll instanceof Map) {
     return coll.has(key) ? coll.get(key) : otherwise;
   }
@@ -419,6 +443,10 @@ export function vector(...args) {
   return args;
 }
 
+export function vector_QMARK_(x) {
+  return typeConst(x) === ARRAY_TYPE;
+}
+
 export const mapv = map;
 
 export const vec = (x) => x;
@@ -441,4 +469,19 @@ export function complement(f) {
 
 export function constantly(x) {
   return (..._) => x;
+}
+
+class List extends Array {}
+
+export function list_QMARK_(x) {
+  return typeConst(x) === LIST_TYPE;
+}
+
+export function list(...args) {
+  if (args.length === 1) {
+    let o = new List();
+    o.push(args[0]);
+    return o;
+  }
+  return new List(...args);
 }
