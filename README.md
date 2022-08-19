@@ -55,7 +55,8 @@ need the extra performance, startup time and/or small bundle size.
 - Clava does not protect you in any way from the pitfalls of JS with regards to truthiness, mutability and equality
 - There is no CLJS standard library. The `"clavascript/core.js"` module has similar JS equivalents
 - Keywords are translated into strings
-- Maps and vectors are compiled as mutable objects and arrays
+- Maps, sequences and vectors are represented as mutable objects and arrays
+- Most functions return arrays and objects, not custom data structures
 - Supports async/await:`(def x (js/await y))`. Async functions must be marked
   with `^:async`: `(defn ^:async foo [])`.
 - `assoc!`, `dissoc!`, `conj!`, etc. perform in place mutation on objects
