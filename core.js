@@ -311,6 +311,10 @@ export function second(coll) {
   return v;
 }
 
+export function ffirst(coll) {
+  return first(first(coll));
+}
+
 export function rest(coll) {
   let [_, ...rest] = iterable(coll);
   return rest;

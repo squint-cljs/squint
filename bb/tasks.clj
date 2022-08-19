@@ -2,9 +2,9 @@
   (:require
    [babashka.fs :as fs]
    [babashka.process :refer [shell]]
+   [cheshire.core :as json]
    [clojure.edn :as edn]
-   [clojure.java.io :as io]
-   [cheshire.core :as json]))
+   [clojure.java.io :as io]))
 
 (defn munge* [s reserved]
   (let [s (str (munge s))]
@@ -38,8 +38,10 @@
 (defn bump-core-vars []
   (let [core-vars (:out (shell {:out :string}
                                "node --input-type=module -e 'import * as clava from \"clavascript/core.js\";console.log(JSON.stringify(Object.keys(clava)))'"))
-        parsed (set (map symbol (json/parse-string core-vars)))]
-    (spit "resources/clava/core.edn" parsed)))
+        parsed (sorted-set-by identity (map symbol (json/parse-string core-vars)))]
+    (spit "resources/clava/core.edn" (with-out-str
+                                       ((requiring-resolve 'clojure.pprint/pprint)
+                                        parsed)))))
 
 (defn build-clava-npm-package []
   (fs/create-dirs ".work")
