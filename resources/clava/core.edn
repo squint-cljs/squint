@@ -26,10 +26,12 @@
    filter
    first
    get
+   identity
    inc
    list
    list_QMARK_
    map
+   mapcat
    map_indexed
    mapv
    nil_QMARK_

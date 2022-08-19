@@ -549,3 +549,11 @@ export function concat(...colls) {
   }
   return ret;
 }
+
+export function mapcat(f, ...colls) {
+  return concat(...map(f, ...colls));
+}
+
+export function identity(x) {
+  return x;
+}
