@@ -1,7 +1,7 @@
 (ns clava.internal.protocols
   (:require [clojure.core :as core]))
 
-(core/defn- protocol-prefix [psym]
+#_(core/defn- protocol-prefix [psym]
   (core/str (core/-> (core/str psym)
                      (.replace #?(:clj \. :cljs (js/RegExp. "\\." "g")) \$)
                      (.replace \/ \$))
@@ -230,7 +230,7 @@
              (drop-while seq? (next s)))
       ret)))
 
-(core/defn- type-hint-first-arg
+#_#_#_#_#_(core/defn- type-hint-first-arg
   [type-sym argv]
   (assoc argv 0 (vary-meta (argv 0) assoc :tag type-sym)))
 
@@ -252,7 +252,7 @@
     (type-hint-single-arity-sig type-sym sig)
     (type-hint-multi-arity-sigs type-sym sig)))
 
-(core/defn- type-hint-impl-map
+#_#_#_(core/defn- type-hint-impl-map
   [type-sym impl-map]
   (reduce-kv (core/fn [m proto sigs]
                (assoc m proto (map (partial type-hint-sigs type-sym) sigs)))
@@ -276,7 +276,7 @@
    'js/Number "number"
    'js/Function "function"})
 
-(core/defn- base-assign-impls [env resolve tsym type [p sigs]]
+#_(core/defn- base-assign-impls [env resolve tsym type [p sigs]]
   #_(update-protocol-var p tsym env)
   (core/let [psym       (resolve p)
              pfn-prefix (subs (core/str psym) 0
@@ -301,11 +301,11 @@
   (with-meta `(.. ~tsym ~'-prototype ~(to-property sym)) {:extend-type true}))
 
 
-(core/defn- adapt-obj-params [type [[this & args :as sig] & body]]
+#_(core/defn- adapt-obj-params [type [[this & args :as sig] & body]]
   (core/list (vec args)
              (list* 'cljs.core/this-as (vary-meta this assoc :tag type) body)))
 
-(core/defn- add-obj-methods [type type-sym sigs]
+#_#_(core/defn- add-obj-methods [type type-sym sigs]
   (map (core/fn [[f & meths :as form]]
          (core/let [[f meths] (if (vector? (first meths))
                                 [f [(rest form)]]
@@ -319,7 +319,7 @@
      (cljs.core/this-as ~(vary-meta this assoc :tag type)
        ~@body)))
 
-(core/defn- adapt-ifn-params [type [[this & args :as sig] & body]]
+#_#_#_(core/defn- adapt-ifn-params [type [[this & args :as sig] & body]]
   (core/let [self-sym (with-meta 'self__ {:tag type})]
     `(~(vec (cons self-sym args))
       (cljs.core/this-as ~self-sym
@@ -340,7 +340,7 @@
            ~(with-meta `(fn ~meth) (meta form)))))
     (map #(adapt-ifn-invoke-params type %) meths)))
 
-(core/defn- add-ifn-methods [type type-sym [f & meths :as form]]
+#_#_(core/defn- add-ifn-methods [type type-sym [f & meths :as form]]
   (core/let [meths    (map #(adapt-ifn-params type %) meths)
              this-sym (with-meta 'self__ {:tag type})
              argsym   (gensym "args")
@@ -374,7 +374,7 @@
                     ~(with-meta `(fn ~(adapt-proto-params type meth)) (meta form))))
            meths))))
 
-(core/defn- proto-assign-impls [env resolve type-sym type [p sigs]]
+#_(core/defn- proto-assign-impls [env resolve type-sym type [p sigs]]
   #_(update-protocol-var p type env)
   (core/let [psym      (resolve p)
              pprefix   (protocol-prefix psym)
