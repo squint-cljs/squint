@@ -123,7 +123,7 @@ export function conj_BANG_(...xs) {
   let [o, ...rest] = xs;
 
   if (o === null || o === undefined) {
-    o = [];
+    o = list();
   }
 
   switch (typeConst(o)) {
@@ -160,7 +160,7 @@ export function conj(...xs) {
   let [o, ...rest] = xs;
 
   if (o === null || o === undefined) {
-    o = [];
+    o = list();
   }
 
   switch (typeConst(o)) {
