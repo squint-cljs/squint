@@ -596,7 +596,13 @@
   (is (= 1 (jsv! '(first [1 2 3]))))
   (is (= 1 (jsv! '(first #{1 2 3}))))
   (is (eq #js [1 2] (jsv! '(first (js/Map. [[1 2] [3 4]])))))
-  (is (eq "a" (jsv! '(first "abc")))))
+  (is (eq "a" (jsv! '(first "abc"))))
+  ;; keywords are translated to strings
+  (is (eq "a" (jsv! '(first :abd)))))
+
+(deftest ffirst-test
+  (is (= "f" (jsv! '(ffirst ["foo"]))))
+  (is (= "f" (jsv! '(ffirst "foo")))))
 
 (deftest rest-test
   (is (eq () (jsv! '(rest nil))))
