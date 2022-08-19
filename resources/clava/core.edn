@@ -31,8 +31,8 @@
    list
    list_QMARK_
    map
-   mapcat
    map_indexed
+   mapcat
    mapv
    nil_QMARK_
    not
