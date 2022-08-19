@@ -7,10 +7,42 @@
                      (.replace \/ \$))
             "$"))
 
-(defn core-unchecked-get [obj key]
-  (list 'js* "(~{}[~{}])" obj key))
-
 (core/defn core-defprotocol
+  [&env _&form p & doc+methods]
+  (core/let [[doc-and-opts methods] [(core/take-while #(not (list? %))
+                                                      doc+methods)
+                                     (core/drop-while #(not (list? %))
+                                                      doc+methods)]
+             ns-name (core/-> &env :ns :name)]
+    `(do
+       (def ~p (js/Symbol.for ~(str ns-name "/" p)))
+       ~@(for [method methods
+               :let [mname (first method)
+                     method-sym (symbol (str p "_" mname))
+                     margs (second method)
+                     this-sym (first margs)
+
+                     #_#_mdocs (nth method 2)]]
+           `(do
+              (def ~method-sym
+                (js/Symbol.for ~(str ns-name "/" mname)))
+              (defn ~mname
+                ~margs
+                ((unchecked-get ~this-sym ~method-sym) ~@margs)))))))
+
+
+(comment
+  (core-defprotocol
+   {:ns {:name "foo.bar"}}
+   nil
+   'Transformer
+   "asdf"
+   :extend-via-metadata true
+   '(init [tf])
+   '(step [tf result el])
+   '(result [tf result])))
+
+#_(core/defn core-defprotocol
   "A protocol is a named set of named methods and their signatures:
   (defprotocol AProtocolName
     ;optional doc string
@@ -359,42 +391,34 @@
             (add-proto-methods* pprefix type type-sym sig)))
         sigs)))))
 
-(core/defn core-extend-type
-  "Extend a type to a series of protocols. Useful when you are
-  supplying the definitions explicitly inline. Propagates the
-  type as a type hint on the first argument of all fns.
-  type-sym may be
-   * default, meaning the definitions will apply for any value,
-     unless an extend-type exists for one of the more specific
-     cases below.
-   * nil, meaning the definitions will apply for the nil value.
-   * any of object, boolean, number, string, array, or function,
-     indicating the definitions will apply for values of the
-     associated base JavaScript types. Note that, for example,
-     string should be used instead of js/String.
-   * a JavaScript type not covered by the previous list, such
-     as js/RegExp.
-   * a type defined by deftype or defrecord.
-  (extend-type MyType
-    ICounted
-    (-count [c] ...)
-    Foo
-    (bar [x y] ...)
-    (baz ([x] ...) ([x y] ...) ...)"
-  [&env _&form type-sym & impls]
-  (core/let [env &env
-             ;; _ (validate-impls env impls)
-             resolve identity #_(partial resolve-var env)
-             impl-map (->impl-map impls)
-             impl-map (if ('#{boolean number} type-sym)
-                        (type-hint-impl-map type-sym impl-map)
-                        impl-map)
-             [type assign-impls] (core/if-let [type (base-type type-sym)]
-                                   [type base-assign-impls]
-                                   [(resolve type-sym) proto-assign-impls])]
-    (core/when true #_(core/and (:extending-base-js-type cljs.analyzer/*cljs-warnings*)
-            (js-base-type type-sym))
-      #_(cljs.analyzer/warning :extending-base-js-type env
-        {:current-symbol type-sym :suggested-symbol (js-base-type type-sym)}))
-    `(do ~@(mapcat #(assign-impls env resolve type-sym type %) impl-map))))
 
+(core/defn core-extend-type
+  [&env _&form type-sym & impls]
+  (core/let [impl-map (->impl-map impls)]
+    `(do
+       ~@(for [[psym pmethods] impl-map]
+           `(do
+              (unchecked-set
+               (.-prototype ~type-sym)
+               ~psym true)
+              ~@(for [method pmethods
+                      :let [mname (first method)
+                            msym (symbol (str psym "_" mname))
+                            margs (second method)
+                            mbody (drop 2 method)]]
+                  `(unchecked-set
+                    (.-prototype ~type-sym) ~msym
+                    (fn ~margs ~@mbody))))))))
+
+
+(comment
+  (core-extend-type
+   {}
+   nil
+   'Mapping
+   't/Transformer
+   '(init [_] (rf))
+   '(step [_ result el]
+          (rf result (f el)))
+   '(result [_ result]
+            (rf result))))
