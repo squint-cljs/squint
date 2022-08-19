@@ -275,7 +275,8 @@ export function seqable_QMARK_(x) {
   return typeof x === 'string' || x === null || x === undefined || Symbol.iterator in x;
 }
 
-export function iterable(x) {
+// not public, since there is not CLJS core var name for this
+function iterable(x) {
   // nil puns to empty iterable, support passing nil to first/rest/reduce, etc.
   if (x === null || x === undefined) {
     return [];
@@ -284,6 +285,10 @@ export function iterable(x) {
     return x;
   }
   return Object.entries(x);
+}
+
+export function es6_iterator(coll) {
+  return coll[Symbol.iterator]();
 }
 
 export function seq(x) {
@@ -354,12 +359,31 @@ export function reduce(f, arg1, arg2) {
   return val;
 }
 
-export function map(f, coll) {
-  let ret = [];
-  for (const x of iterable(coll)) {
-    ret.push(f(x));
+export function map(f, ...colls) {
+  const ret = [];
+  switch (colls.length) {
+    case 0:
+      throw new Error('map with 2 arguments is not supported yet');
+    case 1:
+      for (const x of iterable(colls[0])) {
+        ret.push(f(x));
+      }
+      return ret;
+    default:
+      const iters = colls.map((coll) => es6_iterator(iterable(coll)));
+      while (true) {
+        let args = [];
+        for (const i of iters) {
+          const nextVal = i.next();
+          if (nextVal.done) {
+            return ret;
+          }
+          args.push(nextVal.value);
+        }
+        ret.push(f(...args));
+      }
+      return ret;
   }
-  return ret;
 }
 
 export function filter(pred, coll) {
@@ -474,7 +498,9 @@ export const mapv = map;
 export const vec = (x) => x;
 
 export function apply(f, ...args) {
-  return f.apply(null, ...args);
+  const xs = args.slice(0, args.length - 1);
+  const coll = args[args.length - 1];
+  return f.apply(null, xs.concat(coll));
 }
 
 export function even_QMARK_(x) {
