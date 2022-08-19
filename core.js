@@ -159,7 +159,7 @@ export function conj_BANG_(...xs) {
       break;
     default:
       throw new Error(
-        'Illegal argument: conj! expects a Set, Array, Map, or Object as the first argument.'
+        'Illegal argument: conj! expects a Set, Array, List, Map, or Object as the first argument.'
       );
   }
 
@@ -198,7 +198,7 @@ export function conj(...xs) {
       return o2;
     default:
       throw new Error(
-        'Illegal argument: conj expects a Set, Array, Map, or Object as the first argument.'
+        'Illegal argument: conj expects a Set, Array, List, Map, or Object as the first argument.'
       );
   }
 }
