@@ -214,12 +214,12 @@ export function disj(s, ...xs) {
 }
 
 export function contains_QMARK_(coll, v) {
-  // false if coll is null, undefined or primitive
-  if (coll === null || typeof coll !== "object") return false;
   switch (typeConst(coll)) {
     case SET_TYPE:
     case MAP_TYPE:
       return coll.has(v);
+    case undefined:
+      return false;
     default:
       return v in coll;
   }
@@ -252,15 +252,22 @@ export function nth(coll, idx) {
 }
 
 export function get(coll, key, otherwise = undefined) {
-  if (!contains_QMARK_(coll, key)) return otherwise;
-  switch (typeConst(coll)) {
+  let v;
+  switch(typeConst(coll)) {
     case SET_TYPE:
-      return key;
+      if (coll.has(key))
+        v = key;
+      break;
     case MAP_TYPE:
-      return coll.get(key);
+      v = coll.get(key);
+      break;
+    case undefined:
+      break;
     default:
-      return coll[key];
+      v = coll[key];
+      break;
   }
+  return v !== undefined ? v : otherwise;
 }
 
 export function seqable_QMARK_(x) {
