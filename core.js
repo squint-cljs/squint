@@ -316,6 +316,16 @@ export function map(f, coll) {
   return ret;
 }
 
+export function filter(pred, coll) {
+  let ret = [];
+  for (const x of iterable(coll)) {
+    if (pred(x)) {
+      ret.push(x);
+    }
+  }
+  return ret;
+}
+
 export function map_indexed(f, coll) {
   let ret = [];
   let i = 0;

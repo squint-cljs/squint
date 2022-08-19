@@ -663,6 +663,15 @@
     (is (eq () (jsv! '(map inc nil))))
     (is (eq () (jsv! '(map inc js/undefined))))))
 
+(deftest filter-test
+  (is (eq [2 4 6 8] (jsv! '(filter even? [1 2 3 4 5 6 7 8 9]))))
+  (is (every? (set (jsv! '(filter even? #{1 2 3 4 5 6 7 8 9})))
+        [2 4 6 8]))
+  (is (eq [[:a 1]] (jsv! '(filter #(= :a (first %)) {:a 1 :b 2}))))
+  (testing "nil"
+    (is (eq () (jsv! '(filter even? nil))))
+    (is (eq () (jsv! '(filter even? js/undefined))))))
+
 (deftest map-indexed-test
   (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
           (jsv! '(map-indexed vector [0 1 2 3 4]))))
