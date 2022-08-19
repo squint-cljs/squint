@@ -738,5 +738,9 @@
   (is (= false (jsv! '(vector? {:a :b}))))
   (is (= false (jsv! '(vector? #{:a :b})))))
 
+(deftest instance-test
+  (is (true? (jsv! '(instance? js/Array []))))
+  (is (false? (jsv! '(instance? js/String [])))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
