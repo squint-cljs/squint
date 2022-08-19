@@ -792,5 +792,10 @@
   (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(concat [0 1 2 3] [4 5 6] [7 8 9]))))
   (is (eq [["a" "b"] ["c" "d"] 2] (jsv! '(concat {"a" "b" "c" "d"} [2])))))
 
+(deftest mapcat-test
+  (is (eq [] (jsv! '(mapcat identity nil))))
+  (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(mapcat identity [[0 1 2 3] [4 5 6] [7 8 9]]))))
+  (is (eq ["a" "b" "c" "d"] (jsv! '(mapcat identity {"a" "b" "c" "d"})))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
