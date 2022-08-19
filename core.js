@@ -230,10 +230,13 @@ export function seqable_QMARK_(x) {
 }
 
 export function iterable(x) {
-  // nil or primitive besides string puns to empty iterable,
-  // support passing nil to first/rest/reduce, etc.
-  if (x === null || (typeof x !== "string" && typeof x !== "object")) {
+  // nil puns to empty iterable, support passing nil to first/rest/reduce, etc.
+  if (x === null || x === undefined) {
     return [];
+  }
+  // primitives other than string are not iterable
+  if (typeof x !== "string" && typeof x !== "object") {
+    throw new Error(x + " is not iterable")
   }
   if (seqable_QMARK_(x)) {
     return x;
