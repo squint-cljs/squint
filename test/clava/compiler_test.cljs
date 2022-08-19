@@ -538,18 +538,21 @@
   (testing "maps"
     (is (eq nil (jsv! '(get (js/Map. [["my-key" 1]]) nil))))
     (is (eq 1 (jsv! '(get (js/Map. [["my-key" 1]]) "my-key"))))
-    (is (eq nil (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key"))))
-    (is (eq 3 (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key" 3)))))
+    (is (identical? js/undefined (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key"))))
+    (is (eq 3 (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key" 3))))
+    (is (identical? nil (jsv! '(get (js/Map. [[:my-key nil]]) :my-key)))))
   (testing "arrays"
     (is (eq nil (jsv! '(get ["val1" "val2" "val3"] nil))))
     (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 1))))
-    (is (eq nil (jsv! '(get ["val1" "val2" "val3"] 10))))
-    (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 10 "val2")))))
+    (is (identical? js/undefined (jsv! '(get ["val1" "val2" "val3"] 10))))
+    (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 10 "val2"))))
+    (is (identical? nil (jsv! '(get [nil] 0)))))
   (testing "objects"
     (is (eq nil (jsv! '(get {"my-key" 1} nil))))
     (is (eq 1 (jsv! '(get {"my-key" 1} "my-key"))))
-    (is (eq nil (jsv! '(get {"my-key" 1} "bad-key"))))
-    (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))))
+    (is (identical? js/undefined (jsv! '(get {"my-key" 1} "bad-key"))))
+    (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))
+    (is (identical? nil (jsv! '(get {"my-key" nil} "my-key"))))))
 
 (deftest first-test
   (is (= nil (jsv! '(first nil))))
@@ -673,6 +676,15 @@
   (testing "nil"
     (is (eq () (jsv! '(map inc nil))))
     (is (eq () (jsv! '(map inc js/undefined))))))
+
+(deftest filter-test
+  (is (eq [2 4 6 8] (jsv! '(filter even? [1 2 3 4 5 6 7 8 9]))))
+  (is (every? (set (jsv! '(filter even? #{1 2 3 4 5 6 7 8 9})))
+        [2 4 6 8]))
+  (is (eq [[:a 1]] (jsv! '(filter #(= :a (first %)) {:a 1 :b 2}))))
+  (testing "nil"
+    (is (eq () (jsv! '(filter even? nil))))
+    (is (eq () (jsv! '(filter even? js/undefined))))))
 
 (deftest map-indexed-test
   (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
