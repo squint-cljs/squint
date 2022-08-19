@@ -524,18 +524,21 @@
   (testing "maps"
     (is (eq nil (jsv! '(get (js/Map. [["my-key" 1]]) nil))))
     (is (eq 1 (jsv! '(get (js/Map. [["my-key" 1]]) "my-key"))))
-    (is (eq nil (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key"))))
-    (is (eq 3 (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key" 3)))))
+    (is (identical? js/undefined (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key"))))
+    (is (eq 3 (jsv! '(get (js/Map. [["my-key" 1]]) "bad-key" 3))))
+    (is (identical? nil (jsv! '(get (js/Map. [[:my-key nil]]) :my-key)))))
   (testing "arrays"
     (is (eq nil (jsv! '(get ["val1" "val2" "val3"] nil))))
     (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 1))))
-    (is (eq nil (jsv! '(get ["val1" "val2" "val3"] 10))))
-    (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 10 "val2")))))
+    (is (identical? js/undefined (jsv! '(get ["val1" "val2" "val3"] 10))))
+    (is (eq "val2" (jsv! '(get ["val1" "val2" "val3"] 10 "val2"))))
+    (is (identical? nil (jsv! '(get [nil] 0)))))
   (testing "objects"
     (is (eq nil (jsv! '(get {"my-key" 1} nil))))
     (is (eq 1 (jsv! '(get {"my-key" 1} "my-key"))))
-    (is (eq nil (jsv! '(get {"my-key" 1} "bad-key"))))
-    (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))))
+    (is (identical? js/undefined (jsv! '(get {"my-key" 1} "bad-key"))))
+    (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))
+    (is (identical? nil (jsv! '(get {"my-key" nil} "my-key"))))))
 
 (deftest first-test
   (is (= nil (jsv! '(first nil))))
