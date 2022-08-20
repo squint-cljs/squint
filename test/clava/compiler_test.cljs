@@ -789,8 +789,10 @@
   (is (= false (jsv! '(vector? #{:a :b})))))
 
 (deftest list-test
-  (is (eq '(23) (jsv! '(list 23))))
-  (is (eq '(1 2 3) (jsv! '(list 1 2 3)))))
+  (testing "creates a list of elements"
+    (is (eq '(1 2 3) (jsv! '(list 1 2 3)))))
+  (testing "accepts a single, numeric element in the list"
+    (is (eq '(23) (jsv! '(list 23))))))
 
 (deftest instance-test
   (is (true? (jsv! '(instance? js/Array []))))
