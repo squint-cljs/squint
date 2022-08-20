@@ -19,4 +19,4 @@ example.mjs
 scratch.cljs
 .vscode
 .nrepl-port
-.calva
+examples/quickjs/hello
