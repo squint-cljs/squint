@@ -524,12 +524,12 @@ export function constantly(x) {
 
 class List extends Array {}
 
-export function list(...args) {
-  return new List(...args);
-}
-
 export function list_QMARK_(x) {
   return typeConst(x) === LIST_TYPE;
+}
+
+export function list(...args) {
+  return new List(...args);
 }
 
 export function array_QMARK_(x) {
