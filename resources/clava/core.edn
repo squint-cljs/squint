@@ -28,7 +28,6 @@
   get
   identity
   inc
-  list
   list_QMARK_
   map
   map_indexed

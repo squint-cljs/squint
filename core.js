@@ -66,7 +66,7 @@ function newEmptyOfType(type) {
     case OBJECT_TYPE:
       return {};
     case LIST_TYPE:
-      return list();
+      return new List();
   }
   return undefined;
 }
@@ -175,7 +175,7 @@ export function conj(...xs) {
     case SET_TYPE:
       return new Set([...o, ...rest]);
     case LIST_TYPE:
-      return list(...rest.reverse(), ...o);
+      return new List(...rest.reverse(), ...o);
     case ARRAY_TYPE:
       return [...o, ...rest];
     case MAP_TYPE:
@@ -253,10 +253,9 @@ export function nth(coll, idx) {
 
 export function get(coll, key, otherwise = undefined) {
   let v;
-  switch(typeConst(coll)) {
+  switch (typeConst(coll)) {
     case SET_TYPE:
-      if (coll.has(key))
-        v = key;
+      if (coll.has(key)) v = key;
       break;
     case MAP_TYPE:
       v = coll.get(key);
@@ -527,15 +526,6 @@ class List extends Array {}
 
 export function list_QMARK_(x) {
   return typeConst(x) === LIST_TYPE;
-}
-
-export function list(...args) {
-  if (args.length === 1) {
-    let o = new List();
-    o.push(args[0]);
-    return o;
-  }
-  return new List(...args);
 }
 
 export function array_QMARK_(x) {
