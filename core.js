@@ -522,7 +522,12 @@ export function constantly(x) {
   return (..._) => x;
 }
 
-class List extends Array {}
+class List extends Array {
+  constructor(...args) {
+    super();
+    this.push(...args);
+  }
+}
 
 export function list_QMARK_(x) {
   return typeConst(x) === LIST_TYPE;

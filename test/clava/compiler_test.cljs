@@ -788,6 +788,10 @@
   (is (= false (jsv! '(vector? {:a :b}))))
   (is (= false (jsv! '(vector? #{:a :b})))))
 
+(deftest list-test
+  (is (eq '(23) (jsv! '(list 23))))
+  (is (eq '(1 2 3) (jsv! '(list 1 2 3)))))
+
 (deftest instance-test
   (is (true? (jsv! '(instance? js/Array []))))
   (is (false? (jsv! '(instance? js/String [])))))
