@@ -788,6 +788,14 @@
   (is (= false (jsv! '(vector? {:a :b}))))
   (is (= false (jsv! '(vector? #{:a :b})))))
 
+(deftest list-test
+  (testing "creates a list of elements"
+    (is (eq '(1 2 3) (jsv! '(list 1 2 3)))))
+  (testing "accepts a single, numeric element in the list"
+    (is (eq '(23) (jsv! '(list 23)))))
+  (testing "creates an empty list"
+    (is (eq '() (jsv! '(list))))))
+
 (deftest instance-test
   (is (true? (jsv! '(instance? js/Array []))))
   (is (false? (jsv! '(instance? js/String [])))))
