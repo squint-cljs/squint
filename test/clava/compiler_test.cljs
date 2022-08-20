@@ -815,12 +815,11 @@
 
 (deftest select-keys-test
   (is (eq {:a 1 :b 2} (jsv! '(select-keys {:a 1 :b 2 :c 3} [:a :b]))))
-  (is (jsv! '(let [m (select-keys (js/Map. [[:a 1] [:b 2] [:c 3]]) [:a :b])]
-               (and
-                (instance? js/Map m)
-                (= 1 (get m :a))
-                (= 2 (get m :b))
-                (not (.has m :c))))))
+  (let [m (jsv! '(select-keys (js/Map. [[:a 1] [:b 2] [:c 3]]) [:a :b]))]
+    (is (instance? js/Map m))
+    (is (= 1 (.get m "a")))
+    (is (= 2 (.get m "b")))
+    (is (not (.has m "c"))))
   (is (eq [:a :b] (jsv! '(select-keys [:a :b :c] [0 1])))))
 
 (defn init []
