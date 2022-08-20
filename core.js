@@ -57,7 +57,7 @@ const OBJECT_TYPE = 3;
 const LIST_TYPE = 4;
 const SET_TYPE = 5;
 
-function newEmptyOfType(type) {
+function emptyOfType(type) {
   switch (type) {
     case MAP_TYPE:
       return new Map();
@@ -96,7 +96,7 @@ function assoc_in_with(f, fname, o, keys, value) {
     if (lastInChain instanceof Map) chainValue = lastInChain.get(k);
     else chainValue = lastInChain[k];
     if (!chainValue) {
-      chainValue = newEmptyOfType(baseType);
+      chainValue = emptyOfType(baseType);
     }
     chain.push(chainValue);
     lastInChain = chainValue;
@@ -555,4 +555,17 @@ export function mapcat(f, ...colls) {
 
 export function identity(x) {
   return x;
+}
+
+export function select_keys(o, ks) {
+  const typ = typeConst(o);
+  // ret could be object or array, but in the future, maybe we'll have an IEmpty protocol
+  const ret = emptyOfType(typ);
+  for (const k of ks) {
+    const v = get(o, k);
+    if (v != undefined) {
+      assoc_BANG_(ret, k, v);
+    }
+  }
+  return ret;
 }
