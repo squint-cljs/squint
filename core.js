@@ -147,12 +147,17 @@ export function conj_BANG_(...xs) {
       break;
     case MAP_TYPE:
       for (const x of rest) {
-        o.set(x[0], x[1]);
+        if (!(x instanceof Array))
+          iterable(x).forEach((kv) => {
+            o.set(kv[0], kv[1]);
+          });
+        else o.set(x[0], x[1]);
       }
       break;
     case OBJECT_TYPE:
       for (const x of rest) {
-        o[x[0]] = x[1];
+        if (!(x instanceof Array)) Object.assign(o, x);
+        else o[x[0]] = x[1];
       }
       break;
     default:
@@ -598,9 +603,7 @@ export function empty(coll) {
 export function merge(...objs) {
   let ret = empty(objs[0]) || {};
   for (const obj of objs) {
-    for (const elt of iterable(obj)) {
-      conj_BANG_(ret, elt);
-    }
+    conj_BANG_(ret, obj);
   }
   return ret;
 }
