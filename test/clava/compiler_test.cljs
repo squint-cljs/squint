@@ -819,8 +819,7 @@
     (is (instance? js/Map m))
     (is (= 1 (.get m "a")))
     (is (= 2 (.get m "b")))
-    (is (not (.has m "c"))))
-  (is (eq [:a :b] (jsv! '(select-keys [:a :b :c] [0 1])))))
+    (is (not (.has m "c")))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
