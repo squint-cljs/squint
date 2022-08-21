@@ -813,6 +813,23 @@
   (testing "multiple colls"
     (is (eq ["a" 1 "b" 2] (jsv! '(mapcat list [:a :b :c] [1 2]))))))
 
+(deftest interleave-test
+  (is (eq [] (jsv! '(interleave nil nil))))
+  (is (eq [] (jsv! '(interleave [1 2] nil))))
+  (is (eq [] (jsv! '(interleave [1 2 3] nil))))
+  (is (eq [] (jsv! '(interleave [1 2 3] ["a" "b"] nil))))
+  (is (eq [1 "a" 2 "b"] (jsv! '(interleave [1 2 3] ["a" "b"]))))
+  (is (eq [1 "a" 2 "b" 3 "c"] (jsv! '(interleave [1 2 3] ["a" "b" "c"]))))
+  (is (eq [1 "a" 2 "b"] (jsv! '(interleave [1 2] ["a" "b" "c"])))))
+
+(deftest select-keys-test
+  (is (eq {:a 1 :b 2} (jsv! '(select-keys {:a 1 :b 2 :c 3} [:a :b]))))
+  (let [m (jsv! '(select-keys (js/Map. [[:a 1] [:b 2] [:c 3]]) [:a :b]))]
+    (is (instance? js/Map m))
+    (is (= 1 (.get m "a")))
+    (is (= 2 (.get m "b")))
+    (is (not (.has m "c")))))
+
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(partition 4 (range 20)))))
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(partition 4 (range 22)))))

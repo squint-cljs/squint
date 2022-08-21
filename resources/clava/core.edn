@@ -28,6 +28,7 @@
   get
   identity
   inc
+  interleave
   list
   list_QMARK_
   map
@@ -50,6 +51,7 @@
   reset_BANG_
   rest
   second
+  select_keys
   seq
   seqable_QMARK_
   str
