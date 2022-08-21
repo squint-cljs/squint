@@ -604,3 +604,7 @@ export function merge(...objs) {
   }
   return ret;
 }
+
+export function system_time() {
+  return performance.now();
+}
