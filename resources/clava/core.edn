@@ -58,6 +58,7 @@
   str
   subvec
   swap_BANG_
+  system_time
   vec
   vector
   vector_QMARK_}

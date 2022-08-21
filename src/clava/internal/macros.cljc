@@ -331,12 +331,12 @@
                                                                     )
                                                              ~seqsym)]
                                           (if false #_(chunked-seq? ~seqsym)
-                                            (let [c# (chunk-first ~seqsym)]
-                                              (recur (chunk-rest ~seqsym) c#
-                                                     (count c#) 0))
-                                            (let [~k (unchecked-get ~seqsym 0) #_(first ~seqsym)]
-                                              ~subform
-                                              ~@(when needrec [recform]))))))])))))]
+                                              (let [c# (chunk-first ~seqsym)]
+                                                (recur (chunk-rest ~seqsym) c#
+                                                       (count c#) 0))
+                                              (let [~k (unchecked-get ~seqsym 0) #_(first ~seqsym)]
+                                                ~subform
+                                                ~@(when needrec [recform]))))))])))))]
     (nth (step nil (seq seq-exprs)) 1)))
 
 (defn core-defonce
@@ -501,3 +501,13 @@
                (list 'js* "(~{} instanceof ~{})" x c)
                `(let [c# ~c x# ~x]
                   (~'js* "(~{} instanceof ~{})" x# c#)))))
+
+(defn core-time
+  "Evaluates expr and prints the time it took. Returns the value of expr."
+  [_ _ expr]
+  `(let [start# (system-time)
+         ret# ~expr]
+     (prn (cljs.core/str "Elapsed time: "
+                         (.toFixed (- (system-time) start#) 6)
+                         " msecs"))
+     ret#))
