@@ -562,14 +562,14 @@ export function interleave(...colls) {
   let ret = [];
   const iters = colls.map((coll) => es6_iterator(iterable(coll)));
   while (true) {
-    let args = [];
+    let items = [];
     for (const i of iters) {
       const nextVal = i.next();
       if (nextVal.done) {
         return ret;
       }
-      args.push(nextVal.value);
+      items.push(nextVal.value);
     }
-    ret.push(...args);
+    ret.push(...items);
   }
 }
