@@ -41,6 +41,7 @@
   not
   nth
   odd_QMARK_
+  partition
   pr_str
   println
   prn

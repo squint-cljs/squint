@@ -595,6 +595,31 @@ export function select_keys(o, ks) {
   return ret;
 }
 
+export function partition(n, ...args) {
+  let step = n,
+    pad = [],
+    coll = args[0];
+
+  if (args.length === 2) {
+    [step, coll] = args;
+  } else if (args.length > 2) {
+    [step, pad, coll] = args;
+  }
+
+  let ret = [];
+  let array = [...iterable(coll)];
+  for (var i = 0; i < array.length; i = i + step) {
+    let p = array.slice(i, i + n);
+    if (p.length === n) {
+      ret.push(p);
+    } else if (pad.length) {
+      p.push(...pad.slice(0, n - p.length));
+      ret.push(p);
+    }
+  }
+  return ret;
+}
+
 export function empty(coll) {
   const type = typeConst(coll);
   return emptyOfType(type);
