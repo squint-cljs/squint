@@ -68,6 +68,8 @@ function emptyOfType(type) {
       return {};
     case LIST_TYPE:
       return new List();
+    case SET_TYPE:
+      return new Set();
   }
   return undefined;
 }
@@ -147,6 +149,7 @@ export function conj_BANG_(...xs) {
       for (const x of rest) {
         o.set(x[0], x[1]);
       }
+      break;
     case OBJECT_TYPE:
       for (const x of rest) {
         o[x[0]] = x[1];
@@ -582,6 +585,21 @@ export function select_keys(o, ks) {
     const v = get(o, k);
     if (v != undefined) {
       assoc_BANG_(ret, k, v);
+    }
+  }
+  return ret;
+}
+
+export function empty(coll) {
+  const type = typeConst(coll);
+  return emptyOfType(type);
+}
+
+export function merge(...objs) {
+  let ret = empty(objs[0]) || {};
+  for (const obj of objs) {
+    for (const elt of iterable(obj)) {
+      conj_BANG_(ret, elt);
     }
   }
   return ret;
