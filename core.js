@@ -68,6 +68,8 @@ function emptyOfType(type) {
       return {};
     case LIST_TYPE:
       return new List();
+    case SET_TYPE:
+      return new Set();
   }
   return undefined;
 }
@@ -145,11 +147,17 @@ export function conj_BANG_(...xs) {
       break;
     case MAP_TYPE:
       for (const x of rest) {
-        o.set(x[0], x[1]);
+        if (!(x instanceof Array))
+          iterable(x).forEach((kv) => {
+            o.set(kv[0], kv[1]);
+          });
+        else o.set(x[0], x[1]);
       }
+      break;
     case OBJECT_TYPE:
       for (const x of rest) {
-        o[x[0]] = x[1];
+        if (!(x instanceof Array)) Object.assign(o, x);
+        else o[x[0]] = x[1];
       }
       break;
     default:
@@ -610,4 +618,19 @@ export function partition(n, ...args) {
     }
   }
   return ret;
+}
+
+export function empty(coll) {
+  const type = typeConst(coll);
+  return emptyOfType(type);
+}
+
+export function merge(...objs) {
+  let ret = empty(objs[0]) || {};
+  conj_BANG_(ret, ...iterable(objs));
+  return ret;
+}
+
+export function system_time() {
+  return performance.now();
 }

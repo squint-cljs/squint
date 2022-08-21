@@ -839,5 +839,14 @@
   (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a"]] (jsv! '(partition 4 6 ["a"] (range 20)))))
   (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a" "b"]] (jsv! '(partition 4 6 ["a" "b" "c" "d"](range 20))))))
 
+(deftest merge-test
+  (is (eq {:a 1} (jsv! '(merge nil {:a 1}))))
+  (is (eq {:a 1} (jsv! '(merge {:a 2} {:a 1}))))
+  (is (eq {:a 1 :b 2} (jsv! '(merge {:a 1} {:b 2}))))
+  (let [s (jsv! '(merge (js/Map.) {:a 1 :b 2}))]
+    (is (instance? js/Map s))
+    (doseq [k ["a" "b"]]
+      (is (.has s k) (str "key: " k)))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))

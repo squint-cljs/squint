@@ -20,6 +20,7 @@
   disj_BANG_
   dissoc
   dissoc_BANG_
+  empty
   es6_iterator
   even_QMARK_
   ffirst
@@ -35,6 +36,7 @@
   map_indexed
   mapcat
   mapv
+  merge
   nil_QMARK_
   not
   nth
@@ -57,6 +59,7 @@
   str
   subvec
   swap_BANG_
+  system_time
   vec
   vector
   vector_QMARK_}

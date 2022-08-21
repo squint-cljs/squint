@@ -192,7 +192,8 @@
                       'deftype deftype/core-deftype
                       'defn core-defn
                       'defn- core-defn
-                      'instance? macros/core-instance?})
+                      'instance? macros/core-instance?
+                      'time macros/core-time})
 
 (def core-config {:vars (edn-resource "clava/core.edn")})
 
