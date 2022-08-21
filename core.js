@@ -602,9 +602,7 @@ export function empty(coll) {
 
 export function merge(...objs) {
   let ret = empty(objs[0]) || {};
-  for (const obj of objs) {
-    conj_BANG_(ret, obj);
-  }
+  conj_BANG_(ret, ...iterable(objs));
   return ret;
 }
 
