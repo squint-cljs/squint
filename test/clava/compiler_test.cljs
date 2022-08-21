@@ -813,6 +813,15 @@
   (testing "multiple colls"
     (is (eq ["a" 1 "b" 2] (jsv! '(mapcat list [:a :b :c] [1 2]))))))
 
+(deftest interleave-test
+  (is (eq [] (jsv! '(interleave nil nil))))
+  (is (eq [] (jsv! '(interleave [1 2] nil))))
+  (is (eq [] (jsv! '(interleave [1 2 3] nil))))
+  (is (eq [] (jsv! '(interleave [1 2 3] ["a" "b"] nil))))
+  (is (eq [1 "a" 2 "b"] (jsv! '(interleave [1 2 3] ["a" "b"]))))
+  (is (eq [1 "a" 2 "b" 3 "c"] (jsv! '(interleave [1 2 3] ["a" "b" "c"]))))
+  (is (eq [1 "a" 2 "b"] (jsv! '(interleave [1 2] ["a" "b" "c"])))))
+
 (deftest select-keys-test
   (is (eq {:a 1 :b 2} (jsv! '(select-keys {:a 1 :b 2 :c 3} [:a :b]))))
   (let [m (jsv! '(select-keys (js/Map. [[:a 1] [:b 2] [:c 3]]) [:a :b]))]

@@ -1,3 +1,4 @@
+// @ts-check
 export function _PLUS_(x, ...xs) {
   let sum = x;
   for (const y of xs) {
@@ -555,6 +556,22 @@ export function mapcat(f, ...colls) {
 
 export function identity(x) {
   return x;
+}
+
+export function interleave(...colls) {
+  let ret = [];
+  const iters = colls.map((coll) => es6_iterator(iterable(coll)));
+  while (true) {
+    let items = [];
+    for (const i of iters) {
+      const nextVal = i.next();
+      if (nextVal.done) {
+        return ret;
+      }
+      items.push(nextVal.value);
+    }
+    ret.push(...items);
+  }
 }
 
 export function select_keys(o, ks) {
