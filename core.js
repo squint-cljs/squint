@@ -572,6 +572,7 @@ export function interleave(...colls) {
     }
     ret.push(...items);
   }
+}
 
 export function select_keys(o, ks) {
   const type = typeConst(o);
