@@ -834,10 +834,6 @@
   (is (eq {:a 1} (jsv! '(merge nil {:a 1}))))
   (is (eq {:a 1} (jsv! '(merge {:a 2} {:a 1}))))
   (is (eq {:a 1 :b 2} (jsv! '(merge {:a 1} {:b 2}))))
-  (let [s (jsv! '(merge #{:a :b :c} #{:d}))]
-    (is (instance? js/Set s))
-    (doseq [k ["a" "b" "c"]]
-      (is (.has s k))))
   (let [s (jsv! '(merge (js/Map.) {:a 1 :b 2}))]
     (is (instance? js/Map s))
     (doseq [k ["a" "b"]]
