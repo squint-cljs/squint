@@ -174,7 +174,7 @@
                       'when-first macros/core-when-first
                       'when-some macros/core-when-some
                       'some-> macros/core-some->
-                      'some>> macros/core-some->>
+                      'some->> macros/core-some->>
                       'loop loop/core-loop
                       'doseq macros/core-doseq
                       'for macros/core-for
