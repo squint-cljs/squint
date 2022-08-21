@@ -822,5 +822,13 @@
   (is (eq [1 "a" 2 "b" 3 "c"] (jsv! '(interleave [1 2 3] ["a" "b" "c"]))))
   (is (eq [1 "a" 2 "b"] (jsv! '(interleave [1 2] ["a" "b" "c"])))))
 
+(deftest select-keys-test
+  (is (eq {:a 1 :b 2} (jsv! '(select-keys {:a 1 :b 2 :c 3} [:a :b]))))
+  (let [m (jsv! '(select-keys (js/Map. [[:a 1] [:b 2] [:c 3]]) [:a :b]))]
+    (is (instance? js/Map m))
+    (is (= 1 (.get m "a")))
+    (is (= 2 (.get m "b")))
+    (is (not (.has m "c")))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
