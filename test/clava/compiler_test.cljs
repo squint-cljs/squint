@@ -844,13 +844,18 @@
 
 (deftest partition-all-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(partition-all 4 (range 20)))))
-  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19] [20 21]] (jsv! '(partition-all 4 (range 22))))) 
+  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19] [20 21]] (jsv! '(partition-all 4 (range 22)))))
   (testing "step"
     (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19]] (jsv! '(partition-all 4 6 (range 20))))))
   (testing "step < n"
     (is (eq [[0 1 2 3] [3 4 5 6] [6 7 8 9] [9 10 11 12] [12 13 14 15] [15 16 17 18] [18 19]] (jsv! '(partition-all 4 3 (range 20)))))))
 
 (deftest merge-test
+  (testing "corner cases"
+    (is (eq [1] (jsv! '(merge [] 1))))
+    (is (eq (js/Set. #js [1]) (jsv! '(merge #{} 1))))
+    (is (eq '(1) (jsv! '(merge (list) 1))))
+    (is (thrown? js/Error (jsv! '(merge 1 1)))))
   (is (eq {:a 1} (jsv! '(merge nil {:a 1}))))
   (is (eq {:a 1} (jsv! '(merge {:a 2} {:a 1}))))
   (is (eq {:a 1 :b 2} (jsv! '(merge {:a 1} {:b 2}))))

@@ -640,10 +640,13 @@ export function empty(coll) {
   return emptyOfType(type);
 }
 
-export function merge(...objs) {
-  let ret = empty(objs[0]) || {};
-  conj_BANG_(ret, ...iterable(objs));
-  return ret;
+export function merge(f, ...rest) {
+  // if the first arg is nil we coerce it into a map.
+  if (f === null || f === undefined)
+    f = {};
+  if (typeConst(f) === undefined)
+    throw new Error(`${f} is not a Collection type.`);
+  return conj_BANG_(f, ...rest);
 }
 
 export function system_time() {
