@@ -640,7 +640,7 @@ function partitionInternal(n, step, pad, coll, all) {
     } else if (pad.length) {
       p.push(...pad.slice(0, n - p.length));
       ret.push(p);
-    } else if(all) {
+    } else if (all) {
       ret.push(p);
     }
   }
@@ -652,12 +652,27 @@ export function empty(coll) {
   return emptyOfType(type);
 }
 
-export function merge(...objs) {
-  let ret = empty(objs[0]) || {};
-  conj_BANG_(ret, ...es6_iterator(objs));
-  return ret;
+
+export function merge(f, ...rest) {
+  // if the first arg is nil we coerce it into a map.
+  if (f === null || f === undefined)
+    f = {};
+  if (typeConst(f) === undefined)
+    throw new Error(`${f} is not a Collection type.`);
+  return conj_BANG_(f, ...rest);
 }
 
 export function system_time() {
   return performance.now();
+}
+
+export function into(...args) {
+  switch (args.length) {
+    case 0:
+      return [];
+    case 1:
+      return args[0];
+    default:
+      return conj(args[0] ?? [], ...iterable(args[1]));
+  }
 }
