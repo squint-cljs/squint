@@ -859,5 +859,37 @@
     (doseq [k ["a" "b"]]
       (is (.has s k) (str "key: " k)))))
 
+(deftest into-test
+  (testing "corner cases"
+    (is (eq [], (jsv! '(into))))
+    (is (= true, (jsv! '(vector? (into nil [1])))))
+    (is (eq nil, (jsv! '(into nil))))      ; same as clojure, but clojureScript throws error for arity 1
+    (is (eq [1 2] (jsv! '(into nil [1 2])))))
+  (testing "arrays"
+    (is (eq [1 2 3 4] (jsv! '(into [1 2 3 4]))))
+    (is (eq [1 2 3 4] (jsv! '(into [1 2 3] [4]))))
+    (is (eq [1 2 3 4] (jsv! '(into [1 2] [3 4])))))
+  (testing "lists"
+    (is (eq '(1 2 3 4) (jsv! '(into '(1 2 3 4)))))
+    (is (eq '(1 2 3 4) (jsv! '(into '(2 3 4) [1]))))
+    (is (eq '(1 2 3 4) (jsv! '(into '(3 4) '(2 1))))))
+  (testing "sets"
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(into #{1 2 3 4}))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(into #{1 2 3} [4]))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(into #{1 2} [3 4])))))
+  (testing "objects"
+    (is (eq #js {:a "b" :c "d"} (jsv! '(into {:a "b" :c "d"}))))
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(into {"1" 2} [["3" 4]]))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(into {"1" 2} '(["3" 4] ["5" 6]))))))
+  (testing "maps"
+    (is (eq (js/Map. #js [#js ["a" "b"] #js ["c" "d"]])
+            (jsv! '(into (js/Map. [["a" "b"] ["c" "d"]])))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(into (js/Map. [[1 2]]) [[3 4]]))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(into (js/Map. [[1 2]]) [[3 4] [5 6]])))))
+  (testing "other types"
+    (is (thrown? js/Error (jsv! '(into "foo" []))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
