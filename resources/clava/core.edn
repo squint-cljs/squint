@@ -42,6 +42,7 @@
   nth
   odd_QMARK_
   partition
+  partition_all
   pr_str
   println
   prn
