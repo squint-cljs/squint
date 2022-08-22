@@ -595,6 +595,16 @@ export function select_keys(o, ks) {
   return ret;
 }
 
+export function partition_all(n, ...args) {
+  let step = n,
+    coll = args[0];
+
+  if (args.length === 2) {
+    [step, coll] = args;
+  }
+  return partitionInternal(n, step, [], coll, true);
+}
+
 export function partition(n, ...args) {
   let step = n,
     pad = [],
@@ -605,7 +615,10 @@ export function partition(n, ...args) {
   } else if (args.length > 2) {
     [step, pad, coll] = args;
   }
+  return partitionInternal(n, step, pad, coll, false);
+}
 
+function partitionInternal(n, step, pad, coll, all) {
   let ret = [];
   let array = [...iterable(coll)];
   for (var i = 0; i < array.length; i = i + step) {
@@ -614,6 +627,8 @@ export function partition(n, ...args) {
       ret.push(p);
     } else if (pad.length) {
       p.push(...pad.slice(0, n - p.length));
+      ret.push(p);
+    } else if(all) {
       ret.push(p);
     }
   }
