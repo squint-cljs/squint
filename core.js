@@ -290,23 +290,23 @@ export function seqable_QMARK_(x) {
 
 // not public, since there is not CLJS core var name for this
 function iterable(x) {
-  // nil puns to empty iterable, support passing nil to first/rest/reduce, etc.
-  if (x === null || x === undefined)
-    return [][Symbol.iterator]();
   if (!seqable_QMARK_(x))
     return undefined;
+  // nil puns to empty iterable, support passing nil to first/rest/reduce, etc.
+  if (x === null || x === undefined)
+    return [];
+  if (typeof x === "string")
+    return x;
   switch (typeConst(x)) {
     case OBJECT_TYPE:
-      if (typeof x === "string")
-        return x[Symbol.iterator]();
-      return Object.entries(x)[Symbol.iterator]();
+      return Object.entries(x);
     default:
-      return x[Symbol.iterator]();
+      return x;
   }
 }
 
 export function es6_iterator(coll) {
-  return iterable(coll);
+  return iterable(coll)[Symbol.iterator]();
 }
 
 export function seq(x) {
@@ -314,17 +314,21 @@ export function seq(x) {
   if (iter === undefined)
     throw new Error(`${x} should either implement the Symbol.iterator protocol,
                      be a POJO, or be nil`);
+  // return nil for terminal checking
+  if (iter.length === 0 || iter.size === 0) {
+    return null;
+  }
   return iter;
 }
 
 export function first(coll) {
   // destructuring uses iterable protocol
-  let [first] = seq(coll);
+  let [first] = iterable(coll);
   return first;
 }
 
 export function second(coll) {
-  let [_, v] = seq(coll);
+  let [_, v] = iterable(coll);
   return v;
 }
 
@@ -333,7 +337,7 @@ export function ffirst(coll) {
 }
 
 export function rest(coll) {
-  let [_, ...rest] = seq(coll);
+  let [_, ...rest] = iterable(coll);
   return rest;
 }
 
@@ -391,7 +395,7 @@ export function map(f, ...colls) {
       }
       return ret;
     default:
-      const iters = colls.map(seq);
+      const iters = colls.map(es6_iterator);
       while (true) {
         let args = [];
         for (const i of iters) {
@@ -409,7 +413,7 @@ export function map(f, ...colls) {
 
 export function filter(pred, coll) {
   let ret = [];
-  for (const x of seq(coll)) {
+  for (const x of iterable(coll)) {
     if (pred(x)) {
       ret.push(x);
     }
@@ -420,7 +424,7 @@ export function filter(pred, coll) {
 export function map_indexed(f, coll) {
   let ret = [];
   let i = 0;
-  for (const x of seq(coll)) {
+  for (const x of iterable(coll)) {
     ret.push(f(i, x));
     i++;
   }
@@ -562,7 +566,7 @@ export function array_QMARK_(x) {
 export function concat(...colls) {
   var ret = [];
   for (const x of colls) {
-    ret.push(...seq(x));
+    ret.push(...iterable(x));
   }
   return ret;
 }
@@ -577,7 +581,7 @@ export function identity(x) {
 
 export function interleave(...colls) {
   let ret = [];
-  const iters = colls.map(seq);
+  const iters = colls.map(es6_iterator);
   while (true) {
     let items = [];
     for (const i of iters) {
@@ -629,7 +633,7 @@ export function partition(n, ...args) {
 
 function partitionInternal(n, step, pad, coll, all) {
   let ret = [];
-  let array = [...seq(coll)];
+  let array = [...iterable(coll)];
   for (var i = 0; i < array.length; i = i + step) {
     let p = array.slice(i, i + n);
     if (p.length === n) {
