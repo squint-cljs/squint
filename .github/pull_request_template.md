@@ -1,6 +1,6 @@
 Please answer the following questions and leave the below in as part of your PR.
 
-- [ ] This PR corresponds to an [issue with a clear problem statement](https://github.com/babashka/babashka/blob/master/doc/dev.md#start-with-an-issue-before-writing-code).
+- [ ] This PR corresponds to an [issue with a clear problem statement](https://github.com/babashka/babashka/blob/master/doc/dev.md#start-with-an-issue-before-writing-code): [#issue-number](https://github.com/clavascript/clavascript/issues/...) (mention the issue number in the previous link and remove this text)
 
 - [ ] This PR provides tests for code additions and changes
 
