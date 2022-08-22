@@ -390,7 +390,7 @@ export function map(f, ...colls) {
     case 0:
       throw new Error('map with 2 arguments is not supported yet');
     case 1:
-      for (const x of seq(colls[0])) {
+      for (const x of iterable(colls[0])) {
         ret.push(f(x));
       }
       return ret;
