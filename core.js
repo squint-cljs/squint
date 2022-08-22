@@ -316,6 +316,7 @@ export function seq(x) {
 }
 
 export function es6_iterator(coll) {
+  // nil puns to empty iterator
   return (seq(coll) || [])[Symbol.iterator]();
 }
 
