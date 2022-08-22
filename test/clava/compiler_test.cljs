@@ -588,6 +588,7 @@
     (is (identical? nil (jsv! '(get {"my-key" nil} "my-key"))))))
 
 (deftest first-test
+  (is (thrown? js/Error (jsv! '(first 1))))
   (is (= nil (jsv! '(first nil))))
   (is (= nil (jsv! '(first []))))
   (is (= nil (jsv! '(first #{}))))
@@ -681,6 +682,9 @@
           (jsv! '(seq #{1 2 3}))))
   (is (eq (js/Map. #js[#js[1 2] #js[3 4]])
           (jsv! '(seq (js/Map. [[1 2] [3 4]])))))
+  (testing "throws"
+    (is (thrown? js/Error (jsv! '(seq 1))))
+    (is (thrown? js/Error (jsv! '(seq true)))))
   (testing "empty"
     (is (= nil (jsv! '(seq nil))))
     (is (= nil (jsv! '(seq []))))
@@ -844,7 +848,7 @@
 
 (deftest partition-all-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(partition-all 4 (range 20)))))
-  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19] [20 21]] (jsv! '(partition-all 4 (range 22))))) 
+  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19] [20 21]] (jsv! '(partition-all 4 (range 22)))))
   (testing "step"
     (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19]] (jsv! '(partition-all 4 6 (range 20))))))
   (testing "step < n"

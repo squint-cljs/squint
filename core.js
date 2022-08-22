@@ -292,7 +292,7 @@ export function seqable_QMARK_(x) {
 function iterable(x) {
   if (!seqable_QMARK_(x))
     return undefined;
-  // nil puns to empty iterable, support passing nil to first/rest/reduce, etc.
+  // nil puns to empty iterable
   if (x === null || x === undefined)
     return [];
   if (typeof x === "string")
@@ -305,30 +305,29 @@ function iterable(x) {
   }
 }
 
-export function es6_iterator(coll) {
-  return iterable(coll)[Symbol.iterator]();
-}
-
 export function seq(x) {
   let iter = iterable(x);
   if (iter === undefined)
     throw new Error(`${x} should either implement the Symbol.iterator protocol,
                      be a POJO, or be nil`);
-  // return nil for terminal checking
   if (iter.length === 0 || iter.size === 0) {
     return null;
   }
   return iter;
 }
 
+export function es6_iterator(coll) {
+  return (seq(coll) || [])[Symbol.iterator]();
+}
+
 export function first(coll) {
   // destructuring uses iterable protocol
-  let [first] = iterable(coll);
+  let [first] = es6_iterator(coll);
   return first;
 }
 
 export function second(coll) {
-  let [_, v] = iterable(coll);
+  let [_, v] = es6_iterator(coll);
   return v;
 }
 
@@ -337,7 +336,7 @@ export function ffirst(coll) {
 }
 
 export function rest(coll) {
-  let [_, ...rest] = iterable(coll);
+  let [_, ...rest] = es6_iterator(coll);
   return rest;
 }
 
