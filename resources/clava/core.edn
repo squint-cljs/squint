@@ -30,6 +30,7 @@
   identity
   inc
   interleave
+  into
   list
   list_QMARK_
   map
