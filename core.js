@@ -632,7 +632,7 @@ export function partition(n, ...args) {
 
 function partitionInternal(n, step, pad, coll, all) {
   let ret = [];
-  let array = Array.from(es6_iterator(coll));
+  let array = [...es6_iterator(coll)];
   for (var i = 0; i < array.length; i = i + step) {
     let p = array.slice(i, i + n);
     if (p.length === n) {
