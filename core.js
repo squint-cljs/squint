@@ -148,9 +148,7 @@ export function conj_BANG_(...xs) {
     case MAP_TYPE:
       for (const x of rest) {
         if (!(x instanceof Array))
-          iterable(x).forEach((kv) => {
-            o.set(kv[0], kv[1]);
-          });
+          for (const [k, v] of es6_iterator(x)) o.set(k, v);
         else o.set(x[0], x[1]);
       }
       break;
@@ -284,8 +282,9 @@ export function seqable_QMARK_(x) {
     case 'string':
     case 'undefined':
       return true;
+    default:
+      return false;
   }
-  return false;
 }
 
 // not public, since there is not CLJS core var name for this
@@ -362,13 +361,13 @@ export function reduce(f, arg1, arg2) {
   let coll, val;
   if (arg2 === undefined) {
     // (reduce f coll)
-    const [hd, ...more] = iterable(arg1);
+    const [hd, ...more] = es6_iterator(arg1);
     val = hd;
     coll = more;
   } else {
     // (reduce f val coll)
     val = arg1;
-    coll = iterable(arg2);
+    coll = es6_iterator(arg2);
   }
   if (val instanceof Reduced) {
     return val.value;
@@ -389,7 +388,7 @@ export function map(f, ...colls) {
     case 0:
       throw new Error('map with 2 arguments is not supported yet');
     case 1:
-      for (const x of iterable(colls[0])) {
+      for (const x of es6_iterator(colls[0])) {
         ret.push(f(x));
       }
       return ret;
@@ -412,7 +411,7 @@ export function map(f, ...colls) {
 
 export function filter(pred, coll) {
   let ret = [];
-  for (const x of iterable(coll)) {
+  for (const x of es6_iterator(coll)) {
     if (pred(x)) {
       ret.push(x);
     }
@@ -423,7 +422,7 @@ export function filter(pred, coll) {
 export function map_indexed(f, coll) {
   let ret = [];
   let i = 0;
-  for (const x of iterable(coll)) {
+  for (const x of es6_iterator(coll)) {
     ret.push(f(i, x));
     i++;
   }
@@ -565,7 +564,7 @@ export function array_QMARK_(x) {
 export function concat(...colls) {
   var ret = [];
   for (const x of colls) {
-    ret.push(...iterable(x));
+    ret.push(...es6_iterator(x));
   }
   return ret;
 }
@@ -632,7 +631,7 @@ export function partition(n, ...args) {
 
 function partitionInternal(n, step, pad, coll, all) {
   let ret = [];
-  let array = [...iterable(coll)];
+  let array = Array.from(es6_iterator(coll));
   for (var i = 0; i < array.length; i = i + step) {
     let p = array.slice(i, i + n);
     if (p.length === n) {
@@ -654,7 +653,7 @@ export function empty(coll) {
 
 export function merge(...objs) {
   let ret = empty(objs[0]) || {};
-  conj_BANG_(ret, ...iterable(objs));
+  conj_BANG_(ret, ...es6_iterator(objs));
   return ret;
 }
 
