@@ -1,28 +1,30 @@
 (ns clava.internal.protocols
   (:require [clojure.core :as core]))
 
+(core/defn- emit-protocol-method
+  [p method]
+  (let [mname (first method)
+        method-sym (symbol (str p "_" mname))
+        [mdocs margs] (if (string? (second method))
+                        [(second method) (nth method 2)]
+                        [nil (second method)])
+        this-sym (first margs)]
+    `((def ~method-sym
+        (js/Symbol ~(str p "_" mname)))
+      (defn ~mname
+        ~@(when mdocs [mdocs])
+        ~margs
+        ((unchecked-get ~this-sym ~method-sym) ~@margs)))))
+
 (core/defn core-defprotocol
   [&env _&form p & doc+methods]
   (core/let [[doc-and-opts methods] [(core/take-while #(not (list? %))
                                                       doc+methods)
                                      (core/drop-while #(not (list? %))
-                                                      doc+methods)]
-             ns-name (core/-> &env :ns :name)]
+                                                      doc+methods)]]
     `(do
-       (def ~p (js/Symbol ~(str ns-name "/" p)))
-       ~@(for [method methods
-               :let [mname (first method)
-                     method-sym (symbol (str p "_" mname))
-                     margs (second method)
-                     this-sym (first margs)
-
-                     #_#_mdocs (nth method 2)]]
-           `(do
-              (def ~method-sym
-                (js/Symbol ~(str ns-name "/" mname)))
-              (defn ~mname
-                ~margs
-                ((unchecked-get ~this-sym ~method-sym) ~@margs)))))))
+       (def ~p (js/Symbol ~(str p)))
+       ~@(mapcat #(emit-protocol-method p %) methods))))
 
 
 (comment
@@ -53,7 +55,7 @@
     ;; TODO what to do here?
     default js/Object})
 
-(core/defn- emit-method
+(core/defn- emit-type-method
   [psym type-sym method]
   (let [mname (first method)
         msym (symbol (str psym "_" mname))
@@ -63,19 +65,19 @@
       (.-prototype ~type-sym) ~msym
       (fn ~margs ~@mbody))))
 
-(core/defn- emit-methods
+(core/defn- emit-type-methods
   [type-sym [psym pmethods]]
   `((unchecked-set
       (.-prototype ~type-sym)
       ~psym true)
-     ~@(map #(emit-method psym type-sym %) pmethods)))
+     ~@(map #(emit-type-method psym type-sym %) pmethods)))
 
 (core/defn core-extend-type
   [&env _&form type-sym & impls]
   (core/let [type-sym (get js-type-sym->type type-sym type-sym)
              impl-map (->impl-map impls)]
     `(do
-       ~@(mapcat #(emit-methods type-sym %) impl-map))))
+       ~@(mapcat #(emit-type-methods type-sym %) impl-map))))
 
 (comment
   (core-extend-type
