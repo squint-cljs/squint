@@ -1,20 +1,25 @@
 (ns clava.internal.protocols
   (:require [clojure.core :as core]))
 
+(core/defn- emit-protocol-method-arity
+  [method-sym args]
+  `(~args
+    ((unchecked-get ~(first args) ; this
+                    ~method-sym) ~@args)))
+
 (core/defn- emit-protocol-method
   [p method]
   (let [mname (first method)
         method-sym (symbol (str p "_" mname))
         [mdocs margs] (if (string? (second method))
-                        [(second method) (nth method 2)]
-                        [nil (second method)])
+                        [(second method) (drop 2 method)]
+                        [nil (rest method)])
         this-sym (first margs)]
     `((def ~method-sym
         (js/Symbol ~(str p "_" mname)))
       (defn ~mname
         ~@(when mdocs [mdocs])
-        ~margs
-        ((unchecked-get ~this-sym ~method-sym) ~@margs)))))
+        ~@(map #(emit-protocol-method-arity method-sym %) margs)))))
 
 (core/defn core-defprotocol
   [&env _&form p & doc+methods]
@@ -53,9 +58,9 @@
         msym (symbol (str psym "_" mname))
         margs (second method)
         mbody (drop 2 method)]
-    `(unchecked-set
-      (.-prototype ~type-sym) ~msym
-      (fn ~margs ~@mbody))))
+    `(let [f# (fn ~margs ~@mbody)]
+       (unchecked-set
+        (.-prototype ~type-sym) ~msym f#))))
 
 (core/defn- emit-type-methods
   [type-sym [psym pmethods]]
