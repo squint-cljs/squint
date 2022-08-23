@@ -833,13 +833,29 @@
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(partition 4 (range 20)))))
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(partition 4 (range 22)))))
-  (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15]] (jsv! '(partition 4 6 (range 20)))))
-  (is (eq [[0 1 2 3] [3 4 5 6] [6 7 8 9] [9 10 11 12] [12 13 14 15] [15 16 17 18]] (jsv! '(partition 4 3 (range 20)))))
-  (is (eq [[0 1 2] [6 7 8] [12 13 14] [18 19 "a"]] (jsv! '(partition 3 6 ["a"] (range 20)))))
-  (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a"]] (jsv! '(partition 4 6 ["a"] (range 20)))))
-  (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a" "b"]] (jsv! '(partition 4 6 ["a" "b" "c" "d"](range 20))))))
+  (testing "step"
+    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15]] (jsv! '(partition 4 6 (range 20))))))
+  (testing "step < n"
+    (is (eq [[0 1 2 3] [3 4 5 6] [6 7 8 9] [9 10 11 12] [12 13 14 15] [15 16 17 18]] (jsv! '(partition 4 3 (range 20))))))
+  (testing "pad"
+    (is (eq [[0 1 2] [6 7 8] [12 13 14] [18 19 "a"]] (jsv! '(partition 3 6 ["a"] (range 20)))))
+    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a"]] (jsv! '(partition 4 6 ["a"] (range 20)))))
+    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a" "b"]] (jsv! '(partition 4 6 ["a" "b" "c" "d"] (range 20)))))))
+
+(deftest partition-all-test
+  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(partition-all 4 (range 20)))))
+  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19] [20 21]] (jsv! '(partition-all 4 (range 22)))))
+  (testing "step"
+    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19]] (jsv! '(partition-all 4 6 (range 20))))))
+  (testing "step < n"
+    (is (eq [[0 1 2 3] [3 4 5 6] [6 7 8 9] [9 10 11 12] [12 13 14 15] [15 16 17 18] [18 19]] (jsv! '(partition-all 4 3 (range 20)))))))
 
 (deftest merge-test
+  (testing "corner cases"
+    (is (eq [1] (jsv! '(merge [] 1))))
+    (is (eq (js/Set. #js [1]) (jsv! '(merge #{} 1))))
+    (is (eq '(1) (jsv! '(merge (list) 1))))
+    (is (thrown? js/Error (jsv! '(merge 1 1)))))
   (is (eq {:a 1} (jsv! '(merge nil {:a 1}))))
   (is (eq {:a 1} (jsv! '(merge {:a 2} {:a 1}))))
   (is (eq {:a 1 :b 2} (jsv! '(merge {:a 1} {:b 2}))))
@@ -847,6 +863,38 @@
     (is (instance? js/Map s))
     (doseq [k ["a" "b"]]
       (is (.has s k) (str "key: " k)))))
+
+(deftest into-test
+  (testing "corner cases"
+    (is (eq [], (jsv! '(into))))
+    (is (= true, (jsv! '(vector? (into nil [1])))))
+    (is (eq nil, (jsv! '(into nil))))      ; same as clojure, but clojureScript throws error for arity 1
+    (is (eq [1 2] (jsv! '(into nil [1 2])))))
+  (testing "arrays"
+    (is (eq [1 2 3 4] (jsv! '(into [1 2 3 4]))))
+    (is (eq [1 2 3 4] (jsv! '(into [1 2 3] [4]))))
+    (is (eq [1 2 3 4] (jsv! '(into [1 2] [3 4])))))
+  (testing "lists"
+    (is (eq '(1 2 3 4) (jsv! '(into '(1 2 3 4)))))
+    (is (eq '(1 2 3 4) (jsv! '(into '(2 3 4) [1]))))
+    (is (eq '(1 2 3 4) (jsv! '(into '(3 4) '(2 1))))))
+  (testing "sets"
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(into #{1 2 3 4}))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(into #{1 2 3} [4]))))
+    (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(into #{1 2} [3 4])))))
+  (testing "objects"
+    (is (eq #js {:a "b" :c "d"} (jsv! '(into {:a "b" :c "d"}))))
+    (is (eq #js {"1" 2 "3" 4} (jsv! '(into {"1" 2} [["3" 4]]))))
+    (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(into {"1" 2} '(["3" 4] ["5" 6]))))))
+  (testing "maps"
+    (is (eq (js/Map. #js [#js ["a" "b"] #js ["c" "d"]])
+            (jsv! '(into (js/Map. [["a" "b"] ["c" "d"]])))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
+            (jsv! '(into (js/Map. [[1 2]]) [[3 4]]))))
+    (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
+            (jsv! '(into (js/Map. [[1 2]]) [[3 4] [5 6]])))))
+  (testing "other types"
+    (is (thrown? js/Error (jsv! '(into "foo" []))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))

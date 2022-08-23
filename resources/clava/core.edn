@@ -30,6 +30,7 @@
   identity
   inc
   interleave
+  into
   list
   list_QMARK_
   map
@@ -42,6 +43,7 @@
   nth
   odd_QMARK_
   partition
+  partition_all
   pr_str
   println
   prn

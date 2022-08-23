@@ -595,6 +595,16 @@ export function select_keys(o, ks) {
   return ret;
 }
 
+export function partition_all(n, ...args) {
+  let step = n,
+    coll = args[0];
+
+  if (args.length === 2) {
+    [step, coll] = args;
+  }
+  return partitionInternal(n, step, [], coll, true);
+}
+
 export function partition(n, ...args) {
   let step = n,
     pad = [],
@@ -605,7 +615,10 @@ export function partition(n, ...args) {
   } else if (args.length > 2) {
     [step, pad, coll] = args;
   }
+  return partitionInternal(n, step, pad, coll, false);
+}
 
+function partitionInternal(n, step, pad, coll, all) {
   let ret = [];
   let array = [...iterable(coll)];
   for (var i = 0; i < array.length; i = i + step) {
@@ -614,6 +627,8 @@ export function partition(n, ...args) {
       ret.push(p);
     } else if (pad.length) {
       p.push(...pad.slice(0, n - p.length));
+      ret.push(p);
+    } else if (all) {
       ret.push(p);
     }
   }
@@ -625,12 +640,26 @@ export function empty(coll) {
   return emptyOfType(type);
 }
 
-export function merge(...objs) {
-  let ret = empty(objs[0]) || {};
-  conj_BANG_(ret, ...iterable(objs));
-  return ret;
+export function merge(f, ...rest) {
+  // if the first arg is nil we coerce it into a map.
+  if (f === null || f === undefined)
+    f = {};
+  if (typeConst(f) === undefined)
+    throw new Error(`${f} is not a Collection type.`);
+  return conj_BANG_(f, ...rest);
 }
 
 export function system_time() {
   return performance.now();
+}
+
+export function into(...args) {
+  switch (args.length) {
+    case 0:
+      return [];
+    case 1:
+      return args[0];
+    default:
+      return conj(args[0] ?? [], ...iterable(args[1]));
+  }
 }
