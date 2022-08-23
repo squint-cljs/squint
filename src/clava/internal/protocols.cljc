@@ -43,9 +43,20 @@
              (drop-while seq? (next s)))
       ret)))
 
+(def ^:private js-type-sym->type
+  '{object js/Object
+    string js/String
+    number js/Number
+    array js/Array
+    function js/Function
+    boolean js/Boolean
+    ;; TODO what to do here?
+    default js/Object})
+
 (core/defn core-extend-type
   [&env _&form type-sym & impls]
-  (core/let [impl-map (->impl-map impls)]
+  (core/let [type-sym (get js-type-sym->type type-sym type-sym)
+             impl-map (->impl-map impls)]
     `(do
        ~@(for [[psym pmethods] impl-map]
            `(do
