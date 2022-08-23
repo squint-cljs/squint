@@ -53,25 +53,29 @@
     ;; TODO what to do here?
     default js/Object})
 
+(core/defn- emit-method
+  [psym type-sym method]
+  (let [mname (first method)
+        msym (symbol (str psym "_" mname))
+        margs (second method)
+        mbody (drop 2 method)]
+    `(unchecked-set
+      (.-prototype ~type-sym) ~msym
+      (fn ~margs ~@mbody))))
+
+(core/defn- emit-methods
+  [type-sym [psym pmethods]]
+  `((unchecked-set
+      (.-prototype ~type-sym)
+      ~psym true)
+     ~@(map #(emit-method psym type-sym %) pmethods)))
+
 (core/defn core-extend-type
   [&env _&form type-sym & impls]
   (core/let [type-sym (get js-type-sym->type type-sym type-sym)
              impl-map (->impl-map impls)]
     `(do
-       ~@(for [[psym pmethods] impl-map]
-           `(do
-              (unchecked-set
-               (.-prototype ~type-sym)
-               ~psym true)
-              ~@(for [method pmethods
-                      :let [mname (first method)
-                            msym (symbol (str psym "_" mname))
-                            margs (second method)
-                            mbody (drop 2 method)]]
-                  `(unchecked-set
-                    (.-prototype ~type-sym) ~msym
-                    (fn ~margs ~@mbody))))))))
-
+       ~@(mapcat #(emit-methods type-sym %) impl-map))))
 
 (comment
   (core-extend-type
