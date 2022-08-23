@@ -140,10 +140,5 @@
        (deftype* ~t ~fields ~pmasks
          ~(when (seq impls)
             `(extend-type ~t ~@(dt->et t impls fields))))
-       (set! (.-getBasis ~t) (fn [] '[~@fields]))
-       (set! (.-cljs$lang$type ~t) true)
-       (set! (.-cljs$lang$ctorStr ~t) ~(core/str r))
-       (set! (.-cljs$lang$ctorPrWriter ~t) (fn [this# writer# opt#] (-write writer# ~(core/str r))))
-
        ~(build-positional-factory t r fields)
        ~t)))
