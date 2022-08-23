@@ -27,6 +27,7 @@
   filter
   first
   get
+  identical_QMARK_
   identity
   inc
   interleave

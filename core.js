@@ -640,13 +640,16 @@ export function empty(coll) {
   return emptyOfType(type);
 }
 
-export function merge(f, ...rest) {
+export function merge(...args) {
   // if the first arg is nil we coerce it into a map.
-  if (f === null || f === undefined)
-    f = {};
-  if (typeConst(f) === undefined)
-    throw new Error(`${f} is not a Collection type.`);
-  return conj_BANG_(f, ...rest);
+  const firstArg = args[0];
+  let obj;
+  if (firstArg === null || firstArg === undefined) {
+    obj = {};
+  } else {
+    obj = into(empty(firstArg), firstArg);
+  }
+  return conj_BANG_(obj, ...args.slice(1));
 }
 
 export function system_time() {
@@ -662,4 +665,8 @@ export function into(...args) {
     default:
       return conj(args[0] ?? [], ...iterable(args[1]));
   }
+}
+
+export function identical_QMARK_(x, y) {
+  return x === y;
 }

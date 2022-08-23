@@ -862,7 +862,10 @@
   (let [s (jsv! '(merge (js/Map.) {:a 1 :b 2}))]
     (is (instance? js/Map s))
     (doseq [k ["a" "b"]]
-      (is (.has s k) (str "key: " k)))))
+      (is (.has s k) (str "key: " k))))
+  (is (true? (jsv! '(let [obj1 {:a 2}
+                          obj2 (merge obj1 {:a 1})]
+                      (not (identical? obj1 obj2)))))))
 
 (deftest into-test
   (testing "corner cases"
