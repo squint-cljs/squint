@@ -21,22 +21,14 @@
   (core/let [[doc-and-opts methods] [(core/take-while #(not (list? %))
                                                       doc+methods)
                                      (core/drop-while #(not (list? %))
-                                                      doc+methods)]]
+                                                      doc+methods)]
+             pmeta (if (string? (first doc-and-opts))
+                     (into {:doc (first doc-and-opts)}
+                           (partition 2 (rest doc-and-opts)))
+                     (into {} (partition 2 doc-and-opts)))]
     `(do
-       (def ~p (js/Symbol ~(str p)))
+       (def ~(with-meta p pmeta) (js/Symbol ~(str p)))
        ~@(mapcat #(emit-protocol-method p %) methods))))
-
-
-(comment
-  (core-defprotocol
-   {:ns {:name "foo.bar"}}
-   nil
-   'Transformer
-   "asdf"
-   :extend-via-metadata true
-   '(init [tf])
-   '(step [tf result el])
-   '(result [tf result])))
 
 (core/defn ->impl-map [impls]
   (core/loop [ret {} s impls]
@@ -73,20 +65,8 @@
      ~@(map #(emit-type-method psym type-sym %) pmethods)))
 
 (core/defn core-extend-type
-  [&env _&form type-sym & impls]
+  [_&env _&form type-sym & impls]
   (core/let [type-sym (get js-type-sym->type type-sym type-sym)
              impl-map (->impl-map impls)]
     `(do
        ~@(mapcat #(emit-type-methods type-sym %) impl-map))))
-
-(comment
-  (core-extend-type
-   {}
-   nil
-   'Mapping
-   't/Transformer
-   '(init [_] (rf))
-   '(step [_ result el]
-          (rf result (f el)))
-   '(result [_ result]
-            (rf result))))
