@@ -296,7 +296,15 @@
                        (bar [_] :bar))
                      (def x  (->Foo 1))
                      (set! (.-x x) 2)
-                     (foo x))))))
+                     (foo x)))))
+  (is (eq [:bar 1 2]
+          (jsv! '(do (defprotocol IFoo (foo [_]) (bar [_] [_ a b]))
+                     (deftype Foo []
+                       IFoo
+                       (foo [_] :foo)
+                       (bar [_] [:bar])
+                       (bar [_ a b] [:bar a b]))
+                     (bar (->Foo) 1 2))))))
 
 (deftest set-test
   (is (ld/isEqual (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
