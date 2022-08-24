@@ -1,4 +1,6 @@
 #{Atom
+  Iterable
+  Iterable_es6_iterator
   PROTOCOL_SENTINEL
   _PLUS_
   apply

@@ -295,6 +295,10 @@ function iterable(x) {
   return Object.entries(x);
 }
 
+export const Iterable = Symbol('Iterable');
+
+export const Iterable_es6_iterator = Symbol.iterator;
+
 export function es6_iterator(coll) {
   return coll[Symbol.iterator]();
 }
