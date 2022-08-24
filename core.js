@@ -295,13 +295,15 @@ function iterable(x) {
   return Object.entries(x);
 }
 
-export const Iterable = Symbol('Iterable');
+export const IIterable = Symbol('Iterable');
 
-export const Iterable_es6_iterator = Symbol.iterator;
+export const IIterable__iterator = Symbol.iterator;
 
-export function es6_iterator(coll) {
+export function _iterator(coll) {
   return coll[Symbol.iterator]();
 }
+
+export const es6_iterator = _iterator;
 
 export function seq(x) {
   let iter = iterable(x);
