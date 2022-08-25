@@ -308,7 +308,7 @@
 
 (deftest satisfies?-test
   #_#_(is (jsv! '(do (defprotocol IFoo)
-                 (satisfies? (reify IFoo)))))
+                     (satisfies? (reify IFoo)))))
   (is (jsv! '(do (defprotocol IFoo (-foo [_]))
                  (satisfies? (reify IFoo
                                (-foo [_] "bar"))))))
@@ -317,7 +317,13 @@
                  (satisfies? IFoo (->Foo)))))
   (is (jsv! '(do (defprotocol IFoo (-foo [_]))
                  (deftype Foo [] IFoo (-foo [_] "bar"))
-                 (satisfies? IFoo (->Foo))))))
+                 (satisfies? IFoo (->Foo)))))
+  (is (jsv! '(do (defprotocol IFoo)
+                 (extend-type number IFoo)
+                 (satisfies? IFoo 1))))
+  (is (jsv! '(do (defprotocol IFoo)
+                 (extend-type string IFoo)
+                 (satisfies? IFoo "bar")))))
 
 (deftest set-test
   (is (ld/isEqual (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
