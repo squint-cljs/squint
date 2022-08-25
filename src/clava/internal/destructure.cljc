@@ -95,10 +95,10 @@
                                          bb)
                                  bv (if (contains? defaults local)
                                       (if js-keys?
-                                        (list 'cljs.core/aget gmap bk (defaults local))
+                                        (list 'cljs.core/get gmap bk (defaults local))
                                         (list 'cljs.core/get gmap bk (defaults local)))
                                       (if js-keys?
-                                        (list 'cljs.core/aget gmap bk)
+                                        (list 'cljs.core/get gmap bk)
                                         (list 'cljs.core/get gmap bk)))]
                              (recur
                               (if (or (keyword? bb) (symbol? bb)) ;(ident? bb)
