@@ -907,5 +907,19 @@
   (testing "other types"
     (is (thrown? js/Error (jsv! '(into "foo" []))))))
 
+
+(deftest iterable-protocol
+  (is (eq [true true [1 2 3 4 5]]
+          (jsv! '(do (deftype Foo []
+                       IIterable
+                       (-iterator [_]
+                         ;; -iterator must return a JS Iterator object,
+                         ;; not another iterable
+                         (-iterator [0 1 2 3 4])))
+                     (let [foo (->Foo)]
+                       [(seqable? foo)
+                        (= foo (seq foo))
+                        (map inc (->Foo))]))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
