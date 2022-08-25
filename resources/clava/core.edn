@@ -1,6 +1,9 @@
 #{Atom
+  IIterable
+  IIterable__iterator
   PROTOCOL_SENTINEL
   _PLUS_
+  _iterator
   apply
   array_QMARK_
   assoc
