@@ -306,6 +306,19 @@
                        (bar [_ a b] [:bar a b]))
                      (bar (->Foo) 1 2))))))
 
+(deftest satisfies?-test
+  #_#_(is (jsv! '(do (defprotocol IFoo)
+                 (satisfies? (reify IFoo)))))
+  (is (jsv! '(do (defprotocol IFoo (-foo [_]))
+                 (satisfies? (reify IFoo
+                               (-foo [_] "bar"))))))
+  (is (jsv! '(do (defprotocol IFoo)
+                 (deftype Foo [] IFoo)
+                 (satisfies? IFoo (->Foo)))))
+  (is (jsv! '(do (defprotocol IFoo (-foo [_]))
+                 (deftype Foo [] IFoo (-foo [_] "bar"))
+                 (satisfies? IFoo (->Foo))))))
+
 (deftest set-test
   (is (ld/isEqual (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
 
