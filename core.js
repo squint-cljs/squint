@@ -7,6 +7,10 @@ export function _PLUS_(x, ...xs) {
   return sum;
 }
 
+export function satisfies_QMARK_(protocol, x) {
+  return protocol in x && x[protocol];
+}
+
 export function assoc_BANG_(m, k, v, ...kvs) {
   if (kvs.length % 2 !== 0) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
