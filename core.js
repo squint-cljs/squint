@@ -8,7 +8,7 @@ export function _PLUS_(x, ...xs) {
 }
 
 export function satisfies_QMARK_(protocol, x) {
-  return protocol in x && x[protocol];
+  return x[protocol];
 }
 
 export function assoc_BANG_(m, k, v, ...kvs) {
