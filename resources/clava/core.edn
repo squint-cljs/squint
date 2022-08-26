@@ -1,6 +1,9 @@
 #{Atom
+  IIterable
+  IIterable__iterator
   PROTOCOL_SENTINEL
   _PLUS_
+  _iterator
   apply
   array_QMARK_
   assoc
@@ -53,8 +56,10 @@
   reduce
   reduced
   reduced_QMARK_
+  repeat
   reset_BANG_
   rest
+  satisfies_QMARK_
   second
   select_keys
   seq

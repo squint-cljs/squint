@@ -311,8 +311,8 @@
     (str "var " (munge t) " = " (format "function %s {
 %s
 %s
-%s
-}"
+};
+%s"
                                         (comma-list fields)
                                         (str/join "\n"
                                                   (map (fn [fld]
@@ -745,8 +745,8 @@ break;}" body)
                  (suffix-unary? head) (emit-suffix-unary head expr)
                  :else (emit-special 'funcall env expr)))
              (keyword? (first expr))
-             (let [[k obj default] expr]
-               (emit (list 'get obj k default) env))
+             (let [[k obj & args] expr]
+               (emit (list* 'get obj k args)))
              (list? expr)
              (emit-special 'funcall env expr)
              :else

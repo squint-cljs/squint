@@ -296,7 +296,34 @@
                        (bar [_] :bar))
                      (def x  (->Foo 1))
                      (set! (.-x x) 2)
-                     (foo x))))))
+                     (foo x)))))
+  (is (eq [:bar 1 2]
+          (jsv! '(do (defprotocol IFoo (foo [_]) (bar [_] [_ a b]))
+                     (deftype Foo []
+                       IFoo
+                       (foo [_] :foo)
+                       (bar [_] [:bar])
+                       (bar [_ a b] [:bar a b]))
+                     (bar (->Foo) 1 2))))))
+
+(deftest satisfies?-test
+  #_#_(is (jsv! '(do (defprotocol IFoo)
+                     (satisfies? (reify IFoo)))))
+  (is (jsv! '(do (defprotocol IFoo (-foo [_]))
+                 (satisfies? (reify IFoo
+                               (-foo [_] "bar"))))))
+  (is (jsv! '(do (defprotocol IFoo)
+                 (deftype Foo [] IFoo)
+                 (satisfies? IFoo (->Foo)))))
+  (is (jsv! '(do (defprotocol IFoo (-foo [_]))
+                 (deftype Foo [] IFoo (-foo [_] "bar"))
+                 (satisfies? IFoo (->Foo)))))
+  (is (jsv! '(do (defprotocol IFoo)
+                 (extend-type number IFoo)
+                 (satisfies? IFoo 1))))
+  (is (jsv! '(do (defprotocol IFoo)
+                 (extend-type string IFoo)
+                 (satisfies? IFoo "bar")))))
 
 (deftest set-test
   (is (ld/isEqual (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
@@ -325,7 +352,10 @@
   (is (= 1 (jsv! "(aget  #js [1 2 3] 0)"))))
 
 (deftest keyword-call-test
-  (is (= "bar" (jsv! '(:foo {:foo :bar})))))
+  (is (= "bar" (jsv! '(:foo {:foo :bar}))))
+  (is (= "bar" (jsv! '(:foo nil :bar))))
+  (is (= "bar" (jsv! '(let [{:keys [foo] :or {foo :bar}} nil]
+                        foo)))))
 
 (deftest minus-single-arg-test
   (is (= -10 (jsv! '(- 10))))
@@ -898,6 +928,30 @@
             (jsv! '(into (js/Map. [[1 2]]) [[3 4] [5 6]])))))
   (testing "other types"
     (is (thrown? js/Error (jsv! '(into "foo" []))))))
+
+
+(deftest iterable-protocol
+  (is (eq [true true [1 2 3 4 5]]
+          (jsv! '(do (deftype Foo []
+                       IIterable
+                       (-iterator [_]
+                         ;; -iterator must return a JS Iterator object,
+                         ;; not another iterable
+                         (-iterator [0 1 2 3 4])))
+                     (let [foo (->Foo)]
+                       [(seqable? foo)
+                        (= foo (seq foo))
+                        (map inc (->Foo))]))))))
+
+(deftest repeat-test
+  (is (eq [] (jsv! '(interleave (repeat 1) []))))
+  (is (eq [1 "a" 1 "b"] (jsv! '(interleave (repeat 1)["a" "b"]))))
+  (is (eq [1 "a" 1 "b" 1 "c"] (jsv! '(interleave (repeat 1)["a" "b" "c"]))))
+  (is (eq [1 "a" 1 "b"] (jsv! '(interleave (repeat 2 1)["a" "b" "c"]))))
+  (testing "satisfies IIterable"
+    (is (= true (jsv! '(satisfies? IIterable (repeat 1))))))
+  (testing "invalid arity"
+    (is (thrown? js/Error (jsv! '(repeat))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))

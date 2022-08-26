@@ -7,6 +7,10 @@ export function _PLUS_(x, ...xs) {
   return sum;
 }
 
+export function satisfies_QMARK_(protocol, x) {
+  return x[protocol];
+}
+
 export function assoc_BANG_(m, k, v, ...kvs) {
   if (kvs.length % 2 !== 0) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
@@ -295,9 +299,15 @@ function iterable(x) {
   return Object.entries(x);
 }
 
-export function es6_iterator(coll) {
+export const IIterable = Symbol('Iterable');
+
+export const IIterable__iterator = Symbol.iterator;
+
+export function _iterator(coll) {
   return coll[Symbol.iterator]();
 }
+
+export const es6_iterator = _iterator;
 
 export function seq(x) {
   let iter = iterable(x);
@@ -669,4 +679,24 @@ export function into(...args) {
 
 export function identical_QMARK_(x, y) {
   return x === y;
+}
+
+export function repeat(...args) {
+  if (args.length == 0 || args.length > 2) {
+    throw new Error(`Invalid arity: ${args.length}`);
+  }
+
+  return {
+    [IIterable]: true,
+    [IIterable__iterator]:
+      args.length == 1
+        ? function* () {
+            let x = args[0];
+            while (true) yield x;
+          }
+        : function* () {
+            let [n, x] = args;
+            for (var i = 0; i < n; i++) yield x;
+          },
+  };
 }
