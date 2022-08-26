@@ -397,41 +397,53 @@ export function reduce(f, arg1, arg2) {
   return val;
 }
 
+class GeneratorIterable {
+  constructor(gen) {
+    this.gen = gen;
+  }
+  [IIterable] = true;
+  [IIterable__iterator]() {
+    return this.gen();
+  }
+}
+
 export function map(f, ...colls) {
   const ret = [];
   switch (colls.length) {
     case 0:
       throw new Error('map with 2 arguments is not supported yet');
     case 1:
-      for (const x of iterable(colls[0])) {
-        ret.push(f(x));
-      }
-      return ret;
+      return new GeneratorIterable(function* () {
+        for (const x of iterable(colls[0])) {
+          yield f(x);
+        }
+      });
     default:
       const iters = colls.map((coll) => es6_iterator(iterable(coll)));
-      while (true) {
-        let args = [];
-        for (const i of iters) {
-          const nextVal = i.next();
-          if (nextVal.done) {
-            return ret;
+      return new GeneratorIterable(function* () {
+        while (true) {
+          let args = [];
+          for (const i of iters) {
+            const nextVal = i.next();
+            if (nextVal.done) {
+              return;
+            }
+            args.push(nextVal.value);
           }
-          args.push(nextVal.value);
+          yield f(...args);
         }
-        ret.push(f(...args));
-      }
-      return ret;
+      });
   }
 }
 
 export function filter(pred, coll) {
-  let ret = [];
-  for (const x of iterable(coll)) {
-    if (pred(x)) {
-      ret.push(x);
+  return new GeneratorIterable(function* () {
+    for (const x of iterable(coll)) {
+      if (pred(x)) {
+        yield x;
+      }
     }
-  }
-  return ret;
+  });
 }
 
 export function map_indexed(f, coll) {
