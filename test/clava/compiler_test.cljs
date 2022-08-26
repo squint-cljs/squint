@@ -352,7 +352,10 @@
   (is (= 1 (jsv! "(aget  #js [1 2 3] 0)"))))
 
 (deftest keyword-call-test
-  (is (= "bar" (jsv! '(:foo {:foo :bar})))))
+  (is (= "bar" (jsv! '(:foo {:foo :bar}))))
+  (is (= "bar" (jsv! '(:foo nil :bar))))
+  (is (= "bar" (jsv! '(let [{:keys [foo] :or {foo :bar}} nil]
+                        foo)))))
 
 (deftest minus-single-arg-test
   (is (= -10 (jsv! '(- 10))))
