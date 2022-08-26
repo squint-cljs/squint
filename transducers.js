@@ -1,4 +1,10 @@
-import { reduce, comp, conj, inc, range, even_QMARK_ } from 'clavascript/core.js';
+import { reduce, ensure_reduced, comp, conj, inc, range, even_QMARK_ } from 'clavascript/core.js';
+
+/*
+ * Transformer protocol
+ * see https://github.com/cognitect-labs/transducers-js/issues/20
+ * for historical inspiration & context
+ */
 
 export const ITransformer = Symbol('ITransformer');
 export const ITransformer_init = Symbol('ITransformer_init');
@@ -13,27 +19,30 @@ let str_protocol = {
 };
 
 // .call ensures that we maintain `this` even though we tear the method off
-export function init(tf) {
-  return (tf[str_protocol[ITransformer_init]] || tf[ITransformer_init]).call(tf, tf);
+// TODO fix arity for string protocol
+export function init(xf) {
+  return (xf[str_protocol[ITransformer_init]] || xf[ITransformer_init]).call(xf, xf);
 }
 
-export function step(tf, res, el) {
-  return (tf[str_protocol[ITransformer_step]] || tf[ITransformer_step]).call(tf, tf, res, el);
+export function step(xf, res, el) {
+  return (xf[str_protocol[ITransformer_step]] || xf[ITransformer_step]).call(xf, xf, res, el);
 }
 
-export function result(tf, res) {
-  return (tf[str_protocol[ITransformer_result]] || tf[ITransformer_result]).call(tf, tf, res);
+export function result(xf, res) {
+  return (xf[str_protocol[ITransformer_result]] || xf[ITransformer_result]).call(xf, xf, res);
 }
 
+// BaseTransformer provides default impls, as not every transducer op needs
+// to implement a special init/result
 class BaseTransformer {
   [ITransformer_init](_) {
-    return init(this.tf);
+    return init(this.xf);
   }
   [ITransformer_result](_, res) {
-    return result(this.tf, res);
+    return result(this.xf, res);
   }
   [ITransformer_step](_, res, el) {
-    return step(this.tf, res, el);
+    return step(this.xf, res, el);
   }
 }
 
@@ -48,44 +57,83 @@ Function.prototype[ITransformer_step] = function step(f, res, el) {
   return f(res, el);
 };
 
+/*
+ * map
+ */
+
 class Mapping extends BaseTransformer {
-  constructor(f, tf) {
+  constructor(f, xf) {
     super();
     this.f = f;
-    this.tf = tf;
+    this.xf = xf;
   }
   [ITransformer_step](_, res, el) {
-    return step(this.tf, res, this.f(el));
+    return step(this.xf, res, this.f(el));
   }
 }
 
 export function map(f) {
-  return (tf) => new Mapping(f, tf);
+  return (xf) => new Mapping(f, xf);
 }
 
+/*
+ * filter
+ */
+
 class Filter extends BaseTransformer {
-  constructor(pred, tf) {
+  constructor(pred, xf) {
     super();
     this.pred = pred;
-    this.tf = tf;
+    this.xf = xf;
   }
   [ITransformer_step](_, res, el) {
-    if (this.pred(el)) return step(this.tf, res, el);
+    if (this.pred(el)) return step(this.xf, res, el);
     return res;
   }
 }
 
 export function filter(pred) {
-  return (tf) => new Filter(pred, tf);
+  return (xf) => new Filter(pred, xf);
 }
 
-export function transduce(rf, tf, init, coll) {
-  let tf2 = tf(rf);
-  return reduce((res, el) => step(tf2, res, el), init, coll);
+/*
+ * take
+ */
+
+class Take extends BaseTransformer {
+  constructor(n, xf) {
+    super();
+    this.n = n;
+    this.xf = xf;
+  }
+  [ITransformer_step](_, res, el) {
+    let ret;
+    if (this.n > 0) {
+      this.n -= 1;
+      ret = step(this.xf, res, el);
+    }
+    if (this.n > 0) {
+      return ret;
+    }
+    return ensure_reduced(ret);
+  }
 }
 
-export function into(to, tf, from) {
-  return transduce(conj, tf, to, from);
+export function take(n) {
+  return (xf) => new Take(n, xf);
+}
+
+/*
+ * Using transducers
+ */
+
+export function transduce(rf, xf, init, coll) {
+  let xf2 = xf(rf);
+  return reduce((res, el) => step(xf2, res, el), init, coll);
+}
+
+export function into(to, xf, from) {
+  return transduce(conj, xf, to, from);
 }
 
 /*
@@ -106,10 +154,4 @@ console.log(into([], filter(even_QMARK_), range(10)));
 
 console.log(into([], comp(filter(even_QMARK_), map(inc)), range(10)));
 
-console.log(
-  comp(
-    (x) => x + '3',
-    (x) => x + '2',
-    (x) => x + '1'
-  )('0')
-);
+console.log(into([], comp(filter(even_QMARK_), map(inc), take(3)), range(10)));
