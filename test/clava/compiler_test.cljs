@@ -940,5 +940,15 @@
                         (= foo (seq foo))
                         (map inc (->Foo))]))))))
 
+(deftest repeat-test
+  (is (eq [] (jsv! '(interleave (repeat 1) []))))
+  (is (eq [1 "a" 1 "b"] (jsv! '(interleave (repeat 1)["a" "b"]))))
+  (is (eq [1 "a" 1 "b" 1 "c"] (jsv! '(interleave (repeat 1)["a" "b" "c"]))))
+  (is (eq [1 "a" 1 "b"] (jsv! '(interleave (repeat 2 1)["a" "b" "c"]))))
+  (testing "satisfies IIterable"
+    (is (= true (jsv! '(satisfies? IIterable (repeat 1))))))
+  (testing "invalid arity"
+    (is (thrown? js/Error (jsv! '(repeat))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
