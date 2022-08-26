@@ -68,6 +68,7 @@
   subvec
   swap_BANG_
   system_time
+  take
   vec
   vector
   vector_QMARK_}
