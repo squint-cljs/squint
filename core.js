@@ -688,7 +688,7 @@ export function repeat(...args) {
 
   return {
     [IIterable]: true,
-    [Symbol.iterator]:
+    [IIterable__iterator]:
       args.length == 1
         ? function* () {
             let x = args[0];
