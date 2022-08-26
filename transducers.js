@@ -35,6 +35,7 @@ export function result(xf, res) {
 // BaseTransformer provides default impls, as not every transducer op needs
 // to implement a special init/result
 class BaseTransformer {
+  [ITransformer] = true;
   [ITransformer_init](_) {
     return init(this.xf);
   }
