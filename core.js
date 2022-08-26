@@ -397,6 +397,11 @@ export function reduced_QMARK_(x) {
   return x instanceof Reduced;
 }
 
+export function ensure_reduced(x) {
+  if (reduced_QMARK_(x)) return x;
+  return reduced(x);
+}
+
 export function reduce(f, arg1, arg2) {
   let coll, val;
   if (arg2 === undefined) {
