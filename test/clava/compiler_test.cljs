@@ -950,5 +950,12 @@
   (testing "invalid arity"
     (is (thrown? js/Error (jsv! '(repeat))))))
 
+(deftest take-test
+  (is (eq [] (jsv! '(take 1 nil))))
+  (is (eq [] (jsv! '(take 0 (repeat 1)))))
+  (is (eq [1 1 1] (jsv! '(take 3 (repeat 1)))))
+  (is (eq ["a" "b"] (jsv! '(take 2 ["a" "b" "c"]))))
+  (is (eq ["a" "b" "c"] (jsv! '(take 5 ["a" "b" "c"])))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
