@@ -680,3 +680,23 @@ export function into(...args) {
 export function identical_QMARK_(x, y) {
   return x === y;
 }
+
+export function repeat(...args) {
+  if (args.length == 0 || args.length > 2) {
+    throw new Error(`Invalid arity: ${args.length}`);
+  }
+
+  return {
+    [IIterable]: true,
+    [Symbol.iterator]:
+      args.length == 1
+        ? function* () {
+            let x = args[0];
+            while (true) yield x;
+          }
+        : function* () {
+            let [n, x] = args;
+            for (var i = 0; i < n; i++) yield x;
+          },
+  };
+}
