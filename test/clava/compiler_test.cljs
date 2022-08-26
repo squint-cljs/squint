@@ -374,6 +374,15 @@
   (is (eq "1barfirst,second[object Object]"
           (jsv! '(str 1 "bar" [:first :second] {"hello" "goodbye"})))))
 
+(deftest comp-test
+  (is (eq "0" (jsv! '((comp) "0")))
+      "0-arity is identity")
+  (is (eq 4 (jsv! '((comp inc) 3)))
+      "1-arity")
+  (is (eq "0123" (jsv! '((comp #(str % "3") #(str % "2") #(str % "1"))
+                         "0")))
+      "order"))
+
 (deftest conj-test
   (testing "corner cases"
     (is (eq [], (jsv! '(conj))))
