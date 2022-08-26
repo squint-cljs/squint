@@ -799,16 +799,19 @@ break;}" body)
 
 (defmethod emit #?(:clj clojure.lang.IPersistentMap
                    :cljs ::map) [expr env]
-  (let [expr-env (assoc env :context :expr)
+  (let [env* env
+        env (dissoc env :jsx)
+        expr-env (assoc env :context :expr)
         key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
                          (str ns "/" (name k))
                          (name k)))
         mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) ": "
                                 (emit (val pair) expr-env)))
         keys (str/join ", " (map mk-pair (seq expr)))]
-    (->> (format "({ %s })" keys)
-         (emit-wrap env))))
-
+    (escape-jsx env*
+                (->> (format "({ %s })" keys)
+                     (emit-wrap env)))))
+ 
 (defmethod emit #?(:clj clojure.lang.PersistentHashSet
                    :cljs PersistentHashSet)
   [expr env]
