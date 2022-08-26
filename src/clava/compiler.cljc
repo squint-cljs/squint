@@ -745,8 +745,8 @@ break;}" body)
                  (suffix-unary? head) (emit-suffix-unary head expr)
                  :else (emit-special 'funcall env expr)))
              (keyword? (first expr))
-             (let [[k obj] expr]
-               (emit (list 'aget obj k)))
+             (let [[k obj & args] expr]
+               (emit (list* 'get obj k args)))
              (list? expr)
              (emit-special 'funcall env expr)
              :else
