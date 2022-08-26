@@ -126,6 +126,22 @@ export function assoc_in_BANG_(o, keys, value) {
   return assoc_in_with(assoc_BANG_, 'assoc-in!', o, keys, value);
 }
 
+export function comp(...fs) {
+  if (fs.length === 0) {
+    return identity;
+  } else if (fs.length === 1) {
+    return fs[0];
+  }
+  let [f, ...more] = fs.slice().reverse();
+  return function (...args) {
+    let x = f(...args);
+    for (const g of more) {
+      x = g(x);
+    }
+    return x;
+  };
+}
+
 export function conj_BANG_(...xs) {
   if (xs.length === 0) {
     return vector();
