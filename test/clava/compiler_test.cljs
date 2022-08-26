@@ -955,7 +955,8 @@
   (is (eq [] (jsv! '(take 0 (repeat 1)))))
   (is (eq [1 1 1] (jsv! '(take 3 (repeat 1)))))
   (is (eq ["a" "b"] (jsv! '(take 2 ["a" "b" "c"]))))
-  (is (eq ["a" "b" "c"] (jsv! '(take 5 ["a" "b" "c"])))))
+  (is (eq ["a" "b" "c"] (jsv! '(take 5 ["a" "b" "c"]))))
+  (is (eq [["a" 1] ["b" 2]] (jsv! '(take 2 {"a" 1 "b" 2 "c" 3})))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test))
