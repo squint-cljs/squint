@@ -649,19 +649,20 @@ export function identity(x) {
 }
 
 export function interleave(...colls) {
-  let ret = [];
-  const iters = colls.map((coll) => es6_iterator(iterable(coll)));
-  while (true) {
-    let items = [];
-    for (const i of iters) {
-      const nextVal = i.next();
-      if (nextVal.done) {
-        return ret;
+  return new LazyIterable(function* () {
+    const iters = colls.map((coll) => es6_iterator(iterable(coll)));
+    while (true) {
+      let res = [];
+      for (const i of iters) {
+        const nextVal = i.next();
+        if (nextVal.done) {
+          return;
+        }
+        res.push(nextVal.value);
       }
-      items.push(nextVal.value);
+      yield* res;
     }
-    ret.push(...items);
-  }
+  });
 }
 
 export function select_keys(o, ks) {
