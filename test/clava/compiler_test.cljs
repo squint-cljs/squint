@@ -843,17 +843,17 @@
   (is (false? (jsv! '(instance? js/String [])))))
 
 (deftest concat-test
-  (is (eq [] (jsv! '(concat nil))))
-  (is (eq [1] (jsv! '(concat nil [] [1]))))
-  (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(concat [0 1 2 3] [4 5 6] [7 8 9]))))
-  (is (eq [["a" "b"] ["c" "d"] 2] (jsv! '(concat {"a" "b" "c" "d"} [2])))))
+  (is (eq [] (jsv! '(vec (concat nil)))))
+  (is (eq [1] (jsv! '(vec (concat nil [] [1])))))
+  (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(vec (concat [0 1 2 3] [4 5 6] [7 8 9])))))
+  (is (eq [["a" "b"] ["c" "d"] 2] (jsv! '(vec (concat {"a" "b" "c" "d"} [2]))))))
 
 (deftest mapcat-test
-  (is (eq [] (jsv! '(mapcat identity nil))))
-  (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(mapcat identity [[0 1 2 3] [4 5 6] [7 8 9]]))))
-  (is (eq ["a" "b" "c" "d"] (jsv! '(mapcat identity {"a" "b" "c" "d"}))))
+  (is (eq [] (jsv! '(vec (mapcat identity nil)))))
+  (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(vec (mapcat identity [[0 1 2 3] [4 5 6] [7 8 9]])))))
+  (is (eq ["a" "b" "c" "d"] (jsv! '(vec (mapcat identity {"a" "b" "c" "d"})))))
   (testing "multiple colls"
-    (is (eq ["a" 1 "b" 2] (jsv! '(mapcat list [:a :b :c] [1 2]))))))
+    (is (eq ["a" 1 "b" 2] (jsv! '(vec (mapcat list [:a :b :c] [1 2])))))))
 
 (deftest interleave-test
   (is (eq [] (jsv! '(interleave nil nil))))
