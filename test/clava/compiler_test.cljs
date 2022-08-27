@@ -1,40 +1,9 @@
 (ns clava.compiler-test
   (:require
-   ["clavascript/core.js" :as cl]
-   ["lodash$default" :as ld]
-   [clava.compiler :as clava]
+   [clava.jsx-test]
+   [clava.test-utils :refer [eq js! jss! jsv!]]
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]))
-
-(doseq [k (js/Object.keys cl)]
-  (aset js/globalThis k (aget cl k)))
-
-(defn eq [a b]
-  (ld/isEqual (clj->js a) (clj->js b)))
-
-(def old-fail (get-method t/report [:cljs.test/default :fail]))
-
-(defmethod t/report [:cljs.test/default :fail] [m]
-  (set! js/process.exitCode 1)
-  (old-fail m))
-
-(def old-error (get-method t/report [:cljs.test/default :fail]))
-
-(defmethod t/report [:cljs.test/default :error] [m]
-  (set! js/process.exitCode 1)
-  (old-error m))
-
-(defn jss! [expr]
-  (if (string? expr)
-    (:body (clava/compile-string* expr))
-    (clava/transpile-form expr)))
-
-(defn js! [expr]
-  (let [js (jss! expr)]
-    [(js/eval js) js]))
-
-(defn jsv! [expr]
-  (first (js! expr)))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -326,7 +295,7 @@
                  (satisfies? IFoo "bar")))))
 
 (deftest set-test
-  (is (ld/isEqual (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
+  (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
 
 (deftest await-test
   (async done
@@ -979,4 +948,4 @@
   (is (eq [["a" 1] ["b" 2]] (jsv! '(take 2 {"a" 1 "b" 2 "c" 3})))))
 
 (defn init []
-  (cljs.test/run-tests 'clava.compiler-test))
+  (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
