@@ -1,40 +1,9 @@
 (ns clava.compiler-test
   (:require
-   ["clavascript/core.js" :as cl]
-   ["lodash$default" :as ld]
-   [clava.compiler :as clava]
+   [clava.jsx-test]
+   [clava.test-utils :refer [eq js! jss! jsv!]]
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]))
-
-(doseq [k (js/Object.keys cl)]
-  (aset js/globalThis k (aget cl k)))
-
-(defn eq [a b]
-  (ld/isEqual (clj->js a) (clj->js b)))
-
-(def old-fail (get-method t/report [:cljs.test/default :fail]))
-
-(defmethod t/report [:cljs.test/default :fail] [m]
-  (set! js/process.exitCode 1)
-  (old-fail m))
-
-(def old-error (get-method t/report [:cljs.test/default :fail]))
-
-(defmethod t/report [:cljs.test/default :error] [m]
-  (set! js/process.exitCode 1)
-  (old-error m))
-
-(defn jss! [expr]
-  (if (string? expr)
-    (:body (clava/compile-string* expr))
-    (clava/transpile-form expr)))
-
-(defn js! [expr]
-  (let [js (jss! expr)]
-    [(js/eval js) js]))
-
-(defn jsv! [expr]
-  (first (js! expr)))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -326,7 +295,7 @@
                  (satisfies? IFoo "bar")))))
 
 (deftest set-test
-  (is (ld/isEqual (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
+  (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
 
 (deftest await-test
   (async done
@@ -413,6 +382,10 @@
             (jsv! '(conj (js/Map. [[1 2]]) [3 4]))))
     (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
             (jsv! '(conj (js/Map. [[1 2]]) [3 4] [5 6])))))
+  (testing "lazy iterable"
+    (is (eq [0 1 2 3 4 5]
+            (vec (jsv! '(conj (map inc [4])
+                              0 1 2 3 4))))))
   (testing "other types"
     (is (thrown? js/Error (jsv! '(conj "foo"))))))
 
@@ -435,12 +408,12 @@
     (is (eq '(1 2 3 4) (jsv! '(conj '(1 2 3 4)))))
     (is (eq '(1 2 3 4) (jsv! '(conj '(2 3 4) 1))))
     (is (eq '(1 2 3 4) (jsv! '(let [x '(2 3 4)]
-                               (conj! x 1)
-                               x))))
+                                (conj! x 1)
+                                x))))
     (is (eq '(1 2 3 4) (jsv! '(conj! '(3 4) 2 1))))
     (is (eq '(1 2 3 4) (jsv! '(let [x '(3 4)]
-                               (conj! x 2 1)
-                               x)))))
+                                (conj! x 2 1)
+                                x)))))
   (testing "sets"
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3 4}))))
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3} 4))))
@@ -971,12 +944,12 @@
     (is (thrown? js/Error (jsv! '(repeat))))))
 
 (deftest take-test
-  (is (eq [] (jsv! '(take 1 nil))))
-  (is (eq [] (jsv! '(take 0 (repeat 1)))))
-  (is (eq [1 1 1] (jsv! '(take 3 (repeat 1)))))
-  (is (eq ["a" "b"] (jsv! '(take 2 ["a" "b" "c"]))))
-  (is (eq ["a" "b" "c"] (jsv! '(take 5 ["a" "b" "c"]))))
-  (is (eq [["a" 1] ["b" 2]] (jsv! '(take 2 {"a" 1 "b" 2 "c" 3})))))
+  (is (eq [] (jsv! '(vec (take 1 nil)))))
+  (is (eq [] (jsv! '(vec (take 0 (repeat 1))))))
+  (is (eq [1 1 1] (jsv! '(vec (take 3 (repeat 1))))))
+  (is (eq ["a" "b"] (jsv! '(vec (take 2 ["a" "b" "c"])))))
+  (is (eq ["a" "b" "c"] (jsv! '(vec (take 5 ["a" "b" "c"])))))
+  (is (eq [["a" 1] ["b" 2]] (jsv! '(vec (take 2 {"a" 1 "b" 2 "c" 3}))))))
 
 (defn init []
-  (cljs.test/run-tests 'clava.compiler-test))
+  (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
