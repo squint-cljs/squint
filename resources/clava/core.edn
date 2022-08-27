@@ -36,6 +36,7 @@
   inc
   interleave
   into
+  last
   list
   list_QMARK_
   map

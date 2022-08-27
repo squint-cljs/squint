@@ -375,6 +375,20 @@ class Reduced {
   }
 }
 
+export function last(coll) {
+  coll = iterable(coll);
+  switch (typeConst(coll)) {
+    case ARRAY_TYPE:
+      return coll[coll.length - 1];
+    default:
+      let lastEl;
+      for (const x of coll) {
+        lastEl = x;
+      }
+      return lastEl;
+  }
+}
+
 export function reduced(x) {
   return new Reduced(x);
 }
