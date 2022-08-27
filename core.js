@@ -589,11 +589,11 @@ export function array_QMARK_(x) {
 }
 
 export function concat(...colls) {
-  var ret = [];
-  for (const x of colls) {
-    ret.push(...iterable(x));
-  }
-  return ret;
+  return new LazyIterable(function* () {
+    for (const coll of colls) {
+      yield* iterable(coll);
+    }
+  });
 }
 
 export function mapcat(f, ...colls) {
