@@ -482,7 +482,15 @@ export function nil_QMARK_(v) {
 export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
-  return JSON.stringify(x, (_key, value) => (value instanceof Set ? [...value] : value));
+  return JSON.stringify(x, (_key, value) => {
+    switch (typeConst(value)) {
+      case SET_TYPE:
+      case LAZY_ITERABLE_TYPE:
+        return [...value];
+      default:
+        return value;
+    }
+  });
 }
 
 export function pr_str(...xs) {
@@ -517,18 +525,22 @@ export function swap_BANG_(atm, f, ...args) {
   return v;
 }
 
-export function range(begin, end) {
-  let b = begin,
-    e = end;
-  if (e === undefined) {
-    e = b;
-    b = 0;
-  }
-  let ret = [];
-  for (let x = b; x < e; x++) {
-    ret.push(x);
-  }
-  return ret;
+export function range(begin, end, step) {
+  return new LazyIterable(function* () {
+    let b = begin,
+      e = end,
+      s = step;
+    if (end === undefined) {
+      b = 0;
+      e = begin;
+    }
+    let i = b || 0;
+    s = step || 1;
+    while (e === undefined || i < e) {
+      yield i;
+      i += s;
+    }
+  });
 }
 
 export function re_matches(re, s) {
