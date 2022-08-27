@@ -725,6 +725,14 @@
                             (rest nums))
                      evens))))))
 
+(deftest cons-test
+  (is (eq [0] (jsv! '(vec (cons 0 nil)))))
+  (is (eq [0 1 2 3 4] (jsv! '(vec (cons 0 [1 2 3 4])))))
+  (is (eq [0 1 2 3 4] (jsv! '(vec (cons 0 (map inc (range 4)))))))
+  (is (.has (jsv! '(into #{} (cons 0 #{1 2 3 4}))) 0))
+  (is (eq [0 [:a 1] [:b 2]] (jsv! '(vec (cons 0 {:a 1 :b 2})))))
+  (is (eq [0 [:a 1] [:b 2]] (jsv! '(vec (cons 0 (js/Map. [[:a 1] [:b 2]])))))))
+
 (deftest map-test
   (is (eq [1 2 3 4 5] (jsv! '(vec (map inc [0 1 2 3 4])))))
   (is (every? (set (jsv! '(map inc #{0 1 2 3 4})))

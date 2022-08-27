@@ -16,6 +16,7 @@
   concat
   conj
   conj_BANG_
+  cons
   constantly
   contains_QMARK_
   dec

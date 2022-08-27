@@ -432,6 +432,13 @@ class LazyIterable {
   }
 }
 
+export function cons(x, coll) {
+  return new LazyIterable(function* () {
+    yield x;
+    yield* iterable(coll);
+  });
+}
+
 export function map(f, ...colls) {
   const ret = [];
   switch (colls.length) {
