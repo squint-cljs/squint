@@ -361,8 +361,13 @@ export function ffirst(coll) {
 }
 
 export function rest(coll) {
-  let [_, ...rest] = iterable(coll);
-  return rest;
+  return new LazyIterable(function* () {
+    let first = true;
+    for (const x of iterable(coll)) {
+      if (first) first = false;
+      else yield x;
+    }
+  });
 }
 
 class Reduced {
