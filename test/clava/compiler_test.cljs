@@ -384,8 +384,8 @@
             (jsv! '(conj (js/Map. [[1 2]]) [3 4] [5 6])))))
   (testing "lazy iterable"
     (is (eq [0 1 2 3 4 5]
-            (jsv! '(conj (map inc [4])
-                         0 1 2 3 4)))))
+            (vec (jsv! '(conj (map inc [4])
+                              0 1 2 3 4))))))
   (testing "other types"
     (is (thrown? js/Error (jsv! '(conj "foo"))))))
 
@@ -408,12 +408,12 @@
     (is (eq '(1 2 3 4) (jsv! '(conj '(1 2 3 4)))))
     (is (eq '(1 2 3 4) (jsv! '(conj '(2 3 4) 1))))
     (is (eq '(1 2 3 4) (jsv! '(let [x '(2 3 4)]
-                               (conj! x 1)
-                               x))))
+                                (conj! x 1)
+                                x))))
     (is (eq '(1 2 3 4) (jsv! '(conj! '(3 4) 2 1))))
     (is (eq '(1 2 3 4) (jsv! '(let [x '(3 4)]
-                               (conj! x 2 1)
-                               x)))))
+                                (conj! x 2 1)
+                                x)))))
   (testing "sets"
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3 4}))))
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3} 4))))
