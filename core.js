@@ -591,6 +591,10 @@ export const mapv = map;
 
 export const vec = (x) => Array.from(iterable(x));
 
+export function set(coll) {
+  return new Set(iterable(coll));
+}
+
 export function apply(f, ...args) {
   const xs = args.slice(0, args.length - 1);
   const coll = args[args.length - 1];
