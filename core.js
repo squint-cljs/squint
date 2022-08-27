@@ -482,7 +482,18 @@ export function nil_QMARK_(v) {
 export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
-  return JSON.stringify(x, (_key, value) => (value instanceof Set ? [...value] : value));
+  return JSON.stringify(x, (_key, value) => {
+    switch (typeConst(value)) {
+      case SET_TYPE:
+        console.log(value);
+        return [...value];
+      case LAZY_ITERABLE_TYPE:
+        return [...value];
+        break;
+      default:
+        return value;
+    }
+  });
 }
 
 export function pr_str(...xs) {
