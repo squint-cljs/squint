@@ -624,15 +624,16 @@
   (is (= "f" (jsv! '(ffirst "foo")))))
 
 (deftest rest-test
-  (is (eq () (jsv! '(rest nil))))
-  (is (eq () (jsv! '(rest []))))
-  (is (eq () (jsv! '(rest #{}))))
-  (is (eq () (jsv! '(rest {}))))
-  (is (eq () (jsv! '(rest (js/Map. [])))))
-  (is (eq #js [2 3] (jsv! '(rest [1 2 3]))))
-  (is (eq #{2 3} (jsv! '(rest #{1 2 3}))))
-  (is (eq #js [#js [3 4]] (jsv! '(rest (js/Map. [[1 2] [3 4]])))))
-  (is (eq '("b" "c") (jsv! '(rest "abc")))))
+  (is (eq () (jsv! '(vec (rest nil)))))
+  (is (eq () (jsv! '(vec (rest [])))))
+  (is (eq () (jsv! '(vec (rest #{})))))
+  (is (eq () (jsv! '(vec (rest {})))))
+  (is (eq () (jsv! '(vec (rest (js/Map. []))))))
+  (is (eq #js [2 3] (jsv! '(vec (rest [1 2 3])))))
+  (is (eq #{2 3} (jsv! '(vec (rest #{1 2 3})))))
+  (is (eq #js [#js [3 4]] (jsv! '(vec (rest (js/Map. [[1 2] [3 4]]))))))
+  (is (eq '("b" "c") (jsv! '(vec (rest "abc")))))
+  (is (= 1 (jsv! '(first (rest (range))))) "infinite rest"))
 
 
 (deftest last-test
