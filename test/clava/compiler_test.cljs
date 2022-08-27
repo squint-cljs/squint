@@ -827,6 +827,14 @@
   (is (= false (jsv! '(vector? {:a :b}))))
   (is (= false (jsv! '(vector? #{:a :b})))))
 
+(deftest vec-test
+  (is (eq [] (jsv! '(vec))))
+  (is (eq [] (jsv! '(vec []))))
+  (is (eq #js [0 1 2 3] (jsv! '(vec [0 1 2 3]))))
+  (is (eq #js [0 1 2 3] (jsv! '(vec (range 4)))))
+  (is (eq #{0 1 2 3} (jsv! '(vec #{0 1 2 3}))))
+  (is (eq [["one" 1] ["two" 2]] (jsv! '(vec {:one 1 :two 2})))))
+
 (deftest list-test
   (testing "creates a list of elements"
     (is (eq '(1 2 3) (jsv! '(list 1 2 3)))))

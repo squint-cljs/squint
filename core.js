@@ -533,7 +533,7 @@ export function vector_QMARK_(x) {
 
 export const mapv = map;
 
-export const vec = (x) => x;
+export const vec = (x) => Array.from(iterable(x));
 
 export function apply(f, ...args) {
   const xs = args.slice(0, args.length - 1);
