@@ -32,9 +32,12 @@ export function result(xf, res) {
   return (xf[str_protocol[ITransformer_result]] || xf[ITransformer_result]).call(xf, xf, res);
 }
 
-// BaseTransformer provides default impls, as not every transducer op needs
+// Transformer provides default impls, as not every transducer op needs
 // to implement a special init/result
-class BaseTransformer {
+class Transformer {
+  constructor(xf) {
+    this.xf = xf;
+  }
   [ITransformer] = true;
   [ITransformer_init](_) {
     return init(this.xf);
@@ -45,6 +48,12 @@ class BaseTransformer {
   [ITransformer_step](_, res, el) {
     return step(this.xf, res, el);
   }
+}
+
+function makeXf(xf, stepFn) {
+  let xf2 = new Transformer(xf);
+  xf2[ITransformer_step] = stepFn;
+  return xf2;
 }
 
 // extend reducer protocol to functions, allowing Clojure-style arity style
@@ -62,66 +71,37 @@ Function.prototype[ITransformer_step] = function step(f, res, el) {
  * map
  */
 
-class Mapping extends BaseTransformer {
-  constructor(f, xf) {
-    super();
-    this.f = f;
-    this.xf = xf;
-  }
-  [ITransformer_step](_, res, el) {
-    return step(this.xf, res, this.f(el));
-  }
-}
-
 export function map(f) {
-  return (xf) => new Mapping(f, xf);
+  return (xf) => makeXf(xf, (me, res, el) => step(me.xf, res, f(el)));
 }
 
 /*
  * filter
  */
 
-class Filter extends BaseTransformer {
-  constructor(pred, xf) {
-    super();
-    this.pred = pred;
-    this.xf = xf;
-  }
-  [ITransformer_step](_, res, el) {
-    if (this.pred(el)) return step(this.xf, res, el);
-    return res;
-  }
-}
-
 export function filter(pred) {
-  return (xf) => new Filter(pred, xf);
+  return (xf) => makeXf(xf, (me, res, el) => (pred(el) ? step(me.xf, res, el) : res));
 }
 
 /*
  * take
  */
 
-class Take extends BaseTransformer {
-  constructor(n, xf) {
-    super();
-    this.n = n;
-    this.xf = xf;
-  }
-  [ITransformer_step](_, res, el) {
-    let ret;
-    if (this.n > 0) {
-      this.n -= 1;
-      ret = step(this.xf, res, el);
-    }
-    if (this.n > 0) {
-      return ret;
-    }
-    return ensure_reduced(ret);
-  }
-}
-
 export function take(n) {
-  return (xf) => new Take(n, xf);
+  return (xf) => {
+    let ret;
+    let m = n;
+    return makeXf(xf, (me, res, el) => {
+      if (m > 0) {
+        m -= 1;
+        ret = step(me.xf, res, el);
+      }
+      if (m > 0) {
+        return ret;
+      }
+      return ensure_reduced(ret);
+    });
+  };
 }
 
 /*
@@ -140,14 +120,6 @@ export function into(to, xf, from) {
 /*
  * testing stuff
  */
-
-init(
-  new Filter(even_QMARK_, {
-    [ITransformer_init](_) {
-      return 1;
-    },
-  })
-);
 
 console.log(into([], map(inc), range(10)));
 
