@@ -627,6 +627,20 @@
   (is (eq #js [#js [3 4]] (jsv! '(rest (js/Map. [[1 2] [3 4]])))))
   (is (eq '("b" "c") (jsv! '(rest "abc")))))
 
+
+(deftest last-test
+  (is (= nil (jsv! '(last nil))))
+  (is (= nil (jsv! '(last []))))
+  (is (= nil (jsv! '(last {}))))
+  (is (= nil (jsv! '(last #{}))))
+  (is (= nil (jsv! '(last (js/Map.)))))
+  (is (= nil (jsv! '(last (map inc nil)))) "lazy iterable")
+  (is (= 4 (jsv! '(last [1 2 3 4]))))
+  (is (eq ["d" 4] (jsv! '(last {:a 1 :b 2 :c 3 :d 4}))))
+  (is (#{1 2 3 4} (jsv! '(last #{1 2 3 4}))))
+  (is (eq ["d" 4] (jsv! '(last (js/Map. [[:a 1] [:b 2] [:c 3] [:d 4]])))))
+  (is (= 4 (jsv! '(last (range 5))))))
+
 (deftest reduce-test
   (testing "no val"
     (is (= 10 (jsv! '(reduce #(+ %1 %2) (range 5)))))
