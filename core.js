@@ -397,7 +397,7 @@ export function reduce(f, arg1, arg2) {
   return val;
 }
 
-class GeneratorIterable {
+class LazyIterable {
   constructor(gen) {
     this.gen = gen;
   }
@@ -413,14 +413,14 @@ export function map(f, ...colls) {
     case 0:
       throw new Error('map with 2 arguments is not supported yet');
     case 1:
-      return new GeneratorIterable(function* () {
+      return new LazyIterable(function* () {
         for (const x of iterable(colls[0])) {
           yield f(x);
         }
       });
     default:
       const iters = colls.map((coll) => es6_iterator(iterable(coll)));
-      return new GeneratorIterable(function* () {
+      return new LazyIterable(function* () {
         while (true) {
           let args = [];
           for (const i of iters) {
@@ -437,7 +437,7 @@ export function map(f, ...colls) {
 }
 
 export function filter(pred, coll) {
-  return new GeneratorIterable(function* () {
+  return new LazyIterable(function* () {
     for (const x of iterable(coll)) {
       if (pred(x)) {
         yield x;
