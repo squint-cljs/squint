@@ -61,6 +61,7 @@ const ARRAY_TYPE = 2;
 const OBJECT_TYPE = 3;
 const LIST_TYPE = 4;
 const SET_TYPE = 5;
+const LAZY_ITERABLE_TYPE = 6;
 
 function emptyOfType(type) {
   switch (type) {
@@ -74,6 +75,10 @@ function emptyOfType(type) {
       return new List();
     case SET_TYPE:
       return new Set();
+    case LAZY_ITERABLE_TYPE:
+      return new LazyIterable(function* () {
+        return;
+      });
   }
   return undefined;
 }
@@ -83,6 +88,7 @@ function typeConst(obj) {
   if (obj instanceof Set) return SET_TYPE;
   if (obj instanceof List) return LIST_TYPE;
   if (obj instanceof Array) return ARRAY_TYPE;
+  if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
   if (obj instanceof Object) return OBJECT_TYPE;
   return undefined;
 }
@@ -215,6 +221,11 @@ export function conj(...xs) {
       }
 
       return m;
+    case LAZY_ITERABLE_TYPE:
+      return new LazyIterable(function* () {
+        yield* rest;
+        yield* o;
+      });
     case OBJECT_TYPE:
       const o2 = { ...o };
 

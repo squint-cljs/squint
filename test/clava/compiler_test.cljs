@@ -413,6 +413,10 @@
             (jsv! '(conj (js/Map. [[1 2]]) [3 4]))))
     (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
             (jsv! '(conj (js/Map. [[1 2]]) [3 4] [5 6])))))
+  (testing "lazy iterable"
+    (is (eq [0 1 2 3 4 5]
+            (jsv! '(conj (map inc [4])
+                         0 1 2 3 4)))))
   (testing "other types"
     (is (thrown? js/Error (jsv! '(conj "foo"))))))
 
