@@ -730,18 +730,14 @@ export function repeat(...args) {
 }
 
 export function take(n, coll) {
-  if (n <= 0) {
-    return [];
-  }
-
-  if (coll instanceof Array) {
-    return coll.slice(0, n);
-  }
-
-  let ret = [];
-  for (let x of iterable(coll)) {
-    ret.push(x);
-    if (ret.length === n) break;
-  }
-  return ret;
+  return new LazyIterable(function* () {
+    let i = n;
+    for (const x of iterable(coll)) {
+      if (i-- > 0) {
+        yield x;
+      } else {
+        return;
+      }
+    }
+  });
 }
