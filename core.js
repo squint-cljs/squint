@@ -61,6 +61,7 @@ const ARRAY_TYPE = 2;
 const OBJECT_TYPE = 3;
 const LIST_TYPE = 4;
 const SET_TYPE = 5;
+const LAZY_ITERABLE_TYPE = 6;
 
 function emptyOfType(type) {
   switch (type) {
@@ -74,6 +75,10 @@ function emptyOfType(type) {
       return new List();
     case SET_TYPE:
       return new Set();
+    case LAZY_ITERABLE_TYPE:
+      return new LazyIterable(function* () {
+        return;
+      });
   }
   return undefined;
 }
@@ -83,6 +88,7 @@ function typeConst(obj) {
   if (obj instanceof Set) return SET_TYPE;
   if (obj instanceof List) return LIST_TYPE;
   if (obj instanceof Array) return ARRAY_TYPE;
+  if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
   if (obj instanceof Object) return OBJECT_TYPE;
   return undefined;
 }
@@ -215,6 +221,11 @@ export function conj(...xs) {
       }
 
       return m;
+    case LAZY_ITERABLE_TYPE:
+      return new LazyIterable(function* () {
+        yield* rest;
+        yield* o;
+      });
     case OBJECT_TYPE:
       const o2 = { ...o };
 
@@ -471,7 +482,15 @@ export function nil_QMARK_(v) {
 export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
-  return JSON.stringify(x, (_key, value) => (value instanceof Set ? [...value] : value));
+  return JSON.stringify(x, (_key, value) => {
+    switch (typeConst(value)) {
+      case SET_TYPE:
+      case LAZY_ITERABLE_TYPE:
+        return [...value];
+      default:
+        return value;
+    }
+  });
 }
 
 export function pr_str(...xs) {
@@ -506,18 +525,22 @@ export function swap_BANG_(atm, f, ...args) {
   return v;
 }
 
-export function range(begin, end) {
-  let b = begin,
-    e = end;
-  if (e === undefined) {
-    e = b;
-    b = 0;
-  }
-  let ret = [];
-  for (let x = b; x < e; x++) {
-    ret.push(x);
-  }
-  return ret;
+export function range(begin, end, step) {
+  return new LazyIterable(function* () {
+    let b = begin,
+      e = end,
+      s = step;
+    if (end === undefined) {
+      b = 0;
+      e = begin;
+    }
+    let i = b || 0;
+    s = step || 1;
+    while (e === undefined || i < e) {
+      yield i;
+      i += s;
+    }
+  });
 }
 
 export function re_matches(re, s) {
@@ -730,18 +753,14 @@ export function repeat(...args) {
 }
 
 export function take(n, coll) {
-  if (n <= 0) {
-    return [];
-  }
-
-  if (coll instanceof Array) {
-    return coll.slice(0, n);
-  }
-
-  let ret = [];
-  for (let x of iterable(coll)) {
-    ret.push(x);
-    if (ret.length === n) break;
-  }
-  return ret;
+  return new LazyIterable(function* () {
+    let i = n;
+    for (const x of iterable(coll)) {
+      if (i-- > 0) {
+        yield x;
+      } else {
+        return;
+      }
+    }
+  });
 }
