@@ -295,7 +295,14 @@
                  (satisfies? IFoo "bar")))))
 
 (deftest set-test
-  (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
+  (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))
+  (is (eq (js/Set. [1 2 3]) (jsv! '(set [1 2 3]))))
+  (is (eq (js/Set. [#js ["a" 1] #js ["b" 2]])
+          (jsv! '(set {:a 1 :b 2}))))
+  (is (eq (js/Set. [#js ["a" 1] #js ["b" 2]])
+          (jsv! '(set (js/Map. [[:a 1] [:b 2]])))))
+  (is (eq (js/Set.) (jsv! '(set))))
+  (is (eq (js/Set.) (jsv! '(set nil)))))
 
 (deftest await-test
   (async done

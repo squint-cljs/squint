@@ -65,6 +65,7 @@
   select_keys
   seq
   seqable_QMARK_
+  set
   str
   subvec
   swap_BANG_
