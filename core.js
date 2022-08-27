@@ -484,12 +484,8 @@ export const PROTOCOL_SENTINEL = {};
 function pr_str_1(x) {
   return JSON.stringify(x, (_key, value) => {
     switch (typeConst(value)) {
-      case SET_TYPE:
-        console.log(value);
+      case (SET_TYPE, LAZY_ITERABLE_TYPE):
         return [...value];
-      case LAZY_ITERABLE_TYPE:
-        return [...value];
-        break;
       default:
         return value;
     }
