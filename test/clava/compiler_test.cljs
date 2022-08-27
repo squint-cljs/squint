@@ -93,12 +93,12 @@
   (is (= 1 (jsv! '(let [name (fn [] 1)]
                     (name)))))
   (let [s (jss! '(let [name (fn [_] 1)]
-                   (map name [1 2 3])))]
+                   (vec (map name [1 2 3]))))]
     (is (eq #js [1 1 1]
             (js/eval s))))
   (let [s (jss! '(let [name (fn [_] 1)
                        name (fn [_] 2)]
-                   (map name [1 2 3])))]
+                   (vec (map name [1 2 3]))))]
     (is (eq #js [2 2 2]
             (js/eval s)))))
 
@@ -739,39 +739,39 @@
                      evens))))))
 
 (deftest map-test
-  (is (eq [1 2 3 4 5] (jsv! '(map inc [0 1 2 3 4]))))
+  (is (eq [1 2 3 4 5] (jsv! '(vec (map inc [0 1 2 3 4])))))
   (is (every? (set (jsv! '(map inc #{0 1 2 3 4})))
               [1 2 3 4 5]))
   (is (eq [[:a 1] [:b 2]]
-          (jsv! '(map #(vector (first %) (inc (second %)))
-                      {:a 0 :b 1}))))
+          (jsv! '(vec (map #(vector (first %) (inc (second %)))
+                           {:a 0 :b 1})))))
   (is (eq ["A" "B" "C"]
-          (jsv! '(map #(.toUpperCase %) "abc"))))
+          (jsv! '(vec (map #(.toUpperCase %) "abc")))))
   (is (eq [[0 1] [1 2] [2 3] [3 4] [4 5]]
-          (jsv! '(map #(vector (first %) (inc (second %)))
-                      (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
-                          (js/Map.))))))
+          (jsv! '(vec (map #(vector (first %) (inc (second %)))
+                           (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
+                               (js/Map.)))))))
   (testing "nil"
-    (is (eq () (jsv! '(map inc nil))))
-    (is (eq () (jsv! '(map inc js/undefined)))))
+    (is (eq () (jsv! '(vec (map inc nil)))))
+    (is (eq () (jsv! '(vec (map inc js/undefined))))))
   (testing "multiple colls"
-    (is (eq [4 6] (jsv! '(map + [1 2] [3 4]))))
-    (is (eq ["1y" "2o"] (jsv! '(map str [1 2] "yolo"))))
+    (is (eq [4 6] (jsv! '(vec (map + [1 2] [3 4])))))
+    (is (eq ["1y" "2o"] (jsv! '(vec (map str [1 2] "yolo")))))
     (is (eq [[1 4 7] [2 5 8] [3 6 9]]
-            (jsv! '(apply map vector [[1 2 3] [4 5 6] [7 8 9]]))))
+            (jsv! '(vec (apply map vector [[1 2 3] [4 5 6] [7 8 9]])))))
     (is (eq [[1,4],[2,5],[3,6]]
-            (jsv! ' (map vector [1 2 3] [4 5 6 7 8 9]))))
+            (jsv! '(vec (map vector [1 2 3] [4 5 6 7 8 9])))))
     (is (eq []
-            (jsv! ' (map vector nil nil nil))))))
+            (jsv! '(vec (map vector nil nil nil)))))))
 
 (deftest filter-test
-  (is (eq [2 4 6 8] (jsv! '(filter even? [1 2 3 4 5 6 7 8 9]))))
-  (is (every? (set (jsv! '(filter even? #{1 2 3 4 5 6 7 8 9})))
-        [2 4 6 8]))
-  (is (eq [[:a 1]] (jsv! '(filter #(= :a (first %)) {:a 1 :b 2}))))
+  (is (eq [2 4 6 8] (jsv! '(vec (filter even? [1 2 3 4 5 6 7 8 9])))))
+  (is (every? (set (jsv! '(vec (filter even? #{1 2 3 4 5 6 7 8 9}))))
+              [2 4 6 8]))
+  (is (eq [[:a 1]] (jsv! '(vec (filter #(= :a (first %)) {:a 1 :b 2})))))
   (testing "nil"
-    (is (eq () (jsv! '(filter even? nil))))
-    (is (eq () (jsv! '(filter even? js/undefined))))))
+    (is (eq () (jsv! '(vec (filter even? nil)))))
+    (is (eq () (jsv! '(vec (filter even? js/undefined)))))))
 
 (deftest map-indexed-test
   (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
@@ -958,7 +958,7 @@
                      (let [foo (->Foo)]
                        [(seqable? foo)
                         (= foo (seq foo))
-                        (map inc (->Foo))]))))))
+                        (vec (map inc (->Foo)))]))))))
 
 (deftest repeat-test
   (is (eq [] (jsv! '(interleave (repeat 1) []))))
