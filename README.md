@@ -82,6 +82,36 @@ return them; an exception are objects created via `{:a 1}`, where `seq` and
 processing, and functions that typically return seqs instead return an array of
 the results.
 
+#### Memory usage:
+
+With respect to memory usage:
+
+- Lazy seqs in Clava are built on generators. They do not cache their results, so every time they are consumed, they are re-calculated from scratch.
+- Lazy seq function results hold on to their input, so if the input contains resources that should be garbage collected, it is recommended to limit their scope and convert their results to arrays when leaving the scope:
+
+
+``` clojure
+(js/global.gc)
+
+(println (js/process.memoryUsage))
+
+(defn doit []
+  (let [x [(-> (new Array 10000000)
+               (.fill 0)) :foo :bar]
+        ;; Big array `x` is still being held on to by `y`:
+        y (rest x)]
+    (println (js/process.memoryUsage))
+    (vec y)))
+
+(println (doit))
+
+(js/global.gc)
+;; Note that big array is garbage collected now:
+(println (js/process.memoryUsage))
+```
+
+Run the above program with `node --expose-gc ./node_cli mem.cljs`
+
 ## JSX
 
 You can produce JSX syntax using the `#jsx` tag:
