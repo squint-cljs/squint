@@ -1,40 +1,9 @@
 (ns clava.compiler-test
   (:require
-   ["clavascript/core.js" :as cl]
-   ["lodash$default" :as ld]
-   [clava.compiler :as clava]
+   [clava.jsx-test]
+   [clava.test-utils :refer [eq js! jss! jsv!]]
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]))
-
-(doseq [k (js/Object.keys cl)]
-  (aset js/globalThis k (aget cl k)))
-
-(defn eq [a b]
-  (ld/isEqual (clj->js a) (clj->js b)))
-
-(def old-fail (get-method t/report [:cljs.test/default :fail]))
-
-(defmethod t/report [:cljs.test/default :fail] [m]
-  (set! js/process.exitCode 1)
-  (old-fail m))
-
-(def old-error (get-method t/report [:cljs.test/default :fail]))
-
-(defmethod t/report [:cljs.test/default :error] [m]
-  (set! js/process.exitCode 1)
-  (old-error m))
-
-(defn jss! [expr]
-  (if (string? expr)
-    (:body (clava/compile-string* expr))
-    (clava/transpile-form expr)))
-
-(defn js! [expr]
-  (let [js (jss! expr)]
-    [(js/eval js) js]))
-
-(defn jsv! [expr]
-  (first (js! expr)))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -93,12 +62,12 @@
   (is (= 1 (jsv! '(let [name (fn [] 1)]
                     (name)))))
   (let [s (jss! '(let [name (fn [_] 1)]
-                   (map name [1 2 3])))]
+                   (vec (map name [1 2 3]))))]
     (is (eq #js [1 1 1]
             (js/eval s))))
   (let [s (jss! '(let [name (fn [_] 1)
                        name (fn [_] 2)]
-                   (map name [1 2 3])))]
+                   (vec (map name [1 2 3]))))]
     (is (eq #js [2 2 2]
             (js/eval s)))))
 
@@ -326,7 +295,14 @@
                  (satisfies? IFoo "bar")))))
 
 (deftest set-test
-  (is (ld/isEqual (js/Set. #js [1 2 3]) (jsv! #{1 2 3}))))
+  (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))
+  (is (eq (js/Set. [1 2 3]) (jsv! '(set [1 2 3]))))
+  (is (eq (js/Set. [#js ["a" 1] #js ["b" 2]])
+          (jsv! '(set {:a 1 :b 2}))))
+  (is (eq (js/Set. [#js ["a" 1] #js ["b" 2]])
+          (jsv! '(set (js/Map. [[:a 1] [:b 2]])))))
+  (is (eq (js/Set.) (jsv! '(set))))
+  (is (eq (js/Set.) (jsv! '(set nil)))))
 
 (deftest await-test
   (async done
@@ -374,6 +350,15 @@
   (is (eq "1barfirst,second[object Object]"
           (jsv! '(str 1 "bar" [:first :second] {"hello" "goodbye"})))))
 
+(deftest comp-test
+  (is (eq "0" (jsv! '((comp) "0")))
+      "0-arity is identity")
+  (is (eq 4 (jsv! '((comp inc) 3)))
+      "1-arity")
+  (is (eq "0123" (jsv! '((comp #(str % "3") #(str % "2") #(str % "1"))
+                         "0")))
+      "order"))
+
 (deftest conj-test
   (testing "corner cases"
     (is (eq [], (jsv! '(conj))))
@@ -404,6 +389,10 @@
             (jsv! '(conj (js/Map. [[1 2]]) [3 4]))))
     (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
             (jsv! '(conj (js/Map. [[1 2]]) [3 4] [5 6])))))
+  (testing "lazy iterable"
+    (is (eq [0 1 2 3 4 5]
+            (vec (jsv! '(conj (map inc [4])
+                              0 1 2 3 4))))))
   (testing "other types"
     (is (thrown? js/Error (jsv! '(conj "foo"))))))
 
@@ -426,12 +415,12 @@
     (is (eq '(1 2 3 4) (jsv! '(conj '(1 2 3 4)))))
     (is (eq '(1 2 3 4) (jsv! '(conj '(2 3 4) 1))))
     (is (eq '(1 2 3 4) (jsv! '(let [x '(2 3 4)]
-                               (conj! x 1)
-                               x))))
+                                (conj! x 1)
+                                x))))
     (is (eq '(1 2 3 4) (jsv! '(conj! '(3 4) 2 1))))
     (is (eq '(1 2 3 4) (jsv! '(let [x '(3 4)]
-                               (conj! x 2 1)
-                               x)))))
+                                (conj! x 2 1)
+                                x)))))
   (testing "sets"
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3 4}))))
     (is (eq (js/Set. #js [1 2 3 4]) (jsv! '(conj! #{1 2 3} 4))))
@@ -635,15 +624,30 @@
   (is (= "f" (jsv! '(ffirst "foo")))))
 
 (deftest rest-test
-  (is (eq () (jsv! '(rest nil))))
-  (is (eq () (jsv! '(rest []))))
-  (is (eq () (jsv! '(rest #{}))))
-  (is (eq () (jsv! '(rest {}))))
-  (is (eq () (jsv! '(rest (js/Map. [])))))
-  (is (eq #js [2 3] (jsv! '(rest [1 2 3]))))
-  (is (eq #{2 3} (jsv! '(rest #{1 2 3}))))
-  (is (eq #js [#js [3 4]] (jsv! '(rest (js/Map. [[1 2] [3 4]])))))
-  (is (eq '("b" "c") (jsv! '(rest "abc")))))
+  (is (eq () (jsv! '(vec (rest nil)))))
+  (is (eq () (jsv! '(vec (rest [])))))
+  (is (eq () (jsv! '(vec (rest #{})))))
+  (is (eq () (jsv! '(vec (rest {})))))
+  (is (eq () (jsv! '(vec (rest (js/Map. []))))))
+  (is (eq #js [2 3] (jsv! '(vec (rest [1 2 3])))))
+  (is (eq #{2 3} (jsv! '(vec (rest #{1 2 3})))))
+  (is (eq #js [#js [3 4]] (jsv! '(vec (rest (js/Map. [[1 2] [3 4]]))))))
+  (is (eq '("b" "c") (jsv! '(vec (rest "abc")))))
+  (is (= 1 (jsv! '(first (rest (range))))) "infinite rest"))
+
+
+(deftest last-test
+  (is (= nil (jsv! '(last nil))))
+  (is (= nil (jsv! '(last []))))
+  (is (= nil (jsv! '(last {}))))
+  (is (= nil (jsv! '(last #{}))))
+  (is (= nil (jsv! '(last (js/Map.)))))
+  (is (= nil (jsv! '(last (map inc nil)))) "lazy iterable")
+  (is (= 4 (jsv! '(last [1 2 3 4]))))
+  (is (eq ["d" 4] (jsv! '(last {:a 1 :b 2 :c 3 :d 4}))))
+  (is (#{1 2 3 4} (jsv! '(last #{1 2 3 4}))))
+  (is (eq ["d" 4] (jsv! '(last (js/Map. [[:a 1] [:b 2] [:c 3] [:d 4]])))))
+  (is (= 4 (jsv! '(last (range 5))))))
 
 (deftest reduce-test
   (testing "no val"
@@ -729,40 +733,48 @@
                             (rest nums))
                      evens))))))
 
+(deftest cons-test
+  (is (eq [0] (jsv! '(vec (cons 0 nil)))))
+  (is (eq [0 1 2 3 4] (jsv! '(vec (cons 0 [1 2 3 4])))))
+  (is (eq [0 1 2 3 4] (jsv! '(vec (cons 0 (map inc (range 4)))))))
+  (is (.has (jsv! '(into #{} (cons 0 #{1 2 3 4}))) 0))
+  (is (eq [0 [:a 1] [:b 2]] (jsv! '(vec (cons 0 {:a 1 :b 2})))))
+  (is (eq [0 [:a 1] [:b 2]] (jsv! '(vec (cons 0 (js/Map. [[:a 1] [:b 2]])))))))
+
 (deftest map-test
-  (is (eq [1 2 3 4 5] (jsv! '(map inc [0 1 2 3 4]))))
+  (is (eq [1 2 3 4 5] (jsv! '(vec (map inc [0 1 2 3 4])))))
   (is (every? (set (jsv! '(map inc #{0 1 2 3 4})))
               [1 2 3 4 5]))
   (is (eq [[:a 1] [:b 2]]
-          (jsv! '(map #(vector (first %) (inc (second %)))
-                      {:a 0 :b 1}))))
+          (jsv! '(vec (map #(vector (first %) (inc (second %)))
+                           {:a 0 :b 1})))))
   (is (eq ["A" "B" "C"]
-          (jsv! '(map #(.toUpperCase %) "abc"))))
+          (jsv! '(vec (map #(.toUpperCase %) "abc")))))
   (is (eq [[0 1] [1 2] [2 3] [3 4] [4 5]]
-          (jsv! '(map #(vector (first %) (inc (second %)))
-                      (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
-                          (js/Map.))))))
+          (jsv! '(vec (map #(vector (first %) (inc (second %)))
+                           (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
+                               (js/Map.)))))))
   (testing "nil"
-    (is (eq () (jsv! '(map inc nil))))
-    (is (eq () (jsv! '(map inc js/undefined)))))
+    (is (eq () (jsv! '(vec (map inc nil)))))
+    (is (eq () (jsv! '(vec (map inc js/undefined))))))
   (testing "multiple colls"
-    (is (eq [4 6] (jsv! '(map + [1 2] [3 4]))))
-    (is (eq ["1y" "2o"] (jsv! '(map str [1 2] "yolo"))))
+    (is (eq [4 6] (jsv! '(vec (map + [1 2] [3 4])))))
+    (is (eq ["1y" "2o"] (jsv! '(vec (map str [1 2] "yolo")))))
     (is (eq [[1 4 7] [2 5 8] [3 6 9]]
-            (jsv! '(apply map vector [[1 2 3] [4 5 6] [7 8 9]]))))
+            (jsv! '(vec (apply map vector [[1 2 3] [4 5 6] [7 8 9]])))))
     (is (eq [[1,4],[2,5],[3,6]]
-            (jsv! ' (map vector [1 2 3] [4 5 6 7 8 9]))))
+            (jsv! '(vec (map vector [1 2 3] [4 5 6 7 8 9])))))
     (is (eq []
-            (jsv! ' (map vector nil nil nil))))))
+            (jsv! '(vec (map vector nil nil nil)))))))
 
 (deftest filter-test
-  (is (eq [2 4 6 8] (jsv! '(filter even? [1 2 3 4 5 6 7 8 9]))))
-  (is (every? (set (jsv! '(filter even? #{1 2 3 4 5 6 7 8 9})))
-        [2 4 6 8]))
-  (is (eq [[:a 1]] (jsv! '(filter #(= :a (first %)) {:a 1 :b 2}))))
+  (is (eq [2 4 6 8] (jsv! '(vec (filter even? [1 2 3 4 5 6 7 8 9])))))
+  (is (every? (set (jsv! '(vec (filter even? #{1 2 3 4 5 6 7 8 9}))))
+              [2 4 6 8]))
+  (is (eq [[:a 1]] (jsv! '(vec (filter #(= :a (first %)) {:a 1 :b 2})))))
   (testing "nil"
-    (is (eq () (jsv! '(filter even? nil))))
-    (is (eq () (jsv! '(filter even? js/undefined))))))
+    (is (eq () (jsv! '(vec (filter even? nil)))))
+    (is (eq () (jsv! '(vec (filter even? js/undefined)))))))
 
 (deftest map-indexed-test
   (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
@@ -818,6 +830,14 @@
   (is (= false (jsv! '(vector? {:a :b}))))
   (is (= false (jsv! '(vector? #{:a :b})))))
 
+(deftest vec-test
+  (is (eq [] (jsv! '(vec))))
+  (is (eq [] (jsv! '(vec []))))
+  (is (eq #js [0 1 2 3] (jsv! '(vec [0 1 2 3]))))
+  (is (eq #js [0 1 2 3] (jsv! '(vec (range 4)))))
+  (is (eq #{0 1 2 3} (jsv! '(vec #{0 1 2 3}))))
+  (is (eq [["one" 1] ["two" 2]] (jsv! '(vec {:one 1 :two 2})))))
+
 (deftest list-test
   (testing "creates a list of elements"
     (is (eq '(1 2 3) (jsv! '(list 1 2 3)))))
@@ -831,26 +851,26 @@
   (is (false? (jsv! '(instance? js/String [])))))
 
 (deftest concat-test
-  (is (eq [] (jsv! '(concat nil))))
-  (is (eq [1] (jsv! '(concat nil [] [1]))))
-  (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(concat [0 1 2 3] [4 5 6] [7 8 9]))))
-  (is (eq [["a" "b"] ["c" "d"] 2] (jsv! '(concat {"a" "b" "c" "d"} [2])))))
+  (is (eq [] (jsv! '(vec (concat nil)))))
+  (is (eq [1] (jsv! '(vec (concat nil [] [1])))))
+  (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(vec (concat [0 1 2 3] [4 5 6] [7 8 9])))))
+  (is (eq [["a" "b"] ["c" "d"] 2] (jsv! '(vec (concat {"a" "b" "c" "d"} [2]))))))
 
 (deftest mapcat-test
-  (is (eq [] (jsv! '(mapcat identity nil))))
-  (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(mapcat identity [[0 1 2 3] [4 5 6] [7 8 9]]))))
-  (is (eq ["a" "b" "c" "d"] (jsv! '(mapcat identity {"a" "b" "c" "d"}))))
+  (is (eq [] (jsv! '(vec (mapcat identity nil)))))
+  (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(vec (mapcat identity [[0 1 2 3] [4 5 6] [7 8 9]])))))
+  (is (eq ["a" "b" "c" "d"] (jsv! '(vec (mapcat identity {"a" "b" "c" "d"})))))
   (testing "multiple colls"
-    (is (eq ["a" 1 "b" 2] (jsv! '(mapcat list [:a :b :c] [1 2]))))))
+    (is (eq ["a" 1 "b" 2] (jsv! '(vec (mapcat list [:a :b :c] [1 2])))))))
 
 (deftest interleave-test
-  (is (eq [] (jsv! '(interleave nil nil))))
-  (is (eq [] (jsv! '(interleave [1 2] nil))))
-  (is (eq [] (jsv! '(interleave [1 2 3] nil))))
-  (is (eq [] (jsv! '(interleave [1 2 3] ["a" "b"] nil))))
-  (is (eq [1 "a" 2 "b"] (jsv! '(interleave [1 2 3] ["a" "b"]))))
-  (is (eq [1 "a" 2 "b" 3 "c"] (jsv! '(interleave [1 2 3] ["a" "b" "c"]))))
-  (is (eq [1 "a" 2 "b"] (jsv! '(interleave [1 2] ["a" "b" "c"])))))
+  (is (eq [] (jsv! '(vec (interleave nil nil)))))
+  (is (eq [] (jsv! '(vec (interleave [1 2] nil)))))
+  (is (eq [] (jsv! '(vec (interleave [1 2 3] nil)))))
+  (is (eq [] (jsv! '(vec (interleave [1 2 3] ["a" "b"] nil)))))
+  (is (eq [1 "a" 2 "b"] (jsv! '(vec (interleave [1 2 3] ["a" "b"])))))
+  (is (eq [1 "a" 2 "b" 3 "c"] (jsv! '(vec (interleave [1 2 3] ["a" "b" "c"])))))
+  (is (eq [1 "a" 2 "b"] (jsv! '(vec (interleave [1 2] ["a" "b" "c"]))))))
 
 (deftest select-keys-test
   (is (eq {:a 1 :b 2} (jsv! '(select-keys {:a 1 :b 2 :c 3} [:a :b]))))
@@ -861,24 +881,31 @@
     (is (not (.has m "c")))))
 
 (deftest partition-test
-  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(partition 4 (range 20)))))
-  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(partition 4 (range 22)))))
+  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 20))))))
+  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 22))))))
   (testing "step"
-    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15]] (jsv! '(partition 4 6 (range 20))))))
+    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15]] (jsv! '(vec (partition 4 6 (range 20)))))))
   (testing "step < n"
-    (is (eq [[0 1 2 3] [3 4 5 6] [6 7 8 9] [9 10 11 12] [12 13 14 15] [15 16 17 18]] (jsv! '(partition 4 3 (range 20))))))
+    (is (eq [[0 1 2 3] [3 4 5 6] [6 7 8 9] [9 10 11 12] [12 13 14 15] [15 16 17 18]] (jsv! '(vec (partition 4 3 (range 20)))))))
   (testing "pad"
-    (is (eq [[0 1 2] [6 7 8] [12 13 14] [18 19 "a"]] (jsv! '(partition 3 6 ["a"] (range 20)))))
-    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a"]] (jsv! '(partition 4 6 ["a"] (range 20)))))
-    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a" "b"]] (jsv! '(partition 4 6 ["a" "b" "c" "d"] (range 20)))))))
+    (is (eq [[0 1 2] [6 7 8] [12 13 14] [18 19 "a"]] (jsv! '(vec (partition 3 6 ["a"] (range 20))))))
+    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a"]] (jsv! '(vec (partition 4 6 ["a"] (range 20))))))
+    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a" "b"]] (jsv! '(vec (partition 4 6 ["a" "b" "c" "d"] (range 20)))))))
+  (testing "infinite seq"
+    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15]] (jsv! '(vec (take 3 (partition 4 6 (range)))))))
+    (is (eq [[0 1 2 3] [2 3 4 5] [4 5 6 7]] (jsv! '(vec (take 3 (partition 4 2 (range)))))))))
+         
 
 (deftest partition-all-test
-  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(partition-all 4 (range 20)))))
-  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19] [20 21]] (jsv! '(partition-all 4 (range 22)))))
+  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition-all 4 (range 20))))))
+  (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19] [20 21]] (jsv! '(vec (partition-all 4 (range 22))))))
   (testing "step"
-    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19]] (jsv! '(partition-all 4 6 (range 20))))))
+    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19]] (jsv! '(vec (partition-all 4 6 (range 20)))))))
   (testing "step < n"
-    (is (eq [[0 1 2 3] [3 4 5 6] [6 7 8 9] [9 10 11 12] [12 13 14 15] [15 16 17 18] [18 19]] (jsv! '(partition-all 4 3 (range 20)))))))
+    (is (eq [[0 1 2 3] [3 4 5 6] [6 7 8 9] [9 10 11 12] [12 13 14 15] [15 16 17 18] [18 19]] (jsv! '(vec (partition-all 4 3 (range 20)))))))
+  (testing "infinite seq"
+    (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15]] (jsv! '(vec (take 3 (partition-all 4 6 (range)))))))
+    (is (eq [[0 1 2 3] [2 3 4 5] [4 5 6 7]] (jsv! '(vec (take 3 (partition-all 4 2 (range)))))))))
 
 (deftest merge-test
   (testing "corner cases"
@@ -941,17 +968,25 @@
                      (let [foo (->Foo)]
                        [(seqable? foo)
                         (= foo (seq foo))
-                        (map inc (->Foo))]))))))
+                        (vec (map inc (->Foo)))]))))))
 
 (deftest repeat-test
-  (is (eq [] (jsv! '(interleave (repeat 1) []))))
-  (is (eq [1 "a" 1 "b"] (jsv! '(interleave (repeat 1)["a" "b"]))))
-  (is (eq [1 "a" 1 "b" 1 "c"] (jsv! '(interleave (repeat 1)["a" "b" "c"]))))
-  (is (eq [1 "a" 1 "b"] (jsv! '(interleave (repeat 2 1)["a" "b" "c"]))))
+  (is (eq [] (jsv! '(vec (interleave (repeat 1) [])))))
+  (is (eq [1 "a" 1 "b"] (jsv! '(vec (interleave (repeat 1) ["a" "b"])))))
+  (is (eq [1 "a" 1 "b" 1 "c"] (jsv! '(vec (interleave (repeat 1) ["a" "b" "c"])))))
+  (is (eq [1 "a" 1 "b"] (jsv! '(vec (interleave (repeat 2 1) ["a" "b" "c"])))))
   (testing "satisfies IIterable"
     (is (= true (jsv! '(satisfies? IIterable (repeat 1))))))
   (testing "invalid arity"
     (is (thrown? js/Error (jsv! '(repeat))))))
 
+(deftest take-test
+  (is (eq [] (jsv! '(vec (take 1 nil)))))
+  (is (eq [] (jsv! '(vec (take 0 (repeat 1))))))
+  (is (eq [1 1 1] (jsv! '(vec (take 3 (repeat 1))))))
+  (is (eq ["a" "b"] (jsv! '(vec (take 2 ["a" "b" "c"])))))
+  (is (eq ["a" "b" "c"] (jsv! '(vec (take 5 ["a" "b" "c"])))))
+  (is (eq [["a" 1] ["b" 2]] (jsv! '(vec (take 2 {"a" 1 "b" 2 "c" 3}))))))
+
 (defn init []
-  (cljs.test/run-tests 'clava.compiler-test))
+  (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

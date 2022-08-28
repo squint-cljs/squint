@@ -11,10 +11,12 @@
   assoc_in
   assoc_in_BANG_
   atom
+  comp
   complement
   concat
   conj
   conj_BANG_
+  cons
   constantly
   contains_QMARK_
   dec
@@ -35,6 +37,7 @@
   inc
   interleave
   into
+  last
   list
   list_QMARK_
   map
@@ -64,10 +67,12 @@
   select_keys
   seq
   seqable_QMARK_
+  set
   str
   subvec
   swap_BANG_
   system_time
+  take
   vec
   vector
   vector_QMARK_}

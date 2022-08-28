@@ -61,6 +61,7 @@ const ARRAY_TYPE = 2;
 const OBJECT_TYPE = 3;
 const LIST_TYPE = 4;
 const SET_TYPE = 5;
+const LAZY_ITERABLE_TYPE = 6;
 
 function emptyOfType(type) {
   switch (type) {
@@ -74,6 +75,10 @@ function emptyOfType(type) {
       return new List();
     case SET_TYPE:
       return new Set();
+    case LAZY_ITERABLE_TYPE:
+      return new LazyIterable(function* () {
+        return;
+      });
   }
   return undefined;
 }
@@ -83,6 +88,7 @@ function typeConst(obj) {
   if (obj instanceof Set) return SET_TYPE;
   if (obj instanceof List) return LIST_TYPE;
   if (obj instanceof Array) return ARRAY_TYPE;
+  if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
   if (obj instanceof Object) return OBJECT_TYPE;
   return undefined;
 }
@@ -124,6 +130,22 @@ export function assoc_in(o, keys, value) {
 
 export function assoc_in_BANG_(o, keys, value) {
   return assoc_in_with(assoc_BANG_, 'assoc-in!', o, keys, value);
+}
+
+export function comp(...fs) {
+  if (fs.length === 0) {
+    return identity;
+  } else if (fs.length === 1) {
+    return fs[0];
+  }
+  let [f, ...more] = fs.slice().reverse();
+  return function (...args) {
+    let x = f(...args);
+    for (const g of more) {
+      x = g(x);
+    }
+    return x;
+  };
 }
 
 export function conj_BANG_(...xs) {
@@ -199,6 +221,11 @@ export function conj(...xs) {
       }
 
       return m;
+    case LAZY_ITERABLE_TYPE:
+      return new LazyIterable(function* () {
+        yield* rest;
+        yield* o;
+      });
     case OBJECT_TYPE:
       const o2 = { ...o };
 
@@ -334,8 +361,13 @@ export function ffirst(coll) {
 }
 
 export function rest(coll) {
-  let [_, ...rest] = iterable(coll);
-  return rest;
+  return new LazyIterable(function* () {
+    let first = true;
+    for (const x of iterable(coll)) {
+      if (first) first = false;
+      else yield x;
+    }
+  });
 }
 
 class Reduced {
@@ -345,6 +377,20 @@ class Reduced {
   }
   _deref() {
     return this.value;
+  }
+}
+
+export function last(coll) {
+  coll = iterable(coll);
+  switch (typeConst(coll)) {
+    case ARRAY_TYPE:
+      return coll[coll.length - 1];
+    default:
+      let lastEl;
+      for (const x of coll) {
+        lastEl = x;
+      }
+      return lastEl;
   }
 }
 
@@ -381,41 +427,60 @@ export function reduce(f, arg1, arg2) {
   return val;
 }
 
+class LazyIterable {
+  constructor(gen) {
+    this.gen = gen;
+  }
+  [IIterable] = true;
+  [IIterable__iterator]() {
+    return this.gen();
+  }
+}
+
+export function cons(x, coll) {
+  return new LazyIterable(function* () {
+    yield x;
+    yield* iterable(coll);
+  });
+}
+
 export function map(f, ...colls) {
   const ret = [];
   switch (colls.length) {
     case 0:
       throw new Error('map with 2 arguments is not supported yet');
     case 1:
-      for (const x of iterable(colls[0])) {
-        ret.push(f(x));
-      }
-      return ret;
+      return new LazyIterable(function* () {
+        for (const x of iterable(colls[0])) {
+          yield f(x);
+        }
+      });
     default:
       const iters = colls.map((coll) => es6_iterator(iterable(coll)));
-      while (true) {
-        let args = [];
-        for (const i of iters) {
-          const nextVal = i.next();
-          if (nextVal.done) {
-            return ret;
+      return new LazyIterable(function* () {
+        while (true) {
+          let args = [];
+          for (const i of iters) {
+            const nextVal = i.next();
+            if (nextVal.done) {
+              return;
+            }
+            args.push(nextVal.value);
           }
-          args.push(nextVal.value);
+          yield f(...args);
         }
-        ret.push(f(...args));
-      }
-      return ret;
+      });
   }
 }
 
 export function filter(pred, coll) {
-  let ret = [];
-  for (const x of iterable(coll)) {
-    if (pred(x)) {
-      ret.push(x);
+  return new LazyIterable(function* () {
+    for (const x of iterable(coll)) {
+      if (pred(x)) {
+        yield x;
+      }
     }
-  }
-  return ret;
+  });
 }
 
 export function map_indexed(f, coll) {
@@ -443,7 +508,15 @@ export function nil_QMARK_(v) {
 export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
-  return JSON.stringify(x, (_key, value) => (value instanceof Set ? [...value] : value));
+  return JSON.stringify(x, (_key, value) => {
+    switch (typeConst(value)) {
+      case SET_TYPE:
+      case LAZY_ITERABLE_TYPE:
+        return [...value];
+      default:
+        return value;
+    }
+  });
 }
 
 export function pr_str(...xs) {
@@ -478,18 +551,22 @@ export function swap_BANG_(atm, f, ...args) {
   return v;
 }
 
-export function range(begin, end) {
-  let b = begin,
-    e = end;
-  if (e === undefined) {
-    e = b;
-    b = 0;
-  }
-  let ret = [];
-  for (let x = b; x < e; x++) {
-    ret.push(x);
-  }
-  return ret;
+export function range(begin, end, step) {
+  return new LazyIterable(function* () {
+    let b = begin,
+      e = end,
+      s = step;
+    if (end === undefined) {
+      b = 0;
+      e = begin;
+    }
+    let i = b || 0;
+    s = step || 1;
+    while (e === undefined || i < e) {
+      yield i;
+      i += s;
+    }
+  });
 }
 
 export function re_matches(re, s) {
@@ -517,7 +594,11 @@ export function vector_QMARK_(x) {
 
 export const mapv = map;
 
-export const vec = (x) => x;
+export const vec = (x) => Array.from(iterable(x));
+
+export function set(coll) {
+  return new Set(iterable(coll));
+}
 
 export function apply(f, ...args) {
   const xs = args.slice(0, args.length - 1);
@@ -561,11 +642,11 @@ export function array_QMARK_(x) {
 }
 
 export function concat(...colls) {
-  var ret = [];
-  for (const x of colls) {
-    ret.push(...iterable(x));
-  }
-  return ret;
+  return new LazyIterable(function* () {
+    for (const coll of colls) {
+      yield* iterable(coll);
+    }
+  });
 }
 
 export function mapcat(f, ...colls) {
@@ -577,19 +658,20 @@ export function identity(x) {
 }
 
 export function interleave(...colls) {
-  let ret = [];
-  const iters = colls.map((coll) => es6_iterator(iterable(coll)));
-  while (true) {
-    let items = [];
-    for (const i of iters) {
-      const nextVal = i.next();
-      if (nextVal.done) {
-        return ret;
+  return new LazyIterable(function* () {
+    const iters = colls.map((coll) => es6_iterator(iterable(coll)));
+    while (true) {
+      let res = [];
+      for (const i of iters) {
+        const nextVal = i.next();
+        if (nextVal.done) {
+          return;
+        }
+        res.push(nextVal.value);
       }
-      items.push(nextVal.value);
+      yield* res;
     }
-    ret.push(...items);
-  }
+  });
 }
 
 export function select_keys(o, ks) {
@@ -629,20 +711,32 @@ export function partition(n, ...args) {
 }
 
 function partitionInternal(n, step, pad, coll, all) {
-  let ret = [];
-  let array = [...iterable(coll)];
-  for (var i = 0; i < array.length; i = i + step) {
-    let p = array.slice(i, i + n);
-    if (p.length === n) {
-      ret.push(p);
-    } else if (pad.length) {
-      p.push(...pad.slice(0, n - p.length));
-      ret.push(p);
-    } else if (all) {
-      ret.push(p);
+  return new LazyIterable(function* () {
+    let p = [];
+    let i = 0;
+    for (let x of iterable(coll)) {
+      if (i < n) {
+        p.push(x);
+        if (p.length === n) {
+          yield p;
+          p = step < n ? p.slice(step) : [];
+        }
+      }
+      i++;
+      if (i === step) {
+        i = 0;
+      }
     }
-  }
-  return ret;
+
+    if (p.length > 0) {
+      if (p.length === n || all) {
+        yield p;
+      } else if (pad.length) {
+        p.push(...pad.slice(0, n - p.length));
+        yield p;
+      }
+    }
+  });
 }
 
 export function empty(coll) {
@@ -699,4 +793,17 @@ export function repeat(...args) {
             for (var i = 0; i < n; i++) yield x;
           },
   };
+}
+
+export function take(n, coll) {
+  return new LazyIterable(function* () {
+    let i = n;
+    for (const x of iterable(coll)) {
+      if (i-- > 0) {
+        yield x;
+      } else {
+        return;
+      }
+    }
+  });
 }
