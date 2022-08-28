@@ -811,7 +811,7 @@ break;}" body)
     (escape-jsx env*
                 (->> (format "({ %s })" keys)
                      (emit-wrap env)))))
- 
+
 (defmethod emit #?(:clj clojure.lang.PersistentHashSet
                    :cljs PersistentHashSet)
   [expr env]
