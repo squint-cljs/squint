@@ -3,9 +3,10 @@
    ["@babel/core" :refer [transformSync]]
    ["React" :as React]
    [clava.test-utils :refer [jss!]]
-   [clojure.test :as t :refer [deftest is]]))
+   [clojure.test :as t :refer [deftest is]]
+   [goog.object :as gobject]))
 
-(set! js/global.React React)
+(gobject/set js/global "React" React)
 
 (defn test-jsx [s]
   (let [expr (jss! s)
