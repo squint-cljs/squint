@@ -711,20 +711,32 @@ export function partition(n, ...args) {
 }
 
 function partitionInternal(n, step, pad, coll, all) {
-  let ret = [];
-  let array = [...iterable(coll)];
-  for (var i = 0; i < array.length; i = i + step) {
-    let p = array.slice(i, i + n);
-    if (p.length === n) {
-      ret.push(p);
-    } else if (pad.length) {
-      p.push(...pad.slice(0, n - p.length));
-      ret.push(p);
-    } else if (all) {
-      ret.push(p);
+  return new LazyIterable(function* () {
+    let p = [];
+    let i = 0;
+    for (let x of iterable(coll)) {
+      if (i < n) {
+        p.push(x);
+        if (p.length === n) {
+          yield p;
+          p = step < n ? p.slice(step) : [];
+        }
+      }
+      i++;
+      if (i === step) {
+        i = 0;
+      }
     }
-  }
-  return ret;
+
+    if (p.length > 0) {
+      if (p.length === n || all) {
+        yield p;
+      } else if (pad.length) {
+        p.push(...pad.slice(0, n - p.length));
+        yield p;
+      }
+    }
+  });
 }
 
 export function empty(coll) {
