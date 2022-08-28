@@ -1001,7 +1001,8 @@
 (deftest +-test
   (is (zero? (jsv! '(apply + []))))
   (is (= 1 (jsv! '(apply + [1]))))
-  (is (= 6 (jsv! '(apply + [1 2 3])))))
+  (is (= 6 (jsv! '(apply + [1 2 3]))))
+  (is (= 6 (jsv! '(apply + (range 4))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
