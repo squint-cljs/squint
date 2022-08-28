@@ -1,9 +1,10 @@
 // @ts-check
 export function _PLUS_(x, y, ...xs) {
   let sum = x + y || 0;
-  for (const y of xs) {
-    sum += y;
-  }
+  if (xs.length !== 0)
+    for (const y of xs) {
+      sum += y;
+    }
   return sum;
 }
 
