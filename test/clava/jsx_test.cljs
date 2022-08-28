@@ -1,11 +1,9 @@
 (ns clava.jsx-test
   (:require
-   [clava.test-utils :refer [eq js! jss! jsv!]]
-   [clojure.string :as str]
-   [clojure.test :as t :refer [async deftest is testing]]
    ["@babel/core" :refer [transformSync]]
-   ["eslint" :refer [Linter]]
-   ["React" :as React]))
+   ["React" :as React]
+   [clava.test-utils :refer [jss!]]
+   [clojure.test :as t :refer [deftest is]]))
 
 (set! js/global.React React)
 
