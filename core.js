@@ -603,7 +603,7 @@ export function set(coll) {
 export function apply(f, ...args) {
   const xs = args.slice(0, args.length - 1);
   const coll = args[args.length - 1];
-  return f.apply(null, xs.concat(coll));
+  return f.apply(null, xs.concat(vec(coll)));
 }
 
 export function even_QMARK_(x) {
