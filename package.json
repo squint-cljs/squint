@@ -21,6 +21,7 @@
     "chalk": "^5.0.1",
     "clavascript": ".",
     "esbuild": "^0.14.49",
+    "eslint": "^8.23.0",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "prettier": "^2.7.1",
