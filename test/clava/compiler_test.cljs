@@ -986,7 +986,17 @@
   (is (eq [1 1 1] (jsv! '(vec (take 3 (repeat 1))))))
   (is (eq ["a" "b"] (jsv! '(vec (take 2 ["a" "b" "c"])))))
   (is (eq ["a" "b" "c"] (jsv! '(vec (take 5 ["a" "b" "c"])))))
-  (is (eq [["a" 1] ["b" 2]] (jsv! '(vec (take 2 {"a" 1 "b" 2 "c" 3}))))))
+  (is (eq [["a" 1] ["b" 2]] (jsv! '(vec (take 2 {"a" 1 "b" 2 "c" 3})))))
+  (is (= 2
+         (jsv! '(let [o {:count 0}
+                      s (range)
+                      s' (map (fn [x]
+                                (assoc! o :count (inc (:count o)))
+                                x)
+                              s)
+                      s'' (take 2 s')]
+                  (vec s'')
+                  (:count o))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
