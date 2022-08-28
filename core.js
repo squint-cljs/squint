@@ -445,7 +445,6 @@ export function cons(x, coll) {
 }
 
 export function map(f, ...colls) {
-  const ret = [];
   switch (colls.length) {
     case 0:
       throw new Error('map with 2 arguments is not supported yet');
@@ -797,11 +796,12 @@ export function repeat(...args) {
 
 export function take(n, coll) {
   return new LazyIterable(function* () {
-    let i = n;
+    let i = n - 1;
     for (const x of iterable(coll)) {
-      if (i-- > 0) {
+      if (i-- >= 0) {
         yield x;
-      } else {
+      }
+      if (i < 0) {
         return;
       }
     }
