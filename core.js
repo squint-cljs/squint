@@ -1,6 +1,6 @@
 // @ts-check
 export function _PLUS_(x, y, ...xs) {
-  let sum = x + y || 0;
+  let sum = (x || 0) + (y || 0);
   if (xs.length !== 0)
     for (const y of xs) {
       sum += y;
