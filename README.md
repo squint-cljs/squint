@@ -82,7 +82,7 @@ return them; an exception are objects created via `{:a 1}`, where `seq` and
 processing, and functions that typically return seqs instead return an array of
 the results.
 
-#### Memory usage:
+#### Memory usage
 
 With respect to memory usage:
 
