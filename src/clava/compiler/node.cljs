@@ -1,9 +1,11 @@
 (ns clava.compiler.node
   (:require
    ["fs" :as fs]
+   ["path" :as path]
    [clava.compiler :as compiler]
    [clojure.string :as str]
-   [edamame.core :as e]))
+   [edamame.core :as e]
+   [sci.core :as sci]))
 
 (defn slurp [f]
   (fs/readFileSync f "utf-8"))
@@ -11,14 +13,26 @@
 (defn spit [f s]
   (fs/writeFileSync f s "utf-8"))
 
-(defn resolve-file [prefix suffix]
-  (if (str/starts-with? suffix "./")
-    (str/join "/" (concat [(js/process.cwd)]
-                          (butlast (str/split prefix "/"))
-                          [(subs suffix 2)]))
-    suffix))
+(def classpath-dirs ["." "src"])
 
-(def dyn-import (js/eval "(x) => { return import(x) }"))
+(defn resolve-file* [dir munged-macro-ns]
+  (let [exts ["cljc" "cljs"]]
+    (some (fn [ext]
+            (let [full-path (path/resolve dir (str munged-macro-ns "." ext))]
+              (when (fs/existsSync full-path)
+                full-path)))
+          exts)))
+
+(defn resolve-file [macro-ns]
+  (let [path (-> macro-ns str (str/replace "-" "_"))]
+    (some (fn [dir]
+            (resolve-file* dir path))
+          classpath-dirs)))
+
+(def ctx (sci/init {:load-fn (fn [{:keys [namespace]}]
+                               (let [f (resolve-file namespace)
+                                     fstr (slurp f)]
+                                 {:source fstr}))}))
 
 (defn scan-macros [file]
   (let [s (slurp file)
@@ -34,13 +48,11 @@
           (reduce (fn [prev require-macros]
                     (.then prev
                            (fn [_]
-                             (let [[f & {:keys [refer]}] require-macros
-                                   f (resolve-file file f)
-                                   macros (-> (dyn-import f)
-                                              (.then (fn [macros]
-                                                       (zipmap
-                                                        refer
-                                                        (map #(aget macros (munge %)) refer)))))]
+                             (let [[macro-ns & {:keys [refer]}] require-macros
+                                   macros (js/Promise.resolve
+                                           (do (sci/eval-form ctx (list 'require (list 'quote macro-ns)))
+                                               (sci/eval-form ctx
+                                                              `(ns-publics '~macro-ns))))]
                                (.then macros
                                       (fn [macros]
                                         (set! compiler/built-in-macros
