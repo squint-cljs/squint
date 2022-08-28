@@ -4,15 +4,15 @@
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]
    ["@babel/core" :refer [transformSync]]
-   ["eslint" :refer [Linter]]))
+   ["eslint" :refer [Linter]]
+   ["React" :as React]))
 
+(set! js/global.React React)
 
 (defn test-jsx [s]
   (let [expr (jss! s)
-        code (:code (js->clj (transformSync expr #js {:presets #js ["@babel/preset-react"]}) :keywordize-keys true))
-        linter (Linter.)
-        errors (js->clj (.verify linter code) :keywordize-keys true)]
-    (is (empty? errors) {:code code :errors errors})))
+        code (:code (js->clj (transformSync expr #js {:presets #js ["@babel/preset-react"]}) :keywordize-keys true))]
+    (js/eval code)))
 
 (deftest jsx-test
   (test-jsx "#jsx [:a {:href \"http://foo.com\"}]")
