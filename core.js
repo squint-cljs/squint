@@ -1,6 +1,6 @@
 // @ts-check
-export function _PLUS_(x, ...xs) {
-  let sum = x;
+export function _PLUS_(x, y, ...xs) {
+  let sum = x + y || 0;
   for (const y of xs) {
     sum += y;
   }
@@ -406,9 +406,9 @@ export function reduce(f, arg1, arg2) {
   let coll, val;
   if (arg2 === undefined) {
     // (reduce f coll)
-    const [hd, ...more] = iterable(arg1);
-    val = hd;
-    coll = more;
+    let iter = iterable(arg1)[Symbol.iterator]();
+    val = iter.next().value;
+    coll = iter;
   } else {
     // (reduce f val coll)
     val = arg1;
