@@ -1,7 +1,7 @@
 (ns clava.jsx-test
   (:require
    ["@babel/core" :refer [transformSync]]
-   ["React" :as React]
+   ["react" :as React]
    [clava.test-utils :refer [jss!]]
    [clojure.test :as t :refer [deftest is]]
    [goog.object :as gobject]))
