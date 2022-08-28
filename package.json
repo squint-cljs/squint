@@ -24,6 +24,7 @@
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "prettier": "^2.7.1",
+    "react": "^18.2.0",
     "shadow-cljs": "^2.19.8",
     "source-maps": "^1.0.12"
   }

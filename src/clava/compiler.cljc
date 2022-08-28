@@ -746,7 +746,7 @@ break;}" body)
                  :else (emit-special 'funcall env expr)))
              (keyword? (first expr))
              (let [[k obj & args] expr]
-               (emit (list* 'get obj k args)))
+               (emit (list* 'get obj k args) env))
              (list? expr)
              (emit-special 'funcall env expr)
              :else
