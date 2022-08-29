@@ -484,6 +484,10 @@ export function filter(pred, coll) {
   });
 }
 
+export function remove(pred, coll) {
+  return filter(complement(pred), coll);
+}
+
 export function map_indexed(f, coll) {
   let ret = [];
   let i = 0;
