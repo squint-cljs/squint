@@ -1025,5 +1025,14 @@
     ;; iterating over dropped second time, still works:
     (is (eq [3 4 5] (vec dropped)))))
 
+(deftest every?-test
+  (is (= true (jsv! '(every? odd? nil))))
+  (is (= true (jsv! '(every? odd? []))))
+  (is (= true (jsv! '(every? odd? [1 3 5]))))
+  (is (= false (jsv! '(every? odd? [1 3 6]))))
+  (is (= true (jsv! '(every? str [1 3 6]))))
+  (is (= true (jsv! '(every? str [0 1 3 6]))))
+  (is (= false (jsv! '(every? identity [0 1 3 6])))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

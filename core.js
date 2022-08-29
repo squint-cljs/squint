@@ -831,3 +831,10 @@ export function drop(n, xs) {
     yield* iter;
   });
 }
+
+export function every_QMARK_(pred, coll) {
+  for (let x of iterable(coll)) {
+    if (!pred(x)) return false;
+  }
+  return true;
+}
