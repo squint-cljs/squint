@@ -67,6 +67,7 @@
   pr_str
   println
   prn
+  rand_int
   range
   re_matches
   reduce

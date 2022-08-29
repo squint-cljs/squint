@@ -983,3 +983,7 @@ export function replace(smap, coll) {
 export function empty_QMARK_(coll) {
   return seq(coll) ? false : true;
 }
+
+export function rand_int(n) {
+  return Math.floor(Math.random() * n);
+}
