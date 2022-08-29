@@ -821,3 +821,18 @@ export function cycle(coll) {
     while (true) yield* coll;
   });
 }
+
+// private
+function iterator(x) {
+  return x[Symbol.iterator]();
+}
+
+export function drop(n, xs) {
+  return new LazyIterable(function* () {
+    let iter = iterator(xs);
+    for (let x = 0; x < n; x++) {
+      iter.next();
+    }
+    yield* iter;
+  });
+}

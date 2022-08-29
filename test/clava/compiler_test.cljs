@@ -1019,5 +1019,11 @@
   (is (= 1 (jsv! '(nth [1 2 3] 0))))
   (is (eq :default (jsv! '(nth [1 2 3] 5 :default)))))
 
+(deftest drop-test
+  (let [dropped (jsv! '(drop 3 (range 6)))]
+    (is (eq [3 4 5] (vec dropped)))
+    ;; iterating over dropped second time, still works:
+    (is (eq [3 4 5] (vec dropped)))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
