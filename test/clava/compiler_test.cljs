@@ -1068,5 +1068,14 @@
   (is (eq (update-in {:a {:b {}}} [:a :b :c] (fnil inc 0))
           (jsv! (update-in {:a {:b {}}} [:a :b :c] (fnil inc 0))))))
 
+(deftest every?-test
+  (is (= true (jsv! '(every? odd? nil))))
+  (is (= true (jsv! '(every? odd? []))))
+  (is (= true (jsv! '(every? odd? [1 3 5]))))
+  (is (= false (jsv! '(every? odd? [1 3 6]))))
+  (is (= true (jsv! '(every? str [1 3 6]))))
+  (is (= true (jsv! '(every? str [0 1 3 6]))))
+  (is (= false (jsv! '(every? identity [0 1 3 6])))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
