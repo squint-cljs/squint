@@ -533,6 +533,8 @@ function pr_str_1(x) {
       case SET_TYPE:
       case LAZY_ITERABLE_TYPE:
         return [...value];
+      case MAP_TYPE:
+        return Object.fromEntries(value);
       default:
         return value;
     }
@@ -1005,4 +1007,18 @@ export function repeatedly(n, f) {
   } else {
     return res;
   }
+}
+
+export function update_BANG_(m, k, f, ...args) {
+  const v = get(m, k);
+  return assoc_BANG_(m, k, f(v, ...args));
+}
+
+export function group_by(f, coll) {
+  const res = new Map();
+  for (const o of iterable(coll)) {
+    const key = f(o);
+    update_BANG_(res, key, fnil(conj_BANG_, []), o);
+  }
+  return res;
 }
