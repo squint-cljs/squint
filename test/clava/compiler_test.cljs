@@ -1054,5 +1054,9 @@
     (is (eq (drop-while odd? [1 1 1 2 3 4]) (vec dropped))))
   (is (eq (drop-while odd? nil) (vec (jsv! '(drop-while odd? nil))))))
 
+(deftest distinct-test
+  (doseq [coll [[1 1 1 2 3 4 1] nil]]
+    (is (eq (distinct coll) (vec (jsv! `(distinct ~coll)))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
