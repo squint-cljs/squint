@@ -1062,5 +1062,9 @@
   (is (eq {:a 2} (jsv! '(update {:a 1} :a inc))))
   (is (eq {:a 3} (jsv! '(update {:a 1} :a + 2)))))
 
+(deftest update-in-test
+  (is (eq {:a {:b 2}} (jsv! '(update-in {:a {:b 1}} [:a :b] inc))))
+  (is (eq {:a {:b 4}} (jsv! '(update-in {:a {:b 2}} [:a :b] + 2)))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

@@ -888,3 +888,16 @@ export function distinct(coll) {
 export function update(coll, k, f, ...args) {
   return assoc(coll, k, f(get(coll, k), ...args));
 }
+
+export function get_in(coll, path, orElse) {
+  let entry = coll;
+  for (const item of path) {
+    entry = get(entry, item);
+  }
+  if (entry === undefined) return orElse;
+  return entry;
+}
+
+export function update_in(coll, path, f, ...args) {
+  return assoc_in(coll, path, f(get_in(coll, path), ...args));
+}

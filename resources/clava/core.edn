@@ -82,6 +82,7 @@
   take
   take_while
   update
+  update_in
   vec
   vector
   vector_QMARK_}
