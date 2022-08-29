@@ -1090,5 +1090,9 @@
   (is (= true (jsv! '(every? str [0 1 3 6]))))
   (is (= false (jsv! '(every? identity [0 1 3 6])))))
 
+(deftest keep-test
+  (is (eq (keep #(when (odd? %) (inc %)) [1 2 3])
+          (vec (jsv! '(keep #(when (odd? %) (inc %)) [1 2 3]))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

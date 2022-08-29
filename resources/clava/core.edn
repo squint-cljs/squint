@@ -46,6 +46,7 @@
   interleave
   interpose
   into
+  keep
   last
   list
   list_QMARK_

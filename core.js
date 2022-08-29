@@ -922,3 +922,12 @@ export function every_QMARK_(pred, coll) {
   }
   return true;
 }
+
+export function keep(pred, coll) {
+  return new LazyIterable(function* () {
+    for (const o of iterable(coll)) {
+      const res = pred(o);
+      if (res) yield res;
+    }
+  });
+}
