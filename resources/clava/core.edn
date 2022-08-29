@@ -83,6 +83,7 @@
   seqable_QMARK_
   set
   shuffle
+  some
   sort
   str
   subvec

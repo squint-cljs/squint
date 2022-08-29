@@ -960,3 +960,10 @@ export function shuffle(coll) {
     return Math.random() - 0.5;
   });
 }
+
+export function some(pred, coll) {
+  for (const o of iterable(coll)) {
+    const res = pred(o);
+    if (res) return res;
+  }
+}

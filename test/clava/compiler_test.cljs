@@ -1109,5 +1109,8 @@
     (doseq [i shuffled]
       (is (contains? #{1 2 3 4} i)))))
 
+(deftest some-test
+  (is (= 1 (jsv! '(some #(when (odd? %) %) [2 1 2 1])))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
