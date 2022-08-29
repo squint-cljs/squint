@@ -872,6 +872,11 @@
   (is (eq [1 "a" 2 "b" 3 "c"] (jsv! '(vec (interleave [1 2 3] ["a" "b" "c"])))))
   (is (eq [1 "a" 2 "b"] (jsv! '(vec (interleave [1 2] ["a" "b" "c"]))))))
 
+(deftest interpose-test
+  (is (eq [] (jsv! '(vec (interpose "," nil)))))
+  (is (eq [1 ",", 2] (jsv! '(vec (interpose ",", [1 2])))))
+  (is (eq [0 nil 1 nil 2] (jsv! '(vec (take 5 (interpose nil (range))))))))
+
 (deftest select-keys-test
   (is (eq {:a 1 :b 2} (jsv! '(select-keys {:a 1 :b 2 :c 3} [:a :b]))))
   (let [m (jsv! '(select-keys (js/Map. [[:a 1] [:b 2] [:c 3]]) [:a :b]))]

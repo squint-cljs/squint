@@ -38,6 +38,7 @@
   identity
   inc
   interleave
+  interpose
   into
   last
   list
