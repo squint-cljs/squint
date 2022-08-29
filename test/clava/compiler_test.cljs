@@ -1114,7 +1114,8 @@
 
 (deftest replacement-test
   (is (eq (replace {:a :b} [:a :a :c :c :a :c])
-          (replace {:a :b} [:a :a :c :c :a :c])))
+          (jsv! '(replace {:a :b} [:a :a :c :c :a :c]))))
+  (is (instance? js/Array (jsv! '(replace {:a :b} [:a :a :c :c :a :c]))))
   (is (eq [:b :b] (vec (jsv! '(take 2 (replace {:a :b} (repeat :a))))))))
 
 (defn init []
