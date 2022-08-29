@@ -78,6 +78,7 @@
   swap_BANG_
   system_time
   take
+  take_while
   vec
   vector
   vector_QMARK_}

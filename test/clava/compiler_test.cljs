@@ -1003,6 +1003,13 @@
                   (vec s'')
                   (:count o))))))
 
+(deftest take-while-test
+  (let [taken (jsv! '(take-while even? [1 1 1 2 3 4]))]
+    (is (eq (take-while even? [1 1 1 2 3 4]) (vec taken)))
+    ;; iterating over dropped second time, still works:
+    (is (eq (take-while even? [1 1 1 2 3 4]) (vec taken))))
+  (is (eq (take-while odd? nil) (vec (jsv! '(take-while odd? nil))))))
+
 (deftest +-test
   (is (zero? (jsv! '(apply + []))))
   (is (= 1 (jsv! '(apply + [1]))))
