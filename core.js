@@ -3,6 +3,10 @@ export function _PLUS_(...xs) {
   return xs.reduce((x, y) => x + y, 0);
 }
 
+export function _(...xs) {
+  return xs.reduce((x, y) => x - y);
+}
+
 export function satisfies_QMARK_(protocol, x) {
   return x[protocol];
 }
@@ -941,4 +945,12 @@ export function reverse(coll) {
     // performance: we don't need to copy to another array first
     return coll.reverse();
   } else return [...coll].reverse();
+}
+
+export function sort(f, coll) {
+  if (coll === undefined) {
+    coll = f;
+    f = undefined;
+  }
+  return [...coll].sort(f);
 }

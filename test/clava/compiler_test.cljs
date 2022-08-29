@@ -1098,5 +1098,11 @@
   (is (eq (reverse [1 2 3]) (jsv! '(reverse [1 2 3]))))
   (is (eq (reverse (range 10)) (jsv! '(reverse (range 10))))))
 
+(deftest sort-test
+  (is (eq (sort [4 2 3 1]) (jsv! '(sort [4 2 3 1]))))
+  (is (eq (sort - [4 2 3 1]) (jsv! '(sort - [4 2 3 1]))))
+  ;; TODO: implement compare?
+  )
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
