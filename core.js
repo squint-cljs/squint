@@ -823,16 +823,9 @@ export function take(n, coll) {
 
 export function take_while(pred, coll) {
   return new LazyIterable(function* () {
-    let iter = _iterator(iterable(coll));
-    while (true) {
-      let item = iter.next();
-      if (item.done) return;
-      let val = item.value;
-      if (pred(val)) {
-        yield val;
-      } else {
-        return;
-      }
+    for (const o of iterable(coll)) {
+      if (pred(o)) yield val;
+      else return;
     }
   });
 }
