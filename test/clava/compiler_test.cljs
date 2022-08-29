@@ -776,6 +776,15 @@
     (is (eq () (jsv! '(vec (filter even? nil)))))
     (is (eq () (jsv! '(vec (filter even? js/undefined)))))))
 
+(deftest remove-test
+  (is (eq [2 4 6 8] (jsv! '(vec (remove odd? [1 2 3 4 5 6 7 8 9])))))
+  (is (every? (set (jsv! '(vec (remove odd? #{1 2 3 4 5 6 7 8 9}))))
+              [2 4 6 8]))
+  (is (eq [[:a 1]] (jsv! '(vec (remove #(not= :a (first %)) {:a 1 :b 2})))))
+  (testing "nil"
+    (is (eq () (jsv! '(vec (remove odd? nil)))))
+    (is (eq () (jsv! '(vec (remove odd? js/undefined)))))))
+
 (deftest map-indexed-test
   (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
           (jsv! '(map-indexed vector [0 1 2 3 4]))))
@@ -871,6 +880,11 @@
   (is (eq [1 "a" 2 "b"] (jsv! '(vec (interleave [1 2 3] ["a" "b"])))))
   (is (eq [1 "a" 2 "b" 3 "c"] (jsv! '(vec (interleave [1 2 3] ["a" "b" "c"])))))
   (is (eq [1 "a" 2 "b"] (jsv! '(vec (interleave [1 2] ["a" "b" "c"]))))))
+
+(deftest interpose-test
+  (is (eq [] (jsv! '(vec (interpose "," nil)))))
+  (is (eq [1 ",", 2] (jsv! '(vec (interpose ",", [1 2])))))
+  (is (eq [0 nil 1 nil 2] (jsv! '(vec (take 5 (interpose nil (range))))))))
 
 (deftest select-keys-test
   (is (eq {:a 1 :b 2} (jsv! '(select-keys {:a 1 :b 2 :c 3} [:a :b]))))
@@ -998,6 +1012,13 @@
                   (vec s'')
                   (:count o))))))
 
+(deftest take-while-test
+  (let [taken (jsv! '(take-while even? [1 1 1 2 3 4]))]
+    (is (eq (take-while even? [1 1 1 2 3 4]) (vec taken)))
+    ;; iterating over dropped second time, still works:
+    (is (eq (take-while even? [1 1 1 2 3 4]) (vec taken))))
+  (is (eq (take-while odd? nil) (vec (jsv! '(take-while odd? nil))))))
+
 (deftest +-test
   (is (zero? (jsv! '(apply + []))))
   (is (= 1 (jsv! '(apply + [1]))))
@@ -1023,7 +1044,27 @@
   (let [dropped (jsv! '(drop 3 (range 6)))]
     (is (eq [3 4 5] (vec dropped)))
     ;; iterating over dropped second time, still works:
-    (is (eq [3 4 5] (vec dropped)))))
+    (is (eq [3 4 5] (vec dropped))))
+  (is (eq (drop 2 nil) (vec (jsv! '(drop 2 nil))))))
+
+(deftest drop-while-test
+  (let [dropped (jsv! '(drop-while odd? [1 1 1 2 3 4]))]
+    (is (eq (drop-while odd? [1 1 1 2 3 4]) (vec dropped)))
+    ;; iterating over dropped second time, still works:
+    (is (eq (drop-while odd? [1 1 1 2 3 4]) (vec dropped))))
+  (is (eq (drop-while odd? nil) (vec (jsv! '(drop-while odd? nil))))))
+
+(deftest distinct-test
+  (doseq [coll [[1 1 1 2 3 4 1] nil]]
+    (is (eq (distinct coll) (vec (jsv! `(distinct ~coll)))))))
+
+(deftest update-test
+  (is (eq {:a 2} (jsv! '(update {:a 1} :a inc))))
+  (is (eq {:a 3} (jsv! '(update {:a 1} :a + 2)))))
+
+(deftest update-in-test
+  (is (eq {:a {:b 2}} (jsv! '(update-in {:a {:b 1}} [:a :b] inc))))
+  (is (eq {:a {:b 4}} (jsv! '(update-in {:a {:b 2}} [:a :b] + 2)))))
 
 (deftest every?-test
   (is (= true (jsv! '(every? odd? nil))))

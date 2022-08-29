@@ -26,7 +26,9 @@
   disj_BANG_
   dissoc
   dissoc_BANG_
+  distinct
   drop
+  drop_while
   empty
   es6_iterator
   even_QMARK_
@@ -39,6 +41,7 @@
   identity
   inc
   interleave
+  interpose
   into
   last
   list
@@ -63,6 +66,7 @@
   reduce
   reduced
   reduced_QMARK_
+  remove
   repeat
   reset_BANG_
   rest
@@ -77,6 +81,9 @@
   swap_BANG_
   system_time
   take
+  take_while
+  update
+  update_in
   vec
   vector
   vector_QMARK_}

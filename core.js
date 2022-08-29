@@ -484,6 +484,10 @@ export function filter(pred, coll) {
   });
 }
 
+export function remove(pred, coll) {
+  return filter(complement(pred), coll);
+}
+
 export function map_indexed(f, coll) {
   let ret = [];
   let i = 0;
@@ -675,6 +679,10 @@ export function interleave(...colls) {
   });
 }
 
+export function interpose(sep, coll) {
+  return drop(1, interleave(repeat(sep), coll));
+}
+
 export function select_keys(o, ks) {
   const type = typeConst(o);
   // ret could be object or array, but in the future, maybe we'll have an IEmpty protocol
@@ -810,6 +818,22 @@ export function take(n, coll) {
   });
 }
 
+export function take_while(pred, coll) {
+  return new LazyIterable(function* () {
+    let iter = _iterator(iterable(coll));
+    while (true) {
+      let item = iter.next();
+      if (item.done) return;
+      let val = item.value;
+      if (pred(val)) {
+        yield val;
+      } else {
+        return;
+      }
+    }
+  });
+}
+
 export function partial(f, ...xs) {
   return function (...args) {
     return f(...xs, ...args);
@@ -824,12 +848,58 @@ export function cycle(coll) {
 
 export function drop(n, xs) {
   return new LazyIterable(function* () {
-    let iter = _iterator(xs);
+    let iter = _iterator(iterable(xs));
     for (let x = 0; x < n; x++) {
       iter.next();
     }
     yield* iter;
   });
+}
+
+export function drop_while(pred, xs) {
+  return new LazyIterable(function* () {
+    let iter = _iterator(iterable(xs));
+    while (true) {
+      let nextItem = iter.next();
+      if (nextItem.done) {
+        break;
+      }
+      let value = nextItem.value;
+      if (!pred(value)) {
+        yield value;
+        break;
+      }
+    }
+    yield* iter;
+  });
+}
+
+export function distinct(coll) {
+  return new LazyIterable(function* () {
+    let seen = new Set();
+    for (const x of iterable(coll)) {
+      if (!seen.has(x)) yield x;
+      seen.add(x);
+    }
+    return;
+  });
+}
+
+export function update(coll, k, f, ...args) {
+  return assoc(coll, k, f(get(coll, k), ...args));
+}
+
+export function get_in(coll, path, orElse) {
+  let entry = coll;
+  for (const item of path) {
+    entry = get(entry, item);
+  }
+  if (entry === undefined) return orElse;
+  return entry;
+}
+
+export function update_in(coll, path, f, ...args) {
+  return assoc_in(coll, path, f(get_in(coll, path), ...args));
 }
 
 export function every_QMARK_(pred, coll) {
