@@ -2,6 +2,7 @@
   IIterable
   IIterable__iterator
   PROTOCOL_SENTINEL
+  _
   _PLUS_
   _iterator
   apply
@@ -81,6 +82,7 @@
   seq
   seqable_QMARK_
   set
+  sort
   str
   subvec
   swap_BANG_
