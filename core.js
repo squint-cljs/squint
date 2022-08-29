@@ -608,7 +608,9 @@ export function mapv(...args) {
   return [...map(...args)];
 }
 
-export const vec = (x) => Array.from(iterable(x));
+export function vec(x) {
+  return [...iterable(x)];
+}
 
 export function set(coll) {
   return new Set(iterable(coll));
