@@ -35,6 +35,7 @@
   every_QMARK_
   ffirst
   filter
+  filterv
   first
   fnil
   get

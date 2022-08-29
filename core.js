@@ -487,6 +487,10 @@ export function filter(pred, coll) {
   });
 }
 
+export function filterv(pred, coll) {
+  return [...filter(pred, coll)];
+}
+
 export function remove(pred, coll) {
   return filter(complement(pred), coll);
 }
