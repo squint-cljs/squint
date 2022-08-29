@@ -38,6 +38,9 @@ export function assoc_BANG_(m, k, v, ...kvs) {
 }
 
 export function assoc(o, k, v, ...kvs) {
+  if (!o) {
+    o = {};
+  }
   switch (typeConst(o)) {
     case MAP_TYPE:
       return assoc_BANG_(new Map(o.entries()), k, v, ...kvs);
@@ -900,4 +903,14 @@ export function get_in(coll, path, orElse) {
 
 export function update_in(coll, path, f, ...args) {
   return assoc_in(coll, path, f(get_in(coll, path), ...args));
+}
+
+export function fnil(f, x, ...xs) {
+  return function (a, ...args) {
+    if (!a) {
+      return f(x, ...xs, ...args);
+    } else {
+      return f(a, ...xs, ...args);
+    }
+  };
 }
