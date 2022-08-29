@@ -803,3 +803,9 @@ export function take(n, coll) {
     }
   });
 }
+
+export function partial(f, ...xs) {
+  return function (...args) {
+    return f(...xs, ...args);
+  };
+}
