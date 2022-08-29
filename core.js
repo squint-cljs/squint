@@ -283,8 +283,14 @@ export function println(...args) {
   console.log(...args);
 }
 
-export function nth(coll, idx) {
-  return coll[idx];
+export function nth(coll, idx, orElse) {
+  if (coll) {
+    const elt = coll[idx];
+    if (elt !== undefined) {
+      return elt;
+    }
+  }
+  return orElse;
 }
 
 export function get(coll, key, otherwise = undefined) {

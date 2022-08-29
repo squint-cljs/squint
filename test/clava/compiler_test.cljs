@@ -1013,5 +1013,11 @@
 (deftest cycle-test
   (is (eq (take 10 (cycle [1 2 3])) (vec (jsv! '(take 10 (cycle [1 2 3])))))))
 
+(deftest nth-test
+  (is (nil? (jsv! '(nth nil 1))))
+  (is (eq :default (jsv! '(nth nil 1 :default))))
+  (is (= 1 (jsv! '(nth [1 2 3] 0))))
+  (is (eq :default (jsv! '(nth [1 2 3] 5 :default)))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
