@@ -31,6 +31,7 @@
   drop
   drop_while
   empty
+  empty_QMARK_
   es6_iterator
   even_QMARK_
   every_QMARK_

@@ -1118,5 +1118,13 @@
   (is (instance? js/Array (jsv! '(replace {:a :b} [:a :a :c :c :a :c]))))
   (is (eq [:b :b] (vec (jsv! '(take 2 (replace {:a :b} (repeat :a))))))))
 
+(deftest empty?-test
+  (is (jsv! '(empty? [])))
+  (is (not (jsv! '(empty? [1]))))
+  (is (jsv! '(empty? {})))
+  (is (not (jsv! '(empty? {:a 1}))))
+  (is (jsv! '(empty? #{})))
+  (is (not (jsv! '(empty? #{1})))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
