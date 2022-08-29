@@ -675,6 +675,10 @@ export function interleave(...colls) {
   });
 }
 
+export function interpose(sep, coll) {
+  return drop(1, interleave(repeat(sep), coll));
+}
+
 export function select_keys(o, ks) {
   const type = typeConst(o);
   // ret could be object or array, but in the future, maybe we'll have an IEmpty protocol
