@@ -979,3 +979,7 @@ export function replace(smap, coll) {
     }
   }, coll);
 }
+
+export function empty_QMARK_(coll) {
+  return seq(coll) ? false : true;
+}
