@@ -74,6 +74,7 @@
   repeat
   reset_BANG_
   rest
+  reverse
   satisfies_QMARK_
   second
   select_keys
