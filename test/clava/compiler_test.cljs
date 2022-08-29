@@ -1058,5 +1058,9 @@
   (doseq [coll [[1 1 1 2 3 4 1] nil]]
     (is (eq (distinct coll) (vec (jsv! `(distinct ~coll)))))))
 
+(deftest update-test
+  (is (eq {:a 2} (jsv! '(update {:a 1} :a inc))))
+  (is (eq {:a 3} (jsv! '(update {:a 1} :a + 2)))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

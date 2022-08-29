@@ -884,3 +884,7 @@ export function distinct(coll) {
     return;
   });
 }
+
+export function update(coll, k, f, ...args) {
+  return assoc(coll, k, f(get(coll, k), ...args));
+}
