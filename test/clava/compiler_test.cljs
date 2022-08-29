@@ -1023,7 +1023,15 @@
   (let [dropped (jsv! '(drop 3 (range 6)))]
     (is (eq [3 4 5] (vec dropped)))
     ;; iterating over dropped second time, still works:
-    (is (eq [3 4 5] (vec dropped)))))
+    (is (eq [3 4 5] (vec dropped))))
+  (is (eq (drop 2 nil) (vec (jsv! '(drop 2 nil))))))
+
+(deftest drop-while-test
+  (let [dropped (jsv! '(drop-while odd? [1 1 1 2 3 4]))]
+    (is (eq (drop-while odd? [1 1 1 2 3 4]) (vec dropped)))
+    ;; iterating over dropped second time, still works:
+    (is (eq (drop-while odd? [1 1 1 2 3 4]) (vec dropped))))
+  (is (eq (drop-while odd? nil) (vec (jsv! '(drop-while odd? nil))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

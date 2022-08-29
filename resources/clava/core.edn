@@ -27,6 +27,7 @@
   dissoc
   dissoc_BANG_
   drop
+  drop_while
   empty
   es6_iterator
   even_QMARK_
