@@ -75,7 +75,7 @@ function emptyOfType(type) {
     case SET_TYPE:
       return new Set();
     case LAZY_ITERABLE_TYPE:
-      return new LazyIterable(function* () {
+      return lazy(function* () {
         return;
       });
   }
@@ -221,7 +221,7 @@ export function conj(...xs) {
 
       return m;
     case LAZY_ITERABLE_TYPE:
-      return new LazyIterable(function* () {
+      return lazy(function* () {
         yield* rest;
         yield* o;
       });
@@ -366,7 +366,7 @@ export function ffirst(coll) {
 }
 
 export function rest(coll) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     let first = true;
     for (const x of iterable(coll)) {
       if (first) first = false;
@@ -442,8 +442,12 @@ class LazyIterable {
   }
 }
 
+function lazy(f) {
+  return new LazyIterable(f);
+}
+
 export function cons(x, coll) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     yield x;
     yield* iterable(coll);
   });
@@ -454,14 +458,14 @@ export function map(f, ...colls) {
     case 0:
       throw new Error('map with 2 arguments is not supported yet');
     case 1:
-      return new LazyIterable(function* () {
+      return lazy(function* () {
         for (const x of iterable(colls[0])) {
           yield f(x);
         }
       });
     default:
       const iters = colls.map((coll) => es6_iterator(iterable(coll)));
-      return new LazyIterable(function* () {
+      return lazy(function* () {
         while (true) {
           let args = [];
           for (const i of iters) {
@@ -478,7 +482,7 @@ export function map(f, ...colls) {
 }
 
 export function filter(pred, coll) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     for (const x of iterable(coll)) {
       if (pred(x)) {
         yield x;
@@ -564,7 +568,7 @@ export function swap_BANG_(atm, f, ...args) {
 }
 
 export function range(begin, end, step) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     let b = begin,
       e = end,
       s = step;
@@ -658,7 +662,7 @@ export function array_QMARK_(x) {
 }
 
 export function concat(...colls) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     for (const coll of colls) {
       yield* iterable(coll);
     }
@@ -674,7 +678,7 @@ export function identity(x) {
 }
 
 export function interleave(...colls) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     const iters = colls.map((coll) => es6_iterator(iterable(coll)));
     while (true) {
       let res = [];
@@ -731,7 +735,7 @@ export function partition(n, ...args) {
 }
 
 function partitionInternal(n, step, pad, coll, all) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     let p = [];
     let i = 0;
     for (let x of iterable(coll)) {
@@ -816,7 +820,7 @@ export function repeat(...args) {
 }
 
 export function take(n, coll) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     let i = n - 1;
     for (const x of iterable(coll)) {
       if (i-- >= 0) {
@@ -830,7 +834,7 @@ export function take(n, coll) {
 }
 
 export function take_while(pred, coll) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     for (const o of iterable(coll)) {
       if (pred(o)) yield val;
       else return;
@@ -845,13 +849,13 @@ export function partial(f, ...xs) {
 }
 
 export function cycle(coll) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     while (true) yield* coll;
   });
 }
 
 export function drop(n, xs) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     let iter = _iterator(iterable(xs));
     for (let x = 0; x < n; x++) {
       iter.next();
@@ -861,7 +865,7 @@ export function drop(n, xs) {
 }
 
 export function drop_while(pred, xs) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     let iter = _iterator(iterable(xs));
     while (true) {
       let nextItem = iter.next();
@@ -879,7 +883,7 @@ export function drop_while(pred, xs) {
 }
 
 export function distinct(coll) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     let seen = new Set();
     for (const x of iterable(coll)) {
       if (!seen.has(x)) yield x;
@@ -924,7 +928,7 @@ export function every_QMARK_(pred, coll) {
 }
 
 export function keep(pred, coll) {
-  return new LazyIterable(function* () {
+  return lazy(function* () {
     for (const o of iterable(coll)) {
       const res = pred(o);
       if (res) yield res;
