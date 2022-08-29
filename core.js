@@ -873,3 +873,14 @@ export function drop_while(pred, xs) {
     yield* iter;
   });
 }
+
+export function distinct(coll) {
+  return new LazyIterable(function* () {
+    let seen = new Set();
+    for (const x of iterable(coll)) {
+      if (!seen.has(x)) yield x;
+      seen.add(x);
+    }
+    return;
+  });
+}

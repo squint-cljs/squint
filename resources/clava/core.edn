@@ -26,6 +26,7 @@
   disj_BANG_
   dissoc
   dissoc_BANG_
+  distinct
   drop
   drop_while
   empty
@@ -64,6 +65,7 @@
   reduce
   reduced
   reduced_QMARK_
+  remove
   repeat
   reset_BANG_
   rest
