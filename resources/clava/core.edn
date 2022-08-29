@@ -26,6 +26,7 @@
   disj_BANG_
   dissoc
   dissoc_BANG_
+  drop
   empty
   es6_iterator
   even_QMARK_
