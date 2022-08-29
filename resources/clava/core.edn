@@ -81,6 +81,7 @@
   system_time
   take
   take_while
+  update
   vec
   vector
   vector_QMARK_}
