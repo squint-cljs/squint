@@ -42,6 +42,7 @@
   fnil
   get
   get_in
+  group_by
   identical_QMARK_
   identity
   inc
@@ -96,6 +97,7 @@
   take
   take_while
   update
+  update_BANG_
   update_in
   vec
   vector
