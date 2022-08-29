@@ -776,6 +776,10 @@
     (is (eq () (jsv! '(vec (filter even? nil)))))
     (is (eq () (jsv! '(vec (filter even? js/undefined)))))))
 
+(deftest filterv-test
+  (is (= true (jsv! '(vector? (filterv even? [1 2 3 4 5 6 7 8 9])))))
+  (is (eq [[:a 1]] (jsv! '(filterv #(= :a (first %)) {:a 1 :b 2})))))
+
 (deftest map-indexed-test
   (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
           (jsv! '(map-indexed vector [0 1 2 3 4]))))

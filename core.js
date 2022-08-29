@@ -484,6 +484,10 @@ export function filter(pred, coll) {
   });
 }
 
+export function filterv(pred, coll) {
+  return [...filter(pred, coll)];
+}
+
 export function map_indexed(f, coll) {
   let ret = [];
   let i = 0;
