@@ -1064,7 +1064,9 @@
 
 (deftest update-in-test
   (is (eq {:a {:b 2}} (jsv! '(update-in {:a {:b 1}} [:a :b] inc))))
-  (is (eq {:a {:b 4}} (jsv! '(update-in {:a {:b 2}} [:a :b] + 2)))))
+  (is (eq {:a {:b 4}} (jsv! '(update-in {:a {:b 2}} [:a :b] + 2))))
+  (is (eq (update-in {:a {:b {}}} [:a :b :c] (fnil inc 0))
+          (jsv! (update-in {:a {:b {}}} [:a :b :c] (fnil inc 0))))))
 
 (deftest every?-test
   (is (= true (jsv! '(every? odd? nil))))
