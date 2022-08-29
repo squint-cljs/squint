@@ -809,3 +809,9 @@ export function partial(f, ...xs) {
     return f(...xs, ...args);
   };
 }
+
+export function cycle(coll) {
+  return new LazyIterable(function* () {
+    while (true) yield* coll;
+  });
+}

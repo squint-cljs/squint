@@ -1010,5 +1010,8 @@
     (is (= 3 (f 1)))
     (is (= 5 (f 1 1 1)))))
 
+(deftest cycle-test
+  (is (eq (take 10 (cycle [1 2 3])) (vec (jsv! '(take 10 (cycle [1 2 3])))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
