@@ -1126,5 +1126,11 @@
   (is (jsv! '(empty? #{})))
   (is (not (jsv! '(empty? #{1})))))
 
+(deftest repeatedly-test
+  (is (every? #(< % 10)
+              (take 10 (jsv! '(repeatedly #(rand-int 10))))))
+  (is (every? #(< % 10)
+              (jsv! '(repeatedly 5 #(rand-int 10))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
