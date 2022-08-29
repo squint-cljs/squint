@@ -600,7 +600,9 @@ export function vector_QMARK_(x) {
   return typeConst(x) === ARRAY_TYPE;
 }
 
-export const mapv = map;
+export function mapv(...args) {
+  return [...map(...args)];
+}
 
 export const vec = (x) => Array.from(iterable(x));
 
