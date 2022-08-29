@@ -19,6 +19,7 @@
   cons
   constantly
   contains_QMARK_
+  cycle
   dec
   deref
   disj
@@ -49,6 +50,7 @@
   not
   nth
   odd_QMARK_
+  partial
   partition
   partition_all
   pr_str
