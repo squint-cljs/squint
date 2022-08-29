@@ -854,19 +854,14 @@ export function drop(n, xs) {
 
 export function drop_while(pred, xs) {
   return new LazyIterable(function* () {
-    let iter = _iterator(iterable(xs));
-    while (true) {
-      let nextItem = iter.next();
-      if (nextItem.done) {
-        break;
-      }
-      let value = nextItem.value;
-      if (!pred(value)) {
-        yield value;
-        break;
+    let done_dropping = false;
+    for (const o of iterable(xs)) {
+      if (done_dropping) yield o;
+      else if (!pred(o)) {
+        yield o;
+        done_dropping = true;
       }
     }
-    yield* iter;
   });
 }
 
