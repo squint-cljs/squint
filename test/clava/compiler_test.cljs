@@ -1094,5 +1094,9 @@
   (is (eq (keep #(when (odd? %) (inc %)) [1 2 3])
           (vec (jsv! '(keep #(when (odd? %) (inc %)) [1 2 3]))))))
 
+(deftest reverse-test
+  (is (eq (reverse [1 2 3]) (jsv! '(reverse [1 2 3]))))
+  (is (eq (reverse (range 10)) (jsv! '(reverse (range 10))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

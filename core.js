@@ -935,3 +935,10 @@ export function keep(pred, coll) {
     }
   });
 }
+
+export function reverse(coll) {
+  if (coll instanceof Array) {
+    // performance: we don't need to copy to another array first
+    return coll.reverse();
+  } else return [...coll].reverse();
+}
