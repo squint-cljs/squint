@@ -1104,5 +1104,10 @@
   ;; TODO: implement compare?
   )
 
+(deftest shuffle-test
+  (let [shuffled (jsv! '(shuffle [1 2 3 4]))]
+    (doseq [i shuffled]
+      (is (contains? #{1 2 3 4} i)))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

@@ -954,3 +954,9 @@ export function sort(f, coll) {
   }
   return [...coll].sort(f);
 }
+
+export function shuffle(coll) {
+  return [...coll].sort(function (a, b) {
+    return Math.random() - 0.5;
+  });
+}
