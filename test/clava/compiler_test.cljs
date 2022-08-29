@@ -767,6 +767,32 @@
     (is (eq []
             (jsv! '(vec (map vector nil nil nil)))))))
 
+(deftest mapv-test
+  (is (eq [1 2 3 4 5] (jsv! '(mapv inc [0 1 2 3 4]))))
+  (is (every? (set (jsv! '(map inc #{0 1 2 3 4})))
+              [1 2 3 4 5]))
+  (is (eq [[:a 1] [:b 2]]
+          (jsv! '(mapv #(vector (first %) (inc (second %)))
+                        {:a 0 :b 1}))))
+  (is (eq ["A" "B" "C"]
+          (jsv! '(mapv #(.toUpperCase %) "abc"))))
+  (is (eq [[0 1] [1 2] [2 3] [3 4] [4 5]]
+          (jsv! '(mapv #(vector (first %) (inc (second %))) 
+                        (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
+                            (js/Map.))))))
+  (testing "nil"
+    (is (eq () (jsv! '(mapv inc nil))))
+    (is (eq () (jsv! '(mapv inc js/undefined)))))
+  (testing "multiple colls"
+    (is (eq [4 6] (jsv! '(mapv + [1 2] [3 4]))))
+    (is (eq ["1y" "2o"] (jsv! '(mapv str [1 2] "yolo"))))
+    (is (eq [[1 4 7] [2 5 8] [3 6 9]]
+            (jsv! '(vec (apply map vector [[1 2 3] [4 5 6] [7 8 9]])))))
+    (is (eq [[1,4],[2,5],[3,6]]
+            (jsv! '(mapv vector [1 2 3] [4 5 6 7 8 9]))))
+    (is (eq []
+            (jsv! '(mapv vector nil nil nil))))))
+
 (deftest filter-test
   (is (eq [2 4 6 8] (jsv! '(vec (filter even? [1 2 3 4 5 6 7 8 9])))))
   (is (every? (set (jsv! '(vec (filter even? #{1 2 3 4 5 6 7 8 9}))))
