@@ -1004,5 +1004,11 @@
   (is (= 6 (jsv! '(apply + [1 2 3]))))
   (is (= 6 (jsv! '(apply + (range 4))))))
 
+(deftest partial-test
+  (let [f (jsv! '(partial + 2))]
+    (is (= 2 (f)))
+    (is (= 3 (f 1)))
+    (is (= 5 (f 1 1 1)))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
