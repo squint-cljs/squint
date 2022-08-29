@@ -824,9 +824,27 @@ export function cycle(coll) {
 
 export function drop(n, xs) {
   return new LazyIterable(function* () {
-    let iter = _iterator(xs);
+    let iter = _iterator(iterable(xs));
     for (let x = 0; x < n; x++) {
       iter.next();
+    }
+    yield* iter;
+  });
+}
+
+export function drop_while(pred, xs) {
+  return new LazyIterable(function* () {
+    let iter = _iterator(iterable(xs));
+    while (true) {
+      let nextItem = iter.next();
+      if (nextItem.done) {
+        break;
+      }
+      let value = nextItem.value;
+      if (!pred(value)) {
+        yield value;
+        break;
+      }
     }
     yield* iter;
   });
