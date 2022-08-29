@@ -1112,5 +1112,10 @@
 (deftest some-test
   (is (= 1 (jsv! '(some #(when (odd? %) %) [2 1 2 1])))))
 
+(deftest replacement-test
+  (is (eq (replace {:a :b} [:a :a :c :c :a :c])
+          (replace {:a :b} [:a :a :c :c :a :c])))
+  (is (eq [:b :b] (vec (jsv! '(take 2 (replace {:a :b} (repeat :a))))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

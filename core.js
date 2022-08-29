@@ -967,3 +967,15 @@ export function some(pred, coll) {
     if (res) return res;
   }
 }
+
+export function replace(smap, coll) {
+  let mapf = coll instanceof Array ? mapv : map;
+  return mapf((x) => {
+    const repl = smap[x];
+    if (repl !== undefined) {
+      return repl;
+    } else {
+      return x;
+    }
+  }, coll);
+}
