@@ -987,3 +987,22 @@ export function empty_QMARK_(coll) {
 export function rand_int(n) {
   return Math.floor(Math.random() * n);
 }
+
+function _repeatedly(f) {
+  return lazy(function* () {
+    while (true) yield f();
+  });
+}
+
+export function repeatedly(n, f) {
+  if (f === undefined) {
+    f = n;
+    n = undefined;
+  }
+  const res = _repeatedly(f);
+  if (n) {
+    return take(n, res);
+  } else {
+    return res;
+  }
+}
