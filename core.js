@@ -1015,7 +1015,7 @@ export function update_BANG_(m, k, f, ...args) {
 }
 
 export function group_by(f, coll) {
-  const res = new Map();
+  const res = {};
   for (const o of iterable(coll)) {
     const key = f(o);
     update_BANG_(res, key, fnil(conj_BANG_, []), o);

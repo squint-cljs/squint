@@ -1134,7 +1134,8 @@
 
 (deftest group-by-test
   (is (eq [1 3] (jsv! '(get (group-by odd? [1 2 3 4]) true))))
-  (is (eq [2 4] (jsv! '(get (group-by odd? [1 2 3 4]) false)))))
+  (is (eq [2 4] (jsv! '(get (group-by odd? [1 2 3 4]) false))))
+  (is (eq [[1 [1 2 3]]] (jsv! '(get (group-by second [[1 [1 2 3]] [2 [3 4 5]]]) [1 2 3])))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
