@@ -150,7 +150,7 @@
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
-                         '? 'try 'break 'throw
+                         '? 'try 'break 'throw 'not
                          'js/await 'const 'let 'let* 'ns 'def 'loop*
                          'recur 'js* 'case* 'deftype* 'typeof
                          ;; prefixed to avoid conflicts
@@ -193,7 +193,8 @@
                       'defn core-defn
                       'defn- core-defn
                       'instance? macros/core-instance?
-                      'time macros/core-time})
+                      'time macros/core-time
+                      'declare macros/core-declare})
 
 (def core-config {:vars (edn-resource "clava/core.edn")})
 
@@ -246,21 +247,15 @@
                                 (emit-args env args)) ")"))
            (emit-wrap enc-env)))))
 
-(def ^{:dynamic true} var-declarations nil)
-
-#_(defmethod emit-special 'var [type env [var & more]]
-    (apply swap! var-declarations conj (filter identity (map (fn [name i] (when (odd? i) name)) more (iterate inc 1))))
-    (apply str (interleave (map (fn [[name expr]]
-                                  (str (when-not var-declarations "var ") (emit env name) " = " (emit env expr)))
-                                (partition 2 more))
-                           (repeat statement-separator))))
-
 (def ^:dynamic *recur-targets* [])
 
 (declare emit-do wrap-iife)
 
 (defmethod emit-special 'quote [_ env [_ form]]
   (emit-wrap env (emit form (expr-env (assoc env :quote true)))))
+
+(defmethod emit-special 'not [_ env [_ form]]
+  (emit-wrap env (str "!" (emit form (expr-env env)))))
 
 (defmethod emit-special 'typeof [_ env [_ form]]
   (emit-wrap env (str "typeof " (emit form (expr-env env)))))
