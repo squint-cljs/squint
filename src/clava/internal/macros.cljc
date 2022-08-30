@@ -193,7 +193,7 @@
   is called, and will cache the result and return it on all subsequent
   seq calls."
   [_ _ & body]
-  `(new cljs.core/LazySeq nil (fn [] ~@body) nil nil))
+  `(new cljs.core/LazySeq (fn [] ~@body)))
 
 (defn core-for
   "List comprehension. Takes a vector of one or more
