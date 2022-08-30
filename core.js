@@ -1022,3 +1022,12 @@ export function group_by(f, coll) {
   }
   return res;
 }
+
+export function frequencies(coll) {
+  const res = {};
+  const uf = fnil(inc, 0);
+  for (const o of iterable(coll)) {
+    update_BANG_(res, o, uf);
+  }
+  return res;
+}
