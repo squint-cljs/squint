@@ -1,6 +1,7 @@
 #{Atom
   IIterable
   IIterable__iterator
+  LazySeq
   PROTOCOL_SENTINEL
   _
   _PLUS_
