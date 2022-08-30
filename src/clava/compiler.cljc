@@ -204,17 +204,17 @@
 
 (def suffix-unary-operators '#{++ --})
 
-(def infix-operators '#{+ += - -= / * % = == === < > <= >= !=
-                        << >> <<< >>> !== & | && || not= instanceof})
+(def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "=" "==" "===" "<" ">" "<=" ">=" "!="
+                       "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"})
 
-(def chainable-infix-operators '#{+ - * / & | && ||})
+(def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||"})
 
 
 (defn special-form? [expr]
   (contains? special-forms expr))
 
 (defn infix-operator? [expr]
-  (contains? infix-operators expr))
+  (contains? infix-operators (name expr)))
 
 (defn prefix-unary? [expr]
   (contains? prefix-unary-operators expr))
@@ -235,7 +235,7 @@
 (defn emit-infix [_type enc-env [operator & args]]
   (let [env (assoc enc-env :context :expr)
         acount (count args)]
-    (when (and (not (chainable-infix-operators operator)) (> acount 2))
+    (when (and (not (chainable-infix-operators (name operator))) (> acount 2))
       (throw (Exception. (str "operator " operator " supports only 2 arguments"))))
     (if (and (= '- operator)
              (= 1 acount))
