@@ -511,3 +511,7 @@
                          (.toFixed (- (system-time) start#) 6)
                          " msecs"))
      ret#))
+
+(defn core-declare
+  "No-op for now"
+  [_ _ _expr])
