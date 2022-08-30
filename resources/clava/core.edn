@@ -40,6 +40,7 @@
   filterv
   first
   fnil
+  frequencies
   get
   get_in
   group_by

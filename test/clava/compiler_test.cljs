@@ -1137,5 +1137,8 @@
   (is (eq [2 4] (jsv! '(get (group-by odd? [1 2 3 4]) false))))
   (is (eq [[1 [1 2 3]]] (jsv! '(get (group-by second [[1 [1 2 3]] [2 [3 4 5]]]) [1 2 3])))))
 
+(deftest frequencies-test
+  (is (eq 3 (jsv! '(get (frequencies [:a :a :b :b :b]) :b)))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
