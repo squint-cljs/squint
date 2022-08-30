@@ -1031,3 +1031,12 @@ export function frequencies(coll) {
   }
   return res;
 }
+
+export class LazySeq {
+  constructor(f) {
+    this.f = f;
+  }
+  *[Symbol.iterator]() {
+    yield* this.f();
+  }
+}
