@@ -13,6 +13,7 @@
   assoc_in
   assoc_in_BANG_
   atom
+  butlast
   comp
   complement
   concat
@@ -30,6 +31,7 @@
   dissoc_BANG_
   distinct
   drop
+  drop_last
   drop_while
   empty
   empty_QMARK_

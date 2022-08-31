@@ -1140,5 +1140,17 @@
 (deftest frequencies-test
   (is (eq 3 (jsv! '(get (frequencies [:a :a :b :b :b]) :b)))))
 
+(deftest butlast-test
+  (is (eq nil (jsv! '(butlast nil))))
+  (is (eq nil (jsv! '(butlast []))))
+  (is (eq nil (jsv! '(butlast [1]))))
+  (is (eq [1] (jsv! '(butlast [1 2])))))
+
+(deftest drop-last-test
+  (is (eq [] (jsv! '(vec (drop-last nil)))))
+  (is (eq [] (jsv! '(vec (drop-last [])))))
+  (is (eq [] (jsv! '(vec (drop-last [1])))))
+  (is (eq [1] (jsv! '(vec (drop-last 2 [1 2 3]))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

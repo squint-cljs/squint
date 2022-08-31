@@ -1040,3 +1040,14 @@ export class LazySeq {
     yield* this.f();
   }
 }
+
+export function butlast(coll) {
+  let x = [...iterable(coll)];
+  x.pop();
+  return x.length > 0 ? x : null;
+}
+
+export function drop_last(...args) {
+  let [n, coll] = args.length > 1 ? args : [1, args[0]];
+  return map((x, _) => x, coll, drop(n, coll));
+}
