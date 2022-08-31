@@ -1032,6 +1032,10 @@
     (is (eq (take-while even? [1 1 1 2 3 4]) (vec taken))))
   (is (eq (take-while odd? nil) (vec (jsv! '(take-while odd? nil))))))
 
+(deftest take-nth-test
+  (is ["a" "a" "a"] (jsv! '(vec (take 3 (take-nth 0 ["a" "b"])))))
+  (is [1 4 7] (jsv! '(vec (take-nth 3 [1 2 3 4 5 6 7 8 9])))))
+
 (deftest +-test
   (is (zero? (jsv! '(apply + []))))
   (is (= 1 (jsv! '(apply + [1]))))

@@ -99,6 +99,7 @@
   swap_BANG_
   system_time
   take
+  take_nth
   take_while
   update
   update_BANG_

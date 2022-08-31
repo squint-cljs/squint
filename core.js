@@ -848,6 +848,22 @@ export function take_while(pred, coll) {
   });
 }
 
+export function take_nth(n, coll) {
+  if (n <= 0) {
+    return repeat(first(coll));
+  }
+
+  return lazy(function* () {
+    let i = 0;
+    for (let x of iterable(coll)) {
+      if (i % n === 0) {
+        yield x;
+      }
+      i++;
+    }
+  });
+}
+
 export function partial(f, ...xs) {
   return function (...args) {
     return f(...xs, ...args);
