@@ -441,7 +441,7 @@ class LazyIterable {
     this.gen = gen;
   }
   [IIterable] = true;
-  [IIterable__iterator]() {
+  [Symbol.iterator]() {
     return this.gen();
   }
 }
@@ -842,7 +842,7 @@ export function take(n, coll) {
 export function take_while(pred, coll) {
   return lazy(function* () {
     for (const o of iterable(coll)) {
-      if (pred(o)) yield val;
+      if (pred(o)) yield o;
       else return;
     }
   });
