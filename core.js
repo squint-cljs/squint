@@ -949,6 +949,10 @@ export function every_QMARK_(pred, coll) {
   return true;
 }
 
+export function not_every_QMARK_(pred, coll) {
+  return !every_QMARK_(pred, coll);
+}
+
 export function keep(pred, coll) {
   return lazy(function* () {
     for (const o of iterable(coll)) {
@@ -984,6 +988,10 @@ export function some(pred, coll) {
     const res = pred(o);
     if (res) return res;
   }
+}
+
+export function not_any_QMARK_(pred, coll) {
+  return !some(pred, coll);
 }
 
 export function replace(smap, coll) {
