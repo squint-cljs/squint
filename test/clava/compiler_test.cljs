@@ -1157,5 +1157,15 @@
   (is (eq [] (jsv! '(vec (drop-last [1])))))
   (is (eq [1] (jsv! '(vec (drop-last 2 [1 2 3]))))))
 
+(deftest split-at-test
+  (is (eq [[1] [2 3]] (jsv! '(mapv vec (split-at 1 [1 2 3])))))
+  (is (eq [[] []] (jsv! '(mapv vec (split-at 1 nil)))))
+  (is (eq [[] [1 2 3]] (jsv! '(mapv vec (split-at 0 [1 2 3]))))))
+
+(deftest split-with-test
+  (is (eq [[1] [2 3]] (jsv! '(mapv vec (split-with odd? [1 2 3])))))
+  (is (eq [[] []] (jsv! '(mapv vec (split-with odd? nil)))))
+  (is (eq [[0 2] [3 4]] (jsv! '(mapv vec (split-with even? [0 2 3 4]))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

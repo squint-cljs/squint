@@ -94,6 +94,8 @@
   shuffle
   some
   sort
+  split_at
+  split_with
   str
   subvec
   swap_BANG_

@@ -1067,3 +1067,11 @@ export function drop_last(...args) {
   let [n, coll] = args.length > 1 ? args : [1, args[0]];
   return map((x, _) => x, coll, drop(n, coll));
 }
+
+export function split_at(n, coll) {
+  return [take(n, coll), drop(n, coll)];
+}
+
+export function split_with(pred, coll) {
+  return [take_while(pred, coll), drop_while(pred, coll)];
+}
