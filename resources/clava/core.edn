@@ -64,6 +64,8 @@
   merge
   nil_QMARK_
   not
+  not_any_QMARK_
+  not_every_QMARK_
   nth
   odd_QMARK_
   partial
