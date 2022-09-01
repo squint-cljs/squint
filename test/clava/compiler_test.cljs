@@ -1095,6 +1095,10 @@
   (is (= true (jsv! '(every? str [0 1 3 6]))))
   (is (= false (jsv! '(every? identity [0 1 3 6])))))
 
+(deftest not-every?-test
+  (is (= false (jsv! '(not-every? odd? []))))
+  (is (= false (jsv! '(not-every? odd? [1 3 5])))))
+
 (deftest keep-test
   (is (eq (keep #(when (odd? %) (inc %)) [1 2 3])
           (vec (jsv! '(keep #(when (odd? %) (inc %)) [1 2 3]))))))
@@ -1116,6 +1120,10 @@
 
 (deftest some-test
   (is (= 1 (jsv! '(some #(when (odd? %) %) [2 1 2 1])))))
+
+(deftest not-any?-test
+  (is (= true (jsv! '(not-any? odd? [2 2 6 4]))))
+  (is (= true (jsv! '(not-any? odd? [])))))
 
 (deftest replacement-test
   (is (eq (replace {:a :b} [:a :a :c :c :a :c])
