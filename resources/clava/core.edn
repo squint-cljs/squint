@@ -39,6 +39,7 @@
   es6_iterator
   even_QMARK_
   every_QMARK_
+  false_QMARK_
   ffirst
   filter
   filterv
@@ -96,6 +97,7 @@
   set
   shuffle
   some
+  some_QMARK_
   sort
   split_at
   split_with
@@ -106,6 +108,7 @@
   take
   take_nth
   take_while
+  true_QMARK_
   update
   update_BANG_
   update_in
