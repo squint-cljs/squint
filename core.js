@@ -468,8 +468,8 @@ export function map(f, ...colls) {
         }
       });
     default:
-      const iters = colls.map((coll) => es6_iterator(iterable(coll)));
       return lazy(function* () {
+        const iters = colls.map((coll) => es6_iterator(iterable(coll)));
         while (true) {
           let args = [];
           for (const i of iters) {
