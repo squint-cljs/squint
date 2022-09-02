@@ -1182,5 +1182,9 @@
   (is (= 3 (jsv! '(count [1 2 3]))))
   (is (= 3 (jsv! '(count (take 3 (range)))))))
 
+(deftest logic-return
+  (is (= 2 (jsv! '(do (defn foo [a b] (and a b)) (foo 1 2)))))
+  (is (= 1 (jsv! '(do (defn foo [a b] (or a b)) (foo 1 2))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
