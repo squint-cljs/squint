@@ -3,7 +3,8 @@
    ["fs" :as fs]
    ["path" :as path]
    [clava.compiler :as compiler]
-   [clojure.test :as t :refer [async deftest is]]))
+   [clojure.test :as t :refer [async deftest is]])
+  (:require-macros [clava.eval-macro :refer [evalll]]))
 
 (defn compile! [str-or-expr]
   (let [s (if (string? str-or-expr)
@@ -14,13 +15,11 @@
 (def dyn-import (js/eval (js* "(x) => import(x)")))
 
 (deftest blank?-test
-  (async done
-   (let [prog (compile! '(do (ns foo (:require [clava.string :as str]))
-                             (def result (str/blank? ""))))]
-     (fs/writeFileSync "test.mjs" prog)
-     (.then (dyn-import (path/resolve (js/process.cwd) "test.mjs"))
-            #(do (is (.-result %))
-                 (done))))))
+  (evalll true
+          '(do (ns foo (:require [clava.string :as str]))
+               (def result (str/blank? "")))))
 
-
-
+(deftest join-test
+  (evalll "0--1--2--3--4--5--6--7--8--9"
+          '(do (ns foo (:require [clava.string :as str]))
+               (def result (str/join "--" (range 10))))))

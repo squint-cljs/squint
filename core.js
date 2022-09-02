@@ -323,8 +323,7 @@ export function seqable_QMARK_(x) {
   return typeof x === 'string' || x === null || x === undefined || Symbol.iterator in x;
 }
 
-// not public, since there is not CLJS core var name for this
-function iterable(x) {
+export function iterable(x) {
   // nil puns to empty iterable, support passing nil to first/rest/reduce, etc.
   if (x === null || x === undefined) {
     return [];
