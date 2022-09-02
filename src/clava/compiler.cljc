@@ -209,7 +209,6 @@
 
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||"})
 
-
 (defn special-form? [expr]
   (contains? special-forms expr))
 
@@ -235,17 +234,19 @@
 (defn emit-infix [_type enc-env [operator & args]]
   (let [env (assoc enc-env :context :expr)
         acount (count args)]
-    (when (and (not (chainable-infix-operators (name operator))) (> acount 2))
-      (throw (Exception. (str "operator " operator " supports only 2 arguments"))))
-    (if (and (= '- operator)
-             (= 1 acount))
-      (str "-" (emit (first args) env))
-      (->> (let [substitutions {'= "===" == "===" '!= "!=="
-                                'not= "!=="
-                                '+ "+"}]
-             (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
-                                (emit-args env args)) ")"))
-           (emit-wrap enc-env)))))
+    (if (and (not (chainable-infix-operators (name operator))) (> acount 2))
+      (emit (list 'cljs.core/and
+                  (list operator (first args) (second args))
+                  (list* operator (rest args))))
+      (if (and (= '- operator)
+               (= 1 acount))
+        (str "-" (emit (first args) env))
+        (->> (let [substitutions {'= "===" == "===" '!= "!=="
+                                  'not= "!=="
+                                  '+ "+"}]
+               (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
+                                  (emit-args env args)) ")"))
+             (emit-wrap enc-env))))))
 
 (def ^:dynamic *recur-targets* [])
 
@@ -553,10 +554,10 @@
     (str (emit test env) " ? " (emit then env) " : " (emit else env)))
 
 (defmethod emit-special 'and [_type env [_ & more]]
-  (emit-wrap env (apply str (interpose "&&" (emit-args env more)))))
+  (emit-wrap env (apply str (interpose " && " (emit-args env more)))))
 
 (defmethod emit-special 'or [_type env [_ & more]]
-  (emit-wrap env (apply str (interpose "||" (emit-args env more)))))
+  (emit-wrap env (apply str (interpose " || " (emit-args env more)))))
 
 (defn emit-do [env exprs]
   (let [bl (butlast exprs)
