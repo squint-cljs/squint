@@ -121,24 +121,23 @@
             fname (symbol fname)]
         (escape-jsx env (str (emit fname (dissoc (expr-env env) :jsx))
                              "." path)))
-      (let [munged-name (delay (munge* (name expr)))
+      (let [munged-name (fn [expr] (munge* (name expr)))
             expr (if-let [sym-ns (namespace expr)]
-                   (or (when (or (= "cljs.core" sym-ns)
-                                 (= "clojure.core" sym-ns))
-                         (maybe-core-var (symbol (name expr))))
-                       (when (= "js" sym-ns)
-                         (symbol (name expr)))
-                       (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
-                         (swap! *imported-vars* update resolved-ns (fnil conj #{}) @munged-name)
-                         nil)
-                       expr)
-                   (maybe-core-var expr))
-            #_#_expr-ns (namespace expr)
-            expr (if-let [renamed (get (:var->ident env) expr)]
-                   (str renamed)
-                   (str #_#_expr-ns (when expr-ns
-                                  ".")
-                        @munged-name))]
+                   (let [sn (symbol (name expr))]
+                     (or (when (or (= "cljs.core" sym-ns)
+                                   (= "clojure.core" sym-ns))
+                           (munge (maybe-core-var sn)))
+                         (when (= "js" sym-ns)
+                           (munge* (name expr)))
+                         (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
+                           (swap! *imported-vars* update resolved-ns (fnil conj #{}) (munged-name sn))
+                           (str sym-ns "_" (munged-name sn)))
+                         expr))
+                   (if-let [renamed (get (:var->ident env) expr)]
+                     (munge* (str renamed))
+                     (or
+                      (munge (maybe-core-var expr))
+                      (munged-name expr))))]
         (emit-wrap env
                    (escape-jsx env
                                (str expr)))))))
@@ -874,13 +873,19 @@ break;}" body)
                *jsx* false]
        (let [transpiled (transpile-string* s)
              imports (when-not elide-imports
-                       (reduce (fn [acc [k v]]
-                                 (str acc
-                                      (format "import { %s } from '%s'\n"
-                                              (str/join ", " v)
-                                              k)))
-                               ""
-                               @imported-vars))
+                       (let [ns->alias (zipmap (vals @aliases)
+                                               (keys @aliases))]
+                         (reduce (fn [acc [k v]]
+                                   (let [alias (get ns->alias k)
+                                         symbols (if alias
+                                                   (map #(str % " as " (str alias "_" %)) v)
+                                                   v)]
+                                     (str acc
+                                          (format "import { %s } from '%s'\n"
+                                                  (str/join ", " symbols)
+                                                  k))))
+                                 ""
+                                 @imported-vars)))
              exports (when-not elide-exports
                        (str
                         (when-let [vars (disj @public-vars "default$")]
