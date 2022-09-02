@@ -1175,5 +1175,12 @@
   (is (eq [[] []] (jsv! '(mapv vec (split-with odd? nil)))))
   (is (eq [[0 2] [3 4]] (jsv! '(mapv vec (split-with even? [0 2 3 4]))))))
 
+(deftest count-test
+  (is (= 3 (jsv! '(count "foo"))))
+  (is (= 0 (jsv! '(count nil))))
+  (is (= 0 (jsv! '(count []))))
+  (is (= 3 (jsv! '(count [1 2 3]))))
+  (is (= 3 (jsv! '(count (take 3 (range)))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
