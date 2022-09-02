@@ -27,6 +27,12 @@
           '(do (ns foo (:require [clava.string :as str]))
                (def result (str/join "--" (range 10))))))
 
+(deftest string-conflict-test
+  (evalll (fn [res]
+            (eq ["foo","bar"] res))
+          '(do (ns foo (:require [clava.string :as str]))
+               (defn split [x] (str x)) (def result (str/split "foo,bar" ",")))))
+
 (deftest split-test-string
   (evalll (fn [res]
             (eq ["foo","bar","baz"] res))
