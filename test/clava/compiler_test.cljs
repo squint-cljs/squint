@@ -759,6 +759,10 @@
     (is (eq () (jsv! '(vec (map inc js/undefined))))))
   (testing "multiple colls"
     (is (eq [4 6] (jsv! '(vec (map + [1 2] [3 4])))))
+    (testing "reusing seq"
+      (is (eq [2 2] (jsv! '(let [sum (map + [1 2] [3 4])]
+                             [(count sum) (count sum)])))))
+    (is (eq [4 6] (jsv! '(vec (map + [1 2] [3 4])))))
     (is (eq ["1y" "2o"] (jsv! '(vec (map str [1 2] "yolo")))))
     (is (eq [[1 4 7] [2 5 8] [3 6 9]]
             (jsv! '(vec (apply map vector [[1 2 3] [4 5 6] [7 8 9]])))))
