@@ -1193,5 +1193,11 @@
   ;; I would say this is undefined in clava for now:
   #_(is (true? (jsv! '(> 5)))))
 
+(deftest some?-test
+  (is (jsv! '(some? 1)))
+  (is (jsv! '(some? false)))
+  (is (jsv! '(not (some? nil))))
+  (is (jsv! '(not (some? js/undefined)))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))

@@ -1096,3 +1096,15 @@ export function count(coll) {
   }
   return ret;
 }
+
+export function true_QMARK_(x) {
+  return x === true;
+}
+
+export function false_QMARK_(x) {
+  return x === false;
+}
+
+export function some_QMARK_(x) {
+  return !(x === null || x === undefined);
+}
