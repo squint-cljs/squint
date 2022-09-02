@@ -1,9 +1,12 @@
 (ns clava.string-test
   (:require
+   #_:clj-kondo/ignore
    ["fs" :as fs]
+   #_:clj-kondo/ignore
    ["path" :as path]
    [clava.compiler :as compiler]
-   [clojure.test :as t :refer [async deftest is]])
+   [clava.test-utils :refer [eq]]
+   [clojure.test :as t :refer [deftest]])
   (:require-macros [clava.eval-macro :refer [evalll]]))
 
 (defn compile! [str-or-expr]
@@ -23,3 +26,15 @@
   (evalll "0--1--2--3--4--5--6--7--8--9"
           '(do (ns foo (:require [clava.string :as str]))
                (def result (str/join "--" (range 10))))))
+
+(deftest split-test-string
+  (evalll (fn [res]
+            (eq ["foo","bar","baz"] res))
+          '(do (ns foo (:require [clava.string :as str]))
+               (def result (str/split "foo--bar--baz" "--")))))
+
+(deftest split-test-regex
+  (evalll (fn [res]
+            (eq ["foo","bar","baz"] res))
+          '(do (ns foo (:require [clava.string :as str]))
+               (def result (str/split "fooxbarybaz" #"[xy]")))))

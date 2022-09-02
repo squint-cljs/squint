@@ -24,3 +24,11 @@ export function join(sep, coll) {
   }
   return ret;
 }
+
+export function trim(s) {
+  return s.trim();
+}
+
+export function split(s, re) {
+  return s.split(re);
+}
