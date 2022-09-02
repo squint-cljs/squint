@@ -1,6 +1,7 @@
 (ns clava.string-test
   (:require
    ["fs" :as fs]
+   ["path" :as path]
    [clava.compiler :as compiler]
    [clojure.test :as t :refer [async deftest is]]))
 
@@ -17,7 +18,7 @@
    (let [prog (compile! '(do (ns foo (:require [clava.string :as str]))
                              (def result (str/blank? ""))))]
      (fs/writeFileSync "test.mjs" prog)
-     (.then (dyn-import "/Users/borkdude/dev/clava/test.mjs")
+     (.then (dyn-import (path/resolve (js/process.cwd) "test.mjs"))
             #(do (is (.-result %))
                  (done))))))
 
