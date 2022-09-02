@@ -121,20 +121,24 @@
             fname (symbol fname)]
         (escape-jsx env (str (emit fname (dissoc (expr-env env) :jsx))
                              "." path)))
-      (let [expr (if-let [sym-ns (namespace expr)]
+      (let [munged-name (delay (munge* (name expr)))
+            expr (if-let [sym-ns (namespace expr)]
                    (or (when (or (= "cljs.core" sym-ns)
                                  (= "clojure.core" sym-ns))
                          (maybe-core-var (symbol (name expr))))
                        (when (= "js" sym-ns)
                          (symbol (name expr)))
+                       (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
+                         (swap! *imported-vars* update resolved-ns (fnil conj #{}) @munged-name)
+                         nil)
                        expr)
                    (maybe-core-var expr))
-            expr-ns (namespace expr)
+            #_#_expr-ns (namespace expr)
             expr (if-let [renamed (get (:var->ident env) expr)]
                    (str renamed)
-                   (str expr-ns (when expr-ns
+                   (str #_#_expr-ns (when expr-ns
                                   ".")
-                        (munge* (name expr))))]
+                        @munged-name))]
         (emit-wrap env
                    (escape-jsx env
                                (str expr)))))))
@@ -444,7 +448,7 @@
     (str
      (when (and as (= "default" p))
        (statement (format "import %s from '%s'" as libname)))
-     (when (and as (not p))
+     #_(when (and as (not p))
        (statement (format "import * as %s from '%s'" as libname)))
      (when refer
        (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
