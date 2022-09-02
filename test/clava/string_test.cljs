@@ -12,7 +12,7 @@
             (pr-str str-or-expr))]
     (compiler/compile-string s)))
 
-(def dyn-import (js/eval (js* "(x) => import(x)")))
+(def dyn-import (js/eval "(x) => import(x)"))
 
 (deftest blank?-test
   (evalll true
