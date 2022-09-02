@@ -7,8 +7,11 @@
                       (fs/writeFileSync filename# prog#)
                       (-> (~'dyn-import (path/resolve (js/process.cwd) filename#))
                           (.then
-                           #(do (cljs.test/is (= ~expected (.-result %)))
-                                ))
+                           (fn [~'mod]
+                             (do (cljs.test/is
+                                  ~(if (not (seq? expected))
+                                     `(= ~expected (.-result ~'mod))
+                                     `(~expected (.-result ~'mod)))))))
                           (.finally
                            #(do (fs/unlinkSync filename#)
                                 (~'done)))))))
