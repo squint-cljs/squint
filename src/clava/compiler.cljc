@@ -553,10 +553,10 @@
     (str (emit test env) " ? " (emit then env) " : " (emit else env)))
 
 (defmethod emit-special 'and [_type env [_ & more]]
-  (apply str (interpose "&&" (emit-args env more))))
+  (emit-wrap env (apply str (interpose "&&" (emit-args env more)))))
 
 (defmethod emit-special 'or [_type env [_ & more]]
-  (apply str (interpose "||" (emit-args env more))))
+  (emit-wrap env (apply str (interpose "||" (emit-args env more)))))
 
 (defn emit-do [env exprs]
   (let [bl (butlast exprs)
