@@ -1083,3 +1083,16 @@ export function split_at(n, coll) {
 export function split_with(pred, coll) {
   return [take_while(pred, coll), drop_while(pred, coll)];
 }
+
+export function count(coll) {
+  if (!coll) return 0;
+  const len = coll.length || coll.size;
+  if (typeof len === 'number') {
+    return len;
+  }
+  let ret = 0;
+  for (const o of iterable(coll)) {
+    ret++;
+  }
+  return ret;
+}
