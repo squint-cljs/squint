@@ -55,6 +55,7 @@
   interleave
   interpose
   into
+  iterable
   keep
   last
   list
