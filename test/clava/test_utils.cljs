@@ -1,12 +1,18 @@
 (ns clava.test-utils
   (:require
    ["clavascript/core.js" :as cl]
+   ["clavascript/string.js" :as clstr]
    ["lodash$default" :as ld]
    [clava.compiler :as clava]
    [clojure.test :as t]))
 
 (doseq [k (js/Object.keys cl)]
   (aset js/globalThis k (aget cl k)))
+
+(let [mut #js {}]
+  (aset js/globalThis "clava.string" mut)
+  (doseq [k (js/Object.keys clstr)]
+    (aset mut k (aget clstr k))))
 
 (defn eq [a b]
   (ld/isEqual (clj->js a) (clj->js b)))

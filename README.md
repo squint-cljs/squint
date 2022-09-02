@@ -1,6 +1,6 @@
 ## ClavaScript
 
-ClavaScript, or clava for friends, is an experimental ClojureScript syntax to
+ClavaScript is an experimental ClojureScript syntax to
 JavaScript compiler.
 
 > :warning: This project should be considered experimental and may still undergo
@@ -17,7 +17,7 @@ $ npm init -y
 $ npm install clavascript@latest
 ```
 
-Create a `.cljs` file, e.g. `example.cljs`:
+Create a `.cljs` or `.clvs` file, e.g. `example.cljs`:
 
 ``` clojure
 (ns example
@@ -35,16 +35,16 @@ Create a `.cljs` file, e.g. `example.cljs`:
 Then compile and run (`run` does both):
 
 ```
-$ npx clava run example.cljs
+$ npx clvs run example.cljs
 true
 6
 ```
 
-Run `npx clava --help` to see all command line options.
+Run `npx clvs --help` to see all command line options.
 
-## Why Clava
+## Why ClavaScript
 
-Clava lets you write CLJS syntax but emits small JS output, while still having
+ClavaScript lets you write CLJS syntax but emits small JS output, while still having
 parts of the CLJS standard library available (ported to mutable data structures,
 so with caveats). This may work especially well for projects e.g. that you'd
 like to deploy on CloudFlare workers, node scripts, Github actions, etc. that
@@ -52,7 +52,7 @@ need the extra performance, startup time and/or small bundle size.
 
 ## Differences with ClojureScript
 
-- Clava does not protect you in any way from the pitfalls of JS with regards to truthiness, mutability and equality
+- ClavaScript does not protect you in any way from the pitfalls of JS with regards to truthiness, mutability and equality
 - There is no CLJS standard library. The `"clavascript/core.js"` module has similar JS equivalents
 - Keywords are translated into strings
 - Maps, sequences and vectors are represented as mutable objects and arrays
@@ -66,8 +66,9 @@ need the extra performance, startup time and/or small bundle size.
 
 ### Seqs
 
-Clava does not implement Clojure seqs. Instead it uses the JavaScript
-[iteration protocols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols)
+ClavaScript does not implement Clojure seqs. Instead it uses the JavaScript
+[iteration
+protocols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols)
 to work with collections. What this means in practice is the following:
 
 - `seq` takes a collection and returns an Iterable of that collection, or nil if it's empty
@@ -86,7 +87,7 @@ the results.
 
 With respect to memory usage:
 
-- Lazy seqs in Clava are built on generators. They do not cache their results, so every time they are consumed, they are re-calculated from scratch.
+- Lazy seqs in ClavaScript are built on generators. They do not cache their results, so every time they are consumed, they are re-calculated from scratch.
 - Lazy seq function results hold on to their input, so if the input contains resources that should be garbage collected, it is recommended to limit their scope and convert their results to arrays when leaving the scope:
 
 
@@ -148,7 +149,7 @@ See an example of an application using JSX [here](https://clavascript.github.io/
 
 ## Async/await
 
-Clava supports `async/await`:
+ClavaScript supports `async/await`:
 
 ``` clojure
 (defn ^:async foo [] (js/Promise.resolve 10))
@@ -165,7 +166,6 @@ In arbitrary order, these features are planned:
 - Macros
 - REPL
 - Protocols
-- Transducers
 
 ## Core team
 
@@ -178,4 +178,4 @@ The core team consists of:
 License
 =======
 
-Clava is licensed under the EPL, the same as Clojure core and [Scriptjure](https://github.com/arohner/scriptjure). See epl-v10.html in the root directory for more information.
+ClavaScript is licensed under the EPL, the same as Clojure core and [Scriptjure](https://github.com/arohner/scriptjure). See epl-v10.html in the root directory for more information.

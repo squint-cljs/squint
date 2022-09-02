@@ -1,6 +1,7 @@
 (ns clava.compiler-test
   (:require
    [clava.jsx-test]
+   [clava.string-test]
    [clava.test-utils :refer [eq js! jss! jsv!]]
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]))
@@ -1204,4 +1205,4 @@
   (is (jsv! '(not (some? js/undefined)))))
 
 (defn init []
-  (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test))
+  (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test 'clava.string-test))
