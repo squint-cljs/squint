@@ -55,7 +55,7 @@
 ;; TODO: move to context argument
 (def ^:dynamic *aliases* (atom {}))
 (def ^:dynamic *async* false)
-(def ^:dynamic *imported-core-vars* (atom #{}))
+(def ^:dynamic *imported-vars* (atom {}))
 (def ^:dynamic *public-vars* (atom #{}))
 
 (defn statement [expr]
@@ -99,7 +99,7 @@
 (defn maybe-core-var [sym]
   (let [m (munge sym)]
     (if (contains? core-vars m)
-      (do (swap! *imported-core-vars* conj m)
+      (do (swap! *imported-vars* update "clavascript/core.js" (fnil conj #{}) m)
           m)
       sym)))
 
@@ -431,10 +431,13 @@
   (emit (core-let bindings more) env)
   #_(prn (core-let bindings more)))
 
+(defn resolve-ns [alias]
+  (case alias
+    (clava.string clojure.string) "clavascript/string.js"
+    alias))
+
 (defn process-require-clause [[libname & {:keys [refer as]}]]
-  (let [libname (case libname
-                  (clava.string clojure.string) "clavascript/string.js"
-                  libname)
+  (let [libname (resolve-ns libname)
         [libname suffix] (.split libname "$" 2)
         [p & _props] (when suffix
                        (.split suffix "."))]
@@ -454,10 +457,11 @@
                   (when (= :require k) exprs)))
                (reduce
                 (fn [aliases [full as alias]]
-                  (case as
-                    (:as :as-alias)
-                    (assoc aliases alias full)
-                    aliases))
+                  (let [full (resolve-ns full)]
+                    (case as
+                      (:as :as-alias)
+                      (assoc aliases alias full)
+                      aliases)))
                 {:current name})))
   (reduce (fn [acc [k & exprs]]
             (if (= :require k)
@@ -710,7 +714,7 @@ break;}" body)
    (let [env (dissoc env :jsx)]
      (if (:quote env)
        (do
-         (swap! *imported-core-vars* conj 'list)
+         (swap! *imported-vars* update "clavascript/core.js" (fnil conj #{}) 'list)
          (format "list(%s)"
                  (str/join ", " (emit-args env expr))))
        (cond (symbol? (first expr))
@@ -857,18 +861,22 @@ break;}" body)
   ([s] (compile-string* s nil))
   ([s {:keys [elide-exports
               elide-imports]}]
-   (let [core-vars (atom #{})
+   (let [imported-vars (atom {})
          public-vars (atom #{})
          aliases (atom {})]
-     (binding [*imported-core-vars* core-vars
+     (binding [*imported-vars* imported-vars
                *public-vars* public-vars
                *aliases* aliases
                *jsx* false]
        (let [transpiled (transpile-string* s)
-             imports (when-let [core-vars (and (not elide-imports)
-                                               (seq @core-vars))]
-                       (str (format "import { %s } from 'clavascript/core.js'\n"
-                                    (str/join ", " core-vars))))
+             imports (when-not elide-imports
+                       (reduce (fn [acc [k v]]
+                                 (str acc
+                                      (format "import { %s } from '%s'\n"
+                                              (str/join ", " v)
+                                              k)))
+                               ""
+                               @imported-vars))
              exports (when-not elide-exports
                        (str
                         (when-let [vars (disj @public-vars "default$")]
