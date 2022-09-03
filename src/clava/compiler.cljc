@@ -447,8 +447,12 @@
     (str
      (when (and as (= "default" p))
        (statement (format "import %s from '%s'" as libname)))
-     #_(when (and as (not p))
-       (statement (format "import * as %s from '%s'" as libname)))
+     (when (and (not as) (not p) (not refer))
+       ;; import presumably for side effects
+       (statement (format "import '%s'" libname)))
+     (when as
+       (swap! *imported-vars* update libname (fnil identity #{}))
+       nil)
      (when refer
        (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
 
