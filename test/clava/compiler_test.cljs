@@ -1,5 +1,6 @@
 (ns clava.compiler-test
   (:require
+   [clava.compiler :as compiler]
    [clava.jsx-test]
    [clava.string-test]
    [clava.test-utils :refer [eq js! jss! jsv!]]
@@ -1203,6 +1204,12 @@
   (is (jsv! '(some? false)))
   (is (jsv! '(not (some? nil))))
   (is (jsv! '(not (some? js/undefined)))))
+
+(deftest ns-test
+  (is (str/includes? (compiler/compile-string (pr-str '(ns foo (:require ["./popup.css" ]))))
+                     "import './popup.css'"))
+  (is (re-find #"import.*'./popup.css'"
+               (compiler/compile-string (pr-str '(ns foo (:require ["./popup.css" :as pop])))))))
 
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test 'clava.string-test))
