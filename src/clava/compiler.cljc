@@ -663,7 +663,11 @@ break;}" body)
         (str (when-not elide-function?
                (str (when *async*
                       "async ") "function "))
-             (comma-list (map munge sig)) " {\n"
+             (comma-list (map (fn [sym]
+                                (let [munged (munge sym)]
+                                  (if (:spread (meta sym))
+                                    (str "..." munged)
+                                    munged))) sig)) " {\n"
              (when (:type env)
                (str "var self__ = this;"))
              body "\n}")))))
