@@ -270,7 +270,7 @@
   (emit-wrap env (str "typeof " (emit form (expr-env env)))))
 
 (defmethod emit-special 'letfn* [_ env [_ form body]]
-  (emit-wrap env (emit `(let ~form ~@body) env)))
+  (emit `(let ~form ~@body) env))
 
 (defmethod emit-special 'quote [_ env [_ form]]
   (emit-wrap env (emit form (expr-env (assoc env :quote true)))))
