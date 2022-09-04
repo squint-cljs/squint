@@ -1211,5 +1211,8 @@
   (is (re-find #"import.*'./popup.css'"
                (compiler/compile-string (pr-str '(ns foo (:require ["./popup.css" :as pop])))))))
 
+(deftest letfn-test
+  (is (= 2 (jsv! '(letfn [(f [x] (g x)) (g [x] (inc x))] (f 2))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test 'clava.string-test))

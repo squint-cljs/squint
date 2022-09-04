@@ -154,8 +154,10 @@
                          'return 'delete 'new 'do 'aget 'while
                          'inc! 'dec! 'dec 'inc 'defined? 'and 'or
                          '? 'try 'break 'throw 'not
-                         'js/await 'const 'let 'let* 'ns 'def 'loop*
-                         'recur 'js* 'case* 'deftype* 'typeof
+                         'const 'let 'let* 'ns 'def 'loop*
+                         'recur 'js* 'case* 'deftype* 'letfn*
+                         ;; js
+                         'js/await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'clava-compiler-jsx]))
 
@@ -197,7 +199,8 @@
                       'defn- core-defn
                       'instance? macros/core-instance?
                       'time macros/core-time
-                      'declare macros/core-declare})
+                      'declare macros/core-declare
+                      'letfn macros/core-letfn})
 
 (def core-config {:vars (edn-resource "clava/core.edn")})
 
@@ -261,8 +264,14 @@
 (defmethod emit-special 'not [_ env [_ form]]
   (emit-wrap env (str "!" (emit form (expr-env env)))))
 
-(defmethod emit-special 'typeof [_ env [_ form]]
+(defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-wrap env (str "typeof " (emit form (expr-env env)))))
+
+(defmethod emit-special 'letfn* [_ env [_ form body]]
+  (emit-wrap env (emit `(let ~form ~@body) env)))
+
+(defmethod emit-special 'quote [_ env [_ form]]
+  (emit-wrap env (emit form (expr-env (assoc env :quote true)))))
 
 (defn emit-let [enc-env bindings body is-loop]
   (let [context (:context enc-env)
