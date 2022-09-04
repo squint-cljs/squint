@@ -3,8 +3,9 @@
 ClavaScript is an experimental ClojureScript syntax to
 JavaScript compiler.
 
-It is not intended as a _replacement_ for ClojureScript but as a tool target JS
-for anything you would not use ClojureScript proper for.
+It is not intended as a replacement for ClojureScript but as a tool to target JS
+for anything you would not use ClojureScript, for whatever reason: performance,
+bundle size, ease of interop, etc.
 
 > :warning: This project should be considered experimental and may still undergo
 > breaking changes. It's fine to use it for non-critical projects but don't use
