@@ -525,5 +525,5 @@
    :special-form true, :url nil}
   [_ _ fnspecs & body]
   `(letfn* ~(vec (interleave (map first fnspecs)
-                             (map #(cons `fn %) fnspecs)))
+                             (map #(cons `fn (rest %)) fnspecs)))
            ~@body))
