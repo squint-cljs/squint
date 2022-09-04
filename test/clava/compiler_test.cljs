@@ -1218,5 +1218,8 @@
 (deftest refer-clojure-exclude-test
   (is (= "yolo" (jsv! '(do (ns foo (:refer-clojure :exclude [assoc])) (defn assoc [m x y] :yolo) (assoc {} :foo :bar))))))
 
+(deftest double-names-in-sig-test
+  (is (= 2 (jsv! '(do (defn foo [x x] x) (foo 1 2))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test 'clava.string-test))

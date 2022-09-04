@@ -632,28 +632,41 @@
 
 (declare emit-function*)
 
+(defn ->sig [env sig]
+  (reduce (fn [[env sig seen] param]
+            (if (contains? seen param)
+              (let [new-param (gensym param)
+                    env (update env :var->ident assoc param new-param)
+                    sig (conj sig new-param)
+                    seen (conj seen param)]
+                [env sig seen])
+              [env (conj sig param) (conj seen param)]))
+          [env [] #{}]
+          sig))
+
 (defn emit-function [env name sig body & [elide-function?]]
   (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
-  (binding [*recur-targets* sig]
-    (let [recur? (volatile! nil)
-          env (assoc env :recur-callback
-                     (fn [coll]
-                       (when (identical? sig coll)
-                         (vreset! recur? true))))
-          body (emit-do (assoc env :context :return) body)
-          body (if @recur?
-                 (format "while(true){
+  (let [[env sig] (->sig env sig)]
+    (binding [*recur-targets* sig]
+      (let [recur? (volatile! nil)
+            env (assoc env :recur-callback
+                       (fn [coll]
+                         (when (identical? sig coll)
+                           (vreset! recur? true))))
+            body (emit-do (assoc env :context :return) body)
+            body (if @recur?
+                   (format "while(true){
 %s
 break;}" body)
-                 body)]
-      (str (when-not elide-function?
-             (str (when *async*
-                    "async ") "function "))
-           (comma-list (map munge sig)) " {\n"
-           (when (:type env)
-             (str "var self__ = this;"))
-           body "\n}"))))
+                   body)]
+        (str (when-not elide-function?
+               (str (when *async*
+                      "async ") "function "))
+             (comma-list (map munge sig)) " {\n"
+             (when (:type env)
+               (str "var self__ = this;"))
+             body "\n}")))))
 
 (defn emit-function* [env expr]
   (let [name (when (symbol? (first expr)) (first expr))
