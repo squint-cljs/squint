@@ -665,7 +665,7 @@ break;}" body)
                       "async ") "function "))
              (comma-list (map (fn [sym]
                                 (let [munged (munge sym)]
-                                  (if (:spread (meta sym))
+                                  (if (:... (meta sym))
                                     (str "..." munged)
                                     munged))) sig)) " {\n"
              (when (:type env)
