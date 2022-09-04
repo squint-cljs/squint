@@ -1214,5 +1214,8 @@
 (deftest letfn-test
   (is (= 2 (jsv! '(letfn [(f [x] (g x)) (g [x] (inc x))] (f 2))))))
 
+(deftest refer-clojure-exclude-test
+  (is (= "yolo" (jsv! '(do (ns foo (:refer-clojure :exclude [assoc])) (defn assoc [m x y] :yolo) (assoc {} :foo :bar))))))
+
 (defn init []
   (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test 'clava.string-test))
