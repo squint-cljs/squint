@@ -269,8 +269,14 @@
 (defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-wrap env (str "typeof " (emit form (expr-env env)))))
 
-(defmethod emit-special 'letfn* [_ env [_ form body]]
-  (emit `(let ~form ~@body) env))
+(defmethod emit-special 'letfn* [_ env [_ form & body]]
+  (let [bindings (take-nth 2 form)
+        fns (take-nth 2 (rest form))
+        sets (map (fn [binding fn]
+                    `(set! ~binding ~fn))
+                  bindings fns)
+        let `(let ~(vec (interleave bindings (repeat nil))) ~@sets ~@body)]
+    (emit let env)))
 
 (defmethod emit-special 'quote [_ env [_ form]]
   (emit-wrap env (emit form (expr-env (assoc env :quote true)))))
