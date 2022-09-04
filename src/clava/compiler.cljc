@@ -56,6 +56,7 @@
 (def ^:dynamic *aliases* (atom {}))
 (def ^:dynamic *async* false)
 (def ^:dynamic *imported-vars* (atom {}))
+(def ^:dynamic *excluded-core-vars* (atom #{}))
 (def ^:dynamic *public-vars* (atom #{}))
 
 (defn statement [expr]
@@ -98,7 +99,8 @@
 
 (defn maybe-core-var [sym]
   (let [m (munge sym)]
-    (if (contains? core-vars m)
+    (if (and (contains? core-vars m)
+             (not (contains? @*excluded-core-vars* m)))
       (do (swap! *imported-vars* update "clavascript/core.js" (fnil conj #{}) m)
           m)
       sym)))
@@ -480,12 +482,16 @@
                       aliases)))
                 {:current name})))
   (reduce (fn [acc [k & exprs]]
-            (if (= :require k)
+            (cond
+              (= :require k)
               (str acc (str/join "" (map process-require-clause exprs)))
-              acc))
+              (= :refer-clojure k)
+              (let [{:keys [exclude]} exprs]
+                (swap! *excluded-core-vars* into exclude)
+                acc)
+              :else acc))
           ""
-          clauses
-          ))
+          clauses))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
   (emit-wrap env
@@ -883,7 +889,8 @@ break;}" body)
      (binding [*imported-vars* imported-vars
                *public-vars* public-vars
                *aliases* aliases
-               *jsx* false]
+               *jsx* false
+               *excluded-core-vars* (atom #{})]
        (let [transpiled (transpile-string* s)
              imports (when-not elide-imports
                        (let [ns->alias (zipmap (vals @aliases)
