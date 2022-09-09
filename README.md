@@ -41,12 +41,12 @@ Create a `.cljs` or `.clvs` file, e.g. `example.cljs`:
 Then compile and run (`run` does both):
 
 ```
-$ npx clvs run example.cljs
+$ npx squint run example.cljs
 true
 6
 ```
 
-Run `npx clvs --help` to see all command line options.
+Run `npx squint --help` to see all command line options.
 
 ## Why Squint
 
