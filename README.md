@@ -1,9 +1,8 @@
-## ClavaScript
+## Squint
 
-ClavaScript is an experimental ClojureScript syntax to
-JavaScript compiler.
+Squint is an experimental ClojureScript syntax to JavaScript compiler.
 
-ClavaScript is not intended as a replacement for ClojureScript but as a tool to
+Squint is not intended as a replacement for ClojureScript but as a tool to
 target JS for anything you would not use ClojureScript for, for whatever reason:
 performance, bundle size, ease of interop, etc.
 
@@ -11,14 +10,17 @@ performance, bundle size, ease of interop, etc.
 > breaking changes. It's fine to use it for non-critical projects but don't use
 > it in production yet.
 
+Squint was previously called ClavaScript and the name may appear in some places
+in this README.  Please file an issue or PR if you spot one.
+
 ## Quickstart
 
-Although it's early days, you're welcome to try out `clava` and submit issues.
+Although it's early days, you're welcome to try out `squint` and submit issues.
 
 ``` shell
-$ mkdir clava-test && cd clava-test
+$ mkdir squint-test && cd squint-test
 $ npm init -y
-$ npm install clavascript@latest
+$ npm install squint-cljs@latest
 ```
 
 Create a `.cljs` or `.clvs` file, e.g. `example.cljs`:
@@ -46,9 +48,9 @@ true
 
 Run `npx clvs --help` to see all command line options.
 
-## Why ClavaScript
+## Why Squint
 
-ClavaScript lets you write CLJS syntax but emits small JS output, while still having
+Squint lets you write CLJS syntax but emits small JS output, while still having
 parts of the CLJS standard library available (ported to mutable data structures,
 so with caveats). This may work especially well for projects e.g. that you'd
 like to deploy on CloudFlare workers, node scripts, Github actions, etc. that
@@ -56,8 +58,8 @@ need the extra performance, startup time and/or small bundle size.
 
 ## Differences with ClojureScript
 
-- ClavaScript does not protect you in any way from the pitfalls of JS with regards to truthiness, mutability and equality
-- There is no CLJS standard library. The `"clavascript/core.js"` module has similar JS equivalents
+- Squint does not protect you in any way from the pitfalls of JS with regards to truthiness, mutability and equality
+- There is no CLJS standard library. The `"squint-cljs/core.js"` module has similar JS equivalents
 - Keywords are translated into strings
 - Maps, sequences and vectors are represented as mutable objects and arrays
 - Most functions return arrays and objects, not custom data structures
@@ -70,7 +72,7 @@ need the extra performance, startup time and/or small bundle size.
 
 ### Seqs
 
-ClavaScript does not implement Clojure seqs. Instead it uses the JavaScript
+Squint does not implement Clojure seqs. Instead it uses the JavaScript
 [iteration
 protocols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols)
 to work with collections. What this means in practice is the following:
@@ -91,7 +93,7 @@ the results.
 
 With respect to memory usage:
 
-- Lazy seqs in ClavaScript are built on generators. They do not cache their results, so every time they are consumed, they are re-calculated from scratch.
+- Lazy seqs in squint are built on generators. They do not cache their results, so every time they are consumed, they are re-calculated from scratch.
 - Lazy seq function results hold on to their input, so if the input contains resources that should be garbage collected, it is recommended to limit their scope and convert their results to arrays when leaving the scope:
 
 
@@ -153,7 +155,7 @@ See an example of an application using JSX [here](https://clavascript.github.io/
 
 ## Async/await
 
-ClavaScript supports `async/await`:
+squint supports `async/await`:
 
 ``` clojure
 (defn ^:async foo [] (js/Promise.resolve 10))
@@ -182,4 +184,4 @@ The core team consists of:
 License
 =======
 
-ClavaScript is licensed under the EPL, the same as Clojure core and [Scriptjure](https://github.com/arohner/scriptjure). See epl-v10.html in the root directory for more information.
+Squint is licensed under the EPL, the same as Clojure core and [Scriptjure](https://github.com/arohner/scriptjure). See epl-v10.html in the root directory for more information.
