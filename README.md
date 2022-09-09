@@ -23,7 +23,7 @@ $ npm init -y
 $ npm install squint-cljs@latest
 ```
 
-Create a `.cljs` or `.clvs` file, e.g. `example.cljs`:
+Create a `.cljs` file, e.g. `example.cljs`:
 
 ``` clojure
 (ns example
