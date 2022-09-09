@@ -1,5 +1,5 @@
 {
-  "name": "clavascript",
+  "name": "squint-cljs",
   "type": "module",
   "sideEffects": false,
   "version": "0.0.0-alpha.42",
@@ -11,7 +11,7 @@
     "index.js"
   ],
   "bin": {
-    "clava": "node_cli.js"
+    "squint": "node_cli.js"
   },
   "devDependencies": {
     "@babel/core": "^7.18.13",
