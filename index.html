@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Clava</title>
+    <title>Squint</title>
     <meta content="width=device-width, initial-scale=1" name="viewport">
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
     <meta content="utf-8" http-equiv="encoding">
@@ -9,14 +9,14 @@
     <script type="importmap">
       {
         "imports": {
-          "clavascript": "https://cdn.jsdelivr.net/npm/clavascript@0.0.0-alpha.42/index.js",
-          "clavascript/core.js": "https://cdn.jsdelivr.net/npm/clavascript@0.0.0-alpha.42/core.js",
-          "clavascript/string.js": "https://cdn.jsdelivr.net/npm/clavascript@0.0.0-alpha.42/string.js"
+          "squint-cljs": "https://cdn.jsdelivr.net/npm/squint-cljs@0.0.0-alpha.42/index.js",
+          "squint-cljs/core.js": "https://cdn.jsdelivr.net/npm/squint-cljs@0.0.0-alpha.42/core.js",
+          "squint-cljs/string.js": "https://cdn.jsdelivr.net/npm/squint-cljs@0.0.0-alpha.42/string.js"
         }
       }
     </script>
     <script type="module">
-      import { compileString } from 'clavascript'
+      import { compileString } from 'squint-cljs'
       var counter = 0;
       window.compile = () => {
         counter = counter + 1;
@@ -32,7 +32,7 @@
   </head>
   <body>
     <div style="float: right;">
-      <a href="https://gitHub.com/clavascript/clava"><img src="https://img.shields.io/github/stars/clavascript/clava.svg?style=social&label=Star"></a></div>
+      <a href="https://gitHub.com/squint-cljs/squint"><img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a></div>
     <div>
       <textarea rows="6" cols="80" id="cljsCode">(def x {:a 1})
 
