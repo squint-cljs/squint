@@ -1,4 +1,4 @@
-(ns clava.resource
+(ns squint.resource
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]))
 

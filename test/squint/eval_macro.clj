@@ -1,4 +1,4 @@
-(ns clava.eval-macro)
+(ns squint.eval-macro)
 
 (defmacro evalll [expected body]
   `(cljs.test/async ~'done

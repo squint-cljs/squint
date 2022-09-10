@@ -8,7 +8,7 @@
 ;;   license.  You must not remove this notice, or any other, from this
 ;;   software.
 
-(ns clava.internal.fn)
+(ns squint.internal.fn)
 
 #?(:cljs (def Exception js/Error))
 
@@ -131,7 +131,7 @@
                              :method-params (cond-> sigs #_#_macro? elide-implicit-macro-args)
                              :arglists (cond-> arglists #_#_macro? elide-implicit-macro-args)
                              :arglists-meta (doall (map clojure.core/meta arglists))}
-                            :clava.compiler/no-rename true)
+                            :squint.compiler/no-rename true)
             args-sym (gensym "args")
             param-counts (map count arglists)
             name     (with-meta name meta)
@@ -196,7 +196,7 @@
                         :method-params (cond-> [sig] macro? elide-implicit-macro-args)
                         :arglists (cond-> (list arglist) macro? elide-implicit-macro-args)
                         :arglists-meta (doall (map clojure.core/meta [arglist]))}
-                       :clava.compiler/no-rename true)
+                       :squint.compiler/no-rename true)
           name  (with-meta name meta)
           args-sym (gensym "args")]
       `(let [~name

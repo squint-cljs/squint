@@ -1,8 +1,8 @@
-(ns clava.compiler.node
+(ns squint.compiler.node
   (:require
    ["fs" :as fs]
    ["path" :as path]
-   [clava.compiler :as compiler]
+   [squint.compiler :as compiler]
    [clojure.string :as str]
    [edamame.core :as e]
    [sci.core :as sci]))
@@ -36,7 +36,7 @@
 
 (defn scan-macros [file]
   (let [s (slurp file)
-        maybe-ns (e/parse-next (e/reader s) compiler/clava-parse-opts)]
+        maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
     (when (and (seq? maybe-ns)
                (= 'ns (first maybe-ns)))
       (let [[_ns _name & clauses] maybe-ns

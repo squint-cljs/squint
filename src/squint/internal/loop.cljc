@@ -8,8 +8,8 @@
 ;;   license.  You must not remove this notice, or any other, from this
 ;;   software.
 
-(ns clava.internal.loop
-  (:require [clava.internal.destructure :refer [destructure]]))
+(ns squint.internal.loop
+  (:require [squint.internal.destructure :refer [destructure]]))
 
 (defn core-loop
   "Evaluates the exprs in a lexical context in which the symbols in

@@ -8,7 +8,7 @@
 ;;   license.  You must not remove this notice, or any other, from this
 ;;   software.
 
-(ns clava.internal.macros
+(ns squint.internal.macros
   (:require [clojure.string :as str]))
 
 (defn core->
