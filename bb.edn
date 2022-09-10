@@ -1,8 +1,8 @@
 {:min-bb-version "0.9.161"
  :paths ["src" "resources" "bb"]
  :tasks {:requires ([tasks :as t])
-         build (t/build-clava-npm-package)
+         build (t/build-squint-npm-package)
          publish (t/publish)
-         dev (t/watch-clava)
+         dev (t/watch-squint)
          test {:doc "Run tests"
-               :task (t/test-clava)}}}
+               :task (t/test-squint)}}}

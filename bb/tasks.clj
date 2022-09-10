@@ -14,8 +14,8 @@
 
 (defn shadow-extra-config
   []
-  (let [core-config (edn/read-string (slurp (io/resource "clava/cljs.core.edn")))
-        reserved (edn/read-string (slurp (io/resource "clava/js_reserved.edn")))
+  (let [core-config (edn/read-string (slurp (io/resource "squint/cljs.core.edn")))
+        reserved (edn/read-string (slurp (io/resource "squint/js_reserved.edn")))
         vars (:vars core-config)
         ks (map #(symbol (munge* % reserved)) vars)
         vs (map #(symbol "cljs.core" (str %)) vars)
@@ -26,7 +26,7 @@
 
 (def test-config
   '{:compiler-options {:load-tests true}
-    :modules {:clava_tests {:init-fn clava.compiler-test/init
+    :modules {:squint_tests {:init-fn squint.compiler-test/init
                              :depends-on #{:compiler}}}})
 
 (defn shadow-extra-test-config []
@@ -37,35 +37,35 @@
 
 (defn bump-core-vars []
   (let [core-vars (:out (shell {:out :string}
-                               "node --input-type=module -e 'import * as clava from \"clavascript/core.js\";console.log(JSON.stringify(Object.keys(clava)))'"))
+                               "node --input-type=module -e 'import * as squint from \"squint-cljs/core.js\";console.log(JSON.stringify(Object.keys(squint)))'"))
         parsed (apply sorted-set (map symbol (json/parse-string core-vars)))]
-    (spit "resources/clava/core.edn" (with-out-str
+    (spit "resources/squint/core.edn" (with-out-str
                                        ((requiring-resolve 'clojure.pprint/pprint)
                                         parsed)))))
 
-(defn build-clava-npm-package []
+(defn build-squint-npm-package []
   (fs/create-dirs ".work")
   (fs/delete-tree "lib")
   (fs/delete-tree ".shadow-cljs")
   (bump-core-vars)
   (spit ".work/config-merge.edn" (shadow-extra-config))
-  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release clava"))
+  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release squint"))
 
 (defn publish []
-  (build-clava-npm-package)
+  (build-squint-npm-package)
   (run! fs/delete (fs/glob "lib" "*.map"))
   (shell "npm publish"))
 
-(defn watch-clava []
+(defn watch-squint []
   (fs/create-dirs ".work")
-  (fs/delete-tree ".shadow-cljs/builds/clava/dev/ana/clava")
+  (fs/delete-tree ".shadow-cljs/builds/squint/dev/ana/squint")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
   (bump-core-vars)
-  (shell "npx shadow-cljs --config-merge .work/config-merge.edn watch clava"))
+  (shell "npx shadow-cljs --config-merge .work/config-merge.edn watch squint"))
 
-(defn test-clava []
+(defn test-squint []
   (fs/create-dirs ".work")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
   (bump-core-vars)
-  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release clava")
-  (shell "node lib/clava_tests.js"))
+  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release squint")
+  (shell "node lib/squint_tests.js"))

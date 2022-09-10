@@ -1,4 +1,4 @@
-(ns clava.internal.protocols
+(ns squint.internal.protocols
   (:require [clojure.core :as core]))
 
 (core/defn- emit-protocol-method-arity

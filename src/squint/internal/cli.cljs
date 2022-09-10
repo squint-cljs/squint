@@ -1,11 +1,11 @@
-(ns clava.internal.cli
+(ns squint.internal.cli
   (:require
    ["fs" :as fs]
    ["path" :as path]
    [babashka.cli :as cli]
-   [clava.compiler :as cc]
-   [clava.compiler.node :as compiler]
-   [shadow.esm :as esm]))
+   [shadow.esm :as esm]
+   [squint.compiler :as cc]
+   [squint.compiler.node :as compiler]))
 
 (defn compile-files
   [files]
@@ -13,16 +13,16 @@
             (-> (js/Promise.resolve prev)
                 (.then
                  #(do
-                    (println "[clava] Compiling CLJS file:" f)
+                    (println "[squint] Compiling CLJS file:" f)
                     (compiler/compile-file {:in-file f})))
                 (.then (fn [{:keys [out-file]}]
-                         (println "[clava] Wrote JS file:" out-file)
+                         (println "[squint] Wrote JS file:" out-file)
                          out-file))))
           nil
           files))
 
 (defn print-help []
-  (println "Clava v0.0.0
+  (println "Squint v0.0.0
 
 Usage:
 
@@ -34,7 +34,7 @@ help                      Print this help"))
   (if-let [e (:e opts)]
     (let [res (cc/compile-string e)
           dir (fs/mkdtempSync ".tmp")
-          f (str dir "/clava.mjs")]
+          f (str dir "/squint.mjs")]
       (fs/writeFileSync f res "utf-8")
       (when (:show opts)
         (println res))
@@ -52,7 +52,7 @@ help                      Print this help"))
 
 (defn run [{:keys [opts]}]
   (let [{:keys [file]} opts]
-    (println "[clava] Running" file)
+    (println "[squint] Running" file)
     (.then (compiler/compile-file {:in-file file})
            (fn [{:keys [out-file]}]
              (let [path (if (path/isAbsolute out-file) out-file

@@ -8,7 +8,7 @@
 ;;   license.  You must not remove this notice, or any other, from this
 ;;   software.
 
-(ns clava.internal.destructure
+(ns squint.internal.destructure
   (:refer-clojure :exclude [destructure]))
 
 (defn destructure [bindings]

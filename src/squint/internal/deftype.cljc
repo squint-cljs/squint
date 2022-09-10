@@ -1,6 +1,7 @@
-(ns clava.internal.deftype
-  (:require [clava.internal.protocols :as p]
-            [clojure.core :as core]))
+(ns squint.internal.deftype
+  (:require
+   [clojure.core :as core]
+   [squint.internal.protocols :as p]))
 
 (def fast-path-protocols
   "protocol fqn -> [partition number, bit]"

@@ -1,16 +1,16 @@
-(ns clava.test-utils
+(ns squint.test-utils
   (:require
-   ["clavascript/core.js" :as cl]
-   ["clavascript/string.js" :as clstr]
    ["lodash$default" :as ld]
-   [clava.compiler :as clava]
-   [clojure.test :as t]))
+   ["squint-cljs/core.js" :as cl]
+   ["squint-cljs/string.js" :as clstr]
+   [clojure.test :as t]
+   [squint.compiler :as squint]))
 
 (doseq [k (js/Object.keys cl)]
   (aset js/globalThis k (aget cl k)))
 
 (let [mut #js {}]
-  (aset js/globalThis "clava.string" mut)
+  (aset js/globalThis "squint.string" mut)
   (doseq [k (js/Object.keys clstr)]
     (aset mut k (aget clstr k))))
 
@@ -31,8 +31,8 @@
 
 (defn jss! [expr]
   (if (string? expr)
-    (:body (clava/compile-string* expr))
-    (clava/transpile-form expr)))
+    (:body (squint/compile-string* expr))
+    (squint/transpile-form expr)))
 
 (defn js! [expr]
   (let [js (jss! expr)]

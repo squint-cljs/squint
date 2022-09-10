@@ -1,9 +1,9 @@
-(ns clava.compiler-test
+(ns squint.compiler-test
   (:require
-   [clava.compiler :as compiler]
-   [clava.jsx-test]
-   [clava.string-test]
-   [clava.test-utils :refer [eq js! jss! jsv!]]
+   [squint.compiler :as compiler]
+   [squint.jsx-test]
+   [squint.string-test]
+   [squint.test-utils :refer [eq js! jss! jsv!]]
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]))
 
@@ -1196,7 +1196,7 @@
   (is (true? (jsv! '(> 5 4 3 2 1))))
   (is (true? (jsv! '(> 5 4 3))))
   (is (true? (jsv! '(> 5 4))))
-  ;; I would say this is undefined in clava for now:
+  ;; I would say this is undefined in squint for now:
   #_(is (true? (jsv! '(> 5)))))
 
 (deftest some?-test
@@ -1222,4 +1222,4 @@
   (is (= 2 (jsv! '(do (defn foo [x x] x) (foo 1 2))))))
 
 (defn init []
-  (cljs.test/run-tests 'clava.compiler-test 'clava.jsx-test 'clava.string-test))
+  (cljs.test/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

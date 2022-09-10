@@ -1,10 +1,14 @@
-(ns clava.jsx-test
+(ns squint.jsx-test
   (:require
    ["@babel/core" :refer [transformSync]]
    ["react" :as React]
-   [clava.test-utils :refer [jss!]]
    [clojure.test :as t :refer [deftest is]]
-   [goog.object :as gobject]))
+   [goog.object :as gobject]
+   [squint.test-utils :refer [jss!]]
+   #_:clj-kondo/ignore
+   ["fs" :as fs]
+   #_:clj-kondo/ignore
+   ["path" :as path]))
 
 (gobject/set js/global "React" React)
 

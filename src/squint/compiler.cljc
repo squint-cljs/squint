@@ -8,21 +8,21 @@
 ;; agreeing to be bound by the terms of this license.  You must not
 ;; remove this notice, or any other, from this software.
 
-(ns clava.compiler
+(ns squint.compiler
   (:require
-   #?(:cljs [goog.string.format])
-   #?(:cljs [goog.string :as gstring])
-   [clava.internal.deftype :as deftype]
-   [clava.internal.destructure :refer [core-let]]
-   [clava.internal.fn :refer [core-defmacro core-defn core-fn]]
-   [clava.internal.loop :as loop]
-   [clava.internal.macros :as macros]
-   [clava.internal.protocols :as protocols]
    [clojure.string :as str]
    [com.reasonr.string :as rstr]
    [edamame.core :as e]
-   #?(:clj [clava.resource :refer [edn-resource]]))
-  #?(:cljs (:require-macros [clava.resource :refer [edn-resource]])))
+   #?(:cljs [goog.string.format])
+   #?(:cljs [goog.string :as gstring])
+   #?(:clj [squint.resource :refer [edn-resource]])
+   [squint.internal.deftype :as deftype]
+   [squint.internal.destructure :refer [core-let]]
+   [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
+   [squint.internal.loop :as loop]
+   [squint.internal.macros :as macros]
+   [squint.internal.protocols :as protocols])
+  #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 #?(:cljs (def Exception js/Error))
 
@@ -101,7 +101,7 @@
   (let [m (munge sym)]
     (if (and (contains? core-vars m)
              (not (contains? @*excluded-core-vars* m)))
-      (do (swap! *imported-vars* update "clavascript/core.js" (fnil conj #{}) m)
+      (do (swap! *imported-vars* update "squint-cljs/core.js" (fnil conj #{}) m)
           m)
       sym)))
 
@@ -161,7 +161,7 @@
                          ;; js
                          'js/await 'js/typeof
                          ;; prefixed to avoid conflicts
-                         'clava-compiler-jsx]))
+                         'squint-compiler-jsx]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -204,7 +204,7 @@
                       'declare macros/core-declare
                       'letfn macros/core-letfn})
 
-(def core-config {:vars (edn-resource "clava/core.edn")})
+(def core-config {:vars (edn-resource "squint/core.edn")})
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
@@ -290,7 +290,7 @@
         [bindings var->ident]
         (reduce (fn [[acc var->ident] [var-name rhs]]
                   (let [vm (meta var-name)
-                        rename? (not (:clava.compiler/no-rename vm))
+                        rename? (not (:squint.compiler/no-rename vm))
                         renamed (if rename? (munge (gensym var-name))
                                     var-name)
                         lhs (str renamed)
@@ -453,7 +453,7 @@
 
 (defn resolve-ns [alias]
   (case alias
-    (clava.string clojure.string) "clavascript/string.js"
+    (squint.string clojure.string) "squint-cljs/string.js"
     alias))
 
 (defn process-require-clause [[libname & {:keys [refer as]}]]
@@ -759,7 +759,7 @@ break;}" body)
    (let [env (dissoc env :jsx)]
      (if (:quote env)
        (do
-         (swap! *imported-vars* update "clavascript/core.js" (fnil conj #{}) 'list)
+         (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
          (format "list(%s)"
                  (str/join ", " (emit-args env expr))))
        (cond (symbol? (first expr))
@@ -873,14 +873,14 @@ break;}" body)
 (def ^:dynamic *jsx* false)
 
 (defn jsx [form]
-  (list 'clava-compiler-jsx form))
+  (list 'squint-compiler-jsx form))
 
-(defmethod emit-special 'clava-compiler-jsx [_ env [_ form]]
+(defmethod emit-special 'squint-compiler-jsx [_ env [_ form]]
   (set! *jsx* true)
   (let [env (assoc env :jsx true)]
     (emit form env)))
 
-(def clava-parse-opts
+(def squint-parse-opts
   (e/normalize-opts
    {:all true
     :end-location false
@@ -892,7 +892,7 @@ break;}" body)
 
 (defn transpile-string* [s]
   (let [rdr (e/reader s)
-        opts clava-parse-opts]
+        opts squint-parse-opts]
     (loop [transpiled ""]
       (let [opts (assoc opts :auto-resolve @*aliases*)
             next-form (e/parse-next rdr opts)]
