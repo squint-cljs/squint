@@ -1,0 +1,4 @@
+{:tasks
+ {dev (shell "npx vite dev")
+  build (do (shell "npx vite build --base=/demos/squint/solidjs/")
+            (shell "bash -c 'cp -R dist/* ../../../squint-demos/squint/solidjs'"))}}
