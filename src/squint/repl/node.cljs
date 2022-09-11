@@ -5,6 +5,7 @@
    ["path" :as path]
    ["process" :as process]
    ["readline" :as readline]
+   ["squint-cljs/core.js" :as squint]
    ["vm" :as vm]
    [clojure.string :as str]
    [edamame.core :as e]
@@ -54,7 +55,7 @@
                    (let [ctx #js {:f (if socket (fn [] wrapper)
                                          (fn []
                                            (let [v (first wrapper)]
-                                             (prn v)
+                                             (squint/prn v)
                                              wrapper)))}
                          _ (.createContext vm ctx)]
                      (.runInContext vm "f()" ctx
@@ -91,16 +92,19 @@
                 (if-not (= :edamame.core/eof the-val)
                   ;; (prn :pending @pending)
                   (let [compiled (:javascript
-                                  (compiler/compile-string* (pr-str the-val)
-                                                            {:elide-exports true}))
+                                  (compiler/compile-string* (str/replace "(def _repl (do %s))" "%s" (pr-str the-val))))
                         filename (str ".repl/" (gensym) ".js")]
                     (when-not (fs/existsSync ".repl")
                       (fs/mkdirSync ".repl"))
                     (fs/writeFileSync filename compiled)
-                    (.then (esm/dynamic-import (path/resolve (process/cwd) filename))
-                           (fn [val]
-                             (js/console.log val)
-                             (continue rl socket))))
+                    (-> (.then (esm/dynamic-import (path/resolve (process/cwd) filename))
+                               (fn [^js val]
+                                 (let [val (.-_repl val)]
+                                   (squint/prn val)
+                                   (continue rl socket))))
+                        (.catch (fn [err]
+                                  (squint/println err)
+                                  (continue rl socket)))))
                   #_(-> (eval-expr
                          socket
                          #(eval-next nil nil
