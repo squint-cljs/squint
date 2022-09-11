@@ -12,9 +12,7 @@
    [shadow.esm :as esm]
    [squint.compiler :as compiler]))
 
-(def last-ns (atom *ns*))
-
-(def pending-input (atom ""))
+(def pending-input (atom "(ns user)"))
 
 (declare input-loop eval-next)
 
@@ -22,7 +20,7 @@
 
 (defn continue [rl socket]
   (reset! in-progress false)
-  (.setPrompt ^js rl (str @last-ns "=> "))
+  (.setPrompt ^js rl (str *ns* "=> "))
   (.prompt rl)
   (when-not (str/blank? @pending-input)
     (eval-next socket rl)))
@@ -92,7 +90,9 @@
                 (if-not (= :edamame.core/eof the-val)
                   ;; (prn :pending @pending)
                   (let [compiled (:javascript
-                                  (compiler/compile-string* (str/replace "(def _repl (do %s))" "%s" (pr-str the-val))))
+                                  (compiler/compile-string* (pr-str ((fn [] the-val)))))
+                        compiled (str "var _repl = " compiled "; export { _repl };")
+                        _ (.log js/console compiled)
                         filename (str ".repl/" (gensym) ".js")]
                     (when-not (fs/existsSync ".repl")
                       (fs/mkdirSync ".repl"))
@@ -157,7 +157,7 @@
              (create-socket-rl socket)
              (create-rl))
         _ (on-line rl socket)
-        _ (.setPrompt rl (str @last-ns "=> "))
+        _ (.setPrompt rl (str *ns* "=> "))
         _ (.on rl "close" resolve)]
     (prn :yo)
     (.prompt rl)))
@@ -188,6 +188,7 @@
 (defn repl
   ([] (repl nil))
   ([_opts]
+   (set! *ns* 'user)
    (when tty (.setRawMode js/process.stdin true))
    (js/Promise. (fn [resolve]
                   (input-loop nil resolve)))))

@@ -99,11 +99,10 @@
 
 (defn maybe-core-var [sym]
   (let [m (munge sym)]
-    (if (and (contains? core-vars m)
+    (when (and (contains? core-vars m)
              (not (contains? @*excluded-core-vars* m)))
-      (do (swap! *imported-vars* update "squint-cljs/core.js" (fnil conj #{}) m)
-          m)
-      sym)))
+      (swap! *imported-vars* update "squint-cljs/core.js" (fnil conj #{}) m)
+      m)))
 
 (defn escape-jsx [env expr]
   (if (:jsx env)
@@ -128,7 +127,7 @@
                    (let [sn (symbol (name expr))]
                      (or (when (or (= "cljs.core" sym-ns)
                                    (= "clojure.core" sym-ns))
-                           (munge (maybe-core-var sn)))
+                           (some-> (maybe-core-var sn) munge))
                          (when (= "js" sym-ns)
                            (munge* (name expr)))
                          (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
@@ -138,8 +137,10 @@
                    (if-let [renamed (get (:var->ident env) expr)]
                      (munge* (str renamed))
                      (or
-                      (munge (maybe-core-var expr))
-                      (munged-name expr))))]
+                      (some-> (maybe-core-var expr) munge)
+                      (let [m (munged-name expr)]
+                        (prn :m m)
+                        (str #_#_(munge *ns*) "." m)))))]
         (emit-wrap env
                    (escape-jsx env
                                (str expr)))))))
