@@ -1,11 +1,11 @@
 (ns squint.compiler-test
   (:require
+   [clojure.string :as str]
+   [clojure.test :as t :refer [async deftest is testing]]
    [squint.compiler :as compiler]
    [squint.jsx-test]
    [squint.string-test]
-   [squint.test-utils :refer [eq js! jss! jsv!]]
-   [clojure.string :as str]
-   [clojure.test :as t :refer [async deftest is testing]]))
+   [squint.test-utils :refer [eq js! jss! jsv!]]))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
