@@ -425,12 +425,15 @@
 (defn emit-var [more env]
   (apply str
          (interleave (map (fn [[name expr]]
-                            (str "var " (emit name env) " = "
-                                 (emit expr (assoc env :context :expr))))
+                            (str "globalThis." (munge *ns*) "." #_"var " (emit name env) " = "
+                                 (emit expr (assoc env :context :expr))
+                                 "\n" "var " (emit name env) " = " "globalThis." (munge *ns*) "." #_"var " (emit name env))
+                            )
                           (partition 2 more))
                      (repeat statement-separator))))
 
 (defmethod emit-special 'def [_type env [_const & more]]
+  ;;(prn *ns*)
   (let [name (first more)]
     (swap! *public-vars* conj (munge* name))
     (emit-var more env)))
@@ -474,6 +477,7 @@
        (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
 
 (defmethod emit-special 'ns [_type _env [_ns name & clauses]]
+  (set! *ns* name)
   (reset! *aliases*
           (->> clauses
                (some
@@ -487,17 +491,19 @@
                       (assoc aliases alias full)
                       aliases)))
                 {:current name})))
-  (reduce (fn [acc [k & exprs]]
-            (cond
-              (= :require k)
-              (str acc (str/join "" (map process-require-clause exprs)))
-              (= :refer-clojure k)
-              (let [{:keys [exclude]} exprs]
-                (swap! *excluded-core-vars* into exclude)
-                acc)
-              :else acc))
-          ""
-          clauses))
+  (str
+   (str "globalThis." (munge name) " = {} " )
+   (reduce (fn [acc [k & exprs]]
+             (cond
+               (= :require k)
+               (str acc (str/join "" (map process-require-clause exprs)))
+               (= :refer-clojure k)
+               (let [{:keys [exclude]} exprs]
+                 (swap! *excluded-core-vars* into exclude)
+                 acc)
+               :else acc))
+           ""
+           clauses)))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
   (emit-wrap env
