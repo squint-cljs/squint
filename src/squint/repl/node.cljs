@@ -1,10 +1,14 @@
 (ns squint.repl.node
   (:require
+   ["fs" :as fs]
    ["net" :as net]
+   ["path" :as path]
+   ["process" :as process]
    ["readline" :as readline]
    ["vm" :as vm]
    [clojure.string :as str]
    [edamame.core :as e]
+   [shadow.esm :as esm]
    [squint.compiler :as compiler]))
 
 (def last-ns (atom *ns*))
@@ -86,11 +90,17 @@
             (do (erase-processed rdr)
                 (if-not (= :edamame.core/eof the-val)
                   ;; (prn :pending @pending)
-                  (do (prn (js/eval (:javascript
-                                     (doto (compiler/compile-string* (pr-str the-val)
-                                                                     {:elide-exports true})
-                                       #_prn))))
-                      (continue rl socket))
+                  (let [compiled (:javascript
+                                  (compiler/compile-string* (pr-str the-val)
+                                                            {:elide-exports true}))
+                        filename (str ".repl/" (gensym) ".js")]
+                    (when-not (fs/existsSync ".repl")
+                      (fs/mkdirSync ".repl"))
+                    (fs/writeFileSync filename compiled)
+                    (.then (esm/dynamic-import (path/resolve (process/cwd) filename))
+                           (fn [val]
+                             (js/console.log val)
+                             (continue rl socket))))
                   #_(-> (eval-expr
                          socket
                          #(eval-next nil nil
@@ -177,4 +187,3 @@
    (when tty (.setRawMode js/process.stdin true))
    (js/Promise. (fn [resolve]
                   (input-loop nil resolve)))))
-
