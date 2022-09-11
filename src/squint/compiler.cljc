@@ -425,9 +425,13 @@
 (defn emit-var [more env]
   (apply str
          (interleave (map (fn [[name expr]]
-                            (str "globalThis." (munge *ns*) "." #_"var " (emit name env) " = "
+                            (str "globalThis."
+                                 (when *ns*
+                                   (str (munge *ns*) ".") #_"var ") (emit name env) " = "
                                  (emit expr (assoc env :context :expr))
-                                 "\n" "var " (emit name env) " = " "globalThis." (munge *ns*) "." #_"var " (emit name env))
+                                 "\n" "var " (emit name env) " = " "globalThis."
+                                 (when *ns*
+                                   (str (munge *ns*) ".") #_"var ") (emit name env))
                             )
                           (partition 2 more))
                      (repeat statement-separator))))

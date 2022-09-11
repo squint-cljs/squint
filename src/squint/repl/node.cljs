@@ -4,7 +4,8 @@
    ["readline" :as readline]
    ["vm" :as vm]
    [clojure.string :as str]
-   [edamame.core :as e]))
+   [edamame.core :as e]
+   [squint.compiler :as compiler]))
 
 (def last-ns (atom *ns*))
 
@@ -85,35 +86,39 @@
             (do (erase-processed rdr)
                 (if-not (= :edamame.core/eof the-val)
                   ;; (prn :pending @pending)
-                  (prn the-val)
+                  (do (prn (js/eval (:javascript
+                                     (doto (compiler/compile-string* (pr-str the-val)
+                                                                     {:elide-exports true})
+                                       #_prn))))
+                      (continue rl socket))
                   #_(-> (eval-expr
-                       socket
-                       #(eval-next nil nil
-                                       {:wrap vector
-                                        ;; TODO this is a huge workaround
-                                        ;; we should instead re-organize the code in nbb.core
-                                        :parse-fn (let [realized? (atom false)]
-                                                    (fn [_]
-                                                      (if-not @realized?
-                                                        (do
-                                                          (reset! realized? true)
-                                                          the-val)
-                                                        :sci.core/eof)))}))
-                      (.then (fn [v]
-                               (let [[val ns]
-                                     [(first v) (eval-form '*ns*)]]
-                                 (reset! last-ns ns)
-                                 (sci/alter-var-root sci/*3 (constantly @sci/*2))
-                                 (sci/alter-var-root sci/*2 (constantly @sci/*1))
-                                 (sci/alter-var-root sci/*1 (constantly val))
-                                 (when socket
-                                   (.write socket (prn-str val))
-                                   #_(prn val))
-                                 (continue rl socket))))
-                      (.catch (fn [err]
-                                (prn (str err))
-                                (sci/alter-var-root sci/*e (constantly err))
-                                (continue rl socket))))
+                         socket
+                         #(eval-next nil nil
+                                     {:wrap vector
+                                      ;; TODO this is a huge workaround
+                                      ;; we should instead re-organize the code in nbb.core
+                                      :parse-fn (let [realized? (atom false)]
+                                                  (fn [_]
+                                                    (if-not @realized?
+                                                      (do
+                                                        (reset! realized? true)
+                                                        the-val)
+                                                      :sci.core/eof)))}))
+                        (.then (fn [v]
+                                 (let [[val ns]
+                                       [(first v) (eval-form '*ns*)]]
+                                   (reset! last-ns ns)
+                                   (sci/alter-var-root sci/*3 (constantly @sci/*2))
+                                   (sci/alter-var-root sci/*2 (constantly @sci/*1))
+                                   (sci/alter-var-root sci/*1 (constantly val))
+                                   (when socket
+                                     (.write socket (prn-str val))
+                                     #_(prn val))
+                                   (continue rl socket))))
+                        (.catch (fn [err]
+                                  (prn (str err))
+                                  (sci/alter-var-root sci/*e (constantly err))
+                                  (continue rl socket))))
                   (reset! in-progress false)))))))
 
 (defn input-handler [socket rl input]
