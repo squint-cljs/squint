@@ -12,7 +12,7 @@
    [shadow.esm :as esm]
    [squint.compiler :as compiler]))
 
-(def pending-input (atom "(ns user)"))
+(def pending-input (atom ""))
 
 (declare input-loop eval-next)
 
@@ -69,6 +69,24 @@
           (.setRawMode js/process.stdin true))
         (js/Promise.reject e)))))
 
+(defn compile [the-val rl socket]
+  (let [compiled (:javascript
+                  (compiler/compile-string* (pr-str ((fn [] the-val)))))
+        compiled (str "var _repl = " compiled "; export { _repl };")
+        _ (.log js/console compiled)
+        filename (str ".repl/" (gensym) ".js")]
+    (when-not (fs/existsSync ".repl")
+      (fs/mkdirSync ".repl"))
+    (fs/writeFileSync filename compiled)
+    (-> (.then (esm/dynamic-import (path/resolve (process/cwd) filename))
+               (fn [^js val]
+                 (let [val (.-_repl val)]
+                   (squint/prn val)
+                   (continue rl socket))))
+        (.catch (fn [err]
+                  (squint/println err)
+                  (continue rl socket))))))
+
 (defn eval-next [socket rl]
   (when-not (or @in-progress (str/blank? @pending-input))
     (reset! in-progress true)
@@ -89,22 +107,7 @@
             (do (erase-processed rdr)
                 (if-not (= :edamame.core/eof the-val)
                   ;; (prn :pending @pending)
-                  (let [compiled (:javascript
-                                  (compiler/compile-string* (pr-str ((fn [] the-val)))))
-                        compiled (str "var _repl = " compiled "; export { _repl };")
-                        _ (.log js/console compiled)
-                        filename (str ".repl/" (gensym) ".js")]
-                    (when-not (fs/existsSync ".repl")
-                      (fs/mkdirSync ".repl"))
-                    (fs/writeFileSync filename compiled)
-                    (-> (.then (esm/dynamic-import (path/resolve (process/cwd) filename))
-                               (fn [^js val]
-                                 (let [val (.-_repl val)]
-                                   (squint/prn val)
-                                   (continue rl socket))))
-                        (.catch (fn [err]
-                                  (squint/println err)
-                                  (continue rl socket)))))
+                  (compile the-val rl socket)
                   #_(-> (eval-expr
                          socket
                          #(eval-next nil nil
@@ -155,11 +158,11 @@
 (defn input-loop [socket resolve]
   (let [rl (if socket
              (create-socket-rl socket)
-             (create-rl))
-        _ (on-line rl socket)
-        _ (.setPrompt rl (str *ns* "=> "))
-        _ (.on rl "close" resolve)]
-    (prn :yo)
+             (create-rl))]
+    (reset! pending-input "(ns user)\n")
+    (on-line rl socket)
+    (.setPrompt rl (str *ns* "=> "))
+    (.on rl "close" resolve)
     (.prompt rl)))
 
 (defn on-connect [socket]
