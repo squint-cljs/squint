@@ -559,9 +559,10 @@
                         [(first method) (rest method)]
                         [method args])
         method-str (str method)]
-    (if (str/starts-with? method-str "-")
-      (emit-aget env obj [(subs method-str 1)])
-      (emit-method env obj (symbol method-str) args))) #_(emit-method env obj method args))
+    (-> (if (str/starts-with? method-str "-")
+         (emit-aget env obj [(subs method-str 1)])
+         (emit-method env obj (symbol method-str) args))
+        (emit-repl env))))
 
 (defmethod emit-special 'if [_type env [_if test then else]]
   (if (= :expr (:context env))
