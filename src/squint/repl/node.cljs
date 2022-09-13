@@ -69,23 +69,27 @@
           (.setRawMode js/process.stdin true))
         (js/Promise.reject e)))))
 
-(defn compile [the-val rl socket]
-  (let [compiled (:javascript
-                  (compiler/compile-string* (pr-str ((fn [] the-val)))))
-        compiled (str "var _repl = " compiled "; export { _repl };")
-        _ (.log js/console compiled)
-        filename (str ".repl/" (gensym) ".js")]
+(defn eval-js [js-str]
+  (let [filename (str ".repl/" (gensym) ".js")
+        js-str (str "var _repl = " js-str "; export { _repl };")]
     (when-not (fs/existsSync ".repl")
       (fs/mkdirSync ".repl"))
-    (fs/writeFileSync filename compiled)
-    (-> (.then (esm/dynamic-import (path/resolve (process/cwd) filename))
-               (fn [^js val]
-                 (let [val (.-_repl val)]
-                   (squint/prn val)
-                   (continue rl socket))))
-        (.catch (fn [err]
-                  (squint/println err)
-                  (continue rl socket))))))
+    (fs/writeFileSync filename js-str)
+    (-> (esm/dynamic-import (path/resolve (process/cwd) filename))
+        (.finally (fn [] (fs/unlinkSync filename))))))
+
+(defn compile [the-val rl socket]
+  (let [js-str (:javascript
+                  (compiler/compile-string* (pr-str the-val)))]
+    (->
+     (eval-js js-str)
+     (.then (fn [^js val]
+              (let [val (.-_repl val)]
+                (squint/prn val)
+                (continue rl socket))))
+     (.catch (fn [err]
+               (squint/println err)
+               (continue rl socket))))))
 
 (defn eval-next [socket rl]
   (when-not (or @in-progress (str/blank? @pending-input))
@@ -108,34 +112,6 @@
                 (if-not (= :edamame.core/eof the-val)
                   ;; (prn :pending @pending)
                   (compile the-val rl socket)
-                  #_(-> (eval-expr
-                         socket
-                         #(eval-next nil nil
-                                     {:wrap vector
-                                      ;; TODO this is a huge workaround
-                                      ;; we should instead re-organize the code in nbb.core
-                                      :parse-fn (let [realized? (atom false)]
-                                                  (fn [_]
-                                                    (if-not @realized?
-                                                      (do
-                                                        (reset! realized? true)
-                                                        the-val)
-                                                      :sci.core/eof)))}))
-                        (.then (fn [v]
-                                 (let [[val ns]
-                                       [(first v) (eval-form '*ns*)]]
-                                   (reset! last-ns ns)
-                                   (sci/alter-var-root sci/*3 (constantly @sci/*2))
-                                   (sci/alter-var-root sci/*2 (constantly @sci/*1))
-                                   (sci/alter-var-root sci/*1 (constantly val))
-                                   (when socket
-                                     (.write socket (prn-str val))
-                                     #_(prn val))
-                                   (continue rl socket))))
-                        (.catch (fn [err]
-                                  (prn (str err))
-                                  (sci/alter-var-root sci/*e (constantly err))
-                                  (continue rl socket))))
                   (reset! in-progress false)))))))
 
 (defn input-handler [socket rl input]
@@ -159,7 +135,6 @@
   (let [rl (if socket
              (create-socket-rl socket)
              (create-rl))]
-    (reset! pending-input "(ns user)\n")
     (on-line rl socket)
     (.setPrompt rl (str *ns* "=> "))
     (.on rl "close" resolve)
@@ -193,5 +168,7 @@
   ([_opts]
    (set! *ns* 'user)
    (when tty (.setRawMode js/process.stdin true))
-   (js/Promise. (fn [resolve]
-                  (input-loop nil resolve)))))
+   (.then (eval-js "globalThis.user = globalThis.user || {};")
+          (fn [_]
+            (js/Promise. (fn [resolve]
+                           (input-loop nil resolve)))))))

@@ -139,7 +139,6 @@
                      (or
                       (some-> (maybe-core-var expr) munge)
                       (let [m (munged-name expr)]
-                        (prn :m m)
                         (str #_#_(munge *ns*) "." m)))))]
         (emit-wrap env
                    (escape-jsx env
