@@ -10,7 +10,7 @@
    [clojure.string :as str]
    [edamame.core :as e]
    [shadow.esm :as esm]
-   [squint.compiler :as compiler]))
+   [squint.compiler :as compiler :refer [*repl* *async*]]))
 
 (def pending-input (atom ""))
 
@@ -70,23 +70,22 @@
         (js/Promise.reject e)))))
 
 (defn eval-js [js-str]
-  (let [filename (str ".repl/" (gensym) ".js")
-        js-str (str "var _repl = " js-str "; export { _repl };")]
+  (let [filename (str ".repl/" (gensym) ".js")]
     (when-not (fs/existsSync ".repl")
       (fs/mkdirSync ".repl"))
     (fs/writeFileSync filename js-str)
     (-> (esm/dynamic-import (path/resolve (process/cwd) filename))
-        (.finally (fn [] (fs/unlinkSync filename))))))
+        (.finally (fn [] #_(prn filename) (fs/unlinkSync filename))))))
 
 (defn compile [the-val rl socket]
   (let [js-str (:javascript
-                  (compiler/compile-string* (pr-str the-val)))]
+                (compiler/compile-string* (pr-str the-val)))]
+    ;; (js/console.log js-str)
     (->
      (eval-js js-str)
-     (.then (fn [^js val]
-              (let [val (.-_repl val)]
-                (squint/prn val)
-                (continue rl socket))))
+     (.then (fn [^js _val]
+              (squint/println js/globalThis._repl)
+              (continue rl socket)))
      (.catch (fn [err]
                (squint/println err)
                (continue rl socket))))))
@@ -167,6 +166,8 @@
   ([] (repl nil))
   ([_opts]
    (set! *ns* 'user)
+   (set! *repl* true)
+   (set! *async* true)
    (when tty (.setRawMode js/process.stdin true))
    (.then (eval-js "globalThis.user = globalThis.user || {};")
           (fn [_]
