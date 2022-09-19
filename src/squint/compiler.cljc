@@ -139,7 +139,9 @@
                          (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
                            (swap! *imported-vars* update resolved-ns (fnil conj #{}) (munged-name sn))
                            (str sym-ns "_" (munged-name sn)))
-                         expr))
+                         (if *repl*
+                           (str "globalThis." (munge *ns*) ".aliases." (namespace expr) "." (name expr))
+                           expr)))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (munge* (str renamed))
                      (or
@@ -498,7 +500,8 @@
        (statement (format "import '%s'" libname)))
      (when as
        (swap! *imported-vars* update libname (fnil identity #{}))
-       nil)
+       (when *repl*
+         (statement (format "import * as %s from '%s'"  as libname))))
      (when refer
        (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
 
@@ -518,7 +521,6 @@
                       aliases)))
                 {:current name})))
   (str
-   (when *repl* (str "globalThis." (munge name) " = {} " ))
    (reduce (fn [acc [k & exprs]]
              (cond
                (= :require k)
@@ -529,7 +531,17 @@
                  acc)
                :else acc))
            ""
-           clauses)))
+           clauses)
+   (when *repl*
+     (let [ns-obj (str "globalThis." (munge name))]
+       (str ns-obj " = {aliases: {}};\n"
+            (reduce-kv (fn [acc k v]
+                         (if (symbol? k)
+                           (str acc
+                                ns-obj ".aliases." k " = " v ";\n")
+                           acc))
+                       ""
+                       @*aliases*))))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
   (-> (emit-wrap env
