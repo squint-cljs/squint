@@ -5,7 +5,8 @@
    [babashka.cli :as cli]
    [shadow.esm :as esm]
    [squint.compiler :as cc]
-   [squint.compiler.node :as compiler]))
+   [squint.compiler.node :as compiler]
+   [squint.repl.node :as repl]))
 
 (defn compile-files
   [files]
@@ -28,6 +29,7 @@ Usage:
 
 run       <file.cljs>     Compile and run a file
 compile   <file.cljs> ... Compile file(s)
+repl                      Start repl
 help                      Print this help"))
 
 (defn fallback [{:keys [rest-cmds opts]}]
@@ -67,6 +69,7 @@ help                      Print this help"))
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
    {:cmds ["compile"]    :fn (fn [{:keys [rest-cmds]}]
                                (compile-files rest-cmds))}
+   {:cmds ["repl"]       :fn repl/repl}
    {:cmds []             :fn fallback}])
 
 (defn init []

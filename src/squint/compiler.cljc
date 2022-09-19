@@ -45,19 +45,19 @@
     s))
 
 (defn expr-env [env]
-  (assoc env :context :expr))
+  (assoc env :context :expr :top-level false))
 
 (defmethod emit-special 'throw [_ env [_ expr]]
   (str "throw " (emit expr (expr-env env))))
 
 (def statement-separator ";\n")
 
-;; TODO: move to context argument
 (def ^:dynamic *aliases* (atom {}))
 (def ^:dynamic *async* false)
 (def ^:dynamic *imported-vars* (atom {}))
 (def ^:dynamic *excluded-core-vars* (atom #{}))
 (def ^:dynamic *public-vars* (atom #{}))
+(def ^:dynamic *repl* false)
 
 (defn statement [expr]
   (if (not (= statement-separator (rstr/tail (count statement-separator) expr)))
@@ -99,16 +99,21 @@
 
 (defn maybe-core-var [sym]
   (let [m (munge sym)]
-    (if (and (contains? core-vars m)
-             (not (contains? @*excluded-core-vars* m)))
-      (do (swap! *imported-vars* update "squint-cljs/core.js" (fnil conj #{}) m)
-          m)
-      sym)))
+    (when (and (contains? core-vars m)
+               (not (contains? @*excluded-core-vars* m)))
+      (swap! *imported-vars* update "squint-cljs/core.js" (fnil conj #{}) m)
+      m)))
 
 (defn escape-jsx [env expr]
   (if (:jsx env)
     (format "{%s}" expr)
     expr))
+
+(defn emit-repl [s env]
+  (if (and *repl*
+           (:top-level env))
+    (str "\nglobalThis._repl = " s)
+    s))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
@@ -128,7 +133,7 @@
                    (let [sn (symbol (name expr))]
                      (or (when (or (= "cljs.core" sym-ns)
                                    (= "clojure.core" sym-ns))
-                           (munge (maybe-core-var sn)))
+                           (some-> (maybe-core-var sn) munge))
                          (when (= "js" sym-ns)
                            (munge* (name expr)))
                          (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
@@ -138,11 +143,14 @@
                    (if-let [renamed (get (:var->ident env) expr)]
                      (munge* (str renamed))
                      (or
-                      (munge (maybe-core-var expr))
-                      (munged-name expr))))]
-        (emit-wrap env
-                   (escape-jsx env
-                               (str expr)))))))
+                      (some-> (maybe-core-var expr) munge)
+                      (let [m (munged-name expr)]
+                        (str (when *repl*
+                               (str (munge *ns*) ".")) m)))))]
+        (-> (emit-wrap env
+                       (escape-jsx env
+                                   (str expr)))
+            (emit-repl env))))))
 
 #?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr _env]
           (str \/ expr \/)))
@@ -246,15 +254,16 @@
       (emit (list 'cljs.core/and
                   (list operator (first args) (second args))
                   (list* operator (rest args))))
-      (if (and (= '- operator)
-               (= 1 acount))
-        (str "-" (emit (first args) env))
-        (->> (let [substitutions {'= "===" == "===" '!= "!=="
-                                  'not= "!=="
-                                  '+ "+"}]
-               (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
-                                  (emit-args env args)) ")"))
-             (emit-wrap enc-env))))))
+      (-> (if (and (= '- operator)
+                   (= 1 acount))
+            (str "-" (emit (first args) env))
+            (->> (let [substitutions {'= "===" == "===" '!= "!=="
+                                      'not= "!=="
+                                      '+ "+"}]
+                   (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
+                                      (emit-args env args)) ")"))
+                 (emit-wrap enc-env)))
+          (emit-repl env)))))
 
 (def ^:dynamic *recur-targets* [])
 
@@ -285,39 +294,42 @@
   (let [context (:context enc-env)
         env (assoc enc-env :context :expr)
         partitioned (partition 2 bindings)
-        iife? (= :expr context)
+        iife? (or (= :expr context)
+                  (and *repl* (:top-level env)))
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
-        (reduce (fn [[acc var->ident] [var-name rhs]]
-                  (let [vm (meta var-name)
-                        rename? (not (:squint.compiler/no-rename vm))
-                        renamed (if rename? (munge (gensym var-name))
-                                    var-name)
-                        lhs (str renamed)
-                        rhs (emit rhs (assoc env :var->ident var->ident))
-                        expr (format "let %s = %s;\n" lhs rhs)
-                        var->ident (assoc var->ident var-name renamed)]
-                    [(str acc expr) var->ident]))
-                ["" upper-var->ident]
-                partitioned)
-        enc-env (assoc enc-env :var->ident var->ident)]
-    (cond->> (str
-              bindings
-              (when is-loop
-                (str "while(true){\n"))
-              ;; TODO: move this to env arg?
-              (binding [*recur-targets*
-                        (if is-loop (map var->ident (map first partitioned))
-                            *recur-targets*)]
-                (emit-do (if iife?
-                           (assoc enc-env :context :return)
-                           enc-env) body))
-              (when is-loop
-                ;; TODO: not sure why I had to insert the ; here, but else
-                ;; (loop [x 1] (+ 1 2 x)) breaks
-                (str ";break;\n}\n")))
-      (= :expr context)
-      (wrap-iife))))
+        (let [env (dissoc env :top-level)]
+          (reduce (fn [[acc var->ident] [var-name rhs]]
+                    (let [vm (meta var-name)
+                          rename? (not (:squint.compiler/no-rename vm))
+                          renamed (if rename? (munge (gensym var-name))
+                                      var-name)
+                          lhs (str renamed)
+                          rhs (emit rhs (assoc env :var->ident var->ident))
+                          expr (format "let %s = %s;\n" lhs rhs)
+                          var->ident (assoc var->ident var-name renamed)]
+                      [(str acc expr) var->ident]))
+                  ["" upper-var->ident]
+                  partitioned))
+        enc-env (assoc enc-env :var->ident var->ident :top-level false)]
+    (-> (cond->> (str
+                  bindings
+                  (when is-loop
+                    (str "while(true){\n"))
+                  ;; TODO: move this to env arg?
+                  (binding [*recur-targets*
+                            (if is-loop (map var->ident (map first partitioned))
+                                *recur-targets*)]
+                    (emit-do (if iife?
+                               (assoc enc-env :context :return)
+                               enc-env) body))
+                  (when is-loop
+                    ;; TODO: not sure why I had to insert the ; here, but else
+                    ;; (loop [x 1] (+ 1 2 x)) breaks
+                    (str ";break;\n}\n")))
+          iife?
+          (wrap-iife))
+        (emit-repl env))))
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
@@ -422,15 +434,31 @@
                )
      "continue;\n")))
 
-(defn emit-var [more env]
-  (apply str
-         (interleave (map (fn [[name expr]]
-                            (str "var " (emit name env) " = "
-                                 (emit expr (assoc env :context :expr))))
-                          (partition 2 more))
-                     (repeat statement-separator))))
+(defn emit-repl-var [s name env]
+  (str s
+       (when (and *repl* (:top-level env))
+         (emit name env))))
+
+(defn no-top-level [env]
+  (dissoc env :top-level))
+
+(defn emit-var [[name expr] env]
+  (-> (let [env (no-top-level env)]
+        (str (if *repl*
+               (str "globalThis."
+                    (when *ns*
+                      (str (munge *ns*) ".") #_"var ")
+                    (munge name))
+               (str "var " (munge name))) " = "
+             (emit expr (expr-env env)) "\n"
+             (when *repl*
+               (str "var " (munge name) " = " "globalThis."
+                    (when *ns*
+                      (str (munge *ns*) ".")))) (munge name)))
+      (emit-repl-var name env)))
 
 (defmethod emit-special 'def [_type env [_const & more]]
+  ;;(prn *ns*)
   (let [name (first more)]
     (swap! *public-vars* conj (munge* name))
     (emit-var more env)))
@@ -441,13 +469,14 @@
   (format "(%s)" (str "await " s)))
 
 (defmethod emit-special 'js/await [_ env [_await more]]
-  (emit-wrap env (wrap-await (emit more (expr-env env)))))
+  (-> (emit-wrap env (wrap-await (emit more (expr-env env))))
+      (emit-repl env)))
 
 (defn wrap-iife [s]
   (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
     *async* (wrap-await)))
 
-(defmethod emit-special 'let [type env [_let bindings & more]]
+(defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let bindings more) env)
   #_(prn (core-let bindings more)))
 
@@ -474,6 +503,7 @@
        (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
 
 (defmethod emit-special 'ns [_type _env [_ns name & clauses]]
+  (set! *ns* name)
   (reset! *aliases*
           (->> clauses
                (some
@@ -487,29 +517,32 @@
                       (assoc aliases alias full)
                       aliases)))
                 {:current name})))
-  (reduce (fn [acc [k & exprs]]
-            (cond
-              (= :require k)
-              (str acc (str/join "" (map process-require-clause exprs)))
-              (= :refer-clojure k)
-              (let [{:keys [exclude]} exprs]
-                (swap! *excluded-core-vars* into exclude)
-                acc)
-              :else acc))
-          ""
-          clauses))
+  (str
+   (when *repl* (str "globalThis." (munge name) " = {} " ))
+   (reduce (fn [acc [k & exprs]]
+             (cond
+               (= :require k)
+               (str acc (str/join "" (map process-require-clause exprs)))
+               (= :refer-clojure k)
+               (let [{:keys [exclude]} exprs]
+                 (swap! *excluded-core-vars* into exclude)
+                 acc)
+               :else acc))
+           ""
+           clauses)))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
-  (emit-wrap env
-             (str
-              (emit fname (expr-env env))
-              ;; this is needed when calling keywords, symbols, etc. We could
-              ;; optimize this later by inferring that we're not directly
-              ;; calling a `function`.
-              #_(when-not interop? ".call")
-              (comma-list (emit-args env
-                                     args #_(if interop? args
-                                                (cons nil args)))))))
+  (-> (emit-wrap env
+                 (str
+                  (emit fname (expr-env env))
+                  ;; this is needed when calling keywords, symbols, etc. We could
+                  ;; optimize this later by inferring that we're not directly
+                  ;; calling a `function`.
+                  #_(when-not interop? ".call")
+                  (comma-list (emit-args env
+                                         args #_(if interop? args
+                                                    (cons nil args))))))
+      (emit-repl env)))
 
 (defmethod emit-special 'str [_type env [_str & args]]
   (apply clojure.core/str (interpose " + " (emit-args env args))))
@@ -530,9 +563,10 @@
                         [(first method) (rest method)]
                         [method args])
         method-str (str method)]
-    (if (str/starts-with? method-str "-")
-      (emit-aget env obj [(subs method-str 1)])
-      (emit-method env obj (symbol method-str) args))) #_(emit-method env obj method args))
+    (-> (if (str/starts-with? method-str "-")
+         (emit-aget env obj [(subs method-str 1)])
+         (emit-method env obj (symbol method-str) args))
+        (emit-repl env))))
 
 (defmethod emit-special 'if [_type env [_if test then else]]
   (if (= :expr (:context env))
@@ -644,8 +678,8 @@
           [env [] #{}]
           sig))
 
-(defn emit-function [env name sig body & [elide-function?]]
-  (assert (or (symbol? name) (nil? name)))
+(defn emit-function [env _name sig body & [elide-function?]]
+  ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
   (let [[env sig] (->sig env sig)]
     (binding [*recur-targets* sig]
@@ -868,7 +902,8 @@ break;}" body)
                      (str/join ", " (emit-args (expr-env env) expr)))))
 
 (defn transpile-form [f]
-  (emit f {:context :statement}))
+  (emit f {:context :statement
+           :top-level true}))
 
 (def ^:dynamic *jsx* false)
 
