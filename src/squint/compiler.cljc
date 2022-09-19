@@ -444,13 +444,17 @@
 
 (defn emit-var [[name expr] env]
   (-> (let [env (no-top-level env)]
-        (str "globalThis."
-             (when *ns*
-               (str (munge *ns*) ".") #_"var ") (munge name) " = "
-             (emit expr (expr-env env))
-             "\n" "var " (munge name) " = " "globalThis."
-             (when *ns*
-               (str (munge *ns*) ".") #_"var ") (munge name)))
+        (str (if *repl*
+               (str "globalThis."
+                    (when *ns*
+                      (str (munge *ns*) ".") #_"var ")
+                    (munge name))
+               (str "var " (munge name))) " = "
+             (emit expr (expr-env env)) "\n"
+             (when *repl*
+               (str "var " (munge name) " = " "globalThis."
+                    (when *ns*
+                      (str (munge *ns*) ".")))) (munge name)))
       (emit-repl-var name env)))
 
 (defmethod emit-special 'def [_type env [_const & more]]
@@ -514,7 +518,7 @@
                       aliases)))
                 {:current name})))
   (str
-   (str "globalThis." (munge name) " = {} " )
+   (when *repl* (str "globalThis." (munge name) " = {} " ))
    (reduce (fn [acc [k & exprs]]
              (cond
                (= :require k)
