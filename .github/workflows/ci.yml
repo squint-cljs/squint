@@ -37,3 +37,4 @@ jobs:
       run: |
         npm install
         bb test
+        bb bb/node_repl_test.clj

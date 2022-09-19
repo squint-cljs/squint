@@ -20,3 +20,4 @@ scratch.cljs
 .vscode
 .nrepl-port
 examples/quickjs/hello
+.repl
