@@ -25,4 +25,7 @@
   (is (str/includes? (:out (repl "(+ 1 2 3)")) "6\n")))
 
 (when (= *file* (System/getProperty "babashka.file"))
-  (t/run-tests 'node-repl-test))
+  (let [{:keys [fail error]}
+        (t/run-tests 'node-repl-test)]
+    (when (pos? (+ fail error))
+      (System/exit 1))))
