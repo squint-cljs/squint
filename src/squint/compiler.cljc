@@ -145,8 +145,8 @@
                      (or
                       (some-> (maybe-core-var expr) munge)
                       (let [m (munged-name expr)]
-                        ;; (prn m)
-                        (str (munge *ns*) "." m)))))]
+                        (str (when *repl*
+                               (str (munge *ns*) ".")) m)))))]
         (-> (emit-wrap env
                        (escape-jsx env
                                    (str expr)))
