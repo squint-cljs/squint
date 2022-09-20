@@ -70,7 +70,7 @@
         (js/Promise.reject e)))))
 
 (defn eval-js [js-str]
-  (let [filename (str ".repl/" (gensym) ".js")]
+  (let [filename (str ".repl/" (gensym) ".mjs")]
     (when-not (fs/existsSync ".repl")
       (fs/mkdirSync ".repl"))
     (fs/writeFileSync filename js-str)
