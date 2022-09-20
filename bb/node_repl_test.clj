@@ -23,7 +23,8 @@
 
 (deftest repl-test
   (is (str/includes? (:out (repl "(+ 1 2 3)")) "6\n"))
-  (is (str/includes? (:out (repl "(ns foo (:require [\"fs\" :as fs])) (fs/existsSync \".\")")) "true")))
+  (is (str/includes? (:out (repl "(ns foo (:require [\"fs\" :as fs])) (fs/existsSync \".\")")) "true"))
+  (is (str/includes? (:out (repl "(defn foo [x] x) (foo 1)")) "1")))
 
 (when (= *file* (System/getProperty "babashka.file"))
   (let [{:keys [fail error]}
