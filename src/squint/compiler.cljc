@@ -685,8 +685,12 @@
                     env (update env :var->ident assoc param new-param)
                     sig (conj sig new-param)
                     seen (conj seen param)]
-                [env sig seen])
-              [env (conj sig param) (conj seen param)]))
+                [(update env :var->ident assoc param param)
+                 sig
+                 seen])
+              [(update env :var->ident assoc param param)
+               (conj sig param)
+               (conj seen param)]))
           [env [] #{}]
           sig))
 
