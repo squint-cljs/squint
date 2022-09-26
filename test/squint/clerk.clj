@@ -24,7 +24,9 @@
         (v/html
          [:div
           [:h2 "Compiled JS:"]
-          [:pre unrepl]
+          [:details
+           [:summary "Production version"]
+           [:pre unrepl]]
           [:details
            [:summary "REPL version"]
            [:pre repl]]
@@ -42,11 +44,12 @@
                                         (js/console.log err)))))]
             (eval-fn)
             [:div
-             [:h2 "Evaluated result:"]
-             [:div (v/inspect @result)]]
-            [:div.m-1
-             [:button.bg-gray-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded
-              {:on-click eval-fn} "Eval"]])])))})
+             [:div
+              [:h2 "Evaluated result:"]
+              [:div (v/inspect @result)]]
+             [:div.m-1
+              [:button.bg-gray-500.hover:bg-blue-700.text-white.font-bold.py-2.px-4.rounded
+               {:on-click eval-fn} "Eval"]]])])))})
 
 ;; The `compile-string` function compiles a string, in both REPL and non-REPL
 ;; mode. The REPL version is evaluated by `squint-viewer` and the result is
@@ -78,3 +81,9 @@
       (:require ["https://cdn.skypack.dev/canvas-confetti$default" :as confetti]))
 
     (confetti)))
+
+(compile!
+ '(do
+    ""(ns squint.clerk
+        (:require ["https://cdn.jsdelivr.net/npm/squint-cljs@0.0.0-alpha.46/index.js" :as compiler]))
+    (compiler/compileString "(assoc! {:a 1} :a 2)")))
