@@ -22,3 +22,4 @@ scratch.cljs
 examples/quickjs/hello
 .repl
 .clerk
+public
