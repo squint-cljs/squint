@@ -22,9 +22,10 @@
       (fn [{:keys [repl unrepl js]}]
         (v/html
          [:div
+          [:h2 "Compiled JS:"]
           [:pre unrepl]
-          #_[:pre repl]
-          "=>"
+          [:h2 "REPL version"]
+          [:pre repl]
           (let [js (clojure.string/replace repl "'squint-cljs/core.js'" "'https://cdn.jsdelivr.net/npm/squint-cljs@0.0.0-alpha.46/core.js'")
                 encoded (js/encodeURIComponent js)
                 data-uri (str "data:text/javascript;charset=utf-8;eval=" (gensym) "," encoded)]
@@ -34,7 +35,9 @@
                    (reset! result js/globalThis._repl)))
                 (.catch (fn [err]
                           (reset! result (.-message err)))))
-            [:div (v/inspect @result)])])))})
+            [:div
+             [:h2 "Evaluated result"]
+             [:div (v/inspect @result)]])])))})
 
 (defn squint! [s]
   {:repl (binding [sq/*repl* true]

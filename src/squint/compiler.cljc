@@ -249,7 +249,7 @@
   (str (emit arg) operator))
 
 (defn emit-args [env args]
-  (let [env (assoc env :context :expr)]
+  (let [env (assoc env :context :expr :top-level false)]
     (map #(emit % env) args)))
 
 (defn emit-infix [_type enc-env [operator & args]]
@@ -897,8 +897,9 @@ break;}" body)
                            (str/join " " (map #(emit % env) elts)))
                          tag-name)
                  env))
-    (emit-wrap (format "[%s]"
-                       (str/join ", " (emit-args env expr))) env)))
+    (->  (emit-wrap (format "[%s]"
+                            (str/join ", " (emit-args env expr))) env)
+         (emit-repl env))))
 
 #?(:cljs (derive PersistentArrayMap ::map))
 #?(:cljs (derive PersistentHashMap ::map))
