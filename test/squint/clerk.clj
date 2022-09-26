@@ -34,7 +34,7 @@
                    (reset! result js/globalThis._repl)))
                 (.catch (fn [err]
                           (reset! result (.-message err)))))
-            [:pre (str @result)])])))})
+            [:div (v/inspect @result)])])))})
 
 (defn squint! [s]
   {:repl (binding [sq/*repl* true]
@@ -46,7 +46,7 @@
 (squint! "(+ 1 2 3)")
 
 ^{::clerk/viewer squint-viewer}
-(squint! "(pr-str [1 2 3])")
+(squint! "[1 2 3]")
 
 ^{::clerk/viewer squint-viewer}
 (squint! "(defn foo [x] x) (foo 1337)")

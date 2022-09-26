@@ -15,5 +15,5 @@
    :exec-fn cognitect.test-runner.api/test}
   :nextjournal/clerk {:extra-deps {io.github.nextjournal/clerk {:mvn/version "0.10.562"}}
                       :exec-fn nextjournal.clerk/build-static-app!
-                      :exec-args {:paths ["test/squint/cler.clj"]}}}
+                      :exec-args {:paths ["test/squint/clerk.clj"]}}}
  }
