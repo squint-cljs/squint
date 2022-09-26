@@ -460,7 +460,9 @@
              (when *repl*
                (str "var " (munge name) " = " "globalThis."
                     (when *cljs-ns*
-                      (str (munge *cljs-ns*) ".")))) (munge name)))
+                      (str (munge *cljs-ns*) "."))
+                    (munge name)))
+             ))
       (emit-repl-var name env)))
 
 (defmethod emit-special 'def [_type env [_const & more]]
@@ -895,8 +897,8 @@ break;}" body)
                            (str/join " " (map #(emit % env) elts)))
                          tag-name)
                  env))
-    (emit-wrap env (format "[%s]"
-                           (str/join ", " (emit-args env expr))))))
+    (emit-wrap (format "[%s]"
+                       (str/join ", " (emit-args env expr))) env)))
 
 #?(:cljs (derive PersistentArrayMap ::map))
 #?(:cljs (derive PersistentHashMap ::map))
