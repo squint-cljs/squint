@@ -253,8 +253,9 @@
     (map #(emit % env) args)))
 
 (defn emit-infix [_type enc-env [operator & args]]
-  (let [env (assoc enc-env :context :expr)
-        acount (count args)]
+  (let [env (assoc enc-env :context :expr :top-level false)
+        acount (count args)
+        ]
     (if (and (not (chainable-infix-operators (name operator))) (> acount 2))
       (emit (list 'cljs.core/and
                   (list operator (first args) (second args))
@@ -268,7 +269,7 @@
                   (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
                                      (emit-args env args)) ")"))
                 (emit-wrap enc-env)))
-          (emit-repl env)))))
+          (emit-repl enc-env)))))
 
 (def ^:dynamic *recur-targets* [])
 
