@@ -13,5 +13,7 @@
                 babashka/fs {:mvn/version "0.1.6"}}
    :main-opts ["-m" "cognitect.test-runner"]
    :exec-fn cognitect.test-runner.api/test}
-  :clerk {:extra-deps {io.github.nextjournal/clerk {:mvn/version "0.10.562"}}}}
+  :nextjournal/clerk {:extra-deps {io.github.nextjournal/clerk {:mvn/version "0.10.562"}}
+                      :exec-fn nextjournal.clerk/build-static-app!
+                      :exec-args {:paths ["test/squint/cler.clj"]}}}
  }
