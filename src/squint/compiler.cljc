@@ -507,7 +507,9 @@
      (when as
        (swap! *imported-vars* update libname (fnil identity #{}))
        (when *repl*
-         (statement (format "import * as %s from '%s'"  as libname))))
+         (if (str/ends-with? libname "$default")
+           (statement (format "import %s from '%s'" as (str/replace libname "$default" "")))
+           (statement (format "import * as %s from '%s'"  as libname)))))
      (when refer
        (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
 
@@ -539,15 +541,27 @@
            ""
            clauses)
    (when *repl*
-     (let [ns-obj (str "globalThis." (munge name))]
-       (str ns-obj " = {aliases: {}};\n"
-            (reduce-kv (fn [acc k v]
-                         (if (symbol? k)
-                           (str acc
-                                ns-obj ".aliases." k " = " v ";\n")
-                           acc))
-                       ""
-                       @*aliases*))))))
+     (let [mname (munge name)
+           split-name (str/split (str mname) #"\.")
+           ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
+                                    (let [nk (str (when nk
+                                                    (str nk ".")) k)]
+                                      {:js (str js "globalThis." nk " = {};\n")
+                                       :nk nk}))
+                                  {}
+                                  split-name)
+                          :js)
+           ns-obj (str "globalThis." mname)]
+       (str
+        ensure-obj
+        ns-obj " = {aliases: {}};\n"
+        (reduce-kv (fn [acc k _v]
+                     (if (symbol? k)
+                       (str acc
+                            ns-obj "." k " = " k ";\n")
+                       acc))
+                   ""
+                   @*aliases*))))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
   (-> (emit-wrap (str
@@ -986,9 +1000,11 @@ break;}" body)
                                                    (map #(str % " as " (str alias "_" %)) v)
                                                    v)]
                                      (str acc
-                                          (format "import { %s } from '%s'\n"
-                                                  (str/join ", " symbols)
-                                                  k))))
+                                          (when (or (not *repl*)
+                                                    (seq symbols))
+                                            (format "import { %s } from '%s'\n"
+                                                    (str/join ", " symbols)
+                                                    k)))))
                                  ""
                                  @imported-vars)))
              exports (when-not elide-exports
