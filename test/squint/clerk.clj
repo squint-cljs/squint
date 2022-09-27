@@ -93,6 +93,7 @@
     ""(ns squint.clerk
         (:require ["https://cdn.jsdelivr.net/npm/squint-cljs@0.0.0-alpha.46/index.js" :as compiler]
                   [clojure.string :as string]))
+    ;; TODO, you actually need to compile using REPL here too
     (def js-str (str (compiler/compileString "(assoc! {:a 33} :a 2)")))
     (let [_ (prn :js-str js-str)
           js-str (.replaceAll js-str "squint-cljs/core.js" "https://cdn.jsdelivr.net/npm/squint-cljs@0.0.0-alpha.46/core.js")
