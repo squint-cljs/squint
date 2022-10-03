@@ -10,7 +10,7 @@
    [clojure.string :as str]
    [edamame.core :as e]
    [shadow.esm :as esm]
-   [squint.compiler :as compiler :refer [*repl* *async*]]))
+   [squint.compiler :as compiler :refer [*repl* *async* *cljs-ns*]]))
 
 (def pending-input (atom ""))
 
@@ -20,7 +20,7 @@
 
 (defn continue [rl socket]
   (reset! in-progress false)
-  (.setPrompt ^js rl (str *ns* "=> "))
+  (.setPrompt ^js rl (str *cljs-ns* "=> "))
   (.prompt rl)
   (when-not (str/blank? @pending-input)
     (eval-next socket rl)))
@@ -80,7 +80,7 @@
 (defn compile [the-val rl socket]
   (let [js-str (:javascript
                 (compiler/compile-string* (pr-str the-val)))]
-    #_(js/console.log js-str)
+    ;; (js/console.log js-str)
     (->
      (eval-js js-str)
      (.then (fn [^js _val]
@@ -135,7 +135,7 @@
              (create-socket-rl socket)
              (create-rl))]
     (on-line rl socket)
-    (.setPrompt rl (str *ns* "=> "))
+    (.setPrompt rl (str *cljs-ns* "=> "))
     (.on rl "close" resolve)
     (.prompt rl)))
 
@@ -165,7 +165,7 @@
 (defn repl
   ([] (repl nil))
   ([_opts]
-   (set! *ns* 'user)
+   (set! *cljs-ns* 'user)
    (set! *repl* true)
    (set! *async* true)
    (when tty (.setRawMode js/process.stdin true))

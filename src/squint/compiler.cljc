@@ -466,7 +466,6 @@
       (emit-repl-var name env)))
 
 (defmethod emit-special 'def [_type env [_const & more]]
-  ;;(prn *cljs-ns*)
   (let [name (first more)]
     (swap! *public-vars* conj (munge* name))
     (emit-var more env)))
@@ -558,7 +557,7 @@
         (reduce-kv (fn [acc k _v]
                      (if (symbol? k)
                        (str acc
-                            ns-obj "." k " = " k ";\n")
+                            ns-obj ".aliases." k " = " k ";\n")
                        acc))
                    ""
                    @*aliases*))))))
@@ -988,8 +987,7 @@ break;}" body)
                *public-vars* public-vars
                *aliases* aliases
                *jsx* false
-               *excluded-core-vars* (atom #{})
-               *cljs-ns* *cljs-ns*]
+               *excluded-core-vars* (atom #{})]
        (let [transpiled (transpile-string* s)
              imports (when-not elide-imports
                        (let [ns->alias (zipmap (vals @aliases)
