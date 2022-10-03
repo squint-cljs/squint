@@ -21,3 +21,5 @@ scratch.cljs
 .nrepl-port
 examples/quickjs/hello
 .repl
+.clerk
+public
