@@ -91,8 +91,11 @@ Options:
 
 (def table
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
-   {:cmds ["compile"]    :fn (fn [{:keys [rest-cmds opts]}]
-                               (compile-files opts rest-cmds))}
+   {:cmds ["compile"]
+    :coerce {:elide-exports :boolean
+             :elide-imports :boolean}
+    :fn (fn [{:keys [rest-cmds opts]}]
+          (compile-files opts rest-cmds))}
    {:cmds ["repl"]       :fn repl/repl}
    {:cmds []             :fn fallback}])
 

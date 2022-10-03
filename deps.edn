@@ -1,7 +1,7 @@
 {:paths ["src" "resources"]
  :deps {borkdude/edamame {:mvn/version "1.0.0"}
         babashka/process {:mvn/version "0.1.7"}
-        org.babashka/cli {:mvn/version "0.3.32"}
+        org.babashka/cli {:mvn/version "0.4.37"}
         org.babashka/sci {:mvn/version "0.3.32"}}
  :aliases
  {:cljs {:extra-paths ["test"]
