@@ -94,7 +94,7 @@
 
 (defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr env]
   (-> (emit-wrap (str (pr-str (subs (str expr) 1))) env)
-      #_(emit-repl env)))
+      (emit-repl env)))
 
 (defn munge* [expr]
   (let [munged (str (munge expr))
