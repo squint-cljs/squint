@@ -30,7 +30,8 @@
   (is (str/includes? (:out (repl "(ns foo (:require [\"fs\" :as fs])) (fs/existsSync \".\")")) "true"))
   (is (str/includes? (:out (repl "(defn foo [x] x) (foo 1)")) "1"))
   (is (str/includes? (:out (repl "\"foo\"")) "foo"))
-  (is (str/includes? (:out (repl "(ns foo (:require [\"playwright$default\" :as pw])) (let [chrome pw/chromium] (when (some? chrome) :success))")) "success")))
+  (is (str/includes? (:out (repl "(ns foo (:require [\"playwright$default\" :as pw])) (let [chrome pw/chromium] (when (some? chrome) :success))")) "success"))
+  (is (str/includes? (:out (repl "(require '[\"playwright$default\" :as pw]) (let [chrome pw/chromium] (when (some? chrome) :success))")) "success")))
 
 (when (= *file* (System/getProperty "babashka.file"))
   (let [{:keys [fail error]}
