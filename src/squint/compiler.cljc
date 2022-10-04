@@ -11,7 +11,6 @@
 (ns squint.compiler
   (:require
    [clojure.string :as str]
-   [com.reasonr.string :as rstr]
    [edamame.core :as e]
    #?(:cljs [goog.string.format])
    #?(:cljs [goog.string :as gstring])
@@ -59,8 +58,15 @@
 (def ^:dynamic *repl* false)
 (def ^:dynamic *cljs-ns* 'user)
 
+(defn str-tail
+  "Returns the last n characters of s."
+  ^String [n ^String s]
+  (if (< (count s) n)
+    s
+    (.substring s (- (count s) n))))
+
 (defn statement [expr]
-  (if (not (= statement-separator (rstr/tail (count statement-separator) expr)))
+  (if (not (= statement-separator (str-tail (count statement-separator) expr)))
     (str expr statement-separator)
     expr))
 
