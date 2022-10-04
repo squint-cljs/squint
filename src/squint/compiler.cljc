@@ -172,9 +172,11 @@
                          'const 'let 'let* 'ns 'def 'loop*
                          'recur 'js* 'case* 'deftype* 'letfn*
                          ;; js
-                         'js/await 'js/typeof
+                         'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
-                         'squint-compiler-jsx]))
+                         'squint-compiler-jsx
+                         'require
+                         ]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -440,10 +442,10 @@
                )
      "continue;\n")))
 
-(defn emit-repl-var [s name env]
+(defn emit-repl-var [s _name env]
   (str s
        (when (and *repl* (:top-level env))
-         (emit name env))))
+         "globalThis._repl = null;\n")))
 
 (defn no-top-level [env]
   (dissoc env :top-level))
@@ -461,8 +463,8 @@
                (str "var " (munge name) " = " "globalThis."
                     (when *cljs-ns*
                       (str (munge *cljs-ns*) "."))
-                    (munge name)))
-             ))
+                    (munge name)
+                    "\n;"))))
       (emit-repl-var name env)))
 
 (defmethod emit-special 'def [_type env [_const & more]]
@@ -475,9 +477,15 @@
 (defn wrap-await [s]
   (format "(%s)" (str "await " s)))
 
-(defmethod emit-special 'js/await [_ env [_await more]]
+(defn js-await [env more]
   (-> (emit-wrap (wrap-await (emit more (expr-env env))) env)
       (emit-repl env)))
+
+(defmethod emit-special 'js/await [_ env [_await more]]
+  (js-await env more))
+
+(defmethod emit-special 'js-await [_ env [_await more]]
+  (js-await env more))
 
 (defn wrap-iife [s]
   (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
@@ -562,6 +570,42 @@
                        acc))
                    ""
                    @*aliases*))))))
+
+(defmethod emit-special 'require [_ env [_ & clauses]]
+  (let [clauses (map second clauses)]
+    (reset! *aliases*
+            (->> clauses
+                 (reduce
+                  (fn [aliases [full as alias]]
+                    (let [full (resolve-ns full)]
+                      (case as
+                        (:as :as-alias)
+                        (assoc aliases alias full)
+                        aliases)))
+                  {:current name})))
+    (str (str/join "" (map process-require-clause clauses))
+         (when *repl*
+           (let [mname (munge *cljs-ns*)
+                 split-name (str/split (str mname) #"\.")
+                 ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
+                                          (let [nk (str (when nk
+                                                          (str nk ".")) k)]
+                                            {:js (str js "globalThis." nk " = {};\n")
+                                             :nk nk}))
+                                        {}
+                                        split-name)
+                                :js)
+                 ns-obj (str "globalThis." mname)]
+             (str
+              ensure-obj
+              ns-obj " = {aliases: {}};\n"
+              (reduce-kv (fn [acc k _v]
+                           (if (symbol? k)
+                             (str acc
+                                  ns-obj ".aliases." k " = " k ";\n")
+                             acc))
+                         ""
+                         @*aliases*)))))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
   (-> (emit-wrap (str

@@ -80,7 +80,7 @@
 (defn compile [the-val rl socket]
   (let [js-str (:javascript
                 (compiler/compile-string* (pr-str the-val)))]
-    ;; (js/console.log js-str)
+    ;;(js/console.log js-str)
     (->
      (eval-js js-str)
      (.then (fn [^js _val]
