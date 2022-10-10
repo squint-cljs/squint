@@ -1038,7 +1038,8 @@ break;}" body)
                *public-vars* public-vars
                *aliases* aliases
                *jsx* false
-               *excluded-core-vars* (atom #{})]
+               *excluded-core-vars* (atom #{})
+               *cljs-ns* *cljs-ns*]
        (let [transpiled (transpile-string* s)
              imports (when-not elide-imports
                        (let [ns->alias (zipmap (vals @aliases)
