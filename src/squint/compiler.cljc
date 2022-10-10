@@ -508,9 +508,9 @@
 
 (defn process-require-clause [[libname & {:keys [refer as]}]]
   (let [libname (resolve-ns libname)
-        [libname suffix] (.split libname "$" 2)
+        [libname suffix] (str/split libname #"\$" 2)
         [p & _props] (when suffix
-                       (.split suffix "."))]
+                       (str/split suffix #"\."))]
     (str
      (when-not *repl*
        (when (and as (= "default" p))
