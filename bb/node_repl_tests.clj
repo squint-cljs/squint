@@ -1,4 +1,4 @@
-(ns node-repl-test
+(ns node-repl-tests
   (:require
    [babashka.fs :as fs]
    [babashka.process :as p :refer [process]]
@@ -33,8 +33,8 @@
   (is (str/includes? (:out (repl "(ns foo (:require [\"playwright$default\" :as pw])) (let [chrome pw/chromium] (when (some? chrome) :success))")) "success"))
   (is (str/includes? (:out (repl "(require '[\"playwright$default\" :as pw]) (let [chrome pw/chromium] (when (some? chrome) :success))")) "success")))
 
-(when (= *file* (System/getProperty "babashka.file"))
+(defn run-tests [_]
   (let [{:keys [fail error]}
-        (t/run-tests 'node-repl-test)]
+        (t/run-tests 'node-repl-tests)]
     (when (pos? (+ fail error))
-      (System/exit 1))))
+      (throw (ex-info "Tests failed" {:babashka/exit 1})))))
