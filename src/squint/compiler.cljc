@@ -1070,14 +1070,15 @@ break;}" body)
           :exports exports
           :body transpiled
           :javascript (str imports transpiled exports)
-          :jsx *jsx*})))))
+          :jsx *jsx*
+          :ns *cljs-ns*})))))
 
 (defn compile-string
   ([s] (compile-string s nil))
   ([s opts]
-   (let [{:keys [imports exports body]}
+   (let [{:keys [javascript]}
          (compile-string* s opts)]
-     (str imports body exports))))
+     javascript)))
 
 #_(defn compile! [s]
     (prn :s s)

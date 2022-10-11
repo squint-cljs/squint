@@ -1222,4 +1222,4 @@
   (is (= 2 (jsv! '(do (defn foo [x x] x) (foo 1 2))))))
 
 (defn init []
-  (cljs.test/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
+  (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
