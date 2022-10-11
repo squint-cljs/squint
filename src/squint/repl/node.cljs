@@ -69,6 +69,8 @@
           (.setRawMode js/process.stdin true))
         (js/Promise.reject e)))))
 
+(def last-ns (atom *cljs-ns*))
+
 (defn eval-js [js-str]
   (let [filename (str ".repl/" (gensym) ".mjs")]
     (when-not (fs/existsSync ".repl")
@@ -78,9 +80,10 @@
         (.finally (fn [] #_(prn filename) (fs/unlinkSync filename))))))
 
 (defn compile [the-val rl socket]
-  (let [js-str (:javascript
-                (compiler/compile-string* (pr-str the-val)))]
-    ;;(js/console.log js-str)
+  (let [{js-str :javascript
+         cljs-ns :ns} (binding [*cljs-ns* @last-ns]
+                        (compiler/compile-string* (pr-str the-val)))]
+    (reset! last-ns cljs-ns)
     (->
      (eval-js js-str)
      (.then (fn [^js _val]

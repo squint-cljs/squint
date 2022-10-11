@@ -9,6 +9,7 @@
 ;;   software.
 
 (ns squint.internal.loop
+  (:refer-clojure :exclude [destructure])
   (:require [squint.internal.destructure :refer [destructure]]))
 
 (defn core-loop

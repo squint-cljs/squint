@@ -36,5 +36,6 @@ jobs:
     - name: Run tests
       run: |
         npm install
-        bb test
-        bb bb/node_repl_test.clj
+        bb test:node
+        bb test:bb
+        bb test:clj

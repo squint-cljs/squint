@@ -452,9 +452,9 @@
 
 (defn process-require-clause [[libname & {:keys [refer as]}]]
   (let [libname (resolve-ns libname)
-        [libname suffix] (.split libname "$" 2)
+        [libname suffix] (str/split libname #"\$" 2)
         [p & _props] (when suffix
-                       (.split suffix "."))]
+                       (str/split suffix #"\."))]
     (str
      (when-not *repl*
        (when (and as (= "default" p))
@@ -982,7 +982,8 @@ break;}" body)
                *public-vars* public-vars
                *aliases* aliases
                *jsx* false
-               *excluded-core-vars* (atom #{})]
+               *excluded-core-vars* (atom #{})
+               *cljs-ns* *cljs-ns*]
        (let [transpiled (transpile-string* s)
              imports (when-not elide-imports
                        (let [ns->alias (zipmap (vals @aliases)
@@ -1013,14 +1014,15 @@ break;}" body)
           :exports exports
           :body transpiled
           :javascript (str imports transpiled exports)
-          :jsx *jsx*})))))
+          :jsx *jsx*
+          :ns *cljs-ns*})))))
 
 (defn compile-string
   ([s] (compile-string s nil))
   ([s opts]
-   (let [{:keys [imports exports body]}
+   (let [{:keys [javascript]}
          (compile-string* s opts)]
-     (str imports body exports))))
+     javascript)))
 
 #_(defn compile! [s]
     (prn :s s)
