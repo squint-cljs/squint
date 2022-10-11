@@ -10,29 +10,20 @@
 
 (ns squint.compiler
   (:require
+   #?(:clj [squint.resource :refer [edn-resource]])
    [clojure.string :as str]
    [edamame.core :as e]
-   #?(:clj [squint.resource :refer [edn-resource]])
+   [squint.compiler-common :as cc :refer [#?(:cljs Exception)
+                                          #?(:cljs format)
+                                          *aliases* *async* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
+                                          *repl* comma-list emit emit-repl emit-special emit-wrap expr-env statement
+                                          statement-separator]]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
    [squint.internal.loop :as loop]
    [squint.internal.macros :as macros]
-   [squint.internal.protocols :as protocols]
-   [squint.compiler-common :as cc :refer [emit emit-special
-                                          emit-wrap expr-env
-                                          Exception format
-                                          statement-separator
-                                          *aliases*
-                                          *async*
-                                          *imported-vars*
-                                          *excluded-core-vars*
-                                          *public-vars*
-                                          *repl*
-                                          *cljs-ns*
-                                          statement
-                                          comma-list
-                                          emit-repl]])
+   [squint.internal.protocols :as protocols])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
