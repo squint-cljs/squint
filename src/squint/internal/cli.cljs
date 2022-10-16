@@ -16,15 +16,14 @@
         (println "Options:
 
 --elide-imports: do not include imports
---elide-exports: do not include exports"))
+--elide-exports: do not include exports
+--extension: default extension for JS files"))
     (reduce (fn [prev f]
               (-> (js/Promise.resolve prev)
                   (.then
                    #(do
                       (println "[squint] Compiling CLJS file:" f)
-                      (compiler/compile-file {:in-file f
-                                              :elide-exports (:elide-exports opts)
-                                              :elide-imports (:elide-imports opts)})))
+                      (compiler/compile-file (assoc opts :in-file f))))
                   (.then (fn [{:keys [out-file]}]
                            (println "[squint] Wrote JS file:" out-file)
                            out-file))))
@@ -34,18 +33,17 @@
 (defn print-help []
   (println "Squint v0.0.0
 
-Usage: squint <opts>
+Usage: squint <subcommand> <opts>
 
+Subcommands:
 
-Options:
-
--e        <expr>          Compile and run expression.
+-e           <expr>  Compile and run expression.
 run       <file.cljs>     Compile and run a file
 compile   <file.cljs> ... Compile file(s)
 repl                      Start repl
 help                      Print this help
 
-Use squint <option> --help to show more info."))
+Use squint <subcommand> --help to show more info."))
 
 (defn fallback [{:keys [rest-cmds opts]}]
   (if-let [e (:e opts)]
@@ -79,7 +77,7 @@ Options:
     (if help
       nil
       (do (println "[squint] Running" file)
-          (.then (compiler/compile-file {:in-file file})
+          (.then (compiler/compile-file (assoc opts :in-file file))
                  (fn [{:keys [out-file]}]
                    (let [path (if (path/isAbsolute out-file) out-file
                                   (str (js/process.cwd) "/" out-file))]
