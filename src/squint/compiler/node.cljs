@@ -48,7 +48,7 @@
           (reduce (fn [prev require-macros]
                     (.then prev
                            (fn [_]
-                             (let [[macro-ns & {:keys [refer]}] require-macros
+                             (let [[macro-ns & {:keys []}] require-macros
                                    macros (js/Promise.resolve
                                            (do (sci/eval-form ctx (list 'require (list 'quote macro-ns)))
                                                (sci/eval-form ctx
@@ -61,7 +61,7 @@
                   (js/Promise.resolve nil)
                   require-macros))))))
 
-(defn compile-file [{:keys [in-file out-file] :as opts}]
+(defn compile-file [{:keys [in-file out-file extension] :as opts}]
   (-> (js/Promise.resolve (scan-macros in-file))
       (.then #(compiler/compile-string* (slurp in-file) opts))
       (.then (fn [{:keys [javascript jsx]}]
@@ -69,6 +69,6 @@
                                   (str/replace in-file #".clj(s|c)$"
                                                (if jsx
                                                  ".jsx"
-                                                 ".mjs")))]
+                                                 (or extension ".js"))))]
                  (spit out-file javascript)
                  {:out-file out-file})))))

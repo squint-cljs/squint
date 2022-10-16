@@ -22,9 +22,7 @@
                   (.then
                    #(do
                       (println "[squint] Compiling CLJS file:" f)
-                      (compiler/compile-file {:in-file f
-                                              :elide-exports (:elide-exports opts)
-                                              :elide-imports (:elide-imports opts)})))
+                      (compiler/compile-file (assoc opts :in-file f))))
                   (.then (fn [{:keys [out-file]}]
                            (println "[squint] Wrote JS file:" out-file)
                            out-file))))
@@ -34,12 +32,15 @@
 (defn print-help []
   (println "Squint v0.0.0
 
-Usage: squint <opts>
+Usage: squint <global-opts> <subcommand> <opts>
 
+Global options:
 
-Options:
+-e           <expr>  Compile and run expression.
+--extension  <ext>   Extension for JS files. Defaults to .js, but can be set to .mjs for Node.js projects.
 
--e        <expr>          Compile and run expression.
+Subcommands:
+
 run       <file.cljs>     Compile and run a file
 compile   <file.cljs> ... Compile file(s)
 repl                      Start repl
@@ -79,7 +80,7 @@ Options:
     (if help
       nil
       (do (println "[squint] Running" file)
-          (.then (compiler/compile-file {:in-file file})
+          (.then (compiler/compile-file (assoc opts :in-file file))
                  (fn [{:keys [out-file]}]
                    (let [path (if (path/isAbsolute out-file) out-file
                                   (str (js/process.cwd) "/" out-file))]
