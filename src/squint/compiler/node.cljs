@@ -69,6 +69,7 @@
                                   (str/replace in-file #".clj(s|c)$"
                                                (if jsx
                                                  ".jsx"
-                                                 (or extension ".js"))))]
+                                                 (or (when-let [ext extension]
+                                                       (str "." (str/replace ext #"^\." ""))) ".js"))))]
                  (spit out-file javascript)
                  {:out-file out-file})))))
