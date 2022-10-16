@@ -16,7 +16,8 @@
         (println "Options:
 
 --elide-imports: do not include imports
---elide-exports: do not include exports"))
+--elide-exports: do not include exports
+--extension: default extension for JS files"))
     (reduce (fn [prev f]
               (-> (js/Promise.resolve prev)
                   (.then
@@ -32,21 +33,17 @@
 (defn print-help []
   (println "Squint v0.0.0
 
-Usage: squint <global-opts> <subcommand> <opts>
-
-Global options:
-
--e           <expr>  Compile and run expression.
---extension  <ext>   Extension for JS files. Defaults to .js, but can be set to .mjs for Node.js projects.
+Usage: squint <subcommand> <opts>
 
 Subcommands:
 
+-e           <expr>  Compile and run expression.
 run       <file.cljs>     Compile and run a file
 compile   <file.cljs> ... Compile file(s)
 repl                      Start repl
 help                      Print this help
 
-Use squint <option> --help to show more info."))
+Use squint <subcommand> --help to show more info."))
 
 (defn fallback [{:keys [rest-cmds opts]}]
   (if-let [e (:e opts)]
