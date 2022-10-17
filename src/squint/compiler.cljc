@@ -26,13 +26,6 @@
    [squint.internal.protocols :as protocols])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
-(defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
-  (-> (if (and (:jsx env)
-               (not (:jsx-attr env)))
-        expr
-        (emit-wrap (pr-str expr) env))
-      (emit-repl env)))
-
 (defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr env]
   (-> (emit-wrap (str (pr-str (subs (str expr) 1))) env)
       (emit-repl env)))
