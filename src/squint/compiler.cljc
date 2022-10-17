@@ -17,7 +17,7 @@
                                           #?(:cljs format)
                                           *aliases* *async* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
                                           *repl* comma-list emit emit-repl emit-special emit-wrap expr-env statement
-                                          statement-separator]]
+                                          statement-separator escape-jsx]]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
@@ -42,11 +42,6 @@
                (not (contains? @*excluded-core-vars* m)))
       (swap! *imported-vars* update "squint-cljs/core.js" (fnil conj #{}) m)
       m)))
-
-(defn escape-jsx [env expr]
-  (if (:jsx env)
-    (format "{%s}" expr)
-    expr))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
