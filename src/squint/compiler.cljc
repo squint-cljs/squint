@@ -17,7 +17,8 @@
                                           #?(:cljs format)
                                           *aliases* *async* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
                                           *repl* comma-list emit emit-repl emit-special emit-wrap expr-env statement
-                                          statement-separator escape-jsx munge*]]
+                                          statement-separator escape-jsx munge* emit-args emit-infix
+                                          suffix-unary? prefix-unary? infix-operator?]]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
@@ -137,55 +138,14 @@
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
-(def prefix-unary-operators '#{!})
-
-(def suffix-unary-operators '#{++ --})
-
-(def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "=" "==" "===" "<" ">" "<=" ">=" "!="
-                       "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"})
-
-(def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||"})
-
 (defn special-form? [expr]
   (contains? special-forms expr))
-
-(defn infix-operator? [expr]
-  (contains? infix-operators (name expr)))
-
-(defn prefix-unary? [expr]
-  (contains? prefix-unary-operators expr))
-
-(defn suffix-unary? [expr]
-  (contains? suffix-unary-operators expr))
 
 (defn emit-prefix-unary [_type [operator arg]]
   (str operator (emit arg)))
 
 (defn emit-suffix-unary [_type [operator arg]]
   (str (emit arg) operator))
-
-(defn emit-args [env args]
-  (let [env (assoc env :context :expr :top-level false)]
-    (map #(emit % env) args)))
-
-(defn emit-infix [_type enc-env [operator & args]]
-  (let [env (assoc enc-env :context :expr :top-level false)
-        acount (count args)
-        ]
-    (if (and (not (chainable-infix-operators (name operator))) (> acount 2))
-      (emit (list 'cljs.core/and
-                  (list operator (first args) (second args))
-                  (list* operator (rest args))))
-      (-> (if (and (= '- operator)
-                   (= 1 acount))
-            (str "-" (emit (first args) env))
-            (-> (let [substitutions {'= "===" == "===" '!= "!=="
-                                     'not= "!=="
-                                     '+ "+"}]
-                  (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
-                                     (emit-args env args)) ")"))
-                (emit-wrap enc-env)))
-          (emit-repl enc-env)))))
 
 (def ^:dynamic *recur-targets* [])
 
