@@ -17,7 +17,7 @@
                                           #?(:cljs format)
                                           *aliases* *async* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
                                           *repl* comma-list emit emit-repl emit-special emit-wrap expr-env statement
-                                          statement-separator escape-jsx]]
+                                          statement-separator escape-jsx munge*]]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
@@ -26,13 +26,10 @@
    [squint.internal.protocols :as protocols])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
-(defn munge* [expr]
-  (let [munged (str (munge expr))
-        keep #{"import" "await"}]
-    (cond-> munged
-      (and (str/ends-with? munged "$")
-           (contains? keep (str expr)))
-      (str/replace #"\$$" ""))))
+
+(defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr env]
+  (-> (emit-wrap (str (pr-str (subs (str expr) 1))) env)
+      (emit-repl env)))
 
 (declare core-vars)
 
