@@ -26,10 +26,6 @@
    [squint.internal.protocols :as protocols])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
-(defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr env]
-  (-> (emit-wrap (str (pr-str (subs (str expr) 1))) env)
-      (emit-repl env)))
-
 (defn munge* [expr]
   (let [munged (str (munge expr))
         keep #{"import" "await"}]
@@ -90,14 +86,6 @@
                                    (str expr))
                        env)
             (emit-repl env))))))
-
-#?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr _env]
-          (str \/ expr \/)))
-
-(defmethod emit :default [expr env]
-  ;; RegExp case moved here:
-  ;; References to the global RegExp object prevents optimization of regular expressions.
-  (emit-wrap (str expr) env))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while
