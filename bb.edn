@@ -1,4 +1,5 @@
 {:min-bb-version "0.9.161"
+ :deps {this/project {:local/root "."}}
  :paths ["src" "resources" "bb"]
  :tasks {:requires ([tasks :as t])
          build (t/build-squint-npm-package)

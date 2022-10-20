@@ -10,7 +10,8 @@
    [clojure.string :as str]
    [edamame.core :as e]
    [shadow.esm :as esm]
-   [squint.compiler :as compiler :refer [*repl* *async* *cljs-ns*]]))
+   [squint.compiler :as compiler]
+   [squint.compiler-common :refer [*async* *cljs-ns* *repl*]]))
 
 (def pending-input (atom ""))
 
