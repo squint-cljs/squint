@@ -10,11 +10,15 @@
 
 (ns squint.compiler
   (:require
+   #?(:clj [squint.resource :refer [edn-resource]])
    [clojure.string :as str]
    [edamame.core :as e]
-   #?(:cljs [goog.string.format])
-   #?(:cljs [goog.string :as gstring])
-   #?(:clj [squint.resource :refer [edn-resource]])
+   [squint.compiler-common :as cc :refer [#?(:cljs Exception)
+                                          #?(:cljs format)
+                                          *aliases* *async* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
+                                          *repl* comma-list emit emit-repl emit-special emit-wrap expr-env statement
+                                          statement-separator escape-jsx munge* emit-args emit-infix
+                                          suffix-unary? prefix-unary? infix-operator?]]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
@@ -23,92 +27,10 @@
    [squint.internal.protocols :as protocols])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
-#?(:cljs (def Exception js/Error))
-
-#?(:cljs (def format gstring/format))
-
-(defmulti emit (fn [expr _env] (type expr)))
-
-(defmulti emit-special (fn [disp _env & _args] disp))
-
-(defmethod emit-special 'js* [_ env [_js* template & substitutions]]
-  (reduce (fn [template substitution]
-            (str/replace-first template "~{}" (emit substitution env)))
-          template
-          substitutions))
-
-(defn emit-wrap [s env]
-  (if (= :return (:context env))
-    (format "return %s;" s)
-    s))
-
-(defn expr-env [env]
-  (assoc env :context :expr :top-level false))
-
-(defmethod emit-special 'throw [_ env [_ expr]]
-  (str "throw " (emit expr (expr-env env))))
-
-(def statement-separator ";\n")
-
-(def ^:dynamic *aliases* (atom {}))
-(def ^:dynamic *async* false)
-(def ^:dynamic *imported-vars* (atom {}))
-(def ^:dynamic *excluded-core-vars* (atom #{}))
-(def ^:dynamic *public-vars* (atom #{}))
-(def ^:dynamic *repl* false)
-(def ^:dynamic *cljs-ns* 'user)
-
-(defn str-tail
-  "Returns the last n characters of s."
-  ^String [n ^String s]
-  (if (< (count s) n)
-    s
-    (.substring s (- (count s) n))))
-
-(defn statement [expr]
-  (if (not (= statement-separator (str-tail (count statement-separator) expr)))
-    (str expr statement-separator)
-    expr))
-
-(defn comma-list [coll]
-  (str "(" (str/join ", " coll) ")"))
-
-(defmethod emit nil [_ env]
-  (emit-wrap "null" env))
-
-#?(:clj (derive #?(:clj java.lang.Integer) ::number))
-#?(:clj (derive #?(:clj java.lang.Long) ::number))
-#?(:cljs (derive js/Number ::number))
-
-(defn emit-repl [s env]
-  (if (and *repl*
-           (:top-level env))
-    (str "\nglobalThis._repl = " s)
-    s))
-
-(defmethod emit ::number [expr env]
-  (-> (str expr)
-      (emit-wrap env)
-      (emit-repl env)))
-
-(defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
-  (-> (if (and (:jsx env)
-               (not (:jsx-attr env)))
-        expr
-        (emit-wrap (pr-str expr) env))
-      (emit-repl env)))
 
 (defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr env]
   (-> (emit-wrap (str (pr-str (subs (str expr) 1))) env)
       (emit-repl env)))
-
-(defn munge* [expr]
-  (let [munged (str (munge expr))
-        keep #{"import" "await"}]
-    (cond-> munged
-      (and (str/ends-with? munged "$")
-           (contains? keep (str expr)))
-      (str/replace #"\$$" ""))))
 
 (declare core-vars)
 
@@ -119,24 +41,18 @@
       (swap! *imported-vars* update "squint-cljs/core.js" (fnil conj #{}) m)
       m)))
 
-(defn escape-jsx [env expr]
-  (if (:jsx env)
-    (format "{%s}" expr)
-    expr))
-
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
-    (emit-wrap (escape-jsx env
-                           (emit (list 'cljs.core/symbol
+    (emit-wrap (escape-jsx (emit (list 'cljs.core/symbol
                                        (str expr))
-                                 (dissoc env :quote)))
+                                 (dissoc env :quote))env)
                env)
     (if (and (simple-symbol? expr)
              (str/includes? (str expr) "."))
       (let [[fname path] (str/split (str expr) #"\." 2)
             fname (symbol fname)]
-        (escape-jsx env (str (emit fname (dissoc (expr-env env) :jsx))
-                             "." path)))
+        (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
+                         "." path) env))
       (let [munged-name (fn [expr] (munge* (name expr)))
             expr (if-let [sym-ns (namespace expr)]
                    (let [sn (symbol (name expr))]
@@ -158,18 +74,9 @@
                       (let [m (munged-name expr)]
                         (str (when *repl*
                                (str (munge *cljs-ns*) ".")) m)))))]
-        (-> (emit-wrap (escape-jsx env
-                                   (str expr))
+        (-> (emit-wrap (escape-jsx (str expr) env)
                        env)
             (emit-repl env))))))
-
-#?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr _env]
-          (str \/ expr \/)))
-
-(defmethod emit :default [expr env]
-  ;; RegExp case moved here:
-  ;; References to the global RegExp object prevents optimization of regular expressions.
-  (emit-wrap (str expr) env))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while
@@ -229,55 +136,14 @@
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
-(def prefix-unary-operators '#{!})
-
-(def suffix-unary-operators '#{++ --})
-
-(def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "=" "==" "===" "<" ">" "<=" ">=" "!="
-                       "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"})
-
-(def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||"})
-
 (defn special-form? [expr]
   (contains? special-forms expr))
-
-(defn infix-operator? [expr]
-  (contains? infix-operators (name expr)))
-
-(defn prefix-unary? [expr]
-  (contains? prefix-unary-operators expr))
-
-(defn suffix-unary? [expr]
-  (contains? suffix-unary-operators expr))
 
 (defn emit-prefix-unary [_type [operator arg]]
   (str operator (emit arg)))
 
 (defn emit-suffix-unary [_type [operator arg]]
   (str (emit arg) operator))
-
-(defn emit-args [env args]
-  (let [env (assoc env :context :expr :top-level false)]
-    (map #(emit % env) args)))
-
-(defn emit-infix [_type enc-env [operator & args]]
-  (let [env (assoc enc-env :context :expr :top-level false)
-        acount (count args)
-        ]
-    (if (and (not (chainable-infix-operators (name operator))) (> acount 2))
-      (emit (list 'cljs.core/and
-                  (list operator (first args) (second args))
-                  (list* operator (rest args))))
-      (-> (if (and (= '- operator)
-                   (= 1 acount))
-            (str "-" (emit (first args) env))
-            (-> (let [substitutions {'= "===" == "===" '!= "!=="
-                                     'not= "!=="
-                                     '+ "+"}]
-                  (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
-                                     (emit-args env args)) ")"))
-                (emit-wrap enc-env)))
-          (emit-repl enc-env)))))
 
 (def ^:dynamic *recur-targets* [])
 
@@ -876,7 +742,6 @@ break;}" body)
 
 (defmethod emit ::list [expr env]
   (escape-jsx
-   env
    (let [env (dissoc env :jsx)]
      (if (:quote env)
        (do
@@ -919,7 +784,8 @@ break;}" body)
              (list? expr)
              (emit-special 'funcall env expr)
              :else
-             (throw (new Exception (str "invalid form: " expr))))))))
+             (throw (new Exception (str "invalid form: " expr))))))
+   env))
 
 #?(:cljs (derive PersistentVector ::vector))
 
@@ -979,9 +845,9 @@ break;}" body)
         mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) ": "
                                 (emit (val pair) expr-env)))
         keys (str/join ", " (map mk-pair (seq expr)))]
-    (escape-jsx env*
-                (-> (format "({ %s })" keys)
-                    (emit-wrap env)))))
+    (escape-jsx (-> (format "({ %s })" keys)
+                    (emit-wrap env))
+                env*)))
 
 (defmethod emit #?(:clj clojure.lang.PersistentHashSet
                    :cljs PersistentHashSet)
