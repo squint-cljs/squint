@@ -2,7 +2,7 @@
   (:require
    ["@babel/core" :refer [transformSync]]
    ["react" :as React]
-   [clojure.test :as t :refer [deftest is]]
+   [clojure.test :as t :refer [deftest]]
    [goog.object :as gobject]
    [squint.test-utils :refer [jss!]]
    #_:clj-kondo/ignore
@@ -21,8 +21,8 @@
   (test-jsx "#jsx [:a {:href \"http://foo.com\"}]")
   (test-jsx "#jsx [:div {:dangerouslySetInnerHTML {:_html \"<i>Hello</i>\"}}]")
   (test-jsx "(defn App [] (let [x 1] #jsx [:div {:id x}]))")
-  (is (thrown? js/Error (test-jsx "#jsx [:a {:href 1}]")))
-  (test-jsx "(let [classes {:classes \"foo bar\"}] #jsx [:div {:className (:classes classes)}])"))
+  (test-jsx "(let [classes {:classes \"foo bar\"}] #jsx [:div {:className (:classes classes)}])")
+  (test-jsx "(defn App [{:keys [x]}] #jsx [:span x]) #jsx [App {:x 1}]"))
 
 
 

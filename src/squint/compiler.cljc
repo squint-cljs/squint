@@ -43,17 +43,16 @@
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
-    (emit-wrap (escape-jsx env
-                           (emit (list 'cljs.core/symbol
+    (emit-wrap (escape-jsx (emit (list 'cljs.core/symbol
                                        (str expr))
-                                 (dissoc env :quote)))
+                                 (dissoc env :quote))env)
                env)
     (if (and (simple-symbol? expr)
              (str/includes? (str expr) "."))
       (let [[fname path] (str/split (str expr) #"\." 2)
             fname (symbol fname)]
-        (escape-jsx env (str (emit fname (dissoc (expr-env env) :jsx))
-                             "." path)))
+        (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
+                         "." path) env))
       (let [munged-name (fn [expr] (munge* (name expr)))
             expr (if-let [sym-ns (namespace expr)]
                    (let [sn (symbol (name expr))]
@@ -75,8 +74,7 @@
                       (let [m (munged-name expr)]
                         (str (when *repl*
                                (str (munge *cljs-ns*) ".")) m)))))]
-        (-> (emit-wrap (escape-jsx env
-                                   (str expr))
+        (-> (emit-wrap (escape-jsx (str expr) env)
                        env)
             (emit-repl env))))))
 
@@ -744,7 +742,6 @@ break;}" body)
 
 (defmethod emit ::list [expr env]
   (escape-jsx
-   env
    (let [env (dissoc env :jsx)]
      (if (:quote env)
        (do
@@ -787,7 +784,8 @@ break;}" body)
              (list? expr)
              (emit-special 'funcall env expr)
              :else
-             (throw (new Exception (str "invalid form: " expr))))))))
+             (throw (new Exception (str "invalid form: " expr))))))
+   env))
 
 #?(:cljs (derive PersistentVector ::vector))
 
@@ -847,9 +845,9 @@ break;}" body)
         mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) ": "
                                 (emit (val pair) expr-env)))
         keys (str/join ", " (map mk-pair (seq expr)))]
-    (escape-jsx env*
-                (-> (format "({ %s })" keys)
-                    (emit-wrap env)))))
+    (escape-jsx (-> (format "({ %s })" keys)
+                    (emit-wrap env))
+                env*)))
 
 (defmethod emit #?(:clj clojure.lang.PersistentHashSet
                    :cljs PersistentHashSet)
