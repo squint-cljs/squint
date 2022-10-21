@@ -4,8 +4,8 @@
             ["solid-js" :refer [createSignal]]
             [squint.string :as str]))
 
-(defn Counter []
-  (let [[counter setCount] (createSignal 0)]
+(defn Counter [{:keys [init]}]
+  (let [[counter setCount] (createSignal init)]
     #jsx [:div
           "Count:" (str/join " " (range (counter)))
           [:div
@@ -20,6 +20,6 @@
          [:img {:src logo
                 :class styles.logo
                 :alt "logo"}]
-         [Counter]]])
+         [Counter {:init 5}]]])
 
 (def default App)
