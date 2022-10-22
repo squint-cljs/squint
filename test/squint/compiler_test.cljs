@@ -637,6 +637,21 @@
   (is (eq '("b" "c") (jsv! '(vec (rest "abc")))))
   (is (= 1 (jsv! '(first (rest (range))))) "infinite rest"))
 
+(deftest next-test
+  (is (= nil (jsv! '(next nil))))
+  (is (= nil (jsv! '(next []))))
+  (is (= nil (jsv! '(next #{}))))
+  (is (= nil (jsv! '(next {}))))
+  (is (= nil (jsv! '(next (js/Map. [])))))
+  (is (= nil (jsv! '(next [:a]))))
+  (is (= nil (jsv! '(next #{:a}))))
+  (is (= nil (jsv! '(next {:a :a}))))
+  (is (= nil (jsv! '(next (js/Map. [[:a :a]])))))
+  (is (eq #js [2 3] (jsv! '(vec (next [1 2 3])))))
+  (is (eq #{2 3} (jsv! '(vec (next #{1 2 3})))))
+  (is (eq #js [#js [3 4]] (jsv! '(vec (next (js/Map. [[1 2] [3 4]]))))))
+  (is (eq '("b" "c") (jsv! '(vec (next "abc")))))
+  (is (= 1 (jsv! '(first (next (range))))) "infinite next"))
 
 (deftest last-test
   (is (= nil (jsv! '(last nil))))
