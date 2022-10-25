@@ -37,6 +37,8 @@ jobs:
       run: |
         cd ..
         git clone https://github.com/squint-cljs/compiler-common.git
+        cd compiler-common
+        git checkout iteration2
         cd -
         npm install
         bb test:node
