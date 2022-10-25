@@ -35,12 +35,6 @@ jobs:
 
     - name: Run tests
       run: |
-        pushd ..
-        git clone https://github.com/squint-cljs/compiler-common.git
-        pushd compiler-common
-        git checkout iteration2
-        popd
-        popd
         npm install
         bb test:node
         bb test:bb
