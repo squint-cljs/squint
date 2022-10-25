@@ -1,0 +1,3 @@
+[submodule "compiler-common"]
+	path = compiler-common
+	url = https://github.com/squint-cljs/compiler-common.git

@@ -13,6 +13,8 @@ jobs:
     steps:
     - name: "Checkout code"
       uses: "actions/checkout@v2"
+      with:
+        submodules: true
 
     - name: Prepare java
       uses: actions/setup-java@v2
@@ -35,9 +37,6 @@ jobs:
 
     - name: Run tests
       run: |
-        cd ..
-        git clone https://github.com/squint-cljs/compiler-common.git
-        cd -
         npm install
         bb test:node
         bb test:bb
