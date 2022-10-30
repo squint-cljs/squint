@@ -70,6 +70,7 @@
                                                (if jsx
                                                  ".jsx"
                                                  (or (when-let [ext extension]
-                                                       (str "." (str/replace ext #"^\." ""))) ".js"))))]
+                                                       (str "." (str/replace ext #"^\." "")))
+                                                     ".mjs"))))]
                  (spit out-file javascript)
                  {:out-file out-file})))))
