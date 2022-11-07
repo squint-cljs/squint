@@ -175,29 +175,6 @@
                  env)
       (emit-repl env)))
 
-(defn emit-method [env obj method args]
-  (let [eenv (expr-env env)]
-    (emit-wrap (str (emit obj eenv) "."
-                    (str method)
-                    (comma-list (emit-args env args)))
-               env)))
-
-(defn emit-aget [env var idxs]
-  (emit-wrap (apply str
-                    (emit var (expr-env env))
-                    (interleave (repeat "[") (emit-args env idxs) (repeat "]")))
-             env))
-
-(defmethod emit-special '. [_type env [_period obj method & args]]
-  (let [[method args] (if (seq? method)
-                        [(first method) (rest method)]
-                        [method args])
-        method-str (str method)]
-    (-> (if (str/starts-with? method-str "-")
-          (emit-aget env obj [(subs method-str 1)])
-          (emit-method env obj (symbol method-str) args))
-        (emit-repl env))))
-
 (defmethod emit-special 'if [_type env [_if test then else]]
   (if (= :expr (:context env))
     (-> (let [env (assoc env :context :expr)]
@@ -214,9 +191,6 @@
            (str " else {\n"
                 (emit else env)
                 "}")))))
-
-(defmethod emit-special 'aget [type env [_aget var & idxs]]
-  (emit-aget env var idxs))
 
 ;; TODO: this should not be reachable in user space
 (defmethod emit-special 'return [_type env [_return expr]]
