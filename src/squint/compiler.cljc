@@ -192,60 +192,6 @@
                 (emit else env)
                 "}")))))
 
-;; TODO: this should not be reachable in user space
-(defmethod emit-special 'return [_type env [_return expr]]
-  (statement (str "return " (emit (assoc env :context :expr) env))))
-
-#_(defmethod emit-special 'delete [type [return expr]]
-    (str "delete " (emit expr)))
-
-(defmethod emit-special 'set! [_type env [_set! var val & more]]
-  (assert (or (nil? more) (even? (count more))))
-  (let [eenv (expr-env env)]
-    (emit-wrap (str (emit var eenv) " = " (emit val eenv) statement-separator
-                    #_(when more (str (emit (cons 'set! more) env))))
-               env)))
-
-(defmethod emit-special 'new [_type env [_new class & args]]
-  (emit-wrap (str "new " (emit class (expr-env env)) (comma-list (emit-args env args))) env))
-
-#_(defmethod emit-special 'inc! [_type env [_inc var]]
-    (str (emit var env) "++"))
-
-#_(defmethod emit-special 'dec! [_type env [_dec var]]
-    (str (emit var env) "--"))
-
-(defmethod emit-special 'dec [_type env [_ var]]
-  (emit-wrap (str "(" (emit var (assoc env :context :expr)) " - " 1 ")") env))
-
-(defmethod emit-special 'inc [_type env [_ var]]
-  (emit-wrap (str "(" (emit var (assoc env :context :expr)) " + " 1 ")") env))
-
-#_(defmethod emit-special 'defined? [_type env [_ var]]
-    (str "typeof " (emit var env) " !== \"undefined\" && " (emit var env) " !== null"))
-
-#_(defmethod emit-special '? [_type env [_ test then else]]
-    (str (emit test env) " ? " (emit then env) " : " (emit else env)))
-
-(defmethod emit-special 'and [_type env [_ & more]]
-  (emit-wrap (apply str (interpose " && " (emit-args env more))) env))
-
-(defmethod emit-special 'or [_type env [_ & more]]
-  (emit-wrap (apply str (interpose " || " (emit-args env more))) env))
-
-(defmethod emit-special 'while [_type env [_while test & body]]
-  (str "while (" (emit test) ") { \n"
-       (emit-do env body)
-       "\n }"))
-
-;; TODO: re-implement
-#_(defmethod emit-special 'doseq [_type env [_doseq bindings & body]]
-    (str "for (" (emit (first bindings) env) " in " (emit (second bindings) env) ") { \n"
-         (if-let [more (nnext bindings)]
-           (emit (list* 'doseq more body) env)
-           (emit-do body env))
-         "\n }"))
-
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)
       (apply str "var "
