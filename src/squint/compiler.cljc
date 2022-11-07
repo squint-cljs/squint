@@ -155,36 +155,6 @@
                                                                 fields)))))
                                                (assoc :type true)))))))
 
-(defn emit-repl-var [s _name env]
-  (str s
-       (when (and *repl* (:top-level env))
-         "globalThis._repl = null;\n")))
-
-(defn no-top-level [env]
-  (dissoc env :top-level))
-
-(defn emit-var [[name expr] env]
-  (-> (let [env (no-top-level env)]
-        (str (if *repl*
-               (str "globalThis."
-                    (when *cljs-ns*
-                      (str (munge *cljs-ns*) ".") #_"var ")
-                    (munge name))
-               (str "var " (munge name))) " = "
-             (emit expr (expr-env env)) "\n"
-             (when *repl*
-               (str "var " (munge name) " = " "globalThis."
-                    (when *cljs-ns*
-                      (str (munge *cljs-ns*) "."))
-                    (munge name)
-                    "\n;"))))
-      (emit-repl-var name env)))
-
-(defmethod emit-special 'def [_type env [_const & more]]
-  (let [name (first more)]
-    (swap! *public-vars* conj (munge* name))
-    (emit-var more env)))
-
 #_(defn wrap-await [s]
   (format "(%s)" (str "await " s)))
 
