@@ -25,3 +25,4 @@ examples/quickjs/hello
 public
 .test
 scratch.js
+compiler-common

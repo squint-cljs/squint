@@ -16,9 +16,10 @@
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
                                           *aliases* *async* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
-                                          *repl* comma-list emit emit-repl emit-special emit-wrap expr-env statement
+                                          *repl* *recur-targets*  comma-list emit emit-repl emit-special emit-wrap expr-env statement
                                           statement-separator escape-jsx munge* emit-args emit-infix
-                                          suffix-unary? prefix-unary? infix-operator?]]
+                                          suffix-unary? prefix-unary? infix-operator?
+                                          wrap-await emit-let wrap-iife emit-do]]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
@@ -100,10 +101,6 @@
 (defn emit-suffix-unary [_type [operator arg]]
   (str (emit arg) operator))
 
-(def ^:dynamic *recur-targets* [])
-
-(declare emit-do wrap-iife)
-
 (defmethod emit-special 'quote [_ env [_ form]]
   (emit-wrap (emit form (expr-env (assoc env :quote true))) env))
 
@@ -125,7 +122,7 @@
 (defmethod emit-special 'quote [_ env [_ form]]
   (emit-wrap (emit form (expr-env (assoc env :quote true))) env))
 
-(defn emit-let [enc-env bindings body is-loop]
+#_(defn emit-let [enc-env bindings body is-loop]
   (let [context (:context enc-env)
         env (assoc enc-env :context :expr)
         partitioned (partition 2 bindings)
@@ -166,7 +163,7 @@
           (wrap-iife))
         (emit-repl env))))
 
-(defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
+#_(defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
 
 (defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
@@ -299,9 +296,7 @@
     (swap! *public-vars* conj (munge* name))
     (emit-var more env)))
 
-(declare emit-do)
-
-(defn wrap-await [s]
+#_(defn wrap-await [s]
   (format "(%s)" (str "await " s)))
 
 (defn js-await [env more]
@@ -314,7 +309,7 @@
 (defmethod emit-special 'js-await [_ env [_await more]]
   (js-await env more))
 
-(defn wrap-iife [s]
+#_(defn wrap-iife [s]
   (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
     *async* (wrap-await)))
 
@@ -533,23 +528,6 @@
 
 (defmethod emit-special 'or [_type env [_ & more]]
   (emit-wrap (apply str (interpose " || " (emit-args env more))) env))
-
-(defn emit-do [env exprs]
-  (let [bl (butlast exprs)
-        l (last exprs)
-        ctx (:context env)
-        statement-env (assoc env :context :statement)
-        iife? (and (seq bl) (= :expr ctx))
-        s (cond-> (str (str/join "" (map #(statement (emit % statement-env)) bl))
-                       (emit l (assoc env :context
-                                      (if iife? :return
-                                          ctx))))
-            iife?
-            (wrap-iife))]
-    s))
-
-(defmethod emit-special 'do [_type env [_ & exprs]]
-  (emit-do env exprs))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
   (str "while (" (emit test) ") { \n"

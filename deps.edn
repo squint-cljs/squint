@@ -1,11 +1,10 @@
-{:paths ["src" "resources"]
+{:paths ["src" "resources" "compiler-common"]
  :deps {borkdude/edamame {:mvn/version "1.0.0"}
         babashka/process {:mvn/version "0.1.7"}
         org.babashka/cli {:mvn/version "0.4.37"}
         org.babashka/sci {:mvn/version "0.3.32"}
         io.github.squint-cljs/compiler-common
-        #_{:git/sha "8111dfc88f7cbd25f44f314ba9d968ee82cd38cc"}
-        {:local/root "compiler-common"}}
+        {:git/sha "4dcd73ce559d6c8579ff8ee24f7ddaa3f31adf74"}}
  :aliases
  {:cljs {:extra-paths ["test"]
          :extra-deps {thheller/shadow-cljs {:mvn/version "2.19.6"}}}
