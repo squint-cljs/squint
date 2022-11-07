@@ -1,5 +1,6 @@
 {:min-bb-version "0.9.161"
- :deps {this/project {:local/root "."}}
+ :deps {this/project {:local/root "."}
+        borkdude/rewrite-edn {:mvn/version "0.3.4"}}
  :paths ["src" "resources" "bb"]
  :tasks {:requires ([tasks :as t])
          build (t/build-squint-npm-package)
@@ -11,5 +12,6 @@
                    :extra-paths ["test"]
                    :task (exec 'squint.compiler-test/run-tests)}
          test:clj {:doc "Run tests in Clojure"
-                   :task (clojure "-X:test")}}
+                   :task (clojure "-X:test")}
+         bump-common tasks/bump-compiler-common}
  }

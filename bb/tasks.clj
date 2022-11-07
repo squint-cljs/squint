@@ -5,7 +5,8 @@
    [cheshire.core :as json]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [node-repl-tests]))
+   [node-repl-tests]
+   [clojure.string :as str]))
 
 (defn munge* [s reserved]
   (let [s (str (munge s))]
@@ -71,3 +72,14 @@
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn release squint")
   (shell "node lib/squint_tests.js")
   (node-repl-tests/run-tests {}))
+
+(defn bump-compiler-common []
+  (let [{:keys [out]}
+        (shell {:out :string
+                :dir "compiler-common"} "git rev-parse HEAD")
+        sha (str/trim out)
+        deps (slurp "deps.edn")
+        nodes ((requiring-resolve 'borkdude.rewrite-edn/parse-string) deps)
+        nodes ((requiring-resolve 'borkdude.rewrite-edn/assoc-in) nodes [:deps 'io.github.squint-cljs/compiler-common :git/sha] sha)
+        deps (str nodes)]
+    (spit "deps.edn" deps)))
