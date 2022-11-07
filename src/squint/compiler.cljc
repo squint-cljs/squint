@@ -158,135 +158,11 @@
 #_(defn wrap-await [s]
   (format "(%s)" (str "await " s)))
 
-(defn js-await [env more]
-  (-> (emit-wrap (wrap-await (emit more (expr-env env))) env)
-      (emit-repl env)))
-
-(defmethod emit-special 'js/await [_ env [_await more]]
-  (js-await env more))
-
-(defmethod emit-special 'js-await [_ env [_await more]]
-  (js-await env more))
-
-#_(defn wrap-iife [s]
-  (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
-    *async* (wrap-await)))
-
 (defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let bindings more) env)
   #_(prn (core-let bindings more)))
 
-(defn resolve-ns [alias]
-  (case alias
-    (squint.string clojure.string) "squint-cljs/string.js"
-    alias))
 
-(defn process-require-clause [[libname & {:keys [refer as]}]]
-  (let [libname (resolve-ns libname)
-        [libname suffix] (str/split libname #"\$" 2)
-        [p & _props] (when suffix
-                       (str/split suffix #"\."))]
-    (str
-     (when-not *repl*
-       (when (and as (= "default" p))
-         (statement (format "import %s from '%s'" as libname))))
-     (when (and (not as) (not p) (not refer))
-       ;; import presumably for side effects
-       (statement (format "import '%s'" libname)))
-     (when as
-       (swap! *imported-vars* update libname (fnil identity #{}))
-       (when *repl*
-         (if (str/ends-with? libname "$default")
-           (statement (format "import %s from '%s'" as (str/replace libname "$default" "")))
-           (statement (format "import * as %s from '%s'"  as libname)))))
-     (when refer
-       (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
-
-(defmethod emit-special 'ns [_type _env [_ns name & clauses]]
-  (set! *cljs-ns* name)
-  (reset! *aliases*
-          (->> clauses
-               (some
-                (fn [[k & exprs]]
-                  (when (= :require k) exprs)))
-               (reduce
-                (fn [aliases [full as alias]]
-                  (let [full (resolve-ns full)]
-                    (case as
-                      (:as :as-alias)
-                      (assoc aliases alias full)
-                      aliases)))
-                {:current name})))
-  (str
-   (reduce (fn [acc [k & exprs]]
-             (cond
-               (= :require k)
-               (str acc (str/join "" (map process-require-clause exprs)))
-               (= :refer-clojure k)
-               (let [{:keys [exclude]} exprs]
-                 (swap! *excluded-core-vars* into exclude)
-                 acc)
-               :else acc))
-           ""
-           clauses)
-   (when *repl*
-     (let [mname (munge name)
-           split-name (str/split (str mname) #"\.")
-           ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
-                                    (let [nk (str (when nk
-                                                    (str nk ".")) k)]
-                                      {:js (str js "globalThis." nk " = {};\n")
-                                       :nk nk}))
-                                  {}
-                                  split-name)
-                          :js)
-           ns-obj (str "globalThis." mname)]
-       (str
-        ensure-obj
-        ns-obj " = {aliases: {}};\n"
-        (reduce-kv (fn [acc k _v]
-                     (if (symbol? k)
-                       (str acc
-                            ns-obj ".aliases." k " = " k ";\n")
-                       acc))
-                   ""
-                   @*aliases*))))))
-
-(defmethod emit-special 'require [_ env [_ & clauses]]
-  (let [clauses (map second clauses)]
-    (reset! *aliases*
-            (->> clauses
-                 (reduce
-                  (fn [aliases [full as alias]]
-                    (let [full (resolve-ns full)]
-                      (case as
-                        (:as :as-alias)
-                        (assoc aliases alias full)
-                        aliases)))
-                  {:current name})))
-    (str (str/join "" (map process-require-clause clauses))
-         (when *repl*
-           (let [mname (munge *cljs-ns*)
-                 split-name (str/split (str mname) #"\.")
-                 ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
-                                          (let [nk (str (when nk
-                                                          (str nk ".")) k)]
-                                            {:js (str js "globalThis." nk " = {};\n")
-                                             :nk nk}))
-                                        {}
-                                        split-name)
-                                :js)
-                 ns-obj (str "globalThis." mname)]
-             (str
-              ensure-obj
-              ns-obj " = {aliases: {}};\n"
-              (reduce-kv (fn [acc k _v]
-                           (if (symbol? k)
-                             (str acc
-                                  ns-obj ".aliases." k " = " k ";\n")
-                             acc))
-                         ""
-                         @*aliases*)))))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
   (-> (emit-wrap (str
@@ -697,7 +573,8 @@ break;}" body)
                *aliases* aliases
                *jsx* false
                *excluded-core-vars* (atom #{})
-               *cljs-ns* *cljs-ns*]
+               *cljs-ns* *cljs-ns*
+               cc/*target* :squint]
        (let [transpiled (transpile-string* s)
              imports (when-not elide-imports
                        (let [ns->alias (zipmap (vals @aliases)
