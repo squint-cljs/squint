@@ -202,44 +202,6 @@
   (let [expanded (apply core-fn expr {} sigs)]
     (emit expanded env)))
 
-(defmethod emit-special 'try [_type env [_try & body :as expression]]
-  (let [try-body (remove #(contains? #{'catch 'finally} (and (seq? %)
-                                                             (first %)))
-                         body)
-        catch-clause (filter #(= 'catch (and (seq? %)
-                                             (first %)))
-                             body)
-        finally-clause (filter #(= 'finally (and (seq? %)
-                                                 (first %)))
-                               body)]
-    (cond
-      (and (empty? catch-clause)
-           (empty? finally-clause))
-      (throw (new Exception (str "Must supply a catch or finally clause (or both) in a try statement! " expression)))
-
-      (> (count catch-clause) 1)
-      (throw (new Exception (str "Multiple catch clauses in a try statement are not currently supported! " expression)))
-
-      (> (count finally-clause) 1)
-      (throw (new Exception (str "Cannot supply more than one finally clause in a try statement! " expression)))
-
-      :else
-      (-> (cond-> (str "try{\n"
-                       (emit-do env try-body)
-                       "}\n"
-                       (when-let [[_ _exception binding & catch-body] (first catch-clause)]
-                         ;; TODO: only bind when exception type matches
-                         (str "catch(" (emit binding (expr-env env)) "){\n"
-                              (emit-do env catch-body)
-                              "}\n"))
-                       (when-let [[_ & finally-body] (first finally-clause)]
-                         (str "finally{\n"
-                              (emit-do (assoc env :context :statement) finally-body)
-                              "}\n")))
-            (not= :statement (:context env))
-            (wrap-iife))
-          (emit-wrap env)))))
-
 #_(defmethod emit-special 'break [_type _env [_break]]
     (statement "break"))
 
