@@ -162,8 +162,6 @@
   (emit (core-let bindings more) env)
   #_(prn (core-let bindings more)))
 
-
-
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
   (-> (emit-wrap (str
                   (emit fname (expr-env env))
@@ -176,9 +174,6 @@
                                                     (cons nil args)))))
                  env)
       (emit-repl env)))
-
-(defmethod emit-special 'str [_type env [_str & args]]
-  (apply clojure.core/str (interpose " + " (emit-args env args))))
 
 (defn emit-method [env obj method args]
   (let [eenv (expr-env env)]
