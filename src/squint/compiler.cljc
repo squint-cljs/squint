@@ -122,47 +122,6 @@
 (defmethod emit-special 'quote [_ env [_ form]]
   (emit-wrap (emit form (expr-env (assoc env :quote true))) env))
 
-#_(defn emit-let [enc-env bindings body is-loop]
-  (let [context (:context enc-env)
-        env (assoc enc-env :context :expr)
-        partitioned (partition 2 bindings)
-        iife? (or (= :expr context)
-                  (and *repl* (:top-level env)))
-        upper-var->ident (:var->ident enc-env)
-        [bindings var->ident]
-        (let [env (dissoc env :top-level)]
-          (reduce (fn [[acc var->ident] [var-name rhs]]
-                    (let [vm (meta var-name)
-                          rename? (not (:squint.compiler/no-rename vm))
-                          renamed (if rename? (munge (gensym var-name))
-                                      var-name)
-                          lhs (str renamed)
-                          rhs (emit rhs (assoc env :var->ident var->ident))
-                          expr (format "let %s = %s;\n" lhs rhs)
-                          var->ident (assoc var->ident var-name renamed)]
-                      [(str acc expr) var->ident]))
-                  ["" upper-var->ident]
-                  partitioned))
-        enc-env (assoc enc-env :var->ident var->ident :top-level false)]
-    (-> (cond->> (str
-                  bindings
-                  (when is-loop
-                    (str "while(true){\n"))
-                  ;; TODO: move this to env arg?
-                  (binding [*recur-targets*
-                            (if is-loop (map var->ident (map first partitioned))
-                                *recur-targets*)]
-                    (emit-do (if iife?
-                               (assoc enc-env :context :return)
-                               enc-env) body))
-                  (when is-loop
-                    ;; TODO: not sure why I had to insert the ; here, but else
-                    ;; (loop [x 1] (+ 1 2 x)) breaks
-                    (str ";break;\n}\n")))
-          iife?
-          (wrap-iife))
-        (emit-repl env))))
-
 #_(defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
 
@@ -195,27 +154,6 @@
                                                                   (symbol (str "self__." fld)))
                                                                 fields)))))
                                                (assoc :type true)))))))
-
-
-#_(defmethod emit* :deftype
-    [{:keys [t fields pmasks body protocols]}]
-    (let [fields (map munge fields)]
-      (emitln "")
-      (emitln "/**")
-      (emitln "* @constructor")
-      (doseq [protocol protocols]
-        (emitln " * @implements {" (munge (str protocol)) "}"))
-      (emitln "*/")
-      (emitln (munge t) " = (function (" (comma-sep fields) "){")
-      (doseq [fld fields]
-        (emitln "this." fld " = " fld ";"))
-      (doseq [[pno pmask] pmasks]
-        (emitln "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
-      (emitln "});")
-      (emit body)))
-
-(defmethod emit-special 'loop* [_ env [_ bindings & body]]
-  (emit-let env bindings body true))
 
 (defmethod emit-special 'case* [_ env [_ v tests thens default]]
   (let [expr? (= :expr (:context env))
