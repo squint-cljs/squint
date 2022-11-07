@@ -63,7 +63,7 @@
   (fs/delete-tree ".shadow-cljs/builds/squint/dev/ana/squint")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
   (bump-core-vars)
-  (shell "npx shadow-cljs --config-merge .work/config-merge.edn watch squint"))
+  (shell "npx shadow-cljs --aliases :dev --config-merge .work/config-merge.edn watch squint"))
 
 (defn test-squint []
   (fs/create-dirs ".work")
