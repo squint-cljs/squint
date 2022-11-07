@@ -155,27 +155,6 @@
                                                                 fields)))))
                                                (assoc :type true)))))))
 
-(defmethod emit-special 'recur [_ env [_ & exprs]]
-  (let [bindings *recur-targets*
-        temps (repeatedly (count exprs) gensym)
-        eenv (expr-env env)]
-    (when-let [cb (:recur-callback env)]
-      (cb bindings))
-    (str
-     (str/join ""
-               (map (fn [temp expr]
-                      (statement (format "let %s = %s"
-                                         temp (emit expr eenv))))
-                    temps exprs)
-               )
-     (str/join ""
-               (map (fn [binding temp]
-                      (statement (format "%s = %s"
-                                         binding temp)))
-                    bindings temps)
-               )
-     "continue;\n")))
-
 (defn emit-repl-var [s _name env]
   (str s
        (when (and *repl* (:top-level env))
