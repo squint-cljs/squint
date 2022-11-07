@@ -155,34 +155,6 @@
                                                                 fields)))))
                                                (assoc :type true)))))))
 
-(defmethod emit-special 'case* [_ env [_ v tests thens default]]
-  (let [expr? (= :expr (:context env))
-        gs (gensym "caseval__")
-        eenv (expr-env env)]
-    (cond-> (str
-             (when expr?
-               (str "var " gs ";\n"))
-             (str "switch (" (emit v eenv) ") {")
-             (str/join (map (fn [test then]
-                              (str/join
-                               (map (fn [test]
-                                      (str (str "case " (emit test eenv) ":\n")
-                                           (if expr?
-                                             (str gs " = " then)
-                                             (emit then env))
-                                           "\nbreak;\n"))
-                                    test)))
-                            tests thens))
-             (when default
-               (str "default:\n"
-                    (if expr?
-                      (str gs " = " (emit default eenv))
-                      (emit default env))))
-             (when expr?
-               (str "return " gs ";"))
-             "}")
-      expr? (wrap-iife))))
-
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [bindings *recur-targets*
         temps (repeatedly (count exprs) gensym)
