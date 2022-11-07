@@ -155,217 +155,12 @@
                                                                 fields)))))
                                                (assoc :type true)))))))
 
-(defmethod emit-special 'case* [_ env [_ v tests thens default]]
-  (let [expr? (= :expr (:context env))
-        gs (gensym "caseval__")
-        eenv (expr-env env)]
-    (cond-> (str
-             (when expr?
-               (str "var " gs ";\n"))
-             (str "switch (" (emit v eenv) ") {")
-             (str/join (map (fn [test then]
-                              (str/join
-                               (map (fn [test]
-                                      (str (str "case " (emit test eenv) ":\n")
-                                           (if expr?
-                                             (str gs " = " then)
-                                             (emit then env))
-                                           "\nbreak;\n"))
-                                    test)))
-                            tests thens))
-             (when default
-               (str "default:\n"
-                    (if expr?
-                      (str gs " = " (emit default eenv))
-                      (emit default env))))
-             (when expr?
-               (str "return " gs ";"))
-             "}")
-      expr? (wrap-iife))))
-
-(defmethod emit-special 'recur [_ env [_ & exprs]]
-  (let [bindings *recur-targets*
-        temps (repeatedly (count exprs) gensym)
-        eenv (expr-env env)]
-    (when-let [cb (:recur-callback env)]
-      (cb bindings))
-    (str
-     (str/join ""
-               (map (fn [temp expr]
-                      (statement (format "let %s = %s"
-                                         temp (emit expr eenv))))
-                    temps exprs)
-               )
-     (str/join ""
-               (map (fn [binding temp]
-                      (statement (format "%s = %s"
-                                         binding temp)))
-                    bindings temps)
-               )
-     "continue;\n")))
-
-(defn emit-repl-var [s _name env]
-  (str s
-       (when (and *repl* (:top-level env))
-         "globalThis._repl = null;\n")))
-
-(defn no-top-level [env]
-  (dissoc env :top-level))
-
-(defn emit-var [[name expr] env]
-  (-> (let [env (no-top-level env)]
-        (str (if *repl*
-               (str "globalThis."
-                    (when *cljs-ns*
-                      (str (munge *cljs-ns*) ".") #_"var ")
-                    (munge name))
-               (str "var " (munge name))) " = "
-             (emit expr (expr-env env)) "\n"
-             (when *repl*
-               (str "var " (munge name) " = " "globalThis."
-                    (when *cljs-ns*
-                      (str (munge *cljs-ns*) "."))
-                    (munge name)
-                    "\n;"))))
-      (emit-repl-var name env)))
-
-(defmethod emit-special 'def [_type env [_const & more]]
-  (let [name (first more)]
-    (swap! *public-vars* conj (munge* name))
-    (emit-var more env)))
-
 #_(defn wrap-await [s]
   (format "(%s)" (str "await " s)))
-
-(defn js-await [env more]
-  (-> (emit-wrap (wrap-await (emit more (expr-env env))) env)
-      (emit-repl env)))
-
-(defmethod emit-special 'js/await [_ env [_await more]]
-  (js-await env more))
-
-(defmethod emit-special 'js-await [_ env [_await more]]
-  (js-await env more))
-
-#_(defn wrap-iife [s]
-  (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
-    *async* (wrap-await)))
 
 (defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let bindings more) env)
   #_(prn (core-let bindings more)))
-
-(defn resolve-ns [alias]
-  (case alias
-    (squint.string clojure.string) "squint-cljs/string.js"
-    alias))
-
-(defn process-require-clause [[libname & {:keys [refer as]}]]
-  (let [libname (resolve-ns libname)
-        [libname suffix] (str/split libname #"\$" 2)
-        [p & _props] (when suffix
-                       (str/split suffix #"\."))]
-    (str
-     (when-not *repl*
-       (when (and as (= "default" p))
-         (statement (format "import %s from '%s'" as libname))))
-     (when (and (not as) (not p) (not refer))
-       ;; import presumably for side effects
-       (statement (format "import '%s'" libname)))
-     (when as
-       (swap! *imported-vars* update libname (fnil identity #{}))
-       (when *repl*
-         (if (str/ends-with? libname "$default")
-           (statement (format "import %s from '%s'" as (str/replace libname "$default" "")))
-           (statement (format "import * as %s from '%s'"  as libname)))))
-     (when refer
-       (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
-
-(defmethod emit-special 'ns [_type _env [_ns name & clauses]]
-  (set! *cljs-ns* name)
-  (reset! *aliases*
-          (->> clauses
-               (some
-                (fn [[k & exprs]]
-                  (when (= :require k) exprs)))
-               (reduce
-                (fn [aliases [full as alias]]
-                  (let [full (resolve-ns full)]
-                    (case as
-                      (:as :as-alias)
-                      (assoc aliases alias full)
-                      aliases)))
-                {:current name})))
-  (str
-   (reduce (fn [acc [k & exprs]]
-             (cond
-               (= :require k)
-               (str acc (str/join "" (map process-require-clause exprs)))
-               (= :refer-clojure k)
-               (let [{:keys [exclude]} exprs]
-                 (swap! *excluded-core-vars* into exclude)
-                 acc)
-               :else acc))
-           ""
-           clauses)
-   (when *repl*
-     (let [mname (munge name)
-           split-name (str/split (str mname) #"\.")
-           ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
-                                    (let [nk (str (when nk
-                                                    (str nk ".")) k)]
-                                      {:js (str js "globalThis." nk " = {};\n")
-                                       :nk nk}))
-                                  {}
-                                  split-name)
-                          :js)
-           ns-obj (str "globalThis." mname)]
-       (str
-        ensure-obj
-        ns-obj " = {aliases: {}};\n"
-        (reduce-kv (fn [acc k _v]
-                     (if (symbol? k)
-                       (str acc
-                            ns-obj ".aliases." k " = " k ";\n")
-                       acc))
-                   ""
-                   @*aliases*))))))
-
-(defmethod emit-special 'require [_ env [_ & clauses]]
-  (let [clauses (map second clauses)]
-    (reset! *aliases*
-            (->> clauses
-                 (reduce
-                  (fn [aliases [full as alias]]
-                    (let [full (resolve-ns full)]
-                      (case as
-                        (:as :as-alias)
-                        (assoc aliases alias full)
-                        aliases)))
-                  {:current name})))
-    (str (str/join "" (map process-require-clause clauses))
-         (when *repl*
-           (let [mname (munge *cljs-ns*)
-                 split-name (str/split (str mname) #"\.")
-                 ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
-                                          (let [nk (str (when nk
-                                                          (str nk ".")) k)]
-                                            {:js (str js "globalThis." nk " = {};\n")
-                                             :nk nk}))
-                                        {}
-                                        split-name)
-                                :js)
-                 ns-obj (str "globalThis." mname)]
-             (str
-              ensure-obj
-              ns-obj " = {aliases: {}};\n"
-              (reduce-kv (fn [acc k _v]
-                           (if (symbol? k)
-                             (str acc
-                                  ns-obj ".aliases." k " = " k ";\n")
-                             acc))
-                         ""
-                         @*aliases*)))))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
   (-> (emit-wrap (str
@@ -379,32 +174,6 @@
                                                     (cons nil args)))))
                  env)
       (emit-repl env)))
-
-(defmethod emit-special 'str [_type env [_str & args]]
-  (apply clojure.core/str (interpose " + " (emit-args env args))))
-
-(defn emit-method [env obj method args]
-  (let [eenv (expr-env env)]
-    (emit-wrap (str (emit obj eenv) "."
-                    (str method)
-                    (comma-list (emit-args env args)))
-               env)))
-
-(defn emit-aget [env var idxs]
-  (emit-wrap (apply str
-                    (emit var (expr-env env))
-                    (interleave (repeat "[") (emit-args env idxs) (repeat "]")))
-             env))
-
-(defmethod emit-special '. [_type env [_period obj method & args]]
-  (let [[method args] (if (seq? method)
-                        [(first method) (rest method)]
-                        [method args])
-        method-str (str method)]
-    (-> (if (str/starts-with? method-str "-")
-          (emit-aget env obj [(subs method-str 1)])
-          (emit-method env obj (symbol method-str) args))
-        (emit-repl env))))
 
 (defmethod emit-special 'if [_type env [_if test then else]]
   (if (= :expr (:context env))
@@ -423,177 +192,15 @@
                 (emit else env)
                 "}")))))
 
-(defmethod emit-special 'aget [type env [_aget var & idxs]]
-  (emit-aget env var idxs))
-
-;; TODO: this should not be reachable in user space
-(defmethod emit-special 'return [_type env [_return expr]]
-  (statement (str "return " (emit (assoc env :context :expr) env))))
-
-#_(defmethod emit-special 'delete [type [return expr]]
-    (str "delete " (emit expr)))
-
-(defmethod emit-special 'set! [_type env [_set! var val & more]]
-  (assert (or (nil? more) (even? (count more))))
-  (let [eenv (expr-env env)]
-    (emit-wrap (str (emit var eenv) " = " (emit val eenv) statement-separator
-                    #_(when more (str (emit (cons 'set! more) env))))
-               env)))
-
-(defmethod emit-special 'new [_type env [_new class & args]]
-  (emit-wrap (str "new " (emit class (expr-env env)) (comma-list (emit-args env args))) env))
-
-#_(defmethod emit-special 'inc! [_type env [_inc var]]
-    (str (emit var env) "++"))
-
-#_(defmethod emit-special 'dec! [_type env [_dec var]]
-    (str (emit var env) "--"))
-
-(defmethod emit-special 'dec [_type env [_ var]]
-  (emit-wrap (str "(" (emit var (assoc env :context :expr)) " - " 1 ")") env))
-
-(defmethod emit-special 'inc [_type env [_ var]]
-  (emit-wrap (str "(" (emit var (assoc env :context :expr)) " + " 1 ")") env))
-
-#_(defmethod emit-special 'defined? [_type env [_ var]]
-    (str "typeof " (emit var env) " !== \"undefined\" && " (emit var env) " !== null"))
-
-#_(defmethod emit-special '? [_type env [_ test then else]]
-    (str (emit test env) " ? " (emit then env) " : " (emit else env)))
-
-(defmethod emit-special 'and [_type env [_ & more]]
-  (emit-wrap (apply str (interpose " && " (emit-args env more))) env))
-
-(defmethod emit-special 'or [_type env [_ & more]]
-  (emit-wrap (apply str (interpose " || " (emit-args env more))) env))
-
-(defmethod emit-special 'while [_type env [_while test & body]]
-  (str "while (" (emit test) ") { \n"
-       (emit-do env body)
-       "\n }"))
-
-;; TODO: re-implement
-#_(defmethod emit-special 'doseq [_type env [_doseq bindings & body]]
-    (str "for (" (emit (first bindings) env) " in " (emit (second bindings) env) ") { \n"
-         (if-let [more (nnext bindings)]
-           (emit (list* 'doseq more body) env)
-           (emit-do body env))
-         "\n }"))
-
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)
       (apply str "var "
              (str/join ", " (map emit @var-declarations))
              statement-separator)))
 
-(declare emit-function*)
-
-(defn ->sig [env sig]
-  (reduce (fn [[env sig seen] param]
-            (if (contains? seen param)
-              (let [new-param (gensym param)
-                    env (update env :var->ident assoc param new-param)
-                    sig (conj sig new-param)
-                    seen (conj seen param)]
-                [env sig seen])
-              [(update env :var->ident assoc param param)
-               (conj sig param)
-               (conj seen param)]))
-          [env [] #{}]
-          sig))
-
-(defn emit-function [env _name sig body & [elide-function?]]
-  ;; (assert (or (symbol? name) (nil? name)))
-  (assert (vector? sig))
-  (let [[env sig] (->sig env sig)]
-    (binding [*recur-targets* sig]
-      (let [recur? (volatile! nil)
-            env (assoc env :recur-callback
-                       (fn [coll]
-                         (when (identical? sig coll)
-                           (vreset! recur? true))))
-            body (emit-do (assoc env :context :return) body)
-            body (if @recur?
-                   (format "while(true){
-%s
-break;}" body)
-                   body)]
-        (str (when-not elide-function?
-               (str (when *async*
-                      "async ") "function "))
-             (comma-list (map (fn [sym]
-                                (let [munged (munge sym)]
-                                  (if (:... (meta sym))
-                                    (str "..." munged)
-                                    munged))) sig)) " {\n"
-             (when (:type env)
-               (str "var self__ = this;"))
-             body "\n}")))))
-
-(defn emit-function* [env expr]
-  (let [name (when (symbol? (first expr)) (first expr))
-        expr (if name (rest expr) expr)
-        expr (if (seq? (first expr))
-               ;; TODO: multi-arity:
-               (first expr)
-               expr)]
-    (-> (if name
-          (let [signature (first expr)
-                body (rest expr)]
-            (str (when *async*
-                   "async ") "function " name " "
-                 (emit-function env name signature body true)))
-          (let [signature (first expr)
-                body (rest expr)]
-            (str (emit-function env nil signature body))))
-        (emit-wrap env))))
-
-(defmethod emit-special 'fn* [_type env [_fn & sigs :as expr]]
-  (let [async? (:async (meta expr))]
-    (binding [*async* async?]
-      (emit-function* env sigs))))
-
 (defmethod emit-special 'fn [_type env [_fn & sigs :as expr]]
   (let [expanded (apply core-fn expr {} sigs)]
     (emit expanded env)))
-
-(defmethod emit-special 'try [_type env [_try & body :as expression]]
-  (let [try-body (remove #(contains? #{'catch 'finally} (and (seq? %)
-                                                             (first %)))
-                         body)
-        catch-clause (filter #(= 'catch (and (seq? %)
-                                             (first %)))
-                             body)
-        finally-clause (filter #(= 'finally (and (seq? %)
-                                                 (first %)))
-                               body)]
-    (cond
-      (and (empty? catch-clause)
-           (empty? finally-clause))
-      (throw (new Exception (str "Must supply a catch or finally clause (or both) in a try statement! " expression)))
-
-      (> (count catch-clause) 1)
-      (throw (new Exception (str "Multiple catch clauses in a try statement are not currently supported! " expression)))
-
-      (> (count finally-clause) 1)
-      (throw (new Exception (str "Cannot supply more than one finally clause in a try statement! " expression)))
-
-      :else
-      (-> (cond-> (str "try{\n"
-                       (emit-do env try-body)
-                       "}\n"
-                       (when-let [[_ _exception binding & catch-body] (first catch-clause)]
-                         ;; TODO: only bind when exception type matches
-                         (str "catch(" (emit binding (expr-env env)) "){\n"
-                              (emit-do env catch-body)
-                              "}\n"))
-                       (when-let [[_ & finally-body] (first finally-clause)]
-                         (str "finally{\n"
-                              (emit-do (assoc env :context :statement) finally-body)
-                              "}\n")))
-            (not= :statement (:context env))
-            (wrap-iife))
-          (emit-wrap env)))))
 
 #_(defmethod emit-special 'break [_type _env [_break]]
     (statement "break"))
@@ -776,7 +383,8 @@ break;}" body)
                *aliases* aliases
                *jsx* false
                *excluded-core-vars* (atom #{})
-               *cljs-ns* *cljs-ns*]
+               *cljs-ns* *cljs-ns*
+               cc/*target* :squint]
        (let [transpiled (transpile-string* s)
              imports (when-not elide-imports
                        (let [ns->alias (zipmap (vals @aliases)

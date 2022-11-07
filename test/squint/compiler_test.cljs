@@ -1221,5 +1221,8 @@
 (deftest double-names-in-sig-test
   (is (= 2 (jsv! '(do (defn foo [x x] x) (foo 1 2))))))
 
+(deftest try-catch-test
+  (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
