@@ -4,7 +4,7 @@
         org.babashka/cli {:mvn/version "0.4.37"}
         org.babashka/sci {:mvn/version "0.3.32"}
         io.github.squint-cljs/compiler-common
-        {:git/sha "bb2f593f60695119c9f805b513217143ad20a3b9"}}
+        {:git/sha "34b5eee375d043c2f02665d1b57d16cb26abd980"}}
  :aliases
  {:dev {:extra-deps {io.github.squint-cljs/compiler-common
                      {:local/root "compiler-common"}}}
