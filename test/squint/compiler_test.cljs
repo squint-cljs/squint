@@ -1224,5 +1224,23 @@
 (deftest try-catch-test
   (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2))))))
 
+(deftest require-with-kebab-case-alias-test
+  (let [s (compiler/compile-string "(ns test-namespace (:require [\"some-js-library$default\" :as some-js-lib])) (some-js-lib/some_fn)")]
+    (is (str/includes? s "import { some_fn as some_js_lib_some_fn } from 'some-js-library$default'"))
+    (is (str/includes? s "some_js_lib_some_fn()")))
+
+  (let [s (compiler/compile-string "(ns test-namespace (:require [\"some-js-library\" :as some-js-lib])) (some-js-lib/some_fn)")]
+    (is (str/includes? s "import { some_fn as some_js_lib_some_fn } from 'some-js-library'"))
+    (is (str/includes? s "some_js_lib_some_fn()")))
+
+  (let [s (compiler/compile-string "(ns test-namespace (:require [\"./local_file.mjs\" :as local-file])) (local-file/some_fn)")]
+    (is (str/includes? s "import { some_fn as local_file_some_fn } from './local_file.mjs'"))
+    (is (str/includes? s "local_file_some_fn()")))
+
+  ;; TODO:
+  #_(let [s (cherry/compile-string "(ns test-namespace (:require [clojure.core :as clojure-core])) (clojure-core/some-fn)")]
+    (is (str/includes? s "import { some_fn as clojure_core_some_fn } from 'clojure-core'"))
+    (is (str/includes? s "clojure_core_some_fn.call(null)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
