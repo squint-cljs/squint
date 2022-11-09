@@ -232,6 +232,8 @@
                                       (nnext expr)))
                  (contains? built-in-macros head)
                  (let [macro (built-in-macros head)
+                       ;; fix for calling macro with more than 20 args
+                       #?@(:cljs [macro (or (.-afn ^js macro) macro)])
                        new-expr (apply macro expr {} (rest expr))]
                    (emit new-expr env))
                  (and (> (count head-str) 1)
