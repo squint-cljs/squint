@@ -22,7 +22,10 @@
   (test-jsx "#jsx [:div {:dangerouslySetInnerHTML {:_html \"<i>Hello</i>\"}}]")
   (test-jsx "(defn App [] (let [x 1] #jsx [:div {:id x}]))")
   (test-jsx "(let [classes {:classes \"foo bar\"}] #jsx [:div {:className (:classes classes)}])")
-  (test-jsx "(defn App [{:keys [x]}] #jsx [:span x]) #jsx [App {:x 1}]"))
+  (test-jsx "(defn App [{:keys [x]}] #jsx [:span x]) #jsx [App {:x 1}]")
+  (test-jsx "
+(ns foo (:require [\"foo\" :as foo]))
+(defn App [] #jsx [foo/c #js {:x 1}]) "))
 
 
 
