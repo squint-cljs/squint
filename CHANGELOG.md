@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Fix async/await + variadiac arguments
+
 ## 0.0.0-alpha.51
 
 - Change default extension back to `.mjs`. Use `--extension js` to change this to `.js`.
