@@ -284,7 +284,8 @@
           tag-name (symbol tag)
           tag-name (if (= '<> tag-name)
                      (symbol "")
-                     tag-name)]
+                     tag-name)
+          tag-name (emit tag-name (expr-env (dissoc env :jsx)))]
       (emit-wrap (format "<%s%s>%s</%s>"
                          tag-name
                          (jsx-attrs attrs env)

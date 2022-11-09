@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix async/await + variadiac arguments
+- Fix namespaced component in JSX
 
 ## 0.0.0-alpha.51
 
