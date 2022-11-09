@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.0.0-alpha.52
 
 - Fix async/await + variadiac arguments
 - Fix namespaced component in JSX
