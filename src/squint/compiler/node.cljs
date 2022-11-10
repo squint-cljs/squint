@@ -48,11 +48,19 @@
           (reduce (fn [prev require-macros]
                     (.then prev
                            (fn [_]
-                             (let [[macro-ns & {:keys []}] require-macros
+                             (let [[macro-ns & {:keys [refer]}] require-macros
                                    macros (js/Promise.resolve
                                            (do (sci/eval-form ctx (list 'require (list 'quote macro-ns)))
-                                               (sci/eval-form ctx
-                                                              `(ns-publics '~macro-ns))))]
+                                               (let [publics (sci/eval-form ctx
+                                                                            `(ns-publics '~macro-ns))
+                                                     ks (keys publics)
+                                                     vs (vals publics)
+                                                     vs (map deref vs)
+                                                     publics (zipmap ks vs)
+                                                     publics (if refer
+                                                               (select-keys publics refer)
+                                                               publics)]
+                                                 publics)))]
                                (.then macros
                                       (fn [macros]
                                         (set! compiler/built-in-macros
