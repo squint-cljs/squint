@@ -378,6 +378,16 @@ export function rest(coll) {
   });
 }
 
+export function next(coll) {
+  const iter = iterable(coll);
+
+  if (iter.length <= 1 || iter.size <= 1) {
+    return null;
+  }
+
+  return rest(coll);
+}
+
 class Reduced {
   value;
   constructor(x) {
