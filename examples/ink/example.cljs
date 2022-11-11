@@ -12,8 +12,7 @@
                       (setCounter (inc counter)))
                     1000)]
          (fn []
-           (js/clearInterval timer))))
-     [])
+           (js/clearInterval timer)))))
     (react/createElement Text nil counter " tests passed")))
 
 (render (react/createElement Counter))
