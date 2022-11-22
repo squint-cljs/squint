@@ -1,23 +1,5 @@
-{:paths ["src" "resources" "compiler-common"]
- :deps {borkdude/edamame {:mvn/version "1.0.0"}
-        babashka/process {:mvn/version "0.1.7"}
-        org.babashka/cli {:mvn/version "0.4.37"}
-        org.babashka/sci {:mvn/version "0.3.32"}
-        io.github.squint-cljs/compiler-common
-        {:git/sha "34b5eee375d043c2f02665d1b57d16cb26abd980"}}
- :aliases
- {:dev {:extra-deps {io.github.squint-cljs/compiler-common
-                     {:local/root "compiler-common"}}}
-  :cljs {:extra-paths ["test"]
-         :extra-deps {thheller/shadow-cljs {:mvn/version "2.20.10"}}}
-  :test ;; added by neil
-  {:extra-paths ["test"]
-   :extra-deps {io.github.cognitect-labs/test-runner
-                {:git/tag "v0.5.0" :git/sha "b3fd0d2"}
-                babashka/fs {:mvn/version "0.1.6"}}
-   :main-opts ["-m" "cognitect.test-runner"]
-   :exec-fn cognitect.test-runner.api/test}
-  :nextjournal/clerk {:extra-deps {io.github.nextjournal/clerk {:mvn/version "0.10.562"}}
-                      :exec-fn nextjournal.clerk/build-static-app!
-                      :exec-args {:paths ["test/squint/clerk.clj"]}}}
- }
+{:paths ["src" "resources"]
+ :deps {io.github.squint-cljs/compiler-common-squint
+        {:git/url "https://github.com/squint-cljs/compiler-common"
+         :git/sha "ca1bea0be718d717babda89cf59e8dc2ca59eb6c"
+         :deps/root "squint"}}}
