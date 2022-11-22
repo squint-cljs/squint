@@ -177,6 +177,10 @@ In arbitrary order, these features are planned:
 
 See [slides](https://www.dropbox.com/s/955jgzy6hgpx67r/dcd2022-cljs-reimagined.pdf?dl=0) of a presentation given at Dutch Clojure Days 2022 about cherry and squint.
 
+## Development
+
+Development happens in [compiler-common](https://github.com/squint-cljs/compiler-common).
+
 ## Core team
 
 The core team consists of:
