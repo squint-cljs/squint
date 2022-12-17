@@ -195,7 +195,7 @@
   [_ _ & body]
   `(new cljs.core/LazySeq (fn [] ~@body)))
 
-(defn core-for
+#_(defn core-for
   "List comprehension. Takes a vector of one or more
    binding-form/collection-expr pairs, each followed by zero or more
    modifiers, and yields a lazy sequence of evaluations of expr.
