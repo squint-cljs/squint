@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.0.1
+
+- Fix `+` symbol import by bumping shadow-cljs
+- Move `@babel/preset-react` dependency to dev dependency
+
 ## 0.0.0-alpha.52
 
 - Fix async/await + variadiac arguments
