@@ -1107,3 +1107,7 @@ export function false_QMARK_(x) {
 export function some_QMARK_(x) {
   return !(x === null || x === undefined);
 }
+
+export function boolean(x) {
+  return !!x;
+}

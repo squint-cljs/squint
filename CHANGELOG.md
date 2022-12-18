@@ -5,6 +5,7 @@
 ## 0.0.2
 
 - Escape boolean in JSX attribute
+- Add `boolean` core function
 
 ## 0.0.1
 
