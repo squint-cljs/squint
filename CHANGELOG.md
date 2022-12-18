@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.0.2
+
+- Escape boolean in JSX attribute
+
 ## 0.0.1
 
 - Fix `+` symbol import by bumping shadow-cljs
