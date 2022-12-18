@@ -13,7 +13,7 @@
   assoc_in
   assoc_in_BANG_
   atom
-  boolean
+  boolean$
   butlast
   comp
   complement

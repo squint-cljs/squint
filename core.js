@@ -1108,6 +1108,6 @@ export function some_QMARK_(x) {
   return !(x === null || x === undefined);
 }
 
-export function boolean(x) {
+export function boolean$(x) {
   return !!x;
 }
