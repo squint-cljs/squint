@@ -1111,3 +1111,15 @@ export function some_QMARK_(x) {
 export function boolean$(x) {
   return !!x;
 }
+
+export function zero_QMARK_(x) {
+  return x === 0;
+}
+
+export function neg_QMARK_(x) {
+  return x < 0;
+}
+
+export function pos_QMARK_(x) {
+  return x > 0;
+}
