@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.0.4
+
+- Add `zero?` `pos?` and `neg?` core functions
+
 ## 0.0.3
 
 - Fix `boolean` core function export
