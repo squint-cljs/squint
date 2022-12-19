@@ -66,6 +66,7 @@
   mapcat
   mapv
   merge
+  neg_QMARK_
   nil_QMARK_
   not
   not_any_QMARK_
@@ -75,6 +76,7 @@
   partial
   partition
   partition_all
+  pos_QMARK_
   pr_str
   println
   prn
@@ -116,4 +118,5 @@
   update_in
   vec
   vector
-  vector_QMARK_}
+  vector_QMARK_
+  zero_QMARK_}
