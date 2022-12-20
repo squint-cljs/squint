@@ -268,7 +268,9 @@
       (str " "
            (str/join " "
                      (map (fn [[k v]]
-                            (str (name k) "=" (emit v (assoc env :jsx-attr true))))
+                            (if (= :& k)
+                              (str "{..." (emit v (dissoc env :jsx)) "}")
+                              (str (name k) "=" (emit v (assoc env :jsx-attr true)))))
                           v)))
       "")))
 

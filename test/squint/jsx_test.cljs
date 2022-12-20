@@ -17,6 +17,8 @@
         code (:code (js->clj (transformSync expr #js {:presets #js ["@babel/preset-react"]}) :keywordize-keys true))]
     (js/eval code)))
 
+(def testing (constantly nil))
+
 (deftest jsx-test
   (test-jsx "#jsx [:a {:href \"http://foo.com\"}]")
   (test-jsx "#jsx [:div {:dangerouslySetInnerHTML {:_html \"<i>Hello</i>\"}}]")
@@ -26,7 +28,10 @@
   (test-jsx "
 (ns foo (:require [\"foo\" :as foo]))
 (defn App [] #jsx [foo/c #js {:x 1}]) ")
-  (test-jsx "(defn TextField [{:keys [multiline]}]) #jsx [TextField {:multiline true}]"))
+  (test-jsx "(defn TextField [{:keys [multiline]}]) #jsx [TextField {:multiline true}]")
+  (testing "spread"
+    (test-jsx "(defn TextField [{:keys [multiline]}]) (let [m {:a 1}] #jsx [TextField {:foo 1 :& m}])")
+    (test-jsx "(defn TextField [{:keys [multiline]}]) (let [m {:a 1}] #jsx [TextField {:& m :foo :bar}])")))
 
 
 
