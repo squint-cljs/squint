@@ -151,6 +151,13 @@ Note that when using a Clojure expression, you escape the JSX context so when yo
            #jsx [:span "Even"])])
 ```
 
+To pass props, you can use `:&`:
+
+``` clojure
+(let [props {:a 1}]
+  #jsx [App {:& props}])
+```
+
 See an example of an application using JSX [here](https://squint-cljs.github.io/demos/squint/solidjs/) ([source](https://github.com/squint-cljs/squint/blob/main/examples/solidjs/src/App.cljs)).
 
 ## Async/await
