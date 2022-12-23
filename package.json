@@ -2,13 +2,14 @@
   "name": "squint-cljs",
   "type": "module",
   "sideEffects": false,
-  "version": "0.0.5",
+  "version": "0.0.6",
   "files": [
     "core.js",
     "string.js",
     "lib",
     "node_cli.js",
-    "index.js"
+    "index.js",
+    "node.js"
   ],
   "bin": {
     "squint": "node_cli.js"
