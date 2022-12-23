@@ -32,25 +32,34 @@
 (def ctx (sci/init {:load-fn (fn [{:keys [namespace]}]
                                (let [f (resolve-file namespace)
                                      fstr (slurp f)]
-                                 {:source fstr}))}))
+                                 {:source fstr}))
+                    :classes {:allow :all
+                              'js js/globalThis}
+                    }))
 
-(defn scan-macros [file]
-  (let [s (slurp file)
-        maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
+(sci/alter-var-root sci/print-fn (constantly *print-fn*))
+(sci/alter-var-root sci/print-err-fn (constantly *print-err-fn*))
+
+(sci/enable-unrestricted-access!)
+
+(defn scan-macros [s]
+  (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
     (when (and (seq? maybe-ns)
                (= 'ns (first maybe-ns)))
       (let [[_ns _name & clauses] maybe-ns
-            require-macros (some #(when (and (seq? %)
-                                             (= :require-macros (first %)))
-                                    (rest %))
-                                 clauses)]
+            [require-macros reload] (some (fn [[clause reload]]
+                                            (when (and (seq? clause)
+                                                       (= :require-macros (first clause)))
+                                              [(rest clause) reload]))
+                                          (partition-all 2 1 clauses))]
         (when require-macros
           (reduce (fn [prev require-macros]
                     (.then prev
                            (fn [_]
                              (let [[macro-ns & {:keys [refer]}] require-macros
                                    macros (js/Promise.resolve
-                                           (do (sci/eval-form ctx (list 'require (list 'quote macro-ns)))
+                                           (do (sci/eval-form ctx (cond-> (list 'require (list 'quote macro-ns))
+                                                                    reload (concat [:reload])))
                                                (let [publics (sci/eval-form ctx
                                                                             `(ns-publics '~macro-ns))
                                                      ks (keys publics)
@@ -69,16 +78,39 @@
                   (js/Promise.resolve nil)
                   require-macros))))))
 
-(defn compile-file [{:keys [in-file out-file extension] :as opts}]
-  (-> (js/Promise.resolve (scan-macros in-file))
-      (.then #(compiler/compile-string* (slurp in-file) opts))
-      (.then (fn [{:keys [javascript jsx]}]
-               (let [out-file (or out-file
-                                  (str/replace in-file #".clj(s|c)$"
-                                               (if jsx
-                                                 ".jsx"
-                                                 (or (when-let [ext extension]
-                                                       (str "." (str/replace ext #"^\." "")))
-                                                     ".mjs"))))]
-                 (spit out-file javascript)
-                 {:out-file out-file})))))
+(defn compile-string [contents opts]
+  (-> (js/Promise.resolve (scan-macros contents))
+      (.then #(compiler/compile-string* contents opts))))
+
+(defn compile-file [{:keys [in-file in-str out-file extension] :as opts}]
+  (let [contents (or in-str (slurp in-file))]
+    (-> (compile-string contents opts)
+        (.then (fn [{:keys [javascript jsx] :as opts}]
+                 (let [out-file (or out-file
+                                    (str/replace in-file #".clj(s|c)$"
+                                                 (if jsx
+                                                   ".jsx"
+                                                   (or (when-let [ext extension]
+                                                         (str "." (str/replace ext #"^\." "")))
+                                                       ".mjs"))))]
+                   (spit out-file javascript)
+                   (assoc opts :out-file out-file)))))))
+
+(defn ->clj [x]
+  (js->clj x :keywordize-keys true))
+
+(defn- jsify [f]
+  (fn [& args]
+    (let [args (mapv ->clj args)
+          ret (apply f args)]
+      (if (instance? js/Promise ret)
+        (.then ret clj->js)
+        (clj->js ret)))))
+
+#_{:clj-kondo/ignore [:unused-private-var]}
+(def ^:private compile-string-js
+  (jsify compile-string))
+
+#_{:clj-kondo/ignore [:unused-private-var]}
+(def ^:private compile-file-js
+  (jsify compile-file))

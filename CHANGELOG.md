@@ -2,6 +2,14 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.0.6
+
+Add preliminary Node.js API in `node.js`
+
+## 0.0.5
+
+- Support `{:& more :foo :bar}` syntax in JSX to spread the more map into the props, inspired by [helix](https://github.com/lilactown/helix)
+
 ## 0.0.4
 
 - Add `zero?` `pos?` and `neg?` core functions
