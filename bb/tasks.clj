@@ -75,6 +75,7 @@
   (node-repl-tests/run-tests {}))
 
 (defn bump-compiler-common [{:keys [sha]}]
+  (prn :sha2 sha)
   (let [rdissoc (requiring-resolve 'borkdude.rewrite-edn/dissoc)
         rupdate-in (requiring-resolve 'borkdude.rewrite-edn/update-in)
         deps (slurp "deps.edn")
