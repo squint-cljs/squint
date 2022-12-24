@@ -43,8 +43,8 @@
                                "node --input-type=module -e 'import * as squint from \"squint-cljs/core.js\";console.log(JSON.stringify(Object.keys(squint)))'"))
         parsed (apply sorted-set (map symbol (json/parse-string core-vars)))]
     (spit "resources/squint/core.edn" (with-out-str
-                                       ((requiring-resolve 'clojure.pprint/pprint)
-                                        parsed)))))
+                                        ((requiring-resolve 'clojure.pprint/pprint)
+                                         parsed)))))
 
 (defn build-squint-npm-package []
   (fs/create-dirs ".work")
@@ -75,7 +75,6 @@
   (node-repl-tests/run-tests {}))
 
 (defn bump-compiler-common [{:keys [sha]}]
-  (prn :sha2 sha)
   (let [rdissoc (requiring-resolve 'borkdude.rewrite-edn/dissoc)
         rupdate-in (requiring-resolve 'borkdude.rewrite-edn/update-in)
         deps (slurp "deps.edn")
@@ -86,3 +85,21 @@
                           rdissoc :local/root)
         deps (str nodes)]
     (spit "deps.edn" deps)))
+
+(defn pull-request [{:keys [github-token branch]}]
+  (let [headers {"Accept" "application/vnd.github+json"
+                 "Authorization" (str "Bearer " github-token)
+                 "X-GitHub-Api-Version" "2022-11-28"}
+        resp (curl/post "https://api.github.com/repos/squint-cljs/squint/pulls"
+                        {:headers headers
+                         :body (json/generate-string {:title "Bump common"
+                                                      :body "Bump common"
+                                                      :head branch
+                                                      :base "main"})})
+        body (:body resp)
+        body (json/parse-string body true)
+        url (:url body)
+        comment-url (str url "/comments")]
+    (curl/post comment-url
+               {:headers headers
+                :body (json/generate-string {:body "@borkdude: please merge!"})})))
