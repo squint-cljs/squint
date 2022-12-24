@@ -90,16 +90,16 @@
   (let [headers {"Accept" "application/vnd.github+json"
                  "Authorization" (str "Bearer " github-token)
                  "X-GitHub-Api-Version" "2022-11-28"}
-        resp (curl/post "https://api.github.com/repos/squint-cljs/squint/pulls"
+        _resp (curl/post "https://api.github.com/repos/squint-cljs/squint/pulls"
                         {:headers headers
                          :body (json/generate-string {:title "Bump common"
                                                       :body "Bump common"
                                                       :head branch
                                                       :base "main"})})
-        body (:body resp)
+        #_#_#_#_#_#_#_#_body (:body resp)
         body (json/parse-string body true)
         url (:issue_url body)
         comment-url (str url "/comments")]
-    (curl/post comment-url
+    #_(curl/post comment-url
                {:headers headers
                 :body (json/generate-string {:body "@borkdude: please merge!"})})))
