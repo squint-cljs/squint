@@ -9,9 +9,9 @@
     <script type="importmap">
       {
         "imports": {
-          "squint-cljs": "https://cdn.jsdelivr.net/npm/squint-cljs@0.0.0-alpha.52/index.js",
-          "squint-cljs/core.js": "https://cdn.jsdelivr.net/npm/squint-cljs@0.0.0-alpha.52/core.js",
-          "squint-cljs/string.js": "https://cdn.jsdelivr.net/npm/squint-cljs@0.0.0-alpha.52/string.js"
+          "squint-cljs": "https://cdn.jsdelivr.net/npm/squint-cljs@0.0.5/index.js",
+          "squint-cljs/core.js": "https://cdn.jsdelivr.net/npm/squint-cljs@0.0.5/core.js",
+          "squint-cljs/string.js": "https://cdn.jsdelivr.net/npm/squint-cljs@0.0.5/string.js"
         }
       }
     </script>
@@ -27,7 +27,6 @@
         const dataUri = 'data:text/javascript;charset=utf-8;eval=' + counter + ',' + encodedJs;
         import(dataUri);
       }
-      console.log('done')
     </script>
   </head>
   <body>
@@ -36,10 +35,10 @@
     <div>
       <textarea rows="6" cols="80" id="cljsCode">(def x {:a 1})
 
-(assoc! x :b 2)
+        (assoc! x :b 2)
 
-(js/alert (pr-str x))
-</textarea>
+        (js/alert (pr-str x))
+      </textarea>
     </div>
     <div>
       <button onClick="compile()">
