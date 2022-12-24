@@ -84,6 +84,7 @@
         deps (slurp "deps.edn")
         nodes ((requiring-resolve 'borkdude.rewrite-edn/parse-string) deps)
         nodes ((requiring-resolve 'borkdude.rewrite-edn/assoc-in) nodes [:deps 'io.github.squint-cljs/compiler-common :git/sha] sha)
+        nodes ((requiring-resolve 'borkdude.rewrite-edn/assoc-in) nodes [:deps 'io.github.squint-cljs/compiler-common :deps/root] "compiler-common")
         nodes (rupdate-in nodes [:deps 'io.github.squint-cljs/compiler-common]
                           rdissoc :local/root)
         deps (str nodes)]
