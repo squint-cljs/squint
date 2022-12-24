@@ -151,6 +151,13 @@ Note that when using a Clojure expression, you escape the JSX context so when yo
            #jsx [:span "Even"])])
 ```
 
+To pass props, you can use `:&`:
+
+``` clojure
+(let [props {:a 1}]
+  #jsx [App {:& props}])
+```
+
 See an example of an application using JSX [here](https://squint-cljs.github.io/demos/squint/solidjs/) ([source](https://github.com/squint-cljs/squint/blob/main/examples/solidjs/src/App.cljs)).
 
 ## Async/await
@@ -176,6 +183,10 @@ In arbitrary order, these features are planned:
 ## Presentations
 
 See [slides](https://www.dropbox.com/s/955jgzy6hgpx67r/dcd2022-cljs-reimagined.pdf?dl=0) of a presentation given at Dutch Clojure Days 2022 about cherry and squint.
+
+## Development
+
+Development happens in [compiler-common](https://github.com/squint-cljs/compiler-common).
 
 ## Core team
 
