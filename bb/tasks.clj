@@ -74,12 +74,8 @@
   (shell "node lib/squint_tests.js")
   (node-repl-tests/run-tests {}))
 
-(defn bump-compiler-common []
-  (let [sha (-> (curl/get "https://api.github.com/repos/squint-cljs/compiler-common/commits/main")
-                :body
-                (json/parse-string true)
-                :sha)
-        rdissoc (requiring-resolve 'borkdude.rewrite-edn/dissoc)
+(defn bump-compiler-common [{:keys [sha]}]
+  (let [rdissoc (requiring-resolve 'borkdude.rewrite-edn/dissoc)
         rupdate-in (requiring-resolve 'borkdude.rewrite-edn/update-in)
         deps (slurp "deps.edn")
         nodes ((requiring-resolve 'borkdude.rewrite-edn/parse-string) deps)

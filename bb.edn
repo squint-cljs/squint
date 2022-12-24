@@ -13,5 +13,5 @@
                    :task (exec 'squint.compiler-test/run-tests)}
          test:clj {:doc "Run tests in Clojure"
                    :task (clojure "-X:test")}
-         bump-common tasks/bump-compiler-common}
+         bump-common (exec 'tasks/bump-compiler-common)}
  }
