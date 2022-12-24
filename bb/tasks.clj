@@ -6,7 +6,8 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [node-repl-tests]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [babashka.curl :as curl]))
 
 (defn munge* [s reserved]
   (let [s (str (munge s))]
@@ -74,12 +75,16 @@
   (node-repl-tests/run-tests {}))
 
 (defn bump-compiler-common []
-  (let [{:keys [out]}
-        (shell {:out :string
-                :dir "compiler-common"} "git rev-parse HEAD")
-        sha (str/trim out)
+  (let [sha (-> (curl/get "https://api.github.com/repos/squint-cljs/compiler-common/commits/main")
+                :body
+                (json/parse-string true)
+                :sha)
+        rdissoc (requiring-resolve 'borkdude.rewrite-edn/dissoc)
+        rupdate-in (requiring-resolve 'borkdude.rewrite-edn/update-in)
         deps (slurp "deps.edn")
         nodes ((requiring-resolve 'borkdude.rewrite-edn/parse-string) deps)
         nodes ((requiring-resolve 'borkdude.rewrite-edn/assoc-in) nodes [:deps 'io.github.squint-cljs/compiler-common :git/sha] sha)
+        nodes (rupdate-in nodes [:deps 'io.github.squint-cljs/compiler-common]
+                          rdissoc :local/root)
         deps (str nodes)]
     (spit "deps.edn" deps)))

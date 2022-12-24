@@ -15,11 +15,9 @@
    [edamame.core :as e]
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
-                                          *aliases* *async* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
-                                          *repl* *recur-targets*  comma-list emit emit-repl emit-special emit-wrap expr-env statement
-                                          statement-separator escape-jsx munge* emit-args emit-infix
-                                          suffix-unary? prefix-unary? infix-operator?
-                                          wrap-await emit-let wrap-iife emit-do]]
+                                          *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars* *repl*
+                                          comma-list emit emit-args emit-infix emit-repl emit-special emit-wrap escape-jsx
+                                          expr-env infix-operator? prefix-unary? statement suffix-unary?]]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
