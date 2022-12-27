@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.0.7
+
+[#274](https://github.com/squint-cljs/squint/issues/274): fix logic precedence by wrapping in parens
+
 ## 0.0.6
 
 Add preliminary Node.js API in `node.js`
