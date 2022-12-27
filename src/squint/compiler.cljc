@@ -16,7 +16,7 @@
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars* *repl*
-                                          comma-list emit emit-args emit-infix emit-repl emit-special emit-wrap escape-jsx
+                                          comma-list emit emit-args emit-infix emit-repl emit-special emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? statement suffix-unary?]]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
@@ -28,7 +28,7 @@
 
 
 (defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr env]
-  (-> (emit-wrap (str (pr-str (subs (str expr) 1))) env)
+  (-> (emit-return (str (pr-str (subs (str expr) 1))) env)
       (emit-repl env)))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
@@ -100,13 +100,13 @@
   (str (emit arg) operator))
 
 (defmethod emit-special 'quote [_ env [_ form]]
-  (emit-wrap (emit form (expr-env (assoc env :quote true))) env))
+  (emit-return (emit form (expr-env (assoc env :quote true))) env))
 
 (defmethod emit-special 'not [_ env [_ form]]
-  (emit-wrap (str "!" (emit form (expr-env env))) env))
+  (emit-return (str "!" (emit form (expr-env env))) env))
 
 (defmethod emit-special 'js/typeof [_ env [_ form]]
-  (emit-wrap (str "typeof " (emit form (expr-env env))) env))
+  (emit-return (str "typeof " (emit form (expr-env env))) env))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
   (let [bindings (take-nth 2 form)
@@ -118,7 +118,7 @@
     (emit let env)))
 
 (defmethod emit-special 'quote [_ env [_ form]]
-  (emit-wrap (emit form (expr-env (assoc env :quote true))) env))
+  (emit-return (emit form (expr-env (assoc env :quote true))) env))
 
 #_(defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
@@ -167,7 +167,7 @@
                   (emit test env)
                   (emit then env)
                   (emit else env)))
-        (emit-wrap env))
+        (emit-return env))
     (str (format "if (%s) {\n"
                  (emit test (assoc env :context :expr)))
          (emit then env)
@@ -288,14 +288,14 @@
                      (symbol "")
                      tag-name)
           tag-name (emit tag-name (expr-env (dissoc env :jsx)))]
-      (emit-wrap (format "<%s%s>%s</%s>"
+      (emit-return (format "<%s%s>%s</%s>"
                          tag-name
                          (jsx-attrs attrs env)
                          (let [env (expr-env env)]
                            (str/join " " (map #(emit % env) elts)))
                          tag-name)
                  env))
-    (->  (emit-wrap (format "[%s]"
+    (->  (emit-return (format "[%s]"
                             (str/join ", " (emit-args env expr))) env)
          (emit-repl env))))
 
@@ -314,13 +314,13 @@
                                 (emit (val pair) expr-env)))
         keys (str/join ", " (map mk-pair (seq expr)))]
     (escape-jsx (-> (format "({ %s })" keys)
-                    (emit-wrap env))
+                    (emit-return env))
                 env*)))
 
 (defmethod emit #?(:clj clojure.lang.PersistentHashSet
                    :cljs PersistentHashSet)
   [expr env]
-  (emit-wrap
+  (emit-return
    (format "new Set([%s])"
            (str/join ", " (emit-args (expr-env env) expr)))
    env))
