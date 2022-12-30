@@ -6,6 +6,7 @@
    ["process" :as process]
    ["readline" :as readline]
    ["squint-cljs/core.js" :as squint]
+   ["url" :as url]
    ["vm" :as vm]
    [clojure.string :as str]
    [edamame.core :as e]
@@ -77,7 +78,9 @@
     (when-not (fs/existsSync ".repl")
       (fs/mkdirSync ".repl"))
     (fs/writeFileSync filename js-str)
-    (-> (esm/dynamic-import (path/resolve (process/cwd) filename))
+    (-> (esm/dynamic-import (-> (path/resolve (process/cwd) filename)
+                                url/pathToFileURL
+                                str))
         (.finally (fn [] #_(prn filename) (fs/unlinkSync filename))))))
 
 (defn compile [the-val rl socket]

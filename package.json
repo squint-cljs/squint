@@ -9,7 +9,7 @@
     "lib",
     "node_cli.js",
     "index.js",
-    "node.js"
+    "node-api.js"
   ],
   "bin": {
     "squint": "node_cli.js"
@@ -27,7 +27,6 @@
     "prettier": "^2.7.1",
     "react": "^18.2.0",
     "shadow-cljs": "^2.19.8",
-    "source-maps": "^1.0.12",
     "squint-cljs": "."
   }
 }

@@ -6,7 +6,9 @@
    #_:clj-kondo/ignore
    ["fs" :as fs]
    #_:clj-kondo/ignore
-   ["path" :as path])
+   ["path" :as path]
+   ;; required at least by the `squint.eval-macro/evalll` macro
+   ["url" :as url])
   (:require-macros [squint.eval-macro :refer [evalll]]))
 
 (defn compile! [str-or-expr]
