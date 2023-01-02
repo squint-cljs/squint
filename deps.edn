@@ -2,9 +2,7 @@
  :deps {borkdude/edamame {:mvn/version "1.0.0"}
         babashka/process {:mvn/version "0.1.7"}
         org.babashka/cli {:mvn/version "0.4.37"}
-        org.babashka/sci {:mvn/version "0.6.37"}
-        io.github.squint-cljs/compiler-common {:git/sha "a12c6f0554fea490c3d6fe87c666360e3a559d21"
-                                               :deps/root "compiler-common"}}
+        org.babashka/sci {:mvn/version "0.6.37"}}
  :aliases
  {:dev {}
   :cljs {:extra-paths ["test"]
