@@ -1,3 +1,7 @@
-Pull requests should be targeted at
-[compiler-common](https://github.com/squint-cljs/compiler-common) and will be
-merged here automatically after being accepted in compiler-common.
+Please answer the following questions and leave the below in as part of your PR.
+
+- [ ] This PR corresponds to an [issue with a clear problem statement](https://github.com/babashka/babashka/blob/master/doc/dev.md#start-with-an-issue-before-writing-code).
+
+- [ ] This PR contains a [test](https://github.com/babashka/babashka/blob/master/doc/dev.md#tests) to prevent against future regressions
+
+- [ ] I have updated the [CHANGELOG.md](https://github.com/squint-cljs/squint/blob/master/CHANGELOG.md) file with a description of the addressed issue.
