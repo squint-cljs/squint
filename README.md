@@ -10,9 +10,6 @@ performance, bundle size, ease of interop, etc.
 > breaking changes. It's fine to use it for non-critical projects but don't use
 > it in production yet.
 
-Squint was previously called ClavaScript and the name may appear in some places
-in this README.  Please file an issue or PR if you spot one.
-
 ## Quickstart
 
 Although it's early days, you're welcome to try out `squint` and submit issues.
@@ -56,6 +53,14 @@ so with caveats). This may work especially well for projects e.g. that you'd
 like to deploy on CloudFlare workers, node scripts, Github actions, etc. that
 need the extra performance, startup time and/or small bundle size.
 
+## Talk
+
+[![ClojureScript re-imagined at Dutch Clojure Days 2022]
+(https://img.youtube.com/vi/oCd74TQ-gf4/0.jpg)]
+(https://www.youtube.com/watch?v=oCd74TQ-gf4)
+
+([slides](https://www.dropbox.com/s/955jgzy6hgpx67r/dcd2022-cljs-reimagined.pdf?dl=0))
+
 ## Differences with ClojureScript
 
 - Squint does not protect you in any way from the pitfalls of JS with regards to truthiness, mutability and equality
@@ -69,6 +74,8 @@ need the extra performance, startup time and/or small bundle size.
 - `assoc`, `dissoc`, `conj`, etc. return a new shallow copy of objects
 - `println` is a synonym for `console.log`
 - `pr-str` and `prn` coerce values to a string using `JSON.stringify`
+
+If you are looking for ClojureScrip semantics, take a look at [cherry](https://github.com/squint-cljs/cherry).
 
 ### Seqs
 
@@ -172,31 +179,7 @@ squint supports `async/await`:
 (println x) ;;=> 10
 ```
 
-## Roadmap
-
-In arbitrary order, these features are planned:
-
-- Macros
-- REPL
-- Protocols
-
-## Presentations
-
-See [slides](https://www.dropbox.com/s/955jgzy6hgpx67r/dcd2022-cljs-reimagined.pdf?dl=0) of a presentation given at Dutch Clojure Days 2022 about cherry and squint.
-
-## Development
-
-Development happens in [compiler-common](https://github.com/squint-cljs/compiler-common).
-
-## Core team
-
-The core team consists of:
-
-- Michiel Borkent ([@borkdude](https://github.com/borkdude))
-- Will Acton ([@lilactown](https://github.com/lilactown))
-- Cora Sutton ([@corasaurus-hex](https://github.com/corasaurus-hex))
-
 License
 =======
 
-Squint is licensed under the EPL, the same as Clojure core and [Scriptjure](https://github.com/arohner/scriptjure). See epl-v10.html in the root directory for more information.
+Squint is licensed under the EPL. See epl-v10.html in the root directory for more information.
