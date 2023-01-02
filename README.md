@@ -55,9 +55,7 @@ need the extra performance, startup time and/or small bundle size.
 
 ## Talk
 
-[![ClojureScript re-imagined at Dutch Clojure Days 2022]
-(https://img.youtube.com/vi/oCd74TQ-gf4/0.jpg)]
-(https://www.youtube.com/watch?v=oCd74TQ-gf4)
+[![ClojureScript re-imagined at Dutch Clojure Days 2022](https://img.youtube.com/vi/oCd74TQ-gf4/0.jpg)](https://www.youtube.com/watch?v=oCd74TQ-gf4)
 
 ([slides](https://www.dropbox.com/s/955jgzy6hgpx67r/dcd2022-cljs-reimagined.pdf?dl=0))
 
