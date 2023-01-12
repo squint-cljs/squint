@@ -220,7 +220,11 @@ export function conj(...xs) {
       const m = new Map(o);
 
       for (const x of rest) {
-        m.set(x[0], x[1]);
+        if (!(x instanceof Array))
+          iterable(x).forEach((kv) => {
+            m.set(kv[0], kv[1]);
+          });
+        else m.set(x[0], x[1]);
       }
 
       return m;
@@ -233,7 +237,8 @@ export function conj(...xs) {
       const o2 = { ...o };
 
       for (const x of rest) {
-        o2[x[0]] = x[1];
+        if (!(x instanceof Array)) Object.assign(o2, x);
+        else o[x[0]] = x[1];
       }
 
       return o2;
