@@ -238,7 +238,7 @@ export function conj(...xs) {
 
       for (const x of rest) {
         if (!(x instanceof Array)) Object.assign(o2, x);
-        else o[x[0]] = x[1];
+        else o2[x[0]] = x[1];
       }
 
       return o2;
