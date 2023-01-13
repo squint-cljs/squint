@@ -273,14 +273,23 @@ export function contains_QMARK_(coll, v) {
   }
 }
 
-export function dissoc_BANG_(m, k) {
-  delete m[k];
+
+export function dissoc_BANG_(m, ...ks) {
+  for (const k of ks) {
+    delete m[k];
+  }
+
   return m;
 }
 
-export function dissoc(m, k) {
+export function dissoc(m, ...ks) {
   let m2 = { ...m };
-  return dissoc_BANG_(m2, k);
+
+  for (const k of ks) {
+    delete m2[k];
+  }
+
+  return m2;
 }
 
 export function inc(n) {
