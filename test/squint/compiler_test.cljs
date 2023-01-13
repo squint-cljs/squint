@@ -1270,5 +1270,24 @@
     (is (str/includes? s "import { some_fn as clojure_core_some_fn } from 'clojure-core'"))
     (is (str/includes? s "clojure_core_some_fn.call(null)"))))
 
+(deftest dissoc!-test
+  (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc! {"1" 2 "3" 4}))))
+  (is (eq #js {"1" 2 "3" 4} (jsv! '(let [x {"1" 2 "3" 4}]
+                                     (dissoc! x)
+                                     x))))
+  (is (eq #js {"3" 4} (jsv! '(dissoc! {"1" 2 "3" 4} "1"))))
+  (is (eq #js {"3" 4} (jsv! '(let [x {"1" 2 "3" 4}]
+                               (dissoc! x "1")
+                               x))))
+  (is (eq #js {} (jsv! '(dissoc! {}))))
+  (is (eq #js {} (jsv! '(let [x {"1" 2 "3" 4}]
+                               (dissoc! x "1" "3")
+                               x)))))
+
+(deftest dissoc-test
+  (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc {"1" 2 "3" 4}))))
+  (is (eq #js {"3" 4} (jsv! '(dissoc {"1" 2 "3" 4} "1"))))
+  (is (eq #js {} (jsv! '(dissoc {"1" 2 "3" 4} "1" "3")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

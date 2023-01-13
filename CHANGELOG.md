@@ -2,6 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.0.9
+[#286](https://github.com/squint-cljs/squint/issues/286): make dissoc work with multiple keys
+
 ## 0.0.8
 [#284](https://github.com/squint-cljs/squint/issues/284): fix undefined keys/values when passing objects and maps to conj
 
