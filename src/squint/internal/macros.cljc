@@ -527,3 +527,14 @@
   `(letfn* ~(vec (interleave (map first fnspecs)
                              (map #(cons `fn (rest %)) fnspecs)))
            ~@body))
+
+(defn defclass
+  [_ _ name & body]
+  (let [ctor (some #(when (and (seq? %)
+                               (= 'constructor (first %)))
+                      %) body)]
+    `(~'js* ~(str "class " (munge (str name)) "{ "
+                  (when ctor
+                    "~{}")
+                  "} ")
+      ~(when ctor `(~'js* "constructor(~{}) { ~{} }" ~(first (second ctor)) ~(nth ctor 2))))))

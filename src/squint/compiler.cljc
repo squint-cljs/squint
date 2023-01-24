@@ -83,7 +83,8 @@
                       'instance? macros/core-instance?
                       'time macros/core-time
                       'declare macros/core-declare
-                      'letfn macros/core-letfn})
+                      'letfn macros/core-letfn
+                      'defclass macros/defclass})
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 
