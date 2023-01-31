@@ -5,9 +5,7 @@
    [cheshire.core :as json]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [node-repl-tests]
-   [clojure.string :as str]
-   [babashka.curl :as curl]))
+   [node-repl-tests]))
 
 (defn munge* [s reserved]
   (let [s (str (munge s))]
@@ -73,33 +71,3 @@
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn release squint")
   (shell "node lib/squint_tests.js")
   (node-repl-tests/run-tests {}))
-
-(defn bump-compiler-common [{:keys [sha]}]
-  (let [rdissoc (requiring-resolve 'borkdude.rewrite-edn/dissoc)
-        rupdate-in (requiring-resolve 'borkdude.rewrite-edn/update-in)
-        deps (slurp "deps.edn")
-        nodes ((requiring-resolve 'borkdude.rewrite-edn/parse-string) deps)
-        nodes ((requiring-resolve 'borkdude.rewrite-edn/assoc-in) nodes [:deps 'io.github.squint-cljs/compiler-common :git/sha] sha)
-        nodes ((requiring-resolve 'borkdude.rewrite-edn/assoc-in) nodes [:deps 'io.github.squint-cljs/compiler-common :deps/root] "compiler-common")
-        nodes (rupdate-in nodes [:deps 'io.github.squint-cljs/compiler-common]
-                          rdissoc :local/root)
-        deps (str nodes)]
-    (spit "deps.edn" deps)))
-
-(defn pull-request [{:keys [github-token branch]}]
-  (let [headers {"Accept" "application/vnd.github+json"
-                 "Authorization" (str "Bearer " github-token)
-                 "X-GitHub-Api-Version" "2022-11-28"}
-        _resp (curl/post "https://api.github.com/repos/squint-cljs/squint/pulls"
-                        {:headers headers
-                         :body (json/generate-string {:title "Bump common"
-                                                      :body "Bump common"
-                                                      :head branch
-                                                      :base "main"})})
-        #_#_#_#_#_#_#_#_body (:body resp)
-        body (json/parse-string body true)
-        url (:issue_url body)
-        comment-url (str url "/comments")]
-    #_(curl/post comment-url
-               {:headers headers
-                :body (json/generate-string {:body "@borkdude: please merge!"})})))

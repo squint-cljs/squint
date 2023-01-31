@@ -1264,11 +1264,9 @@
   (let [s (compiler/compile-string "(ns test-namespace (:require [\"./local_file.mjs\" :as local-file])) (local-file/some_fn)")]
     (is (str/includes? s "import { some_fn as local_file_some_fn } from './local_file.mjs'"))
     (is (str/includes? s "local_file_some_fn()")))
-
-  ;; TODO:
-  #_(let [s (cherry/compile-string "(ns test-namespace (:require [clojure.core :as clojure-core])) (clojure-core/some-fn)")]
-    (is (str/includes? s "import { some_fn as clojure_core_some_fn } from 'clojure-core'"))
-    (is (str/includes? s "clojure_core_some_fn.call(null)"))))
+  (let [s (compiler/compile-string "(ns bar (:require [\"./foo.mjs\" #_#_:refer [foo-bar] :as foo-alias])) (prn foo-alias/foo-bar)")]
+    (is (str/includes? s "import { foo_bar as foo_alias_foo_bar } from './foo.mjs'"))
+    (is (str/includes? s "prn(foo_alias_foo_bar);"))))
 
 (deftest dissoc!-test
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc! {"1" 2 "3" 4}))))
