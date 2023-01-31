@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.0.10
+
+- [#298](https://github.com/squint-cljs/squint/issues/298): support `:as` alias with hyphen in namespace require libspec
+
 ## 0.0.9
 
 - [#286](https://github.com/squint-cljs/squint/issues/286): make dissoc work with multiple keys

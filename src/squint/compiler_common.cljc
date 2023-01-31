@@ -175,7 +175,7 @@
         (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
                          "." path) env))
       (let [munged-name (fn [expr] (munge* (name expr)))
-            expr (if-let [sym-ns (namespace expr)]
+            expr (if-let [sym-ns (some-> (namespace expr) munge)]
                    (let [sn (symbol (name expr))]
                      (or (when (or (= "cljs.core" sym-ns)
                                    (= "clojure.core" sym-ns))
@@ -390,7 +390,7 @@
            (statement (format "import %s from '%s'" as (str/replace libname "$default" "")))
            (statement (format "import * as %s from '%s'" as libname)))))
      (when refer
-       (statement (format "import { %s } from '%s'"  (str/join ", " refer) libname))))))
+       (statement (format "import { %s } from '%s'"  (str/join ", " (map munge refer)) libname))))))
 
 (defmethod emit-special 'ns [_type _env [_ns name & clauses]]
   (set! *cljs-ns* name)
