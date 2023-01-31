@@ -4,7 +4,7 @@
 
 ## 0.0.10
 
-- [#298](https://github.com/squint-cljs/squint/issues/298): support `:as` alias with hyphen in namespace require libspec
+- [#289](https://github.com/squint-cljs/squint/issues/289): support `:as` alias with hyphen in namespace require libspec
 
 ## 0.0.9
 
