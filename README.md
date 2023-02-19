@@ -73,7 +73,7 @@ need the extra performance, startup time and/or small bundle size.
 - `println` is a synonym for `console.log`
 - `pr-str` and `prn` coerce values to a string using `JSON.stringify`
 
-If you are looking for ClojureScrip semantics, take a look at [cherry](https://github.com/squint-cljs/cherry).
+If you are looking for ClojureScript semantics, take a look at [Cherry 🍒](https://github.com/squint-cljs/cherry).
 
 ### Seqs
 
