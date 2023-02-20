@@ -291,6 +291,15 @@
                             :let [z (+ x y)]]
                         z)))]
     (is (eq [0 1 2 1 2 3 2 3 4]
+            (js/eval s))))
+  (let [s (jss! '(vec (for [x (range 3)
+                            :let [x' (inc x)]
+                            y (range 3)
+                            :let [y' (inc y)
+                                  z (+ x' y')]]
+                        (let [z' (inc z)]
+                          (inc z')))))]
+    (is (eq [0 1 2 1 2 3 2 3 4]
             (js/eval s)))))
 
 (deftest regex-test
