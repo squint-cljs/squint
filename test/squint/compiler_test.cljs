@@ -246,10 +246,61 @@
               (js/eval s))))))
 
 ;; TODO:
-#_(deftest for-test
-    (let [s (jss! '(for [x [1 2 3] y [4 5 6]] [x y]))]
-      (is (= '([1 4] [1 5] [1 6] [2 4] [2 5] [2 6] [3 4] [3 5] [3 6])
-             (js/eval s)))))
+(deftest for-test
+  (let [s (jss! '(vec (for [x [1 2 3] y [4 5 6]] [x y])))]
+    (is (eq '([1 4] [1 5] [1 6] [2 4] [2 5] [2 6] [3 4] [3 5] [3 6])
+            (js/eval s))))
+  (let [s (jss! '(vec (for [x [1 2 3 4 5 6] :when (even? x)] x)))]
+    (is (eq '[2 4 6] (js/eval s))))
+  (let [s (jss! '(vec (for [x [1 2 3]
+                            y [4 5 6]
+                            :when (< (+ x y) 8)]
+                        [x y])))]
+     (is (eq [[1 4] [1 5] [1 6] [2 4] [2 5] [3 4]]
+             (js/eval s))))
+  (let [s (jss! '(vec (for [x (range 3) y (range 3) :while (not= x y)]
+                        [x y])))]
+     (is (eq [[1 0] [2 0] [2 1]]
+             (js/eval s))))
+  ;; https://clojuredocs.org/clojure.core/for#example-542692d3c026201cdc326fa9
+  (testing ":while placement"
+    (let [s (jss! '(vec
+                     (for [x [1 2 3]
+                             y [1 2 3]
+                             :while (<= x y)
+                             z [1 2 3]]
+                       [x y z])))]
+      (is (eq [[1 1 1] [1 1 2] [1 1 3]
+               [1 2 1] [1 2 2] [1 2 3]
+               [1 3 1] [1 3 2] [1 3 3]]
+              (js/eval s))))
+    (let [s (jss! '(vec
+                     (for [x [1 2 3]
+                             y [1 2 3]
+                             z [1 2 3]
+                             :while (<= x y)]
+                       [x y z])))]
+      (is (eq [[1 1 1] [1 1 2] [1 1 3]
+               [1 2 1] [1 2 2] [1 2 3]
+               [1 3 1] [1 3 2] [1 3 3]
+               [2 2 1] [2 2 2] [2 2 3]
+               [2 3 1] [2 3 2] [2 3 3]
+               [3 3 1] [3 3 2] [3 3 3]]
+              (js/eval s)))))
+  (let [s (jss! '(vec (for [x (range 3) y (range 3)
+                            :let [z (+ x y)]]
+                        z)))]
+    (is (eq [0 1 2 1 2 3 2 3 4]
+            (js/eval s))))
+  (let [s (jss! '(vec (for [x (range 3)
+                            :let [x' (inc x)]
+                            y (range 3)
+                            :let [y' (inc y)
+                                  z (+ x' y')]]
+                        (let [z' (inc z)]
+                          (inc z')))))]
+    (is (eq [4 5 6 5 6 7 6 7 8]
+            (js/eval s)))))
 
 (deftest regex-test
   (is (eq '("foo")

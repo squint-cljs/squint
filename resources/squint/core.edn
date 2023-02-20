@@ -59,6 +59,7 @@
   iterable
   keep
   last
+  lazy
   list
   list_QMARK_
   map
