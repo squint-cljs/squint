@@ -1138,4 +1138,30 @@ export function pos_QMARK_(x) {
   return x > 0;
 }
 
+class IteratorSeq {
+  constructor(value, iter) {
+    this.iter = iter;
+    this.value = value;
+    this.rest = null;
+  }
+  [IIterable] = true;
+  *[Symbol.iterator]() {
+    yield this.value;
+    if (rest != null) {
+      this.rest = iterator_seq(this.iter);
+    }
+    yield rest;
+  }
+}
+
+export function iterator_seq(iter) {
+  let i = _iterator(iterable(iter));
+  let v = i.next();
+  if (v.done) {
+    return null;
+  } else {
+    return new IteratorSeq(v.value, i);
+  }
+}
+
 // comment

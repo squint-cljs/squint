@@ -57,6 +57,7 @@
   interpose
   into
   iterable
+  iterator_seq
   keep
   last
   list
