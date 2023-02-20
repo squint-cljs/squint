@@ -295,20 +295,18 @@
                  [true `(do ~@body)]
                  (let [k (first exprs)
                        v (second exprs)
-                       steppair (step (nnext exprs))
-                       needrec (steppair 0)
-                       subform (steppair 1)]
+                       subform (step (nnext exprs))]
                    (cond
-                     (= k :let) [needrec `(let ~v ~subform)]
-                     (= k :while) [false `(if ~v
-                                            ~subform
-                                            (~'js* "break;\n"))]
-                     (= k :when) [false `(when ~v
-                                           ~subform)]
+                     (= k :let) `(let ~v ~subform)
+                     (= k :while) `(if ~v
+                                     ~subform
+                                     (~'js* "break;\n"))
+                     (= k :when) `(when ~v
+                                    ~subform)
                      (keyword? k) (err "Invalid 'doseq' keyword" k)
-                     :else [true (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
-                                       k v subform)]))))]
-    (nth (step (seq seq-exprs)) 1)))
+                     :else (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
+                                 k v subform)))))]
+    (step (seq seq-exprs))))
 
 (defn core-defonce
   "defs name to have the root value of init iff the named var has no root value,
