@@ -216,14 +216,20 @@
                        subform (steppair 1)]
                    (cond
                      (= k :let) [needrec `(let ~v ~subform)]
-                     (= k :while) [false (list 'if v subform
-                                            '(js* "break;\n"))]
+                     (= k :while) [false
+                                   ;; emit literal JS because `if` detects that
+                                   ;; it's an expr context and emits a ternary,
+                                   ;; but you can't break inside of a ternary
+                                   (list 'js*
+                                         "if (~{}) {\n~{}\n} else { break; }"
+                                         v subform)]
                      (= k :when) [false `(when ~v
                                            ~subform)]
                      (keyword? k) (err "Invalid 'doseq' keyword" k)
                      :else [true (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
                                        k v subform)]))))]
-    (list 'lazy (list 'js* "function* () {\n~{}\n}" (nth (step (seq seq-exprs)) 1)))))
+    (list 'lazy (list 'js* "function* () {\n~{}\n}"
+                      (nth (step (seq seq-exprs)) 1)))))
 
 (defn core-doseq
   "Repeatedly executes body (presumably for side-effects) with
