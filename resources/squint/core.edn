@@ -38,6 +38,7 @@
   empty
   empty_QMARK_
   es6_iterator
+  es6_iterator_seq
   even_QMARK_
   every_QMARK_
   false_QMARK_
@@ -57,7 +58,6 @@
   interpose
   into
   iterable
-  iterator_seq
   keep
   last
   list

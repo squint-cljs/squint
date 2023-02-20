@@ -1140,22 +1140,24 @@ export function pos_QMARK_(x) {
 
 class IteratorSeq {
   constructor(value, iter) {
-    this.iter = iter;
     this.value = value;
     this.rest = null;
+    this.iter = iter;
   }
   [IIterable] = true;
   *[Symbol.iterator]() {
     yield this.value;
-    if (rest != null) {
-      this.rest = iterator_seq(this.iter);
+    if (this.rest == null) {
+      this.rest = es6_iterator_seq(this.iter);
     }
-    yield rest;
+    if (this.rest != null) {
+      yield* this.rest;
+    }
   }
 }
 
-export function iterator_seq(iter) {
-  let i = _iterator(iterable(iter));
+export function es6_iterator_seq(iter) {
+  let i = _iterator(iter);
   let v = i.next();
   if (v.done) {
     return null;

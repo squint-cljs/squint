@@ -155,12 +155,15 @@
 
 (def ^:dynamic *core-package* "squint-cljs/core.js")
 
-(defn maybe-core-var [sym]
+(defn maybe-core-var [sym env]
   (let [m (munge sym)]
     (when (and (contains? @core-vars m)
                (not (contains? @*excluded-core-vars* m)))
       (swap! *imported-vars* update *core-package* (fnil conj #{}) m)
-      m)))
+      (str
+       (when-let [core-alias (:core-alias env)]
+         (str core-alias "."))
+       m))))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
@@ -179,7 +182,7 @@
                    (let [sn (symbol (name expr))]
                      (or (when (or (= "cljs.core" sym-ns)
                                    (= "clojure.core" sym-ns))
-                           (some-> (maybe-core-var sn) munge))
+                           (some-> (maybe-core-var sn env) munge))
                          (when (= "js" sym-ns)
                            (munge* (name expr)))
                          (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
@@ -191,7 +194,7 @@
                    (if-let [renamed (get (:var->ident env) expr)]
                      (munge* (str renamed))
                      (or
-                      (some-> (maybe-core-var expr) munge)
+                      (some-> (maybe-core-var expr env) munge)
                       (let [m (munged-name expr)]
                         (str (when *repl*
                                (str (munge *cljs-ns*) ".")) m)))))]
