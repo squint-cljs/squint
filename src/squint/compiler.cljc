@@ -65,7 +65,7 @@
                       'some->> macros/core-some->>
                       'loop loop/core-loop
                       'doseq macros/core-doseq
-                      ;; 'for macros/core-for
+                      'for macros/core-for
                       'lazy-seq macros/core-lazy-seq
                       'defonce macros/core-defonce
                       'exists? macros/core-exists?
