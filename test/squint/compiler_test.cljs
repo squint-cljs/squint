@@ -299,7 +299,7 @@
                                   z (+ x' y')]]
                         (let [z' (inc z)]
                           (inc z')))))]
-    (is (eq [0 1 2 1 2 3 2 3 4]
+    (is (eq [4 5 6 5 6 7 6 7 8]
             (js/eval s)))))
 
 (deftest regex-test
