@@ -292,7 +292,7 @@
   (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
         step (fn step [exprs]
                (if-not exprs
-                 [true `(do ~@body nil)]
+                 [true `(do ~@body)]
                  (let [k (first exprs)
                        v (second exprs)
                        steppair (step (nnext exprs))
