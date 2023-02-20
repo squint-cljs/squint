@@ -225,7 +225,7 @@
                                          v subform)]
                      (= k :when) [false `(when ~v
                                            ~subform)]
-                     (keyword? k) (err "Invalid 'doseq' keyword" k)
+                     (keyword? k) (err "Invalid 'for' keyword" k)
                      :else [true (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
                                        k v subform)]))))]
     (list 'lazy (list 'js* "function* () {\n~{}\n}"
