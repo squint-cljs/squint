@@ -208,28 +208,25 @@
   (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
         step (fn step [exprs]
                (if-not exprs
-                 [true (list 'js* "yield ~{}" body)]
+                 (list 'js* "yield ~{}" body)
                  (let [k (first exprs)
                        v (second exprs)
-                       steppair (step (nnext exprs))
-                       needrec (steppair 0)
-                       subform (steppair 1)]
+                       subform (step (nnext exprs))]
                    (cond
-                     (= k :let) [needrec `(let ~v ~subform)]
-                     (= k :while) [false
-                                   ;; emit literal JS because `if` detects that
-                                   ;; it's an expr context and emits a ternary,
-                                   ;; but you can't break inside of a ternary
-                                   (list 'js*
-                                         "if (~{}) {\n~{}\n} else { break; }"
-                                         v subform)]
-                     (= k :when) [false `(when ~v
-                                           ~subform)]
+                     (= k :let) `(let ~v ~subform)
+                     (= k :while) ;; emit literal JS because `if` detects that
+                     ;; it's an expr context and emits a ternary,
+                     ;; but you can't break inside of a ternary
+                     (list 'js*
+                           "if (~{}) {\n~{}\n} else { break; }"
+                           v subform)
+                     (= k :when) `(when ~v
+                                    ~subform)
                      (keyword? k) (err "Invalid 'for' keyword" k)
-                     :else [true (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
-                                       k v subform)]))))]
+                     :else (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
+                                 k v subform)))))]
     (list 'lazy (list 'js* "function* () {\n~{}\n}"
-                      (nth (step (seq seq-exprs)) 1)))))
+                      (step (seq seq-exprs))))))
 
 (defn core-doseq
   "Repeatedly executes body (presumably for side-effects) with
