@@ -214,7 +214,8 @@
                        subform (step (nnext exprs))]
                    (cond
                      (= k :let) `(let ~v ~subform)
-                     (= k :while) ;; emit literal JS because `if` detects that
+                     (= k :while)
+                     ;; emit literal JS because `if` detects that
                      ;; it's an expr context and emits a ternary,
                      ;; but you can't break inside of a ternary
                      (list 'js*
@@ -223,7 +224,8 @@
                      (= k :when) `(when ~v
                                     ~subform)
                      (keyword? k) (err "Invalid 'for' keyword" k)
-                     :else (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
+                     :else (list 'js* {:context :statement}
+                                 "for (let ~{} of ~{}) {\n~{}\n}"
                                  k v subform)))))]
     (list 'lazy (list 'js* "function* () {\n~{}\n}"
                       (step (seq seq-exprs))))))
