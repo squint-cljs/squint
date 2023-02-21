@@ -13,11 +13,17 @@
 
 (defmulti emit-special (fn [disp _env & _args] disp))
 
-(defmethod emit-special 'js* [_ env [_js* template & substitutions]]
-  (reduce (fn [template substitution]
-            (str/replace-first template "~{}" (emit substitution env)))
-          template
-          substitutions))
+(defmethod emit-special 'js* [_ env [_js* & opts]]
+  (let [[env' template substitutions] (if (map? (first opts))
+                                        [(first opts)
+                                         (second opts)
+                                         (drop 2 opts)]
+                                        [nil (first opts) (rest opts)])]
+    (reduce (fn [template substitution]
+              (str/replace-first template "~{}"
+                                 (emit substitution (merge env env'))))
+           template
+           substitutions)))
 
 (defn emit-return [s env]
   (if (= :return (:context env))

@@ -459,7 +459,7 @@ class LazyIterable {
   }
 }
 
-function lazy(f) {
+export function lazy(f) {
   return new LazyIterable(f);
 }
 

@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.0.11
+
+- Add `for` and `doseq` ([@lilactown](https://github.com/lilactown))
+
 ## 0.0.10
 
 - [#289](https://github.com/squint-cljs/squint/issues/289): support `:as` alias with hyphen in namespace require libspec
