@@ -273,7 +273,6 @@ export function contains_QMARK_(coll, v) {
   }
 }
 
-
 export function dissoc_BANG_(m, ...ks) {
   for (const k of ks) {
     delete m[k];
@@ -1164,6 +1163,38 @@ export function es6_iterator_seq(iter) {
   } else {
     return new IteratorSeq(v.value, i);
   }
+}
+
+class MemoIter {
+  constructor(iter) {
+    this.iter = iter;
+    this.buf = [];
+  }
+  [IIterable] = true;
+  *[Symbol.iterator]() {
+    var ctr = 0;
+    while (true) {
+      let elt = this.buf[ctr];
+      if (elt == undefined) {
+        let val = this.iter.next();
+        if (val.done) {
+          break;
+        } else {
+          this.buf[ctr] = val;
+          ctr++;
+          yield val;
+        }
+      } else {
+        ctr++;
+        yield elt;
+      }
+    }
+  }
+}
+
+export function memo_iter(iter) {
+  let i = _iterator(iter);
+  return new MemoIter(i);
 }
 
 // comment

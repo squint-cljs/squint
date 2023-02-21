@@ -67,6 +67,7 @@
   map_indexed
   mapcat
   mapv
+  memo_iter
   merge
   neg_QMARK_
   nil_QMARK_
