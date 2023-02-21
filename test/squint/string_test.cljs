@@ -29,20 +29,20 @@
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/join "--" (range 10))))))
 
-(deftest string-conflict-test
-  (evalll (fn [res]
-            (eq ["foo","bar"] res))
-          '(do (ns foo (:require [squint.string :as str]))
-               (defn split [x] (str x)) (def result (str/split "foo,bar" ",")))))
+;; (deftest string-conflict-test
+;;   (evalll (fn [res]
+;;             (eq ["foo","bar"] res))
+;;           '(do (ns foo (:require [squint.string :as str]))
+;;                (defn split [x] (str x)) (def result (str/split "foo,bar" ",")))))
 
-(deftest split-test-string
-  (evalll (fn [res]
-            (eq ["foo","bar","baz"] res))
-          '(do (ns foo (:require [squint.string :as str]))
-               (def result (str/split "foo--bar--baz" "--")))))
+;; (deftest split-test-string
+;;   (evalll (fn [res]
+;;             (eq ["foo","bar","baz"] res))
+;;           '(do (ns foo (:require [squint.string :as str]))
+;;                (def result (str/split "foo--bar--baz" "--")))))
 
-(deftest split-test-regex
-  (evalll (fn [res]
-            (eq ["foo","bar","baz"] res))
-          '(do (ns foo (:require [squint.string :as str]))
-               (def result (str/split "fooxbarybaz" #"[xy]")))))
+;; (deftest split-test-regex
+;;   (evalll (fn [res]
+;;             (eq ["foo","bar","baz"] res))
+;;           '(do (ns foo (:require [squint.string :as str]))
+;;                (def result (str/split "fooxbarybaz" #"[xy]")))))

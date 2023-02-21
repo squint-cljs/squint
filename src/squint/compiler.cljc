@@ -325,9 +325,11 @@
            (str/join ", " (emit-args (expr-env env) expr)))
    env))
 
-(defn transpile-form [f]
-  (emit f {:context :statement
-           :top-level true}))
+(defn transpile-form
+  ([f] (transpile-form f nil))
+  ([f env]
+   (emit f (merge {:context :statement
+                   :top-level true} env))))
 
 (def ^:dynamic *jsx* false)
 
@@ -349,25 +351,29 @@
     :read-cond :allow
     :features #{:cljc}}))
 
-(defn transpile-string* [s]
-  (let [rdr (e/reader s)
-        opts squint-parse-opts]
-    (loop [transpiled ""]
-      (let [opts (assoc opts :auto-resolve @*aliases*)
-            next-form (e/parse-next rdr opts)]
-        (if (= ::e/eof next-form)
-          transpiled
-          (let [next-t (transpile-form next-form)
-                next-js (some-> next-t not-empty (statement))]
-            (recur (str transpiled next-js))))))))
+(defn transpile-string*
+  ([s] (transpile-string* s {}))
+  ([s env]
+   (let [rdr (e/reader s)
+         opts squint-parse-opts]
+     (loop [transpiled ""]
+       (let [opts (assoc opts :auto-resolve @*aliases*)
+             next-form (e/parse-next rdr opts)]
+         (if (= ::e/eof next-form)
+           transpiled
+           (let [next-t (transpile-form next-form env)
+                 next-js (some-> next-t not-empty (statement))]
+             (recur (str transpiled next-js)))))))))
 
 (defn compile-string*
   ([s] (compile-string* s nil))
   ([s {:keys [elide-exports
-              elide-imports]}]
+              elide-imports
+              core-alias]
+       :or {core-alias "squint_core"}}]
    (let [imported-vars (atom {})
          public-vars (atom #{})
-         aliases (atom {})]
+         aliases (atom {core-alias cc/*core-package*})]
      (binding [*imported-vars* imported-vars
                *public-vars* public-vars
                *aliases* aliases
@@ -375,7 +381,7 @@
                *excluded-core-vars* (atom #{})
                *cljs-ns* *cljs-ns*
                cc/*target* :squint]
-       (let [transpiled (transpile-string* s)
+       (let [transpiled (transpile-string* s {:core-alias core-alias})
              imports (when-not elide-imports
                        (let [ns->alias (zipmap (vals @aliases)
                                                (keys @aliases))]
@@ -387,9 +393,13 @@
                                      (str acc
                                           (when (or (not *repl*)
                                                     (seq symbols))
-                                            (format "import { %s } from '%s'\n"
-                                                    (str/join ", " symbols)
-                                                    k)))))
+                                            (if alias
+                                              (format "import * as %s from '%s'\n"
+                                                      alias
+                                                      k)
+                                              (format "import { %s } from '%s'\n"
+                                                      (str/join ", " symbols)
+                                                      k))))))
                                  ""
                                  @imported-vars)))
              exports (when-not elide-exports

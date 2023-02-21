@@ -161,12 +161,15 @@
 
 (def ^:dynamic *core-package* "squint-cljs/core.js")
 
-(defn maybe-core-var [sym]
+(defn maybe-core-var [sym env]
   (let [m (munge sym)]
     (when (and (contains? @core-vars m)
                (not (contains? @*excluded-core-vars* m)))
       (swap! *imported-vars* update *core-package* (fnil conj #{}) m)
-      m)))
+      (str
+       (when-let [core-alias (:core-alias env)]
+         (str core-alias "."))
+       m))))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
@@ -185,19 +188,19 @@
                    (let [sn (symbol (name expr))]
                      (or (when (or (= "cljs.core" sym-ns)
                                    (= "clojure.core" sym-ns))
-                           (some-> (maybe-core-var sn) munge))
+                           (some-> (maybe-core-var sn env) munge))
                          (when (= "js" sym-ns)
                            (munge* (name expr)))
                          (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
-                           (swap! *imported-vars* update resolved-ns (fnil conj #{}) (munged-name sn))
-                           (str sym-ns "_"  (munged-name sn)))
+                           #_(swap! *imported-vars* update resolved-ns (fnil conj #{}) (munged-name sn))
+                           (str sym-ns "." #_#_sym-ns "_"  (munged-name sn)))
                          (if *repl*
                            (str "globalThis." (munge *cljs-ns*) ".aliases." (namespace expr) "." (name expr))
                            expr)))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (munge* (str renamed))
                      (or
-                      (some-> (maybe-core-var expr) munge)
+                      (some-> (maybe-core-var expr env) munge)
                       (let [m (munged-name expr)]
                         (str (when *repl*
                                (str (munge *cljs-ns*) ".")) m)))))]
@@ -398,7 +401,7 @@
      (when refer
        (statement (format "import { %s } from '%s'"  (str/join ", " (map munge refer)) libname))))))
 
-(defmethod emit-special 'ns [_type _env [_ns name & clauses]]
+(defmethod emit-special 'ns [_type env [_ns name & clauses]]
   (set! *cljs-ns* name)
   (reset! *aliases*
           (->> clauses
@@ -412,7 +415,8 @@
                       (:as :as-alias)
                       (assoc aliases (munge alias) full)
                       aliases)))
-                {:current name})))
+                {:current name
+                 (:core-alias env) *core-package*})))
   (str
    (reduce (fn [acc [k & exprs]]
              (cond
