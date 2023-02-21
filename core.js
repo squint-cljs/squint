@@ -1019,6 +1019,16 @@ export function replace(smap, coll) {
 }
 
 export function empty_QMARK_(coll) {
+  if (coll == null) {
+    return true;
+  }
+  if (coll == undefined) {
+    return true;
+  }
+  let isEmpty = coll.isEmpty;
+  if (isEmpty != undefined) {
+    return coll.isEmpty();
+  }
   return seq(coll) ? false : true;
 }
 
@@ -1169,6 +1179,15 @@ class MemoIter {
   constructor(iter) {
     this.iter = iter;
     this.buf = [];
+    this.initialized = false;
+  }
+  isEmpty() {
+    if (this.initialized) {
+      return (this.buf.length == 0);
+    } else {
+      this[Symbol.iterator]().next();
+      return this.buf.length == 0;
+    }
   }
   [IIterable] = true;
   *[Symbol.iterator]() {
@@ -1177,6 +1196,7 @@ class MemoIter {
       let elt = this.buf[ctr];
       if (elt == undefined) {
         let val = this.iter.next();
+        this.initialized = true;
         if (val.done) {
           break;
         } else {
