@@ -1193,25 +1193,30 @@ class MemoIter {
   [IIterable] = true;
   *[Symbol.iterator]() {
     var ctr = 0;
-    while (true) {
-      if (ctr > 32) {
-        break;
-      }
-      let elt = this.buf[ctr];
-      if (elt == undefined) {
-        let val = this.iter.next();
-        this.initialized = true;
-        if (val.done) {
-          return;
+    if (this.fullBuffer) {
+      yield* this.buf;
+    } else {
+      while (true) {
+        if (ctr > 32) {
+          this.fullBuffer = true;
+          break;
+        }
+        let elt = this.buf[ctr];
+        if (elt == undefined) {
+          let val = this.iter.next();
+          this.initialized = true;
+          if (val.done) {
+            return;
+          } else {
+            let elt = val.value;
+            this.buf[ctr] = elt;
+            ctr++;
+            yield elt;
+          }
         } else {
-          let elt = val.value;
-          this.buf[ctr] = elt;
           ctr++;
           yield elt;
         }
-      } else {
-        ctr++;
-        yield elt;
       }
     }
     if (this.rest == null) {
