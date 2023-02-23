@@ -1195,10 +1195,6 @@ class MemoIter {
     var ctr = 0;
     while (true) {
       if (ctr > 32) {
-        if (this.rest == null) {
-          this.rest = new MemoIter(this.iter);
-        }
-        yield* this.rest;
         break;
       }
       let elt = this.buf[ctr];
@@ -1206,7 +1202,7 @@ class MemoIter {
         let val = this.iter.next();
         this.initialized = true;
         if (val.done) {
-          break;
+          return;
         } else {
           let elt = val.value;
           this.buf[ctr] = elt;
@@ -1218,6 +1214,10 @@ class MemoIter {
         yield elt;
       }
     }
+    if (this.rest == null) {
+      this.rest = new MemoIter(this.iter);
+    }
+    yield* this.rest;
   }
 }
 
