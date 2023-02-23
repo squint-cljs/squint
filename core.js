@@ -1180,6 +1180,7 @@ class MemoIter {
     this.iter = iter;
     this.buf = [];
     this.initialized = false;
+    this.rest = undefined;
   }
   isEmpty() {
     if (this.initialized) {
@@ -1200,6 +1201,11 @@ class MemoIter {
         if (val.done) {
           break;
         } else {
+          if (ctr > 31) {
+            let rest = new MemoIter(this.iter);
+            yield* rest;
+            break;
+          }
           this.buf[ctr] = val;
           ctr++;
           yield val;
