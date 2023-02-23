@@ -1194,6 +1194,13 @@ class MemoIter {
   *[Symbol.iterator]() {
     var ctr = 0;
     while (true) {
+      if (ctr > 32) {
+        if (this.rest == null) {
+          this.rest = new MemoIter(this.iter);
+        }
+        yield* this.rest;
+        break;
+      }
       let elt = this.buf[ctr];
       if (elt == undefined) {
         let val = this.iter.next();
@@ -1201,16 +1208,10 @@ class MemoIter {
         if (val.done) {
           break;
         } else {
-          if (ctr > 31) {
-            if (this.rest == null) {
-              this.rest = new MemoIter(this.iter);
-            }
-            yield* this.rest;
-            break;
-          }
-          this.buf[ctr] = val;
+          let elt = val.value;
+          this.buf[ctr] = elt;
           ctr++;
-          yield val;
+          yield elt;
         }
       } else {
         ctr++;
