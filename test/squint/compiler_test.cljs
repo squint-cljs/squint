@@ -1394,5 +1394,10 @@
   (is (eq #js {"3" 4} (jsv! '(dissoc {"1" 2 "3" 4} "1"))))
   (is (eq #js {} (jsv! '(dissoc {"1" 2 "3" 4} "1" "3")))))
 
+(deftest js-obj-test
+  (is (eq #js {} (jsv! '(js-obj))))
+  (is (eq #js {:a 1} (jsv! '(js-obj :a 1))))
+  (is (eq #js {:a 1 :b 2} (jsv! '(js-obj :a 1 :b 2)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
