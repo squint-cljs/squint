@@ -57,6 +57,7 @@
   interpose
   into
   iterable
+  js_obj
   keep
   last
   lazy

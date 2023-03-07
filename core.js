@@ -1138,4 +1138,15 @@ export function pos_QMARK_(x) {
   return x > 0;
 }
 
-// comment
+export function js_obj(...args) {
+  var ctr = 0;
+  let ret = {};
+  while (true) {
+    if (ctr >= args.length) {
+      break;
+    }
+    ret[args[ctr]]=args[ctr+1];
+    ctr = ctr + 2;
+  }
+  return ret;
+}
