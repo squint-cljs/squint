@@ -196,7 +196,7 @@
                            (str sym-ns "." #_#_sym-ns "_"  (munged-name sn)))
                          (if *repl*
                            (str "globalThis." (munge *cljs-ns*) ".aliases." (namespace expr) "." (name expr))
-                           expr)))
+                           (str (namespace expr) "." (name expr)))))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (munge* (str renamed))
                      (or
