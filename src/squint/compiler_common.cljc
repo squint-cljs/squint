@@ -195,8 +195,8 @@
                            #_(swap! *imported-vars* update resolved-ns (fnil conj #{}) (munged-name sn))
                            (str sym-ns "." #_#_sym-ns "_"  (munged-name sn)))
                          (if *repl*
-                           (str "globalThis." (munge *cljs-ns*) ".aliases." (namespace expr) "." (name expr))
-                           (str (namespace expr) "." (name expr)))))
+                           (str "globalThis." (munge *cljs-ns*) ".aliases." (munge (namespace expr)) "." (munge (name expr)))
+                           (str (munge (namespace expr)) "." (munge (name expr))))))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (munge* (str renamed))
                      (or
