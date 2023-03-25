@@ -1361,8 +1361,8 @@
 
 (deftest require-with-kebab-case-alias-test
   (let [s (compiler/compile-string "(ns test-namespace (:require [\"some-js-library$default\" :as some-js-lib])) (some-js-lib/some_fn)")]
-    (is (str/includes? s "import { some_fn as some_js_lib_some_fn } from 'some-js-library$default'"))
-    (is (str/includes? s "some_js_lib_some_fn()")))
+    (is (str/includes? s "import some_js_lib from 'some-js-library';"))
+    (is (str/includes? s "some_js_lib.some_fn();")))
 
   (let [s (compiler/compile-string "(ns test-namespace (:require [\"some-js-library\" :as some-js-lib])) (some-js-lib/some_fn)")]
     (is (str/includes? s "import { some_fn as some_js_lib_some_fn } from 'some-js-library'"))

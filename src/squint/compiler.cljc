@@ -397,9 +397,10 @@
                                               (format "import * as %s from '%s'\n"
                                                       alias
                                                       k)
-                                              (format "import { %s } from '%s'\n"
-                                                      (str/join ", " symbols)
-                                                      k))))))
+                                              (when (seq symbols)
+                                                (format "import { %s } from '%s'\n"
+                                                        (str/join ", " symbols)
+                                                        k)))))))
                                  ""
                                  @imported-vars)))
              exports (when-not elide-exports
