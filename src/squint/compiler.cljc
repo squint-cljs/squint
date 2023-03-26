@@ -373,7 +373,7 @@
        :or {core-alias "squint_core"}
        :as opts}]
    (binding [cc/*core-package* "squint-cljs/core.js"
-             cc/*target* :cherry
+             cc/*target* :squint
              *jsx* false]
      (let [imported-vars (atom {})
            public-vars (atom #{})
