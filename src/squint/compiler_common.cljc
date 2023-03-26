@@ -379,27 +379,28 @@
       alias)
     alias))
 
-(defn process-require-clause [[libname & {:keys [refer as]}]]
+(defn process-require-clause [env [libname & {:keys [refer as]}]]
   (let [libname (resolve-ns libname)
         [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
         [p & _props] (when suffix
                        (str/split suffix #"\."))
-        as (when as (munge as))]
-    (str
-     (when-not *repl*
-       (when (and as (= "default" p))
-         (statement (format "import %s from '%s'" as libname))))
-     (when (and (not as) (not p) (not refer))
-       ;; import presumably for side effects
-       (statement (format "import '%s'" libname)))
-     (when as
-       (swap! *imported-vars* update libname (fnil identity #{}))
-       (when *repl*
-         (if (str/ends-with? libname "$default")
-           (statement (format "import %s from '%s'" as (str/replace libname "$default" "")))
-           (statement (format "import * as %s from '%s'" as libname)))))
-     (when refer
-       (statement (format "import { %s } from '%s'"  (str/join ", " (map munge refer)) libname))))))
+        as (when as (munge as))
+        expr (str
+              (when-not *repl*
+                (when (and as (= "default" p))
+                  (statement (format "import %s from '%s'" as libname))))
+              (when (and (not as) (not p) (not refer))
+                ;; import presumably for side effects
+                (statement (format "import '%s'" libname)))
+              (when as
+                (swap! *imported-vars* update libname (fnil identity #{}))
+                (if (str/ends-with? libname "$default")
+                  (statement (format "import %s from '%s'" as (str/replace libname "$default" "")))
+                  (statement (format "import * as %s from '%s'" as libname))))
+              (when refer
+                (statement (format "import { %s } from '%s'"  (str/join ", " (map munge refer)) libname))))]
+    (swap! (:imports env) str expr)
+    nil))
 
 (defmethod emit-special 'ns [_type env [_ns name & clauses]]
   (set! *cljs-ns* name)
@@ -421,7 +422,7 @@
    (reduce (fn [acc [k & exprs]]
              (cond
                (= :require k)
-               (str acc (str/join "" (map process-require-clause exprs)))
+               (str acc (str/join "" (map #(process-require-clause env %) exprs)))
                (= :refer-clojure k)
                (let [{:keys [exclude]} exprs]
                  (swap! *excluded-core-vars* into exclude)

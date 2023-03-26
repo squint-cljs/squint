@@ -368,12 +368,14 @@
 (defn compile-string*
   ([s] (compile-string* s nil))
   ([s {:keys [elide-exports
-              elide-imports
-              core-alias]
-       :or {core-alias "squint_core"}}]
+              core-alias
+              elide-imports]
+       :or {core-alias "squint_core"}
+       :as opts}]
    (let [imported-vars (atom {})
          public-vars (atom #{})
-         aliases (atom {core-alias cc/*core-package*})]
+         aliases (atom {core-alias cc/*core-package*})
+         imports (atom "")]
      (binding [*imported-vars* imported-vars
                *public-vars* public-vars
                *aliases* aliases
@@ -381,28 +383,10 @@
                *excluded-core-vars* (atom #{})
                *cljs-ns* *cljs-ns*
                cc/*target* :squint]
-       (let [transpiled (transpile-string* s {:core-alias core-alias})
-             imports (when-not elide-imports
-                       (let [ns->alias (zipmap (vals @aliases)
-                                               (keys @aliases))]
-                         (reduce (fn [acc [k v]]
-                                   (let [alias (get ns->alias k)
-                                         symbols (if alias
-                                                   (map #(str % " as " (str alias "_" %)) v)
-                                                   v)]
-                                     (str acc
-                                          (when (or (not *repl*)
-                                                    (seq symbols))
-                                            (if alias
-                                              (format "import * as %s from '%s'\n"
-                                                      alias
-                                                      k)
-                                              (when (seq symbols)
-                                                (format "import { %s } from '%s'\n"
-                                                        (str/join ", " symbols)
-                                                        k)))))))
-                                 ""
-                                 @imported-vars)))
+       (let [transpiled (transpile-string* s (assoc opts
+                                                    :core-alias core-alias
+                                                    :imports imports))
+             imports (when-not elide-imports @imports)
              exports (when-not elide-exports
                        (str
                         (when-let [vars (disj @public-vars "default$")]
