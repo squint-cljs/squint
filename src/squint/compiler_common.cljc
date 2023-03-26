@@ -453,7 +453,7 @@
                    ""
                    @*aliases*))))))
 
-(defmethod emit-special 'require [_ _env [_ & clauses]]
+(defmethod emit-special 'require [_ env [_ & clauses]]
   (let [clauses (map second clauses)]
     (reset! *aliases*
             (->> clauses
@@ -465,7 +465,7 @@
                         (assoc aliases alias full)
                         aliases)))
                   {:current name})))
-    (str (str/join "" (map process-require-clause clauses))
+    (str (str/join "" (map #(process-require-clause env %) clauses))
          (when *repl*
            (let [mname (munge *cljs-ns*)
                  split-name (str/split (str mname) #"\.")
