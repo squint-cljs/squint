@@ -8,9 +8,11 @@
    #_:clj-kondo/ignore
    ["fs" :as fs]
    #_:clj-kondo/ignore
-   ["path" :as path]))
+   ["path" :as path]
+   ["squint-cljs/core.js" :as squint_core]))
 
 (gobject/set js/global "React" React)
+(gobject/set js/global "squint_core" squint_core)
 
 (defn test-jsx [s]
   (let [expr (jss! s)

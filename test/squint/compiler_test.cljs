@@ -1361,19 +1361,19 @@
 
 (deftest require-with-kebab-case-alias-test
   (let [s (compiler/compile-string "(ns test-namespace (:require [\"some-js-library$default\" :as some-js-lib])) (some-js-lib/some_fn)")]
-    (is (str/includes? s "import { some_fn as some_js_lib_some_fn } from 'some-js-library$default'"))
-    (is (str/includes? s "some_js_lib_some_fn()")))
+    (is (str/includes? s "import some_js_lib from 'some-js-library';"))
+    (is (str/includes? s "some_js_lib.some_fn();")))
 
   (let [s (compiler/compile-string "(ns test-namespace (:require [\"some-js-library\" :as some-js-lib])) (some-js-lib/some_fn)")]
-    (is (str/includes? s "import { some_fn as some_js_lib_some_fn } from 'some-js-library'"))
-    (is (str/includes? s "some_js_lib_some_fn()")))
+    (is (str/includes? s "import * as some_js_lib from 'some-js-library'"))
+    (is (str/includes? s "some_js_lib.some_fn();")))
 
   (let [s (compiler/compile-string "(ns test-namespace (:require [\"./local_file.mjs\" :as local-file])) (local-file/some_fn)")]
-    (is (str/includes? s "import { some_fn as local_file_some_fn } from './local_file.mjs'"))
-    (is (str/includes? s "local_file_some_fn()")))
+    (is (str/includes? s "import * as local_file from './local_file.mjs'"))
+    (is (str/includes? s "local_file.some_fn();")))
   (let [s (compiler/compile-string "(ns bar (:require [\"./foo.mjs\" #_#_:refer [foo-bar] :as foo-alias])) (prn foo-alias/foo-bar)")]
-    (is (str/includes? s "import { foo_bar as foo_alias_foo_bar } from './foo.mjs'"))
-    (is (str/includes? s "prn(foo_alias_foo_bar);"))))
+    (is (str/includes? s "import * as foo_alias from './foo.mjs'"))
+    (is (str/includes? s "prn(foo_alias.foo_bar);"))))
 
 (deftest dissoc!-test
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc! {"1" 2 "3" 4}))))

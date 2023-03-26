@@ -31,7 +31,8 @@
 
 (defn jss! [expr]
   (if (string? expr)
-    (:body (squint/compile-string* expr))
+    (:body (squint/compile-string* expr {:elide-imports true
+                                         :core-alias nil}))
     (squint/transpile-form expr)))
 
 (defn js! [expr]

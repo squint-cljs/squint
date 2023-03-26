@@ -5,6 +5,8 @@
                     (let [prog# (~'compile! ~body)
                           filename# (str (gensym "test") ".mjs")]
                       (fs/writeFileSync filename# prog#)
+                      ;; (println :prog)
+                      ;; (println prog#)
                       (-> (~'dyn-import (-> (path/resolve (js/process.cwd) filename#)
                                             url/pathToFileURL))
                           (.then
