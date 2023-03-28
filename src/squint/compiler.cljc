@@ -252,7 +252,9 @@
              (throw (new Exception (str "invalid form: " expr))))))
    env))
 
-(derive #?(:clj clojure.lang.PersistentList$EmptyList :cljs EmptyList) ::empty-list)
+(derive #?(:bb #=(class (list))
+           :clj clojure.lang.PersistentList$EmptyList
+           :cljs EmptyList) ::empty-list)
 
 (defmethod emit ::empty-list [_expr env]
   ;; NOTE: we can later optimize this to a constant, but (.-EMPTY List) is prone
