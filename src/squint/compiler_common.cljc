@@ -716,3 +716,12 @@ break;}" body)
                                              ))))
                    env)
         (emit-repl env))))
+
+(defmethod emit-special 'letfn* [_ env [_ form & body]]
+  (let [bindings (take-nth 2 form)
+        fns (take-nth 2 (rest form))
+        sets (map (fn [binding fn]
+                    `(set! ~binding ~fn))
+                  bindings fns)
+        let `(let ~(vec (interleave bindings (repeat nil))) ~@sets ~@body)]
+    (emit let env)))
