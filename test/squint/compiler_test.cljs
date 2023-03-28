@@ -1402,5 +1402,9 @@
 (deftest empty-list-test
   (is (eq #js [] (jsv! "()"))))
 
+(deftest and-or-test
+  (is (eq true (jsv! '(and))))
+  (is (eq nil (jsv! '(or)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

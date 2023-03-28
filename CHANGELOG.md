@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix compilation of empty list
+- Fix `and` and `or` without arguments
 
 ## 0.0.12
 

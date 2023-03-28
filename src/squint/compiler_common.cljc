@@ -551,10 +551,14 @@
   (str "(" s  ")"))
 
 (defmethod emit-special 'and [_type env [_ & more]]
-  (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env))
+  (if (empty? more)
+    true
+    (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
 
 (defmethod emit-special 'or [_type env [_ & more]]
-  (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env))
+  (if (empty? more)
+    nil
+    (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
   (str "while (" (emit test) ") { \n"
