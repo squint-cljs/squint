@@ -252,6 +252,13 @@
              (throw (new Exception (str "invalid form: " expr))))))
    env))
 
+(derive #?(:clj clojure.lang.PersistentList$EmptyList :cljs EmptyList) ::empty-list)
+
+(defmethod emit ::empty-list [_expr env]
+  ;; NOTE: we can later optimize this to a constant, but (.-EMPTY List) is prone
+  ;; to advanced optimization
+  (emit '(list) env))
+
 #?(:cljs (derive PersistentVector ::vector))
 
 #_(defn wrap-expr [env s]

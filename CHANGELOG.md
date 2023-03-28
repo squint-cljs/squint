@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Fix compilation of empty list
+
 ## 0.0.12
 
 - Add `js-obj`

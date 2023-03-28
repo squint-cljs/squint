@@ -1399,5 +1399,8 @@
   (is (eq #js {:a 1} (jsv! '(js-obj :a 1))))
   (is (eq #js {:a 1 :b 2} (jsv! '(js-obj :a 1 :b 2)))))
 
+(deftest empty-list-test
+  (is (eq #js [] (jsv! "()"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
