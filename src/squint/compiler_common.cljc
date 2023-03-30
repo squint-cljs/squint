@@ -725,3 +725,8 @@ break;}" body)
                   bindings fns)
         let `(let ~(vec (interleave bindings (repeat nil))) ~@sets ~@body)]
     (emit let env)))
+
+(defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
+  ;; RegExp case moved here:
+  ;; References to the global RegExp object prevents optimization of regular expressions.
+  (emit (vec expr) env))
