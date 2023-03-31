@@ -1406,5 +1406,8 @@
   (is (eq true (jsv! '(and))))
   (is (eq nil (jsv! '(or)))))
 
+(deftest fn-direct-invoke-test
+  (is (eq 2 (jsv! '(#(inc %) 1)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

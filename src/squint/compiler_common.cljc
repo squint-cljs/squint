@@ -593,8 +593,6 @@
                          (when (identical? sig coll)
                            (vreset! recur? true))))
             body (emit-do (assoc env :context :return) body)
-            arrow (and (= :expression (:context env))
-                        (not elide-function?))
             body (if @recur?
                    (format "while(true){
 %s
@@ -602,16 +600,12 @@ break;}" body)
                    body)]
         (str (when-not elide-function?
                (str (when *async*
-                      "async ") (if arrow
-                                  ""
-                                  "function ")))
+                      "async ") "function "))
              (comma-list (map (fn [sym]
                                 (let [munged (munge sym)]
                                   (if (:... (meta sym))
                                     (str "..." munged)
                                     munged))) sig))
-             (when arrow
-               " => ")
              " {\n"
              (when (:type env)
                (str "var self__ = this;"))
@@ -633,6 +627,7 @@ break;}" body)
           (let [signature (first expr)
                 body (rest expr)]
             (str (emit-function env nil signature body))))
+        (cond-> (= :expr (:context env)) (wrap-parens))
         (emit-return env))))
 
 (defmethod emit-special 'fn* [_type env [_fn & sigs :as expr]]
@@ -705,7 +700,7 @@ break;}" body)
                          cherry?
                          (= "js" ns))]
     (-> (emit-return (str
-                    (emit fname (expr-env env))
+                      (emit fname (expr-env env))
                     ;; this is needed when calling keywords, symbols, etc. We could
                     ;; optimize this later by inferring that we're not directly
                      ;; calling a `function`.
@@ -734,7 +729,7 @@ break;}" body)
   (toString [_] js))
 
 (defmethod emit-special 'zero? [_ env [_ num]]
-  (map->Code {:js (format "(%s == 0)" (emit num (assoc env :context :expression)))
+  (map->Code {:js (format "(%s == 0)" (emit num (assoc env :context :expr)))
               :bool true}))
 
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
