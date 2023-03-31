@@ -50,10 +50,11 @@
 
 (defn str-tail
   "Returns the last n characters of s."
-  ^String [n ^String s]
-  (if (< (count s) n)
-    s
-    (.substring s (- (count s) n))))
+  ^String [n js]
+  (let [s (str js)]
+    (if (< (count s) n)
+      s
+      (.substring s (- (count s) n)))))
 
 (defn statement [expr]
   (if (not (= statement-separator (str-tail (count statement-separator) expr)))
@@ -728,7 +729,17 @@ break;}" body)
         let `(let ~(vec (interleave bindings (repeat nil))) ~@sets ~@body)]
     (emit let env)))
 
+(defrecord Code [js bool]
+  Object
+  (toString [_] js))
+
+(defmethod emit-special 'zero? [_ env [_ num]]
+  (map->Code {:js (format "(%s == 0)" (emit num (assoc env :context :expression)))
+              :bool true}))
+
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
   ;; RegExp case moved here:
   ;; References to the global RegExp object prevents optimization of regular expressions.
   (emit (vec expr) env))
+
+(def special-forms '#{zero?})

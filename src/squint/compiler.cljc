@@ -91,7 +91,9 @@
 (reset! cc/core-vars core-vars)
 
 (defn special-form? [expr]
-  (contains? special-forms expr))
+  (or
+   (contains? cc/special-forms expr)
+   (contains? special-forms expr)))
 
 (defn emit-prefix-unary [_type [operator arg]]
   (str operator (emit arg)))
