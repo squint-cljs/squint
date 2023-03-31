@@ -593,8 +593,6 @@
                          (when (identical? sig coll)
                            (vreset! recur? true))))
             body (emit-do (assoc env :context :return) body)
-            arrow (and (= :expression (:context env))
-                        (not elide-function?))
             body (if @recur?
                    (format "while(true){
 %s
@@ -602,16 +600,12 @@ break;}" body)
                    body)]
         (str (when-not elide-function?
                (str (when *async*
-                      "async ") (if arrow
-                                  ""
-                                  "function ")))
+                      "async ") "function "))
              (comma-list (map (fn [sym]
                                 (let [munged (munge sym)]
                                   (if (:... (meta sym))
                                     (str "..." munged)
                                     munged))) sig))
-             (when arrow
-               " => ")
              " {\n"
              (when (:type env)
                (str "var self__ = this;"))

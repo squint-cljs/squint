@@ -397,7 +397,7 @@
                          (str
                           (when-let [vars (disj @public-vars "default$")]
                             (when (seq vars)
-                              (str (format "\nexport { %s }\n"
+                             (str (format "\nexport { %s }\n"
                                            (str/join ", " vars)))
                               ))
                           (when (contains? @public-vars "default$")
