@@ -31,7 +31,7 @@
     s))
 
 (defn expr-env [env]
-  (assoc env :context :expression :top-level false))
+  (assoc env :context :expr :top-level false))
 
 (defmethod emit-special 'throw [_ env [_ expr]]
   (str "throw " (emit expr (expr-env env))))
@@ -137,11 +137,11 @@
   (contains? suffix-unary-operators expr))
 
 (defn emit-args [env args]
-  (let [env (assoc env :context :expression :top-level false)]
+  (let [env (assoc env :context :expr :top-level false)]
     (map #(emit % env) args)))
 
 (defn emit-infix [_type enc-env [operator & args]]
-  (let [env (assoc enc-env :context :expression :top-level false)
+  (let [env (assoc enc-env :context :expr :top-level false)
         acount (count args)]
     (if (and (not (chainable-infix-operators (name operator))) (> acount 2))
       (emit (list 'cljs.core/and
@@ -223,7 +223,7 @@
         l (last exprs)
         ctx (:context env)
         statement-env (assoc env :context :statement)
-        iife? (and (seq bl) (= :expression ctx))
+        iife? (and (seq bl) (= :expr ctx))
         s (cond-> (str (str/join "" (map #(statement (emit % statement-env)) bl))
                        (emit l (assoc env :context
                                       (if iife? :return
@@ -237,9 +237,9 @@
 
 (defn emit-let [enc-env bindings body is-loop]
   (let [context (:context enc-env)
-        env (assoc enc-env :context :expression)
+        env (assoc enc-env :context :expr)
         partitioned (partition 2 bindings)
-        iife? (or (= :expression context)
+        iife? (or (= :expr context)
                   (and *repl* (:top-level env)))
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
@@ -283,7 +283,7 @@
   (emit-let env bindings body true))
 
 (defmethod emit-special 'case* [_ env [_ v tests thens default]]
-  (let [expr? (= :expression (:context env))
+  (let [expr? (= :expr (:context env))
         gs (gensym "caseval__")
         eenv (expr-env env)]
     (cond-> (str
@@ -523,7 +523,7 @@
 
 ;; TODO: this should not be reachable in user space
 (defmethod emit-special 'return [_type env [_return expr]]
-  (statement (str "return " (emit (assoc env :context :expression) env))))
+  (statement (str "return " (emit (assoc env :context :expr) env))))
 
 #_(defmethod emit-special 'delete [type [return expr]]
     (str "delete " (emit expr)))
@@ -539,10 +539,10 @@
   (emit-return (str "new " (emit class (expr-env env)) (comma-list (emit-args env args))) env))
 
 (defmethod emit-special 'dec [_type env [_ var]]
-  (emit-return (str "(" (emit var (assoc env :context :expression)) " - " 1 ")") env))
+  (emit-return (str "(" (emit var (assoc env :context :expr)) " - " 1 ")") env))
 
 (defmethod emit-special 'inc [_type env [_ var]]
-  (emit-return (str "(" (emit var (assoc env :context :expression)) " + " 1 ")") env))
+  (emit-return (str "(" (emit var (assoc env :context :expr)) " + " 1 ")") env))
 
 #_(defmethod emit-special 'defined? [_type env [_ var]]
     (str "typeof " (emit var env) " !== \"undefined\" && " (emit var env) " !== null"))
@@ -627,7 +627,7 @@ break;}" body)
           (let [signature (first expr)
                 body (rest expr)]
             (str (emit-function env nil signature body))))
-        (cond-> (= :expression (:context env)) (wrap-parens))
+        (cond-> (= :expr (:context env)) (wrap-parens))
         (emit-return env))))
 
 (defmethod emit-special 'fn* [_type env [_fn & sigs :as expr]]
@@ -729,7 +729,7 @@ break;}" body)
   (toString [_] js))
 
 (defmethod emit-special 'zero? [_ env [_ num]]
-  (map->Code {:js (format "(%s == 0)" (emit num (assoc env :context :expression)))
+  (map->Code {:js (format "(%s == 0)" (emit num (assoc env :context :expr)))
               :bool true}))
 
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]

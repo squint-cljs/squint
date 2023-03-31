@@ -208,7 +208,7 @@
   (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
         step (fn step [exprs]
                (if-not exprs
-                 (list 'js* {:context :expression} "yield ~{}" body)
+                 (list 'js* {:context :expr} "yield ~{}" body)
                  (let [k (first exprs)
                        v (second exprs)
                        subform (step (nnext exprs))]

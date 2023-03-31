@@ -154,15 +154,15 @@
   #_(prn (core-let bindings more)))
 
 (defmethod emit-special 'if [_type env [_if test then else]]
-  (if (= :expression (:context env))
-    (-> (let [env (assoc env :context :expression)]
+  (if (= :expr (:context env))
+    (-> (let [env (assoc env :context :expr)]
           (format "(%s) ? (%s) : (%s)"
                   (emit test env)
                   (emit then env)
                   (emit else env)))
         (emit-return env))
     (str (format "if (%s) {\n"
-                 (emit test (assoc env :context :expression)))
+                 (emit test (assoc env :context :expr)))
          (emit then env)
          "}"
          (when (some? else)
@@ -258,7 +258,7 @@
 
 #_(defn wrap-expr [env s]
     (case (:context env)
-      :expression (wrap-iife s)
+      :expr (wrap-iife s)
       :statement s
       :return s))
 
@@ -308,7 +308,7 @@
                    :cljs ::map) [expr env]
   (let [env* env
         env (dissoc env :jsx)
-        expr-env (assoc env :context :expression)
+        expr-env (assoc env :context :expr)
         key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
                          (str ns "/" (name k))
                          (name k)))
@@ -422,7 +422,7 @@
                                   :col-key :column
                                   :end-location false})
           compiler-env (ana-api/empty-state)]
-      (prn :expression expr (meta expr))
+      (prn :expr expr (meta expr))
       (binding [cljs.env/*compiler* compiler-env
                 ana/*cljs-ns* 'cljs.user]
         (let [analyzed (ana/analyze (ana/empty-env) expr)]
