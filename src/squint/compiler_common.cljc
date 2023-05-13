@@ -389,17 +389,14 @@
                        (str/split suffix #"\."))
         as (when as (munge as))
         expr (str
-              (when-not *repl*
-                (when (and as (= "default" p))
-                  (statement (format "import %s from '%s'" as libname))))
+              (when (and as (= "default" p))
+                (statement (format "import %s from '%s'" as libname)))
               (when (and (not as) (not p) (not refer))
                 ;; import presumably for side effects
                 (statement (format "import '%s'" libname)))
-              (when as
+              (when (and as (not= "default" p))
                 (swap! *imported-vars* update libname (fnil identity #{}))
-                (if (str/ends-with? libname "$default")
-                  (statement (format "import %s from '%s'" as (str/replace libname "$default" "")))
-                  (statement (format "import * as %s from '%s'" as libname))))
+                (statement (format "import * as %s from '%s'" as libname)))
               (when refer
                 (statement (format "import { %s } from '%s'"  (str/join ", " (map munge refer)) libname))))]
     (swap! (:imports env) str expr)

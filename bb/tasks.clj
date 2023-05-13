@@ -68,6 +68,6 @@
   (fs/create-dirs ".work")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
   (bump-core-vars)
-  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release squint")
+  (shell "npx shadow-cljs --config-merge .work/config-merge.edn compile squint")
   (shell "node lib/squint_tests.js")
   (node-repl-tests/run-tests {}))
