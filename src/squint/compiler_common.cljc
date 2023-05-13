@@ -389,9 +389,8 @@
                        (str/split suffix #"\."))
         as (when as (munge as))
         expr (str
-              (when-not *repl*
-                (when (and as (= "default" p))
-                  (statement (format "import %s from '%s'" as libname))))
+              (when (and as (= "default" p))
+                (statement (format "import %s from '%s'" as libname)))
               (when (and (not as) (not p) (not refer))
                 ;; import presumably for side effects
                 (statement (format "import '%s'" libname)))
