@@ -10,6 +10,10 @@
 
 (defn compile-files
   [opts files]
+  ;; shouldn't need this if :coerce worked in babashka.cli
+  (when-let [out-dir (:output-dir opts)]
+    (when-not (string? out-dir)
+      (throw (js/Error. "output-dir must be a string"))))
   (if (:help opts)
     (do (println "Usage: squint compile <files> <opts>")
         (println)
@@ -17,7 +21,8 @@
 
 --elide-imports: do not include imports
 --elide-exports: do not include exports
---extension: default extension for JS files"))
+--extension: default extension for JS files
+--output-dir: output directory for JS files"))
     (reduce (fn [prev f]
               (-> (js/Promise.resolve prev)
                   (.then
@@ -91,7 +96,8 @@ Options:
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
    {:cmds ["compile"]
     :coerce {:elide-exports :boolean
-             :elide-imports :boolean}
+             :elide-imports :boolean
+             :output-dir :string}
     :fn (fn [{:keys [rest-cmds opts]}]
           (compile-files opts rest-cmds))}
    {:cmds ["repl"]       :fn repl/repl}
