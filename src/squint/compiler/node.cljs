@@ -34,8 +34,8 @@
                                      fstr (slurp f)]
                                  {:source fstr}))
                     :classes {:allow :all
-                              'js js/globalThis}
-                    }))
+                              'js js/globalThis}}))
+                    
 
 (sci/alter-var-root sci/print-fn (constantly *print-fn*))
 (sci/alter-var-root sci/print-err-fn (constantly *print-err-fn*))
@@ -82,17 +82,31 @@
   (-> (js/Promise.resolve (scan-macros contents))
       (.then #(compiler/compile-string* contents opts))))
 
-(defn compile-file [{:keys [in-file in-str out-file extension] :as opts}]
+(defn compile-file [{:keys [in-file in-str out-file extension output-dir]
+                     :or {output-dir ""}
+                     :as opts}]
   (let [contents (or in-str (slurp in-file))]
     (-> (compile-string contents opts)
         (.then (fn [{:keys [javascript jsx] :as opts}]
-                 (let [out-file (or out-file
-                                    (str/replace in-file #".clj(s|c)$"
-                                                 (if jsx
-                                                   ".jsx"
-                                                   (or (when-let [ext extension]
-                                                         (str "." (str/replace ext #"^\." "")))
-                                                       ".mjs"))))]
+                 (let [output-dir (if (str/ends-with? output-dir "/")
+                                    output-dir
+                                    (str output-dir "/"))
+                       out-file (str
+                                 output-dir
+                                 (or out-file
+                                     (str/replace in-file #".clj(s|c)$"
+                                                  (if jsx
+                                                    ".jsx"
+                                                    (or (when-let [ext extension]
+                                                          (str "." (str/replace ext #"^\." "")))
+                                                        ".mjs")))))
+                       out-path (path/dirname out-file)]
+                   (when-not (fs/existsSync out-path)
+                     (fs/mkdirSync out-path #js {:recursive true}))
+                   (when-not (fs/existsSync out-path)
+                     (throw (js/Error. (str "File not found, make sure output-dir is a valid path: ")
+                                       {:output-dir output-dir
+                                        :out-file out-file})))
                    (spit out-file javascript)
                    (assoc opts :out-file out-file)))))))
 
