@@ -183,11 +183,6 @@
 #_(defmethod emit-special 'break [_type _env [_break]]
     (statement "break"))
 
-(derive #?(:clj clojure.lang.Cons :cljs Cons) ::list)
-(derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)
-(derive #?(:clj clojure.lang.LazySeq :cljs LazySeq) ::list)
-#?(:cljs (derive List ::list))
-
 (defn strip-core-symbol [sym]
   (let [sym-ns (namespace sym)]
     (if (and sym-ns
@@ -196,54 +191,56 @@
       (symbol (name sym))
       sym)))
 
-(defmethod emit ::list [expr env]
-  (escape-jsx
-   (let [env (dissoc env :jsx)]
-     (if (:quote env)
-       (do
-         (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
-         (format "list(%s)"
-                 (str/join ", " (emit-args env expr))))
-       (cond (symbol? (first expr))
-             (let [head* (first expr)
-                   head (strip-core-symbol head*)
-                   expr (if (not= head head*)
-                          (with-meta (cons head (rest expr))
-                            (meta expr))
-                          expr)
-                   head-str (str head)]
-               (cond
-                 (and (= (.charAt head-str 0) \.)
-                      (> (count head-str) 1)
-                      (not (= ".." head-str)))
-                 (emit-special '. env
-                               (list* '.
-                                      (second expr)
-                                      (symbol (subs head-str 1))
-                                      (nnext expr)))
-                 (contains? built-in-macros head)
-                 (let [macro (built-in-macros head)
-                       ;; fix for calling macro with more than 20 args
-                       #?@(:cljs [macro (or (.-afn ^js macro) macro)])
-                       new-expr (apply macro expr {} (rest expr))]
-                   (emit new-expr env))
-                 (and (> (count head-str) 1)
-                      (str/ends-with? head-str "."))
-                 (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
-                       env)
-                 (special-form? head) (emit-special head env expr)
-                 (infix-operator? head) (emit-infix head env expr)
-                 (prefix-unary? head) (emit-prefix-unary head expr)
-                 (suffix-unary? head) (emit-suffix-unary head expr)
-                 :else (emit-special 'funcall env expr)))
-             (keyword? (first expr))
-             (let [[k obj & args] expr]
-               (emit (list* 'get obj k args) env))
-             (list? expr)
-             (emit-special 'funcall env expr)
-             :else
-             (throw (new Exception (str "invalid form: " expr))))))
-   env))
+(defn emit-list [expr env]
+  (if-let [f (some-> env :emit ::list)]
+    (f expr env)
+    (escape-jsx
+     (let [env (dissoc env :jsx)]
+       (if (:quote env)
+         (do
+           (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
+           (format "list(%s)"
+                   (str/join ", " (emit-args env expr))))
+         (cond (symbol? (first expr))
+               (let [head* (first expr)
+                     head (strip-core-symbol head*)
+                     expr (if (not= head head*)
+                            (with-meta (cons head (rest expr))
+                              (meta expr))
+                            expr)
+                     head-str (str head)]
+                 (cond
+                   (and (= (.charAt head-str 0) \.)
+                        (> (count head-str) 1)
+                        (not (= ".." head-str)))
+                   (emit-special '. env
+                                 (list* '.
+                                        (second expr)
+                                        (symbol (subs head-str 1))
+                                        (nnext expr)))
+                   (contains? built-in-macros head)
+                   (let [macro (built-in-macros head)
+                         ;; fix for calling macro with more than 20 args
+                         #?@(:cljs [macro (or (.-afn ^js macro) macro)])
+                         new-expr (apply macro expr {} (rest expr))]
+                     (emit new-expr env))
+                   (and (> (count head-str) 1)
+                        (str/ends-with? head-str "."))
+                   (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
+                         env)
+                   (special-form? head) (emit-special head env expr)
+                   (infix-operator? head) (emit-infix head env expr)
+                   (prefix-unary? head) (emit-prefix-unary head expr)
+                   (suffix-unary? head) (emit-suffix-unary head expr)
+                   :else (emit-special 'funcall env expr)))
+               (keyword? (first expr))
+               (let [[k obj & args] expr]
+                 (emit (list* 'get obj k args) env))
+               (list? expr)
+               (emit-special 'funcall env expr)
+               :else
+               (throw (new Exception (str "invalid form: " expr))))))
+     env)))
 
 (derive #?(:bb (class (list))
            :clj clojure.lang.PersistentList$EmptyList
@@ -331,7 +328,8 @@
   ([f] (transpile-form f nil))
   ([f env]
    (emit f (merge {:context :statement
-                   :top-level true} env))))
+                   :top-level true
+                   :emit {::cc/list emit-list}} env))))
 
 (def ^:dynamic *jsx* false)
 

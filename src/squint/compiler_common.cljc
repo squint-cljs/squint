@@ -735,3 +735,11 @@ break;}" body)
   (emit (vec expr) env))
 
 (def special-forms '#{zero?})
+
+(derive #?(:clj clojure.lang.Cons :cljs Cons) ::list)
+(derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)
+(derive #?(:clj clojure.lang.LazySeq :cljs LazySeq) ::list)
+#?(:cljs (derive List ::list))
+
+(defmethod emit ::list [expr env]
+  ((-> env :emit ::list) expr env))
