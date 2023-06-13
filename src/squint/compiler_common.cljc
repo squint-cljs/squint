@@ -146,7 +146,8 @@
     (if (and (not (chainable-infix-operators (name operator))) (> acount 2))
       (emit (list 'cljs.core/and
                   (list operator (first args) (second args))
-                  (list* operator (rest args))))
+                  (list* operator (rest args)))
+            env)
       (-> (if (and (= '- operator)
                    (= 1 acount))
             (str "-" (emit (first args) env))
