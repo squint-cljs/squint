@@ -41,8 +41,7 @@
                          'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
-                         'require
-                         ]))
+                         'require]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -114,7 +113,7 @@
   (emit-return (emit form (expr-env (assoc env :quote true))) env))
 
 #_(defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
-  (emit-let enc-env bindings body false))
+    (emit-let enc-env bindings body false))
 
 (defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
   (let [fields (map munge fields)]
@@ -147,7 +146,7 @@
                                                (assoc :type true)))))))
 
 #_(defn wrap-await [s]
-  (format "(%s)" (str "await " s)))
+    (format "(%s)" (str "await " s)))
 
 (defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let bindings more) env)
@@ -276,21 +275,17 @@
                      tag-name)
           tag-name (emit tag-name (expr-env (dissoc env :jsx)))]
       (emit-return (format "<%s%s>%s</%s>"
-                         tag-name
-                         (jsx-attrs attrs env)
-                         (let [env (expr-env env)]
-                           (str/join " " (map #(emit % env) elts)))
-                         tag-name)
-                 env))
-    (->  (emit-return (format "[%s]"
-                            (str/join ", " (emit-args env expr))) env)
-         (emit-repl env))))
+                           tag-name
+                           (jsx-attrs attrs env)
+                           (let [env (expr-env env)]
+                             (str/join " " (map #(emit % env) elts)))
+                           tag-name)
+                   env))
+    (-> (emit-return (format "[%s]"
+                             (str/join ", " (emit-args env expr))) env)
+        (emit-repl env))))
 
-#?(:cljs (derive PersistentArrayMap ::map))
-#?(:cljs (derive PersistentHashMap ::map))
-
-(defmethod emit #?(:clj clojure.lang.IPersistentMap
-                   :cljs ::map) [expr env]
+(defn emit-map [expr env]
   (let [env* env
         env (dissoc env :jsx)
         expr-env (assoc env :context :expr)
@@ -318,7 +313,8 @@
    (emit f (merge {:context :statement
                    :top-level true
                    :emit {::cc/list emit-list
-                          ::cc/vector emit-vector}} env))))
+                          ::cc/vector emit-vector
+                          ::cc/map emit-map}} env))))
 
 (def ^:dynamic *jsx* false)
 
@@ -384,9 +380,8 @@
                          (str
                           (when-let [vars (disj @public-vars "default$")]
                             (when (seq vars)
-                             (str (format "\nexport { %s }\n"
-                                           (str/join ", " vars)))
-                              ))
+                              (str (format "\nexport { %s }\n"
+                                           (str/join ", " vars)))))
                           (when (contains? @public-vars "default$")
                             "export default default$\n")))]
            {:imports imports

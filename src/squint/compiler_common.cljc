@@ -759,3 +759,10 @@ break;}" body)
 (defmethod emit #?(:clj clojure.lang.IPersistentVector
                    :cljs ::vector) [expr env]
   ((-> env :emit ::vector) expr env))
+
+#?(:cljs (derive PersistentArrayMap ::map))
+#?(:cljs (derive PersistentHashMap ::map))
+
+(defmethod emit #?(:clj clojure.lang.IPersistentMap
+                   :cljs ::map) [expr env]
+  ((-> env :emit ::map) expr env))
