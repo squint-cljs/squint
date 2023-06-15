@@ -753,3 +753,9 @@ break;}" body)
   ;; NOTE: we can later optimize this to a constant, but (.-EMPTY List) is prone
   ;; to advanced optimization
   (emit '(list) env))
+
+#?(:cljs (derive PersistentVector ::vector))
+
+(defmethod emit #?(:clj clojure.lang.IPersistentVector
+                   :cljs ::vector) [expr env]
+  ((-> env :emit ::vector) expr env))

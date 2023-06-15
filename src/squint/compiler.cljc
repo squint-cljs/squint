@@ -242,8 +242,6 @@
                (throw (new Exception (str "invalid form: " expr))))))
      env)))
 
-#?(:cljs (derive PersistentVector ::vector))
-
 #_(defn wrap-expr [env s]
     (case (:context env)
       :expr (wrap-iife s)
@@ -262,8 +260,7 @@
                           v)))
       "")))
 
-(defmethod emit #?(:clj clojure.lang.IPersistentVector
-                   :cljs ::vector) [expr env]
+(defn emit-vector [expr env]
   (if (and (:jsx env)
            (let [f (first expr)]
              (or (keyword? f)
@@ -320,7 +317,8 @@
   ([f env]
    (emit f (merge {:context :statement
                    :top-level true
-                   :emit {::cc/list emit-list}} env))))
+                   :emit {::cc/list emit-list
+                          ::cc/vector emit-vector}} env))))
 
 (def ^:dynamic *jsx* false)
 
