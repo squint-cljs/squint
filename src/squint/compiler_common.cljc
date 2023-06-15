@@ -744,3 +744,12 @@ break;}" body)
 
 (defmethod emit ::list [expr env]
   ((-> env :emit ::list) expr env))
+
+(derive #?(:bb (class (list))
+           :clj clojure.lang.PersistentList$EmptyList
+           :cljs EmptyList) ::empty-list)
+
+(defmethod emit ::empty-list [_expr env]
+  ;; NOTE: we can later optimize this to a constant, but (.-EMPTY List) is prone
+  ;; to advanced optimization
+  (emit '(list) env))
