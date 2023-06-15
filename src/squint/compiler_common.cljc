@@ -765,4 +765,10 @@ break;}" body)
 
 (defmethod emit #?(:clj clojure.lang.IPersistentMap
                    :cljs ::map) [expr env]
-  ((-> env :emit ::map) expr env))
+  (let [f (-> env :emit ::map)]
+    (f expr env)))
+
+(defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword)
+  [expr env]
+  (let [f (-> env :emit ::keyword)]
+    (f expr env)))

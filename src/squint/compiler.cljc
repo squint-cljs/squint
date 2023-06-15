@@ -27,7 +27,7 @@
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 
-(defmethod emit #?(:clj clojure.lang.Keyword :cljs Keyword) [expr env]
+(defn emit-keyword [expr env]
   (-> (emit-return (str (pr-str (subs (str expr) 1))) env)
       (emit-repl env)))
 
@@ -314,7 +314,8 @@
                    :top-level true
                    :emit {::cc/list emit-list
                           ::cc/vector emit-vector
-                          ::cc/map emit-map}} env))))
+                          ::cc/map emit-map
+                          ::cc/keyword emit-keyword}} env))))
 
 (def ^:dynamic *jsx* false)
 
