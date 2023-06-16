@@ -299,9 +299,7 @@
                     (emit-return env))
                 env*)))
 
-(defmethod emit #?(:clj clojure.lang.PersistentHashSet
-                   :cljs PersistentHashSet)
-  [expr env]
+(defn emit-set [expr env]
   (emit-return
    (format "new Set([%s])"
            (str/join ", " (emit-args (expr-env env) expr)))
@@ -315,7 +313,8 @@
                    :emit {::cc/list emit-list
                           ::cc/vector emit-vector
                           ::cc/map emit-map
-                          ::cc/keyword emit-keyword}} env))))
+                          ::cc/keyword emit-keyword
+                          ::cc/set emit-set}} env))))
 
 (def ^:dynamic *jsx* false)
 

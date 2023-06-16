@@ -772,3 +772,9 @@ break;}" body)
   [expr env]
   (let [f (-> env :emit ::keyword)]
     (f expr env)))
+
+(defmethod emit #?(:clj clojure.lang.PersistentHashSet
+                   :cljs PersistentHashSet)
+  [expr env]
+  (let [f (-> env :emit ::set)]
+    (f expr env)))
