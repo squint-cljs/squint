@@ -15,8 +15,8 @@
    [edamame.core :as e]
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
-                                          *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars* *repl*
-                                          comma-list emit emit-args emit-infix emit-repl emit-special emit-return escape-jsx
+                                          *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
+                                          comma-list emit emit-args emit-infix emit-repl emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? statement suffix-unary?]]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
@@ -99,6 +99,8 @@
 
 (defn emit-suffix-unary [_type [operator arg]]
   (str (emit arg) operator))
+
+(defmulti emit-special (fn [disp _env & _args] disp))
 
 (defmethod emit-special 'not [_ env [_ form]]
   (emit-return (str "!" (emit form (expr-env env))) env))
@@ -209,7 +211,7 @@
                    (and (= (.charAt head-str 0) \.)
                         (> (count head-str) 1)
                         (not (= ".." head-str)))
-                   (emit-special '. env
+                   (cc/emit-special '. env
                                  (list* '.
                                         (second expr)
                                         (symbol (subs head-str 1))
@@ -224,16 +226,16 @@
                         (str/ends-with? head-str "."))
                    (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
                          env)
-                   (special-form? head) (emit-special head env expr)
+                   (special-form? head) (cc/emit-special head env expr)
                    (infix-operator? head) (emit-infix head env expr)
                    (prefix-unary? head) (emit-prefix-unary head expr)
                    (suffix-unary? head) (emit-suffix-unary head expr)
-                   :else (emit-special 'funcall env expr)))
+                   :else (cc/emit-special 'funcall env expr)))
                (keyword? (first expr))
                (let [[k obj & args] expr]
                  (emit (list* 'get obj k args) env))
                (list? expr)
-               (emit-special 'funcall env expr)
+               (cc/emit-special 'funcall env expr)
                :else
                (throw (new Exception (str "invalid form: " expr))))))
      env)))
@@ -311,7 +313,8 @@
                           ::cc/vector emit-vector
                           ::cc/map emit-map
                           ::cc/keyword emit-keyword
-                          ::cc/set emit-set}} env))))
+                          ::cc/set emit-set
+                          ::cc/special emit-special}} env))))
 
 (def ^:dynamic *jsx* false)
 

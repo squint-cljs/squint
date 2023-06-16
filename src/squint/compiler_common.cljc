@@ -781,3 +781,7 @@ break;}" body)
 
 (defmethod emit-special 'quote [_ env [_ form]]
   (emit-return (emit form (expr-env (assoc env :quote true))) env))
+
+(defmethod emit-special :default [sym env expr]
+  (let [f (-> env :emit ::special)]
+    (f sym env expr)))
