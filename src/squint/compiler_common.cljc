@@ -778,3 +778,6 @@ break;}" body)
   [expr env]
   (let [f (-> env :emit ::set)]
     (f expr env)))
+
+(defmethod emit-special 'quote [_ env [_ form]]
+  (emit-return (emit form (expr-env (assoc env :quote true))) env))

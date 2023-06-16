@@ -100,9 +100,6 @@
 (defn emit-suffix-unary [_type [operator arg]]
   (str (emit arg) operator))
 
-(defmethod emit-special 'quote [_ env [_ form]]
-  (emit-return (emit form (expr-env (assoc env :quote true))) env))
-
 (defmethod emit-special 'not [_ env [_ form]]
   (emit-return (str "!" (emit form (expr-env env))) env))
 
