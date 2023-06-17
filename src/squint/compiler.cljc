@@ -87,7 +87,6 @@
 (def core-config {:vars (edn-resource "squint/core.edn")})
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
-(reset! cc/core-vars core-vars)
 
 (defn special-form? [expr]
   (or
@@ -212,10 +211,10 @@
                         (> (count head-str) 1)
                         (not (= ".." head-str)))
                    (cc/emit-special '. env
-                                 (list* '.
-                                        (second expr)
-                                        (symbol (subs head-str 1))
-                                        (nnext expr)))
+                                    (list* '.
+                                           (second expr)
+                                           (symbol (subs head-str 1))
+                                           (nnext expr)))
                    (contains? built-in-macros head)
                    (let [macro (built-in-macros head)
                          ;; fix for calling macro with more than 20 args
@@ -309,6 +308,7 @@
   ([f env]
    (emit f (merge {:context :statement
                    :top-level true
+                   :core-vars core-vars
                    :emit {::cc/list emit-list
                           ::cc/vector emit-vector
                           ::cc/map emit-map

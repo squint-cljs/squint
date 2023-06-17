@@ -165,7 +165,7 @@
 
 (defn maybe-core-var [sym env]
   (let [m (munge sym)]
-    (when (and (contains? @core-vars m)
+    (when (and (contains? (:core-vars env) m)
                (not (contains? @*excluded-core-vars* m)))
       (swap! *imported-vars* update *core-package* (fnil conj #{}) m)
       (str
