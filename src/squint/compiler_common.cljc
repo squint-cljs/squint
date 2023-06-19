@@ -154,7 +154,8 @@
             (-> (let [substitutions {'= "===" == "===" '!= "!=="
                                      'not= "!=="
                                      '+ "+"}]
-                  (str "(" (str/join (str " " (or (substitutions operator) operator) " ")
+                  (str "(" (str/join (str " " (or (substitutions operator)
+                                                  operator) " ")
                                      (emit-args env args)) ")"))
                 (emit-return enc-env)))
           (emit-repl enc-env)))))

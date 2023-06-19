@@ -196,7 +196,10 @@
        (if (:quote env)
          (do
            (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
-           (format "list(%s)"
+           (format "%slist(%s)"
+                   (if-let [ca (:core-alias env)]
+                     (str ca ".")
+                     "")
                    (str/join ", " (emit-args env expr))))
          (cond (symbol? (first expr))
                (let [head* (first expr)
@@ -205,7 +208,13 @@
                             (with-meta (cons head (rest expr))
                               (meta expr))
                             expr)
-                     head-str (str head)]
+                     head-str (str head)
+                     macro (when (symbol? head)
+                             (or (built-in-macros head)
+                                 (let [ns (namespace head)
+                                       nm (name head)]
+                                   (when (and ns nm)
+                                     (some-> env :macros (get (symbol ns)) (get (symbol nm)))))))]
                  (cond
                    (and (= (.charAt head-str 0) \.)
                         (> (count head-str) 1)
@@ -215,9 +224,8 @@
                                            (second expr)
                                            (symbol (subs head-str 1))
                                            (nnext expr)))
-                   (contains? built-in-macros head)
-                   (let [macro (built-in-macros head)
-                         ;; fix for calling macro with more than 20 args
+                   macro
+                   (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
                          new-expr (apply macro expr {} (rest expr))]
                      (emit new-expr env))
