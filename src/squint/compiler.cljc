@@ -234,7 +234,7 @@
                    (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
                          env)
                    (special-form? head) (cc/emit-special head env expr)
-                   (infix-operator? head) (emit-infix head env expr)
+                   (infix-operator? env head) (emit-infix head env expr)
                    (prefix-unary? head) (emit-prefix-unary head expr)
                    (suffix-unary? head) (emit-suffix-unary head expr)
                    :else (cc/emit-special 'funcall env expr)))

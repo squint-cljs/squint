@@ -127,8 +127,10 @@
 
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||"})
 
-(defn infix-operator? [expr]
-  (contains? infix-operators (name expr)))
+(defn infix-operator? [env expr]
+  (contains? (or (:infix-operators env)
+                 infix-operators)
+             (name expr)))
 
 (defn prefix-unary? [expr]
   (contains? prefix-unary-operators expr))
