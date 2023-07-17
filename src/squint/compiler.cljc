@@ -215,29 +215,29 @@
                                        nm (name head)]
                                    (when (and ns nm)
                                      (some-> env :macros (get (symbol ns)) (get (symbol nm)))))))]
-                 (cond
-                   (and (= (.charAt head-str 0) \.)
-                        (> (count head-str) 1)
-                        (not (= ".." head-str)))
-                   (cc/emit-special '. env
-                                    (list* '.
-                                           (second expr)
-                                           (symbol (subs head-str 1))
-                                           (nnext expr)))
-                   macro
+                 (if macro
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
                          new-expr (apply macro expr {} (rest expr))]
                      (emit new-expr env))
-                   (and (> (count head-str) 1)
-                        (str/ends-with? head-str "."))
-                   (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
-                         env)
-                   (special-form? head) (cc/emit-special head env expr)
-                   (infix-operator? env head) (emit-infix head env expr)
-                   (prefix-unary? head) (emit-prefix-unary head expr)
-                   (suffix-unary? head) (emit-suffix-unary head expr)
-                   :else (cc/emit-special 'funcall env expr)))
+                   (cond
+                     (and (= (.charAt head-str 0) \.)
+                          (> (count head-str) 1)
+                          (not (= ".." head-str)))
+                     (cc/emit-special '. env
+                                      (list* '.
+                                             (second expr)
+                                             (symbol (subs head-str 1))
+                                             (nnext expr)))
+                     (and (> (count head-str) 1)
+                          (str/ends-with? head-str "."))
+                     (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
+                           env)
+                     (special-form? head) (cc/emit-special head env expr)
+                     (infix-operator? env head) (emit-infix head env expr)
+                     (prefix-unary? head) (emit-prefix-unary head expr)
+                     (suffix-unary? head) (emit-suffix-unary head expr)
+                     :else (cc/emit-special 'funcall env expr))))
                (keyword? (first expr))
                (let [[k obj & args] expr]
                  (emit (list* 'get obj k args) env))
