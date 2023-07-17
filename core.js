@@ -1150,3 +1150,7 @@ export function js_obj(...args) {
   }
   return ret;
 }
+
+export function alength(arr) {
+  return arr.length;
+}
