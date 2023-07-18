@@ -453,11 +453,12 @@ class LazyIterable {
   constructor(gen) {
     this.gen = gen;
   }
-  [IIterable] = true;
   [Symbol.iterator]() {
     return this.gen();
   }
 }
+
+LazyIterable.prototype[IIterable] = true; // Closure compatibility
 
 export function lazy(f) {
   return new LazyIterable(f);
@@ -1153,4 +1154,9 @@ export function js_obj(...args) {
 
 export function alength(arr) {
   return arr.length;
+}
+
+export function aset(arr, idx, val) {
+  arr[idx] = val;
+  return val;
 }

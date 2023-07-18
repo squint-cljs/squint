@@ -9,6 +9,7 @@
   alength
   apply
   array_QMARK_
+  aset
   assoc
   assoc_BANG_
   assoc_in
