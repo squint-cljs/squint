@@ -5,6 +5,7 @@
   "version": "0.0.12",
   "files": [
     "core.js",
+    "src/squint/core.js",
     "string.js",
     "lib",
     "node_cli.js",
