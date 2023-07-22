@@ -24,7 +24,7 @@
    [squint.internal.loop :as loop]
    [squint.internal.macros :as macros]
    [squint.internal.protocols :as protocols]
-   [squint.internet.macros.defclass :as defclass])
+   [squint.internal.macros.defclass :as defclass])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 
