@@ -23,7 +23,8 @@
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
    [squint.internal.loop :as loop]
    [squint.internal.macros :as macros]
-   [squint.internal.protocols :as protocols])
+   [squint.internal.protocols :as protocols]
+   [squint.internet.macros.defclass :as defclass])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 
@@ -41,7 +42,7 @@
                          'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
-                         'require]))
+                         'require 'defclass*]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -82,7 +83,8 @@
                       'instance? macros/core-instance?
                       'time macros/core-time
                       'declare macros/core-declare
-                      'letfn macros/core-letfn})
+                      'letfn macros/core-letfn
+                      'defclass defclass/defclass})
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 
