@@ -145,6 +145,9 @@
                                                                 fields)))))
                                                (assoc :type true)))))))
 
+(defmethod emit-special 'defclass* [_ env form]
+  (defclass/emit-class env emit form))
+
 #_(defn wrap-await [s]
     (format "(%s)" (str "await " s)))
 
