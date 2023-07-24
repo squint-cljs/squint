@@ -1,5 +1,6 @@
 (ns squint.internal.macros.defclass
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [clojure.walk :as walk]))
 
 (defn defclass [_ _ & body]
   `(~'defclass* ~@body))
@@ -76,10 +77,48 @@
         (throw (ex-info "invalid defclass form" {:form head}))
         ))))
 
+
+(defn find-and-replace-super-call [form]
+  (let [res
+        (walk/prewalk
+         (fn [form]
+           (if-not (and (list? form) (= 'super (first form)))
+             form
+             `(super* ~@(rest form))))
+         form)]
+    (if (not= form res)
+      res
+      ;; if super call was not found, add it first
+      (cons `(super*) form))))
+
+(defn emit-super
+  [env emit-fn form]
+  "super()")
+
 (defn emit-class
   [env emit-fn form]
   (let [{:keys [classname extends extend constructor]} (parse-class (rest form))
-        [_ ctor-args & ctor-body] constructor]
+        [_ ctor-args & ctor-body] constructor
+        _ (assert (pos? (count ctor-args)) "contructor requires at least one argument name for this")
+
+        [this-sym & ctor-args] ctor-args
+        _ (assert (symbol? this-sym) "can't destructure first constructur argument")
+        ctor-body
+        (find-and-replace-super-call ctor-body)
+        arg-syms (vec (take (count ctor-args) (repeatedly gensym)))
+        #_#_ctor-locals
+        (reduce-kv
+         (fn [locals idx fld]
+           ;; FIXME: what should fn args locals look like?
+           (assoc locals fld {:name fld}))
+         ;; pretty sure thats wrong but works in our favor
+         ;; since accessing this before super() is invalid
+         ;; and this kinda ensures that
+         (assoc locals this-sym {:name (symbol "self__")
+                                 :tag classname})
+         arg-syms)
+]
+    
     (str
      "class "
      (emit-fn classname env)
@@ -89,7 +128,7 @@
      (str " {\n")
 
      (str "  constructor(" (str/join ", " ctor-args) ") {\n")
-     (str ctor-body)
+     (str (emit-fn ctor-body env))
      (str "  }\n")
      (str "};\n")
      (when extend

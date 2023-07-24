@@ -42,7 +42,7 @@
                          'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
-                         'require 'defclass*]))
+                         'require 'defclass* 'squint.internal.macros.defclass/super*]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -148,6 +148,10 @@
 (defmethod emit-special 'defclass* [_ env form]
   (defclass/emit-class env emit form))
 
+(defmethod emit-special 'squint.internal.macros.defclass/super* [_ env form]
+  (prn :yuuuuu)
+  (defclass/emit-super env emit form))
+
 #_(defn wrap-await [s]
     (format "(%s)" (str "await " s)))
 
@@ -238,7 +242,9 @@
                           (str/ends-with? head-str "."))
                      (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
                            env)
-                     (special-form? head) (cc/emit-special head env expr)
+                     (do
+                       (prn :head head)
+                       (special-form? head)) (cc/emit-special head env expr)
                      (infix-operator? env head) (emit-infix head env expr)
                      (prefix-unary? head) (emit-prefix-unary head expr)
                      (suffix-unary? head) (emit-suffix-unary head expr)
