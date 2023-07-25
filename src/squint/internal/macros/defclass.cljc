@@ -4,7 +4,7 @@
 
 ;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
 ;; https://clojureverse.org/t/modern-js-with-cljs-class-and-template-literals/7450
-;; 
+;; https://github.com/thheller/shadow-cljs/blob/51b15dd52c74f1c504010f00cb84372bc2696a4d/src/main/shadow/cljs/modern.cljc#L19
 ;; https://github.com/thheller/shadow-cljs/blob/51b15dd52c74f1c504010f00cb84372bc2696a4d/src/repl/shadow/cljs/modern_test.clj#L2
 
 (defn defclass [_ _ & body]
@@ -112,12 +112,12 @@
         super? (some? extends)
         ctor-body
         (find-and-replace-super-call ctor-body super?)
-        arg-syms (vec (take (count ctor-args) (repeatedly gensym)))
+        #_#_arg-syms (vec (take (count ctor-args) (repeatedly gensym)))
         field-syms (map :field-name fields)
         locals (reduce
                 (fn [m fld]
                   (assoc m fld
-                         (munge (gensym fld))))
+                         (symbol (str "self__." fld))))
                 {classname (munge (gensym classname))}
                 field-syms)
         ctor-locals
@@ -128,8 +128,8 @@
          ;; pretty sure thats wrong but works in our favor
          ;; since accessing this before super() is invalid
          ;; and this kinda ensures that
-         (assoc locals this-sym (munge (gensym this-sym)))
-         arg-syms)
+         (assoc locals this-sym "__self")
+         {})
         ctor-env (update env :var->ident merge ctor-locals)]
 
     (str
@@ -141,6 +141,7 @@
      (str " {\n")
 
      (str "  constructor(" (str/join ", " ctor-args) ") {\n")
+     (str "const self__ = this;\n")
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-env)))
      (str "  }\n")
      (str "};\n")
