@@ -242,9 +242,7 @@
                           (str/ends-with? head-str "."))
                      (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
                            env)
-                     (do
-                       (prn :head head)
-                       (special-form? head)) (cc/emit-special head env expr)
+                     (special-form? head) (cc/emit-special head env expr)
                      (infix-operator? env head) (emit-infix head env expr)
                      (prefix-unary? head) (emit-prefix-unary head expr)
                      (suffix-unary? head) (emit-suffix-unary head expr)

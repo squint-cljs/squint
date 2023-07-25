@@ -2,6 +2,11 @@
   (:require [clojure.string :as str]
             [clojure.walk :as walk]))
 
+;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
+;; https://clojureverse.org/t/modern-js-with-cljs-class-and-template-literals/7450
+;; 
+;; https://github.com/thheller/shadow-cljs/blob/51b15dd52c74f1c504010f00cb84372bc2696a4d/src/repl/shadow/cljs/modern_test.clj#L2
+
 (defn defclass [_ _ & body]
   `(~'defclass* ~@body))
 
@@ -78,7 +83,7 @@
         ))))
 
 
-(defn find-and-replace-super-call [form]
+(defn find-and-replace-super-call [form super?]
   (let [res
         (walk/prewalk
          (fn [form]
@@ -89,7 +94,8 @@
     (if (not= form res)
       res
       ;; if super call was not found, add it first
-      (cons `(super*) form))))
+      (if super? (cons `(super*) form)
+          form))))
 
 (defn emit-super
   [env emit-fn form]
@@ -97,28 +103,35 @@
 
 (defn emit-class
   [env emit-fn form]
-  (let [{:keys [classname extends extend constructor]} (parse-class (rest form))
+  (let [{:keys [classname extends extend constructor fields]} (parse-class (rest form))
         [_ ctor-args & ctor-body] constructor
         _ (assert (pos? (count ctor-args)) "contructor requires at least one argument name for this")
 
         [this-sym & ctor-args] ctor-args
         _ (assert (symbol? this-sym) "can't destructure first constructur argument")
+        super? (some? extends)
         ctor-body
-        (find-and-replace-super-call ctor-body)
+        (find-and-replace-super-call ctor-body super?)
         arg-syms (vec (take (count ctor-args) (repeatedly gensym)))
-        #_#_ctor-locals
+        field-syms (map :field-name fields)
+        locals (reduce
+                (fn [m fld]
+                  (assoc m fld
+                         (munge (gensym fld))))
+                {classname (munge (gensym classname))}
+                field-syms)
+        ctor-locals
         (reduce-kv
-         (fn [locals idx fld]
+         (fn [locals _idx fld]
            ;; FIXME: what should fn args locals look like?
-           (assoc locals fld {:name fld}))
+           (assoc locals fld (munge (gensym fld))))
          ;; pretty sure thats wrong but works in our favor
          ;; since accessing this before super() is invalid
          ;; and this kinda ensures that
-         (assoc locals this-sym {:name (symbol "self__")
-                                 :tag classname})
+         (assoc locals this-sym (munge (gensym this-sym)))
          arg-syms)
-]
-    
+        ctor-env (update env :var->ident merge ctor-locals)]
+
     (str
      "class "
      (emit-fn classname env)
@@ -128,7 +141,7 @@
      (str " {\n")
 
      (str "  constructor(" (str/join ", " ctor-args) ") {\n")
-     (str (emit-fn ctor-body env))
+     (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-env)))
      (str "  }\n")
      (str "};\n")
      (when extend
