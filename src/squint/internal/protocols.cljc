@@ -1,5 +1,6 @@
 (ns squint.internal.protocols
-  (:require [clojure.core :as core]))
+  (:require [clojure.core :as core]
+            [clojure.string :as str]))
 
 (core/defn- emit-protocol-method-arity
   [method-sym args]
@@ -42,6 +43,7 @@
              (drop-while seq? (next s)))
       ret)))
 
+;; https://github.com/clojure/clojurescript/blob/6aefc7354c3f7033d389634595d912f618c2abfc/src/main/clojure/cljs/core.cljc#L1303
 (def ^:private js-type-sym->type
   '{object js/Object
     string js/String
@@ -58,9 +60,15 @@
         msym (symbol (str psym "_" mname))
         margs (second method)
         mbody (drop 2 method)]
-    `(let [f# (fn ~margs ~@mbody)]
-       (unchecked-set
-        (.-prototype ~type-sym) ~msym f#))))
+    (if (= 'Object psym)
+      (do
+        (prn :objection!!!)
+        `(let [f# (fn ~margs ~@mbody)]
+             (unchecked-set
+              (.-prototype ~type-sym) f#)))
+      `(let [f# (fn ~margs ~@mbody)]
+         (unchecked-set
+          (.-prototype ~type-sym) ~msym f#)))))
 
 (core/defn- emit-type-methods
   [type-sym [psym pmethods]]

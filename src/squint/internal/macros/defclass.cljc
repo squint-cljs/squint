@@ -103,7 +103,8 @@
 
 (defn emit-class
   [env emit-fn form]
-  (let [{:keys [classname extends extend constructor fields]} (parse-class (rest form))
+  (let [{:keys [classname extends extend constructor fields protocols] :as all} (parse-class (rest form))
+        _ (prn :all all)
         [_ ctor-args & ctor-body] constructor
         _ (assert (pos? (count ctor-args)) "contructor requires at least one argument name for this")
 
@@ -130,8 +131,12 @@
          ;; and this kinda ensures that
          (assoc locals this-sym "__self")
          {})
-        ctor-env (update env :var->ident merge ctor-locals)]
-
+        ctor-env (update env :var->ident merge ctor-locals)
+        extend-form
+        `(cljs.core/extend-type ~classname
+           ~@(->> (for [{:keys [protocol-name protocol-fns]} protocols]
+                    (into [protocol-name] protocol-fns))
+               (mapcat identity)))]
     (str
      "class "
      (emit-fn classname env)
@@ -145,6 +150,7 @@
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-env)))
      (str "  }\n")
      (str "};\n")
+     (str (emit-fn extend-form env))
      (when extend
        (str extend)))))
 
