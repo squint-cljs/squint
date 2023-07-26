@@ -56,19 +56,16 @@
 
 (core/defn- emit-type-method
   [psym type-sym method]
+  (prn :psym psym :type-sym type-sym :method method)
   (let [mname (first method)
-        msym (symbol (str psym "_" mname))
+        msym (if (= 'Object psym)
+               (str mname)
+               (symbol (str psym "_" mname)))
         margs (second method)
         mbody (drop 2 method)]
-    (if (= 'Object psym)
-      (do
-        (prn :objection!!!)
-        `(let [f# (fn ~margs ~@mbody)]
-             (unchecked-set
-              (.-prototype ~type-sym) f#)))
-      `(let [f# (fn ~margs ~@mbody)]
-         (unchecked-set
-          (.-prototype ~type-sym) ~msym f#)))))
+    `(let [f# (fn ~margs ~@mbody)]
+       (unchecked-set
+        (.-prototype ~type-sym) ~msym f#))))
 
 (core/defn- emit-type-methods
   [type-sym [psym pmethods]]
