@@ -99,7 +99,9 @@
 
 (defn emit-super
   [env emit-fn form]
-  "super()")
+  (str "super();\n"
+       (str "const self__ = this;\n"))
+  )
 
 (defn emit-class
   [env emit-fn form]
@@ -144,10 +146,7 @@
        (str " extends "
             (emit-fn extends env)))
      (str " {\n")
-
      (str "  constructor(" (str/join ", " ctor-args) ") {\n")
-     (str "const self__ = this;\n")
-     
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-env)))
      (str "  }\n")
      (str "};\n")
@@ -155,4 +154,6 @@
      (when extend
        (str extend)))))
 
-
+;; TODO: super must occur before anything else
+;; TODO: field defaults
+;; TODO: fix super with arguments
