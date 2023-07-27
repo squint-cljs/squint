@@ -23,7 +23,7 @@
         ~@(map #(emit-protocol-method-arity method-sym %) margs)))))
 
 (core/defn core-defprotocol
-  [&env _&form p & doc+methods]
+  [_&env _&form p & doc+methods]
   (core/let [[doc-and-opts methods] [(core/take-while #(not (list? %))
                                                       doc+methods)
                                      (core/drop-while #(not (list? %))

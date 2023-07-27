@@ -115,22 +115,22 @@
         (find-and-replace-super-call ctor-body super?)
         #_#_arg-syms (vec (take (count ctor-args) (repeatedly gensym)))
         field-syms (map :field-name fields)
-        locals (reduce
+        field-locals (reduce
                 (fn [m fld]
                   (assoc m fld
                          (symbol (str "self__." fld))))
-                {classname (munge (gensym classname))}
+                {}
                 field-syms)
         ctor-locals
         (reduce-kv
          (fn [locals _idx fld]
            ;; FIXME: what should fn args locals look like?
-           (assoc locals fld (munge (gensym fld))))
+           (assoc locals fld (symbol (str "self__." fld))))
          ;; pretty sure thats wrong but works in our favor
          ;; since accessing this before super() is invalid
          ;; and this kinda ensures that
-         (assoc locals this-sym "__self")
-         {})
+         (assoc field-locals this-sym "__self")
+         field-locals)
         ctor-env (update env :var->ident merge ctor-locals)
         extend-form
         `(cljs.core/extend-type ~classname
@@ -150,7 +150,7 @@
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-env)))
      (str "  }\n")
      (str "};\n")
-     (str (emit-fn extend-form env))
+     (str (emit-fn extend-form ctor-env))
      (when extend
        (str extend)))))
 
