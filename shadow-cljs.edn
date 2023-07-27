@@ -8,28 +8,7 @@
    :runtime :node
    :output-dir "lib"
    :modules
-   ;; note: this is overriden in bb build-squint
-   {:cljs_core {:exports {assoc cljs.core/assoc
-                          map cljs.core/map
-                          str cljs.core/str
-                          keyword cljs.core/keyword
-                          symbol cljs.core/symbol
-                          vector cljs.core/vector
-                          toJs cljs.core/clj->js
-                          toCljs cljs.core/js->clj
-                          dissoc cljs.core/dissoc
-                          conj cljs.core/conj
-                          get cljs.core/get
-                          arrayMap cljs.core/array-map
-                          hashMap cljs.core/hash-map
-                          first cljs.core/first
-                          rest cljs.core/rest
-                          next cljs.core/next
-                          nth cljs.core/nth
-                          seq cljs.core/seq
-                          goog_typeOf goog/typeOf}}
-    :compiler {:depends-on #{:cljs_core}
-               :exports
+   {:compiler {:exports
                {compileString squint.compiler/compile-string}}
     :compiler.node {:depends-on #{:compiler}
                     :exports
