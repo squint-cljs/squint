@@ -129,7 +129,7 @@
          ;; pretty sure thats wrong but works in our favor
          ;; since accessing this before super() is invalid
          ;; and this kinda ensures that
-         (assoc field-locals this-sym "__self")
+         (assoc field-locals this-sym "self__")
          field-locals)
         ctor-env (update env :var->ident merge ctor-locals)
         extend-form
@@ -147,6 +147,7 @@
 
      (str "  constructor(" (str/join ", " ctor-args) ") {\n")
      (str "const self__ = this;\n")
+     
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-env)))
      (str "  }\n")
      (str "};\n")

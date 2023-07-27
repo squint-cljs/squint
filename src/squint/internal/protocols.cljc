@@ -62,8 +62,11 @@
                (str mname)
                (symbol (str psym "_" mname)))
         margs (second method)
-        mbody (drop 2 method)]
-    `(let [f# (fn ~margs ~@mbody)]
+        mbody (drop 2 method)
+        this-arg (first margs)]
+    `(let [f# (fn ~margs
+                (~'js* "~{} = this; const self__ = this;" ~this-arg)
+                ~@mbody)]
        (unchecked-set
         (.-prototype ~type-sym) ~msym f#))))
 
