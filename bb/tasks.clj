@@ -13,18 +13,6 @@
       (str s "$")
       s)))
 
-(defn shadow-extra-config
-  []
-  (let [core-config (edn/read-string (slurp (io/resource "squint/cljs.core.edn")))
-        reserved (edn/read-string (slurp (io/resource "squint/js_reserved.edn")))
-        vars (:vars core-config)
-        ks (map #(symbol (munge* % reserved)) vars)
-        vs (map #(symbol "cljs.core" (str %)) vars)
-        core-map (zipmap ks vs)
-        core-map (assoc core-map 'goog_typeOf 'goog/typeOf)]
-    {:modules
-     {:cljs_core {:exports core-map}}}))
-
 (def test-config
   '{:compiler-options {:load-tests true}
     :modules {:squint_tests {:init-fn squint.compiler-test/init
@@ -33,7 +21,6 @@
 (defn shadow-extra-test-config []
   (merge-with
    merge
-   (shadow-extra-config)
    test-config))
 
 (defn bump-core-vars []
@@ -49,7 +36,7 @@
   (fs/delete-tree "lib")
   (fs/delete-tree ".shadow-cljs")
   (bump-core-vars)
-  (spit ".work/config-merge.edn" (shadow-extra-config))
+  (spit ".work/config-merge.edn" "{}")
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn release squint"))
 
 (defn publish []
