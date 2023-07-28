@@ -238,24 +238,26 @@
   #_(assert-args doseq
                  (vector? seq-exprs) "a vector for its binding"
                  (even? (count seq-exprs)) "an even number of forms in binding vector")
-  (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
-        step (fn step [exprs]
-               (if-not exprs
-                 [true `(do ~@body)]
-                 (let [k (first exprs)
-                       v (second exprs)
-                       subform (step (nnext exprs))]
-                   (cond
-                     (= k :let) `(let ~v ~subform)
-                     (= k :while) `(if ~v
-                                     ~subform
-                                     (~'js* "break;\n"))
-                     (= k :when) `(when ~v
-                                    ~subform)
-                     (keyword? k) (err "Invalid 'doseq' keyword" k)
-                     :else (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
-                                 k v subform)))))]
-    (step (seq seq-exprs))))
+  (let [res (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
+                  step (fn step [exprs]
+                         (if-not exprs
+                           [true `(do ~@body)]
+                           (let [k (first exprs)
+                                 v (second exprs)
+                                 subform (step (nnext exprs))]
+                             (cond
+                               (= k :let) `(let ~v ~subform)
+                               (= k :while) `(if ~v
+                                               ~subform
+                                               (~'js* "break;\n"))
+                               (= k :when) `(when ~v
+                                              ~subform)
+                               (keyword? k) (err "Invalid 'doseq' keyword" k)
+                               :else (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
+                                           k v subform)))))]
+              (step (seq seq-exprs)))]
+    ;; force returning of nil
+    (list 'do res nil)))
 
 (defn core-defonce
   "defs name to have the root value of init iff the named var has no root value,

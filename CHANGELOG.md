@@ -2,10 +2,15 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.0.14
+
+- Drop cherry core from NPM package (cruft from porting cherry to squint)
+
+## 0.0.13
 
 - Fix compilation of empty list
 - Fix `and` and `or` without arguments
+- [#308](https://github.com/squint-cljs/squint/issues/308): `doseq` in return position emits invalid code
 
 ## 0.0.12
 
