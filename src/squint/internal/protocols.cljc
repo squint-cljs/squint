@@ -54,6 +54,14 @@
     ;; TODO what to do here?
     default js/Object})
 
+(defn insert-this [method-bodies]
+  (if (vector? (first method-bodies))
+    (list* (first method-bodies)
+           (list 'js* "~{} = this; const self__ = this" (ffirst method-bodies))
+           (rest method-bodies))
+    ;; multi-arity
+    (map insert-this method-bodies)))
+
 (core/defn- emit-type-method
   [psym type-sym method]
   (prn :psym psym :type-sym type-sym :method method)
@@ -61,12 +69,10 @@
         msym (if (= 'Object psym)
                (str mname)
                (symbol (str psym "_" mname)))
-        margs (second method)
-        mbody (drop 2 method)
-        this-arg (first margs)]
-    `(let [f# (fn ~margs
-                (~'js* "~{} = this; const self__ = this;" ~this-arg)
-                ~@mbody)]
+        f `(fn ~@(insert-this (rest method))
+             #_#_(~'js* "~{} = this; const self__ = this;" ~this-arg)
+             ~@mbody)]
+    `(let [f# ~f]
        (unchecked-set
         (.-prototype ~type-sym) ~msym f#))))
 

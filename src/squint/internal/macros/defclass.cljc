@@ -137,7 +137,9 @@
         extend-form
         `(cljs.core/extend-type ~classname
            ~@(->> (for [{:keys [protocol-name protocol-fns]} protocols]
-                    (into [protocol-name] protocol-fns))
+                    (do
+                      (prn :protocol-fns protocol-fns)
+                      (into [protocol-name] protocol-fns)))
                (mapcat identity)))]
     (str
      "class "
@@ -154,6 +156,8 @@
      (when extend
        (str extend)))))
 
-;; TODO: super must occur before anything else
+;; DONE: super must occur before anything else
+;; TODO: fix build
+;; TODO: fix super args
 ;; TODO: field defaults
 ;; TODO: fix super with arguments

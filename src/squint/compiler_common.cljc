@@ -608,7 +608,7 @@ break;}" body)
                                     (str "..." munged)
                                     munged))) sig))
              " {\n"
-             (when (:type env)
+             #_(when (:type env)
                (str "var self__ = this;"))
              body "\n}")))))
 
