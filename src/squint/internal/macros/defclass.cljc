@@ -99,14 +99,16 @@
 
 (defn emit-super
   [env emit-fn form]
-  (str "super();\n"
-       (str "const self__ = this;\n"))
-  )
+  (let [super-args (rest form)
+        arg-env (assoc env :context :expr :top-level false)]
+    (str "super("
+          (str/join "," (map #(emit-fn % arg-env) super-args))
+          ");"
+         (str "const self__ = this;\n"))))
 
 (defn emit-class
   [env emit-fn form]
-  (let [{:keys [classname extends extend constructor fields protocols] :as all} (parse-class (rest form))
-        _ (prn :all all)
+  (let [{:keys [classname extends extend constructor fields protocols] :as _all} (parse-class (rest form))
         [_ ctor-args & ctor-body] constructor
         _ (assert (pos? (count ctor-args)) "contructor requires at least one argument name for this")
 
@@ -137,9 +139,7 @@
         extend-form
         `(cljs.core/extend-type ~classname
            ~@(->> (for [{:keys [protocol-name protocol-fns]} protocols]
-                    (do
-                      (prn :protocol-fns protocol-fns)
-                      (into [protocol-name] protocol-fns)))
+                    (into [protocol-name] protocol-fns))
                (mapcat identity)))]
     (str
      "class "
@@ -149,6 +149,8 @@
             (emit-fn extends env)))
      (str " {\n")
      (str "  constructor(" (str/join ", " ctor-args) ") {\n")
+     (when-not super?
+       "const self__ = this;")
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-env)))
      (str "  }\n")
      (str "};\n")
@@ -160,4 +162,3 @@
 ;; DONE: fix build
 ;; TODO: fix super args
 ;; TODO: field defaults
-;; TODO: fix super with arguments
