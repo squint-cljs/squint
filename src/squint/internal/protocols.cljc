@@ -64,7 +64,6 @@
 
 (core/defn- emit-type-method
   [psym type-sym method]
-  (prn :psym psym :type-sym type-sym :method method)
   (let [mname (first method)
         msym (if (= 'Object psym)
                (str mname)

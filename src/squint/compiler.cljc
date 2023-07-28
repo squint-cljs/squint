@@ -149,7 +149,7 @@
   (defclass/emit-class env emit form))
 
 (defmethod emit-special 'squint.internal.macros.defclass/super* [_ env form]
-  (defclass/emit-super env emit form))
+  (defclass/emit-super env emit (second form)))
 
 #_(defn wrap-await [s]
     (format "(%s)" (str "await " s)))

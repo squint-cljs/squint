@@ -83,13 +83,13 @@
         ))))
 
 
-(defn find-and-replace-super-call [form super?]
+(defn find-and-replace-super-call [form super? fields]
   (let [res
         (walk/prewalk
          (fn [form]
            (if-not (and (list? form) (= 'super (first form)))
              form
-             `(super* ~@(rest form))))
+             `(super* {:forms ~(rest form) :fields ~fields})))
          form)]
     (if (not= form res)
       res
@@ -97,14 +97,22 @@
       (if super? (cons `(super*) form)
           form))))
 
+(defn emit-field-defaults [env emit-fn fields]
+  (str/join "\n"
+            (for [field fields
+                  :let [default (:field-default field)]
+                  :when default]
+              (str "this." (:field-name field) " = " (emit-fn default env) ";"))))
+
 (defn emit-super
-  [env emit-fn form]
-  (let [super-args (rest form)
+  [env emit-fn {:keys [forms fields]}]
+  (let [super-args forms
         arg-env (assoc env :context :expr :top-level false)]
     (str "super("
           (str/join "," (map #(emit-fn % arg-env) super-args))
           ");"
-         (str "const self__ = this;\n"))))
+          (str "const self__ = this;\n")
+          (emit-field-defaults env emit-fn fields))))
 
 (defn emit-class
   [env emit-fn form]
@@ -116,7 +124,7 @@
         _ (assert (symbol? this-sym) "can't destructure first constructur argument")
         super? (some? extends)
         ctor-body
-        (find-and-replace-super-call ctor-body super?)
+        (find-and-replace-super-call ctor-body super? fields)
         #_#_arg-syms (vec (take (count ctor-args) (repeatedly gensym)))
         field-syms (map :field-name fields)
         field-locals (reduce
@@ -150,7 +158,8 @@
      (str " {\n")
      (str "  constructor(" (str/join ", " ctor-args) ") {\n")
      (when-not super?
-       "const self__ = this;")
+       (str "const self__ = this;\n"
+            (emit-field-defaults env emit-fn fields)))
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-env)))
      (str "  }\n")
      (str "};\n")
@@ -160,5 +169,5 @@
 
 ;; DONE: super must occur before anything else
 ;; DONE: fix build
-;; TODO: fix super args
-;; TODO: field defaults
+;; DONE: fix super args
+;; DONE: field defaults
