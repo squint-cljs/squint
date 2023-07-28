@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.0.14
+
+- Drop cherry core from NPM package (cruft from porting cherry to squint)
+
 ## 0.0.13
 
 - Fix compilation of empty list
