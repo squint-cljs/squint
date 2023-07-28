@@ -157,7 +157,7 @@
        (str extend)))))
 
 ;; DONE: super must occur before anything else
-;; TODO: fix build
+;; DONE: fix build
 ;; TODO: fix super args
 ;; TODO: field defaults
 ;; TODO: fix super with arguments

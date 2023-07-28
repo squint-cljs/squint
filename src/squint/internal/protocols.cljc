@@ -69,9 +69,7 @@
         msym (if (= 'Object psym)
                (str mname)
                (symbol (str psym "_" mname)))
-        f `(fn ~@(insert-this (rest method))
-             #_#_(~'js* "~{} = this; const self__ = this;" ~this-arg)
-             ~@mbody)]
+        f `(fn ~@(insert-this (rest method)))]
     `(let [f# ~f]
        (unchecked-set
         (.-prototype ~type-sym) ~msym f#))))
