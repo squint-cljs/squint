@@ -215,8 +215,7 @@
                      (.push a [x y]))
                    a))]
     (is (eq [[1 0] [2 0] [2 1]]
-            (js/eval s)))
-    )
+            (js/eval s))))
   ;; https://clojuredocs.org/clojure.core/for#example-542692d3c026201cdc326fa9
   (testing ":while placement"
     (let [s (jss! '(let [a []]
@@ -243,7 +242,11 @@
                [2 2 1] [2 2 2] [2 2 3]
                [2 3 1] [2 3 2] [2 3 3]
                [3 3 1] [3 3 2] [3 3 3]]
-              (js/eval s))))))
+              (js/eval s)))))
+  (testing "return position in function"
+    (let [f (jsv! '(do (defn foo [x] (doseq [i x] i)) foo))]
+      (is f)
+      (is (nil? (f [1 2 3]))))))
 
 ;; TODO:
 (deftest for-test
@@ -300,7 +303,11 @@
                         (let [z' (inc z)]
                           (inc z')))))]
     (is (eq [4 5 6 5 6 7 6 7 8]
-            (js/eval s)))))
+            (js/eval s))))
+  (testing "return position in function"
+    (let [f (jsv! '(do (defn foo [x] (for [i x] i)) foo))]
+      (is f)
+      (is (= [1 2 3] (vec (f [1 2 3])))))))
 
 (deftest regex-test
   (is (eq '("foo")

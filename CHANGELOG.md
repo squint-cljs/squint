@@ -6,6 +6,7 @@
 
 - Fix compilation of empty list
 - Fix `and` and `or` without arguments
+- #10: `doseq` in return position emits invalid code
 
 ## 0.0.12
 
