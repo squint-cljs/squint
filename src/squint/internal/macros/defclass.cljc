@@ -171,3 +171,5 @@
 ;; DONE: fix build
 ;; DONE: fix super args
 ;; DONE: field defaults
+;; TODO: super in method overrides https://github.com/thheller/shadow-cljs/issues/1137
+;; TODO: js-literal
