@@ -84,7 +84,8 @@
                       'time macros/core-time
                       'declare macros/core-declare
                       'letfn macros/core-letfn
-                      'defclass defclass/defclass})
+                      'defclass defclass/defclass
+                      'js-template defclass/js-template})
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 

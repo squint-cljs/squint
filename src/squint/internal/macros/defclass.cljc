@@ -198,3 +198,13 @@
 ;; DONE: field defaults
 ;; DONE: super in method overrides https://github.com/thheller/shadow-cljs/issues/1137
 ;; TODO: js-literal
+
+(defn process-template-arg [arg]
+  (if (string? arg)
+    arg
+    (str "${" arg "}")))
+
+(defn js-template [_ _ tag & args]
+  (let [res `(~'js* ~(str "~{}`" (str/join (map process-template-arg args))  "`") ~tag)]
+    #_(prn :res res)
+    res))
