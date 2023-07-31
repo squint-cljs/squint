@@ -192,13 +192,6 @@
      (when extend
        (str extend)))))
 
-;; DONE: super must occur before anything else
-;; DONE: fix build
-;; DONE: fix super args
-;; DONE: field defaults
-;; DONE: super in method overrides https://github.com/thheller/shadow-cljs/issues/1137
-;; TODO: js-literal
-
 (defn process-template-arg [arg]
   (if (string? arg)
     arg
@@ -208,3 +201,14 @@
   (let [res `(~'js* ~(str "~{}`" (str/join (map process-template-arg args))  "`") ~tag)]
     #_(prn :res res)
     res))
+
+
+;; DONE: super must occur before anything else
+;; DONE: fix build
+;; DONE: fix super args
+;; DONE: field defaults
+;; DONE: super in method overrides https://github.com/thheller/shadow-cljs/issues/1137
+;; DONE: js-literal
+;; TODO: lit project as test
+;; TODO: write defclass tests
+;; TODO: write js-literal tests
