@@ -130,7 +130,7 @@
                ret-ctx (assoc env :context :return :top-level false)
                non-ret-vals (butlast body)
                non-ret-ctx (assoc env :context :statement :top-level false)]
-           (str (str/join "\n" (map #(emit-fn % non-ret-ctx) non-ret-vals))
+           (str (str/join (map #(str (emit-fn % non-ret-ctx) ";\n") non-ret-vals))
                 (emit-fn ret-val ret-ctx)))
         "\n}")))
 
@@ -195,10 +195,11 @@
 (defn process-template-arg [arg]
   (if (string? arg)
     arg
-    (str "${" arg "}")))
+    (str "${" "~{}" "}")))
 
 (defn js-template [_ _ tag & args]
-  (let [res `(~'js* ~(str "~{}`" (str/join (map process-template-arg args))  "`") ~tag)]
+  (let [res `(let [v# (~'js* {:context :expr} ~(str "~{}`" (str/join (map process-template-arg args))  "`") ~tag ~@(filter #(not (string? %)) args))]
+               v#)]
     #_(prn :res res)
     res))
 
