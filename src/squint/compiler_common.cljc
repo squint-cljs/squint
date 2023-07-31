@@ -387,24 +387,26 @@
     alias))
 
 (defn process-require-clause [env [libname & {:keys [refer as]}]]
-  (let [libname (resolve-ns libname)
-        [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
-        [p & _props] (when suffix
-                       (str/split suffix #"\."))
-        as (when as (munge as))
-        expr (str
-              (when (and as (= "default" p))
-                (statement (format "import %s from '%s'" as libname)))
-              (when (and (not as) (not p) (not refer))
-                ;; import presumably for side effects
-                (statement (format "import '%s'" libname)))
-              (when (and as (not= "default" p))
-                (swap! *imported-vars* update libname (fnil identity #{}))
-                (statement (format "import * as %s from '%s'" as libname)))
-              (when refer
-                (statement (format "import { %s } from '%s'"  (str/join ", " (map munge refer)) libname))))]
-    (swap! (:imports env) str expr)
-    nil))
+  (when-not (or (= 'squint.core libname)
+                (= 'cherry.core libname))
+    (let [libname (resolve-ns libname)
+          [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
+          [p & _props] (when suffix
+                         (str/split suffix #"\."))
+          as (when as (munge as))
+          expr (str
+                (when (and as (= "default" p))
+                  (statement (format "import %s from '%s'" as libname)))
+                (when (and (not as) (not p) (not refer))
+                  ;; import presumably for side effects
+                  (statement (format "import '%s'" libname)))
+                (when (and as (not= "default" p))
+                  (swap! *imported-vars* update libname (fnil identity #{}))
+                  (statement (format "import * as %s from '%s'" as libname)))
+                (when refer
+                  (statement (format "import { %s } from '%s'"  (str/join ", " (map munge refer)) libname))))]
+      (swap! (:imports env) str expr)
+      nil)))
 
 (defmethod emit-special 'ns [_type env [_ns name & clauses]]
   (set! *cljs-ns* name)

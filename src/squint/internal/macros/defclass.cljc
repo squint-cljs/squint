@@ -104,15 +104,35 @@
                   :when default]
               (str "this." (:field-name field) " = " (emit-fn default env) ";"))))
 
+(defn emit-args [env emit-fn args]
+  (let [arg-env (assoc env :context :expr :top-level false)]
+    (map #(emit-fn % arg-env) args)))
+
 (defn emit-super
   [env emit-fn {:keys [forms fields]}]
-  (let [super-args forms
-        arg-env (assoc env :context :expr :top-level false)]
+  (let [super-args forms]
     (str "super("
-          (str/join "," (map #(emit-fn % arg-env) super-args))
+         (str/join ", " (emit-args env emit-fn super-args))
           ");"
           (str "const self__ = this;\n")
           (emit-field-defaults env emit-fn fields))))
+
+(defn- emit-object-fn [env emit-fn object-fn]
+  (let [[fn-name arglist & body] object-fn
+        env (update env :var->ident merge (zipmap arglist arglist))
+        [this-arg & arglist] arglist]
+    (str fn-name "("
+         (str/join ", " (emit-args env emit-fn arglist))
+         ") { \n"
+         (str "const " (emit-fn this-arg env)) " = this;\n"
+         "const self__ = this;"
+         (let [ret-val (last body)
+               ret-ctx (assoc env :context :return :top-level false)
+               non-ret-vals (butlast body)
+               non-ret-ctx (assoc env :context :statement :top-level false)]
+           (str (str/join "\n" (map #(emit-fn % non-ret-ctx) non-ret-vals))
+                (emit-fn ret-val ret-ctx)))
+        "\n}")))
 
 (defn emit-class
   [env emit-fn form]
@@ -144,9 +164,13 @@
          (assoc field-locals this-sym "self__")
          field-locals)
         ctor-env (update env :var->ident merge ctor-locals)
+        object-fns (-> (some #(when (= 'Object (:protocol-name %)) %) protocols)
+                                :protocol-fns)
         extend-form
         `(cljs.core/extend-type ~classname
-           ~@(->> (for [{:keys [protocol-name protocol-fns]} protocols]
+           ~@(->> (for [{:keys [protocol-name protocol-fns]
+                         } protocols
+                        :when (not (= 'Object protocol-name))]
                     (into [protocol-name] protocol-fns))
                (mapcat identity)))]
     (str
@@ -162,6 +186,7 @@
             (emit-field-defaults env emit-fn fields)))
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-env)))
      (str "  }\n")
+     (str/join "\n" (map #(emit-object-fn ctor-env emit-fn %) object-fns))
      (str "};\n")
      (str (emit-fn extend-form ctor-env))
      (when extend
