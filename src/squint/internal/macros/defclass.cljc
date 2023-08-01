@@ -83,13 +83,13 @@
         ))))
 
 
-(defn find-and-replace-super-call [form super? fields]
+(defn find-and-replace-super-call [form super? fields this-sym]
   (let [res
         (walk/prewalk
          (fn [form]
            (if-not (and (list? form) (= 'super (first form)))
              form
-             `(super* {:forms ~(rest form) :fields ~fields})))
+             `(super* {:forms ~(rest form) :fields ~fields :this-sym ~this-sym})))
          form)]
     (if (not= form res)
       res
@@ -109,12 +109,13 @@
     (map #(emit-fn % arg-env) args)))
 
 (defn emit-super
-  [env emit-fn {:keys [forms fields]}]
+  [env emit-fn {:keys [forms fields this-sym]}]
   (let [super-args forms]
     (str "super("
          (str/join ", " (emit-args env emit-fn super-args))
           ");"
           (str "const self__ = this;\n")
+          (str "const " (emit-fn this-sym env) " = this;\n")
           (emit-field-defaults env emit-fn fields))))
 
 (defn- emit-object-fn [env emit-fn object-fn]
@@ -144,7 +145,7 @@
         _ (assert (symbol? this-sym) "can't destructure first constructur argument")
         super? (some? extends)
         ctor-body
-        (find-and-replace-super-call ctor-body super? fields)
+        (find-and-replace-super-call ctor-body super? fields this-sym)
         #_#_arg-syms (vec (take (count ctor-args) (repeatedly gensym)))
         field-syms (map :field-name fields)
         field-locals (reduce
@@ -153,18 +154,8 @@
                          (symbol (str "self__." (munge fld)))))
                 {}
                 field-syms)
-        ctor-locals
-        (reduce-kv
-         (fn [locals _idx fld]
-           ;; FIXME: what should fn args locals look like?
-           (assoc locals fld (symbol (str "self__." (munge fld)))))
-         ;; pretty sure thats wrong but works in our favor
-         ;; since accessing this before super() is invalid
-         ;; and this kinda ensures that
-         (assoc field-locals this-sym "self__")
-         field-locals)
-        ctor-env (update env :var->ident merge ctor-locals)
-        ctor-args-munged (zipmap ctor-args (map munge ctor-args))
+        ctor-env (update env :var->ident merge field-locals)
+        ctor-args-munged (zipmap (cons this-sym ctor-args) (cons (munge this-sym) (map munge ctor-args)))
         ctor-args-env (update ctor-env :var->ident merge ctor-args-munged)
         object-fns (-> (some #(when (= 'Object (:protocol-name %)) %) protocols)
                                 :protocol-fns)
@@ -185,6 +176,7 @@
      (str "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n")
      (when-not super?
        (str "const self__ = this;\n"
+            (str "const " (emit-fn this-sym ctor-args-env)) " = this;\n"
             (emit-field-defaults ctor-args-env emit-fn fields)))
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env)))
      (str "  }\n")
@@ -213,8 +205,9 @@
 ;; DONE: super in method overrides https://github.com/thheller/shadow-cljs/issues/1137
 ;; DONE: js-literal
 ;; DONE: lit project as test
-;; TODO: test munging of constructor + method args
-;; TODO: currently constructor args are considered locals in other method bodies
-;; TODO: munge method names and variable names: handle-click, etc
+;; DONE: test munging of constructor + method args
+;; DONE: currently constructor args are considered locals in other method bodies
+;; DONE: munge method names and variable names: handle-click, etc
 ;; TODO: write defclass tests
-;; TODO: write js-literal tests
+;; TODO: write js-template tests
+;; TODO: hiccup in js-template
