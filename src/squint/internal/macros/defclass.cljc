@@ -154,9 +154,9 @@
                          (symbol (str "self__." (munge fld)))))
                 {}
                 field-syms)
-        ctor-env (update env :var->ident merge field-locals)
+        fields-env (update env :var->ident merge field-locals)
         ctor-args-munged (zipmap (cons this-sym ctor-args) (cons (munge this-sym) (map munge ctor-args)))
-        ctor-args-env (update ctor-env :var->ident merge ctor-args-munged)
+        ctor-args-env (update fields-env :var->ident merge ctor-args-munged)
         object-fns (-> (some #(when (= 'Object (:protocol-name %)) %) protocols)
                                 :protocol-fns)
         extend-form
@@ -180,9 +180,9 @@
             (emit-field-defaults ctor-args-env emit-fn fields)))
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env)))
      (str "  }\n")
-     (str/join "\n" (map #(emit-object-fn ctor-env emit-fn %) object-fns))
+     (str/join "\n" (map #(emit-object-fn fields-env emit-fn %) object-fns))
      (str "};\n")
-     (str (emit-fn extend-form ctor-env))
+     (str (emit-fn extend-form fields-env))
      (when extend
        (str extend)))))
 
