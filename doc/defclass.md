@@ -25,7 +25,7 @@ possible. The syntax is inspired by
 
   Object
   (dude [_]
-        (str -y (.get-name-separator (js* "super"))))
+        (str -y (super.get-name-separator)))
 
   (toString [this] (str "<<<<" (.dude this) ">>>>") ))
 
