@@ -500,7 +500,7 @@
 
 (defn munge-interop [x]
   (let [munged (str (munge x))
-        #?@(:cljs [js? (#'js-reserved? munged)])]
+        #?@(:cljs [js? (#'js-reserved? (str x))])]
     #?(:cljs (if js? (subs munged 0 (dec (count munged))) munged)
        :clj munged)))
 
