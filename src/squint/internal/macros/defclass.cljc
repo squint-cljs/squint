@@ -210,7 +210,9 @@
 ;; DONE: field defaults
 ;; DONE: super in method overrides https://github.com/thheller/shadow-cljs/issues/1137
 ;; DONE: js-literal
-;; TODO: lit project as test
+;; DONE: lit project as test
+;; TODO: test munging of constructor + method args
+;; TODO: currently constructor args are considered locals in other method bodies
 ;; TODO: munge method names and variable names: handle-click, etc
 ;; TODO: write defclass tests
 ;; TODO: write js-literal tests
