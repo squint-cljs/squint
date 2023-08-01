@@ -1160,3 +1160,15 @@ export function aset(arr, idx, val) {
   arr[idx] = val;
   return val;
 }
+
+export function dorun(x) {
+  for (const o of iterable(x)) {
+    // nothing here, just consume for side effects
+  }
+  return null;
+}
+
+export function doall(x) {
+  // realize as concrete array
+  return vec(x);
+}
