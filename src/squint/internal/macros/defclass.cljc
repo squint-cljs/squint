@@ -211,5 +211,6 @@
 ;; DONE: super in method overrides https://github.com/thheller/shadow-cljs/issues/1137
 ;; DONE: js-literal
 ;; TODO: lit project as test
+;; TODO: munge method names and variable names: handle-click, etc
 ;; TODO: write defclass tests
 ;; TODO: write js-literal tests
