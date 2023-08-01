@@ -501,8 +501,8 @@
 (defn munge-interop [x]
   (let [munged (str (munge x))
         #?@(:cljs [js? (#'js-reserved? munged)])]
-    #?(:cljs (if js? (subs munged 0 (dec (count munged))) munged))
-    munged))
+    #?(:cljs (if js? (subs munged 0 (dec (count munged))) munged)
+       :clj munged)))
 
 (defn emit-method [env obj method args]
   (let [eenv (expr-env env)
