@@ -32,4 +32,7 @@ possible. The syntax is inspired by
 (def c (new Class2 1 2))
 ```
 
+## Lit
+
 See [squint-lit-example](https://github.com/squint-cljs/squint-lit-example/blob/main/my_element.cljs) on how to use squint together with [lit](https://lit.dev/).
+Or check out [web-components-squint](https://github.com/shvets-sergey/web-components-squint) for a more elaborate example.
