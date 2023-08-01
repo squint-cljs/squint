@@ -150,20 +150,22 @@
         field-locals (reduce
                 (fn [m fld]
                   (assoc m fld
-                         (symbol (str "self__." fld))))
+                         (symbol (str "self__." (munge fld)))))
                 {}
                 field-syms)
         ctor-locals
         (reduce-kv
          (fn [locals _idx fld]
            ;; FIXME: what should fn args locals look like?
-           (assoc locals fld (symbol (str "self__." fld))))
+           (assoc locals fld (symbol (str "self__." (munge fld)))))
          ;; pretty sure thats wrong but works in our favor
          ;; since accessing this before super() is invalid
          ;; and this kinda ensures that
          (assoc field-locals this-sym "self__")
          field-locals)
         ctor-env (update env :var->ident merge ctor-locals)
+        ctor-args-munged (zipmap ctor-args (map munge ctor-args))
+        ctor-args-env (update ctor-env :var->ident merge ctor-args-munged)
         object-fns (-> (some #(when (= 'Object (:protocol-name %)) %) protocols)
                                 :protocol-fns)
         extend-form
@@ -180,11 +182,11 @@
        (str " extends "
             (emit-fn extends env)))
      (str " {\n")
-     (str "  constructor(" (str/join ", " ctor-args) ") {\n")
+     (str "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n")
      (when-not super?
        (str "const self__ = this;\n"
-            (emit-field-defaults env emit-fn fields)))
-     (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-env)))
+            (emit-field-defaults ctor-args-env emit-fn fields)))
+     (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env)))
      (str "  }\n")
      (str/join "\n" (map #(emit-object-fn ctor-env emit-fn %) object-fns))
      (str "};\n")
