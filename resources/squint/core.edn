@@ -34,6 +34,8 @@
   dissoc
   dissoc_BANG_
   distinct
+  doall
+  dorun
   drop
   drop_last
   drop_while

@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- [#312](https://github.com/squint-cljs/squint/issues/312): implement doall and dorun
+
 ## 0.0.14
 
 - Drop cherry core from NPM package (cruft from porting cherry to squint)
