@@ -499,7 +499,8 @@
   (apply clojure.core/str (interpose " + " (emit-args env args))))
 
 (defn emit-method [env obj method args]
-  (let [eenv (expr-env env)]
+  (let [eenv (expr-env env)
+        method (munge method)]
     (emit-return (str (emit obj eenv) "."
                     (str method)
                     (comma-list (emit-args env args)))

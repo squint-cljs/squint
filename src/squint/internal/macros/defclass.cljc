@@ -121,7 +121,7 @@
   (let [[fn-name arglist & body] object-fn
         env (update env :var->ident merge (zipmap arglist arglist))
         [this-arg & arglist] arglist]
-    (str fn-name "("
+    (str (emit-fn fn-name env) "("
          (str/join ", " (emit-args env emit-fn arglist))
          ") { \n"
          (str "const " (emit-fn this-arg env)) " = this;\n"
