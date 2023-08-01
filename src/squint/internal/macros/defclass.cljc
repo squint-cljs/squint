@@ -102,7 +102,7 @@
             (for [field fields
                   :let [default (:field-default field)]
                   :when default]
-              (str "this." (:field-name field) " = " (emit-fn default env) ";"))))
+              (str "this." (munge (:field-name field)) " = " (emit-fn default env) ";"))))
 
 (defn emit-args [env emit-fn args]
   (let [arg-env (assoc env :context :expr :top-level false)]
@@ -120,8 +120,10 @@
 
 (defn- emit-object-fn [env emit-fn object-fn]
   (let [[fn-name arglist & body] object-fn
-        env (update env :var->ident merge (zipmap arglist arglist))
-        [this-arg & arglist] arglist]
+        [this-arg & arglist] arglist
+        env (update env :var->ident merge (assoc (zipmap arglist arglist)
+                                                 'super "super"
+                                                 this-arg (munge this-arg)))]
     (str (emit-fn fn-name env) "("
          (str/join ", " (emit-args env emit-fn arglist))
          ") { \n"

@@ -72,6 +72,14 @@
            (contains? keep (str expr)))
       (str/replace #"\$$" ""))))
 
+(defn munge**
+  "Same as munge but does not do any renaming of reserved words"
+  [x]
+  (let [munged (str (munge x))
+        #?@(:cljs [js? (#'js-reserved? (str x))])]
+    #?(:cljs (if js? (subs munged 0 (dec (count munged))) munged)
+       :clj munged)))
+
 (defmethod emit nil [_ env]
   (emit-return "null" env))
 
@@ -187,7 +195,7 @@
       (let [[fname path] (str/split (str expr) #"\." 2)
             fname (symbol fname)]
         (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
-                         "." path) env))
+                         "." (munge** path)) env))
       (let [munged-name (fn [expr] (munge* (name expr)))
             expr (if-let [sym-ns (some-> (namespace expr) munge)]
                    (let [sn (symbol (name expr))]
@@ -205,7 +213,7 @@
                            (str "globalThis." (munge *cljs-ns*) ".aliases." (munge (namespace expr)) "." (munge (name expr)))
                            (str (munge (namespace expr)) "." (munge (name expr))))))
                    (if-let [renamed (get (:var->ident env) expr)]
-                     (munge* (str renamed))
+                     (munge** (str renamed))
                      (or
                       (some-> (maybe-core-var expr env) munge)
                       (let [m (munged-name expr)]
@@ -498,15 +506,9 @@
 (defmethod emit-special 'str [_type env [_str & args]]
   (apply clojure.core/str (interpose " + " (emit-args env args))))
 
-(defn munge-interop [x]
-  (let [munged (str (munge x))
-        #?@(:cljs [js? (#'js-reserved? (str x))])]
-    #?(:cljs (if js? (subs munged 0 (dec (count munged))) munged)
-       :clj munged)))
-
 (defn emit-method [env obj method args]
   (let [eenv (expr-env env)
-        method (munge-interop method)]
+        method (munge** method)]
     (emit-return (str (emit obj eenv) "."
                     (str method)
                     (comma-list (emit-args env args)))
@@ -524,7 +526,7 @@
                         [method args])
         method-str (str method)]
     (-> (if (str/starts-with? method-str "-")
-          (emit-aget env obj [(munge-interop (subs method-str 1))])
+          (emit-aget env obj [(munge** (subs method-str 1))])
           (emit-method env obj (symbol method-str) args))
         (emit-repl env))))
 

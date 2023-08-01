@@ -21,7 +21,9 @@
 
   Object
   (dude [_] ;; use this arg
-        (str -y (.get-name-separator super)))
+        (str -y
+             (super.get-name-separator)
+             (.get-name-separator super)))
 
   (toString [this] (str "<<<<" (.dude this) ">>>>") ))
 

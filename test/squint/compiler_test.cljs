@@ -1419,7 +1419,7 @@
   (is (eq 2 (jsv! '(#(inc %) 1)))))
 
 (deftest defclass-test
-  (is (= "<<<<1-3>>>>,1-3" (str (jsv! (str (fs/readFileSync "test-resources/defclass_test.cljs")))))))
+  (is (= "<<<<1-3-3>>>>,1-3-3" (str (jsv! (str (fs/readFileSync "test-resources/defclass_test.cljs")))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
