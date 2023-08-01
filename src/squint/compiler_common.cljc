@@ -72,6 +72,14 @@
            (contains? keep (str expr)))
       (str/replace #"\$$" ""))))
 
+(defn munge**
+  "Same as munge but does not do any renaming of reserved words"
+  [x]
+  (let [munged (str (munge x))
+        #?@(:cljs [js? (#'js-reserved? (str x))])]
+    #?(:cljs (if js? (subs munged 0 (dec (count munged))) munged)
+       :clj munged)))
+
 (defmethod emit nil [_ env]
   (emit-return "null" env))
 
@@ -187,7 +195,7 @@
       (let [[fname path] (str/split (str expr) #"\." 2)
             fname (symbol fname)]
         (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
-                         "." path) env))
+                         "." (munge** path)) env))
       (let [munged-name (fn [expr] (munge* (name expr)))
             expr (if-let [sym-ns (some-> (namespace expr) munge)]
                    (let [sn (symbol (name expr))]
@@ -205,7 +213,7 @@
                            (str "globalThis." (munge *cljs-ns*) ".aliases." (munge (namespace expr)) "." (munge (name expr)))
                            (str (munge (namespace expr)) "." (munge (name expr))))))
                    (if-let [renamed (get (:var->ident env) expr)]
-                     (munge* (str renamed))
+                     (munge** (str renamed))
                      (or
                       (some-> (maybe-core-var expr env) munge)
                       (let [m (munged-name expr)]
@@ -387,24 +395,26 @@
     alias))
 
 (defn process-require-clause [env [libname & {:keys [refer as]}]]
-  (let [libname (resolve-ns libname)
-        [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
-        [p & _props] (when suffix
-                       (str/split suffix #"\."))
-        as (when as (munge as))
-        expr (str
-              (when (and as (= "default" p))
-                (statement (format "import %s from '%s'" as libname)))
-              (when (and (not as) (not p) (not refer))
-                ;; import presumably for side effects
-                (statement (format "import '%s'" libname)))
-              (when (and as (not= "default" p))
-                (swap! *imported-vars* update libname (fnil identity #{}))
-                (statement (format "import * as %s from '%s'" as libname)))
-              (when refer
-                (statement (format "import { %s } from '%s'"  (str/join ", " (map munge refer)) libname))))]
-    (swap! (:imports env) str expr)
-    nil))
+  (when-not (or (= 'squint.core libname)
+                (= 'cherry.core libname))
+    (let [libname (resolve-ns libname)
+          [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
+          [p & _props] (when suffix
+                         (str/split suffix #"\."))
+          as (when as (munge as))
+          expr (str
+                (when (and as (= "default" p))
+                  (statement (format "import %s from '%s'" as libname)))
+                (when (and (not as) (not p) (not refer))
+                  ;; import presumably for side effects
+                  (statement (format "import '%s'" libname)))
+                (when (and as (not= "default" p))
+                  (swap! *imported-vars* update libname (fnil identity #{}))
+                  (statement (format "import * as %s from '%s'" as libname)))
+                (when refer
+                  (statement (format "import { %s } from '%s'"  (str/join ", " (map munge refer)) libname))))]
+      (swap! (:imports env) str expr)
+      nil)))
 
 (defmethod emit-special 'ns [_type env [_ns name & clauses]]
   (set! *cljs-ns* name)
@@ -497,7 +507,8 @@
   (apply clojure.core/str (interpose " + " (emit-args env args))))
 
 (defn emit-method [env obj method args]
-  (let [eenv (expr-env env)]
+  (let [eenv (expr-env env)
+        method (munge** method)]
     (emit-return (str (emit obj eenv) "."
                     (str method)
                     (comma-list (emit-args env args)))
@@ -515,7 +526,7 @@
                         [method args])
         method-str (str method)]
     (-> (if (str/starts-with? method-str "-")
-          (emit-aget env obj [(subs method-str 1)])
+          (emit-aget env obj [(munge** (subs method-str 1))])
           (emit-method env obj (symbol method-str) args))
         (emit-repl env))))
 
@@ -608,7 +619,7 @@ break;}" body)
                                     (str "..." munged)
                                     munged))) sig))
              " {\n"
-             (when (:type env)
+             #_(when (:type env)
                (str "var self__ = this;"))
              body "\n}")))))
 

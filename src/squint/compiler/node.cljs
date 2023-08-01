@@ -35,7 +35,6 @@
                                  {:source fstr}))
                     :classes {:allow :all
                               'js js/globalThis}}))
-                    
 
 (sci/alter-var-root sci/print-fn (constantly *print-fn*))
 (sci/alter-var-root sci/print-err-fn (constantly *print-err-fn*))
@@ -88,11 +87,7 @@
   (let [contents (or in-str (slurp in-file))]
     (-> (compile-string contents opts)
         (.then (fn [{:keys [javascript jsx] :as opts}]
-                 (let [output-dir (if (str/ends-with? output-dir "/")
-                                    output-dir
-                                    (str output-dir "/"))
-                       out-file (str
-                                 output-dir
+                 (let [out-file (path/resolve output-dir
                                  (or out-file
                                      (str/replace in-file #".clj(s|c)$"
                                                   (if jsx

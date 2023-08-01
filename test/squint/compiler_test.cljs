@@ -5,7 +5,8 @@
    [squint.compiler :as compiler]
    [squint.jsx-test]
    [squint.string-test]
-   [squint.test-utils :refer [eq js! jss! jsv!]]))
+   [squint.test-utils :refer [eq js! jss! jsv!]]
+   ["fs" :as fs]))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -1416,6 +1417,9 @@
 
 (deftest fn-direct-invoke-test
   (is (eq 2 (jsv! '(#(inc %) 1)))))
+
+(deftest defclass-test
+  (is (= "<<<<1-3-3>>>>,1-3-3" (str (jsv! (str (fs/readFileSync "test-resources/defclass_test.cljs")))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

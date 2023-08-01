@@ -1,5 +1,6 @@
 (ns squint.internal.protocols
-  (:require [clojure.core :as core]))
+  (:require [clojure.core :as core]
+            [clojure.string :as str]))
 
 (core/defn- emit-protocol-method-arity
   [method-sym args]
@@ -22,7 +23,7 @@
         ~@(map #(emit-protocol-method-arity method-sym %) margs)))))
 
 (core/defn core-defprotocol
-  [&env _&form p & doc+methods]
+  [_&env _&form p & doc+methods]
   (core/let [[doc-and-opts methods] [(core/take-while #(not (list? %))
                                                       doc+methods)
                                      (core/drop-while #(not (list? %))
@@ -42,6 +43,7 @@
              (drop-while seq? (next s)))
       ret)))
 
+;; https://github.com/clojure/clojurescript/blob/6aefc7354c3f7033d389634595d912f618c2abfc/src/main/clojure/cljs/core.cljc#L1303
 (def ^:private js-type-sym->type
   '{object js/Object
     string js/String
@@ -52,13 +54,22 @@
     ;; TODO what to do here?
     default js/Object})
 
+(defn insert-this [method-bodies]
+  (if (vector? (first method-bodies))
+    (list* (first method-bodies)
+           (list 'js* "~{} = this; const self__ = this" (ffirst method-bodies))
+           (rest method-bodies))
+    ;; multi-arity
+    (map insert-this method-bodies)))
+
 (core/defn- emit-type-method
   [psym type-sym method]
   (let [mname (first method)
-        msym (symbol (str psym "_" mname))
-        margs (second method)
-        mbody (drop 2 method)]
-    `(let [f# (fn ~margs ~@mbody)]
+        msym (if (= 'Object psym)
+               (str mname)
+               (symbol (str psym "_" mname)))
+        f `(fn ~@(insert-this (rest method)))]
+    `(let [f# ~f]
        (unchecked-set
         (.-prototype ~type-sym) ~msym f#))))
 

@@ -23,7 +23,8 @@
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
    [squint.internal.loop :as loop]
    [squint.internal.macros :as macros]
-   [squint.internal.protocols :as protocols])
+   [squint.internal.protocols :as protocols]
+   [squint.internal.macros.defclass :as defclass])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 
@@ -41,7 +42,7 @@
                          'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
-                         'require]))
+                         'require 'defclass* 'squint.internal.macros.defclass/super*]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -82,7 +83,9 @@
                       'instance? macros/core-instance?
                       'time macros/core-time
                       'declare macros/core-declare
-                      'letfn macros/core-letfn})
+                      'letfn macros/core-letfn
+                      'defclass defclass/defclass
+                      'js-template defclass/js-template})
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 
@@ -142,6 +145,12 @@
                                                                   (symbol (str "self__." fld)))
                                                                 fields)))))
                                                (assoc :type true)))))))
+
+(defmethod emit-special 'defclass* [_ env form]
+  (defclass/emit-class env emit form))
+
+(defmethod emit-special 'squint.internal.macros.defclass/super* [_ env form]
+  (defclass/emit-super env emit (second form)))
 
 #_(defn wrap-await [s]
     (format "(%s)" (str "await " s)))

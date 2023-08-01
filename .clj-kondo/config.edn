@@ -1,1 +1,1 @@
-{}
+{:lint-as {squint.core/defclass clj-kondo.lint-as/def-catch-all}}

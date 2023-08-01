@@ -82,11 +82,11 @@ Options:
     (if help
       nil
       (do (println "[squint] Running" file)
-          (.then (compiler/compile-file (assoc opts :in-file file))
-                 (fn [{:keys [out-file]}]
-                   (let [path (if (path/isAbsolute out-file) out-file
-                                  (str (js/process.cwd) "/" out-file))]
-                     (esm/dynamic-import path))))))))
+          (-> (.then (compiler/compile-file (assoc opts :in-file file))
+                     (fn [{:keys [out-file]}]
+                       (let [path (if (path/isAbsolute out-file) out-file
+                                      (str (js/process.cwd) "/" out-file))]
+                         (esm/dynamic-import path)))))))))
 
 #_(defn compile-form [{:keys [opts]}]
     (let [e (:e opts)]

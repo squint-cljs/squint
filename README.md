@@ -177,6 +177,10 @@ squint supports `async/await`:
 (println x) ;;=> 10
 ```
 
+## Defclass
+
+See [doc/defclass.md](doc/defclass.md).
+
 License
 =======
 
