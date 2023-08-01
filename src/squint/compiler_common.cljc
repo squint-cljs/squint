@@ -498,9 +498,15 @@
 (defmethod emit-special 'str [_type env [_str & args]]
   (apply clojure.core/str (interpose " + " (emit-args env args))))
 
+(defn munge-interop [x]
+  (let [munged (str (munge x))
+        #?@(:cljs [js? (#'js-reserved? munged)])]
+    #?(:cljs (if js? (subs munged 0 (dec (count munged))) munged))
+    munged))
+
 (defn emit-method [env obj method args]
   (let [eenv (expr-env env)
-        method (munge method)]
+        method (munge-interop method)]
     (emit-return (str (emit obj eenv) "."
                     (str method)
                     (comma-list (emit-args env args)))
@@ -518,7 +524,7 @@
                         [method args])
         method-str (str method)]
     (-> (if (str/starts-with? method-str "-")
-          (emit-aget env obj [(subs method-str 1)])
+          (emit-aget env obj [(munge-interop (subs method-str 1))])
           (emit-method env obj (symbol method-str) args))
         (emit-repl env))))
 
