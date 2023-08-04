@@ -578,8 +578,19 @@ export function prn(...xs) {
 
 export function Atom(init) {
   this.val = init;
+  this._watches = {};
   this._deref = () => this.val;
-  this._reset_BANG_ = (x) => (this.val = x);
+  this._reset_BANG_ = (x) => {
+    let old_val = this.val;
+    this.val = x;
+    for (let foo of Object.entries(this._watches)) {
+      console.log(foo);
+    }
+    return x;
+  };
+  this._add_watch = (k, fn) => {
+    this._watches[k] = fn;
+  };
 }
 
 export function atom(init) {
@@ -1194,4 +1205,8 @@ export function doall(x) {
 export function aclone(arr) {
   let cloned = [...arr];
   return cloned;
+}
+
+export function add_watch(ref, key, fn) {
+  return ref._add_watch(key, fn);
 }
