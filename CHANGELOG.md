@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- Add `rand-nth`, `aclone`
+- Add `rand-nth`, `aclone`, `add-watch`, `remove-watch`
 
 ## 0.1.15
 

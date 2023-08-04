@@ -273,7 +273,6 @@ export function contains_QMARK_(coll, v) {
   }
 }
 
-
 export function dissoc_BANG_(m, ...ks) {
   for (const k of ks) {
     delete m[k];
@@ -309,8 +308,7 @@ export function nth(coll, idx, orElse) {
     var elt = undefined;
     if (coll instanceof Array) {
       elt = coll[idx];
-    }
-    else {
+    } else {
       let iter = iterable(coll);
       let i = 0;
       for (let value of iter) {
@@ -578,8 +576,28 @@ export function prn(...xs) {
 
 export function Atom(init) {
   this.val = init;
+  this._watches = {};
   this._deref = () => this.val;
-  this._reset_BANG_ = (x) => (this.val = x);
+  this._hasWatches = false;
+  this._reset_BANG_ = (x) => {
+    let old_val = this.val;
+    this.val = x;
+    if (this._hasWatches) {
+      for (let entry of Object.entries(this._watches)) {
+        let k = entry[0];
+        let f = entry[1];
+        f(k, this, old_val, x);
+      }
+    }
+    return x;
+  };
+  this._add_watch = (k, fn) => {
+    this._watches[k] = fn;
+    this._hasWatches = true;
+  };
+  this._remove_watch = (k) => {
+    delete this._watches[k];
+  };
 }
 
 export function atom(init) {
@@ -1164,7 +1182,7 @@ export function js_obj(...args) {
     if (ctr >= args.length) {
       break;
     }
-    ret[args[ctr]]=args[ctr+1];
+    ret[args[ctr]] = args[ctr + 1];
     ctr = ctr + 2;
   }
   return ret;
@@ -1194,4 +1212,12 @@ export function doall(x) {
 export function aclone(arr) {
   let cloned = [...arr];
   return cloned;
+}
+
+export function add_watch(ref, key, fn) {
+  return ref._add_watch(key, fn);
+}
+
+export function remove_watch(ref, key) {
+  return ref._remove_watch(key);
 }

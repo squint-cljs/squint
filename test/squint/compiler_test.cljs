@@ -1421,5 +1421,8 @@
 (deftest defclass-test
   (is (= "<<<<1-3-3>>>>,1-3-3" (str (jsv! (str (fs/readFileSync "test-resources/defclass_test.cljs")))))))
 
+(deftest atom-test
+  (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
