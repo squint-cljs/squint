@@ -8,7 +8,7 @@
 
 ## 0.1.15
 
-- [#288]: support `defclass`. See [doc/defclass.md](doc/defclass.md).
+- [#288](https://github.com/squint-cljs/squint/issues/288): support `defclass`. See [doc/defclass.md](doc/defclass.md).
 - [#312](https://github.com/squint-cljs/squint/issues/312): implement doall and dorun
 
 ## 0.0.14
