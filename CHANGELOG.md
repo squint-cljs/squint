@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.1.16
 
 - Add `rand-nth`, `aclone`, `add-watch`, `remove-watch`
 
