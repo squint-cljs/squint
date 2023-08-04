@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Add `rand-nth`, `aclone`
+
 ## 0.1.15
 
 - [#288]: support `defclass`. See [doc/defclass.md](doc/defclass.md).

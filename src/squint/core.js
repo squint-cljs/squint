@@ -1190,3 +1190,8 @@ export function doall(x) {
   // realize as concrete array
   return vec(x);
 }
+
+export function aclone(arr) {
+  let cloned = [...arr];
+  return cloned;
+}
