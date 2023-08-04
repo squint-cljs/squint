@@ -306,7 +306,20 @@ export function println(...args) {
 
 export function nth(coll, idx, orElse) {
   if (coll) {
-    const elt = coll[idx];
+    var elt = undefined;
+    if (coll instanceof Array) {
+      elt = coll[idx];
+    }
+    else {
+      let iter = iterable(coll);
+      let i = 0;
+      for (let value of iter) {
+        if (i++ == idx) {
+          elt = value;
+          break;
+        }
+      }
+    }
     if (elt !== undefined) {
       return elt;
     }
@@ -1026,6 +1039,11 @@ export function empty_QMARK_(coll) {
 
 export function rand_int(n) {
   return Math.floor(Math.random() * n);
+}
+
+export function rand_nth(coll) {
+  let ri = rand_int(count(coll));
+  return nth(coll, ri);
 }
 
 function _repeatedly(f) {

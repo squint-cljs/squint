@@ -87,6 +87,7 @@
   println
   prn
   rand_int
+  rand_nth
   range
   re_matches
   reduce
