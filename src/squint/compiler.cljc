@@ -109,12 +109,6 @@
 
 (defmulti emit-special (fn [disp _env & _args] disp))
 
-(defn squint-compiler-html
-  [form env _html]
-  (prn :emit-special)
-  (emit-special (first form) env form)
-  #_(prn :form form :env env :html html))
-
 (defmethod emit-special 'not [_ env [_ form]]
   (emit-return (str "!" (emit form (expr-env env))) env))
 
@@ -238,7 +232,7 @@
                  (if macro
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
-                         new-expr (apply macro expr env (rest expr))]
+                         new-expr (apply macro expr (assoc env :squint-compiler-html squint-compiler-html) (rest expr))]
                      (emit new-expr env))
                    (cond
                      (and (= (.charAt head-str 0) \.)

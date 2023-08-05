@@ -193,18 +193,33 @@
     arg
     (str "${" "~{}" "}")))
 
-(defn js-template [_ env tag & args]
-  (prn (:macros env))
-  (let [_ (prn :args args)
-        html-args? (and (= 1 (count args))
+(defn keyword->tag [k close?]
+  (str (if close? "</" "<") (name k) ">"))
+
+(declare compile-html)
+
+(declare js-template)
+
+(defn compile-html-vector [tag html-vector]
+  (let [k (first html-vector)
+        elts (rest html-vector)
+        opts? (map? (first elts))
+        [opts elts] (if opts?
+                      [(first elts) (rest elts)]
+                      [nil elts])]
+    (apply js-template nil nil tag (concat [(keyword->tag k false)] (map #(compile-html tag %) elts) [(keyword->tag k true)]))))
+
+(defn compile-html [tag html]
+  (if (vector? html) (compile-html-vector tag html) html))
+
+(defn js-template [_form _env tag & args]
+  (prn :args args)
+  (let [html-args? (and (= 1 (count args))
                         (seq? (first args))
-                        (= 'squint-compiler-html (ffirst args)))
-        res (if html-args?
-              
-              `(let [v# (~'js* {:context :expr} ~(str "~{}`" (str/join (map process-template-arg args))  "`") ~tag ~@(filter #(not (string? %)) args))]
-                 v#))]
-    #_(prn :res res)
-    res))
+                        (= 'squint-compiler-html (ffirst args)))]
+    (if html-args? (compile-html tag (second (first args)))
+        `(let [v# (~'js* {:context :expr} ~(str "~{}`" (str/join (map process-template-arg args))  "`") ~tag ~@(filter #(not (string? %)) args))]
+           v#))))
 
 
 ;; DONE: super must occur before anything else
