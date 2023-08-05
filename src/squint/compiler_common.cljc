@@ -94,7 +94,7 @@
     s))
 
 (defn escape-jsx [expr env]
-  (if (:jsx env)
+  (if (true? (:jsx env))
     (format "{%s}" expr)
     expr))
 

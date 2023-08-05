@@ -193,9 +193,16 @@
     arg
     (str "${" "~{}" "}")))
 
-(defn js-template [_ _ tag & args]
-  (let [res `(let [v# (~'js* {:context :expr} ~(str "~{}`" (str/join (map process-template-arg args))  "`") ~tag ~@(filter #(not (string? %)) args))]
-               v#)]
+(defn js-template [_ env tag & args]
+  (prn (:macros env))
+  (let [_ (prn :args args)
+        html-args? (and (= 1 (count args))
+                        (seq? (first args))
+                        (= 'squint-compiler-html (ffirst args)))
+        res (if html-args?
+              
+              `(let [v# (~'js* {:context :expr} ~(str "~{}`" (str/join (map process-template-arg args))  "`") ~tag ~@(filter #(not (string? %)) args))]
+                 v#))]
     #_(prn :res res)
     res))
 

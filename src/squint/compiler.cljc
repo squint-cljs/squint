@@ -42,7 +42,10 @@
                          'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
+                         'squint-compiler-html
                          'require 'defclass* 'squint.internal.macros.defclass/super*]))
+
+(declare squint-compiler-html)
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -85,7 +88,9 @@
                       'declare macros/core-declare
                       'letfn macros/core-letfn
                       'defclass defclass/defclass
-                      'js-template defclass/js-template})
+                      'js-template defclass/js-template
+                      'squint-compiler-html (fn [x y z]
+                                              (squint-compiler-html x y z))})
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 
@@ -103,6 +108,12 @@
   (str (emit arg) operator))
 
 (defmulti emit-special (fn [disp _env & _args] disp))
+
+(defn squint-compiler-html
+  [form env _html]
+  (prn :emit-special)
+  (emit-special (first form) env form)
+  #_(prn :form form :env env :html html))
 
 (defmethod emit-special 'not [_ env [_ form]]
   (emit-return (str "!" (emit form (expr-env env))) env))
@@ -227,7 +238,7 @@
                  (if macro
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
-                         new-expr (apply macro expr {} (rest expr))]
+                         new-expr (apply macro expr env (rest expr))]
                      (emit new-expr env))
                    (cond
                      (and (= (.charAt head-str 0) \.)
@@ -288,13 +299,23 @@
           tag-name (if (= '<> tag-name)
                      (symbol "")
                      tag-name)
-          tag-name (emit tag-name (expr-env (dissoc env :jsx)))]
-      (emit-return (format "<%s%s>%s</%s>"
+          tag-name (emit tag-name (expr-env (dissoc env :jsx)))
+          html? (= :html (:jsx env))]
+      (emit-return (format "%s<%s%s>%s%s%s</%s>%s"
+                           (when html? "'")
                            tag-name
                            (jsx-attrs attrs env)
+                           (when html? "', ")
                            (let [env (expr-env env)]
-                             (str/join " " (map #(emit % env) elts)))
-                           tag-name)
+                             (str/join (if html? ", " " ") (map #(emit % env) elts)))
+                           (when html?
+                             (str
+                              (when (seq elts)
+                                ",")
+                              "'"))
+                           tag-name
+                           (when html?
+                             "'"))
                    env))
     (-> (emit-return (format "[%s]"
                              (str/join ", " (emit-args env expr))) env)
@@ -338,10 +359,19 @@
 (defn jsx [form]
   (list 'squint-compiler-jsx form))
 
+(defn html [form]
+  (list 'squint-compiler-html form))
+
 (defmethod emit-special 'squint-compiler-jsx [_ env [_ form]]
   (set! *jsx* true)
   (let [env (assoc env :jsx true)]
     (emit form env)))
+
+(defmethod emit-special 'squint-compiler-html [_ env [_ form]]
+  (let [env (assoc env :jsx :html)]
+    (str "["
+    (emit form env)
+    (str "]"))))
 
 (def squint-parse-opts
   (e/normalize-opts
@@ -349,7 +379,8 @@
     :end-location false
     :location? seq?
     :readers {'js #(vary-meta % assoc ::js true)
-              'jsx jsx}
+              'jsx jsx
+              'html html}
     :read-cond :allow
     :features #{:cljc}}))
 
