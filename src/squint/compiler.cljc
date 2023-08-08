@@ -22,9 +22,9 @@
    [squint.internal.destructure :refer [core-let]]
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
    [squint.internal.loop :as loop]
+   [squint.defclass :as defclass]
    [squint.internal.macros :as macros]
-   [squint.internal.protocols :as protocols]
-   [squint.internal.macros.defclass :as defclass])
+   [squint.internal.protocols :as protocols])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 
@@ -42,7 +42,7 @@
                          'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
-                         'require 'defclass* 'squint.internal.macros.defclass/super*]))
+                         'require 'squint.defclass/defclass* 'squint.defclass/super*]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -146,10 +146,10 @@
                                                                 fields)))))
                                                (assoc :type true)))))))
 
-(defmethod emit-special 'defclass* [_ env form]
+(defmethod emit-special 'squint.defclass/defclass* [_ env form]
   (defclass/emit-class env emit form))
 
-(defmethod emit-special 'squint.internal.macros.defclass/super* [_ env form]
+(defmethod emit-special 'squint.defclass/super* [_ env form]
   (defclass/emit-super env emit (second form)))
 
 #_(defn wrap-await [s]

@@ -1,4 +1,4 @@
-(ns squint.internal.macros.defclass
+(ns squint.defclass
   (:require [clojure.string :as str]
             [clojure.walk :as walk]))
 
@@ -8,9 +8,9 @@
 ;; https://github.com/thheller/shadow-cljs/blob/51b15dd52c74f1c504010f00cb84372bc2696a4d/src/repl/shadow/cljs/modern_test.clj#L2
 
 (defn defclass [_ _ & body]
-  `(~'defclass* ~@body))
+  `(defclass* ~@body))
 
-(defn parse-class [form]
+(defn- parse-class [form]
   (loop [classname nil
          fields []
          constructor nil
@@ -83,7 +83,7 @@
         ))))
 
 
-(defn find-and-replace-super-call [form super? fields this-sym]
+(defn- find-and-replace-super-call [form super? fields this-sym]
   (let [res
         (walk/prewalk
          (fn [form]
@@ -97,14 +97,14 @@
       (if super? (cons `(super*) form)
           form))))
 
-(defn emit-field-defaults [env emit-fn fields]
+(defn- emit-field-defaults [env emit-fn fields]
   (str/join "\n"
             (for [field fields
                   :let [default (:field-default field)]
                   :when default]
               (str "this." (munge (:field-name field)) " = " (emit-fn default env) ";"))))
 
-(defn emit-args [env emit-fn args]
+(defn- emit-args [env emit-fn args]
   (let [arg-env (assoc env :context :expr :top-level false)]
     (map #(emit-fn % arg-env) args)))
 
@@ -210,6 +210,6 @@
 ;; DONE: test munging of constructor + method args
 ;; DONE: currently constructor args are considered locals in other method bodies
 ;; DONE: munge method names and variable names: handle-click, etc
-;; TODO: write defclass tests
-;; TODO: write js-template tests
+;; DONE: write defclass tests
+;; DONE: write js-template tests
 ;; TODO: hiccup in js-template
