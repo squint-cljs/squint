@@ -720,7 +720,9 @@ break;}" body)
                     (comma-list (emit-args env
                                            (if cherry?
                                              (if (not cherry+interop?)
-                                               (cons nil args)
+                                               (cons
+                                                (if (= "super" (first (str/split (str fname) #"\.")))
+                                                  'self__ nil) args)
                                                args)
                                              args
                                              ))))
