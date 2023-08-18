@@ -388,9 +388,15 @@
       *async* (wrap-await)))
 
 (defn resolve-ns [alias]
-  (if (= :squint *target*)
+  (case *target*
+    :squint
     (case alias
       (squint.string clojure.string) "squint-cljs/string.js"
+      alias)
+    :cherry
+    (case alias
+      (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
+      (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
       alias)
     alias))
 
