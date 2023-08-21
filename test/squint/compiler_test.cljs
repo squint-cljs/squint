@@ -1425,7 +1425,7 @@
   (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y"))))
 
 (deftest override-core-var-test
-  (is (= 2 (jsv! "(def count 1) (set! count (inc count)) count"))))
+  (is (= 1 (jsv! "(def count 1) (set! count (inc count)) (defn frequencies [x] (dec x)) (frequencies count)"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
