@@ -85,7 +85,7 @@
                      :or {output-dir ""}
                      :as opts}]
   (let [contents (or in-str (slurp in-file))]
-    (-> (compile-string contents opts)
+    (-> (compile-string contents (assoc opts :ns-state (atom {:current in-file})))
         (.then (fn [{:keys [javascript jsx] :as opts}]
                  (let [out-file (path/resolve output-dir
                                  (or out-file

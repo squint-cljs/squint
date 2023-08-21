@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- [#320](https://github.com/squint-cljs/squint/issues/320): fix overriding core vars
+
 ## 0.1.16
 
 - Add `rand-nth`, `aclone`, `add-watch`, `remove-watch`
