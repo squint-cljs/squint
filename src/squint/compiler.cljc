@@ -323,7 +323,8 @@
 (defn transpile-form
   ([f] (transpile-form f nil))
   ([f env]
-   (emit f (merge {:context :statement
+   (emit f (merge {:ns-state (atom {})
+                   :context :statement
                    :top-level true
                    :core-vars core-vars
                    :emit {::cc/list emit-list
@@ -356,7 +357,8 @@
 (defn transpile-string*
   ([s] (transpile-string* s {}))
   ([s env]
-   (let [rdr (e/reader s)
+   (let [env (merge {:ns-state (atom {})} env)
+         rdr (e/reader s)
          opts squint-parse-opts]
      (loop [transpiled ""]
        (let [opts (assoc opts :auto-resolve @*aliases*)
@@ -377,7 +379,8 @@
    (binding [cc/*core-package* "squint-cljs/core.js"
              cc/*target* :squint
              *jsx* false]
-     (let [imported-vars (atom {})
+     (let [opts (merge {:ns-state (atom {})} opts)
+           imported-vars (atom {})
            public-vars (atom #{})
            aliases (atom {core-alias cc/*core-package*})
            imports (atom (format "import * as %s from '%s';\n"

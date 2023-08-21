@@ -59,7 +59,7 @@ Options:
 
 --no-run: do not run compiled expression
 --show:   print compiled expression")
-      (let [res (cc/compile-string e)
+      (let [res (cc/compile-string e {:ns-state (atom {:current 'user})})
             dir (fs/mkdtempSync ".tmp")
             f (str dir "/squint.mjs")]
         (fs/writeFileSync f res "utf-8")

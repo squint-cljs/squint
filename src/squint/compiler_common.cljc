@@ -1,8 +1,8 @@
 (ns squint.compiler-common
   (:refer-clojure :exclude [*target*])
   (:require
-   #?(:cljs [goog.string.format])
    #?(:cljs [goog.string :as gstring])
+   #?(:cljs [goog.string.format])
    [clojure.string :as str]))
 
 #?(:cljs (def Exception js/Error))
@@ -22,8 +22,8 @@
     (reduce (fn [template substitution]
               (str/replace-first template "~{}"
                                  (emit substitution (merge env env'))))
-           template
-           substitutions)))
+            template
+            substitutions)))
 
 (defn emit-return [s env]
   (if (= :return (:context env))
@@ -187,9 +187,9 @@
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
     (emit-return (escape-jsx (emit (list 'cljs.core/symbol
-                                       (str expr))
-                                 (dissoc env :quote))env)
-               env)
+                                         (str expr))
+                                   (dissoc env :quote)) env)
+                 env)
     (if (and (simple-symbol? expr)
              (str/includes? (str expr) "."))
       (let [[fname path] (str/split (str expr) #"\." 2)
@@ -208,19 +208,24 @@
                            #_(swap! *imported-vars* update resolved-ns (fnil conj #{}) (munged-name sn))
                            (str (if (symbol? resolved-ns)
                                   (munge resolved-ns)
-                                  sym-ns) "." #_#_sym-ns "_"  (munged-name sn)))
+                                  sym-ns) "." #_#_sym-ns "_" (munged-name sn)))
                          (if *repl*
                            (str "globalThis." (munge *cljs-ns*) ".aliases." (munge (namespace expr)) "." (munge (name expr)))
                            (str (munge (namespace expr)) "." (munge (name expr))))))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (munge** (str renamed))
                      (or
+                      (let [ns-state @(:ns-state env)
+                            current (:current ns-state)
+                            current-ns (get ns-state current)]
+                        (when (contains? current-ns expr)
+                          (munged-name expr)))
                       (some-> (maybe-core-var expr env) munge)
                       (let [m (munged-name expr)]
                         (str (when *repl*
                                (str (munge *cljs-ns*) ".")) m)))))]
         (-> (emit-return (escape-jsx (str expr) env)
-                       env)
+                         env)
             (emit-repl env))))))
 
 (defn wrap-await [s]
@@ -333,14 +338,12 @@
                (map (fn [temp expr]
                       (statement (format "let %s = %s"
                                          temp (emit expr eenv))))
-                    temps exprs)
-               )
+                    temps exprs))
      (str/join ""
                (map (fn [binding temp]
                       (statement (format "%s = %s"
                                          binding temp)))
-                    bindings temps)
-               )
+                    bindings temps))
      "continue;\n")))
 
 (defn emit-repl-var [s _name env]
@@ -370,7 +373,11 @@
 
 (defmethod emit-special 'def [_type env [_const & more]]
   (let [name (first more)]
+    ;; TODO: move *public-vars* to :ns-state atom
     (swap! *public-vars* conj (munge* name))
+    (swap! (:ns-state env) (fn [state]
+                             (let [current (:current state)]
+                               (assoc-in state [current name] {}))))
     (emit-var more env)))
 
 (defn js-await [env more]
@@ -418,7 +425,7 @@
                   (swap! *imported-vars* update libname (fnil identity #{}))
                   (statement (format "import * as %s from '%s'" as libname)))
                 (when refer
-                  (statement (format "import { %s } from '%s'"  (str/join ", " (map munge refer)) libname))))]
+                  (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname))))]
       (swap! (:imports env) str expr)
       nil)))
 
@@ -516,15 +523,15 @@
   (let [eenv (expr-env env)
         method (munge** method)]
     (emit-return (str (emit obj eenv) "."
-                    (str method)
-                    (comma-list (emit-args env args)))
-               env)))
+                      (str method)
+                      (comma-list (emit-args env args)))
+                 env)))
 
 (defn emit-aget [env var idxs]
   (emit-return (apply str
-                    (emit var (expr-env env))
-                    (interleave (repeat "[") (emit-args env idxs) (repeat "]")))
-             env))
+                      (emit var (expr-env env))
+                      (interleave (repeat "[") (emit-args env idxs) (repeat "]")))
+               env))
 
 (defmethod emit-special '. [_type env [_period obj method & args]]
   (let [[method args] (if (seq? method)
@@ -550,8 +557,8 @@
   (assert (or (nil? more) (even? (count more))))
   (let [eenv (expr-env env)]
     (emit-return (str (emit var eenv) " = " (emit val eenv) statement-separator
-                    #_(when more (str (emit (cons 'set! more) env))))
-               env)))
+                      #_(when more (str (emit (cons 'set! more) env))))
+                 env)))
 
 (defmethod emit-special 'new [_type env [_new class & args]]
   (emit-return (str "new " (emit class (expr-env env)) (comma-list (emit-args env args))) env))
@@ -569,7 +576,7 @@
     (str (emit test env) " ? " (emit then env) " : " (emit else env)))
 
 (defn wrap-parens [s]
-  (str "(" s  ")"))
+  (str "(" s ")"))
 
 (defmethod emit-special 'and [_type env [_ & more]]
   (if (empty? more)
@@ -626,7 +633,7 @@ break;}" body)
                                     munged))) sig))
              " {\n"
              #_(when (:type env)
-               (str "var self__ = this;"))
+                 (str "var self__ = this;"))
              body "\n}")))))
 
 (defn emit-function* [env expr]
@@ -697,17 +704,17 @@ break;}" body)
           (emit-return outer-env)))))
 
 #_(defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
-  (-> (emit-wrap (str
-                  (emit fname (expr-env env))
+    (-> (emit-wrap (str
+                    (emit fname (expr-env env))
                   ;; this is needed when calling keywords, symbols, etc. We could
                   ;; optimize this later by inferring that we're not directly
                   ;; calling a `function`.
-                  #_(when-not interop? ".call")
-                  (comma-list (emit-args env
-                                         args #_(if interop? args
-                                                    (cons nil args)))))
-                 env)
-      (emit-repl env)))
+                    #_(when-not interop? ".call")
+                    (comma-list (emit-args env
+                                           args #_(if interop? args
+                                                      (cons nil args)))))
+                   env)
+        (emit-repl env)))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
   (let [ns (when (symbol? fname) (namespace fname))
@@ -722,17 +729,16 @@ break;}" body)
                     ;; this is needed when calling keywords, symbols, etc. We could
                     ;; optimize this later by inferring that we're not directly
                      ;; calling a `function`.
-                    (when (and cherry? (not cherry+interop?)) ".call")
-                    (comma-list (emit-args env
-                                           (if cherry?
-                                             (if (not cherry+interop?)
-                                               (cons
-                                                (if (= "super" (first (str/split (str fname) #"\.")))
-                                                  'self__ nil) args)
-                                               args)
-                                             args
-                                             ))))
-                   env)
+                      (when (and cherry? (not cherry+interop?)) ".call")
+                      (comma-list (emit-args env
+                                             (if cherry?
+                                               (if (not cherry+interop?)
+                                                 (cons
+                                                  (if (= "super" (first (str/split (str fname) #"\.")))
+                                                    'self__ nil) args)
+                                                 args)
+                                               args))))
+                     env)
         (emit-repl env))))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
