@@ -93,6 +93,7 @@
   range
   re_matches
   reduce
+  reduce_kv
   reduced
   reduced_QMARK_
   remove

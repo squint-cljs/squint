@@ -1221,3 +1221,14 @@ export function add_watch(ref, key, fn) {
 export function remove_watch(ref, key) {
   return ref._remove_watch(key);
 }
+
+export function reduce_kv(f, init, m) {
+  if (!m) {
+    return init;
+  }
+  var ret = init;
+  for (let o of Object.entries(m)) {
+    ret = f(ret, o[0], o[1]);
+  }
+  return ret;
+}

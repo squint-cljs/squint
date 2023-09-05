@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.1.18
+
+- Add `reduce-kv`
+
 ## 0.1.17
 
 - [#320](https://github.com/squint-cljs/squint/issues/320): fix overriding core vars
