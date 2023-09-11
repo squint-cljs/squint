@@ -1312,3 +1312,13 @@ export function iterate(f, x) {
     }
   });
 }
+
+export function juxt(...fs) {
+  return (...args) => {
+    let ret = [];
+    for (let f of fs) {
+      ret.push(f(...args));
+    }
+    return ret;
+  };
+}

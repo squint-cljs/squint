@@ -67,6 +67,7 @@
   iterable
   iterate
   js_obj
+  juxt
   keep
   keep_indexed
   last

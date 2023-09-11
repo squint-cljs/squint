@@ -1441,5 +1441,8 @@
 (deftest iterate-test
   (is (eq (clj->js (vec (take 10 (iterate inc 0)))) (jsv! "(vec (take 10 (iterate inc 0)))"))))
 
+(deftest juxt-test
+  (is (eq #js [2 0] (jsv! "((juxt inc dec) 1)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
