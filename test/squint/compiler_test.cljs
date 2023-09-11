@@ -1431,5 +1431,8 @@
   (is (eq #js [1] (jsv! "(vec (cons 1 (lazy-seq nil)))")))
   (is (eq #js [1 2] (jsv! "(vec (cons 1 (lazy-seq (cons 2 nil))))"))))
 
+(deftest keep-indexed-test
+  (is (eq #js [12 14 16 18 20] (jsv! "(keep-indexed (fn [i e] (when (odd? i) (inc e))) (range 10 20))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

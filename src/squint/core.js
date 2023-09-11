@@ -538,6 +538,19 @@ export function map_indexed(f, coll) {
   return ret;
 }
 
+export function keep_indexed(f, coll) {
+  let ret = [];
+  let i = 0;
+  for (const x of iterable(coll)) {
+    let fret = f(i, x);
+    if (!!fret) {
+      ret.push(fret);
+    };
+    i++;
+  }
+  return ret;
+}
+
 export function str(...xs) {
   return xs.join('');
 }

@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- Add `into-array`, `some-fn`
+- Add `into-array`, `some-fn`, `keep-indexed`
 - Fix for `lazy-seq` when body returns `nil`
 
 ## 0.1.19
