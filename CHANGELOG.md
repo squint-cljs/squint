@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.1.19
+
+- Add `max`, `min`, `every-pred`
+
 ## 0.1.18
 
 - Add `reduce-kv`
