@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Add `into-array`, `some-fn`
+- Fix for `lazy-seq` when body returns `nil`
+
 ## 0.1.19
 
 - Add `max`, `min`, `every-pred`
