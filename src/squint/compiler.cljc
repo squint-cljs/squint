@@ -162,7 +162,7 @@
 (defmethod emit-special 'if [_type env [_if test then else]]
   (if (= :expr (:context env))
     (-> (let [env (assoc env :context :expr)]
-          (format "(%s) ? (%s) : (%s)"
+          (format "((%s) ? (%s) : (%s))"
                   (emit test env)
                   (emit then env)
                   (emit else env)))

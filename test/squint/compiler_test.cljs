@@ -166,13 +166,14 @@
 (deftest if-test
   (is (false? (jsv! "(if 0 true false)")))
   (let [s (jss! "[(if false true false)]")]
-    (false? (first (js/eval s))))
+    (is (false? (first (js/eval s)))))
   (let [s (jss! "(let [x (if (inc 1) (inc 2) (inc 3))]
                    x)")]
     (is (= 3 (js/eval s))))
   (let [s (jss! "(let [x (do 1 (if (inc 1) (inc 2) (inc 3)))]
                    x)")]
-    (is (= 3 (js/eval s)))))
+    (is (= 3 (js/eval s))))
+  (is (eq #js {:a 1} (jsv! "{:a (or 1 (cond true (prn :yes)) 2)}"))))
 
 (deftest doseq-test
   (let [s (jss! '(let [a []]
