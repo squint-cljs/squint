@@ -46,6 +46,7 @@
   es6_iterator
   even_QMARK_
   every_QMARK_
+  every_pred
   false_QMARK_
   ffirst
   filter
@@ -70,10 +71,13 @@
   list
   list_QMARK_
   map
+  map_QMARK_
   map_indexed
   mapcat
   mapv
+  max
   merge
+  min
   neg_QMARK_
   nil_QMARK_
   not

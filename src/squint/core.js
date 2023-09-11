@@ -1232,3 +1232,41 @@ export function reduce_kv(f, init, m) {
   }
   return ret;
 }
+
+export function max(x, y, ...more) {
+  if (y == undefined) {
+    return x;
+  }
+  if ( more.length == 0) {
+    return ( x > y ) ? x : y;
+  }
+  return max(max(x,y),...more);
+}
+
+export function min(x, y, ...more) {
+  if (y == undefined) {
+    return x;
+  }
+  if ( more.length == 0) {
+    return ( x < y ) ? x : y;
+  }
+  return min(min(x,y),...more);
+}
+
+export function map_QMARK_(x) {
+  return (x instanceof Object);
+}
+
+export function every_pred(...preds) {
+  return (...args) => {
+    for (let p of preds) {
+      for (let a of args) {
+        let res = p(a);
+        if (!res) {
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+}

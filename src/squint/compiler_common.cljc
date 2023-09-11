@@ -553,7 +553,7 @@
 #_(defmethod emit-special 'delete [type [return expr]]
     (str "delete " (emit expr)))
 
-(defmethod emit-special 'set! [_type env [_set! var val & more]]
+(defmethod emit-special 'set! [_type env [_set! var val & more :as _expr]]
   (assert (or (nil? more) (even? (count more))))
   (let [eenv (expr-env env)]
     (emit-return (str (emit var eenv) " = " (emit val eenv) statement-separator
