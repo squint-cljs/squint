@@ -67,6 +67,7 @@
   iterable
   js_obj
   keep
+  keep_indexed
   last
   lazy
   list
