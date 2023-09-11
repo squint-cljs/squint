@@ -65,6 +65,7 @@
   into
   into_array
   iterable
+  iterate
   js_obj
   keep
   keep_indexed

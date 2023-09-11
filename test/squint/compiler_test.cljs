@@ -1437,5 +1437,8 @@
 (deftest into-array-test
   (is (eq (clj->js [[1 2 3] [1 2 3]]) (jsv! "[(into-array [1 2 3]) (into-array String [1 2 3])]"))))
 
+(deftest iterate-test
+  (is (eq (clj->js (vec (take 10 (iterate inc 0)))) (jsv! "(vec (take 10 (iterate inc 0)))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

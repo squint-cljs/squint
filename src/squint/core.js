@@ -545,7 +545,7 @@ export function keep_indexed(f, coll) {
     let fret = f(i, x);
     if (!!fret) {
       ret.push(fret);
-    };
+    }
     i++;
   }
   return ret;
@@ -1250,24 +1250,24 @@ export function max(x, y, ...more) {
   if (y == undefined) {
     return x;
   }
-  if ( more.length == 0) {
-    return ( x > y ) ? x : y;
+  if (more.length == 0) {
+    return x > y ? x : y;
   }
-  return max(max(x,y),...more);
+  return max(max(x, y), ...more);
 }
 
 export function min(x, y, ...more) {
   if (y == undefined) {
     return x;
   }
-  if ( more.length == 0) {
-    return ( x < y ) ? x : y;
+  if (more.length == 0) {
+    return x < y ? x : y;
   }
-  return min(min(x,y),...more);
+  return min(min(x, y), ...more);
 }
 
 export function map_QMARK_(x) {
-  return (x instanceof Object);
+  return x instanceof Object;
 }
 
 export function every_pred(...preds) {
@@ -1301,4 +1301,14 @@ export function some_fn(...fns) {
 export function into_array(type, aseq) {
   let theSeq = aseq || type;
   return vec(theSeq);
+}
+
+export function iterate(f, x) {
+  var current = x;
+  return lazy(function* () {
+    while (true) {
+      yield current;
+      current = f(current);
+    }
+  });
 }
