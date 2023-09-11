@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.1.21
+
+- Fix `into-array`
+
 ## 0.1.20
 
 - Add `into-array`, `some-fn`, `keep-indexed`

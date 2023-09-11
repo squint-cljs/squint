@@ -1300,5 +1300,5 @@ export function some_fn(...fns) {
 
 export function into_array(type, aseq) {
   let theSeq = aseq || type;
-  return vec(aseq);
+  return vec(theSeq);
 }
