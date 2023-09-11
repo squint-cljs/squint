@@ -1427,5 +1427,9 @@
 (deftest override-core-var-test
   (is (= 1 (jsv! "(def count 1) (set! count (inc count)) (defn frequencies [x] (dec x)) (frequencies count)"))))
 
+(deftest lazy-seq-test
+  (is (eq #js [1] (jsv! "(vec (cons 1 (lazy-seq nil)))")))
+  (is (eq #js [1 2] (jsv! "(vec (cons 1 (lazy-seq (cons 2 nil))))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

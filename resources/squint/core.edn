@@ -63,6 +63,7 @@
   interleave
   interpose
   into
+  into_array
   iterable
   js_obj
   keep
@@ -117,6 +118,7 @@
   shuffle
   some
   some_QMARK_
+  some_fn
   sort
   split_at
   split_with

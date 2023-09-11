@@ -1111,7 +1111,7 @@ export class LazySeq {
     this.f = f;
   }
   *[Symbol.iterator]() {
-    yield* this.f();
+    yield* iterable(this.f());
   }
 }
 
@@ -1269,4 +1269,23 @@ export function every_pred(...preds) {
     }
     return true;
   };
+}
+
+export function some_fn(...fns) {
+  return (...args) => {
+    for (let f of fns) {
+      for (let a of args) {
+        let res = f(a);
+        if (!!res) {
+          return res;
+        }
+      }
+    }
+    return undefined;
+  };
+}
+
+export function into_array(type, aseq) {
+  let theSeq = aseq || type;
+  return vec(aseq);
 }
