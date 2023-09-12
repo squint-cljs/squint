@@ -5,6 +5,7 @@
 ## 0.1.23
 
 - Support next on non-arrays
+- Add `compare`
 
 ## 0.1.22
 
