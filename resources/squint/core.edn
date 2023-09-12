@@ -83,6 +83,7 @@
   merge
   min
   neg_QMARK_
+  next
   nil_QMARK_
   not
   not_any_QMARK_

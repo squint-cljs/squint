@@ -77,7 +77,10 @@
 (deftest destructure-test
   (let [s (jss! "(let [^js {:keys [a b c]} #js {:a 1 :b 2 :c 3}]
                    (+ a b c))")]
-    (is (= 6 (js/eval s)))))
+    (is (= 6 (js/eval s))))
+  (is (eq #js [1 #js [2 3]]
+          (jsv! "(let [[x & xs] [1 2 3]]
+                   [x xs])"))))
 
 (deftest fn-test
   (let [s (jss! '(let [f (fn [x] x)]

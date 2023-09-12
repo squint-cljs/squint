@@ -1322,3 +1322,15 @@ export function juxt(...fs) {
     return ret;
   };
 }
+
+export function next(x) {
+  if (x instanceof Array) {
+    let ret = x.slice(1);
+    if (ret.length > 0) {
+      return ret;
+    } else {
+      return null;
+    }
+  }
+  throw new Error('next not implement for non-arrays yet');
+}

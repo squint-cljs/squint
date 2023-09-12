@@ -2,8 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.1.22
 
+- Fix [#325](https://github.com/squint-cljs/squint/issues/325): fix varargs destructuring
 - Fix [#326](https://github.com/squint-cljs/squint/issues/326): bun compatibility
 
 ## 0.1.21
