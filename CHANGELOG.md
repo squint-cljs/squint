@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Fix [#326](https://github.com/squint-cljs/squint/issues/326): bun compatibility
+
 ## 0.1.21
 
 - Fix `into-array`

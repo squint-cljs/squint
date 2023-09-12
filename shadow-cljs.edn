@@ -10,6 +10,8 @@
    :modules
    {:compiler {:exports
                {compileString squint.compiler/compile-string}}
+    :compiler.sci {:depends-on #{:compiler :compiler.node}
+                   :init-fn squint.compiler.sci/init}
     :compiler.node {:depends-on #{:compiler}
                     :exports
                     {compileFile squint.compiler.node/compile-file-js

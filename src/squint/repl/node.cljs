@@ -38,8 +38,6 @@
 (def tty (and js/process.stdout.isTTY
               js/process.stdin.setRawMode))
 
-(def contextify-binding (js/process.binding "contextify"))
-
 (defn eval-expr [socket f]
   (let [ctx #js {:f f}
         _ (.createContext vm ctx)]
