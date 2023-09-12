@@ -32,3 +32,7 @@ export function trim(s) {
 export function split(s, re) {
   return s.split(re);
 }
+
+export function starts_with_QMARK_(s, substr) {
+  return s.startsWith(substr);
+}

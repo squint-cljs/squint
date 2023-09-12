@@ -1364,3 +1364,7 @@ export function compare(x, y) {
     }
   }
 }
+
+export function to_array(aseq) {
+  return into_array(aseq);
+}
