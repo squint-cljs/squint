@@ -1331,6 +1331,36 @@ export function next(x) {
     } else {
       return null;
     }
+  } else {
+    // opiniated choice, next realizes underlying sequence
+    return next(vec(x));
   }
-  throw new Error('next not implement for non-arrays yet');
+}
+
+export function compare(x, y) {
+  if (x === y) {
+    return 0;
+  } else {
+    if (x == null) {
+      return -1;
+    }
+    if (y == null) {
+      return 1;
+    }
+    if (typeof x === 'number') {
+      if (typeof y === 'number') {
+        if (x === y) {
+          return 0;
+        }
+        if (x < y) {
+          return -1;
+        }
+        return 1;
+      } else {
+        throw new Error('comparing number to other type');
+      }
+    } else {
+      throw new Error('comparing number to other type');
+    }
+  }
 }

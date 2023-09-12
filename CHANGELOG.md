@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.1.23
+
+- Support next on non-arrays
+
 ## 0.1.22
 
 - Fix [#325](https://github.com/squint-cljs/squint/issues/325): fix varargs destructuring
