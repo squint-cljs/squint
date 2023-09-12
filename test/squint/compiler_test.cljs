@@ -1020,7 +1020,8 @@
 
 (deftest instance-test
   (is (true? (jsv! '(instance? js/Array []))))
-  (is (false? (jsv! '(instance? js/String [])))))
+  (is (false? (jsv! '(instance? js/String []))))
+  (is (true? (jsv! '(do (defn string? [x] (instance? js/String x)) (string? (new String "foo")))))))
 
 (deftest concat-test
   (is (eq [] (jsv! '(vec (concat nil)))))

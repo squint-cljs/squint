@@ -417,10 +417,9 @@
   (list 'js* "(~{}[~{}] = ~{})" obj key val))
 
 (defn core-instance? [_ _ c x]
-  (bool-expr (if (clojure.core/symbol? c)
-               (list 'js* "(~{} instanceof ~{})" x c)
-               `(let [c# ~c x# ~x]
-                  (~'js* "(~{} instanceof ~{})" x# c#)))))
+  (bool-expr `(let [c# ~c x# ~x
+                    ret# (~'js* "(~{} instanceof ~{})" x# c#)]
+                ret#)))
 
 (defn core-time
   "Evaluates expr and prints the time it took. Returns the value of expr."
