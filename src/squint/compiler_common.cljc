@@ -691,10 +691,11 @@ break;}" body)
                        (emit-do env try-body)
                        "}\n"
                        (when-let [[_ _exception binding & catch-body] (first catch-clause)]
-                         ;; TODO: only bind when exception type matches
-                         (str "catch(" (emit binding (expr-env env)) "){\n"
-                              (emit-do env catch-body)
-                              "}\n"))
+                         (let [binding (munge binding)
+                               env (assoc-in env [:var->ident binding] (gensym binding))]
+                           (str "catch(" (emit binding (expr-env env)) "){\n"
+                                (emit-do env catch-body)
+                                "}\n")))
                        (when-let [[_ & finally-body] (first finally-clause)]
                          (str "finally{\n"
                               (emit-do (assoc env :context :statement) finally-body)

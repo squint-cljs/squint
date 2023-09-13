@@ -1370,6 +1370,7 @@
   (is (= 2 (jsv! '(do (defn foo [x x] x) (foo 1 2))))))
 
 (deftest try-catch-test
+  (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2)))))
   (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2))))))
 
 (deftest require-with-kebab-case-alias-test

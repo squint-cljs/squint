@@ -352,7 +352,7 @@
     :readers {'js #(vary-meta % assoc ::js true)
               'jsx jsx}
     :read-cond :allow
-    :features #{:cljc}}))
+    :features #{:cljs}}))
 
 (defn transpile-string*
   ([s] (transpile-string* s {}))

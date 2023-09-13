@@ -32,8 +32,9 @@
 (defn jss! [expr]
   (if (string? expr)
     (:body (squint/compile-string* expr {:elide-imports true
-                                         :core-alias nil}))
-    (squint/transpile-form expr)))
+                                         :core-alias "squint_core"}))
+    (squint/transpile-form expr {:elide-imports true
+                                 :core-alias "squint_core"})))
 
 (defn js! [expr]
   (let [js (jss! expr)]

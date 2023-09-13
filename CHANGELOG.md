@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Do not resolve binding in `catch` to core var
+- Fix reading `.cljc` files
+
 ## 0.2.24 (2023-09-13)
 
 - Fix `instance?` in return position
