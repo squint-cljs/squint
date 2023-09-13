@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.2.24 (2023-09-13)
+
+- Fix `instance?` in return position
+- `to-array`, `str/starts-with?`
+
 ## 0.1.23
 
 - Support next on non-arrays
