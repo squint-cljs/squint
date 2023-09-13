@@ -134,6 +134,7 @@
   take
   take_nth
   take_while
+  to_array
   true_QMARK_
   update
   update_BANG_
