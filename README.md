@@ -181,6 +181,21 @@ squint supports `async/await`:
 
 See [doc/defclass.md](doc/defclass.md).
 
+## JS API
+
+The JavaScript API exposes the `compileString` function:
+
+``` javascript
+import { compileString } from 'squint-cljs';
+
+const f = eval(compileString("(fn [] 1)"
+                             , {"context": "expr",
+                                "elide-imports": true}
+                            ));
+
+console.log(f()); // prints 1
+```
+
 License
 =======
 
