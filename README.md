@@ -208,6 +208,8 @@ In a `.cljs` buffer, type `M-x inf-clojure`. Then enter the startup command `npx
 squint repl` (or `bunx --bun repl`) and select the `clojure` or `babashka` type
 REPL. REPL away!
 
+<img src="https://pbs.twimg.com/media/F6Pry0eWwAEwsRD?format=jpg">
+
 ## Svelte
 
 A svelte pre-processor for squint can be found [here](https://github.com/jruz/svelte-preprocess-cljs).
