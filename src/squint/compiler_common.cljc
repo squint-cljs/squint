@@ -88,7 +88,7 @@
 #?(:cljs (derive js/Number ::number))
 
 (defn emit-repl [s env]
-  (if (and *repl*
+  s #_(if (and *repl*
            (:top-level env))
     (str "\nglobalThis._repl = " s)
     s))
@@ -513,7 +513,7 @@
               (reduce-kv (fn [acc k _v]
                            (if (symbol? k)
                              (str acc
-                                  ns-obj ".aliases." k " = " k ";\n")
+                                  ns-obj "." #_".aliases." k " = " k ";\n")
                              acc))
                          ""
                          @*aliases*)))))))
