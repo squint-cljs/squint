@@ -31,7 +31,9 @@
   (is (str/includes? (:out (repl "(defn foo [x] x) (foo 1)")) "1"))
   (is (str/includes? (:out (repl "\"foo\"")) "foo"))
   (is (str/includes? (:out (repl "(ns foo (:require [\"playwright$default\" :as pw])) (let [chrome pw/chromium] (when (some? chrome) :success))")) "success"))
-  (is (str/includes? (:out (repl "(require '[\"playwright$default\" :as pw]) (let [chrome pw/chromium] (when (some? chrome) :success))")) "success")))
+  (is (str/includes? (:out (repl "(require '[\"playwright$default\" :as pw]) (let [chrome pw/chromium] (when (some? chrome) :success))")) "success"))
+  (is (str/includes? (:out (repl "(loop [] 1)")) "1"))
+  (is (str/includes? (:out (repl "(defn ^:async foo [] (let [x (js-await (js/Promise.resolve 10))] (str \"the-answer\"(inc x)))) (foo)")) "the-answer11")))
 
 (defn run-tests [_]
   (let [{:keys [fail error]}
