@@ -26,3 +26,5 @@ public
 .test
 scratch.js
 compiler-common
+garbage.js
+playground

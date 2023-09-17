@@ -88,7 +88,7 @@
 #?(:cljs (derive js/Number ::number))
 
 (defn emit-repl [s env]
-  (if (and *repl*
+  s #_(if (and *repl*
            (:top-level env))
     (str "\nglobalThis._repl = " s)
     s))
@@ -210,7 +210,7 @@
                                   (munge resolved-ns)
                                   sym-ns) "." #_#_sym-ns "_" (munged-name sn)))
                          (if *repl*
-                           (str "globalThis." (munge *cljs-ns*) ".aliases." (munge (namespace expr)) "." (munge (name expr)))
+                           (str "globalThis." (munge *cljs-ns*) "." #_".aliases." (munge (namespace expr)) "." (munge (name expr)))
                            (str (munge (namespace expr)) "." (munge (name expr))))))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (munge** (str renamed))
@@ -228,12 +228,16 @@
                          env)
             (emit-repl env))))))
 
-(defn wrap-await [s]
-  (format "(%s)" (str "await " s)))
+(defn wrap-await
+  ([s] (wrap-await s false))
+  ([s return?]
+   (format "%s(%s)" (if return? "return " "") (str "await " s))))
 
-(defn wrap-iife [s]
-  (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
-    *async* (wrap-await)))
+(defn wrap-iife
+  ([s] (wrap-iife s false))
+  ([s return?]
+   (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
+     *async* (wrap-await return?))))
 
 (defn emit-do [env exprs]
   (let [bl (butlast exprs)
@@ -274,7 +278,7 @@
                   ["" upper-var->ident]
                   partitioned))
         enc-env (assoc enc-env :var->ident var->ident :top-level false)]
-    (-> (cond->> (str
+    (-> (cond-> (str
                   bindings
                   (when is-loop
                     (str "while(true){\n"))
@@ -290,7 +294,7 @@
                     ;; (loop [x 1] (+ 1 2 x)) breaks
                     (str ";break;\n}\n")))
           iife?
-          (wrap-iife))
+          (wrap-iife (= :return (:context enc-env))))
         (emit-repl env))))
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
@@ -417,13 +421,17 @@
           as (when as (munge as))
           expr (str
                 (when (and as (= "default" p))
-                  (statement (format "import %s from '%s'" as libname)))
+                  (if *repl*
+                    (statement (format "const %s = (await import('%s')).default" as libname))
+                    (statement (format "import %s from '%s'" as libname))))
                 (when (and (not as) (not p) (not refer))
                   ;; import presumably for side effects
                   (statement (format "import '%s'" libname)))
                 (when (and as (not= "default" p))
                   (swap! *imported-vars* update libname (fnil identity #{}))
-                  (statement (format "import * as %s from '%s'" as libname)))
+                  (statement (if *repl*
+                               (format "var %s = await import('%s')" as libname)
+                               (format "import * as %s from '%s'" as libname))))
                 (when refer
                   (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname))))]
       (swap! (:imports env) str expr)
@@ -475,7 +483,7 @@
         (reduce-kv (fn [acc k _v]
                      (if (symbol? k)
                        (str acc
-                            ns-obj ".aliases." k " = " k ";\n")
+                            ns-obj "." #_".aliases." k " = " k ";\n")
                        acc))
                    ""
                    @*aliases*))))))
@@ -511,7 +519,7 @@
               (reduce-kv (fn [acc k _v]
                            (if (symbol? k)
                              (str acc
-                                  ns-obj ".aliases." k " = " k ";\n")
+                                  ns-obj "." #_".aliases." k " = " k ";\n")
                              acc))
                          ""
                          @*aliases*)))))))

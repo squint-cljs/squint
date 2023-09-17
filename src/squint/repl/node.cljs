@@ -71,7 +71,7 @@
 
 (def last-ns (atom *cljs-ns*))
 
-(defn eval-js [js-str]
+#_(defn eval-js [js-str]
   (let [filename (str ".repl/" (gensym) ".mjs")]
     (when-not (fs/existsSync ".repl")
       (fs/mkdirSync ".repl"))
@@ -84,19 +84,23 @@
 (defn compile [the-val rl socket]
   (let [{js-str :javascript
          cljs-ns :ns} (binding [*cljs-ns* @last-ns]
-                        (compiler/compile-string* (pr-str the-val)))]
+                        (compiler/compile-string* (binding [*print-meta* true]
+                                                    (pr-str the-val)) {:context :return
+                                                                       :elide-exports true}))
+        js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
+    #_(println :js-str js-str)
     (reset! last-ns cljs-ns)
     (->
-     (eval-js js-str)
-     (.then (fn [^js _val]
-              (squint/println js/globalThis._repl)
-              (continue rl socket)))
+     (js/Promise.resolve (js/eval js-str))
+     (.then (fn [^js val]
+              (squint/println val)
+              (eval-next socket rl)))
      (.catch (fn [err]
                (squint/println err)
                (continue rl socket))))))
 
 (defn eval-next [socket rl]
-  (when-not (or @in-progress (str/blank? @pending-input))
+  (when (or @in-progress (not (str/blank? @pending-input)))
     (reset! in-progress true)
     (let [rdr (e/reader @pending-input)
           the-val (try (e/parse-next rdr)
@@ -116,7 +120,7 @@
                 (if-not (= :edamame.core/eof the-val)
                   ;; (prn :pending @pending)
                   (compile the-val rl socket)
-                  (reset! in-progress false)))))))
+                  (continue rl socket) #_(reset! in-progress false)))))))
 
 (defn input-handler [socket rl input]
   (swap! pending-input str input "\n")
@@ -174,7 +178,7 @@
    (set! *repl* true)
    (set! *async* true)
    (when tty (.setRawMode js/process.stdin true))
-   (.then (eval-js "globalThis.user = globalThis.user || {};")
+   (.then (js/Promise.resolve (js/eval "globalThis.user = globalThis.user || {};"))
           (fn [_]
             (js/Promise. (fn [resolve]
                            (input-loop nil resolve)))))))
