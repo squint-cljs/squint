@@ -84,12 +84,14 @@
 (defn compile [the-val rl socket]
   (let [{js-str :javascript
          cljs-ns :ns} (binding [*cljs-ns* @last-ns]
-                        (compiler/compile-string* (pr-str the-val)))]
+                        (compiler/compile-string* (pr-str the-val)))
+        js-str (str/replace "(async function () {\n%s\n})()" "%s" js-str)]
+    (prn js-str)
     (reset! last-ns cljs-ns)
     (->
-     (eval-js js-str)
-     (.then (fn [^js _val]
-              (squint/println js/globalThis._repl)
+     (js/Promise.resolve (js/eval js-str))
+     (.then (fn [^js val]
+              (squint/println val)
               (continue rl socket)))
      (.catch (fn [err]
                (squint/println err)

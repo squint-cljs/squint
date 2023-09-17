@@ -383,8 +383,11 @@
            imported-vars (atom {})
            public-vars (atom #{})
            aliases (atom {core-alias cc/*core-package*})
-           imports (atom (format "import * as %s from '%s';\n"
-                                 core-alias cc/*core-package*))]
+           imports (atom (if cc/*repl*
+                           (format "var %s = await import('%s');\n"
+                                   core-alias cc/*core-package*)
+                           (format "import * as %s from '%s';\n"
+                                   core-alias cc/*core-package*)))]
        (binding [*imported-vars* imported-vars
                  *public-vars* public-vars
                  *aliases* aliases

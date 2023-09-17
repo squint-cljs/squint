@@ -423,7 +423,9 @@
                   (statement (format "import '%s'" libname)))
                 (when (and as (not= "default" p))
                   (swap! *imported-vars* update libname (fnil identity #{}))
-                  (statement (format "import * as %s from '%s'" as libname)))
+                  (statement (if *repl*
+                               (format "var %s = await import('%s')" as libname)
+                               (format "import * as %s from '%s'" as libname))))
                 (when refer
                   (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname))))]
       (swap! (:imports env) str expr)
