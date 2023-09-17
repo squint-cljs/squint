@@ -103,7 +103,7 @@
   (when (or @in-progress (not (str/blank? @pending-input)))
     (reset! in-progress true)
     (let [rdr (e/reader @pending-input)
-          the-val (try (e/parse-next rdr)
+          the-val (try (e/parse-next rdr compiler/squint-parse-opts)
                        (catch :default e
                          (if (str/includes? (ex-message e) "EOF while reading")
                            ::eof-while-reading
