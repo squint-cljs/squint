@@ -414,7 +414,12 @@
 (defn compile-string
   ([s] (compile-string s nil))
   ([s opts]
-   (let [{:keys [javascript]}
+   (let [opts #?(:cljs (if (object? opts)
+                         (cond-> (js->clj opts :keywordize-keys true)
+                           :context (update :context keyword))
+                         opts)
+                 :default opts)
+         {:keys [javascript]}
          (compile-string* s opts)]
      javascript)))
 
