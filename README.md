@@ -185,7 +185,7 @@ See [doc/defclass.md](doc/defclass.md).
 
 The JavaScript API exposes the `compileString` function:
 
-``` clojure
+``` javascript
 import { compileString } from 'squint-cljs';
 
 const f = eval(compileString("(fn [] 1)"
