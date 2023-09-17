@@ -66,7 +66,7 @@ need the extra performance, startup time and/or small bundle size.
 - Keywords are translated into strings
 - Maps, sequences and vectors are represented as mutable objects and arrays
 - Most functions return arrays and objects, not custom data structures
-- Supports async/await:`(def x (js/await y))`. Async functions must be marked
+- Supports async/await:`(def x (js-await y))`. Async functions must be marked
   with `^:async`: `(defn ^:async foo [])`.
 - `assoc!`, `dissoc!`, `conj!`, etc. perform in place mutation on objects
 - `assoc`, `dissoc`, `conj`, etc. return a new shallow copy of objects
@@ -172,7 +172,7 @@ squint supports `async/await`:
 ``` clojure
 (defn ^:async foo [] (js/Promise.resolve 10))
 
-(def x (js/await (foo)))
+(def x (js-await (foo)))
 
 (println x) ;;=> 10
 ```
@@ -195,6 +195,22 @@ const f = eval(compileString("(fn [] 1)"
 
 console.log(f()); // prints 1
 ```
+
+## REPL
+
+Squint has a console repl which can be started with `squint repl`.
+
+### Emacs
+
+You can use this together with `inf-clojure` in emacs as follows:
+
+In a `.cljs` buffer, type `M-x inf-clojure`. Then enter the startup command `npx
+squint repl` (or `bunx --bun repl`) and select the `clojure` or `babashka` type
+REPL. REPL away!
+
+## Svelte
+
+A svelte pre-processor for squint can be found [here](https://github.com/jruz/svelte-preprocess-cljs).
 
 License
 =======

@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.2.26 (2023-09-17)
+
+- `squint repl` improvements
+
 ## 0.2.25 (2023-09-17)
 
 - Do not resolve binding in `catch` to core var
