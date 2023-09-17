@@ -84,10 +84,11 @@
 (defn compile [the-val rl socket]
   (let [{js-str :javascript
          cljs-ns :ns} (binding [*cljs-ns* @last-ns]
-                        (compiler/compile-string* (pr-str the-val) {:context :return
-                                                                    :elide-exports true}))
+                        (compiler/compile-string* (binding [*print-meta* true]
+                                                    (pr-str the-val)) {:context :return
+                                                                       :elide-exports true}))
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
-    (prn :js-str js-str)
+    (println ">" js-str)
     (reset! last-ns cljs-ns)
     (->
      (js/Promise.resolve (js/eval js-str))
