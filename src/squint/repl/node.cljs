@@ -88,7 +88,7 @@
                                                     (pr-str the-val)) {:context :return
                                                                        :elide-exports true}))
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
-    (println ">" js-str)
+    ;; (println ">" js-str)
     (reset! last-ns cljs-ns)
     (->
      (js/Promise.resolve (js/eval js-str))

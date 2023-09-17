@@ -210,7 +210,7 @@
                                   (munge resolved-ns)
                                   sym-ns) "." #_#_sym-ns "_" (munged-name sn)))
                          (if *repl*
-                           (str "globalThis." (munge *cljs-ns*) ".aliases." (munge (namespace expr)) "." (munge (name expr)))
+                           (str "globalThis." (munge *cljs-ns*) "." #_".aliases." (munge (namespace expr)) "." (munge (name expr)))
                            (str (munge (namespace expr)) "." (munge (name expr))))))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (munge** (str renamed))
