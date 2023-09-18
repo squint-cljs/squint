@@ -1368,3 +1368,7 @@ export function compare(x, y) {
 export function to_array(aseq) {
   return into_array(aseq);
 }
+
+// export function truth_(x) {
+//   return ( x != null && x !== false );
+// }
