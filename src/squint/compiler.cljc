@@ -161,28 +161,6 @@
   (emit (core-let bindings more) env)
   #_(prn (core-let bindings more)))
 
-(defmethod emit-special 'if [_type env [_if test then else]]
-  (if (seq? test)
-    ;; avoid evaluating test expression more than once
-    (emit `(let [test# ~test] (if test# ~then ~else)) env)
-    (let [expr-env (assoc env :context :expr)
-          condition (emit test expr-env)
-          condition (format "%s != null && %s !== false" condition condition)]
-      (if (= :expr (:context env))
-        (->
-         (format "((%s) ? (%s) : (%s))"
-                 condition
-                 (emit then env)
-                 (emit else env))
-         (emit-return env))
-        (str (format "if (%s) {\n" condition)
-             (emit then env)
-             "}"
-             (when (some? else)
-               (str " else {\n"
-                    (emit else env)
-                    "}")))))))
-
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)
       (apply str "var "
