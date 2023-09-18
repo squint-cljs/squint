@@ -350,11 +350,6 @@
                     bindings temps))
      "continue;\n")))
 
-(defn emit-repl-var [s _name env]
-  (str s
-       (when (and *repl* (:top-level env))
-         "globalThis._repl = null;\n")))
-
 (defn no-top-level [env]
   (dissoc env :top-level))
 
@@ -372,8 +367,7 @@
                     (when *cljs-ns*
                       (str (munge *cljs-ns*) "."))
                     (munge name)
-                    "\n;"))))
-      (emit-repl-var name env)))
+                    "\n;"))))))
 
 (defmethod emit-special 'def [_type env [_const & more]]
   (let [name (first more)]

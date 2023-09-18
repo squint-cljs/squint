@@ -59,7 +59,8 @@ Options:
 
 --no-run: do not run compiled expression
 --show:   print compiled expression")
-      (let [res (cc/compile-string e {:ns-state (atom {:current 'user})})
+      (let [res (cc/compile-string e {:ns-state (atom {:current 'user})
+                                      :repl (:repl opts)})
             dir (fs/mkdtempSync ".tmp")
             f (str dir "/squint.mjs")]
         (fs/writeFileSync f res "utf-8")
@@ -95,9 +96,6 @@ Options:
 (def table
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
    {:cmds ["compile"]
-    :coerce {:elide-exports :boolean
-             :elide-imports :boolean
-             :output-dir :string}
     :fn (fn [{:keys [rest-cmds opts]}]
           (compile-files opts rest-cmds))}
    {:cmds ["repl"]       :fn repl/repl}
@@ -106,4 +104,8 @@ Options:
 (defn init []
   (cli/dispatch table
                 (.slice js/process.argv 2)
-                {:aliases {:h :help}}))
+                {:aliases {:h :help}
+                 :coerce {:elide-exports :boolean
+                          :elide-imports :boolean
+                          :output-dir    :string
+                          :repl          :boolean}}))
