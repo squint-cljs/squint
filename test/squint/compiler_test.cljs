@@ -1419,7 +1419,9 @@
 
 (deftest and-or-test
   (is (eq true (jsv! '(and))))
-  (is (eq nil (jsv! '(or)))))
+  (is (eq nil (jsv! '(or))))
+  (is (eq "0" (jsv! '(str (or 0 1)))))
+  (is (eq "1" (jsv! '(str (and 0 1))))))
 
 (deftest fn-direct-invoke-test
   (is (eq 2 (jsv! '(#(inc %) 1)))))

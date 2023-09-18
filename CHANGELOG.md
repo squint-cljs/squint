@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.2.28 (2023-09-18)
+
+- Fix `and` and `or` with respect to CLJS truthiness
+
 ## 0.2.27 (2023-09-18)
 
 - Respect CLJS truth semantics: only `null`, `undefined` and `false` are non-truthy, `0` and `""` are truthy.

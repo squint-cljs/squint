@@ -154,7 +154,7 @@
   (let [env (assoc enc-env :context :expr :top-level false)
         acount (count args)]
     (if (and (not (chainable-infix-operators (name operator))) (> acount 2))
-      (emit (list 'cljs.core/and
+      (emit (list 'cljs.core/&&
                   (list operator (first args) (second args))
                   (list* operator (rest args)))
             env)
@@ -586,7 +586,7 @@
 (defn wrap-parens [s]
   (str "(" s ")"))
 
-(defmethod emit-special 'and [_type env [_ & more]]
+#_#_(defmethod emit-special 'and [_type env [_ & more]]
   (if (empty? more)
     true
     (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
