@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.2.27 (2023-09-18)
 
 - Respect CLJS truth semantics: only `null`, `undefined` and `false` are non-truthy, `0` and `""` are truthy.
 - Fix `dotimes`
