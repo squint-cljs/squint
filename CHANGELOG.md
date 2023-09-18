@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Add `subs`
+
 ## 0.2.26 (2023-09-17)
 
 - `squint repl` improvements

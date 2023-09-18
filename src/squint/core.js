@@ -1368,3 +1368,7 @@ export function compare(x, y) {
 export function to_array(aseq) {
   return into_array(aseq);
 }
+
+export function subs(s, start, end) {
+  return s.substring(start, end);
+}
