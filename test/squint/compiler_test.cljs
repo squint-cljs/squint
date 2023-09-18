@@ -167,7 +167,7 @@
     (is (zero? (js/eval s)))))
 
 (deftest if-test
-  (is (false? (jsv! "(if 0 true false)")))
+  (is (true? (jsv! "(if 0 true false)")))
   (let [s (jss! "[(if false true false)]")]
     (is (false? (first (js/eval s)))))
   (let [s (jss! "(let [x (if (inc 1) (inc 2) (inc 3))]

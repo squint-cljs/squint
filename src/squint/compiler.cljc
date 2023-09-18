@@ -18,11 +18,11 @@
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
                                           comma-list emit emit-args emit-infix emit-repl emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? statement suffix-unary?]]
+   [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
    [squint.internal.loop :as loop]
-   [squint.defclass :as defclass]
    [squint.internal.macros :as macros]
    [squint.internal.protocols :as protocols])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
@@ -160,21 +160,26 @@
   #_(prn (core-let bindings more)))
 
 (defmethod emit-special 'if [_type env [_if test then else]]
-  (if (= :expr (:context env))
-    (-> (let [env (assoc env :context :expr)]
-          (format "((%s) ? (%s) : (%s))"
-                  (emit test env)
-                  (emit then env)
-                  (emit else env)))
-        (emit-return env))
-    (str (format "if (%s) {\n"
-                 (emit test (assoc env :context :expr)))
-         (emit then env)
-         "}"
-         (when (some? else)
-           (str " else {\n"
-                (emit else env)
-                "}")))))
+  (if (seq? test)
+    ;; avoid evaluating test expression more than once
+    (emit `(let [test# ~test] (if test# ~then ~else)) env)
+    (let [expr-env (assoc env :context :expr)
+          condition (emit test expr-env)
+          condition (format "%s != null && %s !== false" condition condition)]
+      (if (= :expr (:context env))
+        (->
+         (format "((%s) ? (%s) : (%s))"
+                 condition
+                 (emit then env)
+                 (emit else env))
+         (emit-return env))
+        (str (format "if (%s) {\n" condition)
+             (emit then env)
+             "}"
+             (when (some? else)
+               (str " else {\n"
+                    (emit else env)
+                    "}")))))))
 
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)

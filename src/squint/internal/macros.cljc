@@ -50,11 +50,11 @@
   (assert (= 2 (count bindings)))
   (let [i (first bindings)
         n (second bindings)]
-    `(let [n# (long ~n)]
+    `(let [n# ~n]
        (loop [~i 0]
          (when (< ~i n#)
            ~@body
-           (recur (unchecked-inc ~i)))))))
+           (recur (inc ~i)))))))
 
 (defn core-if-not
   "if-not from clojure.core"
