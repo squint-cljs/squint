@@ -824,7 +824,13 @@ break;}" body)
     (f sym env expr)))
 
 (defmethod emit-special 'if [_type env [_if test then else]]
-  (if (seq? test)
+  ;; NOTE: I tried making the output smaller if the if is in return position
+  ;; if .. return .. else return ..
+  ;; => return ( .. ? : ..);
+  ;; but this caused issues with recur in return position:
+  ;; (defn foo [x] (if x 1 (recur (dec x)))) We might fix this another time, but
+  ;; tools like eslint will rewrite in the short form anyway.
+  (if (not (symbol? test))
     ;; avoid evaluating test expression more than once
     (emit `(let [test# ~test] (if test# ~then ~else)) env)
     (let [expr-env (assoc env :context :expr)
