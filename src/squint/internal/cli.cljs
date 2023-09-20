@@ -6,7 +6,8 @@
    [shadow.esm :as esm]
    [squint.compiler :as cc]
    [squint.compiler.node :as compiler]
-   [squint.repl.node :as repl]))
+   [squint.repl.node :as repl]
+   [squint.repl.nrepl-server :as nrepl]))
 
 (defn compile-files
   [opts files]
@@ -99,6 +100,8 @@ Options:
     :fn (fn [{:keys [rest-cmds opts]}]
           (compile-files opts rest-cmds))}
    {:cmds ["repl"]       :fn repl/repl}
+   {:cmds ["socket-repl"]  :fn repl/socket-repl}
+   {:cmds ["nrepl-server"] :fn nrepl/start-server}
    {:cmds []             :fn fallback}])
 
 (defn init []

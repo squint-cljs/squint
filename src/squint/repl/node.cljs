@@ -93,7 +93,9 @@
     (->
      (js/Promise.resolve (js/eval js-str))
      (.then (fn [^js val]
-              (squint/println val)
+              (if socket
+                (.write socket (str (squint/pr-str val) "\n"))
+                (squint/prn val))
               (eval-next socket rl)))
      (.catch (fn [err]
                (squint/println err)
@@ -159,6 +161,9 @@
 (defn socket-repl
   ([] (socket-repl nil))
   ([opts]
+   (set! *cljs-ns* 'user)
+   (set! *repl* true)
+   (set! *async* true)
    (let [port (or (:port opts)
                   0)
          srv (net/createServer
