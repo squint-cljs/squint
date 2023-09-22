@@ -154,7 +154,7 @@
   (let [env (assoc enc-env :context :expr :top-level false)
         acount (count args)]
     (if (and (not (chainable-infix-operators (name operator))) (> acount 2))
-      (emit (list 'cljs.core/and
+      (emit (list 'cljs.core/&&
                   (list operator (first args) (second args))
                   (list* operator (rest args)))
             env)
@@ -586,7 +586,7 @@
 (defn wrap-parens [s]
   (str "(" s ")"))
 
-(defmethod emit-special 'and [_type env [_ & more]]
+#_#_(defmethod emit-special 'and [_type env [_ & more]]
   (if (empty? more)
     true
     (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
@@ -822,3 +822,31 @@ break;}" body)
 (defmethod emit-special :default [sym env expr]
   (let [f (-> env :emit ::special)]
     (f sym env expr)))
+
+(defmethod emit-special 'if [_type env [_if test then else]]
+  ;; NOTE: I tried making the output smaller if the if is in return position
+  ;; if .. return .. else return ..
+  ;; => return ( .. ? : ..);
+  ;; but this caused issues with recur in return position:
+  ;; (defn foo [x] (if x 1 (recur (dec x)))) We might fix this another time, but
+  ;; tools like eslint will rewrite in the short form anyway.
+  (if (not (symbol? test))
+    ;; avoid evaluating test expression more than once
+    (emit `(let [test# ~test] (if test# ~then ~else)) env)
+    (let [expr-env (assoc env :context :expr)
+          condition (emit test expr-env)
+          condition (format "%s != null && %s !== false" condition condition)]
+      (if (= :expr (:context env))
+        (->
+         (format "((%s) ? (%s) : (%s))"
+                 condition
+                 (emit then env)
+                 (emit else env))
+         (emit-return env))
+        (str (format "if (%s) {\n" condition)
+             (emit then env)
+             "}"
+             (when (some? else)
+               (str " else {\n"
+                    (emit else env)
+                    "}")))))))

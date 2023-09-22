@@ -167,7 +167,7 @@
     (is (zero? (js/eval s)))))
 
 (deftest if-test
-  (is (false? (jsv! "(if 0 true false)")))
+  (is (true? (jsv! "(if 0 true false)")))
   (let [s (jss! "[(if false true false)]")]
     (is (false? (first (js/eval s)))))
   (let [s (jss! "(let [x (if (inc 1) (inc 2) (inc 3))]
@@ -1419,7 +1419,9 @@
 
 (deftest and-or-test
   (is (eq true (jsv! '(and))))
-  (is (eq nil (jsv! '(or)))))
+  (is (eq nil (jsv! '(or))))
+  (is (eq "0" (jsv! '(str (or 0 1)))))
+  (is (eq "1" (jsv! '(str (and 0 1))))))
 
 (deftest fn-direct-invoke-test
   (is (eq 2 (jsv! '(#(inc %) 1)))))

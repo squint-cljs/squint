@@ -210,6 +210,10 @@ REPL. REPL away!
 
 <img src="https://pbs.twimg.com/media/F6Pry0eWwAEwsRD?format=jpg">
 
+## Truthiness
+
+Squint respect CLJS truth semantics: only `null`, `undefined` and `false` are non-truthy, `0` and `""` are truthy.
+
 ## Svelte
 
 A svelte pre-processor for squint can be found [here](https://github.com/jruz/svelte-preprocess-cljs).

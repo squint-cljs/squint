@@ -50,11 +50,11 @@
   (assert (= 2 (count bindings)))
   (let [i (first bindings)
         n (second bindings)]
-    `(let [n# (long ~n)]
+    `(let [n# ~n]
        (loop [~i 0]
          (when (< ~i n#)
            ~@body
-           (recur (unchecked-inc ~i)))))))
+           (recur (inc ~i)))))))
 
 (defn core-if-not
   "if-not from clojure.core"
@@ -446,3 +446,27 @@
   `(letfn* ~(vec (interleave (map first fnspecs)
                              (map #(cons `fn (rest %)) fnspecs)))
            ~@body))
+
+(defn core-or
+  "Evaluates exprs one at a time, from left to right. If a form
+  returns a logical true value, or returns that value and doesn't
+  evaluate any of the other expressions, otherwise it returns the
+  value of the last expression. (or) returns nil."
+  {:added "1.0"}
+  ([_ _] nil)
+  ([_ _ x] x)
+  ([_ _ x & next]
+   `(let [or# ~x]
+      (if or# or# (or ~@next)))))
+
+(defn core-and
+  "Evaluates exprs one at a time, from left to right. If a form
+  returns logical false (nil or false), and returns that value and
+  doesn't evaluate any of the other expressions, otherwise it returns
+  the value of the last expr. (and) returns true."
+  {:added "1.0"}
+  ([_ _] true)
+  ([_ _ x] x)
+  ([_ _ x & next]
+   `(let [and# ~x]
+      (if and# (and ~@next) and#))))

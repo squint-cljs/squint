@@ -18,11 +18,11 @@
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
                                           comma-list emit emit-args emit-infix emit-repl emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? statement suffix-unary?]]
+   [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
    [squint.internal.loop :as loop]
-   [squint.defclass :as defclass]
    [squint.internal.macros :as macros]
    [squint.internal.protocols :as protocols])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
@@ -34,7 +34,7 @@
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while
-                         'inc! 'dec! 'dec 'inc 'defined? 'and 'or
+                         'inc! 'dec! 'dec 'inc 'defined?
                          '? 'try 'break 'throw 'not
                          'const 'let 'let* 'ns 'def 'loop*
                          'recur 'js* 'case* 'deftype* 'letfn*
@@ -85,7 +85,9 @@
                       'declare macros/core-declare
                       'letfn macros/core-letfn
                       'defclass defclass/defclass
-                      'js-template defclass/js-template})
+                      'js-template defclass/js-template
+                      'or macros/core-or
+                      'and macros/core-and})
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 
@@ -158,23 +160,6 @@
 (defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let bindings more) env)
   #_(prn (core-let bindings more)))
-
-(defmethod emit-special 'if [_type env [_if test then else]]
-  (if (= :expr (:context env))
-    (-> (let [env (assoc env :context :expr)]
-          (format "((%s) ? (%s) : (%s))"
-                  (emit test env)
-                  (emit then env)
-                  (emit else env)))
-        (emit-return env))
-    (str (format "if (%s) {\n"
-                 (emit test (assoc env :context :expr)))
-         (emit then env)
-         "}"
-         (when (some? else)
-           (str " else {\n"
-                (emit else env)
-                "}")))))
 
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)
