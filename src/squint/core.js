@@ -1372,3 +1372,11 @@ export function to_array(aseq) {
 // export function truth_(x) {
 //   return ( x != null && x !== false );
 // }
+
+export function type(x) {
+  return (typeof x);
+}
+
+export function fn_QMARK_(x) {
+  return "function" === type(x);
+}
