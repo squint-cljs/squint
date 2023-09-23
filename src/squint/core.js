@@ -1372,3 +1372,7 @@ export function to_array(aseq) {
 // export function truth_(x) {
 //   return ( x != null && x !== false );
 // }
+
+export function subs(s, start, end) {
+  return s.substring(start, end);
+}

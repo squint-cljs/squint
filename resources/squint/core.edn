@@ -128,6 +128,7 @@
   split_at
   split_with
   str
+  subs
   subvec
   swap_BANG_
   system_time
