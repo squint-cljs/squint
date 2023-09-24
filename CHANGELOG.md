@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Add `subs`
+
 ## 0.2.28 (2023-09-18)
 
 - Fix `and` and `or` with respect to CLJS truthiness
