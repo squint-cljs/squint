@@ -1373,6 +1373,11 @@ export function to_array(aseq) {
 //   return ( x != null && x !== false );
 // }
 
+
 export function subs(s, start, end) {
   return s.substring(start, end);
+}
+
+export function fn_QMARK_(x) {
+  return "function" === typeof x;
 }

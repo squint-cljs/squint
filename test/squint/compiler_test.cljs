@@ -1451,5 +1451,8 @@
 (deftest juxt-test
   (is (eq #js [2 0] (jsv! "((juxt inc dec) 1)"))))
 
+(deftest fn?-test
+  (is (true? (jsv! "(fn? inc)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
