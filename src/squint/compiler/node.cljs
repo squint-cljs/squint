@@ -5,6 +5,7 @@
    #_[sci.core :as sci]
    [clojure.string :as str]
    [edamame.core :as e]
+   [clojure.edn :as edn]
    [shadow.esm :as esm]
    [squint.compiler :as compiler]))
 
@@ -15,6 +16,10 @@
 
 (defn spit [f s]
   (fs/writeFileSync f s "utf-8"))
+
+(def nbb-config (delay (when (fs/existsSync "squint.edn")
+                         (-> (slurp "squint.edn")
+                             (edn/read-string)))))
 
 (defn scan-macros [s]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
@@ -29,7 +34,8 @@
         (when require-macros
           (.then (esm/dynamic-import "./compiler.sci.js")
                  (fn [_]
-                   (let [eval-form (:eval-form @sci)]
+                   (let [eval-form (:eval-form @sci)
+                         cfg @nbb-config]
                      (reduce
                       (fn [prev require-macros]
                         (.then prev
@@ -37,7 +43,8 @@
                                  (let [[macro-ns & {:keys [refer]}] require-macros
                                        macros (js/Promise.resolve
                                                (do (eval-form (cond-> (list 'require (list 'quote macro-ns))
-                                                                reload (concat [:reload])))
+                                                                reload (concat [:reload]))
+                                                              cfg)
                                                    (let [publics (eval-form
                                                                   `(ns-publics '~macro-ns))
                                                          ks (keys publics)

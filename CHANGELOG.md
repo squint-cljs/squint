@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.2.29 (2023-10-03)
 
-- Add `subs`
+- Add `subs`, `fn?`, `re-seq`
+- Add `squint.edn` with `:paths` to resolve macros from (via `:require-macros`)
 
 ## 0.2.28 (2023-09-18)
 

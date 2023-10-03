@@ -8,6 +8,8 @@
 (defn slurp [f]
   (fs/readFileSync f "utf-8"))
 
+(def !cfg (atom nil))
+
 (defn resolve-file* [dir munged-macro-ns]
   (let [exts ["cljc" "cljs"]]
     (some (fn [ext]
@@ -18,14 +20,16 @@
 
 (def classpath-dirs ["." "src"])
 
-(defn resolve-file [macro-ns]
-  (let [path (-> macro-ns str (str/replace "-" "_"))]
+(defn resolve-file [macro-ns {:keys [paths]
+                              :or {paths classpath-dirs}}]
+  (prn :paths paths :cfg @!cfg)
+  (let [path (-> macro-ns str (str/replace "-" "_") (str/replace "." "/"))]
     (some (fn [dir]
             (resolve-file* dir path))
-          classpath-dirs)))
+          paths)))
 
 (def ctx (sci/init {:load-fn (fn [{:keys [namespace]}]
-                               (let [f (resolve-file namespace)
+                               (let [f (resolve-file namespace @!cfg)
                                      fstr (slurp f)]
                                  {:source fstr}))
                     :classes {:allow :all
@@ -38,4 +42,6 @@
 
 (defn init []
   (reset! sci {:resolve-file resolve-file
-               :eval-form #(sci/eval-form ctx %)}))
+               :eval-form (fn [form cfg]
+                            (when cfg (reset! !cfg cfg))
+                            (sci/eval-form ctx form))}))
