@@ -214,6 +214,21 @@ REPL. REPL away!
 
 Squint respect CLJS truth semantics: only `null`, `undefined` and `false` are non-truthy, `0` and `""` are truthy.
 
+## Macros
+
+To load macros, add a `squint.edn` file in the root of your project with
+`{:paths ["src-squint"]}` that describes where to find your macro files.  Macros
+are written in `.cljs` or `.cljc` files and are executed using
+[SCI](https://github.com/babashka/sci).
+
+The following searches for a `foo/macros.cljc` file in the `:paths` described in `squint.edn`.
+
+``` clojure
+(ns foo (:require-macros [foo.macros :refer [my-macro]]))
+
+(my-macros 1 2 3)
+```
+
 ## Svelte
 
 A svelte pre-processor for squint can be found [here](https://github.com/jruz/svelte-preprocess-cljs).

@@ -22,7 +22,6 @@
 
 (defn resolve-file [macro-ns {:keys [paths]
                               :or {paths classpath-dirs}}]
-  (prn :paths paths :cfg @!cfg)
   (let [path (-> macro-ns str (str/replace "-" "_") (str/replace "." "/"))]
     (some (fn [dir]
             (resolve-file* dir path))
