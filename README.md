@@ -226,7 +226,7 @@ The following searches for a `foo/macros.cljc` file in the `:paths` described in
 ``` clojure
 (ns foo (:require-macros [foo.macros :refer [my-macro]]))
 
-(my-macros 1 2 3)
+(my-macro 1 2 3)
 ```
 
 ## Svelte
