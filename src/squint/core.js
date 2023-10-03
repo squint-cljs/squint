@@ -1381,3 +1381,17 @@ export function subs(s, start, end) {
 export function fn_QMARK_(x) {
   return "function" === typeof x;
 }
+
+export function* re_seq(re, s) {
+  let matches = re.exec(s);
+  if (matches) {
+    let match_str = matches[0];
+    let match_vals = (matches.length === 1) ? match_str : vec(matches);
+    yield* cons(match_vals, lazy( function* () {
+      let post_idx = matches.index + max(1, match_str.length);
+      if ( post_idx <= s.length ) {
+        yield* re_seq(re, subs(s, post_idx) );
+      }
+    }));
+  }
+}

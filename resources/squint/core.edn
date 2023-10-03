@@ -103,6 +103,7 @@
   rand_nth
   range
   re_matches
+  re_seq
   reduce
   reduce_kv
   reduced

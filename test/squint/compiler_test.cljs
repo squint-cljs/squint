@@ -1454,5 +1454,8 @@
 (deftest fn?-test
   (is (true? (jsv! "(fn? inc)"))))
 
+(deftest re-seq-test
+  (is (eq #js ["foo" "foo" "foo"] (jsv! "(vec (re-seq #\"foo\" \"foobfoobfoo\"))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
