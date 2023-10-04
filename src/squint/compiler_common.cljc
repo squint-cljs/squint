@@ -1,5 +1,5 @@
 (ns squint.compiler-common
-  (:refer-clojure :exclude [*target*])
+  (:refer-clojure :exclude [*target* *repl*])
   (:require
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
