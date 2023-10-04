@@ -3,15 +3,7 @@
    [babashka.fs :as fs]
    [babashka.process :refer [shell]]
    [cheshire.core :as json]
-   [clojure.edn :as edn]
-   [clojure.java.io :as io]
    [node-repl-tests]))
-
-(defn munge* [s reserved]
-  (let [s (str (munge s))]
-    (if (contains? reserved s)
-      (str s "$")
-      s)))
 
 (def test-config
   '{:compiler-options {:load-tests true}
@@ -42,6 +34,7 @@
 (defn publish []
   (build-squint-npm-package)
   (run! fs/delete (fs/glob "lib" "*.map"))
+  (shell "esbuild src/squint/core.js --minify --format=iife --global-name=squint.core --outfile=lib/squint.core.umd.js")
   (shell "npm publish"))
 
 (defn watch-squint []

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Squint</title>
+    <script src="lib/squint.core.umd.js"></script>
+    <script>globalThis._sc = squint.core;</script>
+    <script>
+      _sc.prn(_sc.map(_sc.inc, [1, 2, 3]));
+    </script>
+  </head>
+  <body>
+    <button onClick="_sc.prn(_sc.map(_sc.inc, [1, 2, 3]));">
+      Click me
+    </button>
+  </body>
+</html>
