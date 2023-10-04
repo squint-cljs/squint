@@ -233,6 +233,50 @@ The following searches for a `foo/macros.cljc` file in the `:paths` described in
 
 A svelte pre-processor for squint can be found [here](https://github.com/jruz/svelte-preprocess-cljs).
 
+## Compile on a server, use in a browser
+
+This is a small demo of how to leverage squint from a JVM to compile snippets of
+JavaScript that you can use in the browser.
+
+``` clojure
+(require '[squint.compiler])
+(-> (squint.compiler/compile-string* "(prn (map inc [1 2 3]))" {:core-alias "_sc"}) :body)
+;;=> "_sc.prn(_sc.map(_sc.inc, [1, 2, 3]));\n"
+```
+
+The `:core-alias` option takes care of prefixing any `squint.core` function with an alias, in the example `_sc`.
+
+In HTML, to avoid any async ES6, there is also a UMD build of `squint.core`
+available. See the below HTML how it is used. We alias the core library to our
+shorter `_sc` alias ourselves using
+
+``` html
+<script>globalThis._sc = squint.core;</script>
+```
+
+to make it all work.
+
+``` html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Squint</title>
+    <script src="https://cdn.jsdelivr.net/npm/squint-cljs@0.2.30/lib/squint.core.umd.js"></script>
+    <!-- rename squint.core to a shorter alias at your convenience: -->
+    <script>globalThis._sc = squint.core;</script>
+    <!-- compile JS on the server using: (squint.compiler/compile-string* "(prn (map inc [1 2 3]))" {:core-alias "_sc"}) -->
+    <script>
+      _sc.prn(_sc.map(_sc.inc, [1, 2, 3]));
+    </script>
+  </head>
+  <body>
+    <button onClick="_sc.prn(_sc.map(_sc.inc, [1, 2, 3]));">
+      Click me
+    </button>
+  </body>
+</html>
+```
+
 License
 =======
 
