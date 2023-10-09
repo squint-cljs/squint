@@ -6,7 +6,8 @@
    [shadow.esm :as esm]
    [squint.compiler :as cc]
    [squint.compiler.node :as compiler]
-   [squint.repl.node :as repl]))
+   [squint.repl.node :as repl]
+   [squint.internal.node.utils :as utils]))
 
 (defn compile-files
   [opts files]
@@ -28,7 +29,15 @@
                   (.then
                    #(do
                       (println "[squint] Compiling CLJS file:" f)
-                      (compiler/compile-file (assoc opts :in-file f))))
+                      (compiler/compile-file (assoc opts
+                                                    :in-file f
+                                                    :resolve-ns (fn [x]
+                                                                  (prn :resolved (utils/resolve-file x {:paths ["src-squint"]}))
+                                                                  (prn :relative (path/relative (str f) (utils/resolve-file x {:paths ["src-squint"]})))
+                                                                  (let [ext (:extension opts ".mjs")]
+                                                                    (path/relative (str f) (utils/resolve-file x {:paths ["src-squint"]})))
+                                                                  "./clojure_mode/keymap.mjs"
+                                                                  #_(prn :hello x))))))
                   (.then (fn [{:keys [out-file]}]
                            (println "[squint] Wrote JS file:" out-file)
                            out-file))))
