@@ -1,16 +1,11 @@
 (ns squint.repl.node
   (:require
-   ["fs" :as fs]
    ["net" :as net]
-   ["path" :as path]
-   ["process" :as process]
    ["readline" :as readline]
    ["squint-cljs/core.js" :as squint]
-   ["url" :as url]
    ["vm" :as vm]
    [clojure.string :as str]
    [edamame.core :as e]
-   [shadow.esm :as esm]
    [squint.compiler :as compiler]
    [squint.compiler-common :refer [*async* *cljs-ns* *repl*]]))
 
@@ -72,14 +67,14 @@
 (def last-ns (atom *cljs-ns*))
 
 #_(defn eval-js [js-str]
-  (let [filename (str ".repl/" (gensym) ".mjs")]
-    (when-not (fs/existsSync ".repl")
-      (fs/mkdirSync ".repl"))
-    (fs/writeFileSync filename js-str)
-    (-> (esm/dynamic-import (-> (path/resolve (process/cwd) filename)
-                                url/pathToFileURL
-                                str))
-        (.finally (fn [] #_(prn filename) (fs/unlinkSync filename))))))
+    (let [filename (str ".repl/" (gensym) ".mjs")]
+      (when-not (fs/existsSync ".repl")
+        (fs/mkdirSync ".repl"))
+      (fs/writeFileSync filename js-str)
+      (-> (esm/dynamic-import (-> (path/resolve (process/cwd) filename)
+                                  url/pathToFileURL
+                                  str))
+          (.finally (fn [] #_(prn filename) (fs/unlinkSync filename))))))
 
 (defn compile [the-val rl socket]
   (let [{js-str :javascript

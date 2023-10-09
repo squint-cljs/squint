@@ -1457,5 +1457,8 @@
 (deftest re-seq-test
   (is (eq #js ["foo" "foo" "foo"] (jsv! "(vec (re-seq #\"foo\" \"foobfoobfoo\"))"))))
 
+(deftest bit-and-or
+  (is (= 3 (jsv! "(+ (bit-and 1 2 3) (bit-or 1 2 3))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

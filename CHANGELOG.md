@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.2.31 (2023-10-09)
+
+- Add `bit-and` and `bit-or`
+
 ## 0.2.30 (2023-10-04)
 
 - Include `lib/squint.core.umd.js` which defines a global `squint.core` object (easy to use in browsers)

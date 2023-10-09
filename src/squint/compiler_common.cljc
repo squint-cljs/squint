@@ -131,9 +131,10 @@
 (def suffix-unary-operators '#{++ --})
 
 (def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "=" "==" "===" "<" ">" "<=" ">=" "!="
-                       "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"})
+                       "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"
+                       "bit-or" "bit-and"})
 
-(def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||"})
+(def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and"})
 
 (defn infix-operator? [env expr]
   (contains? (or (:infix-operators env)
@@ -163,7 +164,9 @@
             (str "-" (emit (first args) env))
             (-> (let [substitutions {'= "===" == "===" '!= "!=="
                                      'not= "!=="
-                                     '+ "+"}]
+                                     '+ "+"
+                                     'bit-or "|"
+                                     'bit-and "&"}]
                   (str "(" (str/join (str " " (or (substitutions operator)
                                                   operator) " ")
                                      (emit-args env args)) ")"))
