@@ -6,6 +6,7 @@
    [clojure.string :as str]
    [edamame.core :as e]
    [shadow.esm :as esm]
+   [squint.internal.node.utils :as utils]
    [squint.compiler :as compiler]))
 
 (def sci (atom nil))
@@ -29,8 +30,7 @@
         (when require-macros
           (.then (esm/dynamic-import "./compiler.sci.js")
                  (fn [_]
-                   (let [eval-form (:eval-form @sci)
-                         cfg @nbb-config]
+                   (let [eval-form (:eval-form @sci)]
                      (reduce
                       (fn [prev require-macros]
                         (.then prev
@@ -38,8 +38,7 @@
                                  (let [[macro-ns & {:keys [refer]}] require-macros
                                        macros (js/Promise.resolve
                                                (do (eval-form (cond-> (list 'require (list 'quote macro-ns))
-                                                                reload (concat [:reload]))
-                                                              cfg)
+                                                                reload (concat [:reload])))
                                                    (let [publics (eval-form
                                                                   `(ns-publics '~macro-ns))
                                                          ks (keys publics)
@@ -62,15 +61,26 @@
   (-> (js/Promise.resolve (scan-macros contents))
       (.then #(compiler/compile-string* contents opts))))
 
+(defn adjust-file-for-paths [paths in-file]
+  (let [abs-in-file (path/resolve in-file)]
+    (reduce (fn [acc path]
+              (let [abs-path (path/resolve path)]
+                (if (str/starts-with? abs-in-file abs-path)
+                  (reduced (path/relative abs-path abs-in-file))
+                  acc)))
+            in-file
+            paths)))
+
 (defn compile-file [{:keys [in-file in-str out-file extension output-dir]
                      :or {output-dir ""}
                      :as opts}]
   (let [contents (or in-str (slurp in-file))]
     (-> (compile-string contents (assoc opts :ns-state (atom {:current in-file})))
         (.then (fn [{:keys [javascript jsx] :as opts}]
-                 (let [out-file (path/resolve output-dir
+                 (let [paths (:paths @utils/!cfg ["." "src"])
+                       out-file (path/resolve output-dir
                                               (or out-file
-                                                  (str/replace in-file #".clj(s|c)$"
+                                                  (str/replace (adjust-file-for-paths paths in-file) #".clj(s|c)$"
                                                                (if jsx
                                                                  ".jsx"
                                                                  (or (when-let [ext extension]
