@@ -7,17 +7,8 @@
 (defn slurp [f]
   (fs/readFileSync f "utf-8"))
 
-(def !cfg (atom nil))
-
-(def classpath-dirs ["." "src"])
-
-(defn with-cp-dirs [cfg]
-  (if (contains? cfg :paths)
-    cfg
-    (assoc cfg :paths classpath-dirs)))
-
 (def ctx (sci/init {:load-fn (fn [{:keys [namespace]}]
-                               (let [f (resolve-file namespace @!cfg)
+                               (let [f (resolve-file namespace)
                                      fstr (slurp f)]
                                  {:source fstr}))
                     :classes {:allow :all
@@ -30,6 +21,5 @@
 
 (defn init []
   (reset! sci {:resolve-file resolve-file
-               :eval-form (fn [form cfg]
-                            (when cfg (reset! !cfg (with-cp-dirs cfg)))
+               :eval-form (fn [form _cfg]
                             (sci/eval-form ctx form))}))

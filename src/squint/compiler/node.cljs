@@ -5,7 +5,6 @@
    #_[sci.core :as sci]
    [clojure.string :as str]
    [edamame.core :as e]
-   [clojure.edn :as edn]
    [shadow.esm :as esm]
    [squint.compiler :as compiler]))
 
@@ -16,10 +15,6 @@
 
 (defn spit [f s]
   (fs/writeFileSync f s "utf-8"))
-
-(def nbb-config (delay (when (fs/existsSync "squint.edn")
-                         (-> (slurp "squint.edn")
-                             (edn/read-string)))))
 
 (defn scan-macros [s]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]

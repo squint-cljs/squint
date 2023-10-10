@@ -454,7 +454,7 @@
                   (when (= :require k) exprs)))
                (reduce
                 (fn [aliases [full as alias]]
-                  (let [full (resolve-ns full)]
+                  (let [full (resolve-ns env full)]
                     (case as
                       (:as :as-alias)
                       (assoc aliases (munge alias) full)
@@ -502,7 +502,7 @@
             (->> clauses
                  (reduce
                   (fn [aliases [full as alias]]
-                    (let [full (resolve-ns full)]
+                    (let [full (resolve-ns env full)]
                       (case as
                         (:as :as-alias)
                         (assoc aliases alias full)
