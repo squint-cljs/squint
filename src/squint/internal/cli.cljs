@@ -54,6 +54,7 @@ Subcommands:
 
 -e           <expr>  Compile and run expression.
 run       <file.cljs>     Compile and run a file
+watch                     Watch :paths in squint.edn
 compile   <file.cljs> ... Compile file(s)
 repl                      Start repl
 help                      Print this help
@@ -102,6 +103,18 @@ Options:
     (let [e (:e opts)]
       (println (t/compile! e))))
 
+(defn watch [opts]
+  (let [cfg @utils/!cfg
+        paths (:paths cfg)
+        opts (merge cfg opts)]
+    (-> (esm/dynamic-import "chokidar")
+        (.then (fn [^js lib]
+                 (let [watch (.-watch lib)]
+                   (doseq [path paths]
+                     (.on (watch path) "all" (fn [event path]
+                                               (when (contains? #{"add" "change"} event)
+                                                 (compile-files opts [path])))))))))))
+
 (def table
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
    {:cmds ["compile"]
@@ -111,6 +124,7 @@ Options:
     :fn (fn [{:keys [rest-cmds opts]}]
           (compile-files opts rest-cmds))}
    {:cmds ["repl"]       :fn repl/repl}
+   {:cmds ["watch"]      :fn watch}
    {:cmds []             :fn fallback}])
 
 (defn init []
