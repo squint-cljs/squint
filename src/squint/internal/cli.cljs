@@ -6,7 +6,9 @@
    [shadow.esm :as esm]
    [squint.compiler :as cc]
    [squint.compiler.node :as compiler]
-   [squint.repl.node :as repl]))
+   [squint.repl.node :as repl]
+   [squint.internal.node.utils :as utils]
+   [clojure.string :as str]))
 
 (defn compile-files
   [opts files]
@@ -28,7 +30,15 @@
                   (.then
                    #(do
                       (println "[squint] Compiling CLJS file:" f)
-                      (compiler/compile-file (assoc opts :in-file f))))
+                      (compiler/compile-file (assoc opts
+                                                    :in-file f
+                                                    :resolve-ns (fn [x]
+                                                                  (when-let [resolved
+                                                                             (some->> (utils/resolve-file x)
+                                                                                      (path/relative (path/dirname (str f))))]
+                                                                    (let [ext (:extension opts ".mjs")
+                                                                          ext' (path/extname resolved)]
+                                                                      (str "./" (str/replace resolved ext' ext)))))))))
                   (.then (fn [{:keys [out-file]}]
                            (println "[squint] Wrote JS file:" out-file)
                            out-file))))

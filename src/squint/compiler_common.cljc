@@ -89,9 +89,9 @@
 
 (defn emit-repl [s env]
   s #_(if (and *repl*
-           (:top-level env))
-    (str "\nglobalThis._repl = " s)
-    s))
+               (:top-level env))
+        (str "\nglobalThis._repl = " s)
+        s))
 
 (defn escape-jsx [expr env]
   (if (:jsx env)
@@ -282,20 +282,20 @@
                   partitioned))
         enc-env (assoc enc-env :var->ident var->ident :top-level false)]
     (-> (cond-> (str
-                  bindings
-                  (when is-loop
-                    (str "while(true){\n"))
+                 bindings
+                 (when is-loop
+                   (str "while(true){\n"))
                   ;; TODO: move this to env arg?
-                  (binding [*recur-targets*
-                            (if is-loop (map var->ident (map first partitioned))
-                                *recur-targets*)]
-                    (emit-do (if iife?
-                               (assoc enc-env :context :return)
-                               enc-env) body))
-                  (when is-loop
+                 (binding [*recur-targets*
+                           (if is-loop (map var->ident (map first partitioned))
+                               *recur-targets*)]
+                   (emit-do (if iife?
+                              (assoc enc-env :context :return)
+                              enc-env) body))
+                 (when is-loop
                     ;; TODO: not sure why I had to insert the ; here, but else
                     ;; (loop [x 1] (+ 1 2 x)) breaks
-                    (str ";break;\n}\n")))
+                   (str ";break;\n}\n")))
           iife?
           (wrap-iife (= :return (:context enc-env))))
         (emit-repl env))))
@@ -401,12 +401,17 @@
     (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
       *async* (wrap-await)))
 
-(defn resolve-ns [alias]
+(defn resolve-ns [env alias]
   (case *target*
     :squint
     (case alias
       (squint.string clojure.string) "squint-cljs/string.js"
-      alias)
+      (if (symbol? alias)
+        (if-let [resolve-ns (:resolve-ns env)]
+          (or (resolve-ns alias)
+              alias)
+          alias)
+        alias))
     :cherry
     (case alias
       (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
@@ -417,7 +422,7 @@
 (defn process-require-clause [env [libname & {:keys [refer as]}]]
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
-    (let [libname (resolve-ns libname)
+    (let [libname (resolve-ns env libname)
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           [p & _props] (when suffix
                          (str/split suffix #"\."))
@@ -449,7 +454,7 @@
                   (when (= :require k) exprs)))
                (reduce
                 (fn [aliases [full as alias]]
-                  (let [full (resolve-ns full)]
+                  (let [full (resolve-ns env full)]
                     (case as
                       (:as :as-alias)
                       (assoc aliases (munge alias) full)
@@ -497,7 +502,7 @@
             (->> clauses
                  (reduce
                   (fn [aliases [full as alias]]
-                    (let [full (resolve-ns full)]
+                    (let [full (resolve-ns env full)]
                       (case as
                         (:as :as-alias)
                         (assoc aliases alias full)
@@ -590,14 +595,14 @@
   (str "(" s ")"))
 
 #_#_(defmethod emit-special 'and [_type env [_ & more]]
-  (if (empty? more)
-    true
-    (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
+      (if (empty? more)
+        true
+        (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
 
-(defmethod emit-special 'or [_type env [_ & more]]
-  (if (empty? more)
-    nil
-    (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
+  (defmethod emit-special 'or [_type env [_ & more]]
+    (if (empty? more)
+      nil
+      (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
   (str "while (" (emit test) ") { \n"

@@ -1,34 +1,14 @@
 (ns squint.compiler.sci
   (:require ["fs" :as fs]
-            ["path" :as path]
-            [clojure.string :as str]
-            [squint.compiler.node :refer [sci]]
-            [sci.core :as sci]))
+            [squint.compiler.node :as cn :refer [sci]]
+            [sci.core :as sci]
+            [squint.internal.node.utils :refer [resolve-file]]))
 
 (defn slurp [f]
   (fs/readFileSync f "utf-8"))
 
-(def !cfg (atom nil))
-
-(defn resolve-file* [dir munged-macro-ns]
-  (let [exts ["cljc" "cljs"]]
-    (some (fn [ext]
-            (let [full-path (path/resolve dir (str munged-macro-ns "." ext))]
-              (when (fs/existsSync full-path)
-                full-path)))
-          exts)))
-
-(def classpath-dirs ["." "src"])
-
-(defn resolve-file [macro-ns {:keys [paths]
-                              :or {paths classpath-dirs}}]
-  (let [path (-> macro-ns str (str/replace "-" "_") (str/replace "." "/"))]
-    (some (fn [dir]
-            (resolve-file* dir path))
-          paths)))
-
 (def ctx (sci/init {:load-fn (fn [{:keys [namespace]}]
-                               (let [f (resolve-file namespace @!cfg)
+                               (let [f (resolve-file namespace)
                                      fstr (slurp f)]
                                  {:source fstr}))
                     :classes {:allow :all
@@ -41,6 +21,5 @@
 
 (defn init []
   (reset! sci {:resolve-file resolve-file
-               :eval-form (fn [form cfg]
-                            (when cfg (reset! !cfg cfg))
+               :eval-form (fn [form _cfg]
                             (sci/eval-form ctx form))}))

@@ -42,7 +42,8 @@
                          'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
-                         'require 'squint.defclass/defclass* 'squint.defclass/super*]))
+                         'require 'squint.defclass/defclass* 'squint.defclass/super*
+                         'clj->js]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -117,6 +118,9 @@
 
 #_(defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
     (emit-let enc-env bindings body false))
+
+(defmethod emit-special 'clj->js [_ env [_ form]]
+  (emit form env))
 
 (defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
   (let [fields (map munge fields)]
@@ -337,7 +341,7 @@
     :readers {'js #(vary-meta % assoc ::js true)
               'jsx jsx}
     :read-cond :allow
-    :features #{:cljs}}))
+    :features #{:squint :cljs}}))
 
 (defn transpile-string*
   ([s] (transpile-string* s {}))
