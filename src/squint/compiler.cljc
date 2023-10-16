@@ -216,7 +216,8 @@
                  (if macro
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
-                         new-expr (apply macro expr {} (rest expr))]
+                         new-expr (apply macro expr {:repl cc/*repl*
+                                                     :ns {:name cc/*cljs-ns*}} (rest expr))]
                      (emit new-expr env))
                    (cond
                      (and (= (.charAt head-str 0) \.)
