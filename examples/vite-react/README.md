@@ -35,3 +35,11 @@ To set up a project with vite + react, go through the following steps:
   ```
 
 - Run `npx vite --config viteconfig.js public` to start a webserver and to hot-reload your React project!
+
+## Production
+
+To build your production website:
+
+```
+$ npx vite --config viteconfig.js build public
+```

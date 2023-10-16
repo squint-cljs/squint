@@ -117,10 +117,11 @@ Options:
         (.then (fn [^js lib]
                  (let [watch (.-watch lib)]
                    (doseq [path paths]
-                     (.on (watch path) "all" (fn [event path]
-                                               (when (and (contains? #{"add" "change"} event)
-                                                          (contains? #{".cljs" ".cljc"} (path/extname path)))
-                                                 (compile-files opts [path])))))))))))
+                     (.on ^js (watch path) "all"
+                          (fn [event path]
+                            (when (and (contains? #{"add" "change"} event)
+                                       (contains? #{".cljs" ".cljc"} (path/extname path)))
+                              (compile-files opts [path])))))))))))
 
 (def table
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}

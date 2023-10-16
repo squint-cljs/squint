@@ -268,8 +268,9 @@
                     x
                     ;; TODO:
                     #_(symbol (str (-> &env :ns :name)) (name x)))]
-    `(when-not (exists? ~qualified)
-       (def ~x ~init))))
+    `(do (~'js* "var ~{}" ~x)
+         (when-not (exists? ~qualified)
+           (def ~x ~init)))))
 
 (defn- bool-expr [e]
   (vary-meta e assoc :tag 'boolean))

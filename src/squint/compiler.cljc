@@ -367,7 +367,8 @@
        :as opts}]
    (binding [cc/*core-package* "squint-cljs/core.js"
              cc/*target* :squint
-             *jsx* false]
+             *jsx* false
+             cc/*repl* (:repl opts cc/*repl*)]
      (let [opts (merge {:ns-state (atom {})} opts)
            imported-vars (atom {})
            public-vars (atom #{})
