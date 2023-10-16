@@ -37,8 +37,11 @@
                                                                              (some->> (utils/resolve-file x)
                                                                                       (path/relative (path/dirname (str f))))]
                                                                     (let [ext (:extension opts ".mjs")
+                                                                          ext (if (str/starts-with? ext ".")
+                                                                                ext
+                                                                                (str "." ext))
                                                                           ext' (path/extname resolved)]
-                                                                      (str "./" (str/replace resolved ext' ext)))))))))
+                                                                      (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext)))))))))
                   (.then (fn [{:keys [out-file]}]
                            (println "[squint] Wrote JS file:" out-file)
                            out-file))))
@@ -107,7 +110,10 @@ Options:
   (let [cfg @utils/!cfg
         paths (:paths cfg)
         opts (merge cfg opts)]
-    (-> (esm/dynamic-import "chokidar")
+    (-> (-> (esm/dynamic-import "chokidar")
+            (.catch (fn [err]
+                      (js/console.log err)
+                      (println "Install chokidar as a dev dependency."))))
         (.then (fn [^js lib]
                  (let [watch (.-watch lib)]
                    (doseq [path paths]
