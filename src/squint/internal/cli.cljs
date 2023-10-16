@@ -112,7 +112,8 @@ Options:
                  (let [watch (.-watch lib)]
                    (doseq [path paths]
                      (.on (watch path) "all" (fn [event path]
-                                               (when (contains? #{"add" "change"} event)
+                                               (when (and (contains? #{"add" "change"} event)
+                                                          (contains? #{".cljs" ".cljc"} (path/extname path)))
                                                  (compile-files opts [path])))))))))))
 
 (def table
