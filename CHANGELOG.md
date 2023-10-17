@@ -8,6 +8,7 @@
 - Add `watch` subcommand to watch `:paths` from `squint.edn`
 - Make generated `let` variable names in JS more deterministic, which helps hot reloading in React
 - Added a [vite + react example project](examples/vite-react).
+- Resolve symbolic namespaces `(:require [foo.bar])` from `:paths`
 
 ## 0.2.31 (2023-10-09)
 
