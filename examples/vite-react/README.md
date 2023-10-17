@@ -21,7 +21,7 @@ To set up a project with vite + react, go through the following steps:
 
 - Run `npx squint watch` to start compiling `.cljs` -> `.jsx`
 
-  E.g. see [src/MyComponent.cljs]([src/MyComponent.cljs]):
+  E.g. see [src/MyComponent.cljs](src/MyComponent.cljs):
 
   ``` clojure
   (ns my-component
