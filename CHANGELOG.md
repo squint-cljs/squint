@@ -15,7 +15,7 @@
 
 ## 0.2.30 (2023-10-04)
 
-- Include `lib/squint.core.umd.js` which defines a global `squint.core` object (easy to use in browsers)
+- Include `lib/squint.core.umd.js` which defines a global `squint.core` object (easy to use in browsers, see [docs](README.md#compile-on-a-server-use-in-a-browser))
 
 ## 0.2.29 (2023-10-03)
 
