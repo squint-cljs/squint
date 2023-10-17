@@ -8,7 +8,8 @@
 ;;   license.  You must not remove this notice, or any other, from this
 ;;   software.
 
-(ns squint.internal.fn)
+(ns squint.internal.fn
+  {:clj-kondo/config '{:linters {:discouraged-var {clojure.core/gensym {:level :off}}}}})
 
 #?(:cljs (def Exception js/Error))
 

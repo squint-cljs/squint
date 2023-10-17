@@ -87,12 +87,6 @@
 #?(:clj (derive #?(:clj java.lang.Long) ::number))
 #?(:cljs (derive js/Number ::number))
 
-(defn emit-repl [s env]
-  s #_(if (and *repl*
-               (:top-level env))
-        (str "\nglobalThis._repl = " s)
-        s))
-
 (defn escape-jsx [expr env]
   (if (:jsx env)
     (format "{%s}" expr)
@@ -101,22 +95,19 @@
 (defmethod emit ::number [expr env]
   (-> (str expr)
       (emit-return env)
-      (emit-repl env)
       (escape-jsx env)))
 
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
   (-> (if (and (:jsx env)
                (not (:jsx-attr env)))
         expr
-        (emit-return (pr-str expr) env))
-      (emit-repl env)))
+        (emit-return (pr-str expr) env))))
 
 (defmethod emit #?(:clj java.lang.Boolean :cljs js/Boolean) [^String expr env]
   (-> (if (:jsx-attr env)
         (escape-jsx expr env)
         (str expr))
-      (emit-return env)
-      (emit-repl env)))
+      (emit-return env)))
 
 #?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr _env]
           (str \/ expr \/)))
@@ -159,19 +150,18 @@
                   (list operator (first args) (second args))
                   (list* operator (rest args)))
             env)
-      (-> (if (and (= '- operator)
-                   (= 1 acount))
-            (str "-" (emit (first args) env))
-            (-> (let [substitutions {'= "===" == "===" '!= "!=="
-                                     'not= "!=="
-                                     '+ "+"
-                                     'bit-or "|"
-                                     'bit-and "&"}]
-                  (str "(" (str/join (str " " (or (substitutions operator)
-                                                  operator) " ")
-                                     (emit-args env args)) ")"))
-                (emit-return enc-env)))
-          (emit-repl enc-env)))))
+      (if (and (= '- operator)
+               (= 1 acount))
+        (str "-" (emit (first args) env))
+        (-> (let [substitutions {'= "===" == "===" '!= "!=="
+                                 'not= "!=="
+                                 '+ "+"
+                                 'bit-or "|"
+                                 'bit-and "&"}]
+              (str "(" (str/join (str " " (or (substitutions operator)
+                                              operator) " ")
+                                 (emit-args env args)) ")"))
+            (emit-return enc-env))))))
 
 (def core-vars (atom #{}))
 
@@ -220,16 +210,16 @@
                      (or
                       (let [ns-state @(:ns-state env)
                             current (:current ns-state)
-                            current-ns (get ns-state current)]
+                            current-ns (get ns-state current)
+                            m (munged-name expr)]
                         (when (contains? current-ns expr)
-                          (munged-name expr)))
+                          (str (when *repl*
+                                 (str (munge *cljs-ns*) ".")) m)))
                       (some-> (maybe-core-var expr env) munge)
                       (let [m (munged-name expr)]
-                        (str (when *repl*
-                               (str (munge *cljs-ns*) ".")) m)))))]
-        (-> (emit-return (escape-jsx (str expr) env)
-                         env)
-            (emit-repl env))))))
+                        m))))]
+        (emit-return (escape-jsx (str expr) env)
+                     env)))))
 
 (defn wrap-await
   ([s] (wrap-await s false))
@@ -260,7 +250,8 @@
   (emit-do env exprs))
 
 (defn emit-let [enc-env bindings body is-loop]
-  (let [context (:context enc-env)
+  (let [gensym (:gensym enc-env)
+        context (:context enc-env)
         env (assoc enc-env :context :expr)
         partitioned (partition 2 bindings)
         iife? (or (= :expr context)
@@ -281,24 +272,23 @@
                   ["" upper-var->ident]
                   partitioned))
         enc-env (assoc enc-env :var->ident var->ident :top-level false)]
-    (-> (cond-> (str
-                 bindings
-                 (when is-loop
-                   (str "while(true){\n"))
-                  ;; TODO: move this to env arg?
-                 (binding [*recur-targets*
-                           (if is-loop (map var->ident (map first partitioned))
-                               *recur-targets*)]
-                   (emit-do (if iife?
-                              (assoc enc-env :context :return)
-                              enc-env) body))
-                 (when is-loop
-                    ;; TODO: not sure why I had to insert the ; here, but else
-                    ;; (loop [x 1] (+ 1 2 x)) breaks
-                   (str ";break;\n}\n")))
-          iife?
-          (wrap-iife (= :return (:context enc-env))))
-        (emit-repl env))))
+    (cond-> (str
+             bindings
+             (when is-loop
+               (str "while(true){\n"))
+             ;; TODO: move this to env arg?
+             (binding [*recur-targets*
+                       (if is-loop (map var->ident (map first partitioned))
+                           *recur-targets*)]
+               (emit-do (if iife?
+                          (assoc enc-env :context :return)
+                          enc-env) body))
+             (when is-loop
+               ;; TODO: not sure why I had to insert the ; here, but else
+               ;; (loop [x 1] (+ 1 2 x)) breaks
+               (str ";break;\n}\n")))
+      iife?
+      (wrap-iife (= :return (:context enc-env))))))
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
@@ -307,7 +297,8 @@
   (emit-let env bindings body true))
 
 (defmethod emit-special 'case* [_ env [_ v tests thens default]]
-  (let [expr? (= :expr (:context env))
+  (let [gensym (:gensym env)
+        expr? (= :expr (:context env))
         gs (gensym "caseval__")
         eenv (expr-env env)]
     (cond-> (str
@@ -335,7 +326,8 @@
       expr? (wrap-iife))))
 
 (defmethod emit-special 'recur [_ env [_ & exprs]]
-  (let [bindings *recur-targets*
+  (let [gensym (:gensym env)
+        bindings *recur-targets*
         temps (repeatedly (count exprs) gensym)
         eenv (expr-env env)]
     (when-let [cb (:recur-callback env)]
@@ -353,30 +345,24 @@
                     bindings temps))
      "continue;\n")))
 
-(defn emit-repl-var [s _name env]
-  (str s
-       (when (and *repl* (:top-level env))
-         "globalThis._repl = null;\n")))
-
 (defn no-top-level [env]
   (dissoc env :top-level))
 
 (defn emit-var [[name expr] env]
-  (-> (let [env (no-top-level env)]
-        (str (if *repl*
-               (str "globalThis."
-                    (when *cljs-ns*
-                      (str (munge *cljs-ns*) ".") #_"var ")
-                    (munge name))
-               (str "var " (munge name))) " = "
-             (emit expr (expr-env env)) "\n"
-             (when *repl*
-               (str "var " (munge name) " = " "globalThis."
-                    (when *cljs-ns*
-                      (str (munge *cljs-ns*) "."))
-                    (munge name)
-                    "\n;"))))
-      (emit-repl-var name env)))
+  (let [env (no-top-level env)]
+    (str (if *repl*
+           (str "globalThis."
+                (when *cljs-ns*
+                  (str (munge *cljs-ns*) ".") #_"var ")
+                (munge name))
+           (str "var " (munge name))) " = "
+         (emit expr (expr-env env)) ";\n"
+         (when *repl*
+           (str "var " (munge name) " = " "globalThis."
+                (when *cljs-ns*
+                  (str (munge *cljs-ns*) "."))
+                (munge name)
+                ";\n")))))
 
 (defmethod emit-special 'def [_type env [_const & more]]
   (let [name (first more)]
@@ -388,8 +374,7 @@
     (emit-var more env)))
 
 (defn js-await [env more]
-  (-> (emit-return (wrap-await (emit more (expr-env env))) env)
-      (emit-repl env)))
+  (emit-return (wrap-await (emit more (expr-env env))) env))
 
 (defmethod emit-special 'js/await [_ env [_await more]]
   (js-await env more))
@@ -554,16 +539,15 @@
                         [(first method) (rest method)]
                         [method args])
         method-str (str method)]
-    (-> (if (str/starts-with? method-str "-")
-          (emit-aget env obj [(munge** (subs method-str 1))])
-          (emit-method env obj (symbol method-str) args))
-        (emit-repl env))))
+    (if (str/starts-with? method-str "-")
+      (emit-aget env obj [(munge** (subs method-str 1))])
+      (emit-method env obj (symbol method-str) args))))
 
 (defmethod emit-special 'aget [_type env [_aget var & idxs]]
   (emit-aget env var idxs))
 
 ;; TODO: this should not be reachable in user space
-(defmethod emit-special 'return [_type env [_return expr]]
+(defmethod emit-special 'return [_type env [_return _expr]]
   (statement (str "return " (emit (assoc env :context :expr) env))))
 
 #_(defmethod emit-special 'delete [type [return expr]]
@@ -610,18 +594,19 @@
        "\n }"))
 
 (defn ->sig [env sig]
-  (reduce (fn [[env sig seen] param]
-            (if (contains? seen param)
-              (let [new-param (gensym param)
-                    env (update env :var->ident assoc param new-param)
-                    sig (conj sig new-param)
-                    seen (conj seen param)]
-                [env sig seen])
-              [(update env :var->ident assoc param param)
-               (conj sig param)
-               (conj seen param)]))
-          [env [] #{}]
-          sig))
+  (let [gensym (:gensym env)]
+    (reduce (fn [[env sig seen] param]
+              (if (contains? seen param)
+                (let [new-param (gensym param)
+                      env (update env :var->ident assoc param new-param)
+                      sig (conj sig new-param)
+                      seen (conj seen param)]
+                  [env sig seen])
+                [(update env :var->ident assoc param param)
+                 (conj sig param)
+                 (conj seen param)]))
+            [env [] #{}]
+            sig)))
 
 (defn emit-function [env _name sig body & [elide-function?]]
   ;; (assert (or (symbol? name) (nil? name)))
@@ -677,7 +662,8 @@ break;}" body)
       (emit-function* env sigs))))
 
 (defmethod emit-special 'try [_type env [_try & body :as expression]]
-  (let [try-body (remove #(contains? #{'catch 'finally} (and (seq? %)
+  (let [gensym (:gensym env)
+        try-body (remove #(contains? #{'catch 'finally} (and (seq? %)
                                                              (first %)))
                          body)
         catch-clause (filter #(= 'catch (and (seq? %)
@@ -741,22 +727,21 @@ break;}" body)
         cherry+interop? (and
                          cherry?
                          (= "js" ns))]
-    (-> (emit-return (str
-                      (emit fname (expr-env env))
-                    ;; this is needed when calling keywords, symbols, etc. We could
-                    ;; optimize this later by inferring that we're not directly
-                     ;; calling a `function`.
-                      (when (and cherry? (not cherry+interop?)) ".call")
-                      (comma-list (emit-args env
-                                             (if cherry?
-                                               (if (not cherry+interop?)
-                                                 (cons
-                                                  (if (= "super" (first (str/split (str fname) #"\.")))
-                                                    'self__ nil) args)
-                                                 args)
-                                               args))))
-                     env)
-        (emit-repl env))))
+    (emit-return (str
+                  (emit fname (expr-env env))
+                  ;; this is needed when calling keywords, symbols, etc. We could
+                  ;; optimize this later by inferring that we're not directly
+                  ;; calling a `function`.
+                  (when (and cherry? (not cherry+interop?)) ".call")
+                  (comma-list (emit-args env
+                                         (if cherry?
+                                           (if (not cherry+interop?)
+                                             (cons
+                                              (if (= "super" (first (str/split (str fname) #"\.")))
+                                                'self__ nil) args)
+                                             args)
+                                           args))))
+                 env)))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
   (let [bindings (take-nth 2 form)

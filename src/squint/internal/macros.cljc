@@ -263,13 +263,15 @@
   "defs name to have the root value of init iff the named var has no root value,
   else init is unevaluated"
   [_&form _&env x init]
+  #_(prn &env)
   (let [qualified (if (namespace x)
                     x
                     x
                     ;; TODO:
                     #_(symbol (str (-> &env :ns :name)) (name x)))]
-    `(when-not (exists? ~qualified)
-       (def ~x ~init))))
+    `(do (~'js* "var ~{}" ~x)
+         (when-not (exists? ~qualified)
+           (def ~x ~init)))))
 
 (defn- bool-expr [e]
   (vary-meta e assoc :tag 'boolean))

@@ -76,11 +76,14 @@
                                   str))
           (.finally (fn [] #_(prn filename) (fs/unlinkSync filename))))))
 
+(def ns-state (atom {}))
+
 (defn compile [the-val rl socket]
   (let [{js-str :javascript
          cljs-ns :ns} (binding [*cljs-ns* @last-ns]
                         (compiler/compile-string* (binding [*print-meta* true]
                                                     (pr-str the-val)) {:context :return
+                                                                       :ns-state ns-state
                                                                        :elide-exports true}))
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
     #_(println :js-str js-str)

@@ -37,8 +37,11 @@
                                                                              (some->> (utils/resolve-file x)
                                                                                       (path/relative (path/dirname (str f))))]
                                                                     (let [ext (:extension opts ".mjs")
+                                                                          ext (if (str/starts-with? ext ".")
+                                                                                ext
+                                                                                (str "." ext))
                                                                           ext' (path/extname resolved)]
-                                                                      (str "./" (str/replace resolved ext' ext)))))))))
+                                                                      (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext)))))))))
                   (.then (fn [{:keys [out-file]}]
                            (println "[squint] Wrote JS file:" out-file)
                            out-file))))
@@ -54,6 +57,7 @@ Subcommands:
 
 -e           <expr>  Compile and run expression.
 run       <file.cljs>     Compile and run a file
+watch                     Watch :paths in squint.edn
 compile   <file.cljs> ... Compile file(s)
 repl                      Start repl
 help                      Print this help
@@ -69,7 +73,7 @@ Options:
 
 --no-run: do not run compiled expression
 --show:   print compiled expression")
-      (let [res (cc/compile-string e {:ns-state (atom {:current 'user})})
+      (let [res (cc/compile-string e (assoc opts :ns-state (atom {:current 'user})))
             dir (fs/mkdtempSync ".tmp")
             f (str dir "/squint.mjs")]
         (fs/writeFileSync f res "utf-8")
@@ -102,6 +106,23 @@ Options:
     (let [e (:e opts)]
       (println (t/compile! e))))
 
+(defn watch [opts]
+  (let [cfg @utils/!cfg
+        paths (:paths cfg)
+        opts (merge cfg opts)]
+    (-> (-> (esm/dynamic-import "chokidar")
+            (.catch (fn [err]
+                      (js/console.log err)
+                      (println "Install chokidar as a dev dependency."))))
+        (.then (fn [^js lib]
+                 (let [watch (.-watch lib)]
+                   (doseq [path paths]
+                     (.on ^js (watch path) "all"
+                          (fn [event path]
+                            (when (and (contains? #{"add" "change"} event)
+                                       (contains? #{".cljs" ".cljc"} (path/extname path)))
+                              (compile-files opts [path])))))))))))
+
 (def table
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
    {:cmds ["compile"]
@@ -111,6 +132,7 @@ Options:
     :fn (fn [{:keys [rest-cmds opts]}]
           (compile-files opts rest-cmds))}
    {:cmds ["repl"]       :fn repl/repl}
+   {:cmds ["watch"]      :fn watch}
    {:cmds []             :fn fallback}])
 
 (defn init []

@@ -11,7 +11,6 @@
   (let [exts ["cljc" "cljs"]]
     (some (fn [ext]
             (let [full-path (path/resolve dir (str munged-macro-ns "." ext))]
-              (prn :full-path full-path)
               (when (fs/existsSync full-path)
                 full-path)))
           exts)))
