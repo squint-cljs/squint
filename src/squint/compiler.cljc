@@ -16,7 +16,7 @@
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
-                                          comma-list emit emit-args emit-infix emit-repl emit-return escape-jsx
+                                          comma-list emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? statement suffix-unary?]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
@@ -29,8 +29,7 @@
 
 
 (defn emit-keyword [expr env]
-  (-> (emit-return (str (pr-str (subs (str expr) 1))) env)
-      (emit-repl env)))
+  (emit-return (str (pr-str (subs (str expr) 1))) env))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while
@@ -162,7 +161,7 @@
     (format "(%s)" (str "await " s)))
 
 (defmethod emit-special 'let [_type env [_let bindings & more]]
-  (emit (core-let bindings more) env)
+  (emit (core-let env bindings more) env)
   #_(prn (core-let bindings more)))
 
 (defn emit-var-declarations []
@@ -217,6 +216,7 @@
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
                          new-expr (apply macro expr {:repl cc/*repl*
+                                                     :gensym (:gensym env)
                                                      :ns {:name cc/*cljs-ns*}} (rest expr))]
                      (emit new-expr env))
                    (cond
@@ -286,9 +286,8 @@
                              (str/join " " (map #(emit % env) elts)))
                            tag-name)
                    env))
-    (-> (emit-return (format "[%s]"
-                             (str/join ", " (emit-args env expr))) env)
-        (emit-repl env))))
+    (emit-return (format "[%s]"
+                         (str/join ", " (emit-args env expr))) env)))
 
 (defn emit-map [expr env]
   (let [env* env
@@ -317,6 +316,11 @@
                    :context :statement
                    :top-level true
                    :core-vars core-vars
+                   :gensym (let [ctr (volatile! 0)]
+                             (fn [sym]
+                               (let [next-id (vswap! ctr inc)]
+                                 (symbol (str (if sym (munge sym)
+                                                  "G__") next-id)))))
                    :emit {::cc/list emit-list
                           ::cc/vector emit-vector
                           ::cc/map emit-map

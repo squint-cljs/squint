@@ -1,4 +1,6 @@
 (ns squint.internal.deftype
+  (:refer-clojure :exclude [fast-path-protocols fast-path-protocol-partitions-count
+                            dt->et])
   (:require
    [clojure.core :as core]
    [squint.internal.protocols :as p]))
@@ -29,14 +31,14 @@
       (core/quot c 32)
       (core/inc (core/quot c 32)))))
 
-(core/defn- prepare-protocol-masks [env impls]
+(core/defn- prepare-protocol-masks [_env impls]
   (core/let [resolve  identity #_(partial resolve-var env)
              impl-map (p/->impl-map impls)
              fpp-pbs  (seq
                        (keep fast-path-protocols
                              (map resolve
                                   (keys impl-map))))]
-    (if fpp-pbs
+    (when fpp-pbs
       (core/let [fpps  (into #{}
                              (filter (partial contains? fast-path-protocols)
                                      (map resolve (keys impl-map))))
@@ -51,7 +53,7 @@
                       parts
                       (range fast-path-protocol-partitions-count))]))))
 
-(core/defn- collect-protocols [impls env]
+(core/defn- collect-protocols [impls _env]
   (core/->> impls
             (filter core/symbol?)
             (map identity #_#(:name (cljs.analyzer/resolve-var (dissoc env :locals) %)))
@@ -65,7 +67,7 @@
 (core/defn dt->et
   ([type specs fields]
    (dt->et type specs fields false))
-  ([type specs fields inline]
+  ([type specs _fields inline]
    (core/let [annots {:cljs.analyzer/type type
                       :cljs.analyzer/protocol-impl true
                       :cljs.analyzer/protocol-inline inline}]

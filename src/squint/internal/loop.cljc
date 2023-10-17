@@ -16,11 +16,12 @@
   "Evaluates the exprs in a lexical context in which the symbols in
   the binding-forms are bound to their respective init-exprs or parts
   therein. Acts as a recur target."
-  [_&form _&bindings bindings & body]
+  [_&form &env bindings & body]
   #_(assert-args loop
     (vector? bindings) "a vector for its binding"
     (even? (count bindings)) "an even number of forms in binding vector")
-  (let [db (destructure bindings)]
+  (let [gensym (:gensym &env)
+        db (destructure &env bindings)]
     (if (= db bindings)
       `(loop* ~bindings ~@body)
       (let [vs (take-nth 2 (drop 1 bindings))

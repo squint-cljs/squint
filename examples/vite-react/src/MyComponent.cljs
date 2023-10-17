@@ -2,7 +2,9 @@
   (:require ["react" :refer [useState]]))
 
 (defn MyComponent []
-  (let [[state setState] (useState 0)]
-    #jsx [:div "You xxxxxxxxxxxclicked " state "times"
-          [:button {:onClick #(setState (inc state))}
-           "Click me"]]))
+  #jsx [:div
+        (let [[state setState] (useState 0)]
+          #jsx [:div "You clicked " state "times"
+                [:button {:onClick (fn [[_ _ _ ]]
+                                     (setState (inc state)))}
+                 "Click me!!"]])])
