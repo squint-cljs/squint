@@ -1,4 +1,3 @@
 {:paths ["src"]
  :output-dir "public/js"
- :extension "jsx"
- :repl true}
+ :extension "jsx"}

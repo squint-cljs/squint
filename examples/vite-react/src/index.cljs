@@ -1,8 +1,8 @@
 (ns index
   (:require
-   [my-component :as mc]
+   [MyComponent :as MyComponent]
    ["react-dom/client" :as rdom]))
 
 (def root (rdom/createRoot (js/document.getElementById "app")))
-(.render root #jsx [mc/MyComponent])
+(.render root #jsx [MyComponent/MyComponent])
 
