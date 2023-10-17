@@ -4,7 +4,7 @@
 
 ## 0.3.32 (2023-10-17)
 
-- Add `squint.edn` support, see [docs](README.md#squint-edn)
+- Add `squint.edn` support, see [docs](README.md#squintedn)
 - Add `watch` subcommand to watch `:paths` from `squint.edn`
 - Make generated `let` variable names in JS more deterministic, which helps hot reloading in React
 - Added a [vite + react example project](examples/vite-react).
