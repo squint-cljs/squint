@@ -229,9 +229,27 @@ The following searches for a `foo/macros.cljc` file in the `:paths` described in
 (my-macro 1 2 3)
 ```
 
+## `squint.edn`
+
+In `squint.edn` you can describe the following options:
+
+- `:paths`: the source paths to search for files. At the moment, only `.cljc` and `.cljs` are supported.
+- `:extension`: the preferred extension to output, which defaults to `.mjs`, but can be set to `.jsx` for React(-like) projects.
+
+See [examples/vite-react](examples/vite-react) for an example project which uses a `squint.edn`.
+
+## Watch
+
+Run `npx squint watch` to watch the source directories described in `squint.edn` and they will be (re-)compiled whenever they change.
+See [examples/vite-react](examples/vite-react) for an example project which uses this.
+
 ## Svelte
 
 A svelte pre-processor for squint can be found [here](https://github.com/jruz/svelte-preprocess-cljs).
+
+## Vite
+
+See [examples/vite-react](examples/vite-react).
 
 ## Compile on a server, use in a browser
 

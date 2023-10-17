@@ -7,4 +7,4 @@
           #jsx [:div "You clicked " state "times"
                 [:button {:onClick (fn [[_ _ _ ]]
                                      (setState (inc state)))}
-                 "Click me!!"]])])
+                 "Click me!"]])])

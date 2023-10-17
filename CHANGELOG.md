@@ -2,6 +2,13 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.3.32 (2023-10-17)
+
+- Add `squint.edn` support, see [docs](README.md#squint-edn)
+- Add `watch` subcommand to watch `:paths` from `squint.edn`
+- Make generated `let` variable names in JS more deterministic, which helps hot reloading in React
+- Added a [vite + react example project](examples/vite-react).
+
 ## 0.2.31 (2023-10-09)
 
 - Add `bit-and` and `bit-or`

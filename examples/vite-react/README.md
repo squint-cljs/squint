@@ -36,6 +36,10 @@ To set up a project with vite + react, go through the following steps:
 
 - Run `npx vite --config viteconfig.js public` to start a webserver and to hot-reload your React project!
 
+## Babashka tasks
+
+To run all of the above using one command, run `bb dev`. See [bb.edn](bb.edn).
+
 ## Production
 
 To build your production website:

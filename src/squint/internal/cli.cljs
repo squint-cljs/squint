@@ -112,16 +112,18 @@ Options:
         opts (merge cfg opts)]
     (-> (-> (esm/dynamic-import "chokidar")
             (.catch (fn [err]
-                      (js/console.log err)
-                      (println "Install chokidar as a dev dependency."))))
+                      (js/console.error err))))
         (.then (fn [^js lib]
                  (let [watch (.-watch lib)]
+                   (println "[squint] Watching paths:" (str/join ", " paths))
                    (doseq [path paths]
                      (.on ^js (watch path) "all"
                           (fn [event path]
                             (when (and (contains? #{"add" "change"} event)
                                        (contains? #{".cljs" ".cljc"} (path/extname path)))
-                              (compile-files opts [path])))))))))))
+                              (-> (compile-files opts [path])
+                                  (.catch (fn [e]
+                                            (js/console.error e))))))))))))))
 
 (def table
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
