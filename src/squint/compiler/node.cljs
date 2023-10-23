@@ -44,16 +44,14 @@
                                                          ks (keys publics)
                                                          vs (vals publics)
                                                          vs (map deref vs)
-                                                         publics (zipmap ks vs)
-                                                         publics (if refer
-                                                                   (select-keys publics refer)
-                                                                   publics)]
+                                                         publics (zipmap ks vs)]
                                                      publics)))]
                                    (.then macros
                                           (fn [macros]
                                             (swap! ns-state (fn [ns-state]
-                                                              (cond-> (assoc-in ns-state [:macros the-ns-name] macros)
-                                                                as (assoc-in [:aliases as] the-ns-name))))
+                                                              (cond-> (assoc-in ns-state [:macros macro-ns] macros)
+                                                                as (assoc-in [the-ns-name :aliases as] macro-ns)
+                                                                )))
                                             (set! compiler/built-in-macros
                                                   ;; hack
                                                   (assoc compiler/built-in-macros macro-ns macros))))))))

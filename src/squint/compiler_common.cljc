@@ -433,7 +433,7 @@
 (defmethod emit-special 'ns [_type env [_ns name & clauses]]
   ;; TODO: deprecate *cljs-ns*
   (set! *cljs-ns* name)
-  (prn (swap! (:ns-state env) assoc :current name))
+  (swap! (:ns-state env) assoc :current name)
   (reset! *aliases*
           (->> clauses
                (some

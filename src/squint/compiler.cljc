@@ -216,7 +216,8 @@
                                            nms (symbol nm)]
                                        (or (some-> env :macros (get nss) (get nms))
                                            ;; TODO: resolve from macro environemtn, perhaps :ns-state?
-                                           (let [resolved-ns (get (:aliases ns-state) nss nss)]
+                                           (let [current-ns (:current ns-state)
+                                                 resolved-ns (get-in ns-state [current-ns :aliases nss] nss)]
                                              (get-in ns-state [:macros resolved-ns nms]))
                                            #_(prn (:ns-state env))
                                            ))))))]
