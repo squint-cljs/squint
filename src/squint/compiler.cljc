@@ -216,9 +216,11 @@
                                        current-ns-state (get ns-state current-ns)]
                                    (if ns
                                      (let [nss (symbol ns)]
-                                       (or (some-> env :macros (get nss) (get nms))
-                                           (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
-                                             (get-in ns-state [:macros resolved-ns nms]))))
+                                       (or
+                                        ;; used by cherry embed:
+                                        (some-> env :macros (get nss) (get nms))
+                                        (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
+                                          (get-in ns-state [:macros resolved-ns nms]))))
                                      (let [refers (:refers current-ns-state)]
                                        (when-let [macro-ns (get refers nms)]
                                          (get-in ns-state [:macros macro-ns nms])))))))]
