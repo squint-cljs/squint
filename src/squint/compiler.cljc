@@ -209,18 +209,19 @@
                      macro (when (symbol? head)
                              (or (built-in-macros head)
                                  (let [ns (namespace head)
-                                       nm (name head)]
-                                   (when (and ns nm)
-                                     (let [ns-state @(:ns-state env)
-                                           nss (symbol ns)
-                                           nms (symbol nm)]
+                                       nm (name head)
+                                       ns-state @(:ns-state env)
+                                       current-ns (:current ns-state)
+                                       nms (symbol nm)
+                                       current-ns-state (get ns-state current-ns)]
+                                   (if ns
+                                     (let [nss (symbol ns)]
                                        (or (some-> env :macros (get nss) (get nms))
-                                           ;; TODO: resolve from macro environemtn, perhaps :ns-state?
-                                           (let [current-ns (:current ns-state)
-                                                 resolved-ns (get-in ns-state [current-ns :aliases nss] nss)]
-                                             (get-in ns-state [:macros resolved-ns nms]))
-                                           #_(prn (:ns-state env))
-                                           ))))))]
+                                           (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
+                                             (get-in ns-state [:macros resolved-ns nms]))))
+                                     (let [refers (:refers current-ns-state)]
+                                       (when-let [macro-ns (get refers nms)]
+                                         (get-in ns-state [:macros macro-ns nms])))))))]
                  (if macro
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])

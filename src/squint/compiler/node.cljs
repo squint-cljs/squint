@@ -51,8 +51,8 @@
                                             (swap! ns-state (fn [ns-state]
                                                               (cond-> (assoc-in ns-state [:macros macro-ns] macros)
                                                                 as (assoc-in [the-ns-name :aliases as] macro-ns)
-                                                                )))
-                                            (set! compiler/built-in-macros
+                                                                refer (assoc-in [the-ns-name :refers] (zipmap refer (repeat macro-ns))))))
+                                            #_(set! compiler/built-in-macros
                                                   ;; hack
                                                   (assoc compiler/built-in-macros macro-ns macros))))))))
                       (js/Promise.resolve nil)
