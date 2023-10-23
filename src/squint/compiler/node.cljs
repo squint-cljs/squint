@@ -17,7 +17,7 @@
 (defn spit [f s]
   (fs/writeFileSync f s "utf-8"))
 
-(defn scan-macros [s]
+(defn scan-macros [s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
     (when (and (seq? maybe-ns)
                (= 'ns (first maybe-ns)))
@@ -35,7 +35,7 @@
                       (fn [prev require-macros]
                         (.then prev
                                (fn [_]
-                                 (let [[macro-ns & {:keys [refer]}] require-macros
+                                 (let [[macro-ns & {:keys [refer as]}] require-macros
                                        macros (js/Promise.resolve
                                                (do (eval-form (cond-> (list 'require (list 'quote macro-ns))
                                                                 reload (concat [:reload])))
@@ -49,16 +49,20 @@
                                                                    (select-keys publics refer)
                                                                    publics)]
                                                      publics)))]
+                                   (swap! ns-state (fn [ns-state]
+                                                     ;; TODO:
+                                                     (prn :nstt (:current ns-state))
+                                                     ns-state))
                                    (.then macros
                                           (fn [macros]
                                             (set! compiler/built-in-macros
                                                   ;; hack
-                                                  (merge compiler/built-in-macros macros))))))))
+                                                  (assoc compiler/built-in-macros macro-ns macros))))))))
                       (js/Promise.resolve nil)
                       require-macros)))))))))
 
 (defn compile-string [contents opts]
-  (-> (js/Promise.resolve (scan-macros contents))
+  (-> (js/Promise.resolve (scan-macros contents opts))
       (.then #(compiler/compile-string* contents opts))))
 
 (defn adjust-file-for-paths [paths in-file]
