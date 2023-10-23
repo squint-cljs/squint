@@ -211,12 +211,13 @@
                                  (let [ns (namespace head)
                                        nm (name head)]
                                    (when (and ns nm)
-                                     (prn :aliases @*aliases*)
-                                     (let [resolved-ns (get @*aliases* (symbol ns))
-                                           _ (prn :resolved-ns resolved-ns)]
-                                       (or (some-> env :macros (get (symbol ns)) (get (symbol nm)))
+                                     (let [ns-state @(:ns-state env)
+                                           nss (symbol ns)
+                                           nms (symbol nm)]
+                                       (or (some-> env :macros (get nss) (get nms))
                                            ;; TODO: resolve from macro environemtn, perhaps :ns-state?
-                                           (some-> built-in-macros (doto prn) (get (symbol ns)) (doto prn) (get (symbol nm)))
+                                           (let [resolved-ns (get (:aliases ns-state) nss nss)]
+                                             (get-in ns-state [:macros resolved-ns nms]))
                                            #_(prn (:ns-state env))
                                            ))))))]
                  (if macro

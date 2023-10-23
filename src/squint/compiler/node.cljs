@@ -21,7 +21,7 @@
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
     (when (and (seq? maybe-ns)
                (= 'ns (first maybe-ns)))
-      (let [[_ns _name & clauses] maybe-ns
+      (let [[_ns the-ns-name & clauses] maybe-ns
             [require-macros reload] (some (fn [[clause reload]]
                                             (when (and (seq? clause)
                                                        (= :require-macros (first clause)))
@@ -49,12 +49,11 @@
                                                                    (select-keys publics refer)
                                                                    publics)]
                                                      publics)))]
-                                   (swap! ns-state (fn [ns-state]
-                                                     ;; TODO:
-                                                     (prn :nstt (:current ns-state))
-                                                     ns-state))
                                    (.then macros
                                           (fn [macros]
+                                            (swap! ns-state (fn [ns-state]
+                                                              (cond-> (assoc-in ns-state [:macros the-ns-name] macros)
+                                                                as (assoc-in [:aliases as] the-ns-name))))
                                             (set! compiler/built-in-macros
                                                   ;; hack
                                                   (assoc compiler/built-in-macros macro-ns macros))))))))
@@ -79,7 +78,7 @@
                      :or {output-dir ""}
                      :as opts}]
   (let [contents (or in-str (slurp in-file))]
-    (-> (compile-string contents (assoc opts :ns-state (atom {:current in-file})))
+    (-> (compile-string contents (assoc opts :ns-state (atom {:current 'user})))
         (.then (fn [{:keys [javascript jsx] :as opts}]
                  (let [paths (:paths @utils/!cfg ["." "src"])
                        out-file (path/resolve output-dir
