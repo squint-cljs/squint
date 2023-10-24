@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.3.34 (2023-10-24)
+
+- Handle multipe source `:paths` in a more robust fashion
+
 ## 0.3.33 (2023-10-24)
 
 - [#344](https://github.com/squint-cljs/squint/issues/344): macros can't be used via aliases
