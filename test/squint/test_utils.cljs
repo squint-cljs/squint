@@ -29,18 +29,26 @@
   (set! js/process.exitCode 1)
   (old-error m))
 
-(defn jss! [expr]
-  (if (string? expr)
-    (:body (squint/compile-string* expr {:elide-imports true
-                                         :core-alias "squint_core"}))
-    (squint/transpile-form expr {:elide-imports true
-                                 :core-alias "squint_core"})))
+(defn jss!
+  ([expr] (jss! expr nil))
+  ([expr opts]
+   (if (string? expr)
+     (:body (squint/compile-string* expr (merge {:elide-imports true
+                                                 :core-alias "squint_core"}
+                                                opts)))
+     (squint/transpile-form expr (merge {:elide-imports true
+                                         :core-alias "squint_core"}
+                                        opts)))))
 
-(defn js! [expr]
-  (let [js (jss! expr)]
-    [(js/eval js) js]))
+(defn js!
+  ([expr] (js! expr nil))
+  ([expr opts]
+   (let [js (jss! expr opts)]
+     [(js/eval js) js])))
 
-(defn jsv! [expr]
-  (first (js! expr)))
+(defn jsv!
+  ([expr] (jsv! expr nil))
+  ([expr opts]
+   (first (js! expr opts))))
 
 

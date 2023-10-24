@@ -6,7 +6,8 @@
    [squint.jsx-test]
    [squint.string-test]
    [squint.test-utils :refer [eq js! jss! jsv!]]
-   ["fs" :as fs]))
+   ["fs" :as fs]
+   ["child_process" :as process]))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -1459,6 +1460,15 @@
 
 (deftest bit-and-or
   (is (= 3 (jsv! "(+ (bit-and 1 2 3) (bit-or 1 2 3))"))))
+
+(deftest alias-conflict-test
+  (let [expr (fs/readFileSync "test-resources/alias_conflict_test.cljs" "UTF-8")
+        js (:javascript (compiler/compile-string* expr {:core-alias "squint_core"}))]
+    (when (not (fs/existsSync "test-output"))
+      (fs/mkdirSync "test-output"))
+    (fs/writeFileSync "test-output/foo.mjs" js)
+    (is (str/includes? (process/execSync "node test-output/foo.mjs")
+                       "[[1,2,3],true,-10]"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
