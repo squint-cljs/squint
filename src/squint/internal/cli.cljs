@@ -2,6 +2,7 @@
   (:require
    ["fs" :as fs]
    ["path" :as path]
+   ["glob" :as glob]
    [babashka.cli :as cli]
    [shadow.esm :as esm]
    [squint.compiler :as cc]
@@ -21,10 +22,19 @@
           ext' (path/extname resolved)]
       (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext)))))
 
+(defn glob-cljs-files [dir]
+  (glob/globSync (str dir "/**/*.{cljs,cljc}")))
+
+(defn files-from-paths [paths]
+  (mapcat glob-cljs-files paths))
+
 (defn compile-files
   [opts files]
   (let [cfg @utils/!cfg
-        opts (merge cfg opts)]
+        opts (merge cfg opts)
+        files (if (empty? files)
+                (files-from-paths (:paths cfg))
+                files)]
     ;; shouldn't need this if :coerce worked in babashka.cli
     (when-let [out-dir (:output-dir opts)]
       (when-not (string? out-dir)

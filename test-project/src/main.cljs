@@ -3,7 +3,7 @@
   (:require [other-ns]))
 
 (defn foo []
-  (m/debug :foo (+ 1 2 3 4)))
+  (m/debug :foo (+ 1 2 3)))
 
-(prn (foo))
-(prn (debug :foo (+ 1 2 3 4)))
+(foo)
+(debug :foo (+ 1 2 3 4))
