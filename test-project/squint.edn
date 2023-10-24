@@ -1,2 +1,2 @@
-{:paths ["src"]
+{:paths ["src" "src-other"]
  :output-dir "lib"}

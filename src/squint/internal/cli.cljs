@@ -11,16 +11,25 @@
    [squint.internal.node.utils :as utils]
    [clojure.string :as str]))
 
+(defn file-in-output-dir [file paths output-dir]
+  (path/resolve output-dir
+                (compiler/adjust-file-for-paths file paths)))
+
 (defn resolve-ns [opts in-file x]
-  (when-let [resolved
-             (some->> (utils/resolve-file x)
-                      (path/relative (path/dirname (str in-file))))]
-    (let [ext (:extension opts ".mjs")
-          ext (if (str/starts-with? ext ".")
-                ext
-                (str "." ext))
-          ext' (path/extname resolved)]
-      (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext)))))
+  (let [output-dir (:output-dir opts)
+        paths (:paths opts)
+        in-file-in-output-dir (file-in-output-dir in-file paths output-dir)]
+    (when-let [resolved
+               (some-> (utils/resolve-file x)
+                       (file-in-output-dir paths output-dir)
+                       (some->> (path/relative (path/dirname (str in-file-in-output-dir)))))]
+      (let [ext (:extension opts ".mjs")
+            ext (if (str/starts-with? ext ".")
+                  ext
+                  (str "." ext))
+            ext' (path/extname resolved)
+            file (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext))]
+        file))))
 
 (defn glob-cljs-files [dir]
   (glob/globSync (str dir "/**/*.{cljs,cljc}")))
