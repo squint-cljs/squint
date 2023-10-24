@@ -12,11 +12,8 @@
    [clojure.string :as str]))
 
 (defn file-in-output-dir [file paths output-dir]
-  (reduce (fn [acc path]
-            ;; TODO: make this more robust
-            (str/replace acc path output-dir))
-          file
-          paths))
+  (path/resolve output-dir
+                (compiler/adjust-file-for-paths file paths)))
 
 (defn resolve-ns [opts in-file x]
   (let [output-dir (:output-dir opts)
@@ -32,7 +29,6 @@
                   (str "." ext))
             ext' (path/extname resolved)
             file (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext))]
-        (prn :file file)
         file))))
 
 (defn glob-cljs-files [dir]

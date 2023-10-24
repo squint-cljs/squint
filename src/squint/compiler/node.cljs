@@ -62,15 +62,26 @@
   (-> (js/Promise.resolve (scan-macros contents opts))
       (.then #(compiler/compile-string* contents opts))))
 
-(defn adjust-file-for-paths [paths in-file]
-  (let [abs-in-file (path/resolve in-file)]
-    (reduce (fn [acc path]
-              (let [abs-path (path/resolve path)]
-                (if (str/starts-with? abs-in-file abs-path)
-                  (reduced (path/relative abs-path abs-in-file))
-                  acc)))
-            in-file
-            paths)))
+(defn in-dir? [dir file]
+  (let [dir (.split ^js (path/resolve dir) path/sep)
+        file (.split ^js (path/resolve file) path/sep)]
+    (loop [dir dir
+           file file]
+      (or (empty? dir)
+          (and (seq file)
+               (= (first dir)
+                  (first file))
+               (recur (rest dir)
+                      (rest file)))))))
+
+(defn adjust-file-for-paths [in-file paths ]
+  (let [out-file (reduce (fn [acc path]
+                           (if (in-dir? path in-file)
+                             (reduced (path/relative path in-file))
+                             acc))
+                         in-file
+                         paths)]
+    out-file))
 
 (defn compile-file [{:keys [in-file in-str out-file extension output-dir]
                      :or {output-dir ""}
@@ -81,7 +92,7 @@
                  (let [paths (:paths @utils/!cfg ["." "src"])
                        out-file (path/resolve output-dir
                                               (or out-file
-                                                  (str/replace (adjust-file-for-paths paths in-file) #".clj(s|c)$"
+                                                  (str/replace (adjust-file-for-paths in-file paths) #".clj(s|c)$"
                                                                (if jsx
                                                                  ".jsx"
                                                                  (or (when-let [ext extension]
