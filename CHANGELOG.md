@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- #344: macros can't be used via aliases
+
 ## 0.3.32 (2023-10-17)
 
 - Add `squint.edn` support, see [docs](README.md#squintedn)
