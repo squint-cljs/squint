@@ -1470,5 +1470,20 @@
     (is (str/includes? (process/execSync "node test-output/foo.mjs")
                        "[[1,2,3],true,-10]"))))
 
+(deftest pre-post-test
+  (testing "pre"
+    (is (thrown-with-msg? js/Error #"Assert failed:.*number.*"
+                          (jsv! "((fn [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) :foo)")))
+    (is (thrown-with-msg? js/Error #"Assert failed:.*number.*"
+                          (jsv! "(defn foo [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) (foo :foo)"))))
+  (testing "post"
+    (is (thrown-with-msg? js/Error #"Assert failed:.*even.*"
+                          (jsv! "((fn [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) 2)")))
+    (is (thrown-with-msg? js/Error #"Assert failed:.*even.*"
+                          (jsv! "(defn foo [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) (foo 2)"))))
+  (testing "all good"
+    (is (= 2 (jsv! "((fn [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) 3)")))
+    (is (= 2 (jsv! "(defn foo [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) (foo 3)")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

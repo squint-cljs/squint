@@ -87,7 +87,8 @@
                       'defclass defclass/defclass
                       'js-template defclass/js-template
                       'or macros/core-or
-                      'and macros/core-and})
+                      'and macros/core-and
+                      'assert macros/core-assert})
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 

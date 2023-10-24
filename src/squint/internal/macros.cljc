@@ -472,3 +472,14 @@
   ([_ _ x & next]
    `(let [and# ~x]
       (if and# (and ~@next) and#))))
+
+(defn core-assert
+  "Evaluates expr and throws an exception if it does not evaluate to
+  logical true."
+  ([_ _ x]
+   `(when-not ~x
+      (throw (js/Error. ~(str "Assert failed: " (pr-str x))))))
+  ([_ _ x message]
+   `(when-not ~x
+      (throw (js/Error.
+              (cljs.core/str "Assert failed: " ~message "\n" ~(pr-str x)))))))

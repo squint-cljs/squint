@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- [#347](https://github.com/squint-cljs/squint/issues/347): Add `:pre` and `:post` support in `fn`
+- Add `number?`
+
 ## 0.3.34 (2023-10-24)
 
 - Handle multipe source `:paths` in a more robust fashion

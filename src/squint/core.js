@@ -1395,3 +1395,7 @@ export function* re_seq(re, s) {
     }));
   }
 }
+
+export function number_QMARK_(x) {
+  return typeof x == 'number';
+}
