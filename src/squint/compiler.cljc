@@ -209,9 +209,21 @@
                      macro (when (symbol? head)
                              (or (built-in-macros head)
                                  (let [ns (namespace head)
-                                       nm (name head)]
-                                   (when (and ns nm)
-                                     (some-> env :macros (get (symbol ns)) (get (symbol nm)))))))]
+                                       nm (name head)
+                                       ns-state @(:ns-state env)
+                                       current-ns (:current ns-state)
+                                       nms (symbol nm)
+                                       current-ns-state (get ns-state current-ns)]
+                                   (if ns
+                                     (let [nss (symbol ns)]
+                                       (or
+                                        ;; used by cherry embed:
+                                        (some-> env :macros (get nss) (get nms))
+                                        (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
+                                          (get-in ns-state [:macros resolved-ns nms]))))
+                                     (let [refers (:refers current-ns-state)]
+                                       (when-let [macro-ns (get refers nms)]
+                                         (get-in ns-state [:macros macro-ns nms])))))))]
                  (if macro
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])

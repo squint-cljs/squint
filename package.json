@@ -31,6 +31,7 @@
     "squint-cljs": "."
   },
   "dependencies": {
-    "chokidar": "^3.5.3"
+    "chokidar": "^3.5.3",
+    "glob": "^10.3.10"
   }
 }
