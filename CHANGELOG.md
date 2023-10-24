@@ -2,9 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.3.33 (2023-10-24)
 
-- #344: macros can't be used via aliases
+- [#344](https://github.com/squint-cljs/squint/issues/344): macros can't be used via aliases
 
 ## 0.3.32 (2023-10-17)
 
