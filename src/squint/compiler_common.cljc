@@ -348,8 +348,10 @@
 (defn no-top-level [env]
   (dissoc env :top-level))
 
-(defn emit-var [[name expr] env]
-  (let [env (no-top-level env)]
+(defn emit-var [[name ?doc ?expr :as expr] env]
+  (let [expr (if (= 3 (count expr))
+               ?expr ?doc)
+        env (no-top-level env)]
     (str (if *repl*
            (str "globalThis."
                 (when *cljs-ns*

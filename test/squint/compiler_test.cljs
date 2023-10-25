@@ -1485,5 +1485,9 @@
     (is (= 2 (jsv! "((fn [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) 3)")))
     (is (= 2 (jsv! "(defn foo [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) (foo 3)")))))
 
+(deftest def-with-docstring-test
+  (is (= 2 (jsv! "(def x 1) (inc x)")))
+  (is (= 2 (jsv! "(def x \"hello\" 1) (inc x)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
