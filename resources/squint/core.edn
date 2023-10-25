@@ -19,6 +19,7 @@
   atom
   boolean$
   butlast
+  coll_QMARK_
   comp
   compare
   complement
@@ -68,10 +69,12 @@
   into_array
   iterable
   iterate
+  js_keys
   js_obj
   juxt
   keep
   keep_indexed
+  keys
   last
   lazy
   list
@@ -131,6 +134,7 @@
   split_at
   split_with
   str
+  string_QMARK_
   subs
   subvec
   swap_BANG_
@@ -143,6 +147,7 @@
   update
   update_BANG_
   update_in
+  vals
   vec
   vector
   vector_QMARK_

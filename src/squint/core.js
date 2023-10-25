@@ -1399,3 +1399,32 @@ export function* re_seq(re, s) {
 export function number_QMARK_(x) {
   return typeof x == 'number';
 }
+
+export function keys(obj) {
+  if (obj) {
+    return Object.keys(obj);
+  }
+  else {
+    return null;
+  }
+}
+
+export function js_keys(obj) {
+  return keys(obj);
+}
+
+export function vals(obj) {
+  if (obj) {
+    return Object.values(obj);
+  } else {
+    return null;
+  }
+}
+
+export function string_QMARK_(s) {
+  return typeof(s) === 'string';
+}
+
+export function coll_QMARK_(coll) {
+  return typeConst(coll) != undefined;
+}
