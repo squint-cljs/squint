@@ -2,10 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.3.35 (2023-10-25)
 
 - [#347](https://github.com/squint-cljs/squint/issues/347): Add `:pre` and `:post` support in `fn`
 - Add `number?`
+- Support `docstring` in `def`
 
 ## 0.3.34 (2023-10-24)
 
