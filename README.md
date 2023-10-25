@@ -214,9 +214,86 @@ REPL. REPL away!
 
 Squint respect CLJS truth semantics: only `null`, `undefined` and `false` are non-truthy, `0` and `""` are truthy.
 
+## Macros
+
+To load macros, add a `squint.edn` file in the root of your project with
+`{:paths ["src-squint"]}` that describes where to find your macro files.  Macros
+are written in `.cljs` or `.cljc` files and are executed using
+[SCI](https://github.com/babashka/sci).
+
+The following searches for a `foo/macros.cljc` file in the `:paths` described in `squint.edn`.
+
+``` clojure
+(ns foo (:require-macros [foo.macros :refer [my-macro]]))
+
+(my-macro 1 2 3)
+```
+
+## `squint.edn`
+
+In `squint.edn` you can describe the following options:
+
+- `:paths`: the source paths to search for files. At the moment, only `.cljc` and `.cljs` are supported.
+- `:extension`: the preferred extension to output, which defaults to `.mjs`, but can be set to `.jsx` for React(-like) projects.
+
+See [examples/vite-react](examples/vite-react) for an example project which uses a `squint.edn`.
+
+## Watch
+
+Run `npx squint watch` to watch the source directories described in `squint.edn` and they will be (re-)compiled whenever they change.
+See [examples/vite-react](examples/vite-react) for an example project which uses this.
+
 ## Svelte
 
 A svelte pre-processor for squint can be found [here](https://github.com/jruz/svelte-preprocess-cljs).
+
+## Vite
+
+See [examples/vite-react](examples/vite-react).
+
+## Compile on a server, use in a browser
+
+This is a small demo of how to leverage squint from a JVM to compile snippets of
+JavaScript that you can use in the browser.
+
+``` clojure
+(require '[squint.compiler])
+(-> (squint.compiler/compile-string* "(prn (map inc [1 2 3]))" {:core-alias "_sc"}) :body)
+;;=> "_sc.prn(_sc.map(_sc.inc, [1, 2, 3]));\n"
+```
+
+The `:core-alias` option takes care of prefixing any `squint.core` function with an alias, in the example `_sc`.
+
+In HTML, to avoid any async ES6, there is also a UMD build of `squint.core`
+available. See the below HTML how it is used. We alias the core library to our
+shorter `_sc` alias ourselves using
+
+``` html
+<script>globalThis._sc = squint.core;</script>
+```
+
+to make it all work.
+
+``` html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Squint</title>
+    <script src="https://cdn.jsdelivr.net/npm/squint-cljs@0.2.30/lib/squint.core.umd.js"></script>
+    <!-- rename squint.core to a shorter alias at your convenience: -->
+    <script>globalThis._sc = squint.core;</script>
+    <!-- compile JS on the server using: (squint.compiler/compile-string* "(prn (map inc [1 2 3]))" {:core-alias "_sc"}) -->
+    <script>
+      _sc.prn(_sc.map(_sc.inc, [1, 2, 3]));
+    </script>
+  </head>
+  <body>
+    <button onClick="_sc.prn(_sc.map(_sc.inc, [1, 2, 3]));">
+      Click me
+    </button>
+  </body>
+</html>
+```
 
 License
 =======

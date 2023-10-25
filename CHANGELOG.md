@@ -2,6 +2,41 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.3.35 (2023-10-25)
+
+- [#347](https://github.com/squint-cljs/squint/issues/347): Add `:pre` and `:post` support in `fn`
+- Add `number?`
+- Support `docstring` in `def`
+
+## 0.3.34 (2023-10-24)
+
+- Handle multipe source `:paths` in a more robust fashion
+
+## 0.3.33 (2023-10-24)
+
+- [#344](https://github.com/squint-cljs/squint/issues/344): macros can't be used via aliases
+
+## 0.3.32 (2023-10-17)
+
+- Add `squint.edn` support, see [docs](README.md#squintedn)
+- Add `watch` subcommand to watch `:paths` from `squint.edn`
+- Make generated `let` variable names in JS more deterministic, which helps hot reloading in React
+- Added a [vite + react example project](examples/vite-react).
+- Resolve symbolic namespaces `(:require [foo.bar])` from `:paths`
+
+## 0.2.31 (2023-10-09)
+
+- Add `bit-and` and `bit-or`
+
+## 0.2.30 (2023-10-04)
+
+- Include `lib/squint.core.umd.js` which defines a global `squint.core` object (easy to use in browsers, see [docs](README.md#compile-on-a-server-use-in-a-browser))
+
+## 0.2.29 (2023-10-03)
+
+- Add `subs`, `fn?`, `re-seq`
+- Add `squint.edn` with `:paths` to resolve macros from (via `:require-macros`)
+
 ## 0.2.28 (2023-09-18)
 
 - Fix `and` and `or` with respect to CLJS truthiness

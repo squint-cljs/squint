@@ -6,6 +6,7 @@
    [clojure.string :as str]
    [edamame.core :as e]
    [shadow.esm :as esm]
+   [squint.internal.node.utils :as utils]
    [squint.compiler :as compiler]))
 
 (def sci (atom nil))
@@ -16,11 +17,11 @@
 (defn spit [f s]
   (fs/writeFileSync f s "utf-8"))
 
-(defn scan-macros [s]
+(defn scan-macros [s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
     (when (and (seq? maybe-ns)
                (= 'ns (first maybe-ns)))
-      (let [[_ns _name & clauses] maybe-ns
+      (let [[_ns the-ns-name & clauses] maybe-ns
             [require-macros reload] (some (fn [[clause reload]]
                                             (when (and (seq? clause)
                                                        (= :require-macros (first clause)))
@@ -34,7 +35,7 @@
                       (fn [prev require-macros]
                         (.then prev
                                (fn [_]
-                                 (let [[macro-ns & {:keys [refer]}] require-macros
+                                 (let [[macro-ns & {:keys [refer as]}] require-macros
                                        macros (js/Promise.resolve
                                                (do (eval-form (cond-> (list 'require (list 'quote macro-ns))
                                                                 reload (concat [:reload])))
@@ -43,32 +44,55 @@
                                                          ks (keys publics)
                                                          vs (vals publics)
                                                          vs (map deref vs)
-                                                         publics (zipmap ks vs)
-                                                         publics (if refer
-                                                                   (select-keys publics refer)
-                                                                   publics)]
+                                                         publics (zipmap ks vs)]
                                                      publics)))]
                                    (.then macros
                                           (fn [macros]
-                                            (set! compiler/built-in-macros
+                                            (swap! ns-state (fn [ns-state]
+                                                              (cond-> (assoc-in ns-state [:macros macro-ns] macros)
+                                                                as (assoc-in [the-ns-name :aliases as] macro-ns)
+                                                                refer (assoc-in [the-ns-name :refers] (zipmap refer (repeat macro-ns))))))
+                                            #_(set! compiler/built-in-macros
                                                   ;; hack
-                                                  (merge compiler/built-in-macros macros))))))))
+                                                  (assoc compiler/built-in-macros macro-ns macros))))))))
                       (js/Promise.resolve nil)
                       require-macros)))))))))
 
 (defn compile-string [contents opts]
-  (-> (js/Promise.resolve (scan-macros contents))
+  (-> (js/Promise.resolve (scan-macros contents opts))
       (.then #(compiler/compile-string* contents opts))))
+
+(defn in-dir? [dir file]
+  (let [dir (.split ^js (path/resolve dir) path/sep)
+        file (.split ^js (path/resolve file) path/sep)]
+    (loop [dir dir
+           file file]
+      (or (empty? dir)
+          (and (seq file)
+               (= (first dir)
+                  (first file))
+               (recur (rest dir)
+                      (rest file)))))))
+
+(defn adjust-file-for-paths [in-file paths ]
+  (let [out-file (reduce (fn [acc path]
+                           (if (in-dir? path in-file)
+                             (reduced (path/relative path in-file))
+                             acc))
+                         in-file
+                         paths)]
+    out-file))
 
 (defn compile-file [{:keys [in-file in-str out-file extension output-dir]
                      :or {output-dir ""}
                      :as opts}]
   (let [contents (or in-str (slurp in-file))]
-    (-> (compile-string contents (assoc opts :ns-state (atom {:current in-file})))
+    (-> (compile-string contents (assoc opts :ns-state (atom {:current 'user})))
         (.then (fn [{:keys [javascript jsx] :as opts}]
-                 (let [out-file (path/resolve output-dir
+                 (let [paths (:paths @utils/!cfg ["." "src"])
+                       out-file (path/resolve output-dir
                                               (or out-file
-                                                  (str/replace in-file #".clj(s|c)$"
+                                                  (str/replace (adjust-file-for-paths in-file paths) #".clj(s|c)$"
                                                                (if jsx
                                                                  ".jsx"
                                                                  (or (when-let [ext extension]

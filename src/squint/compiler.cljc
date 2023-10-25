@@ -16,7 +16,7 @@
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
-                                          comma-list emit emit-args emit-infix emit-repl emit-return escape-jsx
+                                          comma-list emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? statement suffix-unary?]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
@@ -29,8 +29,7 @@
 
 
 (defn emit-keyword [expr env]
-  (-> (emit-return (str (pr-str (subs (str expr) 1))) env)
-      (emit-repl env)))
+  (emit-return (str (pr-str (subs (str expr) 1))) env))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while
@@ -42,7 +41,8 @@
                          'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
-                         'require 'squint.defclass/defclass* 'squint.defclass/super*]))
+                         'require 'squint.defclass/defclass* 'squint.defclass/super*
+                         'clj->js]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -87,7 +87,8 @@
                       'defclass defclass/defclass
                       'js-template defclass/js-template
                       'or macros/core-or
-                      'and macros/core-and})
+                      'and macros/core-and
+                      'assert macros/core-assert})
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 
@@ -117,6 +118,9 @@
 
 #_(defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
     (emit-let enc-env bindings body false))
+
+(defmethod emit-special 'clj->js [_ env [_ form]]
+  (emit form env))
 
 (defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
   (let [fields (map munge fields)]
@@ -158,7 +162,7 @@
     (format "(%s)" (str "await " s)))
 
 (defmethod emit-special 'let [_type env [_let bindings & more]]
-  (emit (core-let bindings more) env)
+  (emit (core-let env bindings more) env)
   #_(prn (core-let bindings more)))
 
 (defn emit-var-declarations []
@@ -206,13 +210,27 @@
                      macro (when (symbol? head)
                              (or (built-in-macros head)
                                  (let [ns (namespace head)
-                                       nm (name head)]
-                                   (when (and ns nm)
-                                     (some-> env :macros (get (symbol ns)) (get (symbol nm)))))))]
+                                       nm (name head)
+                                       ns-state @(:ns-state env)
+                                       current-ns (:current ns-state)
+                                       nms (symbol nm)
+                                       current-ns-state (get ns-state current-ns)]
+                                   (if ns
+                                     (let [nss (symbol ns)]
+                                       (or
+                                        ;; used by cherry embed:
+                                        (some-> env :macros (get nss) (get nms))
+                                        (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
+                                          (get-in ns-state [:macros resolved-ns nms]))))
+                                     (let [refers (:refers current-ns-state)]
+                                       (when-let [macro-ns (get refers nms)]
+                                         (get-in ns-state [:macros macro-ns nms])))))))]
                  (if macro
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
-                         new-expr (apply macro expr {} (rest expr))]
+                         new-expr (apply macro expr {:repl cc/*repl*
+                                                     :gensym (:gensym env)
+                                                     :ns {:name cc/*cljs-ns*}} (rest expr))]
                      (emit new-expr env))
                    (cond
                      (and (= (.charAt head-str 0) \.)
@@ -281,9 +299,8 @@
                              (str/join " " (map #(emit % env) elts)))
                            tag-name)
                    env))
-    (-> (emit-return (format "[%s]"
-                             (str/join ", " (emit-args env expr))) env)
-        (emit-repl env))))
+    (emit-return (format "[%s]"
+                         (str/join ", " (emit-args env expr))) env)))
 
 (defn emit-map [expr env]
   (let [env* env
@@ -312,6 +329,11 @@
                    :context :statement
                    :top-level true
                    :core-vars core-vars
+                   :gensym (let [ctr (volatile! 0)]
+                             (fn [sym]
+                               (let [next-id (vswap! ctr inc)]
+                                 (symbol (str (if sym (munge sym)
+                                                  "G__") next-id)))))
                    :emit {::cc/list emit-list
                           ::cc/vector emit-vector
                           ::cc/map emit-map
@@ -337,7 +359,7 @@
     :readers {'js #(vary-meta % assoc ::js true)
               'jsx jsx}
     :read-cond :allow
-    :features #{:cljs}}))
+    :features #{:squint :cljs}}))
 
 (defn transpile-string*
   ([s] (transpile-string* s {}))
@@ -366,7 +388,7 @@
    (binding [cc/*core-package* "squint-cljs/core.js"
              cc/*target* :squint
              *jsx* false
-             cc/*repl* (or (:repl opts) cc/*repl*)]
+             cc/*repl* (:repl opts cc/*repl*)]
      (let [opts (merge {:ns-state (atom {})} opts)
            imported-vars (atom {})
            public-vars (atom #{})

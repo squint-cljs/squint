@@ -11,8 +11,9 @@
 (ns squint.internal.destructure
   (:refer-clojure :exclude [destructure]))
 
-(defn destructure [bindings]
-  (let [bents (partition 2 bindings)
+(defn destructure [env bindings]
+  (let [gensym (:gensym env)
+        bents (partition 2 bindings)
         pb (fn pb [bvec b v]
              (let [pvec
                    (fn [bvec b val]
@@ -53,7 +54,7 @@
                            ret))))
                    pmap
                    (fn [bvec b v]
-                     (let [m (meta b)
+                     (let [_m (meta b)
                            js-keys? true #_(or (:js m)
                                         (= 'js (:tag m)))
                            gmap (gensym "map__")
@@ -121,8 +122,8 @@
     ret))
 
 (defn core-let
-  [bindings body]
+  [env bindings body]
   #_(assert-args let
                  (vector? bindings) "a vector for its binding"
                  (even? (count bindings)) "an even number of forms in binding vector")
-  `(cljs.core/let* ~(destructure bindings) ~@body))
+  `(cljs.core/let* ~(destructure env bindings) ~@body))

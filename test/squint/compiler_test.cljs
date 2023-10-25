@@ -6,7 +6,8 @@
    [squint.jsx-test]
    [squint.string-test]
    [squint.test-utils :refer [eq js! jss! jsv!]]
-   ["fs" :as fs]))
+   ["fs" :as fs]
+   ["child_process" :as process]))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -1450,6 +1451,43 @@
 
 (deftest juxt-test
   (is (eq #js [2 0] (jsv! "((juxt inc dec) 1)"))))
+
+(deftest fn?-test
+  (is (true? (jsv! "(fn? inc)"))))
+
+(deftest re-seq-test
+  (is (eq #js ["foo" "foo" "foo"] (jsv! "(vec (re-seq #\"foo\" \"foobfoobfoo\"))"))))
+
+(deftest bit-and-or
+  (is (= 3 (jsv! "(+ (bit-and 1 2 3) (bit-or 1 2 3))"))))
+
+(deftest alias-conflict-test
+  (let [expr (fs/readFileSync "test-resources/alias_conflict_test.cljs" "UTF-8")
+        js (:javascript (compiler/compile-string* expr {:core-alias "squint_core"}))]
+    (when (not (fs/existsSync "test-output"))
+      (fs/mkdirSync "test-output"))
+    (fs/writeFileSync "test-output/foo.mjs" js)
+    (is (str/includes? (process/execSync "node test-output/foo.mjs")
+                       "[[1,2,3],true,-10]"))))
+
+(deftest pre-post-test
+  (testing "pre"
+    (is (thrown-with-msg? js/Error #"Assert failed:.*number.*"
+                          (jsv! "((fn [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) :foo)")))
+    (is (thrown-with-msg? js/Error #"Assert failed:.*number.*"
+                          (jsv! "(defn foo [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) (foo :foo)"))))
+  (testing "post"
+    (is (thrown-with-msg? js/Error #"Assert failed:.*even.*"
+                          (jsv! "((fn [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) 2)")))
+    (is (thrown-with-msg? js/Error #"Assert failed:.*even.*"
+                          (jsv! "(defn foo [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) (foo 2)"))))
+  (testing "all good"
+    (is (= 2 (jsv! "((fn [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) 3)")))
+    (is (= 2 (jsv! "(defn foo [x] {:pre [(number? x)] :post [(even? %)]} (dec x)) (foo 3)")))))
+
+(deftest def-with-docstring-test
+  (is (= 2 (jsv! "(def x 1) (inc x)")))
+  (is (= 2 (jsv! "(def x \"hello\" 1) (inc x)"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

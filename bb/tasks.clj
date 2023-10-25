@@ -3,15 +3,8 @@
    [babashka.fs :as fs]
    [babashka.process :refer [shell]]
    [cheshire.core :as json]
-   [clojure.edn :as edn]
-   [clojure.java.io :as io]
-   [node-repl-tests]))
-
-(defn munge* [s reserved]
-  (let [s (str (munge s))]
-    (if (contains? reserved s)
-      (str s "$")
-      s)))
+   [node-repl-tests]
+   [clojure.string :as str]))
 
 (def test-config
   '{:compiler-options {:load-tests true}
@@ -42,6 +35,7 @@
 (defn publish []
   (build-squint-npm-package)
   (run! fs/delete (fs/glob "lib" "*.map"))
+  (shell "esbuild src/squint/core.js --minify --format=iife --global-name=squint.core --outfile=lib/squint.core.umd.js")
   (shell "npm publish"))
 
 (defn watch-squint []
@@ -51,10 +45,25 @@
   (bump-core-vars)
   (shell "npx shadow-cljs --aliases :dev --config-merge .work/config-merge.edn watch squint"))
 
+(defn test-project [_]
+  (let [dir "test-project"]
+    (fs/delete-tree (fs/path dir "lib"))
+    (shell {:dir dir} "npx squint compile")
+    (let [output (:out (shell {:dir dir :out :string} "node lib/main.mjs"))]
+      (println output)
+      (assert (str/includes? output "macros2/debug 10"))
+      (assert (str/includes? output "macros2/debug 6"))
+      (assert (str/includes? output "macros/debug 10",))
+      (assert (str/includes? output "macros/debug 6"))
+      (assert (str/includes? output "my-other-src")))))
+
 (defn test-squint []
   (fs/create-dirs ".work")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
   (bump-core-vars)
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn compile squint")
   (shell "node lib/squint_tests.js")
-  (node-repl-tests/run-tests {}))
+  (node-repl-tests/run-tests {})
+  (test-project {}))
+
+

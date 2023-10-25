@@ -53,6 +53,7 @@
   filter
   filterv
   first
+  fn_QMARK_
   fnil
   frequencies
   get
@@ -90,6 +91,7 @@
   not_any_QMARK_
   not_every_QMARK_
   nth
+  number_QMARK_
   odd_QMARK_
   partial
   partition
@@ -102,6 +104,7 @@
   rand_nth
   range
   re_matches
+  re_seq
   reduce
   reduce_kv
   reduced
@@ -128,6 +131,7 @@
   split_at
   split_with
   str
+  subs
   subvec
   swap_BANG_
   system_time

@@ -263,13 +263,15 @@
   "defs name to have the root value of init iff the named var has no root value,
   else init is unevaluated"
   [_&form _&env x init]
+  #_(prn &env)
   (let [qualified (if (namespace x)
                     x
                     x
                     ;; TODO:
                     #_(symbol (str (-> &env :ns :name)) (name x)))]
-    `(when-not (exists? ~qualified)
-       (def ~x ~init))))
+    `(do (~'js* "var ~{}" ~x)
+         (when-not (exists? ~qualified)
+           (def ~x ~init)))))
 
 (defn- bool-expr [e]
   (vary-meta e assoc :tag 'boolean))
@@ -470,3 +472,14 @@
   ([_ _ x & next]
    `(let [and# ~x]
       (if and# (and ~@next) and#))))
+
+(defn core-assert
+  "Evaluates expr and throws an exception if it does not evaluate to
+  logical true."
+  ([_ _ x]
+   `(when-not ~x
+      (throw (js/Error. ~(str "Assert failed: " (pr-str x))))))
+  ([_ _ x message]
+   `(when-not ~x
+      (throw (js/Error.
+              (cljs.core/str "Assert failed: " ~message "\n" ~(pr-str x)))))))
