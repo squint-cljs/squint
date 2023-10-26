@@ -87,6 +87,7 @@
   max
   merge
   min
+  NaN_QMARK_
   neg_QMARK_
   next
   nil_QMARK_
