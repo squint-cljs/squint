@@ -1396,6 +1396,10 @@ export function* re_seq(re, s) {
   }
 }
 
+export function NaN_QMARK_(x) {
+  return Number.isNaN(x);
+}
+
 export function number_QMARK_(x) {
   return typeof x == 'number';
 }
