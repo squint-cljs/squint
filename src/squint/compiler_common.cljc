@@ -255,7 +255,7 @@
         env (assoc enc-env :context :expr)
         partitioned (partition 2 bindings)
         iife? (or (= :expr context)
-                  (and *repl* (:top-level env)))
+                  (:top-level env))
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
         (let [env (dissoc env :top-level)]

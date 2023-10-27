@@ -416,7 +416,7 @@
   not distinguish between object and array types and not subject to compiler
   static analysis."
   [_ _ obj key val]
-  (list 'js* "(~{}[~{}] = ~{})" obj key val))
+  (list 'js* {:context :expr}  "(~{}[~{}] = ~{})" obj key val))
 
 (defn core-instance? [_ _ c x]
   (bool-expr `(let [c# ~c x# ~x

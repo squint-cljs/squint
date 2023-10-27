@@ -368,6 +368,7 @@
     (is (jsv! '(boolean 1))))
 
 (deftest defprotocol-extend-type-string-test
+  (println (jss! '(do (defprotocol IFoo (foo [_])) (extend-type string IFoo (foo [_] :foo)) (foo "bar"))))
   (is (eq "foo" (jsv! '(do (defprotocol IFoo (foo [_])) (extend-type string IFoo (foo [_] :foo)) (foo "bar"))))))
 
 (deftest deftype-test
@@ -1488,6 +1489,9 @@
 (deftest def-with-docstring-test
   (is (= 2 (jsv! "(def x 1) (inc x)")))
   (is (= 2 (jsv! "(def x \"hello\" 1) (inc x)"))))
+
+(deftest top-level-let-naming-conflict
+  (is (eq #js [1 2] (jsv! "(def atm (atom [])) (let [x 1] (swap! atm conj x)) (let [x 2] (swap! atm conj x)) @atm"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
