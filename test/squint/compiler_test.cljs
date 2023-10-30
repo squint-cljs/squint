@@ -368,7 +368,6 @@
     (is (jsv! '(boolean 1))))
 
 (deftest defprotocol-extend-type-string-test
-  (println (jss! '(do (defprotocol IFoo (foo [_])) (extend-type string IFoo (foo [_] :foo)) (foo "bar"))))
   (is (eq "foo" (jsv! '(do (defprotocol IFoo (foo [_])) (extend-type string IFoo (foo [_] :foo)) (foo "bar"))))))
 
 (deftest deftype-test
