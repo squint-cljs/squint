@@ -248,13 +248,15 @@
                              (cond
                                (= k :let) `(let ~v ~subform)
                                (= k :while) `(if ~v
-                                               ~subform
-                                               (~'js* "break;\n"))
+                                               ~(with-meta `(~'js* "~{}" ~subform)
+                                                  {:context :expr})
+                                               ~(with-meta `(~'js* "break;\n")
+                                                  {:context :expr}))
                                (= k :when) `(when ~v
                                               ~subform)
                                (keyword? k) (err "Invalid 'doseq' keyword" k)
                                :else (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
-                                           k v subform)))))]
+                                           k v (list 'js* {:context :statement} "~{} "subform))))))]
               (step (seq seq-exprs)))]
     ;; force returning of nil
     (list 'do res nil)))
