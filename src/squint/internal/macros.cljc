@@ -208,7 +208,7 @@
   (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
         step (fn step [exprs]
                (if-not exprs
-                 (list 'js* {:context :expr} "yield ~{}" body)
+                 (list 'js* "yield ~{}" body)
                  (let [k (first exprs)
                        v (second exprs)
                        subform (step (nnext exprs))]
@@ -224,9 +224,9 @@
                      (= k :when) `(when ~v
                                     ~subform)
                      (keyword? k) (err "Invalid 'for' keyword" k)
-                     :else (list 'js* {:context :statement}
+                     :else (list 'js*
                                  "for (let ~{} of ~{}) {\n~{}\n}"
-                                 k v subform)))))]
+                                 k v (list 'js* {:context :statement} "~{}" subform))))))]
     (list 'lazy (list 'js* "function* () {\n~{}\n}"
                       (step (seq seq-exprs))))))
 
@@ -248,13 +248,15 @@
                              (cond
                                (= k :let) `(let ~v ~subform)
                                (= k :while) `(if ~v
-                                               ~subform
-                                               (~'js* "break;\n"))
+                                               ~(with-meta `(~'js* "~{}" ~subform)
+                                                  {:context :expr})
+                                               ~(with-meta `(~'js* "break;\n")
+                                                  {:context :expr}))
                                (= k :when) `(when ~v
                                               ~subform)
                                (keyword? k) (err "Invalid 'doseq' keyword" k)
                                :else (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
-                                           k v subform)))))]
+                                           k v (list 'js* {:context :statement} "~{} "subform))))))]
               (step (seq seq-exprs)))]
     ;; force returning of nil
     (list 'do res nil)))

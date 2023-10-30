@@ -1489,5 +1489,8 @@
   (is (= 2 (jsv! "(def x 1) (inc x)")))
   (is (= 2 (jsv! "(def x \"hello\" 1) (inc x)"))))
 
+(deftest top-level-let-naming-conflict
+  (is (eq #js [1 2] (jsv! "(def atm (atom [])) (let [x 1] (swap! atm conj x)) (let [x 2] (swap! atm conj x)) @atm"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

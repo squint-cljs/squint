@@ -13,22 +13,23 @@
 
 (defmulti emit-special (fn [disp _env & _args] disp))
 
-(defmethod emit-special 'js* [_ env [_js* & opts]]
+(defn emit-return [s env]
+  (if (= :return (:context env))
+    (format "return %s;" s)
+    s))
+
+(defmethod emit-special 'js* [_ env [_js* & opts :as expr]]
   (let [[env' template substitutions] (if (map? (first opts))
                                         [(first opts)
                                          (second opts)
                                          (drop 2 opts)]
                                         [nil (first opts) (rest opts)])]
-    (reduce (fn [template substitution]
-              (str/replace-first template "~{}"
-                                 (emit substitution (merge env env'))))
-            template
-            substitutions)))
-
-(defn emit-return [s env]
-  (if (= :return (:context env))
-    (format "return %s;" s)
-    s))
+    (-> (reduce (fn [template substitution]
+                 (str/replace-first template "~{}"
+                                    (emit substitution (merge (assoc env :context :expr) env'))))
+               template
+               substitutions)
+        (emit-return (merge env (meta expr))))))
 
 (defn expr-env [env]
   (assoc env :context :expr :top-level false))
@@ -255,7 +256,7 @@
         env (assoc enc-env :context :expr)
         partitioned (partition 2 bindings)
         iife? (or (= :expr context)
-                  (and *repl* (:top-level env)))
+                  (:top-level env))
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
         (let [env (dissoc env :top-level)]
