@@ -208,7 +208,7 @@
   (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
         step (fn step [exprs]
                (if-not exprs
-                 (list 'js* {:context :expr} "yield ~{}" body)
+                 (list 'js* "yield ~{}" body)
                  (let [k (first exprs)
                        v (second exprs)
                        subform (step (nnext exprs))]
@@ -224,9 +224,9 @@
                      (= k :when) `(when ~v
                                     ~subform)
                      (keyword? k) (err "Invalid 'for' keyword" k)
-                     :else (list 'js* {:context :statement}
+                     :else (list 'js*
                                  "for (let ~{} of ~{}) {\n~{}\n}"
-                                 k v subform)))))]
+                                 k v (list 'js* {:context :statement} "~{}" subform))))))]
     (list 'lazy (list 'js* "function* () {\n~{}\n}"
                       (step (seq seq-exprs))))))
 
@@ -418,7 +418,7 @@
   not distinguish between object and array types and not subject to compiler
   static analysis."
   [_ _ obj key val]
-  (list 'js* {:context :expr}  "(~{}[~{}] = ~{})" obj key val))
+  (list 'js* "(~{}[~{}] = ~{})" obj key val))
 
 (defn core-instance? [_ _ c x]
   (bool-expr `(let [c# ~c x# ~x
