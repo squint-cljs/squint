@@ -6,9 +6,8 @@ Squint is not intended as a replacement for ClojureScript but as a tool to
 target JS for anything you would not use ClojureScript for, for whatever reason:
 performance, bundle size, ease of interop, etc.
 
-> :warning: This project should be considered experimental and may still undergo
-> breaking changes. It's fine to use it for non-critical projects but don't use
-> it in production yet.
+> :warning: This project is a work in progress and may still undergo breaking
+> changes.
 
 ## Quickstart
 
@@ -294,6 +293,11 @@ to make it all work.
   </body>
 </html>
 ```
+
+## Projects using squint
+
+- [static search index for Tumblr](https://github.com/holyjak/clj-tumblr-summarizer/commit/a8b2ca8a9f777e4a9059fa0f1381ded24e5f1a0f)
+- [worlde](https://github.com/jackdbd/squint-wordle)
 
 License
 =======
