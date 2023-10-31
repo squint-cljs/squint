@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.3.36 (2023-10-31)
 
 - [#350](https://github.com/squint-cljs/squint/issues/350): `js*` should default to `:context :expr`
+- [#352](https://github.com/squint-cljs/squint/issues/352): fix `zero?` in return position
 
 ## 0.3.35 (2023-10-25)
 

@@ -749,7 +749,8 @@ break;}" body)
   (toString [_] js))
 
 (defmethod emit-special 'zero? [_ env [_ num]]
-  (map->Code {:js (format "(%s == 0)" (emit num (assoc env :context :expr)))
+  (map->Code {:js (-> (format "(%s == 0)" (emit num (assoc env :context :expr)))
+                      (emit-return env))
               :bool true}))
 
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]

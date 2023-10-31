@@ -1492,5 +1492,8 @@
 (deftest top-level-let-naming-conflict
   (is (eq #js [1 2] (jsv! "(def atm (atom [])) (let [x 1] (swap! atm conj x)) (let [x 2] (swap! atm conj x)) @atm"))))
 
+(deftest return-zero?-branch-test
+  (is (true? (jsv! "((fn [x] (zero? x)) 0)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
