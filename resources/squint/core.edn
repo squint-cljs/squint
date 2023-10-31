@@ -2,6 +2,7 @@
   IIterable
   IIterable__iterator
   LazySeq
+  NaN_QMARK_
   PROTOCOL_SENTINEL
   _
   _PLUS_
@@ -87,7 +88,6 @@
   max
   merge
   min
-  NaN_QMARK_
   neg_QMARK_
   next
   nil_QMARK_

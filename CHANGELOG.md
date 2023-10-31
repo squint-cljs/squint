@@ -6,6 +6,7 @@
 
 - [#350](https://github.com/squint-cljs/squint/issues/350): `js*` should default to `:context :expr`
 - [#352](https://github.com/squint-cljs/squint/issues/352): fix `zero?` in return position
+- Add `NaN?` ([@sher](https://github.com/sher))
 
 ## 0.3.35 (2023-10-25)
 
