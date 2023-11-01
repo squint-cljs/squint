@@ -1432,3 +1432,31 @@ export function string_QMARK_(s) {
 export function coll_QMARK_(coll) {
   return typeConst(coll) != undefined;
 }
+
+export function regexp_QMARK_(coll) {
+  return coll instanceof RegExp;
+}
+
+class ExceptionInfo extends Error {
+  constructor(message, data, cause) {
+    super(message);
+    this._data = data;
+    this._cause = cause;
+  }
+}
+
+export function ex_data(e) {
+  if (e instanceof ExceptionInfo)
+    return e._data;
+  else return null;
+}
+
+export function ex_cause(e) {
+  if (e instanceof ExceptionInfo)
+    return e._cause;
+  else return null;
+}
+
+export function ex_info(message, data, cause) {
+  return new ExceptionInfo(message, data, cause);
+}

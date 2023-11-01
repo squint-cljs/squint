@@ -50,6 +50,9 @@
   even_QMARK_
   every_QMARK_
   every_pred
+  ex_cause
+  ex_data
+  ex_info
   false_QMARK_
   ffirst
   filter
@@ -113,6 +116,7 @@
   reduce_kv
   reduced
   reduced_QMARK_
+  regexp_QMARK_
   remove
   remove_watch
   repeat
