@@ -53,6 +53,7 @@
   ex_cause
   ex_data
   ex_info
+  ex_message
   false_QMARK_
   ffirst
   filter

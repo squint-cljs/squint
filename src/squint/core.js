@@ -1451,6 +1451,13 @@ export function ex_data(e) {
   else return null;
 }
 
+export function ex_message(e) {
+  if (e instanceof Error)
+    return e.message;
+  else return null;
+}
+
+
 export function ex_cause(e) {
   if (e instanceof ExceptionInfo)
     return e._cause;
