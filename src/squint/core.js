@@ -1432,3 +1432,18 @@ export function string_QMARK_(s) {
 export function coll_QMARK_(coll) {
   return typeConst(coll) != undefined;
 }
+
+// hack https://www.reddit.com/r/Clojure/comments/17lg5t8/comment/k7e1ljl/?utm_source=reddit&utm_medium=web2x&context=3
+export function callable(coll) {
+  var fun;
+  if (coll instanceof Map) {
+    fun = (p) => {
+      {
+        return coll.get(p);
+      }
+    };
+  } else fun = (p) => {
+    return coll[p];
+  };
+  return fun;
+}
