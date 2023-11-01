@@ -29,6 +29,11 @@
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/join "--" (range 10))))))
 
+(deftest reaplace-test
+  (evalll "yyxxyyxx"
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result (str/replace "--xx--xx" "--" "yy")))))
+
 ;; (deftest string-conflict-test
 ;;   (evalll (fn [res]
 ;;             (eq ["foo","bar"] res))
