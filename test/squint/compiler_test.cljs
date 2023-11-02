@@ -1495,5 +1495,10 @@
 (deftest return-zero?-branch-test
   (is (true? (jsv! "((fn [x] (zero? x)) 0)"))))
 
+(deftest seqable?-test
+  (is (true? (jsv! "(seqable? [])")))
+  (is (true? (jsv! "(seqable? #{})")))
+  (is (false? (jsv! "(seqable? 1)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

@@ -345,7 +345,8 @@ export function get(coll, key, otherwise = undefined) {
 
 export function seqable_QMARK_(x) {
   // String is iterable but doesn't allow `m in s`
-  return typeof x === 'string' || x === null || x === undefined || Symbol.iterator in x;
+  return typeof x === 'string' || x === null || x === undefined ||
+    (x instanceof Object && Symbol.iterator in x);
 }
 
 export function iterable(x) {
@@ -829,7 +830,11 @@ function partitionInternal(n, step, pad, coll, all) {
 
 export function empty(coll) {
   const type = typeConst(coll);
-  return emptyOfType(type);
+  if (type != null) {
+    return emptyOfType(type);
+  } else {
+    throw new Error(`Can't create empty of ${typeof coll}`);
+  }
 }
 
 export function merge(...args) {
@@ -1473,3 +1478,8 @@ export function int_QMARK_(x) {
 }
 
 export const integer_QMARK_ = int_QMARK_;
+
+export function meta(x) {
+  // just a stub for now
+  return null;
+}
