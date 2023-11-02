@@ -1534,3 +1534,7 @@ export function with_meta(x, m) {
   ret[_metaSym] = m;
   return ret;
 }
+
+export function boolean_QMARK_(x) {
+  return x === true || x === false;
+}

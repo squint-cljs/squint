@@ -19,6 +19,7 @@
   assoc_in_BANG_
   atom
   boolean$
+  boolean_QMARK_
   butlast
   coll_QMARK_
   comp
