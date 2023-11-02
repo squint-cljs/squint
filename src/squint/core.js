@@ -855,6 +855,41 @@ export function merge(...args) {
   return conj_BANG_(obj, ...args.slice(1));
 }
 
+export function key(entry) {
+  return entry[0];
+}
+
+export function val(entry) {
+  return entry[1];
+}
+
+export function merge_with(f, ...maps) {
+  var hasMap = false;
+  for (const m of maps) {
+    if (m != null) {
+      hasMap = true;
+      break;
+    }
+  }
+  if (hasMap) {
+    let mergeEntry = (m, e) => {
+      let k = key(e);
+      let v = val(e);
+      if (contains_QMARK_(m, k)) {
+        return assoc(m, k, f( get(m, k), v));
+      } else {
+        return assoc(m, k, v);
+      }
+    };
+    let merge2 = (m1, m2) => {
+      return reduce(mergeEntry, m1 || {}, seq(m2));
+    };
+    return reduce(merge2, maps);
+  } else {
+    return null;
+  }
+}
+
 export function system_time() {
   return performance.now();
 }

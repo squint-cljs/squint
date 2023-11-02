@@ -81,6 +81,7 @@
   juxt
   keep
   keep_indexed
+  key
   keys
   last
   lazy
@@ -93,6 +94,7 @@
   mapv
   max
   merge
+  merge_with
   meta
   min
   neg_QMARK_
@@ -156,6 +158,7 @@
   update
   update_BANG_
   update_in
+  val
   vals
   vec
   vector

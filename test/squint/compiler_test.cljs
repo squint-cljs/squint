@@ -1500,5 +1500,8 @@
   (is (true? (jsv! "(seqable? #{})")))
   (is (false? (jsv! "(seqable? 1)"))))
 
+(deftest merge-with-test
+  (is (eq {:a 3 :b 1 :c 1} (jsv! "(merge-with + {:a 1 :c 1} {:a 2 :b 1})"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
