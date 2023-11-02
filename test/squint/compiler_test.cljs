@@ -1503,5 +1503,9 @@
 (deftest merge-with-test
   (is (eq {:a 3 :b 1 :c 1} (jsv! "(merge-with + {:a 1 :c 1} {:a 2 :b 1})"))))
 
+(deftest fn-with-munged-args-test
+  (is (eq "foo1" (jsv! "((fn [char] (str :foo char)) 1)")))
+  (is (eq "foo2" (jsv! "((fn [char char] (str :foo char)) 1 2)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

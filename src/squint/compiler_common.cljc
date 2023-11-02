@@ -603,11 +603,11 @@
     (reduce (fn [[env sig seen] param]
               (if (contains? seen param)
                 (let [new-param (gensym param)
-                      env (update env :var->ident assoc param new-param)
+                      env (update env :var->ident assoc param (munge new-param))
                       sig (conj sig new-param)
                       seen (conj seen param)]
                   [env sig seen])
-                [(update env :var->ident assoc param param)
+                [(update env :var->ident assoc param (munge param))
                  (conj sig param)
                  (conj seen param)]))
             [env [] #{}]
@@ -623,7 +623,8 @@
                        (fn [coll]
                          (when (identical? sig coll)
                            (vreset! recur? true))))
-            body (emit-do (assoc env :context :return) body)
+            body (emit-do (assoc env :context :return)
+                          body)
             body (if @recur?
                    (format "while(true){
 %s
@@ -632,14 +633,8 @@ break;}" body)
         (str (when-not elide-function?
                (str (when *async*
                       "async ") "function "))
-             (comma-list (map (fn [sym]
-                                (let [munged (munge sym)]
-                                  (if (:... (meta sym))
-                                    (str "..." munged)
-                                    munged))) sig))
+             (comma-list (map munge sig))
              " {\n"
-             #_(when (:type env)
-                 (str "var self__ = this;"))
              body "\n}")))))
 
 (defn emit-function* [env expr]
