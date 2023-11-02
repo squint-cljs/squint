@@ -1467,3 +1467,9 @@ export function ex_cause(e) {
 export function ex_info(message, data, cause) {
   return new ExceptionInfo(message, data, cause);
 }
+
+export function int_QMARK_(x) {
+  return Number.isInteger(x);
+}
+
+export const integer_QMARK_ = int_QMARK_;

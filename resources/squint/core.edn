@@ -68,6 +68,8 @@
   identical_QMARK_
   identity
   inc
+  int_QMARK_
+  integer_QMARK_
   interleave
   interpose
   into
