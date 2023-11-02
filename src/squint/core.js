@@ -41,22 +41,28 @@ export function assoc_BANG_(m, k, v, ...kvs) {
   return m;
 }
 
+function copy(o) {
+  switch (typeConst(o)) {
+  case MAP_TYPE:
+    return new Map(o.entries());
+  case ARRAY_TYPE:
+    return [...o];
+  case OBJECT_TYPE:
+    return { ...o };
+  default:
+    throw new Error(
+      `Don't know how to copy object of type ${typeof o}.`
+    );
+  }
+}
+
 export function assoc(o, k, v, ...kvs) {
   if (!o) {
     o = {};
   }
-  switch (typeConst(o)) {
-    case MAP_TYPE:
-      return assoc_BANG_(new Map(o.entries()), k, v, ...kvs);
-    case ARRAY_TYPE:
-      return assoc_BANG_([...o], k, v, ...kvs);
-    case OBJECT_TYPE:
-      return assoc_BANG_({ ...o }, k, v, ...kvs);
-    default:
-      throw new Error(
-        'Illegal argument: assoc expects a Map, Array, or Object as the first argument.'
-      );
-  }
+  let ret = copy(o);
+  assoc_BANG_(ret, k, v, ...kvs);
+  return ret;
 }
 
 const MAP_TYPE = 1;
@@ -1479,7 +1485,17 @@ export function int_QMARK_(x) {
 
 export const integer_QMARK_ = int_QMARK_;
 
+const _metaSym = Symbol('meta');
+
 export function meta(x) {
-  // just a stub for now
-  return null;
+  if (x instanceof Object) {
+    return x[_metaSym];
+  }
+  else return null;
+}
+
+export function with_meta(x, m) {
+  let ret = copy(x);
+  ret[_metaSym] = m;
+  return ret;
 }
