@@ -65,6 +65,7 @@ export function assoc(o, k, v, ...kvs) {
   return ret;
 }
 
+const TYPE_CONST = Symbol('TYPE_CONST');
 const MAP_TYPE = 1;
 const ARRAY_TYPE = 2;
 const OBJECT_TYPE = 3;
@@ -80,24 +81,37 @@ function emptyOfType(type) {
       return [];
     case OBJECT_TYPE:
       return {};
-    case LIST_TYPE:
-      return new List();
     case SET_TYPE:
-      return new Set();
-    case LAZY_ITERABLE_TYPE:
-      return lazy(function* () {
-        return;
-      });
+    return new Set();
   }
   return undefined;
 }
 
+const IEmpty_empty = Symbol('IEmpty_empty');
+
+export function empty(coll) {
+  if (coll == null) return null;
+  let e = coll[IEmpty_empty];
+  if (e) {
+    return e(coll);
+  }
+  const type = typeConst(coll);
+  if (type != null) {
+    return emptyOfType(type);
+  } else {
+    throw new Error(`Can't create empty of ${typeof coll}`);
+  }
+}
+
 function typeConst(obj) {
+  // if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
+  // if (obj instanceof List) return LIST_TYPE;
+  if (obj == null) return undefined;
+  let c = (obj[TYPE_CONST]);
+  if (c) return c;
   if (obj instanceof Map) return MAP_TYPE;
   if (obj instanceof Set) return SET_TYPE;
-  if (obj instanceof List) return LIST_TYPE;
   if (obj instanceof Array) return ARRAY_TYPE;
-  if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
   if (obj instanceof Object) return OBJECT_TYPE;
   return undefined;
 }
@@ -470,13 +484,18 @@ export function reduce(f, arg1, arg2) {
 class LazyIterable {
   constructor(gen) {
     this.gen = gen;
+    this[IIterable] = true;
+    this[TYPE_CONST] = LAZY_ITERABLE_TYPE;
+    this[IEmpty_empty] = (_) => {
+      return lazy(function* () {
+        return;
+      });
+    };
   }
   [Symbol.iterator]() {
     return this.gen();
   }
 }
-
-LazyIterable.prototype[IIterable] = true; // Closure compatibility
 
 export function lazy(f) {
   return new LazyIterable(f);
@@ -716,6 +735,8 @@ export function constantly(x) {
 class List extends Array {
   constructor(...args) {
     super();
+    this[TYPE_CONST] = LIST_TYPE;
+    this[IEmpty_empty] = new List();
     this.push(...args);
   }
 }
@@ -832,15 +853,6 @@ function partitionInternal(n, step, pad, coll, all) {
       }
     }
   });
-}
-
-export function empty(coll) {
-  const type = typeConst(coll);
-  if (type != null) {
-    return emptyOfType(type);
-  } else {
-    throw new Error(`Can't create empty of ${typeof coll}`);
-  }
 }
 
 export function merge(...args) {
@@ -1538,3 +1550,4 @@ export function with_meta(x, m) {
 export function boolean_QMARK_(x) {
   return x === true || x === false;
 }
+
