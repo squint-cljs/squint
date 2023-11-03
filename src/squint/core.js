@@ -43,16 +43,14 @@ export function assoc_BANG_(m, k, v, ...kvs) {
 
 function copy(o) {
   switch (typeConst(o)) {
-  case MAP_TYPE:
-    return new Map(o.entries());
-  case ARRAY_TYPE:
-    return [...o];
-  case OBJECT_TYPE:
-    return { ...o };
-  default:
-    throw new Error(
-      `Don't know how to copy object of type ${typeof o}.`
-    );
+    case MAP_TYPE:
+      return new Map(o.entries());
+    case ARRAY_TYPE:
+      return [...o];
+    case OBJECT_TYPE:
+      return { ...o };
+    default:
+      throw new Error(`Don't know how to copy object of type ${typeof o}.`);
   }
 }
 
@@ -351,8 +349,12 @@ export function get(coll, key, otherwise = undefined) {
 
 export function seqable_QMARK_(x) {
   // String is iterable but doesn't allow `m in s`
-  return typeof x === 'string' || x === null || x === undefined ||
-    (x instanceof Object && Symbol.iterator in x);
+  return (
+    typeof x === 'string' ||
+    x === null ||
+    x === undefined ||
+    (x instanceof Object && Symbol.iterator in x)
+  );
 }
 
 export function iterable(x) {
@@ -876,7 +878,7 @@ export function merge_with(f, ...maps) {
       let k = key(e);
       let v = val(e);
       if (contains_QMARK_(m, k)) {
-        return assoc(m, k, f( get(m, k), v));
+        return assoc(m, k, f(get(m, k), v));
       } else {
         return assoc(m, k, v);
       }
@@ -1419,26 +1421,28 @@ export function to_array(aseq) {
 //   return ( x != null && x !== false );
 // }
 
-
 export function subs(s, start, end) {
   return s.substring(start, end);
 }
 
 export function fn_QMARK_(x) {
-  return "function" === typeof x;
+  return 'function' === typeof x;
 }
 
 export function* re_seq(re, s) {
   let matches = re.exec(s);
   if (matches) {
     let match_str = matches[0];
-    let match_vals = (matches.length === 1) ? match_str : vec(matches);
-    yield* cons(match_vals, lazy( function* () {
-      let post_idx = matches.index + max(1, match_str.length);
-      if ( post_idx <= s.length ) {
-        yield* re_seq(re, subs(s, post_idx) );
-      }
-    }));
+    let match_vals = matches.length === 1 ? match_str : vec(matches);
+    yield* cons(
+      match_vals,
+      lazy(function* () {
+        let post_idx = matches.index + max(1, match_str.length);
+        if (post_idx <= s.length) {
+          yield* re_seq(re, subs(s, post_idx));
+        }
+      })
+    );
   }
 }
 
@@ -1453,8 +1457,7 @@ export function number_QMARK_(x) {
 export function keys(obj) {
   if (obj) {
     return Object.keys(obj);
-  }
-  else {
+  } else {
     return null;
   }
 }
@@ -1472,7 +1475,7 @@ export function vals(obj) {
 }
 
 export function string_QMARK_(s) {
-  return typeof(s) === 'string';
+  return typeof s === 'string';
 }
 
 export function coll_QMARK_(coll) {
@@ -1492,21 +1495,17 @@ class ExceptionInfo extends Error {
 }
 
 export function ex_data(e) {
-  if (e instanceof ExceptionInfo)
-    return e._data;
+  if (e instanceof ExceptionInfo) return e._data;
   else return null;
 }
 
 export function ex_message(e) {
-  if (e instanceof Error)
-    return e.message;
+  if (e instanceof Error) return e.message;
   else return null;
 }
 
-
 export function ex_cause(e) {
-  if (e instanceof ExceptionInfo)
-    return e._cause;
+  if (e instanceof ExceptionInfo) return e._cause;
   else return null;
 }
 
@@ -1525,8 +1524,7 @@ const _metaSym = Symbol('meta');
 export function meta(x) {
   if (x instanceof Object) {
     return x[_metaSym];
-  }
-  else return null;
+  } else return null;
 }
 
 export function with_meta(x, m) {
@@ -1537,4 +1535,21 @@ export function with_meta(x, m) {
 
 export function boolean_QMARK_(x) {
   return x === true || x === false;
+}
+
+export function counted_QMARK_(x) {
+  let tc = typeConst(x);
+  switch (tc) {
+    case (ARRAY_TYPE, MAP_TYPE, OBJECT_TYPE, LIST_TYPE, SET_TYPE):
+      return true;
+  }
+  return false;
+}
+
+export function bounded_count(n, coll) {
+  if (counted_QMARK_(coll)) {
+    return count(coll);
+  } else {
+    return count(take(n, coll));
+  }
 }
