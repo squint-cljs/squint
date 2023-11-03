@@ -1553,3 +1553,10 @@ export function bounded_count(n, coll) {
     return count(take(n, coll));
   }
 }
+
+export function find(m, k) {
+  let v = get(m, k);
+  if (v !== undefined) {
+    return [k, v];
+  }
+}
