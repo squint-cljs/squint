@@ -395,7 +395,7 @@ export function seq(x) {
     return null;
   }
   if (x instanceof LazyIterable) {
-    return new IteratorSeq(iter, 1).seq();
+    return new IteratorSeq(iter, 32).seq();
   }
   else return iter;
 }
