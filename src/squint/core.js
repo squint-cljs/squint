@@ -378,13 +378,23 @@ export function _iterator(coll) {
 
 export const es6_iterator = _iterator;
 
+const ISeqable = Symbol('ISeqable');
+const ISeqable_seq = Symbol('ISeqable_seq');
+
 export function seq(x) {
+  if (x == null) {
+    return null;
+  }
+  let seqFn = x[ISeqable_seq];
+  if (seqFn) {
+    return seqFn(x);
+  }
   let iter = iterable(x);
   // return nil for terminal checking
   if (iter.length === 0 || iter.size === 0) {
     return null;
   }
-  return iter;
+  return new IteratorSeq(iter).seq();
 }
 
 export function first(coll) {
@@ -1563,3 +1573,62 @@ export function find(m, k) {
     return [k, v];
   }
 }
+
+export class IteratorSeq {
+  constructor(iter) {
+    this.iter = iter[Symbol.iterator]();
+    this.chunk32 = [];
+    this.realized = false;
+    this.tail = null;
+    this[Symbol.iterator] = function* () {
+      this.realize();
+      yield* this.chunk32;
+      if (this.tail) {
+        yield* this.tail;
+      }
+    };
+    this[ISeqable] = true;
+    this[ISeqable_seq] = this.seq;
+  }
+  realize() {
+    if (this.realized) {
+      return;
+    }
+    var idx;
+    var done = false;
+    for (idx = 0; idx < 32; idx++) {
+      let v = this.iter.next();
+      if (v.done) {
+        done = true;
+        break;
+      }
+      this.chunk32.push(v.value);
+    }
+    if (!done) {
+      this.tail = new IteratorSeq(this.iter);
+      this.iter = null;
+    }
+    this.realized = true;
+  }
+  seq() {
+    this.realize();
+    if (this.chunk32.length == 0) {
+      return null;
+    } else {
+      return this;
+    }
+  }
+}
+
+const i = new IteratorSeq(take(40,iterate((x) => {
+  let ret = x + 1;
+  console.log(ret);
+  return ret;
+}, 0)));
+
+vec(i); // side effects can be seen
+vec(i); // side effects can not be seen
+console.log(count(i));
+
+
+
