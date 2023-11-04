@@ -29,6 +29,14 @@ export function trim(s) {
   return s.trim();
 }
 
+export function triml(s) {
+  return s.trimLeft();
+}
+
+export function trimr(s) {
+  return s.trimRight();
+}
+
 export function split(s, re) {
   return s.split(re);
 }

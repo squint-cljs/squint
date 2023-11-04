@@ -492,6 +492,9 @@ export function cons(x, coll) {
 }
 
 export function map(f, ...colls) {
+  // if (! (f instanceof Function)) {
+  //   throw new Error(`Argument f must be a function but is ${typeof(f)}`);
+  // }
   switch (colls.length) {
     case 0:
       throw new Error('map with 2 arguments is not supported yet');
