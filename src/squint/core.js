@@ -394,7 +394,10 @@ export function seq(x) {
   if (iter.length === 0 || iter.size === 0) {
     return null;
   }
-  return new IteratorSeq(iter).seq();
+  if (x instanceof LazyIterable) {
+    return new IteratorSeq(iter, 1).seq();
+  }
+  else return iter;
 }
 
 export function first(coll) {
@@ -1392,6 +1395,9 @@ export function next(x) {
     } else {
       return null;
     }
+  }
+  if (x instanceof LazyIterable) {
+    return new IteratorSeq(x, 1);
   } else {
     // opiniated choice, next realizes underlying sequence
     return next(vec(x));
@@ -1575,11 +1581,12 @@ export function find(m, k) {
 }
 
 export class IteratorSeq {
-  constructor(iter) {
+  constructor(iter, n=32) {
     this.iter = iter[Symbol.iterator]();
     this.chunk32 = [];
     this.realized = false;
     this.tail = null;
+    this.n = n;
     this[Symbol.iterator] = function* () {
       this.realize();
       yield* this.chunk32;
@@ -1596,7 +1603,8 @@ export class IteratorSeq {
     }
     var idx;
     var done = false;
-    for (idx = 0; idx < 32; idx++) {
+    var n = this.n;
+    for (idx = 0; idx < n; idx++) {
       let v = this.iter.next();
       if (v.done) {
         done = true;
@@ -1620,15 +1628,15 @@ export class IteratorSeq {
   }
 }
 
-const i = new IteratorSeq(take(40,iterate((x) => {
-  let ret = x + 1;
-  console.log(ret);
-  return ret;
-}, 0)));
+// const i = new IteratorSeq(take(40,iterate((x) => {
+//   let ret = x + 1;
+//   console.log(ret);
+//   return ret;
+// }, 0)));
 
-vec(i); // side effects can be seen
-vec(i); // side effects can not be seen
-console.log(count(i));
+// vec(i); // side effects can be seen
+// vec(i); // side effects can not be seen
+// console.log(count(i));
 
 
 
