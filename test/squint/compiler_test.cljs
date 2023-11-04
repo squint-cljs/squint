@@ -271,30 +271,30 @@
                             y [4 5 6]
                             :when (< (+ x y) 8)]
                         [x y])))]
-     (is (eq [[1 4] [1 5] [1 6] [2 4] [2 5] [3 4]]
-             (js/eval s))))
+    (is (eq [[1 4] [1 5] [1 6] [2 4] [2 5] [3 4]]
+            (js/eval s))))
   (let [s (jss! '(vec (for [x (range 3) y (range 3) :while (not= x y)]
                         [x y])))]
-     (is (eq [[1 0] [2 0] [2 1]]
-             (js/eval s))))
+    (is (eq [[1 0] [2 0] [2 1]]
+            (js/eval s))))
   ;; https://clojuredocs.org/clojure.core/for#example-542692d3c026201cdc326fa9
   (testing ":while placement"
     (let [s (jss! '(vec
-                     (for [x [1 2 3]
-                             y [1 2 3]
-                             :while (<= x y)
-                             z [1 2 3]]
-                       [x y z])))]
+                    (for [x [1 2 3]
+                          y [1 2 3]
+                          :while (<= x y)
+                          z [1 2 3]]
+                      [x y z])))]
       (is (eq [[1 1 1] [1 1 2] [1 1 3]
                [1 2 1] [1 2 2] [1 2 3]
                [1 3 1] [1 3 2] [1 3 3]]
               (js/eval s))))
     (let [s (jss! '(vec
-                     (for [x [1 2 3]
-                             y [1 2 3]
-                             z [1 2 3]
-                             :while (<= x y)]
-                       [x y z])))]
+                    (for [x [1 2 3]
+                          y [1 2 3]
+                          z [1 2 3]
+                          :while (<= x y)]
+                      [x y z])))]
       (is (eq [[1 1 1] [1 1 2] [1 1 3]
                [1 2 1] [1 2 2] [1 2 3]
                [1 3 1] [1 3 2] [1 3 3]
@@ -1412,8 +1412,8 @@
                                x))))
   (is (eq #js {} (jsv! '(dissoc! {}))))
   (is (eq #js {} (jsv! '(let [x {"1" 2 "3" 4}]
-                               (dissoc! x "1" "3")
-                               x)))))
+                          (dissoc! x "1" "3")
+                          x)))))
 
 (deftest dissoc-test
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc {"1" 2 "3" 4}))))
@@ -1516,6 +1516,16 @@
 (deftest fn-with-munged-args-test
   (is (eq "foo1" (jsv! "((fn [char] (str :foo char)) 1)")))
   (is (eq "foo2" (jsv! "((fn [char char] (str :foo char)) 1 2)"))))
+
+(deftest side-effects-test
+  (is (= 1000
+         (jsv! '(let [a (atom 0)
+                      f (fn [x] (swap! a inc) x)
+                      r (map f (range 1000))
+                      s (seq r)]
+                  (vec s)
+                  (vec s)
+                  @a)))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
