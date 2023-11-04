@@ -185,7 +185,6 @@
                      (.push a x))
                    a))]
     (is (eq [1 2 3] (js/eval s))))
-  ;; TODO:
   (let [s (jss! '(let [a []]
                    (doseq [x [1 2 3]
                            y [4 5 6]]
@@ -252,7 +251,14 @@
   (testing "return position in function"
     (let [f (jsv! '(do (defn foo [x] (doseq [i x] i)) foo))]
       (is f)
-      (is (nil? (f [1 2 3]))))))
+      (is (nil? (f [1 2 3])))))
+  (testing "iterate over object"
+    (let [r (jsv! '(do
+                     (def a (atom []))
+                     (doseq [[k v] {:a 1 :b 2}]
+                       (swap! a conj [k v]))
+                     @a))]
+      (is (eq #js [#js ["a" 1] #js ["b" 2]] r)))))
 
 ;; TODO:
 (deftest for-test
@@ -313,7 +319,11 @@
   (testing "return position in function"
     (let [f (jsv! '(do (defn foo [x] (for [i x] i)) foo))]
       (is f)
-      (is (= [1 2 3] (vec (f [1 2 3])))))))
+      (is (= [1 2 3] (vec (f [1 2 3]))))))
+  (testing "iterate over object"
+    (let [r (jsv! '(vec (for [[k v] {:a 1 :b 2}]
+                          [k v])))]
+      (is (eq #js [#js ["a" 1] #js ["b" 2]] r)))))
 
 (deftest regex-test
   (is (eq '("foo")

@@ -226,7 +226,8 @@
                      (keyword? k) (err "Invalid 'for' keyword" k)
                      :else (list 'js*
                                  "for (let ~{} of ~{}) {\n~{}\n}"
-                                 k v (list 'js* {:context :statement} "~{}" subform))))))]
+                                 k (list 'clojure.core/iterable v)
+                                 (list 'js* {:context :statement} "~{}" subform))))))]
     (list 'lazy (list 'js* "function* () {\n~{}\n}"
                       (step (seq seq-exprs))))))
 
@@ -256,7 +257,8 @@
                                               ~subform)
                                (keyword? k) (err "Invalid 'doseq' keyword" k)
                                :else (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
-                                           k v (list 'js* {:context :statement} "~{} "subform))))))]
+                                           k (list 'clojure.core/iterable v)
+                                           (list 'js* {:context :statement} "~{} "subform))))))]
               (step (seq seq-exprs)))]
     ;; force returning of nil
     (list 'do res nil)))
