@@ -469,11 +469,21 @@ export function reduce(f, arg1, arg2) {
   return val;
 }
 
+var tolr = false;
+export function throw_on_lazy_reusage() {
+  tolr = true;
+}
+
 class LazyIterable {
   constructor(gen) {
     this.gen = gen;
+    this.usages = 0;
   }
   [Symbol.iterator]() {
+    this.usages++;
+    if (this.usages >= 2 && tolr) {
+      throw new Error(`LazyIterable is used more than once`);
+    }
     return this.gen();
   }
 }
