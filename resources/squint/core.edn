@@ -157,6 +157,7 @@
   take
   take_nth
   take_while
+  throw_on_lazy_reusage
   to_array
   true_QMARK_
   update
