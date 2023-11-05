@@ -2,6 +2,15 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.3.37 (2023-11-05)
+
+- [#357](https://github.com/squint-cljs/squint/issues/357): fix version in help text
+- Fix iterating over objects
+- Add `clojure.string`'s `triml`, `trimr`, `replace`
+- Fix `examples/vite-react` by adding `public/index.html`
+- Add `find`, `bounded-count`, `boolean?`, `merge-with`, `meta`, `with-meta`, `int?`, `ex-message`, `ex-cause`, `ex-info`
+- Fix munging of reserved symbols in function arguments
+
 ## 0.3.36 (2023-10-31)
 
 - [#350](https://github.com/squint-cljs/squint/issues/350): `js*` should default to `:context :expr`
