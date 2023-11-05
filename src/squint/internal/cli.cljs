@@ -9,7 +9,8 @@
    [squint.compiler.node :as compiler]
    [squint.repl.node :as repl]
    [squint.internal.node.utils :as utils]
-   [clojure.string :as str]))
+   [clojure.string :as str])
+  (:require-macros [squint.resource :refer [version]]))
 
 (defn file-in-output-dir [file paths output-dir]
   (path/resolve output-dir
@@ -73,7 +74,7 @@
               files))))
 
 (defn print-help []
-  (println "Squint v0.0.0
+  (println (str "Squint v" (version) "
 
 Usage: squint <subcommand> <opts>
 
@@ -86,7 +87,7 @@ compile   <file.cljs> ... Compile file(s)
 repl                      Start repl
 help                      Print this help
 
-Use squint <subcommand> --help to show more info."))
+Use squint <subcommand> --help to show more info.")))
 
 (defn fallback [{:keys [rest-cmds opts]}]
   (if-let [e (:e opts)]
