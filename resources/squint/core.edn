@@ -1,4 +1,5 @@
 #{Atom
+  Cons
   IIterable
   IIterable__iterator
   LazySeq
@@ -167,6 +168,6 @@
   vec
   vector
   vector_QMARK_
-  warn_on_lazy_reusage
+  warn_on_lazy_reusage_BANG_
   with_meta
   zero_QMARK_}

@@ -470,7 +470,7 @@ export function reduce(f, arg1, arg2) {
 }
 
 var tolr = false;
-export function warn_on_lazy_reusage() {
+export function warn_on_lazy_reusage_BANG_() {
   tolr = true;
 }
 
