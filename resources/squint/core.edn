@@ -1,6 +1,7 @@
 #{Atom
   IIterable
   IIterable__iterator
+  IteratorSeq
   LazySeq
   NaN_QMARK_
   PROTOCOL_SENTINEL
@@ -97,6 +98,7 @@
   mapcat
   mapv
   max
+  memo_seq
   merge
   merge_with
   meta
@@ -157,9 +159,9 @@
   take
   take_nth
   take_while
-  throw_on_lazy_reusage
   to_array
   true_QMARK_
+  truth_
   update
   update_BANG_
   update_in
@@ -168,5 +170,6 @@
   vec
   vector
   vector_QMARK_
+  warn_on_lazy_reusage
   with_meta
   zero_QMARK_}

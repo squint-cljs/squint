@@ -815,16 +815,15 @@ break;}" body)
     ;; avoid evaluating test expression more than once
     (emit `(let [test# ~test] (if test# ~then ~else)) env)
     (let [expr-env (assoc env :context :expr)
-          condition (emit test expr-env)
-          condition (format "%s != null && %s !== false" condition condition)]
+          condition (list 'clojure.core/truth_ test)]
       (if (= :expr (:context env))
         (->
          (format "((%s) ? (%s) : (%s))"
-                 condition
+                 (emit condition env)
                  (emit then env)
                  (emit else env))
          (emit-return env))
-        (str (format "if (%s) {\n" condition)
+        (str (format "if (%s) {\n" (emit condition expr-env))
              (emit then env)
              "}"
              (when (some? else)

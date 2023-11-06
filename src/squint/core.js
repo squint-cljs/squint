@@ -378,22 +378,50 @@ export function _iterator(coll) {
 
 export const es6_iterator = _iterator;
 
+const ISeqable = Symbol('ISeqable');
+const ISeqable_seq = Symbol('ISeqable_seq');
+const ISeq = Symbol('ISeq');
+const ISeq_first = Symbol('ISeq_first');
+const ISeq_rest = Symbol('ISeq_rest');
+
 export function seq(x) {
+  if (x == null) {
+    return null;
+  }
+  let seqFn = x[ISeqable_seq];
+  if (seqFn) {
+    return seqFn(x);
+  }
   let iter = iterable(x);
   // return nil for terminal checking
   if (iter.length === 0 || iter.size === 0) {
     return null;
   }
+  // TODO: throw if collection isn't realized
   return iter;
 }
 
 export function first(coll) {
   // destructuring uses iterable protocol
+  if (coll == null) {
+    return null;
+  }
+  let fn = coll[ISeq_first];
+  if (fn) {
+    return fn(coll);
+  }
   let [first] = iterable(coll);
   return first;
 }
 
 export function second(coll) {
+  if (coll == null) {
+    return null;
+  }
+  let fn = coll[ISeqable_seq];
+  if (fn) {
+    return first(next(coll));
+  }
   let [_, v] = iterable(coll);
   return v;
 }
@@ -403,6 +431,14 @@ export function ffirst(coll) {
 }
 
 export function rest(coll) {
+  if (coll instanceof Array) {
+    let ret = coll.slice(1);
+    if (ret.length > 0) {
+      return ret;
+    } else {
+      return [];
+    }
+  }
   return lazy(function* () {
     let first = true;
     for (const x of iterable(coll)) {
@@ -470,7 +506,7 @@ export function reduce(f, arg1, arg2) {
 }
 
 var tolr = false;
-export function throw_on_lazy_reusage() {
+export function warn_on_lazy_reusage() {
   tolr = true;
 }
 
@@ -482,7 +518,13 @@ class LazyIterable {
   [Symbol.iterator]() {
     this.usages++;
     if (this.usages >= 2 && tolr) {
-      throw new Error(`LazyIterable is used more than once`);
+      try {
+        throw new Error();
+      }
+      catch (e) {
+        console.log(`LazyIterable is used more than once`);
+        console.log(e.stack);
+      }
     }
     return this.gen();
   }
@@ -494,11 +536,82 @@ export function lazy(f) {
   return new LazyIterable(f);
 }
 
+class Cons {
+  constructor(x, coll) {
+    this.x = x;
+    this.coll = coll;
+    this[ISeq] = true;
+    this[ISeq_first] = function(_) {
+      return x;
+    };
+    this[ISeq_rest] = function(_) {
+      return coll;
+    };
+    this[Symbol.iterator] = function*() {
+      yield (this.x);
+      yield* iterable(coll);
+    };
+  }
+}
+
 export function cons(x, coll) {
-  return lazy(function* () {
-    yield x;
-    yield* iterable(coll);
-  });
+  return new Cons(x,coll);
+  // return lazy(function* () {
+  //   yield x;
+  //   yield* iterable(coll);
+  // });
+}
+
+export class IteratorSeq {
+  constructor(iter, n=32) {
+    this.iter = iter[Symbol.iterator]();
+    this.chunk32 = [];
+    this.realized = false;
+    this.tail = null;
+    this.n = n;
+    this[Symbol.iterator] = function* () {
+      this.realize();
+      yield* this.chunk32;
+      if (this.tail) {
+        yield* this.tail;
+      }
+    };
+    this[ISeqable] = true;
+    this[ISeqable_seq] = this.seq;
+  }
+  realize() {
+    if (this.realized) {
+      return;
+    }
+    var idx;
+    var done = false;
+    var n = this.n;
+    for (idx = 0; idx < n; idx++) {
+      let v = this.iter.next();
+      if (v.done) {
+        done = true;
+        break;
+      }
+      this.chunk32.push(v.value);
+    }
+    if (!done) {
+      this.tail = new IteratorSeq(this.iter);
+      this.iter = null;
+    }
+    this.realized = true;
+  }
+  seq() {
+    this.realize();
+    if (this.chunk32.length == 0) {
+      return null;
+    } else {
+      return this;
+    }
+  }
+}
+
+export function memo_seq(coll, n=32) {
+  return new IteratorSeq(coll, n);
 }
 
 export function map(f, ...colls) {
@@ -1385,17 +1498,7 @@ export function juxt(...fs) {
 }
 
 export function next(x) {
-  if (x instanceof Array) {
-    let ret = x.slice(1);
-    if (ret.length > 0) {
-      return ret;
-    } else {
-      return null;
-    }
-  } else {
-    // opiniated choice, next realizes underlying sequence
-    return next(vec(x));
-  }
+  return seq(rest(x));
 }
 
 export function compare(x, y) {
@@ -1572,4 +1675,8 @@ export function find(m, k) {
   if (v !== undefined) {
     return [k, v];
   }
+}
+
+export function truth_(x) {
+  return (x != null && x !== false);
 }
