@@ -469,11 +469,26 @@ export function reduce(f, arg1, arg2) {
   return val;
 }
 
+var tolr = false;
+export function warn_on_lazy_reusage_BANG_() {
+  tolr = true;
+}
+
 class LazyIterable {
   constructor(gen) {
     this.gen = gen;
+    this.usages = 0;
   }
   [Symbol.iterator]() {
+    this.usages++;
+    if (this.usages >= 2 && tolr) {
+      try {
+        throw new Error();
+      }
+      catch (e) {
+        console.warn('Re-use of lazy value', e.stack);
+      }
+    }
     return this.gen();
   }
 }
@@ -484,11 +499,24 @@ export function lazy(f) {
   return new LazyIterable(f);
 }
 
+
+export class Cons {
+  constructor(x, coll) {
+    this.x = x;
+    this.coll = coll;
+  }
+  *[Symbol.iterator]() {
+    yield this.x;
+    yield* iterable(this.coll);
+  }
+}
+
 export function cons(x, coll) {
-  return lazy(function* () {
-    yield x;
-    yield* iterable(coll);
-  });
+  return new Cons(x, coll);
+  // return lazy(function* () {
+  //   yield x;
+  //   yield* iterable(coll);
+  // });
 }
 
 export function map(f, ...colls) {
@@ -1173,9 +1201,14 @@ export function frequencies(coll) {
 export class LazySeq {
   constructor(f) {
     this.f = f;
+    this.res = undefined;
   }
   *[Symbol.iterator]() {
-    yield* iterable(this.f());
+    if (this.res === undefined) {
+      this.res = this.f();
+      this.f = null;
+    }
+    yield* iterable(this.res);
   }
 }
 
