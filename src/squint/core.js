@@ -1334,20 +1334,26 @@ export function max(x, y, ...more) {
   if (y == undefined) {
     return x;
   }
+  let m = x > y ? x : y;
   if (more.length == 0) {
-    return x > y ? x : y;
+    return m;
   }
-  return max(max(x, y), ...more);
+  return more.reduce((x, y) => {
+    return x > y ? x : y;
+  }, m);
 }
 
 export function min(x, y, ...more) {
   if (y == undefined) {
     return x;
   }
+  let m = x < y ? x : y;
   if (more.length == 0) {
-    return x < y ? x : y;
+    return m;
   }
-  return min(min(x, y), ...more);
+  return more.reduce((x, y) => {
+    return x < y ? x : y;
+  }, m);
 }
 
 export function map_QMARK_(x) {
