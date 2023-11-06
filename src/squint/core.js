@@ -500,11 +500,23 @@ export function lazy(f) {
 }
 
 
+export class Cons {
+  constructor(x, coll) {
+    this.x = x;
+    this.coll = coll;
+  }
+  *[Symbol.iterator]() {
+    yield this.x;
+    yield* iterable(this.coll);
+  }
+}
+
 export function cons(x, coll) {
-  return lazy(function* () {
-    yield x;
-    yield* iterable(coll);
-  });
+  return new Cons(x, coll);
+  // return lazy(function* () {
+  //   yield x;
+  //   yield* iterable(coll);
+  // });
 }
 
 export function map(f, ...colls) {
@@ -1189,9 +1201,14 @@ export function frequencies(coll) {
 export class LazySeq {
   constructor(f) {
     this.f = f;
+    this.res = undefined;
   }
   *[Symbol.iterator]() {
-    yield* iterable(this.f());
+    if (this.res === undefined) {
+      this.res = this.f();
+      this.f = null;
+    }
+    yield* iterable(this.res);
   }
 }
 
