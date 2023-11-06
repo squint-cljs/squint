@@ -167,5 +167,6 @@
   vec
   vector
   vector_QMARK_
+  warn_on_lazy_reusage
   with_meta
   zero_QMARK_}

@@ -470,7 +470,7 @@ export function reduce(f, arg1, arg2) {
 }
 
 var tolr = false;
-export function throw_on_lazy_reusage() {
+export function warn_on_lazy_reusage() {
   tolr = true;
 }
 
@@ -482,7 +482,12 @@ class LazyIterable {
   [Symbol.iterator]() {
     this.usages++;
     if (this.usages >= 2 && tolr) {
-      throw new Error(`LazyIterable is used more than once`);
+      try {
+        throw new Error();
+      }
+      catch (e) {
+        console.warn('Re-use of lazy value', e.stack);
+      }
     }
     return this.gen();
   }
@@ -493,6 +498,7 @@ LazyIterable.prototype[IIterable] = true; // Closure compatibility
 export function lazy(f) {
   return new LazyIterable(f);
 }
+
 
 export function cons(x, coll) {
   return lazy(function* () {
