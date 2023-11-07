@@ -136,7 +136,18 @@ export function assoc_in(o, keys, value) {
 }
 
 export function assoc_in_BANG_(o, keys, value) {
-  return assoc_in_with(assoc_BANG_, 'assoc-in!', o, keys, value);
+  var currObj = o;
+  let baseType = typeConst(o);
+  for (const k of keys.splice(0,keys.length - 1)) {
+    let v = get(currObj, k);
+    if (v === undefined) {
+      v = emptyOfType(baseType);
+      assoc_BANG_(currObj, k, v);
+    }
+    currObj = v;
+  }
+  assoc_BANG_(currObj, keys[keys.length - 1], value);
+  return o;
 }
 
 export function comp(...fs) {

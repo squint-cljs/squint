@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- [#360](https://github.com/squint-cljs/squint/issues/360): `assoc-in!` should not mutate objects in the middle if they already exist
+
 ## 0.3.37 (2023-11-05)
 
 - [#357](https://github.com/squint-cljs/squint/issues/357): fix version in help text
