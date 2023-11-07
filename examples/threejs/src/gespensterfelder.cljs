@@ -40,7 +40,7 @@
                 :gammaOutput true
                 :toneMapping three/ReinhardToneMapping
                 :toneMappingExposure (Math/pow 1.4 5.0))
-     (-> (get :domElement) (->> (.appendChild (.-body js/document)))))))
+        (-> :domElement (->> (.appendChild (.-body js/document)))))))
 
 (def scene
   (three/Scene.))
@@ -106,11 +106,11 @@
       (when-let [m (first (.-children @mesh))]
         (doseq [[v sv] (map vector (.-vertices (.-geometry m)) sphere-vertices)]
           (.copy v sv)
-          (.addScaledVector v sv (* (get params :magnitude)
-                                    (fix-zero (* (get params :x-scale) (.-x sv)))
-                                    (fix-zero (* (get params :y-scale) (.-y sv)))
-                                    (fix-zero (* (get params :sin-x-scale) (Math/sin (.-x sv))))
-                                    (fix-zero (* (get params :cos-y-scale) (Math/cos (.-y sv))))
+          (.addScaledVector v sv (* (:magnitude params)
+                                    (fix-zero (* (:x-scale params) (.-x sv)))
+                                    (fix-zero (* (:y-scale params) (.-y sv)))
+                                    (fix-zero (* (:sin-x-scale params) (Math/sin (.-x sv))))
+                                    (fix-zero (* (:cos-y-scale params) (Math/cos (.-y sv))))
                                     (nth linear @current-frame))))
         (let [dists (mapv #(.distanceTo origin %) (.-vertices (.-geometry m)))
               min-dist (apply min dists)

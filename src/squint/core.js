@@ -90,7 +90,7 @@ function emptyOfType(type) {
   return undefined;
 }
 
-function typeConst(obj) {
+export function typeConst(obj) {
   if (obj instanceof Map) return MAP_TYPE;
   if (obj instanceof Set) return SET_TYPE;
   if (obj instanceof List) return LIST_TYPE;
@@ -341,7 +341,18 @@ export function nth(coll, idx, orElse) {
 }
 
 export function get(coll, key, otherwise = undefined) {
+  if (coll == null) {
+    return otherwise;
+  }
   let v;
+  if (coll.constructor === Object && Object.getPrototypeOf(coll) === Object.prototype) {
+    v = coll[key];
+    if (v === undefined) {
+      return otherwise;
+    } else {
+      return v;
+    }
+  }
   switch (typeConst(coll)) {
     case SET_TYPE:
       if (coll.has(key)) v = key;
