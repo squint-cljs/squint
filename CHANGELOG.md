@@ -2,9 +2,15 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.3.38 (2023-11-07)
 
 - [#360](https://github.com/squint-cljs/squint/issues/360): `assoc-in!` should not mutate objects in the middle if they already exist
+- Evaluate `lazy-seq` body just once
+- Avoid stackoverflow with `min` and `max`
+- [#360](https://github.com/squint-cljs/squint/issues/360): fix assoc-in! with immutable objects in the middle
+- Add `mod`, `object?`
+- Optimize `get`
+- Add [threejs](examples/threejs) example
 
 ## 0.3.37 (2023-11-05)
 
