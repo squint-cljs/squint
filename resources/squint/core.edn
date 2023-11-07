@@ -162,7 +162,6 @@
   take_while
   to_array
   true_QMARK_
-  typeConst
   update
   update_BANG_
   update_in
