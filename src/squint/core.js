@@ -90,7 +90,17 @@ function emptyOfType(type) {
   return undefined;
 }
 
+function isObj(coll) {
+  return (coll.constructor === Object && Object.getPrototypeOf(coll) === Object.prototype);
+}
+
 export function typeConst(obj) {
+  if (obj == null) {
+    return undefined;
+  }
+  if (isObj(obj)) {
+    return OBJECT_TYPE;
+  }
   if (obj instanceof Map) return MAP_TYPE;
   if (obj instanceof Set) return SET_TYPE;
   if (obj instanceof List) return LIST_TYPE;
@@ -345,7 +355,8 @@ export function get(coll, key, otherwise = undefined) {
     return otherwise;
   }
   let v;
-  if (coll.constructor === Object && Object.getPrototypeOf(coll) === Object.prototype) {
+  // optimize for getting values out of objects
+  if (isObj(coll)) {
     v = coll[key];
     if (v === undefined) {
       return otherwise;
