@@ -111,6 +111,7 @@
   not_every_QMARK_
   nth
   number_QMARK_
+  object_QMARK_
   odd_QMARK_
   partial
   partition
@@ -161,6 +162,7 @@
   take_while
   to_array
   true_QMARK_
+  typeConst
   update
   update_BANG_
   update_in

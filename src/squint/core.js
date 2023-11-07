@@ -91,13 +91,18 @@ function emptyOfType(type) {
 }
 
 function isObj(coll) {
-  return (coll.constructor === Object && Object.getPrototypeOf(coll) === Object.prototype);
+  return (coll.constructor === Object);
 }
 
-export function typeConst(obj) {
+export function object_QMARK_(coll) {
+  return (coll != null && isObj(coll));
+}
+
+function typeConst(obj) {
   if (obj == null) {
     return undefined;
   }
+  // optimize for object
   if (isObj(obj)) {
     return OBJECT_TYPE;
   }
