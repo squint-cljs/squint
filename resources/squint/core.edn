@@ -102,6 +102,7 @@
   merge_with
   meta
   min
+  mod
   neg_QMARK_
   next
   nil_QMARK_

@@ -1613,3 +1613,7 @@ export function find(m, k) {
     return [k, v];
   }
 }
+
+export function mod(x, y) {
+  return (x % y + y) % y;
+}
