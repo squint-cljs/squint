@@ -21,8 +21,8 @@ scratch.cljs
 .nrepl-port
 examples/quickjs/hello
 .repl
+**/public/js
 .clerk
-public
 .test
 scratch.js
 compiler-common
