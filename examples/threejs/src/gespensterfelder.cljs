@@ -27,13 +27,16 @@
     (.add params "sin-x-scale" 0.0 2.0)
     (.add params "cos-y-scale" 0.0 2.0)))
 
+(def width nil #_3000)
+(def height nil #_2000)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; basic three.js setup
 
 (def renderer
   (doto (three/WebGLRenderer. (clj->js {:antialias true}))
     (.setPixelRatio (.-devicePixelRatio js/window))
-    (.setSize (.-innerWidth js/window) (.-innerHeight js/window))
+    (.setSize (or width (.-innerWidth js/window)) (or height (.-innerHeight js/window)))
     (-> (assoc! :physicallyCorrectLights true
                 :antialias true
                 :gammaInput true
@@ -46,7 +49,7 @@
   (three/Scene.))
 
 (def camera
-  (doto (three/PerspectiveCamera. 75 (/ (.-innerWidth js/window) (.-innerHeight js/window)) 0.1 1000)
+  (doto (three/PerspectiveCamera. 75 (/ (or width (.-innerWidth js/window)) (or height (.-innerHeight js/window))) 0.1 1000)
     (-> :position ((fn [pos]
                      (.set pos 0 0 70))))
     (.lookAt (three/Vector3.))))
