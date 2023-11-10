@@ -102,11 +102,10 @@
    (js/Promise.resolve code)
    (.then compile)
    (.then (fn [v]
-            (prn :v v)
             (js/eval v)))
    (.then (fn [val]
             (send-fn request {"ns" (str @last-ns)
-                              "value" (str val)})))
+                              "value" (squint/pr-str val)})))
    (.catch (fn [e]
              (js/console.error e)
              (handle-error send-fn request e)))
