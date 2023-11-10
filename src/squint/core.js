@@ -644,6 +644,9 @@ export function nil_QMARK_(v) {
 export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
+  if (x === null) {
+    return "null";
+  }
   return JSON.stringify(x, (_key, value) => {
     switch (typeConst(value)) {
       case SET_TYPE:
@@ -651,8 +654,10 @@ function pr_str_1(x) {
         return [...value];
       case MAP_TYPE:
         return Object.fromEntries(value);
-      default:
-        return value;
+    default: {
+      // console.log(value);
+      return value;
+    }
     }
   });
 }

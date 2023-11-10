@@ -224,14 +224,14 @@
 
 (defn wrap-await
   ([s] (wrap-await s false))
-  ([s return?]
-   (format "%s(%s)" (if return? "return " "") (str "await " s))))
+  ([s _return?]
+   (format "(%s)" (if *async* (str "await " s) s))))
 
 (defn wrap-iife
   ([s] (wrap-iife s false))
   ([s return?]
-   (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
-     *async* (wrap-await return?))))
+   (-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
+       (wrap-await return?))))
 
 (defn emit-do [env exprs]
   (let [bl (butlast exprs)
@@ -289,7 +289,9 @@
                ;; (loop [x 1] (+ 1 2 x)) breaks
                (str ";break;\n}\n")))
       iife?
-      (wrap-iife (= :return (:context enc-env))))))
+      (wrap-iife)
+      iife?
+      (emit-return enc-env))))
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
