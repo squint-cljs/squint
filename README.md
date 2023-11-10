@@ -208,6 +208,16 @@ console.log(f()); // prints 1
 
 Squint has a console repl which can be started with `squint repl`.
 
+## nREPL
+
+A (currently immature!) nREPL implementation can be used on Node.js with:
+
+``` clojure
+squint nrepl-server :port 1888
+```
+
+Please try it out and file issues so it can be improved.
+
 ### Emacs
 
 You can use this together with `inf-clojure` in emacs as follows:
