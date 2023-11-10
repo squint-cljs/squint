@@ -3,7 +3,9 @@
    [clojure.string :as str]
    ["fs" :as fs]
    ["net" :as node-net]
-   [squint.compiler-common :as cc]
+   [squint.compiler-common :as cc :refer [*cljs-ns*]]
+   [squint.compiler :as compiler]
+   ["squint-cljs/core.js" :as squint]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]))
 
 (defn debug [& strs]
@@ -57,7 +59,7 @@
             "status" ["done"]}))
 
 ;; TODO: this should not be global
-(def last-ns (atom nil))
+(def last-ns (atom cc/*cljs-ns*))
 
 (defn format-value [_nrepl-pprint _pprint-options value]
   (pr-str value))
@@ -79,33 +81,64 @@
     (send-fn request {"ex" (str e)
                       "ns" (str cc/*cljs-ns*)})))
 
+(def in-progress (atom false))
+(def ns-state (atom {}))
+
+(defn compile [the-val]
+  (let [{js-str :javascript
+         cljs-ns :ns} (binding [*cljs-ns* @last-ns]
+                        (compiler/compile-string* (binding [*print-meta* true]
+                                                    (pr-str the-val)) {:context :return
+                                                                       :ns-state ns-state
+                                                                       :elide-exports true
+                                                                       :repl true}))
+        js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
+    #_(println :js-str js-str)
+    (reset! last-ns cljs-ns)
+    js-str))
+
+(prn :dude)
+
 (defn do-handle-eval [{:keys [ns code file
                               _load-file? _line] :as request} send-fn]
   (prn :code code)
-  (let [#_#_rdr (sci/reader code)
-        #_#_loop-fn (fn loop-fn [prev-val]
-                  (try (let [ns (or (:ns (second prev-val)) @last-ns ns)
-                             next-val (nbb/read-next rdr {:ns ns
-                                                          :file file
-                                                          :wrap vector})]
-                         (if (= :sci.core/eof next-val)
-                           (js/Promise.resolve prev-val)
-                           (let [v (nbb/eval-next* next-val {:ns ns
-                                                             :file file
-                                                             :wrap vector})]
-                             (.then v
-                                    (fn [v]
-                                     ;; (prn :v v)
-                                      (send-value request send-fn v)
-                                      (loop-fn v))))))
-                       (catch :default e
-                         (handle-error send-fn request e)
-                         (loop-fn nil))))]
-    (-> (js/Promise.resolve nil) #_(loop-fn nil)
-        (.catch (partial handle-error send-fn request))
+  (let [compiled (compile code)]
+    (println :compiled)
+    (println compiled)
+    (-> (.then (js/Promise.resolve compiled))
+        (.then (fn [v]
+                 (prn :v v)
+                 (js/eval v)))
+        (.then (fn [val]
+                 (send-fn request {"ns" (str @last-ns)
+                                   "value" (str val)})))
+        (.catch (fn [e]
+                  (js/console.error e)
+                  (handle-error send-fn request e)))
         (.finally (fn []
                     (send-fn request {"ns" (str @last-ns)
-                                      "status" ["done"]}))))))
+                                      "status" ["done"]}))))
+    
+    (let [#_#_rdr (sci/reader code)
+          #_#_loop-fn (fn loop-fn [prev-val]
+                        (try (let [ns (or (:ns (second prev-val)) @last-ns ns)
+                                   next-val (nbb/read-next rdr {:ns ns
+                                                                :file file
+                                                                :wrap vector})]
+                               (if (= :sci.core/eof next-val)
+                                 (js/Promise.resolve prev-val)
+                                 (let [v (nbb/eval-next* next-val {:ns ns
+                                                                   :file file
+                                                                   :wrap vector})]
+                                   (.then v
+                                          (fn [v]
+                                            ;; (prn :v v)
+                                            (send-value request send-fn v)
+                                            (loop-fn v))))))
+                             (catch :default e
+                               (handle-error send-fn request e)
+                               (loop-fn nil))))]
+     )))
 
 (defn handle-eval [{:keys [ns] :as request} send-fn]
   (prn :ns ns)
@@ -255,7 +288,7 @@
 
 (defn start-server
   "Start nRepl server. Accepts options either as JS object or Clojure map."
-  [opts]
+  [{:keys [opts]}]
   (-> (js/Promise.resolve nil)
       (.then
        (fn []
@@ -313,4 +346,4 @@
 
 (defn stop-server!
   ([] (stop-server! @!server))
-  ([server]))
+  ([_server]))
