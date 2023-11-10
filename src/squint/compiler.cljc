@@ -367,7 +367,9 @@
    (let [env (merge {:ns-state (atom {})} env)
          rdr (e/reader s)
          opts squint-parse-opts]
-     (loop [transpiled ""]
+     (loop [transpiled (if cc/*repl*
+                         (str "globalThis." *cljs-ns* " = globalThis." *cljs-ns* " || {};\n")
+                         "")]
        (let [opts (assoc opts :auto-resolve @*aliases*)
              next-form (e/parse-next rdr opts)]
          (if (= ::e/eof next-form)
@@ -402,7 +404,8 @@
                  *jsx* false
                  *excluded-core-vars* (atom #{})
                  *cljs-ns* *cljs-ns*
-                 cc/*target* :squint]
+                 cc/*target* :squint
+                 cc/*async* (:async opts)]
          (let [transpiled (transpile-string* s (assoc opts
                                                       :core-alias core-alias
                                                       :imports imports))

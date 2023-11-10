@@ -8,6 +8,7 @@
    [squint.compiler :as cc]
    [squint.compiler.node :as compiler]
    [squint.repl.node :as repl]
+   #_[squint.repl.nrepl-server :as nrepl]
    [squint.internal.node.utils :as utils]
    [clojure.string :as str])
   (:require-macros [squint.resource :refer [version]]))
@@ -98,7 +99,7 @@ Options:
 
 --no-run: do not run compiled expression
 --show:   print compiled expression")
-      (let [res (cc/compile-string e (assoc opts :ns-state (atom {:current 'user})))
+      (let [res (cc/compile-string e (assoc opts :repl (:repl opts) :ns-state (atom {:current 'user})))
             dir (fs/mkdtempSync ".tmp")
             f (str dir "/squint.mjs")]
         (fs/writeFileSync f res "utf-8")
@@ -153,19 +154,29 @@ Options:
                                   (.catch (fn [e]
                                             (js/console.error e))))))))))))))
 
+(defn start-nrepl [{:keys [opts]}]
+  (-> (esm/dynamic-import "./node.nrepl_server.js")
+      (.then (fn [^js val]
+               ((.-startServer val) opts)))))
+
 (def table
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
    {:cmds ["compile"]
-    :coerce {:elide-exports :boolean
-             :elide-imports :boolean
-             :output-dir :string}
     :fn (fn [{:keys [rest-cmds opts]}]
           (compile-files opts rest-cmds))}
    {:cmds ["repl"]       :fn repl/repl}
+
+   {:cmds ["socket-repl"]  :fn repl/socket-repl}
+   {:cmds ["nrepl-server"] :fn start-nrepl}
+
    {:cmds ["watch"]      :fn watch}
    {:cmds []             :fn fallback}])
 
 (defn init []
   (cli/dispatch table
                 (.slice js/process.argv 2)
-                {:aliases {:h :help}}))
+                {:aliases {:h :help}
+                 :coerce {:elide-exports :boolean
+                          :elide-imports :boolean
+                          :output-dir    :string
+                          :repl          :boolean}}))

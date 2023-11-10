@@ -23,8 +23,8 @@
 
 (deftest repl-test
   (is (str/includes? (:out (repl "1")) "1\n"))
-  (is (str/includes? (:out (repl "\"foo\"")) "foo\n"))
-  (is (str/includes? (:out (repl ":foo")) "foo\n"))
+  (is (str/includes? (:out (repl "\"foo\"")) "foo"))
+  (is (str/includes? (:out (repl ":foo")) "foo"))
   (is (str/includes? (:out (repl "[1 2 3]")) "[ 1, 2, 3 ]\n"))
   (is (str/includes? (:out (repl "(+ 1 2 3)")) "6\n"))
   (is (str/includes? (:out (repl "(ns foo (:require [\"fs\" :as fs])) (fs/existsSync \".\")")) "true"))
