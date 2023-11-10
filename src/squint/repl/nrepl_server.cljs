@@ -90,7 +90,8 @@
                         (compiler/compile-string* the-val {:context :return
                                                            :ns-state ns-state
                                                            :elide-exports true
-                                                           :repl true}))
+                                                           :repl true
+                                                           :async true}))
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
     js-str))

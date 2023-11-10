@@ -404,7 +404,8 @@
                  *jsx* false
                  *excluded-core-vars* (atom #{})
                  *cljs-ns* *cljs-ns*
-                 cc/*target* :squint]
+                 cc/*target* :squint
+                 cc/*async* (:async opts)]
          (let [transpiled (transpile-string* s (assoc opts
                                                       :core-alias core-alias
                                                       :imports imports))
