@@ -86,7 +86,7 @@
                                                                        :ns-state ns-state
                                                                        :elide-exports true}))
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
-    (println :js-str js-str)
+    #_(println :js-str js-str)
     (reset! last-ns cljs-ns)
     (->
      (js/Promise.resolve (js/eval js-str))

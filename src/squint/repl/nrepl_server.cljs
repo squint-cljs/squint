@@ -3,6 +3,7 @@
    [clojure.string :as str]
    ["fs" :as fs]
    ["net" :as node-net]
+   ["node:util" :as util]
    [squint.compiler-common :as cc :refer [*cljs-ns*]]
    [squint.compiler :as compiler]
    ["squint-cljs/core.js" :as squint]
@@ -105,7 +106,7 @@
             (js/eval v)))
    (.then (fn [val]
             (send-fn request {"ns" (str @last-ns)
-                              "value" (squint/pr-str val)})))
+                              "value" (util/inspect val) #_(squint/pr-str val)})))
    (.catch (fn [e]
              (js/console.error e)
              (handle-error send-fn request e)))
