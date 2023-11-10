@@ -87,58 +87,31 @@
 (defn compile [the-val]
   (let [{js-str :javascript
          cljs-ns :ns} (binding [*cljs-ns* @last-ns]
-                        (compiler/compile-string* (binding [*print-meta* true]
-                                                    (pr-str the-val)) {:context :return
-                                                                       :ns-state ns-state
-                                                                       :elide-exports true
-                                                                       :repl true}))
+                        (compiler/compile-string* the-val {:context :return
+                                                           :ns-state ns-state
+                                                           :elide-exports true
+                                                           :repl true}))
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
-    #_(println :js-str js-str)
     (reset! last-ns cljs-ns)
     js-str))
 
-(prn :dude)
-
 (defn do-handle-eval [{:keys [ns code file
                               _load-file? _line] :as request} send-fn]
-  (prn :code code)
-  (let [compiled (compile code)]
-    (println :compiled)
-    (println compiled)
-    (-> (.then (js/Promise.resolve compiled))
-        (.then (fn [v]
-                 (prn :v v)
-                 (js/eval v)))
-        (.then (fn [val]
-                 (send-fn request {"ns" (str @last-ns)
-                                   "value" (str val)})))
-        (.catch (fn [e]
-                  (js/console.error e)
-                  (handle-error send-fn request e)))
-        (.finally (fn []
-                    (send-fn request {"ns" (str @last-ns)
-                                      "status" ["done"]}))))
-    
-    (let [#_#_rdr (sci/reader code)
-          #_#_loop-fn (fn loop-fn [prev-val]
-                        (try (let [ns (or (:ns (second prev-val)) @last-ns ns)
-                                   next-val (nbb/read-next rdr {:ns ns
-                                                                :file file
-                                                                :wrap vector})]
-                               (if (= :sci.core/eof next-val)
-                                 (js/Promise.resolve prev-val)
-                                 (let [v (nbb/eval-next* next-val {:ns ns
-                                                                   :file file
-                                                                   :wrap vector})]
-                                   (.then v
-                                          (fn [v]
-                                            ;; (prn :v v)
-                                            (send-value request send-fn v)
-                                            (loop-fn v))))))
-                             (catch :default e
-                               (handle-error send-fn request e)
-                               (loop-fn nil))))]
-     )))
+  (->
+   (js/Promise.resolve code)
+   (.then compile)
+   (.then (fn [v]
+            (prn :v v)
+            (js/eval v)))
+   (.then (fn [val]
+            (send-fn request {"ns" (str @last-ns)
+                              "value" (str val)})))
+   (.catch (fn [e]
+             (js/console.error e)
+             (handle-error send-fn request e)))
+   (.finally (fn []
+               (send-fn request {"ns" (str @last-ns)
+                                 "status" ["done"]})))))
 
 (defn handle-eval [{:keys [ns] :as request} send-fn]
   (prn :ns ns)
@@ -160,16 +133,16 @@
 
 (defn handle-lookup [{:keys [ns] :as request} send-fn]
   #_(let [mapping-type (-> request :op)]
-    (try
-      (let [ns-str (:ns request)
-            sym-str (or (:sym request) (:symbol request))
-            sci-ns
-            (or (when ns
-                  (the-sci-ns (store/get-ctx) (symbol ns)))
-                @last-ns
-                @sci/ns)]
-        (sci/binding [sci/ns sci-ns]
-          (let [m (sci/eval-string* (store/get-ctx) (gstring/format "
+      (try
+        (let [ns-str (:ns request)
+              sym-str (or (:sym request) (:symbol request))
+              sci-ns
+              (or (when ns
+                    (the-sci-ns (store/get-ctx) (symbol ns)))
+                  @last-ns
+                  @sci/ns)]
+          (sci/binding [sci/ns sci-ns]
+            (let [m (sci/eval-string* (store/get-ctx) (gstring/format "
 (let [ns '%s
       full-sym '%s]
   (when-let [v (ns-resolve ns full-sym)]
@@ -179,43 +152,43 @@
        :name (:name m)
        :ns (some-> m :ns ns-name)
        :val @v))))" ns-str sym-str))
-                doc (:doc m)
-                file (:file m)
-                line (:line m)
-                reply (case mapping-type
-                        :eldoc (cond->
-                                {"ns" (:ns m)
-                                 "name" (:name m)
-                                 "eldoc" (mapv #(mapv str %) (:arglists m))
-                                 "type" (cond
-                                          (ifn? (:val m)) "function"
-                                          :else "variable")
-                                 "status" ["done"]}
-                                 doc (assoc "docstring" doc))
-                        (:info :lookup) (cond->
-                                         {"ns" (:ns m)
-                                          "name" (:name m)
-                                          "arglists-str" (forms-join (:arglists m))
-                                          "status" ["done"]}
-                                          doc (assoc "doc" doc)
-                                          file (assoc "file" file)
-                                          line (assoc "line" line)))]
-            (send-fn request reply))))
-      (catch js/Error e
-        (let [status (cond->
-                      #{"done"}
-                       (= mapping-type :eldoc)
-                       (conj "no-eldoc"))]
-          (send-fn
-           request
-           {"status" status "ex" (str e)}))))))
+                  doc (:doc m)
+                  file (:file m)
+                  line (:line m)
+                  reply (case mapping-type
+                          :eldoc (cond->
+                                     {"ns" (:ns m)
+                                      "name" (:name m)
+                                      "eldoc" (mapv #(mapv str %) (:arglists m))
+                                      "type" (cond
+                                               (ifn? (:val m)) "function"
+                                               :else "variable")
+                                      "status" ["done"]}
+                                   doc (assoc "docstring" doc))
+                          (:info :lookup) (cond->
+                                              {"ns" (:ns m)
+                                               "name" (:name m)
+                                               "arglists-str" (forms-join (:arglists m))
+                                               "status" ["done"]}
+                                            doc (assoc "doc" doc)
+                                            file (assoc "file" file)
+                                            line (assoc "line" line)))]
+              (send-fn request reply))))
+        (catch js/Error e
+          (let [status (cond->
+                           #{"done"}
+                         (= mapping-type :eldoc)
+                         (conj "no-eldoc"))]
+            (send-fn
+             request
+             {"status" status "ex" (str e)}))))))
 
 (defn handle-load-file [{:keys [file] :as request} send-fn]
   #_(do-handle-eval (assoc request
-                         :code file
-                         :load-file? true
-                         :ns @sci/ns)
-                  send-fn))
+                           :code file
+                           :load-file? true
+                           :ns @sci/ns)
+                    send-fn))
 
 ;;;; Completions, based on babashka.nrepl
 
