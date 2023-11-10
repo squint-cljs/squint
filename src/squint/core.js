@@ -41,22 +41,26 @@ export function assoc_BANG_(m, k, v, ...kvs) {
   return m;
 }
 
+function copy(o) {
+  switch (typeConst(o)) {
+    case MAP_TYPE:
+      return new Map(o.entries());
+    case ARRAY_TYPE:
+      return [...o];
+    case OBJECT_TYPE:
+      return { ...o };
+    default:
+      throw new Error(`Don't know how to copy object of type ${typeof o}.`);
+  }
+}
+
 export function assoc(o, k, v, ...kvs) {
   if (!o) {
     o = {};
   }
-  switch (typeConst(o)) {
-    case MAP_TYPE:
-      return assoc_BANG_(new Map(o.entries()), k, v, ...kvs);
-    case ARRAY_TYPE:
-      return assoc_BANG_([...o], k, v, ...kvs);
-    case OBJECT_TYPE:
-      return assoc_BANG_({ ...o }, k, v, ...kvs);
-    default:
-      throw new Error(
-        'Illegal argument: assoc expects a Map, Array, or Object as the first argument.'
-      );
-  }
+  let ret = copy(o);
+  assoc_BANG_(ret, k, v, ...kvs);
+  return ret;
 }
 
 const MAP_TYPE = 1;
@@ -86,7 +90,22 @@ function emptyOfType(type) {
   return undefined;
 }
 
+function isObj(coll) {
+  return (coll.constructor === Object);
+}
+
+export function object_QMARK_(coll) {
+  return (coll != null && isObj(coll));
+}
+
 function typeConst(obj) {
+  if (obj == null) {
+    return undefined;
+  }
+  // optimize for object
+  if (isObj(obj)) {
+    return OBJECT_TYPE;
+  }
   if (obj instanceof Map) return MAP_TYPE;
   if (obj instanceof Set) return SET_TYPE;
   if (obj instanceof List) return LIST_TYPE;
@@ -132,7 +151,18 @@ export function assoc_in(o, keys, value) {
 }
 
 export function assoc_in_BANG_(o, keys, value) {
-  return assoc_in_with(assoc_BANG_, 'assoc-in!', o, keys, value);
+  var currObj = o;
+  let baseType = typeConst(o);
+  for (const k of keys.splice(0,keys.length - 1)) {
+    let v = get(currObj, k);
+    if (v === undefined) {
+      v = emptyOfType(baseType);
+      assoc_BANG_(currObj, k, v);
+    }
+    currObj = v;
+  }
+  assoc_BANG_(currObj, keys[keys.length - 1], value);
+  return o;
 }
 
 export function comp(...fs) {
@@ -326,7 +356,19 @@ export function nth(coll, idx, orElse) {
 }
 
 export function get(coll, key, otherwise = undefined) {
+  if (coll == null) {
+    return otherwise;
+  }
   let v;
+  // optimize for getting values out of objects
+  if (isObj(coll)) {
+    v = coll[key];
+    if (v === undefined) {
+      return otherwise;
+    } else {
+      return v;
+    }
+  }
   switch (typeConst(coll)) {
     case SET_TYPE:
       if (coll.has(key)) v = key;
@@ -345,7 +387,12 @@ export function get(coll, key, otherwise = undefined) {
 
 export function seqable_QMARK_(x) {
   // String is iterable but doesn't allow `m in s`
-  return typeof x === 'string' || x === null || x === undefined || Symbol.iterator in x;
+  return (
+    typeof x === 'string' ||
+    x === null ||
+    x === undefined ||
+    (x instanceof Object && Symbol.iterator in x)
+  );
 }
 
 export function iterable(x) {
@@ -460,11 +507,26 @@ export function reduce(f, arg1, arg2) {
   return val;
 }
 
+var tolr = false;
+export function warn_on_lazy_reusage_BANG_() {
+  tolr = true;
+}
+
 class LazyIterable {
   constructor(gen) {
     this.gen = gen;
+    this.usages = 0;
   }
   [Symbol.iterator]() {
+    this.usages++;
+    if (this.usages >= 2 && tolr) {
+      try {
+        throw new Error();
+      }
+      catch (e) {
+        console.warn('Re-use of lazy value', e.stack);
+      }
+    }
     return this.gen();
   }
 }
@@ -475,14 +537,30 @@ export function lazy(f) {
   return new LazyIterable(f);
 }
 
+
+export class Cons {
+  constructor(x, coll) {
+    this.x = x;
+    this.coll = coll;
+  }
+  *[Symbol.iterator]() {
+    yield this.x;
+    yield* iterable(this.coll);
+  }
+}
+
 export function cons(x, coll) {
-  return lazy(function* () {
-    yield x;
-    yield* iterable(coll);
-  });
+  return new Cons(x, coll);
+  // return lazy(function* () {
+  //   yield x;
+  //   yield* iterable(coll);
+  // });
 }
 
 export function map(f, ...colls) {
+  // if (! (f instanceof Function)) {
+  //   throw new Error(`Argument f must be a function but is ${typeof(f)}`);
+  // }
   switch (colls.length) {
     case 0:
       throw new Error('map with 2 arguments is not supported yet');
@@ -829,7 +907,11 @@ function partitionInternal(n, step, pad, coll, all) {
 
 export function empty(coll) {
   const type = typeConst(coll);
-  return emptyOfType(type);
+  if (type != null) {
+    return emptyOfType(type);
+  } else {
+    throw new Error(`Can't create empty of ${typeof coll}`);
+  }
 }
 
 export function merge(...args) {
@@ -842,6 +924,41 @@ export function merge(...args) {
     obj = into(empty(firstArg), firstArg);
   }
   return conj_BANG_(obj, ...args.slice(1));
+}
+
+export function key(entry) {
+  return entry[0];
+}
+
+export function val(entry) {
+  return entry[1];
+}
+
+export function merge_with(f, ...maps) {
+  var hasMap = false;
+  for (const m of maps) {
+    if (m != null) {
+      hasMap = true;
+      break;
+    }
+  }
+  if (hasMap) {
+    let mergeEntry = (m, e) => {
+      let k = key(e);
+      let v = val(e);
+      if (contains_QMARK_(m, k)) {
+        return assoc(m, k, f(get(m, k), v));
+      } else {
+        return assoc(m, k, v);
+      }
+    };
+    let merge2 = (m1, m2) => {
+      return reduce(mergeEntry, m1 || {}, seq(m2));
+    };
+    return reduce(merge2, maps);
+  } else {
+    return null;
+  }
 }
 
 export function system_time() {
@@ -1122,9 +1239,14 @@ export function frequencies(coll) {
 export class LazySeq {
   constructor(f) {
     this.f = f;
+    this.res = undefined;
   }
   *[Symbol.iterator]() {
-    yield* iterable(this.f());
+    if (this.res === undefined) {
+      this.res = this.f();
+      this.f = null;
+    }
+    yield* iterable(this.res);
   }
 }
 
@@ -1250,20 +1372,14 @@ export function max(x, y, ...more) {
   if (y == undefined) {
     return x;
   }
-  if (more.length == 0) {
-    return x > y ? x : y;
-  }
-  return max(max(x, y), ...more);
+  return Math.max(x, y, ...more);
 }
 
 export function min(x, y, ...more) {
   if (y == undefined) {
     return x;
   }
-  if (more.length == 0) {
-    return x < y ? x : y;
-  }
-  return min(min(x, y), ...more);
+  return Math.min(x, y, ...more);
 }
 
 export function map_QMARK_(x) {
@@ -1373,29 +1489,146 @@ export function to_array(aseq) {
 //   return ( x != null && x !== false );
 // }
 
-
 export function subs(s, start, end) {
   return s.substring(start, end);
 }
 
 export function fn_QMARK_(x) {
-  return "function" === typeof x;
+  return 'function' === typeof x;
 }
 
 export function* re_seq(re, s) {
   let matches = re.exec(s);
   if (matches) {
     let match_str = matches[0];
-    let match_vals = (matches.length === 1) ? match_str : vec(matches);
-    yield* cons(match_vals, lazy( function* () {
-      let post_idx = matches.index + max(1, match_str.length);
-      if ( post_idx <= s.length ) {
-        yield* re_seq(re, subs(s, post_idx) );
-      }
-    }));
+    let match_vals = matches.length === 1 ? match_str : vec(matches);
+    yield* cons(
+      match_vals,
+      lazy(function* () {
+        let post_idx = matches.index + max(1, match_str.length);
+        if (post_idx <= s.length) {
+          yield* re_seq(re, subs(s, post_idx));
+        }
+      })
+    );
   }
+}
+
+export function NaN_QMARK_(x) {
+  return Number.isNaN(x);
 }
 
 export function number_QMARK_(x) {
   return typeof x == 'number';
+}
+
+export function keys(obj) {
+  if (obj) {
+    return Object.keys(obj);
+  } else {
+    return null;
+  }
+}
+
+export function js_keys(obj) {
+  return keys(obj);
+}
+
+export function vals(obj) {
+  if (obj) {
+    return Object.values(obj);
+  } else {
+    return null;
+  }
+}
+
+export function string_QMARK_(s) {
+  return typeof s === 'string';
+}
+
+export function coll_QMARK_(coll) {
+  return typeConst(coll) != undefined;
+}
+
+export function regexp_QMARK_(coll) {
+  return coll instanceof RegExp;
+}
+
+class ExceptionInfo extends Error {
+  constructor(message, data, cause) {
+    super(message);
+    this._data = data;
+    this._cause = cause;
+  }
+}
+
+export function ex_data(e) {
+  if (e instanceof ExceptionInfo) return e._data;
+  else return null;
+}
+
+export function ex_message(e) {
+  if (e instanceof Error) return e.message;
+  else return null;
+}
+
+export function ex_cause(e) {
+  if (e instanceof ExceptionInfo) return e._cause;
+  else return null;
+}
+
+export function ex_info(message, data, cause) {
+  return new ExceptionInfo(message, data, cause);
+}
+
+export function int_QMARK_(x) {
+  return Number.isInteger(x);
+}
+
+export const integer_QMARK_ = int_QMARK_;
+
+const _metaSym = Symbol('meta');
+
+export function meta(x) {
+  if (x instanceof Object) {
+    return x[_metaSym];
+  } else return null;
+}
+
+export function with_meta(x, m) {
+  let ret = copy(x);
+  ret[_metaSym] = m;
+  return ret;
+}
+
+export function boolean_QMARK_(x) {
+  return x === true || x === false;
+}
+
+export function counted_QMARK_(x) {
+  let tc = typeConst(x);
+  switch (tc) {
+    case (ARRAY_TYPE, MAP_TYPE, OBJECT_TYPE, LIST_TYPE, SET_TYPE):
+      return true;
+  }
+  return false;
+}
+
+export function bounded_count(n, coll) {
+  if (counted_QMARK_(coll)) {
+    return count(coll);
+  } else {
+    return count(take(n, coll));
+  }
+}
+
+export function find(m, k) {
+  let v = get(m, k);
+  if (v !== undefined) {
+    return [k, v];
+  }
+}
+
+export function mod(x, y) {
+  return (x % y + y) % y;
 }

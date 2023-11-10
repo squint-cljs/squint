@@ -185,7 +185,6 @@
                      (.push a x))
                    a))]
     (is (eq [1 2 3] (js/eval s))))
-  ;; TODO:
   (let [s (jss! '(let [a []]
                    (doseq [x [1 2 3]
                            y [4 5 6]]
@@ -252,7 +251,14 @@
   (testing "return position in function"
     (let [f (jsv! '(do (defn foo [x] (doseq [i x] i)) foo))]
       (is f)
-      (is (nil? (f [1 2 3]))))))
+      (is (nil? (f [1 2 3])))))
+  (testing "iterate over object"
+    (let [r (jsv! '(do
+                     (def a (atom []))
+                     (doseq [[k v] {:a 1 :b 2}]
+                       (swap! a conj [k v]))
+                     @a))]
+      (is (eq #js [#js ["a" 1] #js ["b" 2]] r)))))
 
 ;; TODO:
 (deftest for-test
@@ -313,7 +319,11 @@
   (testing "return position in function"
     (let [f (jsv! '(do (defn foo [x] (for [i x] i)) foo))]
       (is f)
-      (is (= [1 2 3] (vec (f [1 2 3])))))))
+      (is (= [1 2 3] (vec (f [1 2 3]))))))
+  (testing "iterate over object"
+    (let [r (jsv! '(vec (for [[k v] {:a 1 :b 2}]
+                          [k v])))]
+      (is (eq #js [#js ["a" 1] #js ["b" 2]] r)))))
 
 (deftest regex-test
   (is (eq '("foo")
@@ -718,7 +728,9 @@
                                (= z z*)))))))
   (is (eq #js {"0" #js {"1" 2}, "1" "foo"} (jsv! '(assoc-in! {"1" "foo"} [0 1] 2))))
   (testing "invalid data in path"
-    (is (thrown? js/Error (jsv! '(assoc-in! "foo" [0] 2))))))
+    (is (thrown? js/Error (jsv! '(assoc-in! "foo" [0] 2)))))
+  (testing "immutable in the middle"
+    (is (eq #js {:a #js {:b 3}} (jsv! '(assoc-in! (doto {:a {:b 2}} (js/Object.freeze)) [:a :b] 3))))))
 
 (deftest get-test
   (testing "corner cases"
@@ -1438,7 +1450,10 @@
 
 (deftest lazy-seq-test
   (is (eq #js [1] (jsv! "(vec (cons 1 (lazy-seq nil)))")))
-  (is (eq #js [1 2] (jsv! "(vec (cons 1 (lazy-seq (cons 2 nil))))"))))
+  (is (eq #js [1 2] (jsv! "(vec (cons 1 (lazy-seq (cons 2 nil))))")))
+  (testing "lazy-seq body is only evaluated once"
+    (is (eq [[1 2] [1 2 3 4 5]]
+            (js->clj (jsv! "(def a (atom [])) (defn log [x] (swap! a conj x) x)  (def x (lazy-seq (cons (doto 1 log) (lazy-seq (cons (doto 2 log) (vec (map inc [2 3 4]))))))) (vec x) (vec x) [@a (vec x)]"))))))
 
 (deftest keep-indexed-test
   (is (eq #js [12 14 16 18 20] (jsv! "(keep-indexed (fn [i e] (when (odd? i) (inc e))) (range 10 20))"))))
@@ -1488,6 +1503,24 @@
 (deftest def-with-docstring-test
   (is (= 2 (jsv! "(def x 1) (inc x)")))
   (is (= 2 (jsv! "(def x \"hello\" 1) (inc x)"))))
+
+(deftest top-level-let-naming-conflict
+  (is (eq #js [1 2] (jsv! "(def atm (atom [])) (let [x 1] (swap! atm conj x)) (let [x 2] (swap! atm conj x)) @atm"))))
+
+(deftest return-zero?-branch-test
+  (is (true? (jsv! "((fn [x] (zero? x)) 0)"))))
+
+(deftest seqable?-test
+  (is (true? (jsv! "(seqable? [])")))
+  (is (true? (jsv! "(seqable? #{})")))
+  (is (false? (jsv! "(seqable? 1)"))))
+
+(deftest merge-with-test
+  (is (eq {:a 3 :b 1 :c 1} (jsv! "(merge-with + {:a 1 :c 1} {:a 2 :b 1})"))))
+
+(deftest fn-with-munged-args-test
+  (is (eq "foo1" (jsv! "((fn [char] (str :foo char)) 1)")))
+  (is (eq "foo2" (jsv! "((fn [char char] (str :foo char)) 1 2)"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

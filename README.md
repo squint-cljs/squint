@@ -6,9 +6,8 @@ Squint is not intended as a replacement for ClojureScript but as a tool to
 target JS for anything you would not use ClojureScript for, for whatever reason:
 performance, bundle size, ease of interop, etc.
 
-> :warning: This project should be considered experimental and may still undergo
-> breaking changes. It's fine to use it for non-critical projects but don't use
-> it in production yet.
+> :warning: This project is a work in progress and may still undergo breaking
+> changes.
 
 ## Quickstart
 
@@ -61,8 +60,7 @@ need the extra performance, startup time and/or small bundle size.
 
 ## Differences with ClojureScript
 
-- Squint does not protect you in any way from the pitfalls of JS with regards to truthiness, mutability and equality
-- There is no CLJS standard library. The `"squint-cljs/core.js"` module has similar JS equivalents
+- The CLJS standard library is replaced with `"squint-cljs/core.js"`, a smaller re-implemented subset
 - Keywords are translated into strings
 - Maps, sequences and vectors are represented as mutable objects and arrays
 - Most functions return arrays and objects, not custom data structures
@@ -74,6 +72,16 @@ need the extra performance, startup time and/or small bundle size.
 - `pr-str` and `prn` coerce values to a string using `JSON.stringify`
 
 If you are looking for ClojureScript semantics, take a look at [Cherry 🍒](https://github.com/squint-cljs/cherry).
+
+## Articles
+
+- [Porting a CLJS project to squint](https://blog.michielborkent.nl/porting-cljs-project-to-squint.html)
+
+## Projects using squint
+
+- [@nextjournal/clojure-mode](https://github.com/nextjournal/clojure-mode)
+- [static search index for Tumblr](https://github.com/holyjak/clj-tumblr-summarizer/commit/a8b2ca8a9f777e4a9059fa0f1381ded24e5f1a0f)
+- [worlde](https://github.com/jackdbd/squint-wordle)
 
 ### Seqs
 

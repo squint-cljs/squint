@@ -5,22 +5,90 @@
     <meta content="width=device-width, initial-scale=1" name="viewport">
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
     <meta content="utf-8" http-equiv="encoding">
-    <script async src="https://ga.jspm.io/npm:es-module-shims@1.5.9/dist/es-module-shims.js"></script>
+    <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.0/dist/es-module-shims.js" crossorigin="anonymous"></script>
     <script type="importmap">
       {
         "imports": {
-          "squint-cljs": "https://cdn.jsdelivr.net/npm/squint-cljs@0.2.28/index.js",
-          "squint-cljs/core.js": "https://cdn.jsdelivr.net/npm/squint-cljs@0.2.28/core.js",
-          "squint-cljs/string.js": "https://cdn.jsdelivr.net/npm/squint-cljs@0.2.28/string.js"
+          "squint-cljs": "https://ga.jspm.io/npm:squint-cljs@0.3.36/index.js",
+          "squint-cljs/core.js": "https://ga.jspm.io/npm:squint-cljs@0.3.36/core.js",
+          "squint-cljs/string.js": "https://ga.jspm.io/npm:squint-cljs@0.3.36/string.js",
+          "@codemirror/language": "https://ga.jspm.io/npm:@codemirror/language@6.9.2/dist/index.js",
+          "@codemirror/state": "https://ga.jspm.io/npm:@codemirror/state@6.3.1/dist/index.js",
+          "@codemirror/view": "https://ga.jspm.io/npm:@codemirror/view@6.21.4/dist/index.js",
+          "@nextjournal/clojure-mode": "https://ga.jspm.io/npm:@nextjournal/clojure-mode@0.1.0-rc4/dist/nextjournal/clojure_mode.mjs"
+        },
+        "scopes": {
+          "https://ga.jspm.io/": {
+            "@codemirror/commands": "https://ga.jspm.io/npm:@codemirror/commands@6.3.0/dist/index.js",
+            "@lezer/common": "https://ga.jspm.io/npm:@lezer/common@1.1.0/dist/index.js",
+            "@lezer/highlight": "https://ga.jspm.io/npm:@lezer/highlight@1.1.6/dist/index.js",
+            "@lezer/lr": "https://ga.jspm.io/npm:@lezer/lr@1.3.13/dist/index.js",
+            "@lezer/markdown": "https://ga.jspm.io/npm:@lezer/markdown@1.1.0/dist/index.js",
+            "@nextjournal/lezer-clojure": "https://ga.jspm.io/npm:@nextjournal/lezer-clojure@1.0.0/dist/index.es.js",
+            "style-mod": "https://ga.jspm.io/npm:style-mod@4.1.0/src/style-mod.js",
+            "w3c-keyname": "https://ga.jspm.io/npm:w3c-keyname@2.2.8/index.js"
+          }
         }
       }
     </script>
+
     <script type="module">
+      console.log("start")
+
+      import { default_extensions, complete_keymap } from '@nextjournal/clojure-mode';
+
+      import { EditorView, drawSelection, keymap } from  '@codemirror/view';
+      import { EditorState } from  '@codemirror/state';
+      import { syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
+
+      console.log("imported")
+
+      let theme = EditorView.theme({
+        ".cm-content": {whitespace: "pre-wrap",
+                        passing: "10px 0",
+                        flex: "1 1 0"},
+
+        "&.cm-focused": {outline: "0 !important"},
+        ".cm-line": {"padding": "0 9px",
+                     "line-height": "1.6",
+                     "font-size": "16px",
+                     "font-family": "var(--code-font)"},
+        ".cm-matchingBracket": {"border-bottom": "1px solid var(--teal-color)",
+                                "color": "inherit"},
+        ".cm-gutters": {background: "transparent",
+                        border: "none"},
+        ".cm-gutterElement": {"margin-left": "5px"},
+        // only show cursor when focused
+        ".cm-cursor": {visibility: "hidden"},
+        "&.cm-focused .cm-cursor": {visibility: "visible"}
+      });
+
+      let extensions = [
+        theme,
+        foldGutter(),
+        syntaxHighlighting(defaultHighlightStyle),
+        drawSelection(),
+        keymap.of(complete_keymap),
+        ...default_extensions
+      ];
+
+      let doc = `
+(def x {:a 1})
+(assoc! x :b 2)
+(js/alert (pr-str x))`.trim();
+
+      let state = EditorState.create({doc: doc,
+                                      extensions: extensions });
+      let editorElt = document.querySelector('#editor');
+      let editor = new EditorView({state: state,
+                                   parent: editorElt,
+                                   extensions: extensions });
+
       import { compileString } from 'squint-cljs'
       var counter = 0;
       window.compile = () => {
         counter = counter + 1;
-        let code = document.querySelector('#cljsCode').value;
+        let code = editor.state.doc.toString();
         let js = compileString(code);
         document.querySelector('#compiledCode').innerText = js;
         const encodedJs = encodeURIComponent(js);
@@ -32,14 +100,8 @@
   <body>
     <div style="float: right;">
       <a href="https://gitHub.com/squint-cljs/squint"><img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a></div>
-    <div>
-      <textarea rows="6" cols="80" id="cljsCode">(def x {:a 1})
-
-(assoc! x :b 2)
-
-(js/alert (pr-str x))
-      </textarea>
-    </div>
+     <div id="editor" style="border: 1px solid grey; border-radius: 10px; margin-bottom: 10px;"">
+     </div>
     <div>
       <button onClick="compile()">
         Compile!

@@ -13,22 +13,23 @@
 
 (defmulti emit-special (fn [disp _env & _args] disp))
 
-(defmethod emit-special 'js* [_ env [_js* & opts]]
+(defn emit-return [s env]
+  (if (= :return (:context env))
+    (format "return %s;" s)
+    s))
+
+(defmethod emit-special 'js* [_ env [_js* & opts :as expr]]
   (let [[env' template substitutions] (if (map? (first opts))
                                         [(first opts)
                                          (second opts)
                                          (drop 2 opts)]
                                         [nil (first opts) (rest opts)])]
-    (reduce (fn [template substitution]
-              (str/replace-first template "~{}"
-                                 (emit substitution (merge env env'))))
-            template
-            substitutions)))
-
-(defn emit-return [s env]
-  (if (= :return (:context env))
-    (format "return %s;" s)
-    s))
+    (-> (reduce (fn [template substitution]
+                 (str/replace-first template "~{}"
+                                    (emit substitution (merge (assoc env :context :expr) env'))))
+               template
+               substitutions)
+        (emit-return (merge env (meta expr))))))
 
 (defn expr-env [env]
   (assoc env :context :expr :top-level false))
@@ -255,7 +256,7 @@
         env (assoc enc-env :context :expr)
         partitioned (partition 2 bindings)
         iife? (or (= :expr context)
-                  (and *repl* (:top-level env)))
+                  (:top-level env))
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
         (let [env (dissoc env :top-level)]
@@ -602,11 +603,11 @@
     (reduce (fn [[env sig seen] param]
               (if (contains? seen param)
                 (let [new-param (gensym param)
-                      env (update env :var->ident assoc param new-param)
+                      env (update env :var->ident assoc param (munge new-param))
                       sig (conj sig new-param)
                       seen (conj seen param)]
                   [env sig seen])
-                [(update env :var->ident assoc param param)
+                [(update env :var->ident assoc param (munge param))
                  (conj sig param)
                  (conj seen param)]))
             [env [] #{}]
@@ -622,7 +623,8 @@
                        (fn [coll]
                          (when (identical? sig coll)
                            (vreset! recur? true))))
-            body (emit-do (assoc env :context :return) body)
+            body (emit-do (assoc env :context :return)
+                          body)
             body (if @recur?
                    (format "while(true){
 %s
@@ -631,14 +633,8 @@ break;}" body)
         (str (when-not elide-function?
                (str (when *async*
                       "async ") "function "))
-             (comma-list (map (fn [sym]
-                                (let [munged (munge sym)]
-                                  (if (:... (meta sym))
-                                    (str "..." munged)
-                                    munged))) sig))
+             (comma-list (map munge sig))
              " {\n"
-             #_(when (:type env)
-                 (str "var self__ = this;"))
              body "\n}")))))
 
 (defn emit-function* [env expr]
@@ -748,7 +744,8 @@ break;}" body)
   (toString [_] js))
 
 (defmethod emit-special 'zero? [_ env [_ num]]
-  (map->Code {:js (format "(%s == 0)" (emit num (assoc env :context :expr)))
+  (map->Code {:js (-> (format "(%s == 0)" (emit num (assoc env :context :expr)))
+                      (emit-return env))
               :bool true}))
 
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]

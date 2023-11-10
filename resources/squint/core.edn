@@ -1,7 +1,9 @@
 #{Atom
+  Cons
   IIterable
   IIterable__iterator
   LazySeq
+  NaN_QMARK_
   PROTOCOL_SENTINEL
   _
   _PLUS_
@@ -18,7 +20,10 @@
   assoc_in_BANG_
   atom
   boolean$
+  boolean_QMARK_
+  bounded_count
   butlast
+  coll_QMARK_
   comp
   compare
   complement
@@ -29,6 +34,7 @@
   constantly
   contains_QMARK_
   count
+  counted_QMARK_
   cycle
   dec
   deref
@@ -48,10 +54,15 @@
   even_QMARK_
   every_QMARK_
   every_pred
+  ex_cause
+  ex_data
+  ex_info
+  ex_message
   false_QMARK_
   ffirst
   filter
   filterv
+  find
   first
   fn_QMARK_
   fnil
@@ -62,16 +73,21 @@
   identical_QMARK_
   identity
   inc
+  int_QMARK_
+  integer_QMARK_
   interleave
   interpose
   into
   into_array
   iterable
   iterate
+  js_keys
   js_obj
   juxt
   keep
   keep_indexed
+  key
+  keys
   last
   lazy
   list
@@ -83,7 +99,10 @@
   mapv
   max
   merge
+  merge_with
+  meta
   min
+  mod
   neg_QMARK_
   next
   nil_QMARK_
@@ -92,6 +111,7 @@
   not_every_QMARK_
   nth
   number_QMARK_
+  object_QMARK_
   odd_QMARK_
   partial
   partition
@@ -109,6 +129,7 @@
   reduce_kv
   reduced
   reduced_QMARK_
+  regexp_QMARK_
   remove
   remove_watch
   repeat
@@ -131,6 +152,7 @@
   split_at
   split_with
   str
+  string_QMARK_
   subs
   subvec
   swap_BANG_
@@ -143,7 +165,11 @@
   update
   update_BANG_
   update_in
+  val
+  vals
   vec
   vector
   vector_QMARK_
+  warn_on_lazy_reusage_BANG_
+  with_meta
   zero_QMARK_}

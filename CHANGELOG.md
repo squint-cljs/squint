@@ -2,6 +2,33 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+- Update/refactor [threejs](examples/threejs) example
+
+## 0.3.38 (2023-11-07)
+
+- [#360](https://github.com/squint-cljs/squint/issues/360): `assoc-in!` should not mutate objects in the middle if they already exist
+- Evaluate `lazy-seq` body just once
+- Avoid stackoverflow with `min` and `max`
+- [#360](https://github.com/squint-cljs/squint/issues/360): fix assoc-in! with immutable objects in the middle
+- Add `mod`, `object?`
+- Optimize `get`
+- Add [threejs](examples/threejs) example
+
+## 0.3.37 (2023-11-05)
+
+- [#357](https://github.com/squint-cljs/squint/issues/357): fix version in help text
+- Fix iterating over objects
+- Add `clojure.string`'s `triml`, `trimr`, `replace`
+- Fix `examples/vite-react` by adding `public/index.html`
+- Add `find`, `bounded-count`, `boolean?`, `merge-with`, `meta`, `with-meta`, `int?`, `ex-message`, `ex-cause`, `ex-info`
+- Fix munging of reserved symbols in function arguments
+
+## 0.3.36 (2023-10-31)
+
+- [#350](https://github.com/squint-cljs/squint/issues/350): `js*` should default to `:context :expr`
+- [#352](https://github.com/squint-cljs/squint/issues/352): fix `zero?` in return position
+- Add `NaN?` ([@sher](https://github.com/sher))
+
 ## 0.3.35 (2023-10-25)
 
 - [#347](https://github.com/squint-cljs/squint/issues/347): Add `:pre` and `:post` support in `fn`
