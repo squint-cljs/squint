@@ -4,6 +4,7 @@
    ["readline" :as readline]
    ["squint-cljs/core.js" :as squint]
    ["vm" :as vm]
+   ["util" :as util]
    [clojure.string :as str]
    [edamame.core :as e]
    [squint.compiler :as compiler]
@@ -92,7 +93,7 @@
      (js/Promise.resolve (js/eval js-str))
      (.then (fn [^js val]
               (if socket
-                (.write socket (str (squint/pr-str val) "\n"))
+                (.write socket (util/inspect val) "\n")
                 (squint/prn val))
               (eval-next socket rl)))
      (.catch (fn [err]
