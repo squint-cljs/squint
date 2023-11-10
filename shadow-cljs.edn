@@ -16,6 +16,8 @@
                     :exports
                     {compileFile squint.compiler.node/compile-file-js
                      compileString squint.compiler.node/compile-string-js}}
+    :node.nrepl_server {:depends-on #{:compiler.node}
+                        :exports {startServer squint.repl.nrepl-server/start-server}}
     :cli {:depends-on #{:compiler :compiler.node}
           :init-fn squint.internal.cli/init}}
    :build-hooks [(shadow.cljs.build-report/hook

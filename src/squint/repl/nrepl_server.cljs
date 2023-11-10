@@ -262,7 +262,7 @@
 
 (defn start-server
   "Start nRepl server. Accepts options either as JS object or Clojure map."
-  [{:keys [opts]}]
+  [opts]
   (-> (js/Promise.resolve nil)
       (.then
        (fn []

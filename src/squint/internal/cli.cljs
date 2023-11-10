@@ -8,7 +8,7 @@
    [squint.compiler :as cc]
    [squint.compiler.node :as compiler]
    [squint.repl.node :as repl]
-   [squint.repl.nrepl-server :as nrepl]
+   #_[squint.repl.nrepl-server :as nrepl]
    [squint.internal.node.utils :as utils]
    [clojure.string :as str])
   (:require-macros [squint.resource :refer [version]]))
@@ -154,6 +154,11 @@ Options:
                                   (.catch (fn [e]
                                             (js/console.error e))))))))))))))
 
+(defn start-nrepl [{:keys [opts]}]
+  (-> (esm/dynamic-import "./node.nrepl_server.js")
+      (.then (fn [^js val]
+               ((.-startServer val) opts)))))
+
 (def table
   [{:cmds ["run"]        :fn run :cmds-opts [:file]}
    {:cmds ["compile"]
@@ -162,7 +167,7 @@ Options:
    {:cmds ["repl"]       :fn repl/repl}
 
    {:cmds ["socket-repl"]  :fn repl/socket-repl}
-   {:cmds ["nrepl-server"] :fn nrepl/start-server}
+   {:cmds ["nrepl-server"] :fn start-nrepl}
 
    {:cmds ["watch"]      :fn watch}
    {:cmds []             :fn fallback}])
