@@ -4,7 +4,7 @@
    ["readline" :as readline]
    ["squint-cljs/core.js" :as squint]
    ["vm" :as vm]
-   ["util" :as util]
+   ["node:util" :as util]
    [clojure.string :as str]
    [edamame.core :as e]
    [squint.compiler :as compiler]
@@ -49,7 +49,7 @@
                    (let [ctx #js {:f (if socket (fn [] wrapper)
                                          (fn []
                                            (let [v (first wrapper)]
-                                             (squint/prn v)
+                                             (js/console.log v)
                                              wrapper)))}
                          _ (.createContext vm ctx)]
                      (.runInContext vm "f()" ctx
@@ -94,7 +94,7 @@
      (.then (fn [^js val]
               (if socket
                 (.write socket (util/inspect val) "\n")
-                (squint/prn val))
+                (js/console.log val))
               (eval-next socket rl)))
      (.catch (fn [err]
                (squint/println err)
