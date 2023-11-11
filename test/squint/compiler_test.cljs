@@ -1069,7 +1069,8 @@
     (is (instance? js/Map m))
     (is (= 1 (.get m "a")))
     (is (= 2 (.get m "b")))
-    (is (not (.has m "c")))))
+    (is (not (.has m "c"))))
+  (is (eq #js {} (jsv! '(select-keys nil [])))))
 
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 20))))))

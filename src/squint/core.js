@@ -848,7 +848,7 @@ export function interpose(sep, coll) {
 export function select_keys(o, ks) {
   const type = typeConst(o);
   // ret could be object or array, but in the future, maybe we'll have an IEmpty protocol
-  const ret = emptyOfType(type);
+  const ret = emptyOfType(type) || {};
   for (const k of ks) {
     const v = get(o, k);
     if (v != undefined) {

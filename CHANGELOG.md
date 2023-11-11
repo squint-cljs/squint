@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Return map when `select-keys` is called with `nil`
+
 ## 0.4.39 (2023-11-10)
 
 - Initial (incomplete!) nREPL server on Node.js: `npx squint nrepl-server :port 1888`
