@@ -2,7 +2,6 @@
   (:require
    ["fs" :as fs]
    ["path" :as path]
-   ["glob" :as glob]
    [babashka.cli :as cli]
    [shadow.esm :as esm]
    [squint.compiler :as cc]
@@ -33,11 +32,16 @@
             file (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext))]
         file))))
 
-(defn glob-cljs-files [dir]
-  (glob/globSync (str dir "/**/*.{cljs,cljc}")))
+(defn files-from-path [path]
+  (let [files (fs/readdirSync path)]
+    (vec (mapcat (fn [f]
+                   (let [f (path/resolve path f)]
+                     (if (.isDirectory (fs/lstatSync f))
+                       (files-from-path f)
+                       [f]))) files))))
 
 (defn files-from-paths [paths]
-  (mapcat glob-cljs-files paths))
+  (vec (mapcat files-from-path paths)))
 
 (defn compile-files
   [opts files]
@@ -63,13 +67,14 @@
                 (-> (js/Promise.resolve prev)
                     (.then
                      #(do
-                        (println "[squint] Compiling CLJS file:" f)
-                        (compiler/compile-file (assoc opts
-                                                      :in-file f
-                                                      :resolve-ns (fn [x]
-                                                                    (resolve-ns opts f x))))))
+                        (if (contains? #{".cljc" "cljs"} (path/extname f ))
+                          (println "[squint] Compiling CLJS file:" f)
+                          (compiler/compile-file (assoc opts
+                                                        :in-file f
+                                                        :resolve-ns (fn [x]
+                                                                      (resolve-ns opts f x)))))))
                     (.then (fn [{:keys [out-file]}]
-                             (println "[squint] Wrote JS file:" out-file)
+                             (println "[squint] Wrote file:" out-file)
                              out-file))))
               nil
               files))))
@@ -81,7 +86,7 @@ Usage: squint <subcommand> <opts>
 
 Subcommands:
 
--e           <expr>  Compile and run expression.
+-e           <expr>       Compile and run expression.
 run       <file.cljs>     Compile and run a file
 watch                     Watch :paths in squint.edn
 compile   <file.cljs> ... Compile file(s)
@@ -138,7 +143,8 @@ Options:
 (defn watch [opts]
   (let [cfg @utils/!cfg
         opts (merge cfg opts)
-        paths (:paths cfg)]
+        paths (:paths cfg)
+        output-dir (:output-dir cfg ".")]
     (-> (-> (esm/dynamic-import "chokidar")
             (.catch (fn [err]
                       (js/console.error err))))
@@ -148,11 +154,19 @@ Options:
                    (doseq [path paths]
                      (.on ^js (watch path) "all"
                           (fn [event path]
-                            (when (and (contains? #{"add" "change"} event)
+                            (when-not (.isDirectory (fs/lstatSync path))
+                              (if (and (contains? #{"add" "change"} event)
                                        (contains? #{".cljs" ".cljc"} (path/extname path)))
-                              (-> (compile-files opts [path])
-                                  (.catch (fn [e]
-                                            (js/console.error e))))))))))))))
+                                (-> (compile-files opts [path])
+                                    (.catch (fn [e]
+                                              (js/console.error e))))
+                                (let [out-file (path/resolve output-dir (compiler/adjust-file-for-paths path paths))
+                                      out-path (path/dirname out-file)]
+                                  (when-not (fs/existsSync out-path)
+                                    (println "creating" out-path)
+                                    (fs/mkdirSync out-path #js {:recursive true}))
+                                  (println "Copying" path "to" out-path)
+                                  (fs/copyFileSync path out-file)))))))))))))
 
 (defn start-nrepl [{:keys [opts]}]
   (-> (esm/dynamic-import "./node.nrepl_server.js")
