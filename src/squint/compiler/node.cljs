@@ -74,7 +74,7 @@
                (recur (rest dir)
                       (rest file)))))))
 
-(defn adjust-file-for-paths [in-file paths ]
+(defn adjust-file-for-paths [in-file paths]
   (let [out-file (reduce (fn [acc path]
                            (if (in-dir? path in-file)
                              (reduced (path/relative path in-file))

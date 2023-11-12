@@ -55,7 +55,8 @@
       (assert (str/includes? output "macros2/debug 6"))
       (assert (str/includes? output "macros/debug 10",))
       (assert (str/includes? output "macros/debug 6"))
-      (assert (str/includes? output "my-other-src")))))
+      (assert (str/includes? output "my-other-src"))
+      (assert (str/includes? output "json!")))))
 
 (defn test-squint []
   (fs/create-dirs ".work")
