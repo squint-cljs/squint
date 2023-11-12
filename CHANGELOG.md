@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.4.40 (2023-11-12)
 
 - Return map when `select-keys` is called with `nil`
+- nREPL server: print values through `cljs.pprint` ([@PEZ](https://github.com/PEZ))
 
 ## 0.4.39 (2023-11-10)
 
