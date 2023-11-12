@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.41 (2023-11-12)
+
+- Copy resources when using `squint compile` or `squint watch`
+
 ## 0.4.40 (2023-11-12)
 
 - Return map when `select-keys` is called with `nil`
