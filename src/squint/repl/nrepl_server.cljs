@@ -1,6 +1,7 @@
 (ns squint.repl.nrepl-server
   (:require
    [clojure.string :as str]
+   [cljs.pprint :as pp]
    ["fs" :as fs]
    ["net" :as node-net]
    ["node:util" :as util]
@@ -62,8 +63,21 @@
 ;; TODO: this should not be global
 (def last-ns (atom cc/*cljs-ns*))
 
-(defn format-value [_nrepl-pprint _pprint-options value]
-  (pr-str value))
+(def pretty-print-fns-map
+  {"cider.nrepl.pprint/pprint" pp/write})
+
+(defn format-value [nrepl-pprint pprint-options value]
+  (if nrepl-pprint
+    (if-let [pprint-fn (pretty-print-fns-map nrepl-pprint)]
+      (let [{:keys [right-margin length level]} pprint-options]
+        (binding [*print-length* length
+                  *print-level* level
+                  pp/*print-right-margin* right-margin]
+          (with-out-str (pprint-fn value))))
+      (do
+        (debug "Pretty-Printing is only supported for cider.nrepl.pprint/pprint")
+        (pr-str value)))
+    (pr-str value)))
 
 (defn send-value [request send-fn v]
   (let [[v opts] v
@@ -106,7 +120,9 @@
             (js/eval v)))
    (.then (fn [val]
             (send-fn request {"ns" (str @last-ns)
-                              "value" (util/inspect val) #_(squint/pr-str val)})))
+                              "value" (format-value (:nrepl.middleware.print/print request)
+                                                    (:nrepl.middleware.print/options request)
+                                                    val)})))
    (.catch (fn [e]
              (js/console.error e)
              (handle-error send-fn request e)))
