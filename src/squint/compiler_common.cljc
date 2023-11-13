@@ -218,7 +218,9 @@
                                  (str (munge *cljs-ns*) ".")) m)))
                       (some-> (maybe-core-var expr env) munge)
                       (let [m (munged-name expr)]
-                        m))))]
+                        (if *repl*
+                          (str "globalThis." (munge *cljs-ns*) "." #_".aliases." m)
+                          m)))))]
         (emit-return (escape-jsx (str expr) env)
                      env)))))
 
