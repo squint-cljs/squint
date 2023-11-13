@@ -1523,5 +1523,8 @@
   (is (eq "foo1" (jsv! "((fn [char] (str :foo char)) 1)")))
   (is (eq "foo2" (jsv! "((fn [char char] (str :foo char)) 1 2)"))))
 
+(deftest munge-fn-name-test
+  (is (fn? (jsv! "((((fn handle-enter [] handle-enter))))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

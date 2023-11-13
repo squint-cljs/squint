@@ -652,7 +652,7 @@ break;}" body)
           (let [signature (first expr)
                 body (rest expr)]
             (str (when *async*
-                   "async ") "function " name " "
+                   "async ") "function " (munge name) " "
                  (emit-function env name signature body true)))
           (let [signature (first expr)
                 body (rest expr)]
