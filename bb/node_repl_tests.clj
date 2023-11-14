@@ -38,6 +38,9 @@
 (deftest use-alias-as-object-test
   (is (str/includes? (:out (repl "(ns foo (:require [\"node:util\" :as util])) ((.-inspect util) {:a 1})")) "{ a: 1 }")))
 
+(deftest refer-test
+  (is (str/includes? (:out (repl "(ns foo (:require [\"fs\" :refer [existsSync]])) (existsSync \"README.md\")")) "true")))
+
 (defn run-tests [_]
   (let [{:keys [fail error]}
         (t/run-tests 'node-repl-tests)]

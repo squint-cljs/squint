@@ -517,7 +517,7 @@
                  ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
                                           (let [nk (str (when nk
                                                           (str nk ".")) k)]
-                                            {:js (str js "globalThis." nk " = {};\n")
+                                            {:js (str js "globalThis." nk " = globalThis." nk " || {};\n")
                                              :nk nk}))
                                         {}
                                         split-name)
