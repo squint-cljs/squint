@@ -1526,5 +1526,8 @@
 (deftest munge-fn-name-test
   (is (fn? (jsv! "((((fn handle-enter [] handle-enter))))"))))
 
+(deftest defonce-test
+  (is (eq 1 (jsv! "(defonce x 1) x"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

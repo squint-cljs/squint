@@ -273,7 +273,7 @@
                     x
                     ;; TODO:
                     #_(symbol (str (-> &env :ns :name)) (name x)))]
-    `(do (~'js* "var ~{}" ~x)
+    `(def ~x ~init) #_(do (~'js* "var ~{}" ~x)
          (when-not (exists? ~qualified)
            (def ~x ~init)))))
 
