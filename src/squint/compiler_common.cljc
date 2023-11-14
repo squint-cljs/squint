@@ -426,7 +426,9 @@
                     (statement (format "import %s from '%s'" as libname))))
                 (when (and (not as) (not p) (not refer))
                   ;; import presumably for side effects
-                  (statement (format "import '%s'" libname)))
+                  (if *repl*
+                    (statement (format "await import('%s')" libname))
+                    (statement (format "import '%s'" libname))))
                 (when (and as (not= "default" p))
                   (swap! *imported-vars* update libname (fnil identity #{}))
                   (statement (if *repl*
@@ -525,7 +527,7 @@
                  ns-obj (str "globalThis." mname)]
              (str
               ensure-obj
-              ns-obj " = {aliases: {}};\n"
+              #_#_ns-obj " = {aliases: {}};\n"
               (reduce-kv (fn [acc k _v]
                            (if (symbol? k)
                              (str acc
