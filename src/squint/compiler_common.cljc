@@ -411,7 +411,7 @@
       alias)
     alias))
 
-(defn process-require-clause [env [libname & {:keys [refer as]}]]
+(defn process-require-clause [env current-ns-name [libname & {:keys [refer as]}]]
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
     (let [libname (resolve-ns env libname)
@@ -433,55 +433,63 @@
                                (format "var %s = await import('%s')" as libname)
                                (format "import * as %s from '%s'" as libname))))
                 (when refer
-                  (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname))))]
-      (swap! (:imports env) str expr)
-      nil)))
+                  (if *repl*
+                    (str (statement (format "var { %s } = await import('%s')" (str/join ", " (map munge refer)) libname))
+                         (str/join (map (fn [sym]
+                                          (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym)))
+                                        refer)))
+                    (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname)))))]
+      (when-not (:elide-imports env)
+        expr)
+      #_nil)))
 
 (defmethod emit-special 'ns [_type env [_ns name & clauses]]
-  ;; TODO: deprecate *cljs-ns*
-  (set! *cljs-ns* name)
-  (swap! (:ns-state env) assoc :current name)
-  (reset! *aliases*
-          (->> clauses
-               (some
-                (fn [[k & exprs]]
-                  (when (= :require k) exprs)))
-               (reduce
-                (fn [aliases [full as alias]]
-                  (let [full (resolve-ns env full)]
-                    (case as
-                      (:as :as-alias)
-                      (assoc aliases (munge alias) full)
-                      aliases)))
-                {:current name
-                 (:core-alias env) *core-package*})))
-  (str
-   (reduce (fn [acc [k & exprs]]
-             (cond
-               (= :require k)
-               (str acc (str/join "" (map #(process-require-clause env %) exprs)))
-               (= :refer-clojure k)
-               (let [{:keys [exclude]} exprs]
-                 (swap! *excluded-core-vars* into exclude)
-                 acc)
-               :else acc))
-           ""
-           clauses)
-   (when *repl*
-     (let [mname (munge name)
-           split-name (str/split (str mname) #"\.")
-           ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
-                                    (let [nk (str (when nk
-                                                    (str nk ".")) k)]
-                                      {:js (str js "globalThis." nk " = {};\n")
-                                       :nk nk}))
-                                  {}
-                                  split-name)
-                          :js)
-           ns-obj (str "globalThis." mname)]
+  (let [mname (munge name)
+        split-name (str/split (str mname) #"\.")
+        ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
+                                 (let [nk (str (when nk
+                                                 (str nk ".")) k)]
+                                   {:js (str js "globalThis." nk " = globalThis." nk " || {};\n")
+                                    :nk nk}))
+                               {}
+                               split-name)
+                       :js)
+        ns-obj (str "globalThis." mname)]
+    ;; TODO: deprecate *cljs-ns*
+    (set! *cljs-ns* name)
+    (swap! (:ns-state env) assoc :current name)
+    (reset! *aliases*
+            (->> clauses
+                 (some
+                  (fn [[k & exprs]]
+                    (when (= :require k) exprs)))
+                 (reduce
+                  (fn [aliases [full as alias]]
+                    (let [full (resolve-ns env full)]
+                      (case as
+                        (:as :as-alias)
+                        (assoc aliases (munge alias) full)
+                        #_:else
+                        aliases)))
+                  {:current name
+                   (:core-alias env) *core-package*})))
+    (str
+     (when *repl*
+       ensure-obj)
+     (reduce (fn [acc [k & exprs]]
+               (cond
+                 (= :require k)
+                 (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
+                 (= :refer-clojure k)
+                 (let [{:keys [exclude]} exprs]
+                   (swap! *excluded-core-vars* into exclude)
+                   acc)
+                 :else acc))
+             ""
+             clauses)
+     (when *repl*
        (str
-        ensure-obj
-        ns-obj " = {aliases: {}};\n"
+        #_#_ns-obj " = {aliases: {}};\n"
         (reduce-kv (fn [acc k _v]
                      (if (symbol? k)
                        (str acc
@@ -502,7 +510,7 @@
                         (assoc aliases alias full)
                         aliases)))
                   {:current name})))
-    (str (str/join "" (map #(process-require-clause env %) clauses))
+    (str (str/join "" (map #(process-require-clause env *cljs-ns* %) clauses))
          (when *repl*
            (let [mname (munge *cljs-ns*)
                  split-name (str/split (str mname) #"\.")

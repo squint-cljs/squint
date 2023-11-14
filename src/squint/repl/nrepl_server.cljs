@@ -4,10 +4,8 @@
    [cljs.pprint :as pp]
    ["fs" :as fs]
    ["net" :as node-net]
-   ["node:util" :as util]
    [squint.compiler-common :as cc :refer [*cljs-ns*]]
    [squint.compiler :as compiler]
-   ["squint-cljs/core.js" :as squint]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]))
 
 (defn debug [& strs]
@@ -117,6 +115,8 @@
    (js/Promise.resolve code)
    (.then compile)
    (.then (fn [v]
+            (println "About to eval:")
+            (println v)
             (js/eval v)))
    (.then (fn [val]
             (send-fn request {"ns" (str @last-ns)
