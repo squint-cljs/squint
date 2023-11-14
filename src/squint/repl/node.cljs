@@ -16,9 +16,11 @@
 
 (def in-progress (atom false))
 
+(def last-ns (atom *cljs-ns*))
+
 (defn continue [rl socket]
   (reset! in-progress false)
-  (.setPrompt ^js rl (str *cljs-ns* "=> "))
+  (.setPrompt ^js rl (str @last-ns "=> "))
   (.prompt rl)
   (when-not (str/blank? @pending-input)
     (eval-next socket rl)))
@@ -64,8 +66,6 @@
         (when (and tty (not socket))
           (.setRawMode js/process.stdin true))
         (js/Promise.reject e)))))
-
-(def last-ns (atom *cljs-ns*))
 
 #_(defn eval-js [js-str]
     (let [filename (str ".repl/" (gensym) ".mjs")]
@@ -145,7 +145,7 @@
              (create-socket-rl socket)
              (create-rl))]
     (on-line rl socket)
-    (.setPrompt rl (str *cljs-ns* "=> "))
+    (.setPrompt rl (str @last-ns "=> "))
     (.on rl "close" resolve)
     (.prompt rl)))
 
