@@ -2,6 +2,15 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.44 (2023-11-15)
+
+- No-op release to hopefully fix caching issue with jspm
+
+## 0.4.43 (2023-11-15)
+
+- Several REPL improvements
+- Improve [https://squint-cljs.github.io/squint/](https://squint-cljs.github.io/squint/)
+
 ## 0.4.42 (2023-11-13)
 
 - Allow alias name to be used as object in REPL mode
