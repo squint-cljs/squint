@@ -208,17 +208,21 @@
       iife?
       (emit-return enc-env)))
 
-(defmethod emit-special 'for-of* [_type env [_for-of [k v] body :as _expr]]
-  (let [gensym (:gensym env)
-        local (munge (gensym k))
-        env (update env :var->ident assoc k local)]
+(defmethod emit-special 'for-of* [_type enc-env [_for-of [k v] body :as _expr]]
+  (let [env (assoc enc-env :context :statement)
+        gensym (:gensym env)
+        local (gensym)
+        ]
     (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" local
                                        )
                      (list 'clojure.core/iterable v))
                env)
-         "{\n"
-         (emit body (assoc env :context :statement))
-         "}\n")))
+         " {\n"
+         (emit (list 'clojure.core/let [k local]
+                     body)
+               (assoc env :context :statement))
+         "\n}"
+         (emit-return nil enc-env))))
 
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)

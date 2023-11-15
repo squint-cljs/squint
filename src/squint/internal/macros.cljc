@@ -258,8 +258,7 @@
                                (keyword? k) (err "Invalid 'doseq' keyword" k)
                                :else (list 'for-of* [k v] subform)))))]
               (step (seq seq-exprs)))]
-    ;; force returning of nil
-    (list 'do res nil)))
+    res))
 
 (defn core-defonce
   "defs name to have the root value of init iff the named var has no root value,

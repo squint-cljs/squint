@@ -249,16 +249,27 @@
                [3 3 1] [3 3 2] [3 3 3]]
               (js/eval s)))))
   (testing "return position in function"
-    (let [f (jsv! '(do (defn foo [x] (doseq [i x] i)) foo))]
+
+    (let [f (jsv! '(do (defn foo [x a] (doseq [i x] (swap! a conj i))) foo))]
       (is f)
-      (is (nil? (f [1 2 3])))))
+      (let [a (jsv! '(atom []))
+            d (jsv! 'deref)]
+        (f [1 2 3] a)
+        (is (eq #js [1 2 3] (d a))))))
   (testing "iterate over object"
     (let [r (jsv! '(do
                      (def a (atom []))
                      (doseq [[k v] {:a 1 :b 2}]
                        (swap! a conj [k v]))
                      @a))]
-      (is (eq #js [#js ["a" 1] #js ["b" 2]] r)))))
+      (is (eq #js [#js ["a" 1] #js ["b" 2]] r))))
+  (testing "clash with core var"
+    (is (eq #js [#js ["a" 1] #js ["b" 2]]
+            (jsv! '(do
+                     (def a (atom []))
+                     (doseq [_ {:a 1 :b 2}]
+                       (swap! a conj _))
+                     @a))))))
 
 ;; TODO:
 (deftest for-test
