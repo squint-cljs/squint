@@ -559,7 +559,7 @@
                         [method args])
         method-str (str method)]
     (if (str/starts-with? method-str "-")
-      (emit-aget env obj [(munge** (subs method-str 1))])
+      (emit (list 'js* "~{}.~{}" obj (symbol (munge** (subs method-str 1)))) env)
       (emit-method env obj (symbol method-str) args))))
 
 (defmethod emit-special 'aget [_type env [_aget var & idxs]]
@@ -572,11 +572,13 @@
 #_(defmethod emit-special 'delete [type [return expr]]
     (str "delete " (emit expr)))
 
-(defmethod emit-special 'set! [_type env [_set! var val & more :as _expr]]
-  (assert (or (nil? more) (even? (count more))))
-  (let [eenv (expr-env env)]
-    (emit-return (str (emit var eenv) " = " (emit val eenv) statement-separator
-                      #_(when more (str (emit (cons 'set! more) env))))
+(defmethod emit-special 'set! [_type env [_set! target val alt :as expr]]
+  (let [[target val]
+        (if (= 4 (count expr))
+          [`(. ~target ~val) alt]
+          [target val])
+        eenv (expr-env env)]
+    (emit-return (str (emit target eenv) " = " (emit val eenv) statement-separator)
                  env)))
 
 (defmethod emit-special 'new [_type env [_new class & args]]

@@ -1529,5 +1529,8 @@
 (deftest defonce-test
   (is (eq 1 (jsv! "(defonce x 1) x"))))
 
+(deftest set!-test
+  (is (eq 1 (jsv! "(def x {}) (set! x -foo 1) (.-foo x)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
