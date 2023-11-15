@@ -5,7 +5,8 @@
                 :js-provider :import}
    :compiler-options {:infer-externs :auto}
    :target :esm
-   :runtime :node
+   :runtime :browser
+   :devtools {:enabled false}
    :output-dir "lib"
    :modules
    {:compiler {:exports

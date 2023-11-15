@@ -33,16 +33,11 @@
     </script>
 
     <script type="module">
-      console.log("start")
-
       import { default_extensions, complete_keymap } from '@nextjournal/clojure-mode';
 
       import { EditorView, drawSelection, keymap } from  '@codemirror/view';
       import { EditorState } from  '@codemirror/state';
       import { syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
-
-      console.log("imported")
-
       let theme = EditorView.theme({
         ".cm-content": {whitespace: "pre-wrap",
                         passing: "10px 0",
@@ -84,7 +79,7 @@
                                    parent: editorElt,
                                    extensions: extensions });
 
-      import { compileString } from 'squint-cljs'
+      import { compileString } from 'http://localhost:8090/index.js'
       var counter = 0;
       window.compile = () => {
         counter = counter + 1;
