@@ -256,9 +256,7 @@
                                (= k :when) `(when ~v
                                               ~subform)
                                (keyword? k) (err "Invalid 'doseq' keyword" k)
-                               :else (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
-                                           k (list 'clojure.core/iterable v)
-                                           (list 'js* {:context :statement} "~{} "subform))))))]
+                               :else (list 'for-of* [k v] subform)))))]
               (step (seq seq-exprs)))]
     ;; force returning of nil
     (list 'do res nil)))

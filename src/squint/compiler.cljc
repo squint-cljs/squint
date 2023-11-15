@@ -42,7 +42,8 @@
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
-                         'clj->js]))
+                         'clj->js
+                         'for-of*]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -164,6 +165,60 @@
 (defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let env bindings more) env)
   #_(prn (core-let bindings more)))
+
+#_(let [gensym (:gensym enc-env)
+        context (:context enc-env)
+        env (assoc enc-env :context :expr)
+        partitioned (partition 2 bindings)
+        iife? (or (= :expr context)
+                  (:top-level env))
+        upper-var->ident (:var->ident enc-env)
+        [bindings var->ident]
+        (let [env (dissoc env :top-level)]
+          (reduce (fn [[acc var->ident] [var-name rhs]]
+                    (let [vm (meta var-name)
+                          rename? (not (:squint.compiler/no-rename vm))
+                          renamed (if rename? (munge (gensym var-name))
+                                      var-name)
+                          lhs (str renamed)
+                          rhs (emit rhs (assoc env :var->ident var->ident))
+                          expr (format "let %s = %s;\n" lhs rhs)
+                          var->ident (assoc var->ident var-name renamed)]
+                      [(str acc expr) var->ident]))
+                  ["" upper-var->ident]
+                  partitioned))
+        enc-env (assoc enc-env :var->ident var->ident :top-level false)]
+    (cond-> (str
+             bindings
+             (when is-loop
+               (str "while(true){\n"))
+             ;; TODO: move this to env arg?
+             (binding [*recur-targets*
+                       (if is-loop (map var->ident (map first partitioned))
+                           *recur-targets*)]
+               (emit-do (if iife?
+                          (assoc enc-env :context :return)
+                          enc-env) body))
+             (when is-loop
+               ;; TODO: not sure why I had to insert the ; here, but else
+               ;; (loop [x 1] (+ 1 2 x)) breaks
+               (str ";break;\n}\n")))
+      iife?
+      (wrap-iife)
+      iife?
+      (emit-return enc-env)))
+
+(defmethod emit-special 'for-of* [_type env [_for-of [k v] body :as _expr]]
+  (let [gensym (:gensym env)
+        local (munge (gensym k))
+        env (update env :var->ident assoc k local)]
+    (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" local
+                                       )
+                     (list 'clojure.core/iterable v))
+               env)
+         "{\n"
+         (emit body (assoc env :context :statement))
+         "}\n")))
 
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)
