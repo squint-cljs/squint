@@ -224,10 +224,7 @@
                      (= k :when) `(when ~v
                                     ~subform)
                      (keyword? k) (err "Invalid 'for' keyword" k)
-                     :else (list 'js*
-                                 "for (let ~{} of ~{}) {\n~{}\n}"
-                                 k (list 'clojure.core/iterable v)
-                                 (list 'js* {:context :statement} "~{}" subform))))))]
+                     :else (list 'for-of* [k v] subform)))))]
     (list 'lazy (list 'js* "function* () {\n~{}\n}"
                       (step (seq seq-exprs))))))
 

@@ -334,6 +334,10 @@
   (testing "iterate over object"
     (let [r (jsv! '(vec (for [[k v] {:a 1 :b 2}]
                           [k v])))]
+      (is (eq #js [#js ["a" 1] #js ["b" 2]] r))))
+  (testing "clash with core var"
+    (let [r (jsv! '(vec (for [_ {:a 1 :b 2}]
+                          _)))]
       (is (eq #js [#js ["a" 1] #js ["b" 2]] r)))))
 
 (deftest regex-test
