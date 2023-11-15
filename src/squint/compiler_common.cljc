@@ -559,7 +559,7 @@
                         [method args])
         method-str (str method)]
     (if (str/starts-with? method-str "-")
-      (emit (list 'js* "~{}.~{}" obj (symbol (munge** (subs method-str 1)))) env)
+      (emit (list 'js* (str "~{}." (symbol (munge** (subs method-str 1)))) obj) env)
       (emit-method env obj (symbol method-str) args))))
 
 (defmethod emit-special 'aget [_type env [_aget var & idxs]]
