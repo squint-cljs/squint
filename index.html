@@ -76,7 +76,7 @@
 (def x {:a 1})
 (assoc! x :b 2)
 
-(append (pr-str x))`.trim();
+(append (js/JSON.stringify x))`.trim();
       let src = new URLSearchParams(window.location.search).get('src');
       console.log('src', src);
       if (src) {
