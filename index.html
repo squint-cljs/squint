@@ -68,10 +68,22 @@
       ];
 
       let doc = `
+(defn append [str]
+  (js/document.body.appendChild
+    (doto (js/document.createElement "div")
+      (set! -innerText str))))
+
 (def x {:a 1})
 (assoc! x :b 2)
-(js/alert (pr-str x))`.trim();
 
+(append (pr-str x))`.trim();
+      let src = new URLSearchParams(window.location.search).get('src');
+      console.log('src', src);
+      if (src) {
+        src = atob(src);
+        doc = src;
+        console.log('dude', src);
+      }
       let state = EditorState.create({doc: doc,
                                       extensions: extensions });
       let editorElt = document.querySelector('#editor');
@@ -79,7 +91,7 @@
                                    parent: editorElt,
                                    extensions: extensions });
 
-      import { compileString } from 'http://localhost:8090/index.js'
+      import { compileString } from 'squint-cljs'
       var counter = 0;
       window.compile = () => {
         counter = counter + 1;
@@ -90,6 +102,14 @@
         const dataUri = 'data:text/javascript;charset=utf-8;eval=' + counter + ',' + encodedJs;
         import(dataUri);
       }
+      window.share = () => {
+        let code = editor.state.doc.toString().trim();
+        code = btoa(code);
+        let url = new URL(window.location);
+        url.searchParams.set('src', code);
+        window.location = url;
+      }
+      compile();
     </script>
   </head>
   <body>
@@ -100,6 +120,9 @@
     <div>
       <button onClick="compile()">
         Compile!
+      </button>
+      <button onClick="share()">
+        Share!
       </button>
     </div>
     <div>
