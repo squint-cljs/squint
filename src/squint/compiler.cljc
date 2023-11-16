@@ -43,7 +43,7 @@
                          'squint-compiler-jsx
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
                          'clj->js
-                         'for-of*]))
+                         'squint.impl/for-of]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -208,13 +208,11 @@
       iife?
       (emit-return enc-env)))
 
-(defmethod emit-special 'for-of* [_type enc-env [_for-of [k v] body :as _expr]]
+(defmethod emit-special 'squint.impl/for-of [_type enc-env [_for-of [k v] body :as _expr]]
   (let [env (assoc enc-env :context :statement)
         gensym (:gensym env)
-        local (gensym)
-        ]
-    (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" local
-                                       )
+        local (gensym)]
+    (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" local)
                      (list 'clojure.core/iterable v))
                env)
          " {\n"

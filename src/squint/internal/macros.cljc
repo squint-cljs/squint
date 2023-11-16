@@ -224,7 +224,7 @@
                      (= k :when) `(when ~v
                                     ~subform)
                      (keyword? k) (err "Invalid 'for' keyword" k)
-                     :else (list 'for-of* [k v] subform)))))]
+                     :else (list 'squint.impl/for-of [k v] subform)))))]
     (list 'lazy (list 'js* "function* () {\n~{}\n}"
                       (step (seq seq-exprs))))))
 
@@ -253,7 +253,7 @@
                                (= k :when) `(when ~v
                                               ~subform)
                                (keyword? k) (err "Invalid 'doseq' keyword" k)
-                               :else (list 'for-of* [k v] subform)))))]
+                               :else (list 'squint.impl/for-of [k v] subform)))))]
               (step (seq seq-exprs)))]
     res))
 
