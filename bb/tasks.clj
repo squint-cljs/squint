@@ -9,7 +9,7 @@
 (def test-config
   '{:compiler-options {:load-tests true}
     :modules {:squint_tests {:init-fn squint.compiler-test/init
-                             :depends-on #{:compiler :cljs.pprint}}}})
+                             :depends-on #{:compiler :cljs.pprint :node}}}})
 
 (defn shadow-extra-test-config []
   (merge-with

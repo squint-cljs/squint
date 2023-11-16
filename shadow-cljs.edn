@@ -11,17 +11,19 @@
    :modules
    {:compiler {:exports
                {compileString squint.compiler/compile-string}}
-    :compiler.sci {:depends-on #{:compiler :compiler.node}
+    ;; this is necessary to move fs, path to a common node module instead of to compiler
+    :node {:entries [] :depends-on #{:compiler}}
+    :compiler.sci {:depends-on #{:compiler :compiler.node :node}
                    :init-fn squint.compiler.sci/init}
-    :compiler.node {:depends-on #{:compiler}
+    :compiler.node {:depends-on #{:compiler :node}
                     :exports
                     {compileFile squint.compiler.node/compile-file-js
                      compileString squint.compiler.node/compile-string-js}}
     :cljs.pprint {:entries [cljs.pprint]
                   :depends-on #{:compiler}}
-    :node.nrepl_server {:depends-on #{:compiler.node :cljs.pprint}
+    :node.nrepl_server {:depends-on #{:compiler.node :cljs.pprint :node}
                         :exports {startServer squint.repl.nrepl-server/start-server}}
-    :cli {:depends-on #{:compiler :compiler.node}
+    :cli {:depends-on #{:compiler :compiler.node :node}
           :init-fn squint.internal.cli/init}}
    :build-hooks [(shadow.cljs.build-report/hook
                   {:output-to "report.html"})]}}}
