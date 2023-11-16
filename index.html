@@ -9,9 +9,9 @@
     <script type="importmap">
       {
         "imports": {
-          "squint-cljs": "https://unpkg.com/squint-cljs@0.4.44/index.js",
-          "squint-cljs/core.js": "https://unpkg.com/squint-cljs@0.4.44/core.js",
-          "squint-cljs/string.js": "https://unpkg.com/squint-cljs@0.4.44/string.js",
+          "squint-cljs": "https://unpkg.com/squint-cljs@0.4.45/index.js",
+          "squint-cljs/core.js": "https://unpkg.com/squint-cljs@0.4.45/core.js",
+          "squint-cljs/string.js": "https://unpkg.com/squint-cljs@0.4.45/string.js",
           "@codemirror/language": "https://ga.jspm.io/npm:@codemirror/language@6.9.2/dist/index.js",
           "@codemirror/state": "https://ga.jspm.io/npm:@codemirror/state@6.3.1/dist/index.js",
           "@codemirror/view": "https://ga.jspm.io/npm:@codemirror/view@6.21.4/dist/index.js",
@@ -89,7 +89,7 @@
       let editor = new EditorView({state: state,
                                    parent: editorElt,
                                    extensions: extensions });
-      var dev = urlParams.get('dev') || location.hostname === 'localhost';
+      var dev = JSON.parse(urlParams.get('dev')) ?? location.hostname === 'localhost';
       console.log('dev', dev);
       var squintUrl;
       if (dev) {
