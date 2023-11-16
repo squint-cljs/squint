@@ -224,10 +224,7 @@
                      (= k :when) `(when ~v
                                     ~subform)
                      (keyword? k) (err "Invalid 'for' keyword" k)
-                     :else (list 'js*
-                                 "for (let ~{} of ~{}) {\n~{}\n}"
-                                 k (list 'clojure.core/iterable v)
-                                 (list 'js* {:context :statement} "~{}" subform))))))]
+                     :else (list 'squint.impl/for-of [k v] subform)))))]
     (list 'lazy (list 'js* "function* () {\n~{}\n}"
                       (step (seq seq-exprs))))))
 
@@ -256,12 +253,9 @@
                                (= k :when) `(when ~v
                                               ~subform)
                                (keyword? k) (err "Invalid 'doseq' keyword" k)
-                               :else (list 'js* "for (let ~{} of ~{}) {\n~{}\n}"
-                                           k (list 'clojure.core/iterable v)
-                                           (list 'js* {:context :statement} "~{} "subform))))))]
+                               :else (list 'squint.impl/for-of [k v] subform)))))]
               (step (seq seq-exprs)))]
-    ;; force returning of nil
-    (list 'do res nil)))
+    res))
 
 (defn core-defonce
   "defs name to have the root value of init iff the named var has no root value,

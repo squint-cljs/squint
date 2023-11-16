@@ -29,3 +29,4 @@ compiler-common
 garbage.js
 playground
 !examples/vite-react/public/index.html
+wordle.cljs

@@ -77,12 +77,11 @@
 (assoc! x :b 2)
 
 (append (js/JSON.stringify x))`.trim();
-      let src = new URLSearchParams(window.location.search).get('src');
-      console.log('src', src);
+      let urlParams = new URLSearchParams(window.location.search);
+      let src = urlParams.get('src');
       if (src) {
         src = atob(src);
         doc = src;
-        console.log('dude', src);
       }
       let state = EditorState.create({doc: doc,
                                       extensions: extensions });
@@ -90,8 +89,17 @@
       let editor = new EditorView({state: state,
                                    parent: editorElt,
                                    extensions: extensions });
-
-      import { compileString } from 'squint-cljs'
+      var dev = urlParams.get('dev') || location.hostname === 'localhost';
+      console.log('dev', dev);
+      var squintUrl;
+      if (dev) {
+        console.log('Loading development squint.js')
+        squintUrl = '/index.js';
+      } else {
+        squintUrl = 'squint-cljs';
+      }
+      var squint = await(import(squintUrl));
+      var compileString = squint.compileString;
       var counter = 0;
       window.compile = () => {
         counter = counter + 1;

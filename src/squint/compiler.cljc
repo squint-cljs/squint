@@ -42,7 +42,8 @@
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
-                         'clj->js]))
+                         'clj->js
+                         'squint.impl/for-of]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -116,9 +117,6 @@
 (defmethod emit-special 'quote [_ env [_ form]]
   (emit-return (emit form (expr-env (assoc env :quote true))) env))
 
-#_(defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
-    (emit-let enc-env bindings body false))
-
 (defmethod emit-special 'clj->js [_ env [_ form]]
   (emit form env))
 
@@ -158,12 +156,22 @@
 (defmethod emit-special 'squint.defclass/super* [_ env form]
   (defclass/emit-super env emit (second form)))
 
-#_(defn wrap-await [s]
-    (format "(%s)" (str "await " s)))
-
 (defmethod emit-special 'let [_type env [_let bindings & more]]
-  (emit (core-let env bindings more) env)
-  #_(prn (core-let bindings more)))
+  (emit (core-let env bindings more) env))
+
+(defmethod emit-special 'squint.impl/for-of [_type enc-env [_for-of [k v] body :as _expr]]
+  (let [env (assoc enc-env :context :statement)
+        gensym (:gensym env)
+        local (gensym)]
+    (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" local)
+                     (list 'clojure.core/iterable v))
+               env)
+         " {\n"
+         (emit (list 'clojure.core/let [k local]
+                     body)
+               (assoc env :context :statement))
+         "\n}"
+         (emit-return nil enc-env))))
 
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)
