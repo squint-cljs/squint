@@ -80,7 +80,12 @@
       let urlParams = new URLSearchParams(window.location.search);
       let src = urlParams.get('src');
       if (src) {
-        src = atob(src);
+        if (/http(s)?:\/\/.*/.test(src)) {
+          src = await fetch(src).then(p => p.text());
+        }
+        else {
+          src = atob(src)
+        };
         doc = src;
       }
       let state = EditorState.create({doc: doc,
