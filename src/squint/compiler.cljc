@@ -43,7 +43,8 @@
                          'squint-compiler-jsx
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
                          'clj->js
-                         'squint.impl/for-of]))
+                         'squint.impl/for-of
+                         'squint.impl/defonce]))
 
 (def built-in-macros {'-> macros/core->
                       '->> macros/core->>
@@ -172,6 +173,14 @@
                (assoc env :context :statement))
          "\n}"
          (emit-return nil enc-env))))
+
+(defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
+  (emit (list 'do (list 'js* (str "var " name ";\n"))
+              (if (:repl env)
+                `(when-not (exists? ~(symbol *cljs-ns* name))
+                   (def ~name ~init))
+                `(def ~name ~init)))
+        env))
 
 (defn emit-var-declarations []
   #_(when-not (empty? @var-declarations)

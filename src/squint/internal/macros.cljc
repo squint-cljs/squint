@@ -267,7 +267,7 @@
                     x
                     ;; TODO:
                     #_(symbol (str (-> &env :ns :name)) (name x)))]
-    `(def ~x ~init) #_(do (~'js* "var ~{}" ~x)
+    `(squint.impl/defonce ~x ~init) #_(do (~'js* "var ~{}" ~x)
          (when-not (exists? ~qualified)
            (def ~x ~init)))))
 

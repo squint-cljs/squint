@@ -95,6 +95,7 @@
                                    parent: editorElt,
                                    extensions: extensions });
       var dev = JSON.parse(urlParams.get('dev')) ?? location.hostname === 'localhost';
+      var repl = JSON.parse(urlParams.get('repl'));
       console.log('dev', dev);
       var squintUrl;
       if (dev) {
@@ -109,7 +110,7 @@
       window.compile = () => {
         counter = counter + 1;
         let code = editor.state.doc.toString();
-        let js = compileString(code);
+        let js = compileString(code, {repl: repl});
         document.querySelector('#compiledCode').innerText = js;
         const encodedJs = encodeURIComponent(js);
         const dataUri = 'data:text/javascript;charset=utf-8;eval=' + counter + ',' + encodedJs;
