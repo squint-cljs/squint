@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.47 (2023-11-17)
+
+- Fix `min-key` and `max-key` and improve tests
+
 ## 0.4.46 (2023-11-16)
 
 - Add `min-key` and `max-key`
