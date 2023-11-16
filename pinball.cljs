@@ -350,7 +350,6 @@
         c (vadd a (vscale bmina t))]
     c))
 
-
 (defn handle-segments-collision [ball segments]
   ;; if incoming vel vector is d then outgoing vector r is r = d - 2(d dot n)n
   ;; where n is normal from c r is draw the velocity vector through the border,
@@ -437,10 +436,10 @@
                :pos new-pos)))))
 
 (defn handle-border-collision [ball border]
-  (let [all-border-segments (partition 2         ;; n
-                                       1         ;; step
-                                       [(first border)] ;; pad seq
-                                       border)]
+  (let [all-border-segments (clj->js (vec (partition 2         ;; n
+                                                    1         ;; step
+                                                    [(first border)] ;; pad seq
+                                                    border)))]
     (handle-segments-collision ball all-border-segments)))
 
 (defn orientation [[px py] [qx qy] [rx ry]]
@@ -647,6 +646,7 @@
    flippers))
 
 (defn simulate-balls [{:keys [dt gravity balls border obstacles flippers poly-obstacle]}]
+  #_(js/console.log "border" (clj->js border))
   (reduce
    (fn [balls i]
      (let [old-i-ball-vel (get-in balls [i :vel])

@@ -1548,14 +1548,18 @@
   (is (eq 1 (jsv! "(def x {}) (set! x -foo 1) (.-foo x)"))))
 
 (deftest min-max-key-test
-  (jsv! (eq 1 "(min-key #(:foo %) {:foo 1})"))
-  (jsv! (eq 1 "(min-key #(:foo %) {:foo 1} {:foo 2})"))
-  (jsv! (eq 1 "(min-key #(:foo %) {:foo 2} {:foo 1})"))
-  (jsv! (eq 1 "(min-key #(:foo %) {:foo 10} {:foo 2} {:foo 1})"))
-  (jsv! (eq 1 "(max-key #(:foo %) {:foo 1})"))
-  (jsv! (eq 2 "(max-key #(:foo %) {:foo 1} {:foo 2})"))
-  (jsv! (eq 2 "(max-key #(:foo %) {:foo 2} {:foo 1} )"))
-  (jsv! (eq 10 "(max-key #(:foo %) {:foo 2} {:foo 10} {:foo 1})")))
+  (testing "min-key"
+    (is (eq {:foo 1} (jsv! "(min-key #(:foo %) {:foo 1})")))
+    (is (eq {:foo 1} (jsv! "(min-key #(:foo %) {:foo 1} {:foo 2})")))
+    (is (eq {:foo 1} (jsv! "(min-key #(:foo %) {:foo 2} {:foo 1})")))
+    (is (eq {:foo 1} (jsv! "(min-key #(:foo %) {:foo 10} {:foo 1} {:foo 2})")))
+    (is (eq {:foo 1} (jsv! "(min-key #(:foo %) {:foo 10} {:foo 2} {:foo 1})"))))
+  (testing "max-key"
+    (is (eq {:foo 1} (jsv! "(max-key #(:foo %) {:foo 1})")))
+    (is (eq {:foo 2} (jsv! "(max-key #(:foo %) {:foo 1} {:foo 2})")))
+    (is (eq {:foo 2} (jsv! "(max-key #(:foo %) {:foo 2} {:foo 1} )")))
+    (is (eq {:foo 10} (jsv! "(max-key #(:foo %) {:foo 2} {:foo 10} {:foo 1})")))
+    (is (eq {:foo 10} (jsv! "(max-key #(:foo %) {:foo 2} {:foo 10} {:foo 1})")))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
