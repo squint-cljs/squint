@@ -1638,12 +1638,9 @@ export function mod(x, y) {
   return (x % y + y) % y;
 }
 
-export function min_key(k, x, y, ...more) {
-  if (y === undefined) {
-    return x;
-  }
+export function min_key(k, x, ...more) {
   if (more.length == 0) {
-    return (k(x) < k(y)) ? x : y;
+    return x;
   }
   var kx = k(x);
   var min = x;
@@ -1657,12 +1654,9 @@ export function min_key(k, x, y, ...more) {
   return min;
 }
 
-export function max_key(k, x, y, ...more) {
-  if (y === undefined) {
-    return x;
-  }
+export function max_key(k, x, ...more) {
   if (more.length == 0) {
-    return (k(x) > k(y)) ? x : y;
+    return x;
   }
   var kx = k(x);
   var max = x;
