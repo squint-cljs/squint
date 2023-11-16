@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.45 (2023-11-16)
+
+- Fix `doseq` and `for` when binding name clashes with core var
+
 ## 0.4.44 (2023-11-15)
 
 - No-op release to hopefully fix caching issue with jspm
