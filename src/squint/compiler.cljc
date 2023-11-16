@@ -175,7 +175,7 @@
          (emit-return nil enc-env))))
 
 (defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
-  (emit (list 'do (list 'js* (str "var " name ";\n"))
+  (emit (list 'do (list 'js* (str "var " (munge name) ";\n"))
               (if (:repl env)
                 `(when-not (exists? ~(symbol *cljs-ns* name))
                    ~(vary-meta `(def ~name ~init)

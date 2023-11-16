@@ -98,10 +98,12 @@
   mapcat
   mapv
   max
+  max_key
   merge
   merge_with
   meta
   min
+  min_key
   mod
   neg_QMARK_
   next

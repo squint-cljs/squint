@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.46 (2023-11-16)
+
+- Add `min-key` and `max-key`
+- Fix `defonce` in REPL-mode
+
 ## 0.4.45 (2023-11-16)
 
 - Fix `doseq` and `for` when binding name clashes with core var

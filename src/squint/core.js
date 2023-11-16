@@ -1637,3 +1637,41 @@ export function find(m, k) {
 export function mod(x, y) {
   return (x % y + y) % y;
 }
+
+export function min_key(k, x, y, ...more) {
+  if (y === undefined) {
+    return x;
+  }
+  if (more.length == 0) {
+    return (k(x) < k(y)) ? x : y;
+  }
+  var kx = k(x);
+  var min = x;
+  more.forEach((y) => {
+    var ky = k(y);
+    if (ky <= kx) {
+      kx = ky;
+      min = y;
+    }
+  });
+  return min;
+}
+
+export function max_key(k, x, y, ...more) {
+  if (y === undefined) {
+    return x;
+  }
+  if (more.length == 0) {
+    return (k(x) > k(y)) ? x : y;
+  }
+  var kx = k(x);
+  var max = x;
+  more.forEach((y) => {
+    var ky = k(y);
+    if (ky >= kx) {
+      kx = ky;
+      max = y;
+    }
+  });
+  return max;
+}
