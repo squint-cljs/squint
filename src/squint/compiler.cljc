@@ -178,8 +178,10 @@
   (emit (list 'do (list 'js* (str "var " name ";\n"))
               (if (:repl env)
                 `(when-not (exists? ~(symbol *cljs-ns* name))
-                   (def ~name ~init))
-                `(def ~name ~init)))
+                   ~(vary-meta `(def ~name ~init)
+                               assoc :squint.compiler/skip-var true))
+                (vary-meta `(def ~name ~init)
+                           assoc :squint.compiler/skip-var true)))
         env))
 
 (defn emit-var-declarations []

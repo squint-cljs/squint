@@ -353,7 +353,7 @@
 (defn no-top-level [env]
   (dissoc env :top-level))
 
-(defn emit-var [[name ?doc ?expr :as expr] env]
+(defn emit-var [[name ?doc ?expr :as expr] skip-var? env]
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
         env (no-top-level env)]
@@ -365,20 +365,22 @@
            (str "var " (munge name))) " = "
          (emit expr (expr-env env)) ";\n"
          (when *repl*
-           (str "var " (munge name) " = " "globalThis."
+           (str (when-not skip-var?
+                  "var ") (munge name) " = " "globalThis."
                 (when *cljs-ns*
                   (str (munge *cljs-ns*) "."))
                 (munge name)
                 ";\n")))))
 
-(defmethod emit-special 'def [_type env [_const & more]]
+(defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
     ;; TODO: move *public-vars* to :ns-state atom
     (swap! *public-vars* conj (munge* name))
     (swap! (:ns-state env) (fn [state]
                              (let [current (:current state)]
                                (assoc-in state [current name] {}))))
-    (emit-var more env)))
+    (let [skip-var? (:squint.compiler/skip-var (meta expr))]
+      (emit-var more skip-var? env))))
 
 (defn js-await [env more]
   (emit-return (wrap-await (emit more (expr-env env))) env))
