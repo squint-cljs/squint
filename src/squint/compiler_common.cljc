@@ -771,7 +771,7 @@ break;}" body)
   ;; References to the global RegExp object prevents optimization of regular expressions.
   (emit (vec expr) env))
 
-(def special-forms '#{zero?})
+(def special-forms '#{zero? js-delete})
 
 (derive #?(:clj clojure.lang.Cons :cljs Cons) ::list)
 (derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)
@@ -817,6 +817,9 @@ break;}" body)
 
 (defmethod emit-special 'quote [_ env [_ form]]
   (emit-return (emit form (expr-env (assoc env :quote true))) env))
+
+(defmethod emit-special 'js-delete [_ env [_ obj key]]
+  (emit-return (emit (list 'js* "delete ~{}[~{}]" obj key) env) env))
 
 (defmethod emit-special :default [sym env expr]
   (let [f (-> env :emit ::special)]
