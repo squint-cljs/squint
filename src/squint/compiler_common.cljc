@@ -124,7 +124,7 @@
 
 (def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "=" "==" "===" "<" ">" "<=" ">=" "!="
                        "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"
-                       "bit-or" "bit-and"})
+                       "bit-or" "bit-and" "coercive-="})
 
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and"})
 
@@ -154,7 +154,8 @@
       (if (and (= '- operator)
                (= 1 acount))
         (str "-" (emit (first args) env))
-        (-> (let [substitutions {'= "===" == "===" '!= "!=="
+        (-> (let [substitutions {'coercive-= "=="
+                                 '= "===" == "===" '!= "!=="
                                  'not= "!=="
                                  '+ "+"
                                  'bit-or "|"
