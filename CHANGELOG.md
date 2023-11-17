@@ -2,6 +2,12 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.48 (2023-11-17)
+
+- Support multiple dimensions in `aset`
+- Add `coercive-=` as alias for `==`
+- Add `js-delete`
+
 ## 0.4.47 (2023-11-17)
 
 - Fix `min-key` and `max-key` and improve tests
