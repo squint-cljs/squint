@@ -1564,5 +1564,11 @@
 (deftest js-delete-test
   (is (eq {:b 2} (jsv! "(def x {:a 1 :b 2}) (js-delete x :a) x"))))
 
+(deftest aset-test
+  (is (eq [1] (jsv! "(def x []) (aset x 0 1) x")))
+  (testing "multiple dimensions"
+    (is (eq [[1]] (jsv! "(def x [[]]) (aset x 0 0 1) x")))
+    (is (eq [[0 1]] (jsv! "(def x [[0]]) (aset x 0 1 1) x")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

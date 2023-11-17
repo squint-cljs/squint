@@ -1332,9 +1332,22 @@ export function alength(arr) {
   return arr.length;
 }
 
-export function aset(arr, idx, val) {
-  arr[idx] = val;
-  return val;
+export function aset(arr, idx, val, ...more) {
+  if (more.length == 0) {
+    arr[idx] = val;
+    return val;}
+  else {
+    let path = [idx, val, ...more];
+    let _val = path[path.length - 1];
+    let innerArray = arr;
+    let _idx = 0;
+    let _pathLen = path.length - 2;
+    for (; _idx < _pathLen; _idx++) {
+      innerArray = innerArray[path[_idx]];
+    }
+    innerArray[path[_idx]] = _val;
+    return val;
+  }
 }
 
 export function dorun(x) {
