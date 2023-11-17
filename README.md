@@ -313,6 +313,10 @@ to make it all work.
 </html>
 ```
 
+## Playground
+
+- [pinball](https://squint-cljs.github.io/squint/?src=https://gist.githubusercontent.com/borkdude/ca3af924dc2526f00361f28dcf5d0bfb/raw/09cd9e17bf0d6fa3655d0e7cbf2c878e19cb894f/pinball.cljs)
+
 License
 =======
 
