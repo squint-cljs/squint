@@ -228,13 +228,13 @@
 (defn wrap-await
   ([s] (wrap-await s false))
   ([s _return?]
-   (format "(%s)" (if *async* (str "await " s) s))))
+   (format "(%s)" (str "await " s))))
 
 (defn wrap-iife
   ([s] (wrap-iife s false))
   ([s return?]
-   (-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
-       (wrap-await return?))))
+   (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
+     *async* (wrap-await return?))))
 
 (defn emit-do [env exprs]
   (let [bl (butlast exprs)

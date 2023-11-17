@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.49 (2023-11-18)
+
+- Fix top level await
+
 ## 0.4.48 (2023-11-17)
 
 - Support multiple dimensions in `aset`

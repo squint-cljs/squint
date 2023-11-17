@@ -468,6 +468,9 @@
                     (is false (.-message err))))
           (.finally #(done)))))
 
+(deftest top-level-await-test
+  (is (str/includes? (jss! "(js-await 1)") "await")))
+
 (deftest await-variadic-test
   (async done
          (->
