@@ -1,4 +1,18 @@
 // @ts-check
+function toFn(x) {
+  if (x instanceof Function) {
+    return x;
+  }
+  if (typeof x === 'string') {
+    return (coll, d) => {
+      return get(coll, x, d);
+    };
+  }
+  return (k, d) => {
+    return get(x, k, d);
+  };
+}
+
 export function _GT_(x,y) {
   return x > y;
 }
@@ -173,6 +187,7 @@ export function assoc_in_BANG_(o, keys, value) {
 }
 
 export function comp(...fs) {
+  fs = fs.map(toFn);
   if (fs.length === 0) {
     return identity;
   } else if (fs.length === 1) {
@@ -568,6 +583,7 @@ export function map(f, ...colls) {
   // if (! (f instanceof Function)) {
   //   throw new Error(`Argument f must be a function but is ${typeof(f)}`);
   // }
+  f = toFn(f);
   switch (colls.length) {
     case 0:
       throw new Error('map with 2 arguments is not supported yet');
@@ -596,6 +612,7 @@ export function map(f, ...colls) {
 }
 
 export function filter(pred, coll) {
+  pred = toFn(pred);
   return lazy(function* () {
     for (const x of iterable(coll)) {
       if (pred(x)) {
@@ -614,6 +631,7 @@ export function remove(pred, coll) {
 }
 
 export function map_indexed(f, coll) {
+  f = toFn(f);
   let ret = [];
   let i = 0;
   for (const x of iterable(coll)) {
@@ -624,6 +642,7 @@ export function map_indexed(f, coll) {
 }
 
 export function keep_indexed(f, coll) {
+  f = toFn(f);
   let ret = [];
   let i = 0;
   for (const x of iterable(coll)) {
@@ -1523,6 +1542,7 @@ export function iterate(f, x) {
 }
 
 export function juxt(...fs) {
+  fs = fs.map(toFn);
   return (...args) => {
     let ret = [];
     for (let f of fs) {
