@@ -505,6 +505,12 @@
   (is (= "bar" (jsv! '(let [{:keys [foo] :or {foo :bar}} nil]
                         foo)))))
 
+(deftest coll-call-test
+  (is (= "bar" (jsv! '({:foo :bar} :foo))))
+  (is (= "the-default" (jsv! '({:foo :bar} :default :the-default))))
+  (is (= "foo" (jsv! '(#{:foo :bar} :foo))))
+  (is (= "the-default" (jsv! '(#{:foo :bar} :dude :the-default)))))
+
 (deftest minus-single-arg-test
   (is (= -10 (jsv! '(- 10))))
   (is (= -11 (jsv! '(- 10 21)))))
@@ -1579,6 +1585,15 @@
   (testing "multiple dimensions"
     (is (eq [[1]] (jsv! "(def x [[]]) (aset x 0 0 1) x")))
     (is (eq [[0 1]] (jsv! "(def x [[0]]) (aset x 0 1 1) x")))))
+
+(deftest toFn-test
+  (testing "keywords"
+    (is (eq [true false] (vec (jsv! '(map :foo [{:foo true :a 1} {:foo false :a 2}])))))
+    (is (eq [#js {:foo true, :a 1}] (vec (jsv! '(filter :foo [{:foo true :a 1} {:foo false :a 2}])))))
+    (is (eq [1 2] (vec (jsv! '((juxt :foo :bar) {:foo 1 :bar 2}))))))
+  (testing "colls"
+    (is (eq ["foo" "bar" nil] (vec (jsv! '(map #{:foo :bar} [:foo :bar :baz])))))
+    (is (eq ["foo" "bar"] (vec (jsv! '(keep #{:foo :bar} [:foo :bar :baz])))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
