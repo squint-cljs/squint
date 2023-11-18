@@ -1581,9 +1581,13 @@
     (is (eq [[0 1]] (jsv! "(def x [[0]]) (aset x 0 1 1) x")))))
 
 (deftest toFn-test
-  (is (eq [true false] (vec (jsv! '(map :foo [{:foo true :a 1} {:foo false :a 2}])))))
-  (is (eq [#js {:foo true, :a 1}] (vec (jsv! '(filter :foo [{:foo true :a 1} {:foo false :a 2}])))))
-  (is (eq [1 2] (vec (jsv! '((juxt :foo :bar) {:foo 1 :bar 2}))))))
+  (testing "keywords"
+    (is (eq [true false] (vec (jsv! '(map :foo [{:foo true :a 1} {:foo false :a 2}])))))
+    (is (eq [#js {:foo true, :a 1}] (vec (jsv! '(filter :foo [{:foo true :a 1} {:foo false :a 2}])))))
+    (is (eq [1 2] (vec (jsv! '((juxt :foo :bar) {:foo 1 :bar 2}))))))
+  (testing "colls"
+    (is (eq ["foo" "bar" nil] (vec (jsv! '(map #{:foo :bar} [:foo :bar :baz])))))
+    (is (eq ["foo" "bar"] (vec (jsv! '(keep #{:foo :bar} [:foo :bar :baz])))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
