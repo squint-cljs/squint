@@ -970,7 +970,9 @@
   (is (eq [[:a 1]] (jsv! '(vec (filter #(= :a (first %)) {:a 1 :b 2})))))
   (testing "nil"
     (is (eq () (jsv! '(vec (filter even? nil)))))
-    (is (eq () (jsv! '(vec (filter even? js/undefined)))))))
+    (is (eq () (jsv! '(vec (filter even? js/undefined))))))
+  (testing "truthiness"
+    (is (eq [{:foo 0} {:foo ""}] (jsv! '(vec (filter :foo [{:foo 0} {:foo ""} {:foo false} {:foo nil}])))))))
 
 (deftest filterv-test
   (is (= true (jsv! '(vector? (filterv even? [1 2 3 4 5 6 7 8 9])))))

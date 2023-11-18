@@ -623,7 +623,7 @@ export function filter(pred, coll) {
   pred = toFn(pred);
   return lazy(function* () {
     for (const x of iterable(coll)) {
-      if (pred(x)) {
+      if (t(pred(x))) {
         yield x;
       }
     }
@@ -655,7 +655,7 @@ export function keep_indexed(f, coll) {
   let i = 0;
   for (const x of iterable(coll)) {
     let fret = f(i, x);
-    if (!!fret) {
+    if (t(fret)) {
       ret.push(fret);
     }
     i++;
@@ -1099,7 +1099,7 @@ export function take_while(pred, coll) {
   pred = toFn(pred);
   return lazy(function* () {
     for (const o of iterable(coll)) {
-      if (pred(o)) yield o;
+      if (t(pred(o))) yield o;
       else return;
     }
   });
@@ -1154,7 +1154,7 @@ export function drop_while(pred, xs) {
         break;
       }
       let value = nextItem.value;
-      if (!pred(value)) {
+      if (!t(pred(value))) {
         yield value;
         break;
       }
@@ -1221,7 +1221,7 @@ export function keep(pred, coll) {
   return lazy(function* () {
     for (const o of iterable(coll)) {
       const res = pred(o);
-      if (res) yield res;
+      if (t(res)) yield res;
     }
   });
 }
@@ -1285,8 +1285,9 @@ export function some(pred, coll) {
   pred = toFn(pred);
   for (const o of iterable(coll)) {
     const res = pred(o);
-    if (res) return res;
+    if (t(res)) return res;
   }
+  return undefined;
 }
 
 export function not_any_QMARK_(pred, coll) {
@@ -1624,9 +1625,9 @@ export function to_array(aseq) {
   return into_array(aseq);
 }
 
-// export function truth_(x) {
-//   return ( x != null && x !== false );
-// }
+export function t(x) {
+  return ( x != null && x !== false );
+}
 
 export function subs(s, start, end) {
   return s.substring(start, end);
