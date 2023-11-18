@@ -1774,3 +1774,23 @@ export function parse_long(x) {
   }
   return parsing_err(x);
 }
+
+class Keyword extends Function {
+  constructor(s) {
+    super('...args', 'return this.__self__._call(...args)');
+    var self = this.bind(this);
+    self.s = s;
+    this.__self__ = self;
+    return self;
+  }
+  toString() {
+    return this.s;
+  }
+  _call(coll, defaultVal) {
+    return get(coll, this.s, defaultVal);
+  }
+}
+
+export function keyword(s) {
+  return new Keyword(s);
+}

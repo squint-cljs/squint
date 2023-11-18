@@ -89,6 +89,7 @@
   keep_indexed
   key
   keys
+  keyword
   last
   lazy
   list
