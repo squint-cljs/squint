@@ -837,11 +837,10 @@ break;}" body)
     ;; avoid evaluating test expression more than once
     (emit `(let [test# ~test] (if test# ~then ~else)) env)
     (let [expr-env (assoc env :context :expr)
-          condition (emit test #_(if (= :squint *target*)
+          condition (emit (if (= :squint *target*)
                             (list 'clojure.core/t test)
                             (list 'clojure.core/truth_ test)) expr-env)
-          ;; inlining has positive impact on performance, check pinball game
-          condition (format "%s != null && %s !== false" condition condition)]
+          #_#_condition (format "%s != null && %s !== false" condition condition)]
       (if (= :expr (:context env))
         (->
          (format "((%s) ? (%s) : (%s))"

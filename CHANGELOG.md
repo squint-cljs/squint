@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.53 (2023-11-10)
+
+- False alarm, I was playing the pinball game in low power mode on my mobile :facepalm:
+
 ## 0.4.52 (2023-11-19)
 
 - Revert truthiness checks via funcall, negative impact on performance with
