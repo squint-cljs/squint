@@ -8,6 +8,9 @@ export function _PLUS_(...xs) {
 }
 
 export function _(...xs) {
+  if (xs.length == 1) {
+    return 0 - xs[0];
+  };
   return xs.reduce((x, y) => x - y);
 }
 
@@ -1200,15 +1203,33 @@ export function sort(f, coll) {
 }
 
 function fnToComparator(f) {
+  if (f === compare) { return f; };
   return (x, y) => {
-    let _x = f(x);
-    let _y = f(y);
-    return compare(_x, _y);
+    let r = f(x, y);
+    if (number_QMARK_(r)) {
+      return r;
+    };
+    if (r) {
+      return -1;
+    }
+    if (f(y, x)) {
+      return 1;
+    }
+    return 0;
   };
 }
 
-export function sort_by(f, coll) {
-  return sort(fnToComparator(f), coll);
+export function sort_by(keyfn, comp, coll) {
+  if (coll === undefined) {
+    coll = comp;
+    comp = compare;
+  }
+  return sort((x, y) => {
+    let f = fnToComparator(comp);
+    let kx = keyfn(x);
+    let ky = keyfn(y);
+    return f(kx, ky);
+  }, coll);
 }
 
 export function shuffle(coll) {

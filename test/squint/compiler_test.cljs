@@ -1300,7 +1300,8 @@
   (is (eq (sort - [4 2 3 1]) (jsv! '(sort - [4 2 3 1])))))
 
 (deftest sort-by-test
-  (is (eq (sort-by count ["aaa" "bb" "c"]) (jsv! '(sort-by count ["aaa" "bb" "c"])))))
+  (is (eq (sort-by count ["aaa" "bb" "c"]) (jsv! '(sort-by count ["aaa" "bb" "c"]))))
+  (is (eq (sort-by - [55445, 54093, 57505]) (jsv! '(sort-by - [55445, 54093, 57505])))))
 
 (deftest shuffle-test
   (let [shuffled (jsv! '(shuffle [1 2 3 4]))]
@@ -1508,7 +1509,7 @@
       (fs/mkdirSync "test-output"))
     (fs/writeFileSync "test-output/foo.mjs" js)
     (is (str/includes? (process/execSync "node test-output/foo.mjs")
-                       "[[1,2,3],true,-10]"))))
+                       "[[-1,-2,-3],true,-10]"))))
 
 (deftest pre-post-test
   (testing "pre"
