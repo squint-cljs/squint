@@ -1,4 +1,8 @@
 // @ts-check
+export function _GT_(x,y) {
+  return x > y;
+}
+
 export function _PLUS_(...xs) {
   return xs.reduce((x, y) => x + y, 0);
 }
@@ -1191,7 +1195,20 @@ export function sort(f, coll) {
     coll = f;
     f = undefined;
   }
+  // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
   return [...coll].sort(f);
+}
+
+function fnToComparator(f) {
+  return (x, y) => {
+    let _x = f(x);
+    let _y = f(y);
+    return compare(_x, _y);
+  };
+}
+
+export function sort_by(f, coll) {
+  return sort(fnToComparator(f), coll);
 }
 
 export function shuffle(coll) {

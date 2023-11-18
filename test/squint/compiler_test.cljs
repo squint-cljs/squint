@@ -1297,9 +1297,10 @@
 
 (deftest sort-test
   (is (eq (sort [4 2 3 1]) (jsv! '(sort [4 2 3 1]))))
-  (is (eq (sort - [4 2 3 1]) (jsv! '(sort - [4 2 3 1]))))
-  ;; TODO: implement compare?
-  )
+  (is (eq (sort - [4 2 3 1]) (jsv! '(sort - [4 2 3 1])))))
+
+(deftest sort-by-test
+  (is (eq (sort-by count ["aaa" "bb" "c"]) (jsv! '(sort-by count ["aaa" "bb" "c"])))))
 
 (deftest shuffle-test
   (let [shuffled (jsv! '(shuffle [1 2 3 4]))]

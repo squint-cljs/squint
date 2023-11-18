@@ -6,6 +6,7 @@
   NaN_QMARK_
   PROTOCOL_SENTINEL
   _
+  _GT_
   _PLUS_
   _iterator
   aclone
@@ -153,6 +154,7 @@
   some_QMARK_
   some_fn
   sort
+  sort_by
   split_at
   split_with
   str
