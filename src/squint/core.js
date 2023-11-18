@@ -1,5 +1,6 @@
 // @ts-check
 function toFn(x) {
+  if (x == null) return x;
   if (x instanceof Function) {
     return x;
   }
@@ -505,6 +506,7 @@ export function reduced_QMARK_(x) {
 }
 
 export function reduce(f, arg1, arg2) {
+  f = toFn(f);
   let coll, val;
   if (arg2 === undefined) {
     // (reduce f coll)
@@ -735,6 +737,7 @@ export function reset_BANG_(atm, v) {
 }
 
 export function swap_BANG_(atm, f, ...args) {
+  f = toFn(f);
   const v = f(deref(atm), ...args);
   reset_BANG_(atm, v);
   return v;
@@ -798,6 +801,7 @@ export function set(coll) {
 }
 
 export function apply(f, ...args) {
+  f = toFn(f);
   const xs = args.slice(0, args.length - 1);
   const coll = args[args.length - 1];
   return f(...xs, ...coll);
@@ -812,6 +816,7 @@ export function odd_QMARK_(x) {
 }
 
 export function complement(f) {
+  f = toFn(f);
   return (...args) => not(f(...args));
 }
 
@@ -941,6 +946,7 @@ function partitionInternal(n, step, pad, coll, all) {
 }
 
 export function partition_by(f, coll) {
+  f = toFn(f);
   return lazy(function* () {
     let iter = es6_iterator(coll);
     let _fst = iter.next();
@@ -1003,6 +1009,7 @@ export function val(entry) {
 }
 
 export function merge_with(f, ...maps) {
+  f = toFn(f);
   var hasMap = false;
   for (const m of maps) {
     if (m != null) {
@@ -1083,6 +1090,7 @@ export function take(n, coll) {
 }
 
 export function take_while(pred, coll) {
+  pred = toFn(pred);
   return lazy(function* () {
     for (const o of iterable(coll)) {
       if (pred(o)) yield o;
@@ -1108,6 +1116,7 @@ export function take_nth(n, coll) {
 }
 
 export function partial(f, ...xs) {
+  f = toFn(f);
   return function (...args) {
     return f(...xs, ...args);
   };
@@ -1130,6 +1139,7 @@ export function drop(n, xs) {
 }
 
 export function drop_while(pred, xs) {
+  pred = toFn(pred);
   return lazy(function* () {
     let iter = _iterator(iterable(xs));
     while (true) {
@@ -1159,6 +1169,7 @@ export function distinct(coll) {
 }
 
 export function update(coll, k, f, ...args) {
+  f = toFn(f);
   return assoc(coll, k, f(get(coll, k), ...args));
 }
 
@@ -1172,10 +1183,12 @@ export function get_in(coll, path, orElse) {
 }
 
 export function update_in(coll, path, f, ...args) {
+  f = toFn(f);
   return assoc_in(coll, path, f(get_in(coll, path), ...args));
 }
 
 export function fnil(f, x, ...xs) {
+  f = toFn(f);
   return function (a, ...args) {
     if (!a) {
       return f(x, ...xs, ...args);
@@ -1186,6 +1199,7 @@ export function fnil(f, x, ...xs) {
 }
 
 export function every_QMARK_(pred, coll) {
+  pred = toFn(pred);
   for (let x of iterable(coll)) {
     if (!pred(x)) return false;
   }
@@ -1197,6 +1211,7 @@ export function not_every_QMARK_(pred, coll) {
 }
 
 export function keep(pred, coll) {
+  pred = toFn(pred);
   return lazy(function* () {
     for (const o of iterable(coll)) {
       const res = pred(o);
@@ -1217,6 +1232,7 @@ export function sort(f, coll) {
     coll = f;
     f = undefined;
   }
+  f = toFn(f);
   // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
   return [...coll].sort(f);
 }
@@ -1243,6 +1259,8 @@ export function sort_by(keyfn, comp, coll) {
     coll = comp;
     comp = compare;
   }
+  keyfn = toFn(keyfn);
+  comp = toFn(comp);
   return sort((x, y) => {
     let f = fnToComparator(comp);
     let kx = keyfn(x);
@@ -1258,6 +1276,7 @@ export function shuffle(coll) {
 }
 
 export function some(pred, coll) {
+  pred = toFn(pred);
   for (const o of iterable(coll)) {
     const res = pred(o);
     if (res) return res;
@@ -1265,6 +1284,7 @@ export function some(pred, coll) {
 }
 
 export function not_any_QMARK_(pred, coll) {
+  pred = toFn(pred);
   return !some(pred, coll);
 }
 
