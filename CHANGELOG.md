@@ -2,6 +2,12 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.51 (2023-11-18)
+
+- Allow keywords and collections to be used as functions in HOFs
+- Make filter, etc aware of truthiness
+- Reduce code size for truthiness checks
+
 ## 0.4.50 (2023-11-18)
 
 - Add `str/split-lines`
