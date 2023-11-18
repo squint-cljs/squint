@@ -4,15 +4,21 @@ function toFn(x) {
   if (x instanceof Function) {
     return x;
   }
-  if (typeof x === 'string') {
+  let t = typeof x;
+  if (t === 'string') {
     return (coll, d) => {
       return get(coll, x, d);
     };
   }
-  return (k, d) => {
-    return get(x, k, d);
-  };
+  if (t === 'object') {
+    return (k, d) => {
+      return get(x, k, d);
+    };
+  }
+  return x;
 }
+
+globalThis.toFn = toFn;
 
 export function _GT_(x,y) {
   return x > y;
