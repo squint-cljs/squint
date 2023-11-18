@@ -207,7 +207,8 @@
 
 (defn emit-list [expr env]
   (escape-jsx
-   (let [env (dissoc env :jsx)]
+   (let [env (dissoc env :jsx)
+         fexpr (first expr)]
      (if (:quote env)
        (do
          (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
@@ -216,7 +217,7 @@
                    (str ca ".")
                    "")
                  (str/join ", " (emit-args env expr))))
-       (cond (symbol? (first expr))
+       (cond (symbol? fexpr)
              (let [head* (first expr)
                    head (strip-core-symbol head*)
                    expr (if (not= head head*)
@@ -267,8 +268,12 @@
                    (prefix-unary? head) (emit-prefix-unary head expr)
                    (suffix-unary? head) (emit-suffix-unary head expr)
                    :else (cc/emit-special 'funcall env expr))))
-             (keyword? (first expr))
+             (keyword? fexpr)
              (let [[k obj & args] expr]
+               (emit (list* 'get obj k args) env))
+             (or (map? fexpr)
+                 (set? fexpr))
+             (let [[obj k & args] expr]
                (emit (list* 'get obj k args) env))
              (list? expr)
              (cc/emit-special 'funcall env expr)

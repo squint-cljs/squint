@@ -505,6 +505,12 @@
   (is (= "bar" (jsv! '(let [{:keys [foo] :or {foo :bar}} nil]
                         foo)))))
 
+(deftest coll-call-test
+  (is (= "bar" (jsv! '({:foo :bar} :foo))))
+  (is (= "the-default" (jsv! '({:foo :bar} :default :the-default))))
+  (is (= "foo" (jsv! '(#{:foo :bar} :foo))))
+  (is (= "the-default" (jsv! '(#{:foo :bar} :dude :the-default)))))
+
 (deftest minus-single-arg-test
   (is (= -10 (jsv! '(- 10))))
   (is (= -11 (jsv! '(- 10 21)))))
