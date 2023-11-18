@@ -1720,10 +1720,19 @@ export function max_key(k, x, ...more) {
   return max;
 }
 
+function parsing_err(x) {
+  throw new Error(`Expected string, got: ${typeof(x)}`);
+}
+
 export function parse_long(x) {
-  try {
-    return parseInt(x);
-  } catch (_) {
+  if (string_QMARK_(x)) {
+    if (/^[+-]?\d+$/.test(x)) {
+      let i = parseInt(x);
+      if (Number.MIN_SAFE_INTEGER <= i <= Number.MAX_SAFE_INTEGER) {
+        return i;
+      }
+    }
     return null;
   }
+  return parsing_err(x);
 }
