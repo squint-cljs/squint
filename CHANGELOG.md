@@ -2,6 +2,13 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.50 (2023-11-18)
+
+- Add `str/split-lines`
+- Add `partition-by`
+- Add `parse-long`
+- Add `sort-by`
+
 ## 0.4.49 (2023-11-18)
 
 - Fix top level await
