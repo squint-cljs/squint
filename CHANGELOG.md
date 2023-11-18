@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.52 (2023-11-19)
+
+- Revert truthiness checks via funcall, negative impact on performance with
+  pinball game on mobile
+
 ## 0.4.51 (2023-11-18)
 
 - Allow keywords and collections to be used as functions in HOFs
