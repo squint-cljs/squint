@@ -1105,7 +1105,6 @@
     (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15]] (jsv! '(vec (take 3 (partition 4 6 (range)))))))
     (is (eq [[0 1 2 3] [2 3 4 5] [4 5 6 7]] (jsv! '(vec (take 3 (partition 4 2 (range)))))))))
 
-
 (deftest partition-all-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition-all 4 (range 20))))))
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19] [20 21]] (jsv! '(vec (partition-all 4 (range 22))))))
@@ -1116,6 +1115,10 @@
   (testing "infinite seq"
     (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15]] (jsv! '(vec (take 3 (partition-all 4 6 (range)))))))
     (is (eq [[0 1 2 3] [2 3 4 5] [4 5 6 7]] (jsv! '(vec (take 3 (partition-all 4 2 (range)))))))))
+
+(deftest partition-by-test
+  (is (eq [ [ 1, 1, 1 ], [ 2, 2 ], [ 3, 3 ] ]
+          (jsv! '(partition-by odd? [1 1 1 2 2 3 3])))))
 
 (deftest merge-test
   (testing "corner cases"
