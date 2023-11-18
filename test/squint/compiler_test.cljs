@@ -1597,5 +1597,8 @@
     (is (eq ["foo" "bar" nil] (vec (jsv! '(map #{:foo :bar} [:foo :bar :baz])))))
     (is (eq ["foo" "bar"] (vec (jsv! '(keep #{:foo :bar} [:foo :bar :baz])))))))
 
+(deftest core-var-conflict-with-local-test
+  (is (true? (jsv! '(let [t 1] (clojure.core/t 1))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

@@ -220,6 +220,7 @@
        (cond (symbol? fexpr)
              (let [head* (first expr)
                    head (strip-core-symbol head*)
+                   expr* expr
                    expr (if (not= head head*)
                           (with-meta (cons head (rest expr))
                             (meta expr))
@@ -267,7 +268,7 @@
                    (infix-operator? env head) (emit-infix head env expr)
                    (prefix-unary? head) (emit-prefix-unary head expr)
                    (suffix-unary? head) (emit-suffix-unary head expr)
-                   :else (cc/emit-special 'funcall env expr))))
+                   :else (cc/emit-special 'funcall env expr*))))
              (keyword? fexpr)
              (let [[k obj & args] expr]
                (emit (list* 'get obj k args) env))
