@@ -760,6 +760,10 @@ export function mapv(...args) {
 }
 
 export function vec(x) {
+  if (array_QMARK_(x)) {
+    // return original, no need to clone the entire thing
+    return x;
+  }
   return [...iterable(x)];
 }
 
@@ -908,6 +912,22 @@ function partitionInternal(n, step, pad, coll, all) {
       }
     }
   });
+}
+
+export function partition_by(f, coll) {
+  let _coll = vec(coll);
+  if (_coll.length == 0) {
+    return null;
+  }
+  let fst = _coll[0];
+  let fv = f(fst);
+  let run = [fst, ...take_while(x => fv === f(x), _coll.slice(1))];
+  let rest = partition_by(f, _coll.slice(run.length));
+  if (rest) {
+    return [run, ...rest];
+  } else {
+    return [run];
+  }
 }
 
 export function empty(coll) {

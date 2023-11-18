@@ -118,6 +118,7 @@
   partial
   partition
   partition_all
+  partition_by
   pos_QMARK_
   pr_str
   println

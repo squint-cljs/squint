@@ -1,8 +1,9 @@
 ## Squint
 
-Squint is an experimental ClojureScript syntax to JavaScript compiler.
+Squint is a compiler for an experimental dialect of ClojureScript. You can think
+of this as CLJS lite or CLJS--.
 
-Squint is not intended as a replacement for ClojureScript but as a tool to
+Squint is not intended as a full replacement for ClojureScript but as a tool to
 target JS for anything you would not use ClojureScript for, for whatever reason:
 performance, bundle size, ease of interop, etc.
 
@@ -63,15 +64,24 @@ need the extra performance, startup time and/or small bundle size.
 - The CLJS standard library is replaced with `"squint-cljs/core.js"`, a smaller re-implemented subset
 - Keywords are translated into strings
 - Maps, sequences and vectors are represented as mutable objects and arrays
-- Most functions return arrays and objects, not custom data structures
+- Standard library functions never mutate arguments if the CLJS counterpart do
+  not do so. Instead, shallow cloning is used to produce new values, a pattern that JS developers
+  nowadays use all the time: `const x = [...y];`
+- Most functions return arrays, objects or `Symbol.iterator`, not custom data structures
+- Functions like `map`, `filter`, etc. produce lazy iterable values but their
+  results are not cached. If side effects are used in combination with laziness,
+  it's recommended to realize the lazy value using `vec` on function
+  boundaries. You can detect re-usage of lazy values by calling
+  `warn-on-lazy-reusage!`.
 - Supports async/await:`(def x (js-await y))`. Async functions must be marked
   with `^:async`: `(defn ^:async foo [])`.
 - `assoc!`, `dissoc!`, `conj!`, etc. perform in place mutation on objects
 - `assoc`, `dissoc`, `conj`, etc. return a new shallow copy of objects
 - `println` is a synonym for `console.log`
-- `pr-str` and `prn` coerce values to a string using `JSON.stringify`
+- `pr-str` and `prn` coerce values to a string using `JSON.stringify` (currently, this may change)
+- `partition-by` is strict instead of lazy
 
-If you are looking for ClojureScript semantics, take a look at [Cherry 🍒](https://github.com/squint-cljs/cherry).
+If you are looking for closer ClojureScript semantics, take a look at [Cherry 🍒](https://github.com/squint-cljs/cherry).
 
 ## Articles
 
