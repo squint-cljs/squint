@@ -1117,8 +1117,10 @@
     (is (eq [[0 1 2 3] [2 3 4 5] [4 5 6 7]] (jsv! '(vec (take 3 (partition-all 4 2 (range)))))))))
 
 (deftest partition-by-test
+  (is (eq [[0] [1] [2] [3] [4] [5] [6] [7] [8] [9]]
+          (js->clj (jsv! '(vec (take 10 (partition-by odd? (range))))))))
   (is (eq [ [ 1, 1, 1 ], [ 2, 2 ], [ 3, 3 ] ]
-          (jsv! '(partition-by odd? [1 1 1 2 2 3 3])))))
+          (jsv! '(vec (partition-by odd? [1 1 1 2 2 3 3]))))))
 
 (deftest merge-test
   (testing "corner cases"

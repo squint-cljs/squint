@@ -119,6 +119,7 @@
   partition
   partition_all
   partition_by
+  partition_by2
   pos_QMARK_
   pr_str
   println

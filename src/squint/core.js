@@ -915,19 +915,36 @@ function partitionInternal(n, step, pad, coll, all) {
 }
 
 export function partition_by(f, coll) {
-  let _coll = vec(coll);
-  if (_coll.length == 0) {
-    return null;
-  }
-  let fst = _coll[0];
-  let fv = f(fst);
-  let run = [fst, ...take_while(x => fv === f(x), _coll.slice(1))];
-  let rest = partition_by(f, _coll.slice(run.length));
-  if (rest) {
-    return [run, ...rest];
-  } else {
-    return [run];
-  }
+  return lazy(function* () {
+    let iter = es6_iterator(coll);
+    let _fst = iter.next();
+    if (_fst.done) {
+      yield* null;
+    }
+    let fst = _fst.value;
+    let fv = f(fst);
+    let run = [fst];
+    let rst = [];
+    while(true) {
+      let next = iter.next();
+      if (next.done) {
+        yield run;
+        break;
+      }
+      let _v = next.value;
+      let _fv = f(_v);
+      if (fv == _fv) {
+        run.push(_v);
+      }
+      else {
+        yield run;
+        rst.push(_v);
+        run = rst;
+        fv = _fv;
+        rst = [];
+      }
+    }
+  });
 }
 
 export function empty(coll) {

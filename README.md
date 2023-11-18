@@ -79,7 +79,6 @@ need the extra performance, startup time and/or small bundle size.
 - `assoc`, `dissoc`, `conj`, etc. return a new shallow copy of objects
 - `println` is a synonym for `console.log`
 - `pr-str` and `prn` coerce values to a string using `JSON.stringify` (currently, this may change)
-- `partition-by` is strict instead of lazy
 
 If you are looking for closer ClojureScript semantics, take a look at [Cherry 🍒](https://github.com/squint-cljs/cherry).
 
