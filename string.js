@@ -89,3 +89,7 @@ export function replace(s, match, replacement) {
   }
   throw `Invalid match arg: $match`;
 };
+
+export function split_lines(s) {
+  return s.split(/\n|\r\n/);
+}
