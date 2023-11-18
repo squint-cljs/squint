@@ -1719,3 +1719,11 @@ export function max_key(k, x, ...more) {
   });
   return max;
 }
+
+export function parse_long(x) {
+  try {
+    return parseInt(x);
+  } catch (_) {
+    return null;
+  }
+}

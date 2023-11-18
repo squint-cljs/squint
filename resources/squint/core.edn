@@ -115,11 +115,11 @@
   number_QMARK_
   object_QMARK_
   odd_QMARK_
+  parse_long
   partial
   partition
   partition_all
   partition_by
-  partition_by2
   pos_QMARK_
   pr_str
   println
