@@ -92,6 +92,10 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 - [static search index for Tumblr](https://github.com/holyjak/clj-tumblr-summarizer/commit/a8b2ca8a9f777e4a9059fa0f1381ded24e5f1a0f)
 - [worlde](https://github.com/jackdbd/squint-wordle)
 
+## Advent of Code
+
+Solve [Advent of Code](https://adventofcode.com/) puzzles with squin [here](https://squint-cljs.github.io/squint/?boilerplate=https%3A%2F%2Fgist.githubusercontent.com%2Fborkdude%2Fcf94b492d948f7f418aa81ba54f428ff%2Fraw%2Fe613dbceac5b04c2b71b032a75f13881bccd72c5%2Faoc_ui.cljs&src=OzsgSGVscGVyIGZ1bmN0aW9uczoKOzsgKGZldGNoLWlucHV0IHllYXIgZGF5KSAtIGdldCBBT0MgaW5wdXQKOzsgKGFwcGVuZCBzdHIpIC0gYXBwZW5kIHN0ciB0byBET00KOzsgKHNweSB4KSAtIGxvZyB4IHRvIGNvbnNvbGUgYW5kIHJldHVybiB4CgooZGVmIGlucHV0ICgtPj4gKGpzLWF3YWl0IChmZXRjaC1pbnB1dCAyMDIyIDEpKQogICAgICAgICAgICAgI19zcHkKICAgICAgICAgICAgIHN0ci9zcGxpdC1saW5lcwogICAgICAgICAgICAgKG1hcHYgcGFyc2UtbG9uZykpKQoKKGRlZm4gcGFydC0xCiAgW10KICAoLT4%2BIGlucHV0CiAgICAocGFydGl0aW9uLWJ5IG5pbD8pCiAgICAodGFrZS1udGggMikKICAgIChtYXAgIyhhcHBseSArICUpKQogICAgKGFwcGx5IG1heCkKICAgIGFwcGVuZCkpCgooZGVmbiBwYXJ0LTIKICBbXQogICgtPj4gaW5wdXQKICAgIChwYXJ0aXRpb24tYnkgbmlsPykKICAgICh0YWtlLW50aCAyKQogICAgKG1hcCAjKGFwcGx5ICsgJSkpCiAgICAoc29ydC1ieSAtKQogICAgKHRha2UgMykKICAgIChhcHBseSArKQogICAgYXBwZW5kKSkKCih0aW1lIChwYXJ0LTEpKQoodGltZSAocGFydC0yKSk%3D).
+
 ### Seqs
 
 Squint does not implement Clojure seqs. Instead it uses the JavaScript
