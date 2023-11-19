@@ -84,6 +84,7 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 
 ## Articles
 
+- [Writing a Cloudflare worker with squint and bun](https://blog.michielborkent.nl/squint-cloudflare-bun.html)
 - [Porting a CLJS project to squint](https://blog.michielborkent.nl/porting-cljs-project-to-squint.html)
 
 ## Projects using squint
