@@ -20,7 +20,7 @@ function toFn(x) {
 
 globalThis.toFn = toFn;
 
-export function _GT_(x,y) {
+export function _GT_(x, y) {
   return x > y;
 }
 
@@ -31,7 +31,7 @@ export function _PLUS_(...xs) {
 export function _(...xs) {
   if (xs.length == 1) {
     return 0 - xs[0];
-  };
+  }
   return xs.reduce((x, y) => x - y);
 }
 
@@ -119,11 +119,11 @@ function emptyOfType(type) {
 }
 
 function isObj(coll) {
-  return (coll.constructor === Object);
+  return coll.constructor === Object;
 }
 
 export function object_QMARK_(coll) {
-  return (coll != null && isObj(coll));
+  return coll != null && isObj(coll);
 }
 
 function typeConst(obj) {
@@ -139,7 +139,7 @@ function typeConst(obj) {
   if (obj instanceof List) return LIST_TYPE;
   if (obj instanceof Array) return ARRAY_TYPE;
   if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
-  if (obj instanceof Object) return OBJECT_TYPE;
+  // if (obj instanceof Object) return OBJECT_TYPE;
   return undefined;
 }
 
@@ -181,7 +181,7 @@ export function assoc_in(o, keys, value) {
 export function assoc_in_BANG_(o, keys, value) {
   var currObj = o;
   let baseType = typeConst(o);
-  for (const k of keys.splice(0,keys.length - 1)) {
+  for (const k of keys.splice(0, keys.length - 1)) {
     let v = get(currObj, k);
     if (v === undefined) {
       v = emptyOfType(baseType);
@@ -405,14 +405,17 @@ export function get(coll, key, otherwise = undefined) {
     case MAP_TYPE:
       v = coll.get(key);
       break;
-    case undefined:
-      break;
     case ARRAY_TYPE:
       v = coll[key];
       break;
     default:
       // we choose .get as the default implementation, e.g. fetch Headers are not Maps, but do implement a .get method
-      v = coll.get(key);
+      let g = coll['get'];
+      if (g instanceof Function) {
+        v = coll.get(key);
+        break;
+      }
+      v = coll[key];
       break;
   }
   return v !== undefined ? v : otherwise;
@@ -556,8 +559,7 @@ class LazyIterable {
     if (this.usages >= 2 && tolr) {
       try {
         throw new Error();
-      }
-      catch (e) {
+      } catch (e) {
         console.warn('Re-use of lazy value', e.stack);
       }
     }
@@ -570,7 +572,6 @@ LazyIterable.prototype[IIterable] = true; // Closure compatibility
 export function lazy(f) {
   return new LazyIterable(f);
 }
-
 
 export class Cons {
   constructor(x, coll) {
@@ -683,7 +684,7 @@ export const PROTOCOL_SENTINEL = {};
 
 function pr_str_1(x) {
   if (x === null) {
-    return "null";
+    return 'null';
   }
   return JSON.stringify(x, (_key, value) => {
     switch (typeConst(value)) {
@@ -692,10 +693,10 @@ function pr_str_1(x) {
         return [...value];
       case MAP_TYPE:
         return Object.fromEntries(value);
-    default: {
-      // console.log(value);
-      return value;
-    }
+      default: {
+        // console.log(value);
+        return value;
+      }
     }
   });
 }
@@ -967,7 +968,7 @@ export function partition_by(f, coll) {
     let fv = f(fst);
     let run = [fst];
     let rst = [];
-    while(true) {
+    while (true) {
       let next = iter.next();
       if (next.done) {
         yield run;
@@ -977,8 +978,7 @@ export function partition_by(f, coll) {
       let _fv = f(_v);
       if (fv == _fv) {
         run.push(_v);
-      }
-      else {
+      } else {
         yield run;
         rst.push(_v);
         run = rst;
@@ -1248,12 +1248,14 @@ export function sort(f, coll) {
 }
 
 function fnToComparator(f) {
-  if (f === compare) { return f; };
+  if (f === compare) {
+    return f;
+  }
   return (x, y) => {
     let r = f(x, y);
     if (number_QMARK_(r)) {
       return r;
-    };
+    }
     if (r) {
       return -1;
     }
@@ -1460,8 +1462,8 @@ export function alength(arr) {
 export function aset(arr, idx, val, ...more) {
   if (more.length == 0) {
     arr[idx] = val;
-    return val;}
-  else {
+    return val;
+  } else {
     let path = [idx, val, ...more];
     let _val = path[path.length - 1];
     let innerArray = arr;
@@ -1630,7 +1632,7 @@ export function to_array(aseq) {
 }
 
 export function t(x) {
-  return ( x != null && x !== false );
+  return x != null && x !== false;
 }
 
 export function subs(s, start, end) {
@@ -1774,7 +1776,7 @@ export function find(m, k) {
 }
 
 export function mod(x, y) {
-  return (x % y + y) % y;
+  return ((x % y) + y) % y;
 }
 
 export function min_key(k, x, ...more) {
@@ -1810,7 +1812,7 @@ export function max_key(k, x, ...more) {
 }
 
 function parsing_err(x) {
-  throw new Error(`Expected string, got: ${typeof(x)}`);
+  throw new Error(`Expected string, got: ${typeof x}`);
 }
 
 export function parse_long(x) {
