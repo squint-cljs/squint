@@ -2,7 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## 0.4.53 (2023-11-10)
+## 0.4.54 (2023-11-19)
+
+- Improve `get` to call `get` method when present.
+
+## 0.4.53 (2023-11-19)
 
 - False alarm, I was playing the pinball game in low power mode on my mobile :facepalm:
 
