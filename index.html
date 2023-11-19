@@ -78,6 +78,11 @@
 
 (append (js/JSON.stringify x))`.trim();
       let urlParams = new URLSearchParams(window.location.search);
+      let boilerplate = urlParams.get('boilerplate');
+      let boilerplateSrc;
+      if (boilerplate) {
+        boilerplateSrc = await fetch(boilerplate).then(p => p.text());
+      }
       let src = urlParams.get('src');
       if (src) {
         if (/http(s)?:\/\/.*/.test(src)) {
@@ -110,6 +115,7 @@
       window.compile = () => {
         counter = counter + 1;
         let code = editor.state.doc.toString();
+        code = '' + boilerplateSrc + '\n\n' + code;
         let js = compileString(code, {repl: repl});
         document.querySelector('#compiledCode').innerText = js;
         const encodedJs = encodeURIComponent(js);
