@@ -407,8 +407,12 @@ export function get(coll, key, otherwise = undefined) {
       break;
     case undefined:
       break;
-    default:
+    case ARRAY_TYPE:
       v = coll[key];
+      break;
+    default:
+      // we choose .get as the default implementation, e.g. fetch Headers are not Maps, but do implement a .get method
+      v = coll.get(key);
       break;
   }
   return v !== undefined ? v : otherwise;

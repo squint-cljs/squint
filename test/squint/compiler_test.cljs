@@ -787,7 +787,9 @@
     (is (eq 1 (jsv! '(get {"my-key" 1} "my-key"))))
     (is (identical? js/undefined (jsv! '(get {"my-key" 1} "bad-key"))))
     (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))
-    (is (identical? nil (jsv! '(get {"my-key" nil} "my-key"))))))
+    (is (identical? nil (jsv! '(get {"my-key" nil} "my-key")))))
+  (testing "arbitrary get method"
+    (is (eq 1 (jsv! '(get (js/eval "class Foo { get() { return 1;} }; new Foo()") :foo))))))
 
 (deftest first-test
   (is (= nil (jsv! '(first nil))))
