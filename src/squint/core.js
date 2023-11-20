@@ -43,7 +43,6 @@ export function assoc_BANG_(m, k, v, ...kvs) {
   if (kvs.length % 2 !== 0) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
   }
-
   switch (typeConst(m)) {
     case MAP_TYPE:
       m.set(k, v);
@@ -62,7 +61,7 @@ export function assoc_BANG_(m, k, v, ...kvs) {
       break;
     default:
       throw new Error(
-        'Illegal argument: assoc! expects a Map, Array, or Object as the first argument.'
+        `Illegal argument: assoc! expects a Map, Array, or Object as the first argument, but got ${typeof m}.`
       );
   }
 
@@ -139,7 +138,7 @@ function typeConst(obj) {
   if (obj instanceof List) return LIST_TYPE;
   if (Array.isArray(obj)) return ARRAY_TYPE;
   if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
-  // if (obj instanceof Object) return OBJECT_TYPE;
+  if (obj instanceof Object) return OBJECT_TYPE;
   return undefined;
 }
 

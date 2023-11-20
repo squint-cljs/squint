@@ -712,7 +712,9 @@
                      (assoc! x 3 4 5 6)
                      x)))))
   (testing "other types"
-    (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))))
+    (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))
+    (is (eq 1 (jsv! '(get (doto (js/eval "class Foo { }; new Foo()")
+                            (assoc! :foo 1)) :foo))))))
 
 (deftest assoc-in-test
   (testing "happy path"
