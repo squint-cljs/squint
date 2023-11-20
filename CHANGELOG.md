@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.56 (2023-11-20)
+
+- Use `compare` as default compare function in `sort` (which fixes numerical sorting)
+
 ## 0.4.55 (2023-11-20)
 
 - Allow `assoc!` to be called on arbitrary classes (regression)
