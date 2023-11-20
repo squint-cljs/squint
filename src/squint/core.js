@@ -137,7 +137,7 @@ function typeConst(obj) {
   if (obj instanceof Map) return MAP_TYPE;
   if (obj instanceof Set) return SET_TYPE;
   if (obj instanceof List) return LIST_TYPE;
-  if (obj instanceof Array) return ARRAY_TYPE;
+  if (Array.isArray(obj)) return ARRAY_TYPE;
   if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
   // if (obj instanceof Object) return OBJECT_TYPE;
   return undefined;
@@ -235,7 +235,7 @@ export function conj_BANG_(...xs) {
       break;
     case MAP_TYPE:
       for (const x of rest) {
-        if (!(x instanceof Array))
+        if (!(Array.isArray(x)))
           iterable(x).forEach((kv) => {
             o.set(kv[0], kv[1]);
           });
@@ -244,7 +244,7 @@ export function conj_BANG_(...xs) {
       break;
     case OBJECT_TYPE:
       for (const x of rest) {
-        if (!(x instanceof Array)) Object.assign(o, x);
+        if (!(Array.isArray(x))) Object.assign(o, x);
         else o[x[0]] = x[1];
       }
       break;
@@ -279,7 +279,7 @@ export function conj(...xs) {
       const m = new Map(o);
 
       for (const x of rest) {
-        if (!(x instanceof Array))
+        if (!(Array.isArray(x)))
           iterable(x).forEach((kv) => {
             m.set(kv[0], kv[1]);
           });
@@ -296,7 +296,7 @@ export function conj(...xs) {
       const o2 = { ...o };
 
       for (const x of rest) {
-        if (!(x instanceof Array)) Object.assign(o2, x);
+        if (!(Array.isArray(x))) Object.assign(o2, x);
         else o2[x[0]] = x[1];
       }
 
@@ -365,7 +365,7 @@ export function println(...args) {
 export function nth(coll, idx, orElse) {
   if (coll) {
     var elt = undefined;
-    if (coll instanceof Array) {
+    if (Array.isArray(coll)) {
       elt = coll[idx];
     } else {
       let iter = iterable(coll);
@@ -853,7 +853,7 @@ export function list(...args) {
 }
 
 export function array_QMARK_(x) {
-  return x instanceof Array;
+  return Array.isArray(x);
 }
 
 export function concat(...colls) {
@@ -1233,7 +1233,7 @@ export function keep(pred, coll) {
 }
 
 export function reverse(coll) {
-  if (coll instanceof Array) {
+  if (Array.isArray(coll)) {
     // performance: we don't need to copy to another array first
     return coll.reverse();
   } else return [...coll].reverse();
@@ -1304,7 +1304,7 @@ export function not_any_QMARK_(pred, coll) {
 }
 
 export function replace(smap, coll) {
-  let mapf = coll instanceof Array ? mapv : map;
+  let mapf = (Array.isArray(coll)) ? mapv : map;
   return mapf((x) => {
     const repl = smap[x];
     if (repl !== undefined) {
@@ -1588,7 +1588,7 @@ export function juxt(...fs) {
 }
 
 export function next(x) {
-  if (x instanceof Array) {
+  if (Array.isArray(x)) {
     let ret = x.slice(1);
     if (ret.length > 0) {
       return ret;
