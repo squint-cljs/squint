@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.55 (2023-11-20)
+
+- Allow `assoc!` to be called on arbitrary classes (regression)
+
 ## 0.4.54 (2023-11-19)
 
 - Improve `get` to call `get` method when present.
