@@ -1,0 +1,21 @@
+{
+  "name": "vite-template-solid",
+  "version": "0.0.0",
+  "description": "",
+  "scripts": {
+    "start": "vite --config vite.config.js public",
+    "dev": "vite --config vite.config.js public",
+    "build": "vite --config vite.config.js build public",
+    "serve": "vite --config vite.config.js preview public"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "vite-plugin-solid": "^2.7.2"
+  },
+  "type": "module",
+  "dependencies": {
+    "solid-js": "^1.8.5",
+    "squint-cljs": "^0.4.54"
+  }
+}
