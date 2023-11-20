@@ -1308,6 +1308,7 @@
   (is (eq (reverse (range 10)) (jsv! '(reverse (range 10))))))
 
 (deftest sort-test
+  (is (eq (sort [3 10]) (jsv! '(sort [3 10]))))
   (is (eq (sort [4 2 3 1]) (jsv! '(sort [4 2 3 1]))))
   (is (eq (sort - [4 2 3 1]) (jsv! '(sort - [4 2 3 1])))))
 

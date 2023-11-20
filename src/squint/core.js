@@ -1245,7 +1245,9 @@ export function sort(f, coll) {
   }
   f = toFn(f);
   // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
-  return [...coll].sort(f);
+  let clone = [...coll];
+  // result is guaranteed to be stable since ES2019, like CLJS
+  return clone.sort(f || compare);
 }
 
 function fnToComparator(f) {
