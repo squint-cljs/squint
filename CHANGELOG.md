@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.57 (2023-11-21)
+
+- Add `condp` macro
+
 ## 0.4.56 (2023-11-20)
 
 - Use `compare` as default compare function in `sort` (which fixes numerical sorting)

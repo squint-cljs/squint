@@ -58,6 +58,7 @@
                       'cond macros/core-cond
                       'cond-> macros/core-cond->
                       'cond->> macros/core-cond->>
+                      'condp macros/core-condp
                       'if-let macros/core-if-let
                       'if-some macros/core-if-some
                       'when-let macros/core-when-let

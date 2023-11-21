@@ -120,6 +120,27 @@
           g
           (last steps)))))
 
+(defn core-condp
+  [_&form _&env pred expr & clauses]
+  (let [gpred (gensym "pred__")
+        gexpr (gensym "expr__")
+        emit (fn emit [pred expr args]
+               (let [[[a b c :as clause] more]
+                       (split-at (if (= :>> (second args)) 3 2) args)
+                       n (count clause)]
+                 (cond
+                  (= 0 n) `(throw (IllegalArgumentException. (str "No matching clause: " ~expr)))
+                  (= 1 n) a
+                  (= 2 n) `(if (~pred ~a ~expr)
+                             ~b
+                             ~(emit pred expr more))
+                  :else `(if-let [p# (~pred ~a ~expr)]
+                           (~c p#)
+                           ~(emit pred expr more)))))]
+    `(let [~gpred ~pred
+           ~gexpr ~expr]
+       ~(emit gpred gexpr clauses))))
+
 (defn core-if-let
   ([&form &env bindings then]
    (core-if-let &form &env bindings then nil))

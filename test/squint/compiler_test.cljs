@@ -1605,5 +1605,11 @@
 (deftest core-var-conflict-with-local-test
   (is (true? (jsv! '(let [t 1] (clojure.core/t 1))))))
 
+(deftest condp-test
+  (is (eq 3 (jsv! '(condp some [1 2 3 4]
+                     #{0 6 7} :>> inc
+                     #{4 5 9} :>> dec
+                     #{1 2 3} :>> #(+ % 3))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
