@@ -32,5 +32,11 @@
   },
   "dependencies": {
     "chokidar": "^3.5.3"
-  }
+  },
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/borkdude"
+    }
+  ]
 }
