@@ -3,7 +3,7 @@
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
 
-## Unreleased
+## 0.4.58 (2023-11-22)
 
 - [#380](https://github.com/squint-cljs/squint/issues/380): Don't emit space in between `#jsx` tags
 - Add `re-find`
