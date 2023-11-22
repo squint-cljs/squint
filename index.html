@@ -72,6 +72,7 @@
       let evalCode = async (code) => {
         let js = compileString(`(do ${code})`, {repl: repl, "elide-exports": repl, context: repl ? 'return' : 'statement'});
         document.querySelector('#compiledCode').innerText = js;
+        console.log(js);
         if (!repl) {
           const encodedJs = encodeURIComponent(js);
           const dataUri = 'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
@@ -79,8 +80,25 @@
         } else {
           console.log('eval');
           let result = await eval(`(async function() { ${js} })()`);
-          document.querySelector('#result').innerText = result + '';
+          document.querySelector('#result').innerText = JSONstringify(result);
         }
+      }
+
+      function JSONstringify(json) {
+        json = JSON.stringify(json, function(key, value) {
+          if (!value) return value;
+          if (typeof value === 'string') return value;
+          if (Array.isArray(value) || value.constructor === Object) return value;
+          if (value[Symbol.iterator]) {
+            return [...value];
+          }
+          if (typeof value === 'object') {
+            return `#object[${value.constructor.name}]`;
+          } else {
+            return value;
+          }
+        });
+        return json;
       }
 
       let evalCell = (opts) => {
@@ -173,6 +191,16 @@
           repl = false;
           evalCell({state: editor.state});
         }
+        let url = new URL(window.location.href);
+        if (repl) {
+          url.searchParams.set("repl", repl);
+        } else {
+          url.searchParams.delete("repl");
+        }
+        window.history.replaceState(null, null, url);
+      }
+      if (repl) {
+        document.getElementById('replCheckBox').checked = true;
       }
       compile();
     </script>
@@ -182,21 +210,23 @@
       <a href="https://gitHub.com/squint-cljs/squint"><img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a></div>
      <div id="editor" style="border: 1px solid grey; border-radius: 10px; margin-bottom: 10px;">
      </div>
-    <div>
+     <div>
+     <label>REPL-mode
+     <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+     </label>
+
+     <br>
       <button onClick="compile()">
         Compile!
       </button>
       <button onClick="share()">
         Share!
         </button>
-        <label>REPL-mode
-        <input type="checkbox" name="repl" onChange="changeREPL(this)" />
-        </label>
     </div>
     <div>
-      <pre>
-        <code style="display: inline-block;white-space: normal;max-width:80%; word-break:break-all; word-wrap:break-word" id="compiledCode"></code>
-        <code style="display: inline-block;white-space: normal;max-width:80%; word-break:break-all; word-wrap:break-word" id="result"></code>
+      <pre><code style="white-space: pre-wrap;max-width:80%;" id="compiledCode"></code>
+      </pre>
+      <pre><code style="white-space: pre-wrap;max-width:80%;" id="result"></code>
       </pre>
     </div>
   </body>
