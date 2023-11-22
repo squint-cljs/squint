@@ -164,6 +164,16 @@
         url.searchParams.set('src', code);
         window.location = url;
       }
+
+      window.changeREPL = (target) => {
+        if (target.checked) {
+          repl = true;
+          evalCell({state: editor.state});
+        } else {
+          repl = false;
+          evalCell({state: editor.state});
+        }
+      }
       compile();
     </script>
   </head>
@@ -178,7 +188,10 @@
       </button>
       <button onClick="share()">
         Share!
-      </button>
+        </button>
+        <label>REPL-mode
+        <input type="checkbox" name="repl" onChange="changeREPL(this)" />
+        </label>
     </div>
     <div>
       <pre>
