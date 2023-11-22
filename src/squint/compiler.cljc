@@ -320,7 +320,7 @@
                            tag-name
                            (jsx-attrs attrs env)
                            (let [env (expr-env env)]
-                             (str/join " " (map #(emit % env) elts)))
+                             (str/join "" (map #(emit % env) elts)))
                            tag-name)
                    env))
     (emit-return (format "[%s]"

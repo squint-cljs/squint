@@ -2,14 +2,15 @@
   (:require
    ["@babel/core" :refer [transformSync]]
    ["react" :as React]
-   [clojure.test :as t :refer [deftest]]
+   [clojure.test :as t :refer [deftest is]]
    [goog.object :as gobject]
    [squint.test-utils :refer [jss!]]
    #_:clj-kondo/ignore
    ["fs" :as fs]
    #_:clj-kondo/ignore
    ["path" :as path]
-   ["squint-cljs/core.js" :as squint_core]))
+   ["squint-cljs/core.js" :as squint_core]
+   [clojure.string :as str]))
 
 (gobject/set js/global "React" React)
 (gobject/set js/global "squint_core" squint_core)
@@ -33,7 +34,10 @@
   (test-jsx "(defn TextField [{:keys [multiline]}]) #jsx [TextField {:multiline true}]")
   (testing "spread"
     (test-jsx "(defn TextField [{:keys [multiline]}]) (let [m {:a 1}] #jsx [TextField {:foo 1 :& m}])")
-    (test-jsx "(defn TextField [{:keys [multiline]}]) (let [m {:a 1}] #jsx [TextField {:& m :foo :bar}])")))
+    (test-jsx "(defn TextField [{:keys [multiline]}]) (let [m {:a 1}] #jsx [TextField {:& m :foo :bar}])"))
+  (let [s (jss! "#jsx [:View [:Text \"Hello\"][:Text \"World! \"]]")]
+    (is (str/includes? s "</Text><Text>"))
+    (is (str/includes? s "<Text>World! </Text>"))))
 
 
 

@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+
+## Unreleased
+
+- [#380](https://github.com/squint-cljs/squint/issues/380): Don't emit space in between `#jsx` tags
+
 ## 0.4.57 (2023-11-21)
 
 - Add `condp` macro
