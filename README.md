@@ -283,6 +283,10 @@ A svelte pre-processor for squint can be found [here](https://github.com/jruz/sv
 
 See [examples/vite-react](examples/vite-react).
 
+## React Native (Expo)
+
+See [examples/expo-react-native](examples/expo-react-native).
+
 ## Compile on a server, use in a browser
 
 This is a small demo of how to leverage squint from a JVM to compile snippets of
