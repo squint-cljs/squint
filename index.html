@@ -59,12 +59,51 @@
         "&.cm-focused .cm-cursor": {visibility: "visible"}
       });
 
+      let squintExtension = ( opts ) => {
+        return keymap.of([{key: "Alt-Enter", run: evalCell},
+                          {key: opts.modifier + "-Enter",
+                           run: evalAtCursor,
+                           shift: evalToplevel
+                          }])}
+
+      let urlParams = new URLSearchParams(window.location.search);
+      var repl = JSON.parse(urlParams.get('repl'));
+
+      let evalCode = (code) => {
+        let js = compileString(code, {repl: repl});
+        document.querySelector('#compiledCode').innerText = js;
+        if (!repl) {
+          const encodedJs = encodeURIComponent(js);
+          const dataUri = 'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
+          import(dataUri);
+        } else {
+          console.log('js', js);
+        }
+      }
+
+      let evalCell = (opts) => {
+        let js = opts.state.doc.toString();
+        evalCode(js);
+        return true;
+      }
+
+      let evalAtCursor = (js) => {
+
+        return true;
+      }
+
+      let evalToplevel = (js) => {
+
+        return true;
+      }
+
       let extensions = [
         theme,
         foldGutter(),
         syntaxHighlighting(defaultHighlightStyle),
         drawSelection(),
         keymap.of(complete_keymap),
+        squintExtension({modifier: "Meta"}),
         ...default_extensions
       ];
 
@@ -78,7 +117,6 @@
 (assoc! x :b 2)
 
 (append (js/JSON.stringify x))`.trim();
-      let urlParams = new URLSearchParams(window.location.search);
       let boilerplate = urlParams.get('boilerplate');
       let boilerplateSrc;
       if (boilerplate) {
@@ -101,8 +139,7 @@
                                    parent: editorElt,
                                    extensions: extensions });
       var dev = JSON.parse(urlParams.get('dev')) ?? location.hostname === 'localhost';
-      var repl = JSON.parse(urlParams.get('repl'));
-      console.log('dev', dev);
+
       var squintUrl;
       if (dev) {
         console.log('Loading development squint.js')
@@ -117,11 +154,7 @@
         counter = counter + 1;
         let code = editor.state.doc.toString();
         code = '' + boilerplateSrc + '\n\n' + code;
-        let js = compileString(code, {repl: repl});
-        document.querySelector('#compiledCode').innerText = js;
-        const encodedJs = encodeURIComponent(js);
-        const dataUri = 'data:text/javascript;charset=utf-8;eval=' + counter + ',' + encodedJs;
-        import(dataUri);
+        evalCode(js);
       }
       window.share = () => {
         let code = editor.state.doc.toString().trim();
