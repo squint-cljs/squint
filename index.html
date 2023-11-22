@@ -69,15 +69,17 @@
       let urlParams = new URLSearchParams(window.location.search);
       var repl = JSON.parse(urlParams.get('repl'));
 
-      let evalCode = (code) => {
-        let js = compileString(code, {repl: repl});
+      let evalCode = async (code) => {
+        let js = compileString(`(do ${code})`, {repl: repl, "elide-exports": repl, context: repl ? 'return' : 'statement'});
         document.querySelector('#compiledCode').innerText = js;
         if (!repl) {
           const encodedJs = encodeURIComponent(js);
           const dataUri = 'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
-          import(dataUri);
+          let result = await import(dataUri);
         } else {
-          console.log('js', js);
+          console.log('eval');
+          let result = await eval(`(async function() { ${js} })()`);
+          document.querySelector('#result').innerText = result + '';
         }
       }
 
@@ -87,8 +89,9 @@
         return true;
       }
 
-      let evalAtCursor = (js) => {
-
+      let evalAtCursor = (opts) => {
+        let js = eval_region.cursor_node_string(opts.state).toString();
+        evalCode(js);
         return true;
       }
 
@@ -149,12 +152,10 @@
       }
       var squint = await(import(squintUrl));
       var compileString = squint.compileString;
-      var counter = 0;
       window.compile = () => {
-        counter = counter + 1;
         let code = editor.state.doc.toString();
         code = '' + boilerplateSrc + '\n\n' + code;
-        evalCode(js);
+        evalCode(code);
       }
       window.share = () => {
         let code = editor.state.doc.toString().trim();
@@ -181,7 +182,9 @@
     </div>
     <div>
       <pre>
-        <code style="display: inline-block;white-space: normal;max-width:80%; word-break:break-all; word-wrap:break-word" id="compiledCode"></code></pre>
+        <code style="display: inline-block;white-space: normal;max-width:80%; word-break:break-all; word-wrap:break-word" id="compiledCode"></code>
+        <code style="display: inline-block;white-space: normal;max-width:80%; word-break:break-all; word-wrap:break-word" id="result"></code>
+      </pre>
     </div>
   </body>
 </html>
