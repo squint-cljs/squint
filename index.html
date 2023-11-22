@@ -108,13 +108,14 @@
       }
 
       let evalAtCursor = (opts) => {
+        if (!repl) return;
         let js = eval_region.cursor_node_string(opts.state).toString();
         evalCode(js);
         return true;
       }
 
       let evalToplevel = (js) => {
-
+        if (!repl) return;
         return true;
       }
 
