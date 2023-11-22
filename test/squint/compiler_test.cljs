@@ -1611,5 +1611,11 @@
                      #{4 5 9} :>> dec
                      #{1 2 3} :>> #(+ % 3))))))
 
+(deftest re-find-test
+  (is (eq nil (jsv! '(re-find #"foo." "dude"))))
+  (is (eq "foox" (jsv! '(re-find #"foo." "xfooxbar"))))
+  (is (eq (re-find #"(\D+)|(\d+)" "word then number 57")
+          (vec (jsv! '(re-find #"(\D+)|(\d+)" "word then number 57"))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

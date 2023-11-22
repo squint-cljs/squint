@@ -782,6 +782,23 @@ export function re_matches(re, s) {
       return matches;
     }
   }
+  return null;
+}
+
+export function re_find(re, s) {
+  if (string_QMARK_(s)) {
+    let matches = re.exec(s);
+    if (matches != null) {
+      if (matches.length === 1)
+        return matches[0];
+      else {
+        return [...matches];
+      }
+    }
+    return null;
+  } else {
+    throw new TypeError("re-find must match against a string.");
+  }
 }
 
 export function subvec(arr, start, end) {

@@ -128,6 +128,7 @@
   rand_int
   rand_nth
   range
+  re_find
   re_matches
   re_seq
   reduce

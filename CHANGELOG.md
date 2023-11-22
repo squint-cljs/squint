@@ -6,6 +6,7 @@
 ## Unreleased
 
 - [#380](https://github.com/squint-cljs/squint/issues/380): Don't emit space in between `#jsx` tags
+- Add `re-find`
 
 ## 0.4.57 (2023-11-21)
 
