@@ -83,49 +83,6 @@
         }
       }
 
-      function printObject(o, indent) {
-        var out = '';
-        if (typeof indent === 'undefined') {
-          indent = 0;
-        }
-        for (var p in o) {
-          if (o.hasOwnProperty(p)) {
-            var val = o[p];
-            out += new Array(4 * indent + 1).join(' ') + p + ': ';
-            if (typeof val === 'object') {
-              if (val instanceof Date) {
-                out += 'Date "' + val.toISOString() + '"';
-              } else {
-                out += '{\n' + printObject(val, indent + 1) + new Array(4 * indent + 1).join(' ') + '}';
-              }
-            } else if (typeof val === 'function') {
-
-            } else {
-              out += '"' + val + '"';
-            }
-            out += ',\n';
-          }
-        }
-        return out;
-      }
-
-      function JSONstringify(json) {
-        json = JSON.stringify(json, function(key, value) {
-          if (!value) return value;
-          if (typeof value === 'string') return value;
-          if (Array.isArray(value) || value.constructor === Object) return value;
-          if (value[Symbol.iterator]) {
-            return [...value];
-          }
-          if (typeof value === 'object') {
-            return `#object[${value.constructor.name}]`;
-          } else {
-            return value;
-          }
-        });
-        return json;
-      }
-
       let evalCell = (opts) => {
         let js = opts.state.doc.toString();
         evalCode(js);
@@ -226,10 +183,10 @@
         document.getElementById('result').innerText = '';
         if (target.checked) {
           repl = true;
-          evalCell({state: editor.state});
+          compile();
         } else {
           repl = false;
-          evalCell({state: editor.state});
+          compile();
         }
         let url = new URL(window.location.href);
         if (repl) {
