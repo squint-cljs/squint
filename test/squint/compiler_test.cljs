@@ -338,7 +338,13 @@
   (testing "clash with core var"
     (let [r (jsv! '(vec (for [_ {:a 1 :b 2}]
                           _)))]
-      (is (eq #js [#js ["a" 1] #js ["b" 2]] r)))))
+      (is (eq #js [#js ["a" 1] #js ["b" 2]] r))))
+  (testing "repl-mode"
+    (let [s (jss! "(vec (for [x [1 2 3]]
+                           x))"
+                  {:repl true})]
+      (is (str/includes? s "globalThis"))
+      (is (eq [1 2 3] (js/eval s))))))
 
 (deftest regex-test
   (is (eq '("foo")
@@ -907,7 +913,8 @@
     (is (= nil (jsv! '(seq []))))
     (is (= nil (jsv! '(seq {}))))
     (is (= nil (jsv! '(seq #{}))))
-    (is (= nil (jsv! '(seq (js/Map.))))))
+    (is (= nil (jsv! '(seq (js/Map.)))))
+    (is (= nil (jsv! '(seq (map inc []))))))
   (is (eq #js [0 2 4 6 8]
           (jsv! '(loop [evens []
                         nums (range 10)]

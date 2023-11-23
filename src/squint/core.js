@@ -459,6 +459,8 @@ export function seq(x) {
   if (iter.length === 0 || iter.size === 0) {
     return null;
   }
+  let _i = iter[Symbol.iterator]();
+  if (_i.next().done) return null;
   return iter;
 }
 

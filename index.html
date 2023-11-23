@@ -72,6 +72,9 @@
 
       let evalCode = async (code) => {
         let js = compileString(`(do ${code})`, {repl: repl, "elide-exports": repl, context: repl ? 'return' : 'statement'});
+        if (dev) {
+          js = js.replace('squint-cljs/core.js', '/core.js');
+        }
         document.querySelector('#compiledCode').innerText = js;
         if (!repl) {
           const encodedJs = encodeURIComponent(js);

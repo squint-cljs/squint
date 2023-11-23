@@ -164,7 +164,8 @@
 (defmethod emit-special 'squint.impl/for-of [_type enc-env [_for-of [k v] body :as _expr]]
   (let [env (assoc enc-env :context :statement)
         gensym (:gensym env)
-        local (gensym)]
+        local (gensym)
+        env (update env :var->ident assoc local local)]
     (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" local)
                      (list 'clojure.core/iterable v))
                env)
