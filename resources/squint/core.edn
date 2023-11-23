@@ -125,6 +125,7 @@
   pr_str
   println
   prn
+  quot
   rand_int
   rand_nth
   range
