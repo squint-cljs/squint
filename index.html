@@ -73,13 +73,11 @@
       let evalCode = async (code) => {
         let js = compileString(`(do ${code})`, {repl: repl, "elide-exports": repl, context: repl ? 'return' : 'statement'});
         document.querySelector('#compiledCode').innerText = js;
-        console.log(js);
         if (!repl) {
           const encodedJs = encodeURIComponent(js);
           const dataUri = 'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
           let result = await import(dataUri);
         } else {
-          console.log('eval');
           let result = await eval(`(async function() { ${js} })()`);
           document.querySelector('#result').innerText = util.inspect(result);
         }
@@ -153,6 +151,7 @@
         drawSelection(),
         keymap.of(complete_keymap),
         squintExtension({modifier: "Meta"}),
+        eval_region.extension({modifier: "Meta"}),
         ...default_extensions
       ];
 
