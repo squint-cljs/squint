@@ -124,7 +124,7 @@
 
 (def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "=" "==" "===" "<" ">" "<=" ">=" "!="
                        "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"
-                       "bit-or" "bit-and" "coercive-="})
+                       "bit-or" "bit-and" "coercive-=" "js-mod"})
 
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and"})
 
@@ -159,7 +159,8 @@
                                  'not= "!=="
                                  '+ "+"
                                  'bit-or "|"
-                                 'bit-and "&"}]
+                                 'bit-and "&"
+                                 'js-mod "%"}]
               (str "(" (str/join (str " " (or (substitutions operator)
                                               operator) " ")
                                  (emit-args env args)) ")"))
