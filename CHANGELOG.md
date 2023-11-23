@@ -2,6 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.59 (2023-11-23)
+
+- Add `js-mod` and `quot`
 
 ## 0.4.58 (2023-11-22)
 
