@@ -205,31 +205,28 @@
   <body>
     <div style="float: right;">
       <a href="https://gitHub.com/squint-cljs/squint"><img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a></div>
-     <div id="editor" style="border: 1px solid grey; border-radius: 10px; margin-bottom: 10px;">
-     </div>
-           <button onClick="compile()">
-        Compile!
-      </button>
-      <button onClick="share()">
-        Share!
-        </button>
+    <div style="display: flex;  flex-direction: row;">
+      <div id="editor" style=" width: 50%; border: 1px solid grey; border-radius: 10px; margin-bottom: 10px;">
       </div>
-      <div>
-       <br>
-
-     <label>REPL-mode
-     <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
-     </label>
-
-    </div>
-     <div>
-       <br>
-       In REPL-mode you can evaluate individual expression by using the ⌘ (macOS) or Windows key + Enter. The result will appear below.
-      <pre><code style="white-space: pre-wrap;max-width:80%;" id="result"></code>
-      </pre>
-      Compiled code:
-      <pre><code style="white-space: pre-wrap;max-width:80%;" id="compiledCode"></code>
-      </pre>
+      <div style="width: 50%">
+              <button onClick="compile()">
+        Compile!
+              </button>
+              <button onClick="share()">
+                Share!
+              </button>
+              <br>
+              <label>REPL-mode
+                <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+              </label>
+              <br>
+              In REPL-mode you can evaluate individual expression by using the ⌘ (macOS) or Windows key + Enter. The result will appear below.
+              <pre><code style="white-space: pre-wrap;max-width:80%;" id="result"></code>
+              </pre>
+              Compiled code:
+              <pre><code style="white-space: pre-wrap;max-width:80%;" id="compiledCode"></code>
+              </pre>
+      </div>
     </div>
   </body>
 </html>
