@@ -73,7 +73,7 @@
       let evalCode = async (code) => {
         let js = compileString(`(do ${code})`, {repl: repl, "elide-exports": repl, context: repl ? 'return' : 'statement'});
         if (dev) {
-          js = js.replace('squint-cljs/core.js', '/core.js');
+          js = js.replace('squint-cljs/core.js', 'http://' + window.location.host + '/core.js');
         }
         document.querySelector('#compiledCode').innerText = js;
         if (!repl) {

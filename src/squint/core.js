@@ -455,6 +455,7 @@ export function _iterator(coll) {
 export const es6_iterator = _iterator;
 
 export function seq(x) {
+  if (x == null) return x;
   let iter = iterable(x);
   // return nil for terminal checking
   if (iter.length === 0 || iter.size === 0) {
@@ -1633,8 +1634,7 @@ export function next(x) {
       return null;
     }
   } else {
-    // opiniated choice, next realizes underlying sequence
-    return next(vec(x));
+    return seq(rest(x));
   }
 }
 
