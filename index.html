@@ -5,17 +5,19 @@
     <meta content="width=device-width, initial-scale=1" name="viewport">
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
     <meta content="utf-8" http-equiv="encoding">
+    <script src="https://unpkg.com/node-inspect-extracted/dist/inspect.js">
     <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.0/dist/es-module-shims.js" crossorigin="anonymous"></script>
     <script type="importmap">
       {
         "imports": {
-          "squint-cljs": "https://unpkg.com/squint-cljs@0.4.56/index.js",
-          "squint-cljs/core.js": "https://unpkg.com/squint-cljs@0.4.56/core.js",
-          "squint-cljs/string.js": "https://unpkg.com/squint-cljs@0.4.56/string.js",
+          "squint-cljs": "https://unpkg.com/squint-cljs@0.4.58/index.js",
+          "squint-cljs/core.js": "https://unpkg.com/squint-cljs@0.4.58/core.js",
+          "squint-cljs/string.js": "https://unpkg.com/squint-cljs@0.4.58/string.js",
           "@codemirror/language": "https://ga.jspm.io/npm:@codemirror/language@6.9.2/dist/index.js",
           "@codemirror/state": "https://ga.jspm.io/npm:@codemirror/state@6.3.1/dist/index.js",
           "@codemirror/view": "https://ga.jspm.io/npm:@codemirror/view@6.21.4/dist/index.js",
-          "@nextjournal/clojure-mode": "https://ga.jspm.io/npm:@nextjournal/clojure-mode@0.1.0-rc4/dist/nextjournal/clojure_mode.mjs"
+          "@nextjournal/clojure-mode": "https://ga.jspm.io/npm:@nextjournal/clojure-mode@0.3.0/dist/nextjournal/clojure_mode.mjs",
+          "@nextjournal/clojure-mode/extensions/eval-region": "https://ga.jspm.io/npm:@nextjournal/clojure-mode@0.3.0/dist/nextjournal/clojure_mode/extensions/eval_region.mjs"
         },
         "scopes": {
           "https://ga.jspm.io/": {
@@ -34,7 +36,7 @@
 
     <script type="module">
       import { default_extensions, complete_keymap } from '@nextjournal/clojure-mode';
-
+      import * as eval_region from '@nextjournal/clojure-mode/extensions/eval-region';
       import { EditorView, drawSelection, keymap } from  '@codemirror/view';
       import { EditorState } from  '@codemirror/state';
       import { syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
@@ -58,26 +60,123 @@
         "&.cm-focused .cm-cursor": {visibility: "visible"}
       });
 
+      let squintExtension = ( opts ) => {
+        return keymap.of([{key: "Alt-Enter", run: evalCell},
+                          {key: opts.modifier + "-Enter",
+                           run: evalAtCursor,
+                           shift: evalToplevel
+                          }])}
+
+      let urlParams = new URLSearchParams(window.location.search);
+      var repl = JSON.parse(urlParams.get('repl'));
+
+      let evalCode = async (code) => {
+        let js = compileString(`(do ${code})`, {repl: repl, "elide-exports": repl, context: repl ? 'return' : 'statement'});
+        document.querySelector('#compiledCode').innerText = js;
+        if (!repl) {
+          const encodedJs = encodeURIComponent(js);
+          const dataUri = 'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
+          let result = await import(dataUri);
+        } else {
+          let result = await eval(`(async function() { ${js} })()`);
+          document.querySelector('#result').innerText = util.inspect(result);
+        }
+      }
+
+      function printObject(o, indent) {
+        var out = '';
+        if (typeof indent === 'undefined') {
+          indent = 0;
+        }
+        for (var p in o) {
+          if (o.hasOwnProperty(p)) {
+            var val = o[p];
+            out += new Array(4 * indent + 1).join(' ') + p + ': ';
+            if (typeof val === 'object') {
+              if (val instanceof Date) {
+                out += 'Date "' + val.toISOString() + '"';
+              } else {
+                out += '{\n' + printObject(val, indent + 1) + new Array(4 * indent + 1).join(' ') + '}';
+              }
+            } else if (typeof val === 'function') {
+
+            } else {
+              out += '"' + val + '"';
+            }
+            out += ',\n';
+          }
+        }
+        return out;
+      }
+
+      function JSONstringify(json) {
+        json = JSON.stringify(json, function(key, value) {
+          if (!value) return value;
+          if (typeof value === 'string') return value;
+          if (Array.isArray(value) || value.constructor === Object) return value;
+          if (value[Symbol.iterator]) {
+            return [...value];
+          }
+          if (typeof value === 'object') {
+            return `#object[${value.constructor.name}]`;
+          } else {
+            return value;
+          }
+        });
+        return json;
+      }
+
+      let evalCell = (opts) => {
+        let js = opts.state.doc.toString();
+        evalCode(js);
+        return true;
+      }
+
+      let evalAtCursor = (opts) => {
+        if (!repl) return;
+        let js = eval_region.cursor_node_string(opts.state).toString();
+        evalCode(js);
+        return true;
+      }
+
+      let evalToplevel = (js) => {
+        if (!repl) return;
+        return true;
+      }
+
       let extensions = [
         theme,
         foldGutter(),
         syntaxHighlighting(defaultHighlightStyle),
         drawSelection(),
         keymap.of(complete_keymap),
+        squintExtension({modifier: "Meta"}),
+        eval_region.extension({modifier: "Meta"}),
         ...default_extensions
       ];
 
       let doc = `
-(defn append [str]
-  (js/document.body.appendChild
-    (doto (js/document.createElement "div")
-      (set! -innerText str))))
+      (comment
+  (fizz-buzz 1)
+  (fizz-buzz 3)
+  (fizz-buzz 5)
+  (fizz-buzz 15)
+  (fizz-buzz 17)
+  (fizz-buzz 42))
 
-(def x {:a 1})
-(assoc! x :b 2)
+(defn fizz-buzz [n]
+  (condp (fn [a b] (zero? (mod b a))) n
+    15 "fizzbuzz"
+    3  "fizz"
+    5  "buzz"
+    n))
 
-(append (js/JSON.stringify x))`.trim();
-      let urlParams = new URLSearchParams(window.location.search);
+(require '["https://esm.sh/canvas-confetti@1.6.0$default" :as confetti])
+
+(do
+  (js-await (confetti))
+  (+ 1 2 3))
+`.trim();
       let boilerplate = urlParams.get('boilerplate');
       let boilerplateSrc;
       if (boilerplate) {
@@ -100,8 +199,7 @@
                                    parent: editorElt,
                                    extensions: extensions });
       var dev = JSON.parse(urlParams.get('dev')) ?? location.hostname === 'localhost';
-      var repl = JSON.parse(urlParams.get('repl'));
-      console.log('dev', dev);
+
       var squintUrl;
       if (dev) {
         console.log('Loading development squint.js')
@@ -111,16 +209,10 @@
       }
       var squint = await(import(squintUrl));
       var compileString = squint.compileString;
-      var counter = 0;
       window.compile = () => {
-        counter = counter + 1;
         let code = editor.state.doc.toString();
         code = '' + boilerplateSrc + '\n\n' + code;
-        let js = compileString(code, {repl: repl});
-        document.querySelector('#compiledCode').innerText = js;
-        const encodedJs = encodeURIComponent(js);
-        const dataUri = 'data:text/javascript;charset=utf-8;eval=' + counter + ',' + encodedJs;
-        import(dataUri);
+        evalCode(code);
       }
       window.share = () => {
         let code = editor.state.doc.toString().trim();
@@ -128,6 +220,27 @@
         let url = new URL(window.location);
         url.searchParams.set('src', code);
         window.location = url;
+      }
+
+      window.changeREPL = (target) => {
+        document.getElementById('result').innerText = '';
+        if (target.checked) {
+          repl = true;
+          evalCell({state: editor.state});
+        } else {
+          repl = false;
+          evalCell({state: editor.state});
+        }
+        let url = new URL(window.location.href);
+        if (repl) {
+          url.searchParams.set("repl", repl);
+        } else {
+          url.searchParams.delete("repl");
+        }
+        window.history.replaceState(null, null, url);
+      }
+      if (repl) {
+        document.getElementById('replCheckBox').checked = true;
       }
       compile();
     </script>
@@ -137,17 +250,29 @@
       <a href="https://gitHub.com/squint-cljs/squint"><img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a></div>
      <div id="editor" style="border: 1px solid grey; border-radius: 10px; margin-bottom: 10px;">
      </div>
-    <div>
-      <button onClick="compile()">
+           <button onClick="compile()">
         Compile!
       </button>
       <button onClick="share()">
         Share!
-      </button>
+        </button>
+      </div>
+      <div>
+       <br>
+
+     <label>REPL-mode
+     <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+     </label>
+
     </div>
-    <div>
-      <pre>
-        <code style="display: inline-block;white-space: normal;max-width:80%; word-break:break-all; word-wrap:break-word" id="compiledCode"></code></pre>
+     <div>
+       <br>
+       In REPL-mode you can evaluate individual expression by using the ⌘ (macOS) or Windows key + Enter. The result will appear below.
+      <pre><code style="white-space: pre-wrap;max-width:80%;" id="result"></code>
+      </pre>
+      Compiled code:
+      <pre><code style="white-space: pre-wrap;max-width:80%;" id="compiledCode"></code>
+      </pre>
     </div>
   </body>
 </html>
