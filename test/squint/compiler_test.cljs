@@ -956,7 +956,10 @@
     (is (eq [[1,4],[2,5],[3,6]]
             (jsv! '(vec (map vector [1 2 3] [4 5 6 7 8 9])))))
     (is (eq []
-            (jsv! '(vec (map vector nil nil nil)))))))
+            (jsv! '(vec (map vector nil nil nil))))))
+  (testing "transducer"
+    (is (eq (transduce (map inc) + 0 [1 2 3])
+            (jsv! '(transduce (map inc) + 0 [1 2 3]))))))
 
 (deftest mapv-test
   (is (= true (jsv! '(vector? (mapv inc [0 1 2 3 4])))))

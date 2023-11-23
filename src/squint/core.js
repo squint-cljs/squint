@@ -234,7 +234,7 @@ export function conj_BANG_(...xs) {
       break;
     case MAP_TYPE:
       for (const x of rest) {
-        if (!(Array.isArray(x)))
+        if (!Array.isArray(x))
           iterable(x).forEach((kv) => {
             o.set(kv[0], kv[1]);
           });
@@ -243,7 +243,7 @@ export function conj_BANG_(...xs) {
       break;
     case OBJECT_TYPE:
       for (const x of rest) {
-        if (!(Array.isArray(x))) Object.assign(o, x);
+        if (!Array.isArray(x)) Object.assign(o, x);
         else o[x[0]] = x[1];
       }
       break;
@@ -278,7 +278,7 @@ export function conj(...xs) {
       const m = new Map(o);
 
       for (const x of rest) {
-        if (!(Array.isArray(x)))
+        if (!Array.isArray(x))
           iterable(x).forEach((kv) => {
             m.set(kv[0], kv[1]);
           });
@@ -295,7 +295,7 @@ export function conj(...xs) {
       const o2 = { ...o };
 
       for (const x of rest) {
-        if (!(Array.isArray(x))) Object.assign(o2, x);
+        if (!Array.isArray(x)) Object.assign(o2, x);
         else o2[x[0]] = x[1];
       }
 
@@ -412,7 +412,7 @@ export function get(coll, key, otherwise = undefined) {
       let g = coll['get'];
       if (g instanceof Function) {
         try {
-        v = coll.get(key);
+          v = coll.get(key);
           break;
         } catch (e) {}
       }
@@ -600,7 +600,24 @@ export function map(f, ...colls) {
   f = toFn(f);
   switch (colls.length) {
     case 0:
-      throw new Error('map with 2 arguments is not supported yet');
+      return (rf) => {
+        return (...args) => {
+          switch (args.length) {
+            case 0: {
+              return rf();
+            }
+            case 1: {
+              return rf(args[0]);
+            }
+            case 2: {
+              return rf(args[0], f(args[1]));
+            }
+            default: {
+              return rf(args[0], f(...args.slice(1)));
+            }
+          }
+        };
+      };
     case 1:
       return lazy(function* () {
         for (const x of iterable(colls[0])) {
@@ -789,15 +806,14 @@ export function re_find(re, s) {
   if (string_QMARK_(s)) {
     let matches = re.exec(s);
     if (matches != null) {
-      if (matches.length === 1)
-        return matches[0];
+      if (matches.length === 1) return matches[0];
       else {
         return [...matches];
       }
     }
     return null;
   } else {
-    throw new TypeError("re-find must match against a string.");
+    throw new TypeError('re-find must match against a string.');
   }
 }
 
@@ -1322,7 +1338,7 @@ export function not_any_QMARK_(pred, coll) {
 }
 
 export function replace(smap, coll) {
-  let mapf = (Array.isArray(coll)) ? mapv : map;
+  let mapf = Array.isArray(coll) ? mapv : map;
   return mapf((x) => {
     const repl = smap[x];
     if (repl !== undefined) {
@@ -1858,4 +1874,22 @@ function fix(q) {
 export function quot(n, d) {
   let rem = n % d;
   return fix((n - rem) / d);
+}
+
+export function transduce(xform, ...args) {
+  switch (args.length) {
+    case 2: {
+      let f = args[0];
+      let coll = args[1];
+      return transduce(xform, f, f(), coll);
+    }
+    default: {
+      let f = args[0];
+      let init = args[1];
+      let coll = args[2];
+      f = xform(f);
+      let ret = reduce(f, init, coll);
+      return f(ret);
+    }
+  }
 }
