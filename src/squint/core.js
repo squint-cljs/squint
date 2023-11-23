@@ -1847,3 +1847,15 @@ export function parse_long(x) {
   }
   return parsing_err(x);
 }
+
+function fix(q) {
+  if (q >= 0) {
+    return Math.floor(q);
+  }
+  return Math.ceil(x);
+}
+
+export function quot(n, d) {
+  let rem = n % d;
+  return fix((n - rem) / d);
+}
