@@ -5,6 +5,7 @@
     <meta content="width=device-width, initial-scale=1" name="viewport">
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
     <meta content="utf-8" http-equiv="encoding">
+    <script src="https://unpkg.com/node-inspect-extracted/dist/inspect.js">
     <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.0/dist/es-module-shims.js" crossorigin="anonymous"></script>
     <script type="importmap">
       {
@@ -80,8 +81,34 @@
         } else {
           console.log('eval');
           let result = await eval(`(async function() { ${js} })()`);
-          document.querySelector('#result').innerText = JSONstringify(result);
+          document.querySelector('#result').innerText = util.inspect(result);
         }
+      }
+
+      function printObject(o, indent) {
+        var out = '';
+        if (typeof indent === 'undefined') {
+          indent = 0;
+        }
+        for (var p in o) {
+          if (o.hasOwnProperty(p)) {
+            var val = o[p];
+            out += new Array(4 * indent + 1).join(' ') + p + ': ';
+            if (typeof val === 'object') {
+              if (val instanceof Date) {
+                out += 'Date "' + val.toISOString() + '"';
+              } else {
+                out += '{\n' + printObject(val, indent + 1) + new Array(4 * indent + 1).join(' ') + '}';
+              }
+            } else if (typeof val === 'function') {
+
+            } else {
+              out += '"' + val + '"';
+            }
+            out += ',\n';
+          }
+        }
+        return out;
       }
 
       function JSONstringify(json) {
@@ -130,15 +157,27 @@
       ];
 
       let doc = `
-(defn append [str]
-  (js/document.body.appendChild
-    (doto (js/document.createElement "div")
-      (set! -innerText str))))
+      (comment
+  (fizz-buzz 1)
+  (fizz-buzz 3)
+  (fizz-buzz 5)
+  (fizz-buzz 15)
+  (fizz-buzz 17)
+  (fizz-buzz 42))
 
-(def x {:a 1})
-(assoc! x :b 2)
+(defn fizz-buzz [n]
+  (condp (fn [a b] (zero? (mod b a))) n
+    15 "fizzbuzz"
+    3  "fizz"
+    5  "buzz"
+    n))
 
-(append (js/JSON.stringify x))`.trim();
+(require '["https://esm.sh/canvas-confetti@1.6.0$default" :as confetti])
+
+(do
+  (js-await (confetti))
+  (+ 1 2 3))
+`.trim();
       let boilerplate = urlParams.get('boilerplate');
       let boilerplateSrc;
       if (boilerplate) {
@@ -225,9 +264,9 @@
         </button>
     </div>
     <div>
-      <pre><code style="white-space: pre-wrap;max-width:80%;" id="compiledCode"></code>
-      </pre>
       <pre><code style="white-space: pre-wrap;max-width:80%;" id="result"></code>
+      </pre>
+      <pre><code style="white-space: pre-wrap;max-width:80%;" id="compiledCode"></code>
       </pre>
     </div>
   </body>
