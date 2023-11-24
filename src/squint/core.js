@@ -853,6 +853,13 @@ export function apply(f, ...args) {
   f = toFn(f);
   const xs = args.slice(0, args.length - 1);
   const coll = args[args.length - 1];
+  // console.log('pre', f);
+  // let ret = f(...xs, ...coll);
+  // console.log('after');
+  console.log('t', coll.constructor);
+  if (coll instanceof LazyIterable) {
+    return f.apply(null, ...xs, coll);
+  }
   return f(...xs, ...coll);
 }
 
@@ -892,7 +899,7 @@ export function array_QMARK_(x) {
   return Array.isArray(x);
 }
 
-export function concat(...colls) {
+function concat1(colls) {
   return lazy(function* () {
     for (const coll of colls) {
       yield* iterable(coll);
@@ -900,8 +907,18 @@ export function concat(...colls) {
   });
 }
 
+export function concat(...colls) {
+  return concat1(colls);
+}
+
+// lazy seqable argument
+concat["apply"] = (_, colls) => {
+  return concat1(colls);
+};
+
 export function mapcat(f, ...colls) {
-  return concat(...map(f, ...colls));
+  let mapped = map(f, ...colls);
+  return concat.apply(null, mapped);
 }
 
 export function identity(x) {

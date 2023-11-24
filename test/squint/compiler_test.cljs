@@ -1080,7 +1080,9 @@
   (is (eq [] (jsv! '(vec (concat nil)))))
   (is (eq [1] (jsv! '(vec (concat nil [] [1])))))
   (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(vec (concat [0 1 2 3] [4 5 6] [7 8 9])))))
-  (is (eq [["a" "b"] ["c" "d"] 2] (jsv! '(vec (concat {"a" "b" "c" "d"} [2]))))))
+  (is (eq [["a" "b"] ["c" "d"] 2] (jsv! '(vec (concat {"a" "b" "c" "d"} [2])))))
+  (testing "apply infinite seq to concat"
+    (is (eq [] (jsv! '(vec (take 10 (apply concat (repeat [1 2 3])))))))))
 
 (deftest mapcat-test
   (is (eq [] (jsv! '(vec (mapcat identity nil)))))
