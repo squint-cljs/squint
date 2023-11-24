@@ -9,7 +9,7 @@
                            :justifyContent "center"}}))
 
 (defn- App []
-  #jsx [View {:style styles.container}
+  #jsx [View {:style (do [styles.container {:backgroundColor "#aff"}])}
         [Text "Open up App.js to start working on your app"]
         [MyComponent/MyComponent]
         [StatusBar {:style "auto"}]])

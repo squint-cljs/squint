@@ -273,22 +273,16 @@
                    :else (cc/emit-special 'funcall env expr*))))
              (keyword? fexpr)
              (let [[k obj & args] expr]
-               (emit (list* 'get obj k args) env))
+               (emit (list* 'clojure.core/get obj k args) env))
              (or (map? fexpr)
                  (set? fexpr))
              (let [[obj k & args] expr]
-               (emit (list* 'get obj k args) env))
+               (emit (list* 'clojure.core/get obj k args) env))
              (list? expr)
              (cc/emit-special 'funcall env expr)
              :else
              (throw (new Exception (str "invalid form: " expr))))))
    env))
-
-#_(defn wrap-expr [env s]
-    (case (:context env)
-      :expr (wrap-iife s)
-      :statement s
-      :return s))
 
 (defn jsx-attrs [v env]
   (let [env (expr-env env)]
@@ -298,7 +292,9 @@
                      (map (fn [[k v]]
                             (if (= :& k)
                               (str "{..." (emit v (dissoc env :jsx)) "}")
-                              (str (name k) "=" (emit v (assoc env :jsx-attr true)))))
+                              (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
+                                                  (not (string? v))
+                                                  (escape-jsx env)))))
                           v)))
       "")))
 
