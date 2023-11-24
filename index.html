@@ -161,7 +161,7 @@
         };
         doc = src;
       } else {
-        doc = localStorage.getItem("document");
+        doc = localStorage.getItem("document") || doc;
       }
       let state = EditorState.create({doc: doc,
                                       extensions: extensions });
