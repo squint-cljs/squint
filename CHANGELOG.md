@@ -2,6 +2,14 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.60 (2023-11-24)
+
+- `map` + `transduce` support
+- Fix `for` in REPL mode
+- Throw when object is not iterable in `for`
+- Make next lazy when input is lazy
+- Fix playground shim (fixes issue in older versions of Safari)
+
 ## 0.4.59 (2023-11-23)
 
 - Add `js-mod` and `quot`
