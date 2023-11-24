@@ -440,7 +440,7 @@ export function iterable(x) {
   if (seqable_QMARK_(x)) {
     return x;
   }
-  if (isObj(x)) return Object.entries(x);
+  if (x instanceof Object) return Object.entries(x);
   throw new TypeError(`${x} is not iterable`);
 }
 
