@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.61 (2023-11-25)
+
+- Escape JSX attribute vector value (and more)
+
 ## 0.4.60 (2023-11-24)
 
 - `map` + `transduce` support

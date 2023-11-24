@@ -294,6 +294,9 @@
                               (str "{..." (emit v (dissoc env :jsx)) "}")
                               (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
                                                   (not (string? v))
+                                                  ;; since we escape here, we
+                                                  ;; can probably remove
+                                                  ;; escaping elsewhere?
                                                   (escape-jsx env)))))
                           v)))
       "")))
