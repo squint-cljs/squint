@@ -103,7 +103,15 @@
         if (!repl) return;
         return true;
       }
-
+      let updateExt = EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          let url = new URL(window.location.href);
+          url.searchParams.delete("src");
+          window.history.replaceState(null, null, url);
+          console.log('saving', editor.state.doc.toString())
+          localStorage.setItem("document", editor.state.doc.toString());
+        }
+      });
       let extensions = [
         theme,
         foldGutter(),
@@ -112,6 +120,7 @@
         keymap.of(complete_keymap),
         squintExtension({modifier: "Meta"}),
         eval_region.extension({modifier: "Meta"}),
+        updateExt,
         ...default_extensions
       ];
 
@@ -151,6 +160,8 @@
           src = atob(src)
         };
         doc = src;
+      } else {
+        doc = localStorage.getItem("document");
       }
       let state = EditorState.create({doc: doc,
                                       extensions: extensions });
