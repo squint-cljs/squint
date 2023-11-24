@@ -9,9 +9,9 @@
                            :justifyContent "center"}}))
 
 (defn- App []
-  #jsx [:View {:style styles.container}
-        [:Text "Open up App.js to start working on your app"]
+  #jsx [View {:style styles.container}
+        [Text "Open up App.js to start working on your app"]
         [MyComponent/MyComponent]
-        [:StatusBar {:style "auto"}]])
+        [StatusBar {:style "auto"}]])
 
 (def default App)
