@@ -108,7 +108,6 @@
           let url = new URL(window.location.href);
           url.searchParams.delete("src");
           window.history.replaceState(null, null, url);
-          console.log('saving', editor.state.doc.toString())
           localStorage.setItem("document", editor.state.doc.toString());
         }
       });
