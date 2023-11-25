@@ -1,4 +1,3 @@
-// @ts-check
 function toFn(x) {
   if (x == null) return x;
   if (x instanceof Function) {
@@ -17,8 +16,6 @@ function toFn(x) {
   }
   return x;
 }
-
-globalThis.toFn = toFn;
 
 export function _GT_(x, y) {
   return x > y;
@@ -849,10 +846,16 @@ export function set(coll) {
   return new Set(iterable(coll));
 }
 
+const IApply__apply = Symbol('IApply__apply');
+
 export function apply(f, ...args) {
   f = toFn(f);
   const xs = args.slice(0, args.length - 1);
-  const coll = args[args.length - 1];
+  const coll = iterable(args[args.length - 1]);
+  let af = f[IApply__apply];
+  if (af) {
+    return af(...xs, coll);
+  }
   return f(...xs, ...coll);
 }
 
@@ -892,7 +895,7 @@ export function array_QMARK_(x) {
   return Array.isArray(x);
 }
 
-export function concat(...colls) {
+function concat1(colls) {
   return lazy(function* () {
     for (const coll of colls) {
       yield* iterable(coll);
@@ -900,8 +903,18 @@ export function concat(...colls) {
   });
 }
 
+export function concat(...colls) {
+  return concat1(colls);
+}
+
+// lazy seqable argument
+concat[IApply__apply] = (colls) => {
+  return concat1(colls);
+};
+
 export function mapcat(f, ...colls) {
-  return concat(...map(f, ...colls));
+  let mapped = map(f, ...colls);
+  return concat1(mapped);
 }
 
 export function identity(x) {

@@ -1080,7 +1080,9 @@
   (is (eq [] (jsv! '(vec (concat nil)))))
   (is (eq [1] (jsv! '(vec (concat nil [] [1])))))
   (is (eq [0 1 2 3 4 5 6 7 8 9] (jsv! '(vec (concat [0 1 2 3] [4 5 6] [7 8 9])))))
-  (is (eq [["a" "b"] ["c" "d"] 2] (jsv! '(vec (concat {"a" "b" "c" "d"} [2]))))))
+  (is (eq [["a" "b"] ["c" "d"] 2] (jsv! '(vec (concat {"a" "b" "c" "d"} [2])))))
+  (testing "apply infinite seq to concat"
+    (is (eq [1 2 3 1 2 3 1 2 3 1] (jsv! '(vec (take 10 (apply concat (repeat [1 2 3])))))))))
 
 (deftest mapcat-test
   (is (eq [] (jsv! '(vec (mapcat identity nil)))))
@@ -1088,6 +1090,20 @@
   (is (eq ["a" "b" "c" "d"] (jsv! '(vec (mapcat identity {"a" "b" "c" "d"})))))
   (testing "multiple colls"
     (is (eq ["a" 1 "b" 2] (jsv! '(vec (mapcat list [:a :b :c] [1 2])))))))
+
+(deftest laziness-test
+  (is (eq ["right" "up" "left" "left" "down" "down" "right" "right" "right" "up" "up" "up" "left" "left" "left" "left" "down" "down" "down" "down"]
+          (jsv! '(do (def directions
+                       "Infite seq of directions through
+                        spiral: :right :up :left :left :down, etc."
+                       (let [dirs (cycle [[:right :up] [:left :down]])
+                             amount (map inc (range))]
+                         (mapcat (fn [[d1 d2] amount]
+                                   (concat (repeat amount d1)
+                                           (repeat amount d2)))
+                                 dirs
+                                 amount)))
+                     (vec (take 20 directions)))))))
 
 (deftest interleave-test
   (is (eq [] (jsv! '(vec (interleave nil nil)))))
