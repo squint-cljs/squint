@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.62 (2023-11-25)
+
+- Improvements with respect to laziness in `mapcat` and `concat`
+- Do not array mutate argument in `reverse`
+
 ## 0.4.61 (2023-11-25)
 
 - Escape JSX attribute vector value (and more)
