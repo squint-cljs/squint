@@ -918,6 +918,7 @@ concat["apply"] = (_, colls) => {
 
 export function mapcat(f, ...colls) {
   let mapped = map(f, ...colls);
+  console.log(vec(take(20,mapped)));
   return concat.apply(null, mapped);
 }
 
@@ -1286,10 +1287,7 @@ export function keep(pred, coll) {
 }
 
 export function reverse(coll) {
-  if (Array.isArray(coll)) {
-    // performance: we don't need to copy to another array first
-    return coll.reverse();
-  } else return [...coll].reverse();
+  return [...coll].reverse();
 }
 
 export function sort(f, coll) {
