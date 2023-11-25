@@ -76,6 +76,7 @@
           js = js.replace('squint-cljs/core.js', 'http://' + window.location.host + '/core.js');
         }
         document.querySelector('#compiledCode').innerText = js;
+        try {
         if (!repl) {
           const encodedJs = encodeURIComponent(js);
           const dataUri = 'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
@@ -83,6 +84,11 @@
         } else {
           let result = await eval(`(async function() { ${js} })()`);
           document.querySelector('#result').innerText = util.inspect(result);
+        }
+        }
+        catch (e) {
+          document.querySelector('#result').innerText = util.inspect(e);
+          console.error(e);
         }
       }
 
