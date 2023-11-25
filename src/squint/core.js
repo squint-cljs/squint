@@ -1,4 +1,3 @@
-// @ts-check
 function toFn(x) {
   if (x == null) return x;
   if (x instanceof Function) {
@@ -17,8 +16,6 @@ function toFn(x) {
   }
   return x;
 }
-
-globalThis.toFn = toFn;
 
 export function _GT_(x, y) {
   return x > y;
@@ -849,12 +846,15 @@ export function set(coll) {
   return new Set(iterable(coll));
 }
 
+const IApply__apply = Symbol('IApply__apply');
+
 export function apply(f, ...args) {
   f = toFn(f);
   const xs = args.slice(0, args.length - 1);
   const coll = iterable(args[args.length - 1]);
-  if (coll[Symbol.iterator]) {
-    return f.apply(null, ...xs, coll);
+  let af = f[IApply__apply];
+  if (af) {
+    return af(...xs, coll);
   }
   return f(...xs, ...coll);
 }
@@ -908,14 +908,13 @@ export function concat(...colls) {
 }
 
 // lazy seqable argument
-concat["apply"] = (_, colls) => {
+concat[IApply__apply] = (colls) => {
   return concat1(colls);
 };
 
 export function mapcat(f, ...colls) {
   let mapped = map(f, ...colls);
-  console.log(vec(take(20,mapped)));
-  return concat.apply(null, mapped);
+  return concat1(mapped);
 }
 
 export function identity(x) {
