@@ -1091,6 +1091,20 @@
   (testing "multiple colls"
     (is (eq ["a" 1 "b" 2] (jsv! '(vec (mapcat list [:a :b :c] [1 2])))))))
 
+(deftest laziness-test
+  (is (eq ["right" "up" "left" "left" "down" "down" "right" "right" "right" "up" "up" "up" "left" "left" "left" "left" "down" "down" "down" "down"]
+          (jsv! '(do (def directions
+                       "Infite seq of directions through
+                        spiral: :right :up :left :left :down, etc."
+                       (let [dirs (cycle [[:right :up] [:left :down]])
+                             amount (map inc (range))]
+                         (mapcat (fn [[d1 d2] amount]
+                                   (concat (repeat amount d1)
+                                           (repeat amount d2)))
+                                 dirs
+                                 amount)))
+                     (vec (take 20 directions)))))))
+
 (deftest interleave-test
   (is (eq [] (jsv! '(vec (interleave nil nil)))))
   (is (eq [] (jsv! '(vec (interleave [1 2] nil)))))
