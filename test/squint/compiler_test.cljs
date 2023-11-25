@@ -1316,8 +1316,12 @@
           (vec (jsv! '(keep #(when (odd? %) (inc %)) [1 2 3]))))))
 
 (deftest reverse-test
+  (is (eq (reverse nil) (jsv! '(reverse nil))))
   (is (eq (reverse [1 2 3]) (jsv! '(reverse [1 2 3]))))
-  (is (eq (reverse (range 10)) (jsv! '(reverse (range 10))))))
+  (is (eq (reverse (range 10)) (jsv! '(reverse (range 10)))))
+  (is (eq (let [x [1 2 3]]
+            [x (reverse x)]) (jsv! '(let [x [1 2 3]]
+                                      [x (reverse x)])))))
 
 (deftest sort-test
   (is (eq (sort [3 10]) (jsv! '(sort [3 10]))))

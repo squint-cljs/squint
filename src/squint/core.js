@@ -1287,6 +1287,7 @@ export function keep(pred, coll) {
 }
 
 export function reverse(coll) {
+  coll = iterable(coll);
   return [...coll].reverse();
 }
 
