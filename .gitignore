@@ -31,3 +31,6 @@ playground
 !examples/vite-react/public/index.html
 wordle.cljs
 bun.lockb
+aoc.txt
+aoc_3.cljs
+aoc_3.mjs
