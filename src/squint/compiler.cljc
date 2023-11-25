@@ -327,18 +327,25 @@
                          (str/join ", " (emit-args env expr))) env)))
 
 (defn emit-map [expr env]
-  (let [env* env
-        env (dissoc env :jsx)
-        expr-env (assoc env :context :expr)
-        key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
-                         (str ns "/" (name k))
-                         (name k)))
-        mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) ": "
-                                (emit (val pair) expr-env)))
-        keys (str/join ", " (map mk-pair (seq expr)))]
-    (escape-jsx (-> (format "({ %s })" keys)
-                    (emit-return env))
-                env*)))
+  (if (every? #(or (string? %)
+                   (keyword? %)
+                   (and (:quote env)
+                        (symbol? %))) (keys expr))
+    (let [env* env
+          env (dissoc env :jsx)
+          expr-env (assoc env :context :expr)
+          key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
+                           (str ns "/" (name k))
+                           (name k)))
+          mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) ": "
+                                  (emit (val pair) expr-env)))
+          keys (str/join ", " (map mk-pair (seq expr)))]
+      (escape-jsx (-> (format "({ %s })" keys)
+                      (emit-return env))
+                  env*))
+    (let [expr (list* 'doto {} (map (fn [[k v]]
+                                      (list 'clojure.core/unchecked-set k v)) expr))]
+      (emit expr env))))
 
 (defn emit-set [expr env]
   (emit-return

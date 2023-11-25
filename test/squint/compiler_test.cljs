@@ -1403,6 +1403,11 @@
   (is (eq [[] []] (jsv! '(mapv vec (split-at 1 nil)))))
   (is (eq [[] [1 2 3]] (jsv! '(mapv vec (split-at 0 [1 2 3]))))))
 
+(deftest map-literal-test
+  (is (eq {} (jsv! '{})))
+  (is (eq {"1" true} (jsv! '(do (def x 1) {x true}))))
+  (is (eq {"0,1" true} (jsv! '{[0 1] true}))))
+
 (deftest split-with-test
   (is (eq [[1] [2 3]] (jsv! '(mapv vec (split-with odd? [1 2 3])))))
   (is (eq [[] []] (jsv! '(mapv vec (split-with odd? nil)))))
