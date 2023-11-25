@@ -117,7 +117,7 @@ Options:
 --no-run: do not run compiled expression
 --show:   print compiled expression")
       (let [e (if (:repl opts)
-                (str/replace "(do %s)" "%s" e)
+                (str/replace "(do %s\n)" "%s" e)
                 e)
             res (cc/compile-string e (assoc opts :repl (:repl opts) :ns-state (atom {:current 'user})
                                             :context (if (:repl opts) :return :statement)
