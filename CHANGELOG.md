@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- [#386](https://github.com/squint-cljs/squint/issues/386): allow expression in value position in map literal
+
 ## 0.4.62 (2023-11-25)
 
 - Improvements with respect to laziness in `mapcat` and `concat`
