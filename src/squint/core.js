@@ -1269,10 +1269,8 @@ export function keep(pred, coll) {
 }
 
 export function reverse(coll) {
-  if (Array.isArray(coll)) {
-    // performance: we don't need to copy to another array first
-    return coll.reverse();
-  } else return [...coll].reverse();
+  coll = iterable(coll);
+  return [...coll].reverse();
 }
 
 export function sort(f, coll) {
