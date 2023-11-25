@@ -116,7 +116,14 @@ Options:
 
 --no-run: do not run compiled expression
 --show:   print compiled expression")
-      (let [res (cc/compile-string e (assoc opts :repl (:repl opts) :ns-state (atom {:current 'user})))
+      (let [e (if (:repl opts)
+                (str/replace "(do %s)" "%s" e)
+                e)
+            res (cc/compile-string e (assoc opts :repl (:repl opts) :ns-state (atom {:current 'user})
+                                            :context (if (:repl opts) :return :statement)))
+            res (if (:repl opts)
+                  (str/replace "(async function() { %s })()" "%s" res)
+                  res)
             dir (fs/mkdtempSync ".tmp")
             f (str dir "/squint.mjs")]
         (fs/writeFileSync f res "utf-8")
@@ -125,8 +132,13 @@ Options:
         (when-not (false? (:run opts))
           (let [path (if (path/isAbsolute f) f
                          (str (js/process.cwd) "/" f))]
-            (-> (esm/dynamic-import path)
-                (.finally (fn [_]
+            (-> (if (:repl opts)
+                  (js/Promise.resolve (js/eval res))
+                  (esm/dynamic-import path))
+                (.then (fn [v]
+                         (when (:repl opts)
+                           (prn v))))
+                (.finally (fn []
                             (fs/rmSync dir #js {:force true :recursive true}))))))))
     (if (or (:help opts)
             (= "help" (first rest-cmds))
