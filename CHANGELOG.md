@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.4.63 (2023-11-26)
 
 - [#386](https://github.com/squint-cljs/squint/issues/386): allow expression in value position in map literal
 
