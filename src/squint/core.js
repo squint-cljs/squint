@@ -852,12 +852,8 @@ export function set(coll) {
 export function apply(f, ...args) {
   f = toFn(f);
   const xs = args.slice(0, args.length - 1);
-  const coll = args[args.length - 1];
-  // console.log('pre', f);
-  // let ret = f(...xs, ...coll);
-  // console.log('after');
-  console.log('t', coll.constructor);
-  if (coll instanceof LazyIterable) {
+  const coll = iterable(args[args.length - 1]);
+  if (coll[Symbol.iterator]) {
     return f.apply(null, ...xs, coll);
   }
   return f(...xs, ...coll);
