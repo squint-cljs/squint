@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.4.64 (2023-11-27)
 
 - Support `sort` on strings
 
