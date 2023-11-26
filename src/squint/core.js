@@ -1121,7 +1121,9 @@ export function into(...args) {
         return conj_BANG_(coll, v);
       }
       return transduce(xform, rf, c, from);
-  }
+      default:
+        throw TypeError(`Invalid arity call of into: ${args.length}`);
+    }
 }
 
 export function identical_QMARK_(x, y) {

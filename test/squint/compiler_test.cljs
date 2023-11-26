@@ -1212,7 +1212,6 @@
     (is (eq (into [] (map inc) [1 2 3])
             (jsv! '(into [] (map inc) [1 2 3]))))))
 
-
 (deftest iterable-protocol
   (is (eq [true true [1 2 3 4 5]]
           (jsv! '(do (deftype Foo []
