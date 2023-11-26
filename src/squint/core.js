@@ -1107,8 +1107,20 @@ export function into(...args) {
       return [];
     case 1:
       return args[0];
-    default:
-      return conj(args[0] ?? [], ...iterable(args[1]));
+    case 2:
+      return conj(args[0] ?? [], ...iterable(args[1]))
+    case 3:
+      let to = args[0];
+      let xform = args[1];
+      let from = args[2];
+      let c = copy(to);
+      let rf = (coll, v) => {
+        if (v === undefined) {
+          return coll
+        }
+        return conj_BANG_(coll, v);
+      }
+      return transduce(xform, rf, c, from);
   }
 }
 

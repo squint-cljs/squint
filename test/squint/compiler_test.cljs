@@ -1207,7 +1207,10 @@
     (is (eq (js/Map. #js [#js [1 2] #js [3 4] #js [5 6]])
             (jsv! '(into (js/Map. [[1 2]]) [[3 4] [5 6]])))))
   (testing "other types"
-    (is (thrown? js/Error (jsv! '(into "foo" []))))))
+    (is (thrown? js/Error (jsv! '(into "foo" [])))))
+  (testing "xform"
+    (is (eq (into [] (map inc) [1 2 3])
+            (jsv! '(into [] (map inc) [1 2 3]))))))
 
 
 (deftest iterable-protocol
