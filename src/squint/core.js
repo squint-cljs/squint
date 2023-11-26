@@ -1292,7 +1292,8 @@ export function sort(f, coll) {
     f = undefined;
   }
   f = toFn(f);
-  // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
+  coll = iterable(coll);
+    // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
   let clone = [...coll];
   // result is guaranteed to be stable since ES2019, like CLJS
   return clone.sort(f || compare);
@@ -1659,8 +1660,9 @@ export function compare(x, y) {
     if (y == null) {
       return 1;
     }
-    if (typeof x === 'number') {
-      if (typeof y === 'number') {
+    let tx = typeof(x);
+    let ty = typeof(y);
+    if (tx === 'number' && ty === 'number' || tx === 'string' && ty === 'string') {
         if (x === y) {
           return 0;
         }
@@ -1668,11 +1670,8 @@ export function compare(x, y) {
           return -1;
         }
         return 1;
-      } else {
-        throw new Error('comparing number to other type');
-      }
     } else {
-      throw new Error('comparing number to other type');
+      throw new Error(`comparing ${tx} to ${ty}`);
     }
   }
 }

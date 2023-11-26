@@ -1340,7 +1340,9 @@
 (deftest sort-test
   (is (eq (sort [3 10]) (jsv! '(sort [3 10]))))
   (is (eq (sort [4 2 3 1]) (jsv! '(sort [4 2 3 1]))))
-  (is (eq (sort - [4 2 3 1]) (jsv! '(sort - [4 2 3 1])))))
+  (is (eq (sort - [4 2 3 1]) (jsv! '(sort - [4 2 3 1]))))
+  (is (eq (sort nil) (jsv! '(sort nil))))
+  (is (eq (sort "zoob") (jsv! '(sort "zoob")))))
 
 (deftest sort-by-test
   (is (eq (sort-by count ["aaa" "bb" "c"]) (jsv! '(sort-by count ["aaa" "bb" "c"]))))
