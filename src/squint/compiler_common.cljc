@@ -126,8 +126,8 @@
                        "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"
                        "bit-or" "bit-and" "coercive-=" "js-mod"})
 
-(def boolean-operators
-  #{"=" "==" "===" "<" ">" "<=" ">=" "!=" "not=" "instanceof" "coercive-=" "js-mod"})
+(def boolean-infix-operators
+  #{"=" "==" "===" "<" ">" "<=" ">=" "!=" "not=" "instanceof" "coercive-="})
 
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and"})
 
@@ -158,7 +158,7 @@
   (let [env (assoc enc-env :context :expr :top-level false)
         acount (count args)
         op-name (name operator)
-        bool? (contains? boolean-operators op-name)]
+        bool? (contains? boolean-infix-operators op-name)]
     (if (and (not (chainable-infix-operators op-name)) (> acount 2))
       (emit (list 'cljs.core/&&
                   (list operator (first args) (second args))

@@ -111,7 +111,7 @@
 (defmulti emit-special (fn [disp _env & _args] disp))
 
 (defmethod emit-special 'not [_ env [_ form]]
-  (emit-return (str "!" (emit form (expr-env env))) env))
+  (emit-return (cc/bool-expr (str "!" (emit form (expr-env env)))) env))
 
 (defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-return (str "typeof " (emit form (expr-env env))) env))
