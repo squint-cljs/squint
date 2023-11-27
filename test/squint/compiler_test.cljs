@@ -183,7 +183,9 @@
   (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)" "(when (= 1 1) 1)"
                 "(let [x (zero? 0)] (when x 1))"
                 "(if (neg? 1) 0 1)" "(if (not 1) 0 1)"
-                "(if \"foo\" 1 2)" "(if :foo 1 2)"]]
+                "(if \"foo\" 1 2)" "(if :foo 1 2)"
+                "(defn foo [x y] (= x y))
+                 (if (foo 1 1) 1 2)"]]
     (doseq [input inputs]
       (let [js (jss! input)]
         (is (not (str/includes? js "truth_")) (str "contains truth check: " input "\n" js))
