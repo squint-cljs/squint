@@ -46,4 +46,5 @@ jobs:
         bb test:node
         bb test:bb
         bb test:clj
+        npm install --global yarn
         bb test:libs
