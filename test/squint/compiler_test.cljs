@@ -179,6 +179,13 @@
     (is (= 3 (js/eval s))))
   (is (eq #js {:a 1} (jsv! "{:a (or 1 (cond true (prn :yes)) 2)}"))))
 
+(deftest no-truth-check-test
+  (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)" "(when (= 1 1) 1)"]]
+    (doseq [input inputs]
+      (let [js (jss! input)]
+        (is (not (str/includes? js "truth_")))
+        (is (eq 1 (js/eval js)))))))
+
 (deftest doseq-test
   (let [s (jss! '(let [a []]
                    (doseq [x [1 2 3]]

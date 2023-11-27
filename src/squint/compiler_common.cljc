@@ -126,6 +126,9 @@
                        "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"
                        "bit-or" "bit-and" "coercive-=" "js-mod"})
 
+(def boolean-operators
+  #{"=" "==" "===" "<" ">" "<=" ">=" "!=" "not=" "instanceof" "coercive-=" "js-mod"})
+
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and"})
 
 (defn infix-operator? [env expr]
@@ -143,10 +146,20 @@
   (let [env (assoc env :context :expr :top-level false)]
     (map #(emit % env) args)))
 
+(defrecord Code [js bool]
+  Object
+  (toString [_] js))
+
+(defn bool-expr [js]
+  (map->Code {:js js
+              :bool true}))
+
 (defn emit-infix [_type enc-env [operator & args]]
   (let [env (assoc enc-env :context :expr :top-level false)
-        acount (count args)]
-    (if (and (not (chainable-infix-operators (name operator))) (> acount 2))
+        acount (count args)
+        op-name (name operator)
+        bool? (contains? boolean-operators op-name)]
+    (if (and (not (chainable-infix-operators op-name)) (> acount 2))
       (emit (list 'cljs.core/&&
                   (list operator (first args) (second args))
                   (list* operator (rest args)))
@@ -164,7 +177,8 @@
               (str "(" (str/join (str " " (or (substitutions operator)
                                               operator) " ")
                                  (emit-args env args)) ")"))
-            (emit-return enc-env))))))
+            (emit-return enc-env)
+            (cond-> bool? (bool-expr)))))))
 
 (def core-vars (atom #{}))
 
@@ -759,14 +773,9 @@ break;}" body)
         let `(let ~(vec (interleave bindings (repeat nil))) ~@sets ~@body)]
     (emit let env)))
 
-(defrecord Code [js bool]
-  Object
-  (toString [_] js))
-
 (defmethod emit-special 'zero? [_ env [_ num]]
-  (map->Code {:js (-> (format "(%s == 0)" (emit num (assoc env :context :expr)))
-                      (emit-return env))
-              :bool true}))
+  (bool-expr (-> (format "(%s == 0)" (emit num (assoc env :context :expr)))
+                 (emit-return env))))
 
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
   ;; RegExp case moved here:
@@ -827,30 +836,38 @@ break;}" body)
   (let [f (-> env :emit ::special)]
     (f sym env expr)))
 
-(defmethod emit-special 'if [_type env [_if test then else]]
+(defmethod emit-special 'if [_type env [_if test then else :as expr]]
   ;; NOTE: I tried making the output smaller if the if is in return position
   ;; if .. return .. else return ..
   ;; => return ( .. ? : ..);
   ;; but this caused issues with recur in return position:
   ;; (defn foo [x] (if x 1 (recur (dec x)))) We might fix this another time, but
   ;; tools like eslint will rewrite in the short form anyway.
-  (if (not (symbol? test))
-    ;; avoid evaluating test expression more than once
-    (emit `(let [test# ~test] (if test# ~then ~else)) env)
-    (let [expr-env (assoc env :context :expr)
-          condition (emit (list 'clojure.core/truth_ test) expr-env)
-          #_#_condition (format "%s != null && %s !== false" condition condition)]
-      (if (= :expr (:context env))
-        (->
-         (format "((%s) ? (%s) : (%s))"
-                 condition
-                 (emit then env)
-                 (emit else env))
-         (emit-return env))
-        (str (format "if (%s) {\n" condition)
-             (emit then env)
-             "}"
-             (when (some? else)
-               (str " else {\n"
-                    (emit else env)
-                    "}")))))))
+  (let [expr-env (assoc env :context :expr)]
+    (if (not (symbol? test))
+      ;; avoid evaluating test expression more than once
+      (let [test-expr (emit test expr-env)
+            skip-truth? (:bool test-expr)
+            test-sym `test#
+            new-expr `(let [~test-sym ~(list 'js* (str test-expr))]
+                        ~(vary-meta `(if ~test-sym ~then ~else)
+                                    assoc :skip-truth skip-truth?))]
+        (emit new-expr env))
+      (let [skip-truth? (:skip-truth (meta expr))
+            condition (if skip-truth?
+                        (emit test expr-env)
+                        (emit (list 'clojure.core/truth_ test) expr-env))]
+        (if (= :expr (:context env))
+          (->
+           (format "((%s) ? (%s) : (%s))"
+                   condition
+                   (emit then env)
+                   (emit else env))
+           (emit-return env))
+          (str (format "if (%s) {\n" condition)
+               (emit then env)
+               "}"
+               (when (some? else)
+                 (str " else {\n"
+                      (emit else env)
+                      "}"))))))))
