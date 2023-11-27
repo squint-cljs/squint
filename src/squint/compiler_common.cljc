@@ -790,12 +790,16 @@ break;}" body)
   (bool-expr (-> (format "(%s > 0)" (emit num (assoc env :context :expr)))
                  (emit-return env))))
 
+(defmethod emit-special 'nil? [_ env [_ obj]]
+  (bool-expr (-> (format "(%s == null)" (emit obj (assoc env :context :expr)))
+                 (emit-return env))))
+
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
   ;; RegExp case moved here:
   ;; References to the global RegExp object prevents optimization of regular expressions.
   (emit (vec expr) env))
 
-(def special-forms '#{zero? pos? neg? js-delete})
+(def special-forms '#{zero? pos? neg? js-delete nil?})
 
 (derive #?(:clj clojure.lang.Cons :cljs Cons) ::list)
 (derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)

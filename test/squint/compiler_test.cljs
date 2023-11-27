@@ -183,7 +183,8 @@
   (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)" "(when (= 1 1) 1)"
                 "(let [x (zero? 0)] (when x 1))"
                 "(if (neg? 1) 0 1)" "(if (not 1) 0 1)"
-                "(if \"foo\" 1 2)" "(if :foo 1 2)"]]
+                "(if \"foo\" 1 2)" "(if :foo 1 2)"
+                "(let [x nil] (if (nil? x) 1 2))"]]
     (doseq [input inputs]
       (let [js (jss! input)]
         (is (not (str/includes? js "truth_")) (str "contains truth check: " input "\n" js))
@@ -1659,6 +1660,11 @@
                      #{0 6 7} :>> inc
                      #{4 5 9} :>> dec
                      #{1 2 3} :>> #(+ % 3))))))
+
+(deftest nil?-test
+  (let [js (jss! "(nil? 1)")]
+    (is (str/includes? js "== null"))
+    (is (false? (js/eval js)))))
 
 (deftest re-find-test
   (is (eq nil (jsv! '(re-find #"foo." "dude"))))
