@@ -12,5 +12,7 @@
                    :extra-paths ["test"]
                    :task (exec 'squint.compiler-test/run-tests)}
          test:clj {:doc "Run tests in Clojure"
-                   :task (clojure "-X:test")}}
+                   :task (clojure "-X:test")}
+         test:libs {:doc "Run external library tests"
+                    :task (t/libtests)}}
  }
