@@ -647,7 +647,7 @@ export function filter(pred, coll) {
   pred = toFn(pred);
   return lazy(function* () {
     for (const x of iterable(coll)) {
-      if (t(pred(x))) {
+      if (truth_(pred(x))) {
         yield x;
       }
     }
@@ -679,7 +679,7 @@ export function keep_indexed(f, coll) {
   let i = 0;
   for (const x of iterable(coll)) {
     let fret = f(i, x);
-    if (t(fret)) {
+    if (truth_(fret)) {
       ret.push(fret);
     }
     i++;
@@ -1168,7 +1168,7 @@ export function take_while(pred, coll) {
   pred = toFn(pred);
   return lazy(function* () {
     for (const o of iterable(coll)) {
-      if (t(pred(o))) yield o;
+      if (truth_(pred(o))) yield o;
       else return;
     }
   });
@@ -1223,7 +1223,7 @@ export function drop_while(pred, xs) {
         break;
       }
       let value = nextItem.value;
-      if (!t(pred(value))) {
+      if (!truth_(pred(value))) {
         yield value;
         break;
       }
@@ -1290,7 +1290,7 @@ export function keep(pred, coll) {
   return lazy(function* () {
     for (const o of iterable(coll)) {
       const res = pred(o);
-      if (t(res)) yield res;
+      if (truth_(res)) yield res;
     }
   });
 }
@@ -1357,7 +1357,7 @@ export function some(pred, coll) {
   pred = toFn(pred);
   for (const o of iterable(coll)) {
     const res = pred(o);
-    if (t(res)) return res;
+    if (truth_(res)) return res;
   }
   return undefined;
 }
@@ -1694,7 +1694,7 @@ export function to_array(aseq) {
   return into_array(aseq);
 }
 
-export function t(x) {
+export function truth_(x) {
   return x != null && x !== false;
 }
 

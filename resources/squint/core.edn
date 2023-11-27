@@ -165,13 +165,13 @@
   subvec
   swap_BANG_
   system_time
-  t
   take
   take_nth
   take_while
   to_array
   transduce
   true_QMARK_
+  truth_
   update
   update_BANG_
   update_in

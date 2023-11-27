@@ -1642,7 +1642,7 @@
     (is (eq ["foo" "bar"] (vec (jsv! '(keep #{:foo :bar} [:foo :bar :baz])))))))
 
 (deftest core-var-conflict-with-local-test
-  (is (true? (jsv! '(let [t 1] (clojure.core/t 1))))))
+  (is (true? (jsv! '(let [truth_ 1] (clojure.core/truth_ 1))))))
 
 (deftest condp-test
   (is (eq 3 (jsv! '(condp some [1 2 3 4]
