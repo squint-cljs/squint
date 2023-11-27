@@ -30,10 +30,15 @@ jobs:
         restore-keys: "${{ runner.os }}-deps-"
 
     - name: Setup Clojure
-      uses: DeLaGuardo/setup-clojure@9.3
+      uses: DeLaGuardo/setup-clojure@12.1
       with:
         cli: 1.10.3.1040
         bb: latest
+
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
 
     - name: Run tests
       run: |
@@ -41,3 +46,9 @@ jobs:
         bb test:node
         bb test:bb
         bb test:clj
+
+    - name: Run library tests
+      if: matrix.os != 'windows-latest'
+      run: |
+        npm install --global yarn
+        bb test:libs
