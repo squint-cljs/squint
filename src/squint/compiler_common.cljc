@@ -838,15 +838,16 @@ break;}" body)
     (if (not (symbol? test))
       ;; avoid evaluating test expression more than once
       (let [test-expr (emit test expr-env)
-            skip-truth? (:bool test-expr)]
-        (emit `(let [test# (~'js* ~test-expr)]
-                 ~(vary-meta `(if test# ~then ~else)
-                             assoc :skip-truth skip-truth?)) env))
+            skip-truth? (:bool test-expr)
+            test-sym `test#
+            new-expr `(let [~test-sym ~(list 'js* (str test-expr))]
+                        ~(vary-meta `(if ~test-sym ~then ~else)
+                                    assoc :skip-truth skip-truth?))]
+        (emit new-expr env))
       (let [skip-truth? (:skip-truth (meta expr))
-            _ (prn :meta :expr '-> (meta expr))
-            _ (prn :skip-truth? skip-truth?)
-            condition (emit (list 'clojure.core/truth_ test) expr-env)
-            #_#_condition (format "%s != null && %s !== false" condition condition)]
+            condition (if skip-truth?
+                        (emit test expr-env)
+                        (emit (list 'clojure.core/truth_ test) expr-env))]
         (if (= :expr (:context env))
           (->
            (format "((%s) ? (%s) : (%s))"
