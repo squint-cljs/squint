@@ -35,9 +35,6 @@ jobs:
         cli: 1.10.3.1040
         bb: latest
 
-    - name: Setup yarn
-      uses: mskelton/setup-yarn@v1
-
     - name: Run tests
       run: |
         npm install
