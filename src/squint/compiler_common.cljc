@@ -126,6 +126,9 @@
                        "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"
                        "bit-or" "bit-and" "coercive-=" "js-mod"})
 
+(def boolean-operators
+  #{"=" "==" "===" "<" ">" "<=" ">=" "!=" "not=" "instanceof" "coercive-=" "js-mod"})
+
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and"})
 
 (defn infix-operator? [env expr]
@@ -143,10 +146,20 @@
   (let [env (assoc env :context :expr :top-level false)]
     (map #(emit % env) args)))
 
+(defrecord Code [js bool]
+  Object
+  (toString [_] js))
+
+(defn bool-expr [js]
+  (map->Code {:js js
+              :bool true}))
+
 (defn emit-infix [_type enc-env [operator & args]]
   (let [env (assoc enc-env :context :expr :top-level false)
-        acount (count args)]
-    (if (and (not (chainable-infix-operators (name operator))) (> acount 2))
+        acount (count args)
+        op-name (name operator)
+        bool? (contains? boolean-operators op-name)]
+    (if (and (not (chainable-infix-operators op-name)) (> acount 2))
       (emit (list 'cljs.core/&&
                   (list operator (first args) (second args))
                   (list* operator (rest args)))
@@ -164,7 +177,8 @@
               (str "(" (str/join (str " " (or (substitutions operator)
                                               operator) " ")
                                  (emit-args env args)) ")"))
-            (emit-return enc-env))))))
+            (emit-return enc-env)
+            (cond-> bool? (bool-expr)))))))
 
 (def core-vars (atom #{}))
 
@@ -759,14 +773,9 @@ break;}" body)
         let `(let ~(vec (interleave bindings (repeat nil))) ~@sets ~@body)]
     (emit let env)))
 
-(defrecord Code [js bool]
-  Object
-  (toString [_] js))
-
 (defmethod emit-special 'zero? [_ env [_ num]]
-  (map->Code {:js (-> (format "(%s == 0)" (emit num (assoc env :context :expr)))
-                      (emit-return env))
-              :bool true}))
+  (bool-expr (-> (format "(%s == 0)" (emit num (assoc env :context :expr)))
+                 (emit-return env))))
 
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
   ;; RegExp case moved here:
