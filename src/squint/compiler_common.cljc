@@ -827,30 +827,37 @@ break;}" body)
   (let [f (-> env :emit ::special)]
     (f sym env expr)))
 
-(defmethod emit-special 'if [_type env [_if test then else]]
+(defmethod emit-special 'if [_type env [_if test then else :as expr]]
   ;; NOTE: I tried making the output smaller if the if is in return position
   ;; if .. return .. else return ..
   ;; => return ( .. ? : ..);
   ;; but this caused issues with recur in return position:
   ;; (defn foo [x] (if x 1 (recur (dec x)))) We might fix this another time, but
   ;; tools like eslint will rewrite in the short form anyway.
-  (if (not (symbol? test))
-    ;; avoid evaluating test expression more than once
-    (emit `(let [test# ~test] (if test# ~then ~else)) env)
-    (let [expr-env (assoc env :context :expr)
-          condition (emit (list 'clojure.core/truth_ test) expr-env)
-          #_#_condition (format "%s != null && %s !== false" condition condition)]
-      (if (= :expr (:context env))
-        (->
-         (format "((%s) ? (%s) : (%s))"
-                 condition
-                 (emit then env)
-                 (emit else env))
-         (emit-return env))
-        (str (format "if (%s) {\n" condition)
-             (emit then env)
-             "}"
-             (when (some? else)
-               (str " else {\n"
-                    (emit else env)
-                    "}")))))))
+  (let [expr-env (assoc env :context :expr)]
+    (if (not (symbol? test))
+      ;; avoid evaluating test expression more than once
+      (let [test-expr (emit test expr-env)
+            skip-truth? (:bool test-expr)]
+        (emit `(let [test# (~'js* ~test-expr)]
+                 ~(vary-meta `(if test# ~then ~else)
+                             assoc :skip-truth skip-truth?)) env))
+      (let [skip-truth? (:skip-truth (meta expr))
+            _ (prn :meta :expr '-> (meta expr))
+            _ (prn :skip-truth? skip-truth?)
+            condition (emit (list 'clojure.core/truth_ test) expr-env)
+            #_#_condition (format "%s != null && %s !== false" condition condition)]
+        (if (= :expr (:context env))
+          (->
+           (format "((%s) ? (%s) : (%s))"
+                   condition
+                   (emit then env)
+                   (emit else env))
+           (emit-return env))
+          (str (format "if (%s) {\n" condition)
+               (emit then env)
+               "}"
+               (when (some? else)
+                 (str " else {\n"
+                      (emit else env)
+                      "}"))))))))
