@@ -98,11 +98,20 @@
       (emit-return env)
       (escape-jsx env)))
 
+(defrecord Code [js bool]
+  Object
+  (toString [_] js))
+
+(defn bool-expr [js]
+  (map->Code {:js js
+              :bool true}))
+
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
-  (-> (if (and (:jsx env)
+  (cond-> (if (and (:jsx env)
                (not (:jsx-attr env)))
-        expr
-        (emit-return (pr-str expr) env))))
+            expr
+            (emit-return (pr-str expr) env))
+    (pos? (count expr)) (bool-expr)))
 
 (defmethod emit #?(:clj java.lang.Boolean :cljs js/Boolean) [^String expr env]
   (-> (if (:jsx-attr env)
@@ -145,14 +154,6 @@
 (defn emit-args [env args]
   (let [env (assoc env :context :expr :top-level false)]
     (map #(emit % env) args)))
-
-(defrecord Code [js bool]
-  Object
-  (toString [_] js))
-
-(defn bool-expr [js]
-  (map->Code {:js js
-              :bool true}))
 
 (defn emit-infix [_type enc-env [operator & args]]
   (let [env (assoc enc-env :context :expr :top-level false)

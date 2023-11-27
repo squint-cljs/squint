@@ -29,7 +29,8 @@
 
 
 (defn emit-keyword [expr env]
-  (emit-return (str (pr-str (subs (str expr) 1))) env))
+  ;; emitting string already emits return
+  (emit (str (subs (str expr) 1)) env))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do 'aget 'while
