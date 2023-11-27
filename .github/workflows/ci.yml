@@ -46,5 +46,9 @@ jobs:
         bb test:node
         bb test:bb
         bb test:clj
+
+    - name: Run library tests
+      if: matrix.os != 'windows-latest'
+      run: |
         npm install --global yarn
         bb test:libs
