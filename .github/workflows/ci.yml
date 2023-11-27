@@ -35,6 +35,11 @@ jobs:
         cli: 1.10.3.1040
         bb: latest
 
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
     - name: Run tests
       run: |
         npm install
