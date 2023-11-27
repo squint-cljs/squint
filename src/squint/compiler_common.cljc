@@ -223,7 +223,8 @@
                            (str "globalThis." (munge *cljs-ns*) "." #_".aliases." (munge (namespace expr)) "." (munge (name expr)))
                            (str (munge (namespace expr)) "." (munge (name expr))))))
                    (if-let [renamed (get (:var->ident env) expr)]
-                     (munge** (str renamed))
+                     (cond-> (munge** (str renamed))
+                       (:bool (meta renamed)) (bool-expr))
                      (or
                       (let [ns-state @(:ns-state env)
                             current (:current ns-state)
@@ -237,7 +238,7 @@
                         (if *repl*
                           (str "globalThis." (munge *cljs-ns*) "." #_".aliases." m)
                           m)))))]
-        (emit-return (escape-jsx (str expr) env)
+        (emit-return (escape-jsx expr env)
                      env)))))
 
 (defn wrap-await
@@ -285,8 +286,11 @@
                                       var-name)
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
+                          rhs-bool? (:bool rhs)
                           expr (format "let %s = %s;\n" lhs rhs)
-                          var->ident (assoc var->ident var-name renamed)]
+                          var->ident (assoc var->ident var-name
+                                            (vary-meta renamed
+                                                       assoc :bool rhs-bool?))]
                       [(str acc expr) var->ident]))
                   ["" upper-var->ident]
                   partitioned))
@@ -851,12 +855,14 @@ break;}" body)
             test-sym `test#
             new-expr `(let [~test-sym ~(list 'js* (str test-expr))]
                         ~(vary-meta `(if ~test-sym ~then ~else)
-                                    assoc :skip-truth skip-truth?))]
+                                    assoc :bool skip-truth?))]
         (emit new-expr env))
-      (let [skip-truth? (:skip-truth (meta expr))
+      (let [naked-condition (emit test expr-env)
+            skip-truth? (or (:bool naked-condition)
+                            (:bool (meta expr)))
             condition (if skip-truth?
-                        (emit test expr-env)
-                        (emit (list 'clojure.core/truth_ test) expr-env))]
+                        naked-condition
+                        (emit (list 'clojure.core/truth_ (list 'js* naked-condition)) expr-env))]
         (if (= :expr (:context env))
           (->
            (format "((%s) ? (%s) : (%s))"
