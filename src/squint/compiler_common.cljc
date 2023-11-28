@@ -860,33 +860,24 @@ break;}" body)
   ;; but this caused issues with recur in return position:
   ;; (defn foo [x] (if x 1 (recur (dec x)))) We might fix this another time, but
   ;; tools like eslint will rewrite in the short form anyway.
-  (let [expr-env (assoc env :context :expr)]
-    (if (not (symbol? test))
-      ;; avoid evaluating test expression more than once
-      (let [test-expr (emit test expr-env)
-            skip-truth? (:bool test-expr)
-            test-sym `test#
-            new-expr `(let [~test-sym ~(list 'js* (str test-expr))]
-                        ~(vary-meta `(if ~test-sym ~then ~else)
-                                    assoc :bool skip-truth?))]
-        (emit new-expr env))
-      (let [naked-condition (emit test expr-env)
-            skip-truth? (or (:bool naked-condition)
-                            (:bool (meta expr)))
-            condition (if skip-truth?
-                        naked-condition
-                        (emit (list 'clojure.core/truth_ (list 'js* naked-condition)) expr-env))]
-        (if (= :expr (:context env))
-          (->
-           (format "((%s) ? (%s) : (%s))"
-                   condition
-                   (emit then env)
-                   (emit else env))
-           (emit-return env))
-          (str (format "if (%s) {\n" condition)
+  (let [expr-env (assoc env :context :expr)
+        naked-condition (emit test expr-env)
+        skip-truth? (or (:bool naked-condition)
+                        (:bool (meta expr)))
+        condition (if skip-truth?
+                    naked-condition
+                    (emit (list 'clojure.core/truth_ (list 'js* naked-condition)) expr-env))]
+    (if (= :expr (:context env))
+      (->
+       (format "(%s) ? (%s) : (%s)"
+               condition
                (emit then env)
-               "}"
-               (when (some? else)
-                 (str " else {\n"
-                      (emit else env)
-                      "}"))))))))
+               (emit else env))
+       (emit-return env))
+      (str (format "if (%s) {\n" condition)
+           (emit then env)
+           "}"
+           (when (some? else)
+             (str " else {\n"
+                  (emit else env)
+                  "}"))))))
