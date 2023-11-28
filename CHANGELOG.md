@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.66 (2023-11-29)
+
+- Optimize various outputs for smaller size
+- Add `js-in`
+
 ## 0.4.65 (2023-11-28)
 
 - Support `into` + `xform`

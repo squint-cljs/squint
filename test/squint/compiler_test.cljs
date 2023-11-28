@@ -1673,5 +1673,8 @@
   (is (eq (re-find #"(\D+)|(\d+)" "word then number 57")
           (vec (jsv! '(re-find #"(\D+)|(\d+)" "word then number 57"))))))
 
+(deftest js-in-test
+  (is (true? (jsv! "(js-in :foo {:foo 1})"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

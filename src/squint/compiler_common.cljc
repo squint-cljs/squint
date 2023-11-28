@@ -794,12 +794,15 @@ break;}" body)
   (bool-expr (-> (format "(%s == null)" (emit obj (assoc env :context :expr)))
                  (emit-return env))))
 
+(defmethod emit-special 'js-in [_ env [_ key obj]]
+  (bool-expr (emit (list 'js* "~{} in ~{}" key obj) env)))
+
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
   ;; RegExp case moved here:
   ;; References to the global RegExp object prevents optimization of regular expressions.
   (emit (vec expr) env))
 
-(def special-forms '#{zero? pos? neg? js-delete nil?})
+(def special-forms '#{zero? pos? neg? js-delete nil? js-in})
 
 (derive #?(:clj clojure.lang.Cons :cljs Cons) ::list)
 (derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)
