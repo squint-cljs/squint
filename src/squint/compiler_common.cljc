@@ -374,7 +374,7 @@
 (defn no-top-level [env]
   (dissoc env :top-level))
 
-(defn emit-var [[name ?doc ?expr :as expr] skip-var? env]
+(defn emit-var [[name ?doc ?expr :as expr] skip-var? env meta]
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
         env (no-top-level env)]
@@ -383,11 +383,14 @@
                 (when *cljs-ns*
                   (str (munge *cljs-ns*) ".") #_"var ")
                 (munge name))
-           (str "var " (munge name))) " = "
+           (str "var " (munge name)
+                "/*" meta "*/"
+                )) " = "
          (emit expr (expr-env env)) ";\n"
          (when *repl*
            (str (when-not skip-var?
-                  "var ") (munge name) " = " "globalThis."
+                  "var ") (munge name)
+                " = " "globalThis."
                 (when *cljs-ns*
                   (str (munge *cljs-ns*) "."))
                 (munge name)
@@ -401,7 +404,7 @@
                              (let [current (:current state)]
                                (assoc-in state [current name] {}))))
     (let [skip-var? (:squint.compiler/skip-var (meta expr))]
-      (emit-var more skip-var? env))))
+      (emit-var more skip-var? env (meta expr)))))
 
 (defn js-await [env more]
   (emit-return (wrap-await (emit more (expr-env env))) env))
