@@ -24,7 +24,8 @@
    [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
    [squint.internal.loop :as loop]
    [squint.internal.macros :as macros]
-   [squint.internal.protocols :as protocols])
+   [squint.internal.protocols :as protocols]
+   [squint.internal.source-map :as sm])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 
@@ -469,6 +470,10 @@
          {:keys [javascript]}
          (compile-string* s opts)]
      javascript)))
+
+;; see https://github.com/clojure/clojurescript/blob/0c5ecd7b8030b610c979b06bc85ff0991d882f69/src/main/clojure/cljs/compiler.cljc#L186
+;; https://medium.com/@techdom11471/what-is-a-sourcemap-9cc4015ff8db
+#_(prn (sm/encode {"foo.cljs" {0 {0 [{:gline 0 :gcol 0 :name "foo"}]}}}))
 
 #_(defn compile! [s]
     (prn :s s)
