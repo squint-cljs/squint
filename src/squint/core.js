@@ -1,9 +1,11 @@
+/*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
+
 function toFn(x) {
   if (x == null) return x;
   if (x instanceof Function) {
     return x;
   }
-  let t = typeof x;
+  const t = typeof x;
   if (t === 'string') {
     return (coll, d) => {
       return get(coll, x, d);
@@ -82,7 +84,7 @@ export function assoc(o, k, v, ...kvs) {
   if (!o) {
     o = {};
   }
-  let ret = copy(o);
+  const ret = copy(o);
   assoc_BANG_(ret, k, v, ...kvs);
   return ret;
 }
@@ -140,7 +142,7 @@ function typeConst(obj) {
 }
 
 function assoc_in_with(f, fname, o, keys, value) {
-  let baseType = typeConst(o);
+  const baseType = typeConst(o);
   if (baseType !== MAP_TYPE && baseType !== ARRAY_TYPE && baseType !== OBJECT_TYPE)
     throw new Error(
       `Illegal argument: ${fname} expects the first argument to be a Map, Array, or Object.`
@@ -150,7 +152,7 @@ function assoc_in_with(f, fname, o, keys, value) {
   let lastInChain = o;
 
   for (let i = 0; i < keys.length - 1; i += 1) {
-    let k = keys[i];
+    const k = keys[i];
     let chainValue;
     if (lastInChain instanceof Map) chainValue = lastInChain.get(k);
     else chainValue = lastInChain[k];
@@ -176,7 +178,7 @@ export function assoc_in(o, keys, value) {
 
 export function assoc_in_BANG_(o, keys, value) {
   var currObj = o;
-  let baseType = typeConst(o);
+  const baseType = typeConst(o);
   for (const k of keys.splice(0, keys.length - 1)) {
     let v = get(currObj, k);
     if (v === undefined) {
@@ -196,7 +198,7 @@ export function comp(...fs) {
   } else if (fs.length === 1) {
     return fs[0];
   }
-  let [f, ...more] = fs.slice().reverse();
+  const [f, ...more] = fs.slice().reverse();
   return function (...args) {
     let x = f(...args);
     for (const g of more) {
@@ -211,8 +213,9 @@ export function conj_BANG_(...xs) {
     return vector();
   }
 
-  let [o, ...rest] = xs;
+  const [_o, ...rest] = xs;
 
+  let o = _o;
   if (o === null || o === undefined) {
     o = [];
   }
@@ -258,11 +261,13 @@ export function conj(...xs) {
     return vector();
   }
 
-  let [o, ...rest] = xs;
+  const [_o, ...rest] = xs;
 
+  let o = _o;
   if (o === null || o === undefined) {
     o = [];
   }
+  let m, o2;
 
   switch (typeConst(o)) {
     case SET_TYPE:
@@ -272,8 +277,7 @@ export function conj(...xs) {
     case ARRAY_TYPE:
       return [...o, ...rest];
     case MAP_TYPE:
-      const m = new Map(o);
-
+      m = new Map(o);
       for (const x of rest) {
         if (!Array.isArray(x))
           iterable(x).forEach((kv) => {
@@ -289,7 +293,7 @@ export function conj(...xs) {
         yield* o;
       });
     case OBJECT_TYPE:
-      const o2 = { ...o };
+      o2 = { ...o };
 
       for (const x of rest) {
         if (!Array.isArray(x)) Object.assign(o2, x);
@@ -312,7 +316,7 @@ export function disj_BANG_(s, ...xs) {
 }
 
 export function disj(s, ...xs) {
-  let s1 = new Set([...s]);
+  const s1 = new Set([...s]);
   return disj_BANG_(s1, ...xs);
 }
 
@@ -337,7 +341,7 @@ export function dissoc_BANG_(m, ...ks) {
 }
 
 export function dissoc(m, ...ks) {
-  let m2 = { ...m };
+  const m2 = { ...m };
 
   for (const k of ks) {
     delete m2[k];
@@ -364,9 +368,9 @@ export function nth(coll, idx, orElse) {
     if (Array.isArray(coll)) {
       elt = coll[idx];
     } else {
-      let iter = iterable(coll);
+      const iter = iterable(coll);
       let i = 0;
-      for (let value of iter) {
+      for (const value of iter) {
         if (i++ == idx) {
           elt = value;
           break;
@@ -394,6 +398,7 @@ export function get(coll, key, otherwise = undefined) {
       return v;
     }
   }
+  let g;
   switch (typeConst(coll)) {
     case SET_TYPE:
       if (coll.has(key)) v = key;
@@ -406,12 +411,14 @@ export function get(coll, key, otherwise = undefined) {
       break;
     default:
       // we choose .get as the default implementation, e.g. fetch Headers are not Maps, but do implement a .get method
-      let g = coll['get'];
+      g = coll['get'];
       if (g instanceof Function) {
         try {
           v = coll.get(key);
           break;
-        } catch (e) {}
+        } catch (e) {
+          // ignore error
+        }
       }
       v = coll[key];
       break;
@@ -453,24 +460,24 @@ export const es6_iterator = _iterator;
 
 export function seq(x) {
   if (x == null) return x;
-  let iter = iterable(x);
+  const iter = iterable(x);
   // return nil for terminal checking
   if (iter.length === 0 || iter.size === 0) {
     return null;
   }
-  let _i = iter[Symbol.iterator]();
+  const _i = iter[Symbol.iterator]();
   if (_i.next().done) return null;
   return iter;
 }
 
 export function first(coll) {
   // destructuring uses iterable protocol
-  let [first] = iterable(coll);
+  const [first] = iterable(coll);
   return first;
 }
 
 export function second(coll) {
-  let [_, v] = iterable(coll);
+  const [_, v] = iterable(coll);
   return v;
 }
 
@@ -500,11 +507,11 @@ class Reduced {
 
 export function last(coll) {
   coll = iterable(coll);
+  let lastEl;
   switch (typeConst(coll)) {
     case ARRAY_TYPE:
       return coll[coll.length - 1];
     default:
-      let lastEl;
       for (const x of coll) {
         lastEl = x;
       }
@@ -525,7 +532,7 @@ export function reduce(f, arg1, arg2) {
   let coll, val;
   if (arg2 === undefined) {
     // (reduce f coll)
-    let iter = iterable(arg1)[Symbol.iterator]();
+    const iter = iterable(arg1)[Symbol.iterator]();
     val = iter.next().value;
     coll = iter;
   } else {
@@ -629,7 +636,7 @@ export function map(f, ...colls) {
       return lazy(function* () {
         const iters = colls.map((coll) => es6_iterator(iterable(coll)));
         while (true) {
-          let args = [];
+          const args = [];
           for (const i of iters) {
             const nextVal = i.next();
             if (nextVal.done) {
@@ -664,7 +671,7 @@ export function remove(pred, coll) {
 
 export function map_indexed(f, coll) {
   f = toFn(f);
-  let ret = [];
+  const ret = [];
   let i = 0;
   for (const x of iterable(coll)) {
     ret.push(f(i, x));
@@ -675,10 +682,10 @@ export function map_indexed(f, coll) {
 
 export function keep_indexed(f, coll) {
   f = toFn(f);
-  let ret = [];
+  const ret = [];
   let i = 0;
   for (const x of iterable(coll)) {
-    let fret = f(i, x);
+    const fret = f(i, x);
     if (truth_(fret)) {
       ret.push(fret);
     }
@@ -734,12 +741,12 @@ export function Atom(init) {
   this._deref = () => this.val;
   this._hasWatches = false;
   this._reset_BANG_ = (x) => {
-    let old_val = this.val;
+    const old_val = this.val;
     this.val = x;
     if (this._hasWatches) {
-      for (let entry of Object.entries(this._watches)) {
-        let k = entry[0];
-        let f = entry[1];
+      for (const entry of Object.entries(this._watches)) {
+        const k = entry[0];
+        const f = entry[1];
         f(k, this, old_val, x);
       }
     }
@@ -792,7 +799,7 @@ export function range(begin, end, step) {
 }
 
 export function re_matches(re, s) {
-  let matches = re.exec(s);
+  const matches = re.exec(s);
   if (matches && s === matches[0]) {
     if (matches.length === 1) {
       return matches[0];
@@ -805,7 +812,7 @@ export function re_matches(re, s) {
 
 export function re_find(re, s) {
   if (string_QMARK_(s)) {
-    let matches = re.exec(s);
+    const matches = re.exec(s);
     if (matches != null) {
       if (matches.length === 1) return matches[0];
       else {
@@ -852,7 +859,7 @@ export function apply(f, ...args) {
   f = toFn(f);
   const xs = args.slice(0, args.length - 1);
   const coll = iterable(args[args.length - 1]);
-  let af = f[IApply__apply];
+  const af = f[IApply__apply];
   if (af) {
     return af(...xs, coll);
   }
@@ -913,7 +920,7 @@ concat[IApply__apply] = (colls) => {
 };
 
 export function mapcat(f, ...colls) {
-  let mapped = map(f, ...colls);
+  const mapped = map(f, ...colls);
   return concat1(mapped);
 }
 
@@ -925,7 +932,7 @@ export function interleave(...colls) {
   return lazy(function* () {
     const iters = colls.map((coll) => es6_iterator(iterable(coll)));
     while (true) {
-      let res = [];
+      const res = [];
       for (const i of iters) {
         const nextVal = i.next();
         if (nextVal.done) {
@@ -982,7 +989,7 @@ function partitionInternal(n, step, pad, coll, all) {
   return lazy(function* () {
     let p = [];
     let i = 0;
-    for (let x of iterable(coll)) {
+    for (const x of iterable(coll)) {
       if (i < n) {
         p.push(x);
         if (p.length === n) {
@@ -1010,23 +1017,23 @@ function partitionInternal(n, step, pad, coll, all) {
 export function partition_by(f, coll) {
   f = toFn(f);
   return lazy(function* () {
-    let iter = es6_iterator(coll);
-    let _fst = iter.next();
+    const iter = es6_iterator(coll);
+    const _fst = iter.next();
     if (_fst.done) {
       yield* null;
     }
-    let fst = _fst.value;
+    const fst = _fst.value;
     let fv = f(fst);
     let run = [fst];
     let rst = [];
     while (true) {
-      let next = iter.next();
+      const next = iter.next();
       if (next.done) {
         yield run;
         break;
       }
-      let _v = next.value;
-      let _fv = f(_v);
+      const _v = next.value;
+      const _fv = f(_v);
       if (fv == _fv) {
         run.push(_v);
       } else {
@@ -1079,16 +1086,16 @@ export function merge_with(f, ...maps) {
     }
   }
   if (hasMap) {
-    let mergeEntry = (m, e) => {
-      let k = key(e);
-      let v = val(e);
+    const mergeEntry = (m, e) => {
+      const k = key(e);
+      const v = val(e);
       if (contains_QMARK_(m, k)) {
         return assoc(m, k, f(get(m, k), v));
       } else {
         return assoc(m, k, v);
       }
     };
-    let merge2 = (m1, m2) => {
+    const merge2 = (m1, m2) => {
       return reduce(mergeEntry, m1 || {}, seq(m2));
     };
     return reduce(merge2, maps);
@@ -1102,24 +1109,25 @@ export function system_time() {
 }
 
 export function into(...args) {
+  let to, xform, from, c, rf;
   switch (args.length) {
     case 0:
       return [];
     case 1:
       return args[0];
     case 2:
-      return conj(args[0] ?? [], ...iterable(args[1]))
+      return conj(args[0] ?? [], ...iterable(args[1]));
     case 3:
-      let to = args[0];
-      let xform = args[1];
-      let from = args[2];
-      let c = copy(to);
-      let rf = (coll, v) => {
+      to = args[0];
+      xform = args[1];
+      from = args[2];
+      c = copy(to);
+      rf = (coll, v) => {
         if (v === undefined) {
-          return coll
+          return coll;
         }
         return conj_BANG_(coll, v);
-      }
+      };
       return transduce(xform, rf, c, from);
       default:
         throw TypeError(`Invalid arity call of into: ${args.length}`);
@@ -1140,11 +1148,11 @@ export function repeat(...args) {
     [IIterable__iterator]:
       args.length == 1
         ? function* () {
-            let x = args[0];
+            const x = args[0];
             while (true) yield x;
           }
         : function* () {
-            let [n, x] = args;
+            const [n, x] = args;
             for (var i = 0; i < n; i++) yield x;
           },
   };
@@ -1181,7 +1189,7 @@ export function take_nth(n, coll) {
 
   return lazy(function* () {
     let i = 0;
-    for (let x of iterable(coll)) {
+    for (const x of iterable(coll)) {
       if (i % n === 0) {
         yield x;
       }
@@ -1205,7 +1213,7 @@ export function cycle(coll) {
 
 export function drop(n, xs) {
   return lazy(function* () {
-    let iter = _iterator(iterable(xs));
+    const iter = _iterator(iterable(xs));
     for (let x = 0; x < n; x++) {
       iter.next();
     }
@@ -1216,13 +1224,13 @@ export function drop(n, xs) {
 export function drop_while(pred, xs) {
   pred = toFn(pred);
   return lazy(function* () {
-    let iter = _iterator(iterable(xs));
+    const iter = _iterator(iterable(xs));
     while (true) {
-      let nextItem = iter.next();
+      const nextItem = iter.next();
       if (nextItem.done) {
         break;
       }
-      let value = nextItem.value;
+      const value = nextItem.value;
       if (!truth_(pred(value))) {
         yield value;
         break;
@@ -1234,7 +1242,7 @@ export function drop_while(pred, xs) {
 
 export function distinct(coll) {
   return lazy(function* () {
-    let seen = new Set();
+    const seen = new Set();
     for (const x of iterable(coll)) {
       if (!seen.has(x)) yield x;
       seen.add(x);
@@ -1275,7 +1283,7 @@ export function fnil(f, x, ...xs) {
 
 export function every_QMARK_(pred, coll) {
   pred = toFn(pred);
-  for (let x of iterable(coll)) {
+  for (const x of iterable(coll)) {
     if (!pred(x)) return false;
   }
   return true;
@@ -1308,7 +1316,7 @@ export function sort(f, coll) {
   f = toFn(f);
   coll = iterable(coll);
     // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
-  let clone = [...coll];
+  const clone = [...coll];
   // result is guaranteed to be stable since ES2019, like CLJS
   return clone.sort(f || compare);
 }
@@ -1318,7 +1326,7 @@ function fnToComparator(f) {
     return f;
   }
   return (x, y) => {
-    let r = f(x, y);
+    const r = f(x, y);
     if (number_QMARK_(r)) {
       return r;
     }
@@ -1340,15 +1348,15 @@ export function sort_by(keyfn, comp, coll) {
   keyfn = toFn(keyfn);
   comp = toFn(comp);
   return sort((x, y) => {
-    let f = fnToComparator(comp);
-    let kx = keyfn(x);
-    let ky = keyfn(y);
+    const f = fnToComparator(comp);
+    const kx = keyfn(x);
+    const ky = keyfn(y);
     return f(kx, ky);
   }, coll);
 }
 
 export function shuffle(coll) {
-  return [...coll].sort(function (a, b) {
+  return [...coll].sort(function (_a, _b) {
     return Math.random() - 0.5;
   });
 }
@@ -1368,7 +1376,7 @@ export function not_any_QMARK_(pred, coll) {
 }
 
 export function replace(smap, coll) {
-  let mapf = Array.isArray(coll) ? mapv : map;
+  const mapf = Array.isArray(coll) ? mapv : map;
   return mapf((x) => {
     const repl = smap[x];
     if (repl !== undefined) {
@@ -1388,7 +1396,7 @@ export function rand_int(n) {
 }
 
 export function rand_nth(coll) {
-  let ri = rand_int(count(coll));
+  const ri = rand_int(count(coll));
   return nth(coll, ri);
 }
 
@@ -1449,13 +1457,13 @@ export class LazySeq {
 }
 
 export function butlast(coll) {
-  let x = [...iterable(coll)];
+  const x = [...iterable(coll)];
   x.pop();
   return x.length > 0 ? x : null;
 }
 
 export function drop_last(...args) {
-  let [n, coll] = args.length > 1 ? args : [1, args[0]];
+  const [n, coll] = args.length > 1 ? args : [1, args[0]];
   return map((x, _) => x, coll, drop(n, coll));
 }
 
@@ -1474,7 +1482,7 @@ export function count(coll) {
     return len;
   }
   let ret = 0;
-  for (const o of iterable(coll)) {
+  for (const _ of iterable(coll)) {
     ret++;
   }
   return ret;
@@ -1509,9 +1517,9 @@ export function pos_QMARK_(x) {
 }
 
 export function js_obj(...args) {
-  var ctr = 0;
-  let ret = {};
-  while (true) {
+  let ctr = 0;
+  const ret = {};
+  for (;;) {
     if (ctr >= args.length) {
       break;
     }
@@ -1530,11 +1538,11 @@ export function aset(arr, idx, val, ...more) {
     arr[idx] = val;
     return val;
   } else {
-    let path = [idx, val, ...more];
-    let _val = path[path.length - 1];
+    const path = [idx, val, ...more];
+    const _val = path[path.length - 1];
     let innerArray = arr;
     let _idx = 0;
-    let _pathLen = path.length - 2;
+    const _pathLen = path.length - 2;
     for (; _idx < _pathLen; _idx++) {
       innerArray = innerArray[path[_idx]];
     }
@@ -1544,7 +1552,7 @@ export function aset(arr, idx, val, ...more) {
 }
 
 export function dorun(x) {
-  for (const o of iterable(x)) {
+  for (const _ of iterable(x)) {
     // nothing here, just consume for side effects
   }
   return null;
@@ -1556,7 +1564,7 @@ export function doall(x) {
 }
 
 export function aclone(arr) {
-  let cloned = [...arr];
+  const cloned = [...arr];
   return cloned;
 }
 
@@ -1573,7 +1581,7 @@ export function reduce_kv(f, init, m) {
     return init;
   }
   var ret = init;
-  for (let o of Object.entries(m)) {
+  for (const o of Object.entries(m)) {
     ret = f(ret, o[0], o[1]);
   }
   return ret;
@@ -1599,9 +1607,9 @@ export function map_QMARK_(x) {
 
 export function every_pred(...preds) {
   return (...args) => {
-    for (let p of preds) {
-      for (let a of args) {
-        let res = p(a);
+    for (const p of preds) {
+      for (const a of args) {
+        const res = p(a);
         if (!res) {
           return false;
         }
@@ -1613,10 +1621,10 @@ export function every_pred(...preds) {
 
 export function some_fn(...fns) {
   return (...args) => {
-    for (let f of fns) {
-      for (let a of args) {
-        let res = f(a);
-        if (!!res) {
+    for (const f of fns) {
+      for (const a of args) {
+        const res = f(a);
+        if (res) {
           return res;
         }
       }
@@ -1626,7 +1634,7 @@ export function some_fn(...fns) {
 }
 
 export function into_array(type, aseq) {
-  let theSeq = aseq || type;
+  const theSeq = aseq || type;
   return vec(theSeq);
 }
 
@@ -1643,8 +1651,8 @@ export function iterate(f, x) {
 export function juxt(...fs) {
   fs = fs.map(toFn);
   return (...args) => {
-    let ret = [];
-    for (let f of fs) {
+    const ret = [];
+    for (const f of fs) {
       ret.push(f(...args));
     }
     return ret;
@@ -1653,7 +1661,7 @@ export function juxt(...fs) {
 
 export function next(x) {
   if (Array.isArray(x)) {
-    let ret = x.slice(1);
+    const ret = x.slice(1);
     if (ret.length > 0) {
       return ret;
     } else {
@@ -1674,8 +1682,8 @@ export function compare(x, y) {
     if (y == null) {
       return 1;
     }
-    let tx = typeof(x);
-    let ty = typeof(y);
+    const tx = typeof(x);
+    const ty = typeof(y);
     if (tx === 'number' && ty === 'number' || tx === 'string' && ty === 'string') {
         if (x === y) {
           return 0;
@@ -1698,7 +1706,7 @@ export function truth_(x) {
   return x != null && x !== false;
 }
 
-export const t = truth_ // backward compat, remove in 2025
+export const t = truth_; // backward compat, remove in 2025
 
 export function subs(s, start, end) {
   return s.substring(start, end);
@@ -1709,14 +1717,14 @@ export function fn_QMARK_(x) {
 }
 
 export function* re_seq(re, s) {
-  let matches = re.exec(s);
+  const matches = re.exec(s);
   if (matches) {
-    let match_str = matches[0];
-    let match_vals = matches.length === 1 ? match_str : vec(matches);
+    const match_str = matches[0];
+    const match_vals = matches.length === 1 ? match_str : vec(matches);
     yield* cons(
       match_vals,
       lazy(function* () {
-        let post_idx = matches.index + max(1, match_str.length);
+        const post_idx = matches.index + max(1, match_str.length);
         if (post_idx <= s.length) {
           yield* re_seq(re, subs(s, post_idx));
         }
@@ -1807,7 +1815,7 @@ export function meta(x) {
 }
 
 export function with_meta(x, m) {
-  let ret = copy(x);
+  const ret = copy(x);
   ret[_metaSym] = m;
   return ret;
 }
@@ -1817,7 +1825,7 @@ export function boolean_QMARK_(x) {
 }
 
 export function counted_QMARK_(x) {
-  let tc = typeConst(x);
+  const tc = typeConst(x);
   switch (tc) {
     case (ARRAY_TYPE, MAP_TYPE, OBJECT_TYPE, LIST_TYPE, SET_TYPE):
       return true;
@@ -1834,7 +1842,7 @@ export function bounded_count(n, coll) {
 }
 
 export function find(m, k) {
-  let v = get(m, k);
+  const v = get(m, k);
   if (v !== undefined) {
     return [k, v];
   }
@@ -1883,7 +1891,7 @@ function parsing_err(x) {
 export function parse_long(x) {
   if (string_QMARK_(x)) {
     if (/^[+-]?\d+$/.test(x)) {
-      let i = parseInt(x);
+      const i = parseInt(x);
       if (Number.MIN_SAFE_INTEGER <= i <= Number.MAX_SAFE_INTEGER) {
         return i;
       }
@@ -1897,27 +1905,27 @@ function fix(q) {
   if (q >= 0) {
     return Math.floor(q);
   }
-  return Math.ceil(x);
+  return Math.ceil(q);
 }
 
 export function quot(n, d) {
-  let rem = n % d;
+  const rem = n % d;
   return fix((n - rem) / d);
 }
 
 export function transduce(xform, ...args) {
   switch (args.length) {
     case 2: {
-      let f = args[0];
-      let coll = args[1];
+      const f = args[0];
+      const coll = args[1];
       return transduce(xform, f, f(), coll);
     }
     default: {
       let f = args[0];
-      let init = args[1];
-      let coll = args[2];
+      const init = args[1];
+      const coll = args[2];
       f = xform(f);
-      let ret = reduce(f, init, coll);
+      const ret = reduce(f, init, coll);
       return f(ret);
     }
   }
