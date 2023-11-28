@@ -2,7 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## 0.4.66 (2023-11-29)
+## 0.4.67 (2023-11-28)
+
+- Restore backward compatibility with code that is compiled with older versions of squint
+
+## 0.4.66 (2023-11-28)
 
 - Optimize various outputs for smaller size
 - Add `js-in`

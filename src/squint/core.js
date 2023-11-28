@@ -1698,6 +1698,8 @@ export function truth_(x) {
   return x != null && x !== false;
 }
 
+export const t = truth_ // backward compat, remove in 2025
+
 export function subs(s, start, end) {
   return s.substring(start, end);
 }
