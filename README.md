@@ -333,8 +333,10 @@ to make it all work.
 
 ## Playground
 
-- [pinball](https://squint-cljs.github.io/squint/?src=https://gist.githubusercontent.com/borkdude/ca3af924dc2526f00361f28dcf5d0bfb/raw/09cd9e17bf0d6fa3655d0e7cbf2c878e19cb894f/pinball.cljs)
-- [wordle](https://squint-cljs.github.io/squint/?src=https://gist.githubusercontent.com/borkdude/9ed90af225a57ba6b8d9dd12e7c71eea/raw/02fd614cad0da4ac696511c438ebd9ed67d412b5/wordle.cljs)
+- [Pinball](https://squint-cljs.github.io/squint/?src=https://gist.githubusercontent.com/borkdude/ca3af924dc2526f00361f28dcf5d0bfb/raw/09cd9e17bf0d6fa3655d0e7cbf2c878e19cb894f/pinball.cljs)
+- [Wordle](https://squint-cljs.github.io/squint/?src=https://gist.githubusercontent.com/borkdude/9ed90af225a57ba6b8d9dd12e7c71eea/raw/02fd614cad0da4ac696511c438ebd9ed67d412b5/wordle.cljs)
+- [Immutable-js](https://squint-cljs.github.io/squint/?repl=true&src=KHJlcXVpcmUKICAnWyJodHRwczovL3d3dy51bnBrZy5jb20vaW1tdXRhYmxlQDQuMy40L2Rpc3QvaW1tdXRhYmxlLmVzLmpzIgogICAgOmFzIGkKICAgIDpyZWZlciBbU2V0IExpc3RdXSkKCihzdHIgKFNldC9vZgogICAgICAgKExpc3Qvb2YgMSwyLDMpCiAgICAgICAoTGlzdC9vZiAxLDIsMykpKQ%3D%3D)
+- [Loading a UMD module](https://squint-cljs.github.io/squint/?repl=true&src=KGRlZm4gXjphc3luYyBqcy1yZXF1aXJlIFt1cmwgbW9kdWxlXQogIChsZXQgW21vZHVsZSAob3IgbW9kdWxlIHs6ZXhwb3J0cyB7fX0pCiAgICAgICAgcmVzcCAoanMtYXdhaXQgKGpzL2ZldGNoIHVybCkpCiAgICAgICAgc2NyaXB0IChqcy1hd2FpdCAoLnRleHQgcmVzcCkpCiAgICAgICAgZnVuYyAoanMvRnVuY3Rpb24gIm1vZHVsZSIgImV4cG9ydHMiIHNjcmlwdCldCiAgICAoLmNhbGwgZnVuYyBtb2R1bGUgbW9kdWxlICguLWV4cG9ydHMgbW9kdWxlKSkKICAgICguLWV4cG9ydHMgbW9kdWxlKSkpCgooZGVmIGVxdWFsIChqcy1hd2FpdCAoanMtcmVxdWlyZSAiaHR0cHM6Ly91bnBrZy5jb20vZmFzdC1kZWVwLWVxdWFsQDMuMS4zL2luZGV4LmpzIikpKQoKKGVxdWFsIFsxIDIgM10gWzEgMiAzXSk%3D)
 
 License
 =======
