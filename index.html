@@ -93,8 +93,8 @@
           let url = new URL(window.location.href);
           url.searchParams.delete("src");
           window.history.replaceState(null, null, url);
-        localStorage.setItem("document", editor.state.doc.toString());
-        docChanged = false;
+          localStorage.setItem("document", editor.state.doc.toString());
+          docChanged = false;
         }
 
         }
@@ -125,7 +125,7 @@
         return true;
       }
         let updateExt = EditorView.updateListener.of((update) => {
-        docChanged = true;
+        if (update.docChanged) docChanged = true;
       });
       let extensions = [
         theme,
@@ -179,7 +179,7 @@
         doc = localStorage.getItem("document") || doc;
       }
       let state = EditorState.create({doc: doc,
-                                      extensions: extensions });
+        extensions: extensions });
       let editorElt = document.querySelector('#editor');
       let editor = new EditorView({state: state,
                                    parent: editorElt,
