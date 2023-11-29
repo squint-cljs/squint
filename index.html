@@ -88,7 +88,15 @@
           let result = await import(dataUri);
         } else {
           let result = await eval(`(async function() { ${js} })()`);
-          document.querySelector('#result').innerText = util.inspect(result);
+        document.querySelector('#result').innerText = util.inspect(result);
+        if (docChanged) {
+          let url = new URL(window.location.href);
+          url.searchParams.delete("src");
+          window.history.replaceState(null, null, url);
+        localStorage.setItem("document", editor.state.doc.toString());
+        docChanged = false;
+        }
+
         }
         }
         catch (e) {
@@ -108,19 +116,16 @@
         let js = eval_region.cursor_node_string(opts.state).toString();
         evalCode(js);
         return true;
-      }
+        }
+
+      let docChanged = false;
 
       let evalToplevel = (js) => {
         if (!repl) return;
         return true;
       }
-      let updateExt = EditorView.updateListener.of((update) => {
-        if (update.docChanged) {
-          let url = new URL(window.location.href);
-          url.searchParams.delete("src");
-          window.history.replaceState(null, null, url);
-          localStorage.setItem("document", editor.state.doc.toString());
-        }
+        let updateExt = EditorView.updateListener.of((update) => {
+        docChanged = true;
       });
       let extensions = [
         theme,
