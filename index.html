@@ -76,12 +76,12 @@
       var repl = JSON.parse(urlParams.get('repl'));
 
       let evalCode = async (code) => {
+        try {
         let js = compileString(`(do ${code}\n)`, {repl: repl, "elide-exports": repl, context: repl ? 'return' : 'statement'});
         if (dev) {
           js = js.replace('squint-cljs/core.js', 'http://' + window.location.host + '/core.js');
         }
         document.querySelector('#compiledCode').innerText = js;
-        try {
         if (!repl) {
           const encodedJs = encodeURIComponent(js);
           const dataUri = 'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
