@@ -183,7 +183,8 @@
       let editorElt = document.querySelector('#editor');
       let editor = new EditorView({state: state,
                                    parent: editorElt,
-                                   extensions: extensions });
+        extensions: extensions });
+      globalThis.editor = editor;
       var dev = JSON.parse(urlParams.get('dev')) ?? location.hostname === 'localhost';
 
       var squintUrl;
