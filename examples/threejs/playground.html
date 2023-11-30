@@ -77,7 +77,7 @@
                           }])}
 
       let urlParams = new URLSearchParams(window.location.search);
-      var repl = JSON.parse(urlParams.get('repl'));
+      var repl = true;
 
       let evalCode = async (code) => {
         try {
@@ -194,15 +194,19 @@
 
 (def origin (three/Vector3.))
 
+(def height (/ (.-innerHeight js/window) 2))
+(def width (min (* 2 height) (.-innerWidth js/window)))
+
+
 (def camera
-  (doto (three/PerspectiveCamera. 75 (/ (.-innerWidth js/window) (.-innerHeight js/window)) 0.1 1000)
+  (doto (three/PerspectiveCamera. 75 (/ width height) 0.1 1000)
     (-> :position ((fn [pos] (.set pos 0 0 70))))
     (.lookAt origin)))
 
 (def renderer
   (doto (three/WebGLRenderer. (clj->js {:antialias true}))
     (.setPixelRatio (.-devicePixelRatio js/window))
-    (.setSize (.-innerWidth js/window) (.-innerHeight js/window))
+    (.setSize width height)
     (-> (assoc! :toneMapping three/ReinhardToneMapping
                 :toneMappingExposure (Math/pow 1.4 5.0))
       (-> :domElement js/document.body.prepend))))
