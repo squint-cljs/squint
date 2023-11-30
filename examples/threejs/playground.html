@@ -20,7 +20,8 @@
           "@nextjournal/clojure-mode/extensions/eval-region": "https://ga.jspm.io/npm:@nextjournal/clojure-mode@0.3.0/dist/nextjournal/clojure_mode/extensions/eval_region.mjs",
           "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
           "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/",
-          "easing": "https://unpkg.com/easing@1.2.1"
+          "easing": "https://ga.jspm.io/npm:easing@1.2.1/browser-easing.js",
+          "bezier-easing": "https://unpkg.com/bezier-easing@2.1.0/dist/bezier-easing.js"
         },
         "scopes": {
           "https://ga.jspm.io/": {
@@ -143,26 +144,150 @@
       ];
 
       let doc = `
-      (comment
-  (fizz-buzz 1)
-  (fizz-buzz 3)
-  (fizz-buzz 5)
-  (fizz-buzz 15)
-  (fizz-buzz 17)
-  (fizz-buzz 42))
+(ns user
+  (:require ["squint-cljs/core.js" :as squint]
+   ["three" :as three]
+   ["three/addons/postprocessing/EffectComposer.js" :refer [EffectComposer]]
+   ["three/addons/postprocessing/RenderPass.js" :refer [RenderPass]]
+   ["three/addons/postprocessing/UnrealBloomPass.js" :refer [UnrealBloomPass]]
+   ["three/addons/postprocessing/FilmPass.js" :refer [FilmPass]]
+   ["easing$default" :as easing]
+   ["bezier-easing" :as BezierEasing]))
 
-(defn fizz-buzz [n]
-  (condp (fn [a b] (zero? (mod b a))) n
-    15 "fizzbuzz"
-    3  "fizz"
-    5  "buzz"
-    n))
+(def BezierEasing js/globalThis.BezierEasing)
+(def Math js/globalThis.Math)
 
-(require '["https://esm.sh/canvas-confetti@1.6.0$default" :as confetti])
+(defn ^:async eval-script [url]
+  (let [resp (js-await (js/fetch url))
+        script (js-await (.text resp))]
+    (js/eval.call js/globalThis script)))
 
-(do
-  (js-await (confetti))
-  (+ 1 2 3))
+(js-await (eval-script "https://unpkg.com/dat.gui@0.7.9/build/dat.gui.js"))
+(def dat js/globalThis.dat)
+
+(js-await (eval-script "https://unpkg.com/stats.js@0.17.0/build/stats.min.js"))
+(def Stats js/globalThis.Stats)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; controls
+
+(def params
+  {:magnitude 0.1
+   :x-scale 1.0
+   :y-scale 0.5
+   :sin-x-scale 0.0
+   :cos-y-scale 1.0})
+
+(def gui
+  (doto (dat/GUI.)
+    (.add params "magnitude" 0.0 0.5)
+    (.add params "x-scale" 0.0 2.0)
+    (.add params "y-scale" 0.0 2.0)
+    (.add params "sin-x-scale" 0.0 2.0)
+    (.add params "cos-y-scale" 0.0 2.0)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; basic three.js setup
+
+(def scene
+  (three/Scene.))
+
+(def origin (three/Vector3.))
+
+(def camera
+  (doto (three/PerspectiveCamera. 75 (/ (.-innerWidth js/window) (.-innerHeight js/window)) 0.1 1000)
+    (-> :position ((fn [pos] (.set pos 0 0 70))))
+    (.lookAt origin)))
+
+(def renderer
+  (doto (three/WebGLRenderer. (clj->js {:antialias true}))
+    (.setPixelRatio (.-devicePixelRatio js/window))
+    (.setSize (.-innerWidth js/window) (.-innerHeight js/window))
+    (-> (assoc! :toneMapping three/ReinhardToneMapping
+                :toneMappingExposure (Math/pow 1.4 5.0))
+      (-> :domElement js/document.body.prepend))))
+
+;; effects composer for after effects
+(def composer 
+  (let [w (get js/window :innerWidth)
+        h (get js/window :innerHeight)]
+    (doto (EffectComposer. renderer)
+      (.addPass (RenderPass. scene camera))
+      (.addPass (UnrealBloomPass. (three/Vector2. w h) ; viewport resolution
+                                        0.3   ; strength
+                                        0.2   ; radius
+                                        0.8)) ; threshold
+      (.addPass (assoc! (FilmPass. 0.25  ; noise intensity
+                                   0.26  ; scanline intensity
+                                   648   ; scanline count
+                                   false); grayscale
+                          :renderToScreen true)))))
+
+;; animation helpers
+(def current-frame (atom 0))
+
+(def linear (easing 76 "linear" {:endToEnd true}))
+
+(def bezier
+  (mapv (BezierEasing. 0.74 -0.01 0.21 0.99)
+        (range 0 1 (/ 1.0 76))))
+
+(defn fix-zero [n]
+  (if (zero? n) 1 n))
+
+(def mesh
+  (let [m (three/Points. (three/SphereGeometry. 11 64 64)
+                         (three/PointsMaterial. {:vertexColors true
+                                                 :size 0.7
+                                                 :transparent true
+                                                 :alphaTest 0.5
+                                                 :blending three/AdditiveBlending}))]
+    (.add scene m)
+    m))
+
+(defn render []
+  (let [num-frames 76]
+    (swap! current-frame #(mod (inc %) num-frames))
+    (let [sphere (three/SphereGeometry. 11 64 64)
+          sphere-verts (.getAttribute sphere "position")
+          points (mapv #(let [sv (.fromBufferAttribute (three/Vector3.) sphere-verts %)]
+                          (.addScaledVector sv sv (* (:magnitude params)
+                                                     (fix-zero (* (:x-scale params) (.-x sv)))
+                                                     (fix-zero (* (:y-scale params) (.-y sv)))
+                                                     (fix-zero (* (:sin-x-scale params) (Math/sin (.-x sv))))
+                                                     (fix-zero (* (:cos-y-scale params) (Math/cos (.-y sv))))
+                                                     (nth linear @current-frame))))
+                       (range (:count sphere-verts)))
+          dists (mapv #(.distanceTo origin %) points)
+          min-dist (apply min dists)
+          max-dist (- (apply max dists) min-dist)]
+      (doto (.-geometry mesh)
+        (.setFromPoints points)
+        (.setAttribute "color" (three/Float32BufferAttribute.
+                                (mapcat #(let [c (three/Color.)]
+                                           ;; mutate the color object and return the resulting RGB values
+                                           (.setHSL c
+                                                    (+ 0.3 (* 0.5 (max (min 1.0 (/ (- (get dists %) min-dist) max-dist)) 0)))
+                                                    0.8
+                                                    0.2)
+                                           [(.-r c) (.-g c) (.-b c)])
+                                        (range (:count sphere-verts)))
+                                3))))
+    (squint/assoc-in! mesh [:rotation :y] (* 1.5 Math/PI (nth bezier @current-frame))))
+  (.render composer (nth bezier @current-frame))) ; render from the effects composer
+
+(defn animate [s]
+  (.begin s)
+  (render)
+  (.end s)
+  (.requestAnimationFrame js/window #(animate s)))
+
+(defn ^:async init []
+  (let [s (Stats. [])]
+    (js/document.body.prepend (:dom s))
+    (animate s)))
+
+(defonce doit (do (init) true))
 `.trim();
       let boilerplate = urlParams.get('boilerplate');
       let boilerplateSrc;
@@ -179,7 +304,7 @@
         };
         doc = src;
       } else {
-        doc = localStorage.getItem("document") || doc;
+        // doc = localStorage.getItem("document") || doc;
       }
       let state = EditorState.create({doc: doc,
         extensions: extensions });
