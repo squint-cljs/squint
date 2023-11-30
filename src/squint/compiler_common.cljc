@@ -884,3 +884,20 @@ break;}" body)
              (str " else {\n"
                   (emit else env)
                   "}"))))))
+
+(defn jsx-attrs [v env]
+  (let [env (expr-env env)]
+    (if v
+      (str " "
+           (str/join " "
+                     (map (fn [[k v]]
+                            (if (= :& k)
+                              (str "{..." (emit v (dissoc env :jsx)) "}")
+                              (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
+                                                  (not (string? v))
+                                                  ;; since we escape here, we
+                                                  ;; can probably remove
+                                                  ;; escaping elsewhere?
+                                                  (escape-jsx env)))))
+                          v)))
+      "")))

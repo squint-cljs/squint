@@ -285,23 +285,6 @@
              (throw (new Exception (str "invalid form: " expr))))))
    env))
 
-(defn jsx-attrs [v env]
-  (let [env (expr-env env)]
-    (if v
-      (str " "
-           (str/join " "
-                     (map (fn [[k v]]
-                            (if (= :& k)
-                              (str "{..." (emit v (dissoc env :jsx)) "}")
-                              (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
-                                                  (not (string? v))
-                                                  ;; since we escape here, we
-                                                  ;; can probably remove
-                                                  ;; escaping elsewhere?
-                                                  (escape-jsx env)))))
-                          v)))
-      "")))
-
 (defn emit-vector [expr env]
   (if (and (:jsx env)
            (let [f (first expr)]
@@ -319,7 +302,7 @@
           tag-name (emit tag-name (expr-env (dissoc env :jsx)))]
       (emit-return (format "<%s%s>%s</%s>"
                            tag-name
-                           (jsx-attrs attrs env)
+                           (cc/jsx-attrs attrs env)
                            (let [env (expr-env env)]
                              (str/join "" (map #(emit % env) elts)))
                            tag-name)
@@ -414,8 +397,9 @@
 (defn compile-string*
   ([s] (compile-string* s nil))
   ([s {:keys [elide-exports
+              elide-imports
               core-alias
-              elide-imports]
+              aliases]
        :or {core-alias "squint_core"}
        :as opts}]
    (binding [cc/*core-package* "squint-cljs/core.js"
@@ -425,7 +409,7 @@
      (let [opts (merge {:ns-state (atom {})} opts)
            imported-vars (atom {})
            public-vars (atom #{})
-           aliases (atom {core-alias cc/*core-package*})
+           aliases (atom (merge aliases {core-alias cc/*core-package*}))
            imports (atom (if cc/*repl*
                            (format "var %s = await import('%s');\n"
                                    core-alias cc/*core-package*)
