@@ -15,7 +15,7 @@
 
 (defn emit-return [s env]
   (if (= :return (:context env))
-    (format "return %s;" s)
+    (format "return %s" s)
     s))
 
 (defmethod emit-special 'js* [_ env [_js* & opts :as expr]]
