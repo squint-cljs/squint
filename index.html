@@ -94,7 +94,13 @@
       };
 
       let urlParams = new URLSearchParams(window.location.search);
-      var repl = JSON.parse(urlParams.get('repl'));
+        var repl = JSON.parse(urlParams.get('repl'));
+
+        class LazyIterable extends Array {
+        constructor(arr) {
+        super(arr);
+        }
+        }
 
       let compilerState = null;
       console.log(compilerState);
@@ -114,6 +120,18 @@
             let result = await import(dataUri);
           } else {
             let result = await eval(`(async function() { ${js} })()`);
+        if (result && result?.constructor?.name === 'LazyIterable') {
+        let stdlib = (await import("squint-cljs/core.js"));
+        let take_fn = stdlib.take;
+        let concat_fn = stdlib.concat;
+        console.log(take_fn);
+        let end = {};
+        result = [...take_fn(10, concat_fn(result, [end]))];
+        let isEnd = result[result.length - 1] !== end;
+        if (isEnd) result.push('...')
+        else result.pop();
+        result = new LazyIterable(result);
+        }
             document.querySelector('#result').innerText = util.inspect(result);
             if (docChanged) {
               let url = new URL(window.location.href);
