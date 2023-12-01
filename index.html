@@ -122,9 +122,9 @@
           } else {
         let result = await eval(`(async function() { ${js} })()`);
         let stdlib = await import('squint-cljs/core.js');
-        let lazy_iter = stdlib.take(10, []).constructor;
-        let lazy_proto = lazy_iter[util.inspect.custom] = lazy_iter.toString;
-        console.log(lazy_proto);
+        // let lazy_iter = stdlib.take(10, []).constructor;
+        // let lazy_proto = lazy_iter[util.inspect.custom] = lazy_iter.toString;
+        // console.log(lazy_proto);
             document.querySelector('#result').innerText = util.inspect(result);
             if (docChanged) {
               let url = new URL(window.location.href);
