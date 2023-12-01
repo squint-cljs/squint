@@ -1676,5 +1676,9 @@
 (deftest js-in-test
   (is (true? (jsv! "(js-in :foo {:foo 1})"))))
 
+(deftest int-test
+  (is (= 3 (jsv! "(int 3.14)"))))
+
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
