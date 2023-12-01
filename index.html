@@ -2,11 +2,15 @@
 <html>
   <head>
     <title>Squint</title>
-    <meta content="width=device-width, initial-scale=1" name="viewport">
-    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-    <meta content="utf-8" http-equiv="encoding">
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <meta content="utf-8" http-equiv="encoding" />
     <script src="https://unpkg.com/node-inspect-extracted/dist/inspect.js"></script>
-    <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.2/dist/es-module-shims.js" crossorigin="anonymous"></script>
+    <script
+      async
+      src="https://ga.jspm.io/npm:es-module-shims@1.8.2/dist/es-module-shims.js"
+      crossorigin="anonymous"
+    ></script>
     <script type="importmap">
       {
         "imports": {
@@ -33,102 +37,119 @@
         }
       }
     </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css" />
     <style>
       :root {
         --teal-color: #31afd0;
+      }
+
+      body {
+        max-width: inherit;
       }
     </style>
 
     <script type="module">
       import { default_extensions, complete_keymap } from '@nextjournal/clojure-mode';
       import * as eval_region from '@nextjournal/clojure-mode/extensions/eval-region';
-      import { EditorView, drawSelection, keymap } from  '@codemirror/view';
-      import { EditorState } from  '@codemirror/state';
+      import { EditorView, drawSelection, keymap } from '@codemirror/view';
+      import { EditorState } from '@codemirror/state';
       import { syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
       let theme = EditorView.theme({
-        ".cm-content": {whitespace: "pre-wrap",
-                        passing: "10px 0",
-                        flex: "1 1 0"},
+        '.cm-content': {
+          whitespace: 'pre-wrap',
+          passing: '10px 0',
+          flex: '1 1 0',
+        },
 
-        "&.cm-focused": {outline: "0 !important"},
-        ".cm-line": {"padding": "0 9px",
-                     "line-height": "1.6",
-                     "font-size": "16px",
-                     "font-family": "var(--code-font)"},
-        ".cm-matchingBracket": {"border-bottom": "1px solid var(--teal-color)",
-                                "color": "inherit"},
-        ".cm-gutters": {background: "transparent",
-                        border: "none"},
-        ".cm-gutterElement": {"margin-left": "5px"},
+        '&.cm-focused': { outline: '0 !important' },
+        '.cm-line': {
+          padding: '0 9px',
+          'line-height': '1.6',
+          'font-size': '16px',
+          'font-family': 'var(--code-font)',
+        },
+        '.cm-matchingBracket': {
+          'border-bottom': '1px solid var(--teal-color)',
+          color: 'inherit',
+        },
+        '.cm-gutters': {
+          background: 'transparent',
+          border: 'none',
+        },
+        '.cm-gutterElement': { 'margin-left': '5px' },
         // only show cursor when focused
-        ".cm-cursor": {visibility: "hidden"},
-        "&.cm-focused .cm-cursor": {visibility: "visible"}
+        '.cm-cursor': { visibility: 'hidden' },
+        '&.cm-focused .cm-cursor': { visibility: 'visible' },
       });
 
-      let squintExtension = ( opts ) => {
-        return keymap.of([{key: "Alt-Enter", run: evalCell},
-                          {key: opts.modifier + "-Enter",
-                           run: evalAtCursor,
-                           shift: evalToplevel
-                          }])}
+      let squintExtension = (opts) => {
+        return keymap.of([
+          { key: 'Alt-Enter', run: evalCell },
+          {
+            key: opts.modifier + '-Enter',
+            run: evalAtCursor,
+            shift: evalToplevel,
+          },
+        ]);
+      };
 
       let urlParams = new URLSearchParams(window.location.search);
       var repl = JSON.parse(urlParams.get('repl'));
 
-        let compilerState = null;
-        console.log(compilerState);
+      let compilerState = null;
+      console.log(compilerState);
       let evalCode = async (code) => {
         try {
-        let opts = {repl: repl, "elide-exports": repl, context: repl ? 'return' : 'statement'};
-        compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
-        let js = compilerState.javascript;
-        if (dev) {
-          js = js.replace('squint-cljs/core.js', 'http://' + window.location.host + '/core.js');
-        }
-        document.querySelector('#compiledCode').innerText = js;
-        if (!repl) {
-          const encodedJs = encodeURIComponent(js);
-          const dataUri = 'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
-          let result = await import(dataUri);
-        } else {
-          let result = await eval(`(async function() { ${js} })()`);
-        document.querySelector('#result').innerText = util.inspect(result);
-        if (docChanged) {
-          let url = new URL(window.location.href);
-          url.searchParams.delete("src");
-          window.history.replaceState(null, null, url);
-          localStorage.setItem("document", editor.state.doc.toString());
-          docChanged = false;
-        }
-
-        }
-        }
-        catch (e) {
-          document.querySelector('#result').innerText = util.inspect(e);
+          let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement' };
+          compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
+          let js = compilerState.javascript;
+          if (dev) {
+            js = js.replace('squint-cljs/core.js', 'http://' + window.location.host + '/core.js');
+          }
+          document.querySelector('#compiledCode').innerText = js;
+          if (!repl) {
+            const encodedJs = encodeURIComponent(js);
+            const dataUri =
+              'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
+            let result = await import(dataUri);
+          } else {
+            let result = await eval(`(async function() { ${js} })()`);
+            document.querySelector('#result').innerText = util.inspect(result);
+            if (docChanged) {
+              let url = new URL(window.location.href);
+              url.searchParams.delete('src');
+              window.history.replaceState(null, null, url);
+              localStorage.setItem('document', editor.state.doc.toString());
+              docChanged = false;
+            }
+          }
+        } catch (e) {
+          document.querySelector('#result').innerText =
+            e.message + '\n\n' + decodeURIComponent(util.inspect(e));
           console.error(e);
         }
-      }
+      };
 
       let evalCell = (opts) => {
         let js = opts.state.doc.toString();
         evalCode(js);
         return true;
-      }
+      };
 
       let evalAtCursor = (opts) => {
         if (!repl) return;
         let js = eval_region.cursor_node_string(opts.state).toString();
         evalCode(js);
         return true;
-        }
+      };
 
       let docChanged = false;
 
       let evalToplevel = (js) => {
         if (!repl) return;
         return true;
-      }
-        let updateExt = EditorView.updateListener.of((update) => {
+      };
+      let updateExt = EditorView.updateListener.of((update) => {
         if (update.docChanged) docChanged = true;
       });
       let extensions = [
@@ -137,10 +158,10 @@
         syntaxHighlighting(defaultHighlightStyle),
         drawSelection(),
         keymap.of(complete_keymap),
-        squintExtension({modifier: "Meta"}),
-        eval_region.extension({modifier: "Meta"}),
+        squintExtension({ modifier: 'Meta' }),
+        eval_region.extension({ modifier: 'Meta' }),
         updateExt,
-        ...default_extensions
+        ...default_extensions,
       ];
 
       let doc = `
@@ -168,50 +189,53 @@
       let boilerplate = urlParams.get('boilerplate');
       let boilerplateSrc;
       if (boilerplate) {
-        boilerplateSrc = await fetch(boilerplate).then(p => p.text());
+        boilerplateSrc = await fetch(boilerplate).then((p) => p.text());
       }
       let src = urlParams.get('src');
       if (src) {
         if (/http(s)?:\/\/.*/.test(src)) {
-          src = await fetch(src).then(p => p.text());
+          src = await fetch(src).then((p) => p.text());
+        } else {
+          src = atob(src);
         }
-        else {
-          src = atob(src)
-        };
         doc = src;
       } else {
-        doc = localStorage.getItem("document") || doc;
+        doc = localStorage.getItem('document') || doc;
       }
-      let state = EditorState.create({doc: doc,
-        extensions: extensions });
+      let state = EditorState.create({
+        doc: doc,
+        extensions: extensions,
+      });
       let editorElt = document.querySelector('#editor');
-      let editor = new EditorView({state: state,
-                                   parent: editorElt,
-        extensions: extensions });
+      let editor = new EditorView({
+        state: state,
+        parent: editorElt,
+        extensions: extensions,
+      });
       globalThis.editor = editor;
       var dev = JSON.parse(urlParams.get('dev')) ?? location.hostname === 'localhost';
 
       var squintUrl;
       if (dev) {
-        console.log('Loading development squint.js')
+        console.log('Loading development squint.js');
         squintUrl = '/index.js';
       } else {
         squintUrl = 'squint-cljs';
       }
-      var squint = await(import(squintUrl));
+      var squint = await import(squintUrl);
       var compileStringEx = squint.compileStringEx;
       window.compile = () => {
         let code = editor.state.doc.toString();
         code = '' + boilerplateSrc + '\n\n' + code;
         evalCode(code);
-      }
+      };
       window.share = () => {
         let code = editor.state.doc.toString().trim();
         code = btoa(code);
         let url = new URL(window.location);
         url.searchParams.set('src', code);
         window.location = url;
-      }
+      };
 
       window.changeREPL = (target) => {
         document.getElementById('result').innerText = '';
@@ -224,42 +248,64 @@
         }
         let url = new URL(window.location.href);
         if (repl) {
-          url.searchParams.set("repl", repl);
+          url.searchParams.set('repl', repl);
         } else {
-          url.searchParams.delete("repl");
+          url.searchParams.delete('repl');
         }
         window.history.replaceState(null, null, url);
-      }
+      };
       if (repl) {
         document.getElementById('replCheckBox').checked = true;
       }
       compile();
     </script>
   </head>
+
   <body>
-    <div style="display: flex; flex-direction: row; max-height: 90vh; overflow: auto;">
+    <div style="display: flex; flex-direction: row; max-height: 90vh; overflow: auto">
       <div style="position: absolute; right: 0px; top: 0px; margin: 2px">
-      <a href="https://gitHub.com/squint-cljs/squint"><img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a></div>
-      <div id="editor" style="max-height: 90vh; overflow: auto; width: 50%; border: 1px solid grey; border-radius: 10px; margin-bottom: 10px;">
+        <a href="https://gitHub.com/squint-cljs/squint"
+          ><img
+            src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"
+        /></a>
       </div>
-      <div style="width: 50%; max-height: 90vh; overflow: auto; border: 1px solid grey; border-radius: 10px; margin-left: 10px; padding: 10px; margin-bottom: 10px;">
-              <button onClick="compile()">
-        Compile!
-              </button>
-              <button onClick="share()">
-                Share!
-              </button>
-              <br>
-              <label>REPL-mode
-                <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
-              </label>
-              <br>
-              In REPL-mode you can evaluate individual expression by using the ⌘ (macOS) or Windows key + Enter. The result will appear below.
-              <pre><code style="white-space: pre-wrap;max-width:80%;" id="result"></code>
-              </pre>
-              Compiled code:
-              <pre><code style="white-space: pre-wrap;max-width:80%;" id="compiledCode"></code>
-              </pre>
+      <div
+        id="editor"
+        style="
+          max-height: 90vh;
+          overflow: auto;
+          width: 50%;
+          border: 1px solid grey;
+          border-radius: 10px;
+          margin-bottom: 10px;
+        "
+      ></div>
+      <div
+        style="
+          width: 50%;
+          max-height: 90vh;
+          overflow: auto;
+          border: 1px solid grey;
+          border-radius: 10px;
+          margin-left: 10px;
+          padding: 10px;
+          margin-bottom: 10px;
+        "
+      >
+        <button onClick="compile()">Compile!</button>
+        <button onClick="share()">Share!</button>
+        <br />
+        <label
+          >REPL-mode
+          <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+        </label>
+        <br />
+        In REPL-mode you can evaluate individual expression by using the ⌘ (macOS) or Windows key +
+        Enter. The result will appear below.
+        <pre><code style="white-space: pre-wrap;max-width:80%;" id="result"></code></pre>
+        <hr />
+        Compiled code:
+        <pre><code style="white-space: pre-wrap;max-width:80%;" id="compiledCode"></code></pre>
       </div>
     </div>
   </body>
