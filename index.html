@@ -110,6 +110,7 @@
           compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
           let js = compilerState.javascript;
           if (dev) {
+            console.log('loading development core.js');
             js = js.replace('squint-cljs/core.js', 'http://' + window.location.host + '/core.js');
           }
           document.querySelector('#compiledCode').innerText = js;
@@ -119,19 +120,11 @@
               'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
             let result = await import(dataUri);
           } else {
-            let result = await eval(`(async function() { ${js} })()`);
-        if (result && result?.constructor?.name === 'LazyIterable') {
-        let stdlib = (await import("squint-cljs/core.js"));
-        let take_fn = stdlib.take;
-        let concat_fn = stdlib.concat;
-        console.log(take_fn);
-        let end = {};
-        result = [...take_fn(10, concat_fn(result, [end]))];
-        let isEnd = result[result.length - 1] !== end;
-        if (isEnd) result.push('...')
-        else result.pop();
-        result = new LazyIterable(result);
-        }
+        let result = await eval(`(async function() { ${js} })()`);
+        let stdlib = await import('squint-cljs/core.js');
+        let lazy_iter = stdlib.take(10, []).constructor;
+        let lazy_proto = lazy_iter[util.inspect.custom] = lazy_iter.toString;
+        console.log(lazy_proto);
             document.querySelector('#result').innerText = util.inspect(result);
             if (docChanged) {
               let url = new URL(window.location.href);

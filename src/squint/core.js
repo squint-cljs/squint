@@ -574,6 +574,15 @@ class LazyIterable {
     }
     return this.gen();
   }
+  toString() {
+    const end = {};
+    const maxElts = 10;
+    const realized = vec(take(maxElts + 1, concat(this, [end])));
+    const elts = realized.slice(0, Math.min(maxElts, realized.length - 1)).join(", ");
+    const isEnd = (realized[realized.length - 1] === end);
+    const closing = (isEnd) ? "" : ", ...";
+    return `(${elts}${closing})`;
+  }
 }
 
 LazyIterable.prototype[IIterable] = true; // Closure compatibility
