@@ -2,6 +2,12 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.68 (2023-12-01)
+
+- #394: add `int`
+- #393: `Math` can be used without `js/` prefix
+- Expose compiler state via `compileStringEx` for playground, preserves namespace transitions
+
 ## 0.4.67 (2023-11-28)
 
 - Restore backward compatibility with code that is compiled with older versions of squint
