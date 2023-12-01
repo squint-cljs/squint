@@ -233,7 +233,7 @@
                             m (munged-name expr)]
                         (when (contains? current-ns expr)
                           (str (when *repl*
-                                 (str (munge *cljs-ns*) ".")) m)))
+                                 (str "globalThis." (munge *cljs-ns*) ".")) m)))
                       (some-> (maybe-core-var expr env) munge)
                       (let [m (munged-name expr)]
                         (if *repl*
@@ -374,7 +374,7 @@
 (defn no-top-level [env]
   (dissoc env :top-level))
 
-(defn emit-var [[name ?doc ?expr :as expr] skip-var? env]
+(defn emit-var [[name ?doc ?expr :as expr] _skip-var? env]
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
         env (no-top-level env)]
@@ -384,14 +384,7 @@
                   (str (munge *cljs-ns*) ".") #_"var ")
                 (munge name))
            (str "var " (munge name))) " = "
-         (emit expr (expr-env env)) ";\n"
-         (when *repl*
-           (str (when-not skip-var?
-                  "var ") (munge name) " = " "globalThis."
-                (when *cljs-ns*
-                  (str (munge *cljs-ns*) "."))
-                (munge name)
-                ";\n")))))
+         (emit expr (expr-env env)) ";\n")))
 
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
