@@ -216,13 +216,13 @@
                          (when (= "js" sym-ns)
                            (munge* (name expr)))
                          (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
-                           #_(swap! *imported-vars* update resolved-ns (fnil conj #{}) (munged-name sn))
                            (str (if (symbol? resolved-ns)
                                   (munge resolved-ns)
                                   sym-ns) "." #_#_sym-ns "_" (munged-name sn)))
-                         (if *repl*
-                           (str "globalThis." (munge *cljs-ns*) "." #_".aliases." (munge (namespace expr)) "." (munge (name expr)))
-                           (str (munge (namespace expr)) "." (munge (name expr))))))
+                         (let [munged (munge (namespace expr))]
+                           (if (and *repl* (not= "Math" munged))
+                             (str "globalThis." (munge *cljs-ns*) "." munged "." (munge (name expr)))
+                             (str munged "." (munge (name expr)))))))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (cond-> (munge** (str renamed))
                        (:bool (meta renamed)) (bool-expr))
@@ -236,8 +236,8 @@
                                  (str "globalThis." (munge *cljs-ns*) ".")) m)))
                       (some-> (maybe-core-var expr env) munge)
                       (let [m (munged-name expr)]
-                        (if *repl*
-                          (str "globalThis." (munge *cljs-ns*) "." #_".aliases." m)
+                        (if (and *repl* (not= "Math" m))
+                          (str "globalThis." (munge *cljs-ns*) "." m)
                           m)))))]
         (emit-return (escape-jsx expr env)
                      env)))))

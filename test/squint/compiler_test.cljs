@@ -358,6 +358,15 @@
       (is (str/includes? s "globalThis"))
       (is (eq [1 2 3] (js/eval s))))))
 
+(def Math-test
+  (let [expr '(Math/sqrt 3.14)]
+    (is (eq (Math/sqrt 3.14) (jsv! (str expr))))
+    (testing "repl-mode"
+      (let [s (jss! (str expr) {:repl true})]
+        (is (str/includes? s "globalThis.user"))
+        (is (not (str/includes? s "globalThis.user.Math")))
+        (is (eq (Math/sqrt 3.14) (js/eval s)))))))
+
 (deftest regex-test
   (is (eq '("foo")
           (jsv! '(.match "foo foo" #"foo")))))
