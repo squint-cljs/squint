@@ -396,73 +396,77 @@
 
 (defn compile-string*
   ([s] (compile-string* s nil))
+  ([s opts] (compile-string* s opts nil))
   ([s {:keys [elide-exports
               elide-imports
               core-alias
               aliases]
        :or {core-alias "squint_core"}
-       :as opts}]
-   (binding [cc/*core-package* "squint-cljs/core.js"
-             cc/*target* :squint
-             *jsx* false
-             cc/*repl* (:repl opts cc/*repl*)]
-     (let [opts (merge {:ns-state (atom {})} opts)
-           imported-vars (atom {})
-           public-vars (atom #{})
-           aliases (atom (merge aliases {core-alias cc/*core-package*}))
-           imports (atom (if cc/*repl*
-                           (format "var %s = await import('%s');\n"
-                                   core-alias cc/*core-package*)
-                           (format "import * as %s from '%s';\n"
-                                   core-alias cc/*core-package*)))]
-       (binding [*imported-vars* imported-vars
-                 *public-vars* public-vars
-                 *aliases* aliases
-                 *jsx* false
-                 *excluded-core-vars* (atom #{})
-                 *cljs-ns* *cljs-ns*
-                 cc/*target* :squint
-                 cc/*async* (:async opts)]
-         (let [transpiled (transpile-string* s (assoc opts
-                                                      :core-alias core-alias
-                                                      :imports imports))
-               imports (when-not elide-imports @imports)
-               exports (when-not elide-exports
-                         (str
-                          (when-let [vars (disj @public-vars "default$")]
-                            (when (seq vars)
-                              (str (format "\nexport { %s }\n"
-                                           (str/join ", " vars)))))
-                          (when (contains? @public-vars "default$")
-                            "export default default$\n")))]
-           {:imports imports
-            :exports exports
-            :body transpiled
-            :javascript (str imports transpiled exports)
-            :jsx *jsx*
-            :ns *cljs-ns*}))))))
+       :as opts} state]
+   (let [opts (merge state opts)]
+     (binding [cc/*core-package* "squint-cljs/core.js"
+               cc/*target* :squint
+               *jsx* false
+               cc/*repl* (:repl opts cc/*repl*)]
+       (let [opts (merge {:ns-state (atom {})} opts)
+             imported-vars (atom {})
+             public-vars (atom #{})
+             aliases (atom (merge aliases {core-alias cc/*core-package*}))
+             imports (atom (if cc/*repl*
+                             (format "var %s = await import('%s');\n"
+                                     core-alias cc/*core-package*)
+                             (format "import * as %s from '%s';\n"
+                                     core-alias cc/*core-package*)))]
+         (binding [*imported-vars* imported-vars
+                   *public-vars* public-vars
+                   *aliases* aliases
+                   *jsx* false
+                   *excluded-core-vars* (atom #{})
+                   *cljs-ns* (:ns opts *cljs-ns*)
+                   cc/*target* :squint
+                   cc/*async* (:async opts)]
+           (let [transpiled (transpile-string* s (assoc opts
+                                                        :core-alias core-alias
+                                                        :imports imports))
+                 imports (when-not elide-imports @imports)
+                 exports (when-not elide-exports
+                           (str
+                            (when-let [vars (disj @public-vars "default$")]
+                              (when (seq vars)
+                                (str (format "\nexport { %s }\n"
+                                             (str/join ", " vars)))))
+                            (when (contains? @public-vars "default$")
+                              "export default default$\n")))]
+             (assoc opts
+                    :imports imports
+                    :exports exports
+                    :body transpiled
+                    :javascript (str imports transpiled exports)
+                    :jsx *jsx*
+                    :ns *cljs-ns*
+                    :ns-state (:ns-state opts)))))))))
+
+#?(:cljs
+   (defn clj-ize-opts [opts]
+     (cond-> opts
+       (:context opts) (update :context keyword)
+       (:ns opts) (update :ns symbol)
+       (:elide_imports opts) (assoc :elide-imports (:elide_imports opts))
+       (:elide_exports opts) (assoc :elide-exports (:elide_exports opts)))))
+
+#?(:cljs
+   (defn compileStringEx [s opts state]
+     (let [opts (js->clj opts :keywordize-keys true)
+           state (js->clj state :keywordize-keys true)]
+       (clj->js (compile-string* s (clj-ize-opts opts) (clj-ize-opts state))))))
 
 (defn compile-string
   ([s] (compile-string s nil))
   ([s opts]
    (let [opts #?(:cljs (if (object? opts)
-                         (cond-> (js->clj opts :keywordize-keys true)
-                           :context (update :context keyword))
+                         (clj-ize-opts opts)
                          opts)
                  :default opts)
          {:keys [javascript]}
          (compile-string* s opts)]
      javascript)))
-
-#_(defn compile! [s]
-    (prn :s s)
-    (let [expr (e/parse-string s {:row-key :line
-                                  :col-key :column
-                                  :end-location false})
-          compiler-env (ana-api/empty-state)]
-      (prn :expr expr (meta expr))
-      (binding [cljs.env/*compiler* compiler-env
-                ana/*cljs-ns* 'cljs.user]
-        (let [analyzed (ana/analyze (ana/empty-env) expr)]
-          (prn (keys analyzed))
-          (prn (compiler/emit-str analyzed))))))

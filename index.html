@@ -75,9 +75,13 @@
       let urlParams = new URLSearchParams(window.location.search);
       var repl = JSON.parse(urlParams.get('repl'));
 
+        let compilerState = null;
+        console.log(compilerState);
       let evalCode = async (code) => {
         try {
-        let js = compileString(`(do ${code}\n)`, {repl: repl, "elide-exports": repl, context: repl ? 'return' : 'statement'});
+        let opts = {repl: repl, "elide-exports": repl, context: repl ? 'return' : 'statement'};
+        compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
+        let js = compilerState.javascript;
         if (dev) {
           js = js.replace('squint-cljs/core.js', 'http://' + window.location.host + '/core.js');
         }
@@ -195,7 +199,7 @@
         squintUrl = 'squint-cljs';
       }
       var squint = await(import(squintUrl));
-      var compileString = squint.compileString;
+      var compileStringEx = squint.compileStringEx;
       window.compile = () => {
         let code = editor.state.doc.toString();
         code = '' + boilerplateSrc + '\n\n' + code;

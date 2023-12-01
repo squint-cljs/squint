@@ -10,7 +10,8 @@
    :output-dir "lib"
    :modules
    {:compiler {:exports
-               {compileString squint.compiler/compile-string}}
+               {compileString squint.compiler/compile-string
+                compileStringEx squint.compiler/compileStringEx}}
     ;; this is necessary to move fs, path to a common node module instead of to compiler
     :node {:entries [] :depends-on #{:compiler}}
     :compiler.sci {:depends-on #{:compiler :compiler.node :node}

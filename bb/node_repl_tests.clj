@@ -41,6 +41,10 @@
 (deftest refer-test
   (is (str/includes? (:out (repl "(ns foo (:require [\"fs\" :refer [existsSync]])) (existsSync \"README.md\")")) "true")))
 
+(deftest repl-api-test
+  (let [out (:out (p/shell {:out :string} "node test-resources/js_api.mjs"))]
+    (is (= ["1" "1"]  (str/split-lines out)))))
+
 (defn run-tests [_]
   (let [{:keys [fail error]}
         (t/run-tests 'node-repl-tests)]
