@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.71 (2023-12-02)
+
+- More helpful error from JS when using unresolved symbol in REPL mode
+
 ## 0.4.70 (2023-12-02)
 
 - Allow `>`, `<` etc to be used as HOFs
