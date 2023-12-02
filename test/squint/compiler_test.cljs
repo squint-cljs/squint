@@ -1706,6 +1706,8 @@
 (deftest int-test
   (is (= 3 (jsv! "(int 3.14)"))))
 
+(deftest math-hof-test
+  (is (= 6 (jsv! "(apply * [1 2 3])"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

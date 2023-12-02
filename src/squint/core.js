@@ -27,6 +27,10 @@ export function _PLUS_(...xs) {
   return xs.reduce((x, y) => x + y, 0);
 }
 
+export function _STAR_(...xs) {
+  return xs.reduce((x, y) => x * y, 1);
+}
+
 export function _(...xs) {
   if (xs.length == 1) {
     return 0 - xs[0];
