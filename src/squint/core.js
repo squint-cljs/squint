@@ -19,8 +19,26 @@ function toFn(x) {
   return x;
 }
 
-export function _GT_(x, y) {
-  return x > y;
+function walkArray(arr, comp) {
+  return arr.every(function (x, i) {
+    return i === 0 || comp(arr[i - 1], x);
+  });
+}
+
+export function _GT_(...xs) {
+  return walkArray(xs, (x, y) => x > y);
+}
+
+export function _GT__EQ_(...xs) {
+  return walkArray(xs, (x, y) => x >= y);
+}
+
+export function _LT_(...xs) {
+  return walkArray(xs, (x, y) => x < y);
+}
+
+export function _LT__EQ_(...xs) {
+  return walkArray(xs, (x, y) => x <= y)
 }
 
 export function _PLUS_(...xs) {

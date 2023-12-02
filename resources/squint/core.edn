@@ -7,6 +7,9 @@
   PROTOCOL_SENTINEL
   _
   _GT_
+  _GT__EQ_
+  _LT_
+  _LT__EQ_
   _PLUS_
   _STAR_
   _iterator
