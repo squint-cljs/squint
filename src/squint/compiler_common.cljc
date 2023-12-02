@@ -226,18 +226,21 @@
                    (if-let [renamed (get (:var->ident env) expr)]
                      (cond-> (munge** (str renamed))
                        (:bool (meta renamed)) (bool-expr))
-                     (or
-                      (let [ns-state @(:ns-state env)
-                            current (:current ns-state)
-                            current-ns (get ns-state current)
-                            m (munged-name expr)]
+                     (let [ns-state @(:ns-state env)
+                           current (:current ns-state)
+                           current-ns (get ns-state current)
+                           m (munged-name expr)]
+                       (or
                         (when (contains? current-ns expr)
                           (str (when *repl*
-                                 (str "globalThis." (munge *cljs-ns*) ".")) m)))
-                      (some-> (maybe-core-var expr env) munge)
-                      (let [m (munged-name expr)]
-                        (if (and *repl* (not= "Math" m))
-                          (str "globalThis." (munge *cljs-ns*) "." m)
+                                 (str "globalThis." (munge *cljs-ns*) ".")) m))
+                        (some-> (maybe-core-var expr env) munge)
+                        (when (or (contains? (:refers current-ns) expr)
+                                  (let [alias (get (:aliases current-ns) expr)]
+                                    alias))
+                          (str (when *repl*
+                                 (str "globalThis." (munge *cljs-ns*) ".")) m))
+                        (let [m (munged-name expr)]
                           m)))))]
         (emit-return (escape-jsx expr env)
                      env)))))
@@ -451,12 +454,22 @@
                                (format "var %s = await import('%s')" as libname)
                                (format "import * as %s from '%s'" as libname))))
                 (when refer
+                  (swap! (:ns-state env)
+                         (fn [ns-state]
+                           (let [current (:current ns-state)]
+                             (update-in ns-state [current :refers] (fnil into #{}) refer))))
                   (if *repl*
                     (str (statement (format "var { %s } = await import('%s')" (str/join ", " (map munge refer)) libname))
                          (str/join (map (fn [sym]
                                           (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym)))
                                         refer)))
                     (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname)))))]
+      (when as
+        (swap! (:ns-state env)
+               (fn [ns-state]
+                 (let [current (:current ns-state)]
+                   (update-in ns-state [current :aliases] (fn [aliases]
+                                                            ((fnil assoc {}) aliases as libname)))))))
       (when-not (:elide-imports env)
         expr)
       #_nil)))

@@ -1487,7 +1487,14 @@
   (is (str/includes? (compiler/compile-string (pr-str '(ns foo (:require ["./popup.css" ]))))
                      "import './popup.css'"))
   (is (re-find #"import.*'./popup.css'"
-               (compiler/compile-string (pr-str '(ns foo (:require ["./popup.css" :as pop])))))))
+               (compiler/compile-string (pr-str '(ns foo (:require ["./popup.css" :as pop]))))))
+  (t/async done
+    (let [js (compiler/compile-string "(ns foo (:require [clojure.string :as str])) (str 1 2 3 (str/join \",\" [1 2 3]))" {:repl true
+                                                                                                                           :context :return})]
+      (-> (.then (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))
+                 (fn [v]
+                   (is (= "1231,2,3" v))))
+          (.finally done)))))
 
 (deftest letfn-test
   (is (= 3 (jsv! '(letfn [(f [x] (g x)) (g [x] (inc x))] (f 2)))))
