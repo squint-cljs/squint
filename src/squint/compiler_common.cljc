@@ -226,19 +226,22 @@
                    (if-let [renamed (get (:var->ident env) expr)]
                      (cond-> (munge** (str renamed))
                        (:bool (meta renamed)) (bool-expr))
-                     (or
-                      (let [ns-state @(:ns-state env)
-                            current (:current ns-state)
-                            current-ns (get ns-state current)
-                            m (munged-name expr)]
-                        (when (or (contains? current-ns expr)
-                                  (contains? (:refers current-ns) expr)
-                                  (contains? (:aliases current-ns) expr))
+                     (let [ns-state @(:ns-state env)
+                           current (:current ns-state)
+                           current-ns (get ns-state current)
+                           m (munged-name expr)]
+                       (or
+                        (when (contains? current-ns expr)
                           (str (when *repl*
-                                 (str "globalThis." (munge *cljs-ns*) ".")) m)))
-                      (some-> (maybe-core-var expr env) munge)
-                      (let [m (munged-name expr)]
-                        m))))]
+                                 (str "globalThis." (munge *cljs-ns*) ".")) m))
+                        (some-> (maybe-core-var expr env) munge)
+                        (when (or (contains? (:refers current-ns) expr)
+                                  (let [alias (get (:aliases current-ns) expr)]
+                                    alias))
+                          (str (when *repl*
+                                 (str "globalThis." (munge *cljs-ns*) ".")) m))
+                        (let [m (munged-name expr)]
+                          m)))))]
         (emit-return (escape-jsx expr env)
                      env)))))
 
