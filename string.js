@@ -1,3 +1,5 @@
+/*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
+
 import { iterable, string_QMARK_ } from './core.js';
 
 export function blank_QMARK_(s) {
@@ -37,8 +39,19 @@ export function trimr(s) {
   return s.trimRight();
 }
 
-export function split(s, re) {
-  return s.split(re);
+function discardTrailingIfNeeded(limit, v) {
+  if (limit == null && v.length > 1) {
+    for (;;)
+    if (v[v.length - 1] === "") {
+      v.pop();
+    } else break;
+  }
+  return v;
+}
+
+export function split(s, re, limit) {
+  const split = s.split(re, limit);
+  return discardTrailingIfNeeded(limit, split);
 }
 
 export function starts_with_QMARK_(s, substr) {
@@ -60,13 +73,13 @@ const replaceAll = function(s, re, replacement) {
   if (re.unicode) {
     flags += "u";
   }
-  let r = new RegExp(re.source, flags);
+  const r = new RegExp(re.source, flags);
   return s.replace(r, replacement);
 };
 
 const replaceWith = function(f) {
   return (...args) => {
-    let [matches, _,  __] = args;
+    const [matches, _,  __] = args;
     if (matches.length == 1) {
       return f(matches[0]);
     } else {
@@ -88,7 +101,7 @@ export function replace(s, match, replacement) {
     }
   }
   throw `Invalid match arg: $match`;
-};
+}
 
 export function split_lines(s) {
   return s.split(/\n|\r\n/);

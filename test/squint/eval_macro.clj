@@ -14,7 +14,7 @@
                              (do (cljs.test/is
                                   ~(if (not (seq? expected))
                                      `(= ~expected (.-result ~'mod))
-                                     `(~expected (.-result ~'mod)))))))
+                                     `(~@expected (.-result ~'mod)))))))
                           (.finally
                            #(do (fs/unlinkSync filename#)
                                 (~'done)))))))
