@@ -104,5 +104,5 @@ export function replace(s, match, replacement) {
 }
 
 export function split_lines(s) {
-  return s.split(/\n|\r\n/);
+  return split(s, /\n|\r\n/);
 }

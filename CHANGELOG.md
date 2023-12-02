@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.70 (2023-12-02)
+
+- Allow `>`, `<` etc to be used as HOFs
+- Fix `str/split` with respect to trailing empty split elements
+
 ## 0.4.69 (2023-12-02)
 
 - Fix vararg functions in REPL mode
