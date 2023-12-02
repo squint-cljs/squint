@@ -47,7 +47,7 @@
 (defn- variadic-fn*
   ([sym method]
    (variadic-fn* sym method true))
-  ([sym [arglist & body :as method] solo]
+  ([sym [arglist & body :as _method] solo]
    (let [sig (remove '#{&} arglist)
          restarg (gensym "seq")
          async (:async (meta sym))]
@@ -94,7 +94,8 @@
                    (range c)))
             (fixed-arity [rname sig]
               (let [c (count sig)]
-                [c `(. ~rname
+                [c `(. ;; prevent resolving rname, for REPL mode
+                     ~(list 'js* (str rname))
                        (~(symbol
                           (str "cljs$core$IFn$_invoke$arity$" c))
                         ~@(dest-args c)))]))
@@ -160,7 +161,9 @@
                          (let [argseq# (when (< ~maxfa (.-length ~args-arr))
                                          (.slice ~args-arr ~maxfa) #_(new #_:ana/no-resolve cljs.core/IndexedSeq
                                                                           0 nil))]
-                           (. ~rname
+                           (.
+                            ;; prevent resolving rname, for REPL mode
+                            ~(list 'js* (str rname))
                               (~'cljs$core$IFn$_invoke$arity$variadic
                                ~@(dest-args maxfa)
                                argseq#))))
@@ -216,7 +219,9 @@
                      (let [argseq# (when (< ~c-1 (.-length ~args-sym))
                                      (.slice ~args-sym ~c-1) #_(new ^:ana/no-resolve cljs.core/IndexedSeq
                                                                     0 nil))]
-                       (. ~rname (~'cljs$core$IFn$_invoke$arity$variadic ~@(dest-args c-1) argseq#)))))
+                       (.
+                        ;; prevent resolving rname, for REPL mode
+                        ~(list 'js* (str rname)) (~'cljs$core$IFn$_invoke$arity$variadic ~@(dest-args c-1) argseq#)))))
                 {:async async})]
          ~(variadic-fn* name method)
          ~name))))

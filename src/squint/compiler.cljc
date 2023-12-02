@@ -340,22 +340,23 @@
 (defn transpile-form
   ([f] (transpile-form f nil))
   ([f env]
-   (str
-    (emit f (merge {:ns-state (atom {})
-                    :context :statement
-                    :top-level true
-                    :core-vars core-vars
-                    :gensym (let [ctr (volatile! 0)]
-                              (fn [sym]
-                                (let [next-id (vswap! ctr inc)]
-                                  (symbol (str (if sym (munge sym)
-                                                   "G__") next-id)))))
-                    :emit {::cc/list emit-list
-                           ::cc/vector emit-vector
-                           ::cc/map emit-map
-                           ::cc/keyword emit-keyword
-                           ::cc/set emit-set
-                           ::cc/special emit-special}} env)))))
+   (binding [cc/*repl* (:repl env cc/*repl*)]
+     (str
+      (emit f (merge {:ns-state (atom {})
+                      :context :statement
+                      :top-level true
+                      :core-vars core-vars
+                      :gensym (let [ctr (volatile! 0)]
+                                (fn [sym]
+                                  (let [next-id (vswap! ctr inc)]
+                                    (symbol (str (if sym (munge sym)
+                                                     "G__") next-id)))))
+                      :emit {::cc/list emit-list
+                             ::cc/vector emit-vector
+                             ::cc/map emit-map
+                             ::cc/keyword emit-keyword
+                             ::cc/set emit-set
+                             ::cc/special emit-special}} env))))))
 
 (def ^:dynamic *jsx* false)
 

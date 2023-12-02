@@ -98,9 +98,27 @@
     (is (= 1 ((js/eval s) 1))))
   (is (= 1 (jsv! '(do (defn foo [] (fn [x] x)) ((foo) 1))))))
 
+(deftest jss!-test
+  (is (not (str/includes? (jss! '(def x 1) {:repl false}) "globalThis")))
+  (is (str/includes? (jss! '(def x 1) {:repl true}) "globalThis")))
+
 (deftest fn-varargs-test
-  (is (eq #js [3 4] (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2 3 4)))))
-  (is (nil? (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2))))))
+  (doseq [repl [true false]]
+    (testing "vararg fixed arity"
+      (is (nil? (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2)) {:repl repl}))))
+    (testing "vararg vararg arity"
+      (is (eq #js [3 4] (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2 3 4)) {:repl repl}))))
+    (testing "multi vararg fixed arity"
+      (is (eq 1 (jsv! '(let [f (fn foo
+                                 ([y] 1)
+                                 ([y & zs] zs))]
+                         (f 1))
+                      {:repl repl}))))
+    (testing "multi vararg vararg arity"
+      (is (eq [2] (jsv! '(let [f (fn foo
+                                 ([y] 1)
+                                   ([y & zs] zs))]
+                         (f 1 2)) {:repl repl}))))))
 
 (deftest fn-multi-arity-test
   (is (= 1 (jsv! '(let [f (fn foo ([x] x) ([x y] y))] (f 1)))))
