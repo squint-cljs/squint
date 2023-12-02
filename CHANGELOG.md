@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.69 (2023-12-02)
+
+- Fix vararg functions in REPL mode
+
 ## 0.4.68 (2023-12-01)
 
 - #394: add `int`
