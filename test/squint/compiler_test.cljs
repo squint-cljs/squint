@@ -1709,7 +1709,7 @@
 
 (deftest re-pattern-test
   (is (eq #"\d+" (jsv! '(re-pattern "\\d+"))))
-  (is (eq "dgimsvy" (jsv! '(.-flags (re-pattern "(?dgimsvy)foo")))))
+  (is (eq "dgimsuy" (jsv! '(.-flags (re-pattern "(?dgimsuy)foo")))))
   (is (eq "dgi" (jsv! '(.-flags (re-pattern "(?dgi)foo")))))
   (is (eq "foo" (jsv! '(.-source (re-pattern "(?dgi)foo"))))))
 
