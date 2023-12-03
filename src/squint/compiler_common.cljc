@@ -753,7 +753,6 @@ break;}" body)
           (emit-return outer-env)))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
-  (prn :funcall (:jsx env))
   (let [ns (when (symbol? fname) (namespace fname))
         fname (if ns (symbol (munge ns) (name fname))
                   fname)
@@ -900,6 +899,8 @@ break;}" body)
 (defn jsx-attrs [v env]
   (let [env (expr-env env)]
     (if (:jsx-provider env)
+      (when v
+        (emit v (dissoc env :jsx)))
       (if v
         (str " "
              (str/join " "
@@ -914,18 +915,4 @@ break;}" body)
                                                     (escape-jsx env)))))
                             v)))
         "")
-      (when v
-        (emit v (dissoc env :jsx))
-        #_(str " "
-             (str/join " "
-                       (map (fn [[k v]]
-                              (if (= :& k)
-                                (str "{..." (emit v (dissoc env :jsx)) "}")
-                                (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
-                                                    (not (string? v))
-                                                    ;; since we escape here, we
-                                                    ;; can probably remove
-                                                    ;; escaping elsewhere?
-                                                    (escape-jsx env)))))
-                            v)))
-        ""))))
+      )))
