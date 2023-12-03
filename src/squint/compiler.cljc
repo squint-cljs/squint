@@ -300,13 +300,15 @@
                      (symbol "")
                      tag-name)
           tag-name (emit tag-name (expr-env (dissoc env :jsx)))]
-      (emit-return (format "<%s%s>%s</%s>"
-                           tag-name
-                           (cc/jsx-attrs attrs env)
-                           (let [env (expr-env env)]
-                             (str/join "" (map #(emit % env) elts)))
-                           tag-name)
-                   env))
+      (if (= "react" (:jsx-provider env))
+        (emit (list* 'react/createElement (name tag-name) attrs elts) env)
+        (emit-return (format "<%s%s>%s</%s>"
+                             tag-name
+                             (cc/jsx-attrs attrs env)
+                             (let [env (expr-env env)]
+                               (str/join "" (map #(emit % env) elts)))
+                             tag-name)
+                     env)))
     (emit-return (format "[%s]"
                          (str/join ", " (emit-args env expr))) env)))
 
@@ -428,7 +430,9 @@
                    cc/*async* (:async opts)]
            (let [transpiled (transpile-string* s (assoc opts
                                                         :core-alias core-alias
-                                                        :imports imports))
+                                                        :imports imports
+                                                        :jsx false
+                                                        :jsx-provider (:jsx opts)))
                  imports (when-not elide-imports @imports)
                  exports (when-not elide-exports
                            (str
