@@ -209,81 +209,81 @@
       sym)))
 
 (defn emit-list [expr env]
-  (escape-jsx
-   (let [env (dissoc env :jsx)
-         fexpr (first expr)]
-     (if (:quote env)
-       (do
-         (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
-         (format "%slist(%s)"
-                 (if-let [ca (:core-alias env)]
-                   (str ca ".")
-                   "")
-                 (str/join ", " (emit-args env expr))))
-       (cond (symbol? fexpr)
-             (let [head* (first expr)
-                   head (strip-core-symbol head*)
-                   expr* expr
-                   expr (if (not= head head*)
-                          (with-meta (cons head (rest expr))
-                            (meta expr))
-                          expr)
-                   head-str (str head)
-                   macro (when (symbol? head)
-                           (or (built-in-macros head)
-                               (let [ns (namespace head)
-                                     nm (name head)
-                                     ns-state @(:ns-state env)
-                                     current-ns (:current ns-state)
-                                     nms (symbol nm)
-                                     current-ns-state (get ns-state current-ns)]
-                                 (if ns
-                                   (let [nss (symbol ns)]
-                                     (or
-                                      ;; used by cherry embed:
-                                      (some-> env :macros (get nss) (get nms))
-                                      (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
-                                        (get-in ns-state [:macros resolved-ns nms]))))
-                                   (let [refers (:refers current-ns-state)]
-                                     (when-let [macro-ns (get refers nms)]
-                                       (get-in ns-state [:macros macro-ns nms])))))))]
-               (if macro
-                 (let [;; fix for calling macro with more than 20 args
-                       #?@(:cljs [macro (or (.-afn ^js macro) macro)])
-                       new-expr (apply macro expr {:repl cc/*repl*
-                                                   :gensym (:gensym env)
-                                                   :ns {:name cc/*cljs-ns*}} (rest expr))]
-                   (emit new-expr env))
-                 (cond
-                   (and (= (.charAt head-str 0) \.)
-                        (> (count head-str) 1)
-                        (not (= ".." head-str)))
-                   (cc/emit-special '. env
-                                    (list* '.
-                                           (second expr)
-                                           (symbol (subs head-str 1))
-                                           (nnext expr)))
-                   (and (> (count head-str) 1)
-                        (str/ends-with? head-str "."))
-                   (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
-                         env)
-                   (special-form? head) (cc/emit-special head env expr)
-                   (infix-operator? env head) (emit-infix head env expr)
-                   (prefix-unary? head) (emit-prefix-unary head expr)
-                   (suffix-unary? head) (emit-suffix-unary head expr)
-                   :else (cc/emit-special 'funcall env expr*))))
-             (keyword? fexpr)
-             (let [[k obj & args] expr]
-               (emit (list* 'clojure.core/get obj k args) env))
-             (or (map? fexpr)
-                 (set? fexpr))
-             (let [[obj k & args] expr]
-               (emit (list* 'clojure.core/get obj k args) env))
-             (list? expr)
-             (cc/emit-special 'funcall env expr)
-             :else
-             (throw (new Exception (str "invalid form: " expr))))))
-   env))
+  (let [env (assoc env :jsx (::jsx (meta expr)))]
+    (escape-jsx
+     (let [fexpr (first expr)]
+       (if (:quote env)
+         (do
+           (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
+           (format "%slist(%s)"
+                   (if-let [ca (:core-alias env)]
+                     (str ca ".")
+                     "")
+                   (str/join ", " (emit-args env expr))))
+         (cond (symbol? fexpr)
+               (let [head* (first expr)
+                     head (strip-core-symbol head*)
+                     expr* expr
+                     expr (if (not= head head*)
+                            (with-meta (cons head (rest expr))
+                              (meta expr))
+                            expr)
+                     head-str (str head)
+                     macro (when (symbol? head)
+                             (or (built-in-macros head)
+                                 (let [ns (namespace head)
+                                       nm (name head)
+                                       ns-state @(:ns-state env)
+                                       current-ns (:current ns-state)
+                                       nms (symbol nm)
+                                       current-ns-state (get ns-state current-ns)]
+                                   (if ns
+                                     (let [nss (symbol ns)]
+                                       (or
+                                        ;; used by cherry embed:
+                                        (some-> env :macros (get nss) (get nms))
+                                        (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
+                                          (get-in ns-state [:macros resolved-ns nms]))))
+                                     (let [refers (:refers current-ns-state)]
+                                       (when-let [macro-ns (get refers nms)]
+                                         (get-in ns-state [:macros macro-ns nms])))))))]
+                 (if macro
+                   (let [;; fix for calling macro with more than 20 args
+                         #?@(:cljs [macro (or (.-afn ^js macro) macro)])
+                         new-expr (apply macro expr {:repl cc/*repl*
+                                                     :gensym (:gensym env)
+                                                     :ns {:name cc/*cljs-ns*}} (rest expr))]
+                     (emit new-expr env))
+                   (cond
+                     (and (= (.charAt head-str 0) \.)
+                          (> (count head-str) 1)
+                          (not (= ".." head-str)))
+                     (cc/emit-special '. env
+                                      (list* '.
+                                             (second expr)
+                                             (symbol (subs head-str 1))
+                                             (nnext expr)))
+                     (and (> (count head-str) 1)
+                          (str/ends-with? head-str "."))
+                     (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
+                           env)
+                     (special-form? head) (cc/emit-special head env expr)
+                     (infix-operator? env head) (emit-infix head env expr)
+                     (prefix-unary? head) (emit-prefix-unary head expr)
+                     (suffix-unary? head) (emit-suffix-unary head expr)
+                     :else (cc/emit-special 'funcall env expr*))))
+               (keyword? fexpr)
+               (let [[k obj & args] expr]
+                 (emit (list* 'clojure.core/get obj k args) env))
+               (or (map? fexpr)
+                   (set? fexpr))
+               (let [[obj k & args] expr]
+                 (emit (list* 'clojure.core/get obj k args) env))
+               (list? expr)
+               (cc/emit-special 'funcall env expr)
+               :else
+               (throw (new Exception (str "invalid form: " expr))))))
+     env)))
 
 (defn emit-vector [expr env]
   (if (and (:jsx env)
@@ -296,12 +296,15 @@
           attrs (when (map? attrs) attrs)
           elts (if attrs (nnext v) (next v))
           tag-name (symbol tag)
-          tag-name (if (= '<> tag-name)
+          tag-name* (if (= '<> tag-name)
                      (symbol "")
                      tag-name)
-          tag-name (emit tag-name (expr-env (dissoc env :jsx)))]
+          tag-name (emit tag-name* (expr-env (dissoc env :jsx)))]
       (if (= "react" (:jsx-provider env))
-        (emit (list* 'react/createElement (name tag-name) attrs elts) env)
+        (emit (vary-meta (list* 'react/createElement (if (keyword? tag)
+                                                       (name tag-name)
+                                                       tag-name*) attrs elts)
+                         assoc ::jsx true) env)
         (emit-return (format "<%s%s>%s</%s>"
                              tag-name
                              (cc/jsx-attrs attrs env)

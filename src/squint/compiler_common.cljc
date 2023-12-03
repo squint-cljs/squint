@@ -89,7 +89,7 @@
 #?(:cljs (derive js/Number ::number))
 
 (defn escape-jsx [expr env]
-  (if (:jsx env)
+  (if (and (:jsx env) (not (:jsx-provider env)))
     (format "{%s}" expr)
     expr))
 
@@ -108,7 +108,8 @@
 
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
   (cond-> (if (and (:jsx env)
-               (not (:jsx-attr env)))
+                   (not (:jsx-attr env))
+                   (not (:jsx-provider env)))
             expr
             (emit-return (pr-str expr) env))
     (pos? (count expr)) (bool-expr)))
@@ -752,6 +753,7 @@ break;}" body)
           (emit-return outer-env)))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
+  (prn :funcall (:jsx env))
   (let [ns (when (symbol? fname) (namespace fname))
         fname (if ns (symbol (munge ns) (name fname))
                   fname)
