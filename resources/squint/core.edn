@@ -135,6 +135,7 @@
   range
   re_find
   re_matches
+  re_pattern
   re_seq
   reduce
   reduce_kv
