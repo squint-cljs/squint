@@ -301,9 +301,12 @@
                      tag-name)
           tag-name (emit tag-name* (expr-env (dissoc env :jsx)))]
       (if (= "react" (:jsx-provider env))
-        (emit (vary-meta (list* 'react/createElement (if (keyword? tag)
-                                                       (name tag-name)
-                                                       tag-name*) attrs elts)
+        (emit (vary-meta (list* 'createElement
+                                (if (keyword? tag)
+                                  (name tag-name)
+                                  tag-name*)
+                                attrs
+                                elts)
                          assoc ::jsx true) env)
         (emit-return (format "<%s%s>%s</%s>"
                              tag-name
@@ -326,8 +329,12 @@
           key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
                            (str ns "/" (name k))
                            (name k)))
-          mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) ": "
-                                  (emit (val pair) expr-env)))
+          mk-pair (fn [pair]
+                    (let [k (key pair)]
+                      (str (if (= :& k)
+                             (str "...")
+                             (str (emit (key-fn k) expr-env) ": "))
+                           (emit (val pair) expr-env))))
           keys (str/join ", " (map mk-pair (seq expr)))]
       (escape-jsx (-> (format "({ %s })" keys)
                       (emit-return env))
