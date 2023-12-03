@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Add `re-pattern` (fixes [#396](https://github.com/squint-cljs/squint/issues/396))
+
 ## 0.4.71 (2023-12-02)
 
 - More helpful error from JS when using unresolved symbol in REPL mode

@@ -1707,6 +1707,12 @@
   (is (eq (re-find #"(\D+)|(\d+)" "word then number 57")
           (vec (jsv! '(re-find #"(\D+)|(\d+)" "word then number 57"))))))
 
+(deftest re-pattern-test
+  (is (eq #"\d+" (jsv! '(re-pattern "\\d+"))))
+  (is (eq "dgimsvy" (jsv! '(.-flags (re-pattern "(?dgimsvy)foo")))))
+  (is (eq "dgi" (jsv! '(.-flags (re-pattern "(?dgi)foo")))))
+  (is (eq "foo" (jsv! '(.-source (re-pattern "(?dgi)foo"))))))
+
 (deftest js-in-test
   (is (true? (jsv! "(js-in :foo {:foo 1})"))))
 

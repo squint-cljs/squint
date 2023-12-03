@@ -38,7 +38,7 @@ export function _LT_(...xs) {
 }
 
 export function _LT__EQ_(...xs) {
-  return walkArray(xs, (x, y) => x <= y)
+  return walkArray(xs, (x, y) => x <= y);
 }
 
 export function _PLUS_(...xs) {
@@ -845,6 +845,22 @@ export function re_find(re, s) {
   } else {
     throw new TypeError('re-find must match against a string.');
   }
+}
+
+export function re_pattern(s) {
+  if (s instanceof RegExp) {
+    return s;
+  }
+
+  // Allow all flags available in JavaScript
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/RegExp#flags
+  const flagMatches = s.match(/^\(\?([dgimsuvy]*)\)/);
+
+  if (flagMatches) {
+    return new RegExp(s.slice(flagMatches[0].length), flagMatches[1]);
+  }
+
+  return new RegExp(s);
 }
 
 export function subvec(arr, start, end) {
