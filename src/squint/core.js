@@ -1968,3 +1968,18 @@ export function transduce(xform, ...args) {
     }
   }
 }
+
+export function zipmap(keys, vals) {
+  let res = {};
+  const keyIterator = iterable(keys)[Symbol.iterator]();
+  const valIterator = iterable(vals)[Symbol.iterator]();
+  let nextKey, nextVal;
+  for (;;) {
+    nextKey = keyIterator.next();
+    if (nextKey.done) break;
+    nextVal = valIterator.next();
+    if (nextVal.done) break;
+    res[nextKey.value] = nextVal.value;
+  }
+  return res;
+}

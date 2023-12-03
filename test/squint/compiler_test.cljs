@@ -1726,5 +1726,11 @@
   (is (true? (jsv! "(apply > (reverse [1 2 3]))")))
   (is (true? (jsv! "(apply >= (reverse [1 1 2 3]))"))))
 
+(deftest zipmap-test
+  (is (eq #js {} (jsv! "(zipmap nil [1 2 3])")))
+  (is (eq #js {} (jsv! "(zipmap [1 2 3] nil)")))
+  (is (eq #js {"0" 1, "1" 2, "2" 3} (jsv! "(zipmap (range) [1 2 3])")))
+  (is (eq #js {"1" 0, "2" 1, "3" 2} (jsv! "(zipmap [1 2 3] (range))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

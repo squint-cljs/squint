@@ -188,4 +188,5 @@
   vector_QMARK_
   warn_on_lazy_reusage_BANG_
   with_meta
-  zero_QMARK_}
+  zero_QMARK_
+  zipmap}
