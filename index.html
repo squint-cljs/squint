@@ -106,7 +106,7 @@
       console.log(compilerState);
       let evalCode = async (code) => {
         try {
-          let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement', jsx: "react" };
+        let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement', "jsx-runtime": {"import-source": "https://esm.sh/react@18.2.0", development: true} };
           compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
           let js = compilerState.javascript;
           if (dev) {

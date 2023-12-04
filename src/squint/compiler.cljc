@@ -300,14 +300,24 @@
                      (symbol "")
                      tag-name)
           tag-name (emit tag-name* (expr-env (dissoc env :jsx)))]
-      (if (= "react" (:jsx-provider env))
-        (emit (vary-meta (list* 'createElement
-                                (if (keyword? tag)
-                                  (name tag-name)
-                                  tag-name*)
-                                attrs
-                                elts)
-                         assoc ::jsx true) env)
+      (if (:jsx-runtime env)
+        (let [single-child? (= (count elts) 1)]
+          (emit (list (if single-child?
+                        '_jsx '_jsxs) ;; TODO: _jsxDEV
+                      (if (keyword? tag)
+                        (name tag-name)
+                        tag-name*)
+                      (let [elts (map #(emit % (expr-env env)) elts)
+                            elts (map #(list 'js* (str %)) elts)
+                            children
+                            (if single-child?
+                              (first elts)
+                              (vec elts))]
+                        (prn :children children)
+                        (cond-> (or attrs {})
+                          (seq children)
+                          (assoc :children children))))
+                env))
         (emit-return (format "<%s%s>%s</%s>"
                              tag-name
                              (cc/jsx-attrs attrs env)
@@ -425,9 +435,21 @@
              imported-vars (atom {})
              public-vars (atom #{})
              aliases (atom (merge aliases {core-alias cc/*core-package*}))
+             jsx-runtime (:jsx-runtime opts)
+             jsx-dev (:development jsx-runtime)
              imports (atom (if cc/*repl*
-                             (format "var %s = await import('%s');\n"
-                                     core-alias cc/*core-package*)
+                             (str (format "var %s = await import('%s');\n"
+                                          core-alias cc/*core-package*)
+                                  (when jsx-runtime
+                                    (format "var {jsx%s: _jsx, jsx%s%s: _jsxs} = await import('%s');\n"
+                                            (if jsx-dev "DEV" "")
+                                            (if jsx-dev "" "s")
+                                            (if jsx-dev "DEV" "")
+                                            (str (:import-source jsx-runtime
+                                                                 "react")
+                                                 (if jsx-dev
+                                                   "/jsx-dev-runtime"
+                                                   "/jsx-runtime")))))
                              (format "import * as %s from '%s';\n"
                                      core-alias cc/*core-package*)))]
          (binding [*imported-vars* imported-vars
@@ -441,8 +463,7 @@
            (let [transpiled (transpile-string* s (assoc opts
                                                         :core-alias core-alias
                                                         :imports imports
-                                                        :jsx false
-                                                        :jsx-provider (:jsx opts)))
+                                                        :jsx false))
                  imports (when-not elide-imports @imports)
                  exports (when-not elide-exports
                            (str
