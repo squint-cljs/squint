@@ -89,7 +89,7 @@
 #?(:cljs (derive js/Number ::number))
 
 (defn escape-jsx [expr env]
-  (if (:jsx env)
+  (if (and (:jsx env) (not (:jsx-runtime env)))
     (format "{%s}" expr)
     expr))
 
@@ -108,7 +108,8 @@
 
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
   (cond-> (if (and (:jsx env)
-               (not (:jsx-attr env)))
+                   (not (:jsx-attr env))
+                   (not (:jsx-runtime env)))
             expr
             (emit-return (pr-str expr) env))
     (pos? (count expr)) (bool-expr)))
@@ -897,17 +898,21 @@ break;}" body)
 
 (defn jsx-attrs [v env]
   (let [env (expr-env env)]
-    (if v
-      (str " "
-           (str/join " "
-                     (map (fn [[k v]]
-                            (if (= :& k)
-                              (str "{..." (emit v (dissoc env :jsx)) "}")
-                              (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
-                                                  (not (string? v))
-                                                  ;; since we escape here, we
-                                                  ;; can probably remove
-                                                  ;; escaping elsewhere?
-                                                  (escape-jsx env)))))
-                          v)))
-      "")))
+    (if (:jsx-runtime env)
+      (when v
+        (emit v (dissoc env :jsx)))
+      (if v
+        (str " "
+             (str/join " "
+                       (map (fn [[k v]]
+                              (if (= :& k)
+                                (str "{..." (emit v (dissoc env :jsx)) "}")
+                                (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
+                                                    (not (string? v))
+                                                    ;; since we escape here, we
+                                                    ;; can probably remove
+                                                    ;; escaping elsewhere?
+                                                    (escape-jsx env)))))
+                            v)))
+        "")
+      )))
