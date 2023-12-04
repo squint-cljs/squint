@@ -175,14 +175,15 @@
       let updateExt = EditorView.updateListener.of((update) => {
         if (update.docChanged) docChanged = true;
       });
+      let modifier = localStorage.getItem("editor.modifier") || 'Meta';
       let extensions = [
         theme,
         foldGutter(),
         syntaxHighlighting(defaultHighlightStyle),
         drawSelection(),
         keymap.of(complete_keymap),
-        squintExtension({ modifier: 'Meta' }),
-        eval_region.extension({ modifier: 'Meta' }),
+        squintExtension({ modifier: modifier }),
+        eval_region.extension({ modifier: modifier }),
         updateExt,
         ...default_extensions,
       ];
