@@ -1,11 +1,15 @@
 ## Squint
 
-Squint is a compiler for an experimental dialect of ClojureScript. You can think
+Squint is a compiler for a light-weight dialect of ClojureScript. You can think
 of this as CLJS lite or CLJS--.
 
 Squint is not intended as a full replacement for ClojureScript but as a tool to
-target JS for anything you would not use ClojureScript for, for whatever reason:
-performance, bundle size, ease of interop, etc.
+target JS when you need something more light-weight in terms of interop and
+bundle size. The most significant different with CLJS is that squint uses only
+built-in JS data structures.
+
+If you want to use squint, but with the normal ClojureScript standard library
+and data structures, check out [cherry](https://github.com/squint-cljs/cherry).
 
 > :warning: This project is a work in progress and may still undergo breaking
 > changes.
