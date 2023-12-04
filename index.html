@@ -175,7 +175,7 @@
       let updateExt = EditorView.updateListener.of((update) => {
         if (update.docChanged) docChanged = true;
       });
-      let modifier = localStorage.getItem("editor.modifier") || 'Meta';
+      let modifier = localStorage.getItem("editor.modifier") || 'Meta'; // force redeploy
       let extensions = [
         theme,
         foldGutter(),
