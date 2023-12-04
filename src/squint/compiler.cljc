@@ -296,24 +296,25 @@
           attrs (when (map? attrs) attrs)
           elts (if attrs (nnext v) (next v))
           tag-name (symbol tag)
-          tag-name* (if (= '<> tag-name)
+          fragment? (= '<> tag-name)
+          tag-name* (if fragment?
                      (symbol "")
                      tag-name)
           tag-name (emit tag-name* (expr-env (dissoc env :jsx)))]
       (if (:jsx-runtime env)
         (let [single-child? (= (count elts) 1)]
           (emit (list (if single-child?
-                        '_jsx '_jsxs) ;; TODO: _jsxDEV
-                      (if (keyword? tag)
-                        (name tag-name)
-                        tag-name*)
+                        '_jsx '_jsxs)
+                      (cond fragment? "_Fragment"
+                            (keyword? tag)
+                            (name tag-name)
+                            :else tag-name*)
                       (let [elts (map #(emit % (expr-env env)) elts)
                             elts (map #(list 'js* (str %)) elts)
                             children
                             (if single-child?
                               (first elts)
                               (vec elts))]
-                        (prn :children children)
                         (cond-> (or attrs {})
                           (seq children)
                           (assoc :children children))))
@@ -441,7 +442,9 @@
                              (str (format "var %s = await import('%s');\n"
                                           core-alias cc/*core-package*)
                                   (when jsx-runtime
-                                    (format "var {jsx%s: _jsx, jsx%s%s: _jsxs} = await import('%s');\n"
+                                    (format
+                                     (str/trim "
+var {jsx%s: _jsx, jsx%s%s: _jsxs, Fragment: _Fragment } = await import('%s');\n")
                                             (if jsx-dev "DEV" "")
                                             (if jsx-dev "" "s")
                                             (if jsx-dev "DEV" "")

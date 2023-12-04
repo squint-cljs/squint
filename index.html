@@ -21,7 +21,11 @@
           "@codemirror/state": "https://ga.jspm.io/npm:@codemirror/state@6.3.1/dist/index.js",
           "@codemirror/view": "https://ga.jspm.io/npm:@codemirror/view@6.21.4/dist/index.js",
           "@nextjournal/clojure-mode": "https://ga.jspm.io/npm:@nextjournal/clojure-mode@0.3.0/dist/nextjournal/clojure_mode.mjs",
-          "@nextjournal/clojure-mode/extensions/eval-region": "https://ga.jspm.io/npm:@nextjournal/clojure-mode@0.3.0/dist/nextjournal/clojure_mode/extensions/eval_region.mjs"
+          "@nextjournal/clojure-mode/extensions/eval-region": "https://ga.jspm.io/npm:@nextjournal/clojure-mode@0.3.0/dist/nextjournal/clojure_mode/extensions/eval_region.mjs",
+          "react": "https://esm.sh/react@18.2.0",
+          "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+          "react/jsx-dev-runtime": "https://esm.sh/react@18.2.0/jsx-dev-runtime",
+          "react-dom": "https://esm.sh/react-dom@18.2.0"
         },
         "scopes": {
           "https://ga.jspm.io/": {
@@ -103,10 +107,9 @@
         }
 
       let compilerState = null;
-      console.log(compilerState);
       let evalCode = async (code) => {
         try {
-        let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement', "jsx-runtime": {"import-source": "https://esm.sh/react@18.2.0", development: true} };
+        let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement', "jsx-runtime": {"import-source": "react", development: true} };
           compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
           let js = compilerState.javascript;
           if (dev) {
