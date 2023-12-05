@@ -1747,7 +1747,8 @@
 
 (deftest not-test
   (is (false? (jsv! "(not 0)")))
-  (is (false? (jsv! "(not \"\")"))))
+  (is (false? (jsv! "(not \"\")")))
+  (is (not (str/includes? (jss! "(not (zero? 1))") "not"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
