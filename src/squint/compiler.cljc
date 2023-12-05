@@ -339,8 +339,9 @@
                            (str/join "" (map #(emit % env) elts)))
                          tag-name)
            (:outer-html (meta expr)) (format "%s`%s`"
-                                             (when-let [t (:tag (meta expr))]
-                                               (emit t (expr-env (dissoc env :jsx :html))))))
+                                             (if-let [t (:tag (meta expr))]
+                                               (emit t (expr-env (dissoc env :jsx :html)))
+                                               "")))
          env)))
     (emit-return (format "[%s]"
                          (str/join ", " (emit-args env expr))) env)))
