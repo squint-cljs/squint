@@ -1,6 +1,7 @@
 (ns tasks
   (:require
    [babashka.fs :as fs]
+   [babashka.http-server :as server]
    [babashka.process :as p :refer [shell]]
    [cheshire.core :as json]
    [node-repl-tests]
@@ -86,3 +87,7 @@
       (shell "node_modules/squint-cljs/node_cli.js" "compile")
       (shell "node dist/nextjournal/clojure_mode_tests.mjs")
       (println "clojure-mode tests successful!"))))
+
+(defn start-playground-server [opts]
+  (server/exec (merge {:dir "."}
+                      opts)))

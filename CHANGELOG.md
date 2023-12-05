@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix `not` with respect to truthiness
+- Add serve-playground bb task
 
 ## 0.4.73 (2023-12-05)
 
