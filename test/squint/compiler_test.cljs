@@ -197,6 +197,10 @@
     (is (= 3 (js/eval s))))
   (is (eq #js {:a 1} (jsv! "{:a (or 1 (cond true (prn :yes)) 2)}"))))
 
+(deftest zero?-test
+  (is (str/includes? (jss! "(if (zero? x) 1 2)") "== 0"))
+  (is (not (str/includes? (jss! "(if (zero? x) 1 2)") "truth_"))))
+
 (deftest no-truth-check-test
   (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)" "(when (= 1 1) 1)"
                 "(let [x (zero? 0)] (when x 1))"
@@ -1740,6 +1744,10 @@
   (is (nil? (jsv! "(not-empty {})")))
   (is (= "foo" (jsv! "(not-empty \"foo\")")))
   (is (eq {:a 1} (jsv! "(not-empty {:a 1})"))))
+
+(deftest not-test
+  (is (false? (jsv! "(not 0)")))
+  (is (false? (jsv! "(not \"\")"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

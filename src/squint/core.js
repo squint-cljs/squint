@@ -723,7 +723,7 @@ export function str(...xs) {
 }
 
 export function not(expr) {
-  return !expr;
+  return !truth_(expr);
 }
 
 export function nil_QMARK_(v) {
