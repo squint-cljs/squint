@@ -6,6 +6,7 @@
 
 - Fix `not` with respect to truthiness
 - Add serve-playground bb task
+- Update playground with button for creating a blank AOC playground
 
 ## 0.4.73 (2023-12-05)
 
