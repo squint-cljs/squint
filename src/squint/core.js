@@ -92,7 +92,9 @@ export function assoc_BANG_(m, k, v, ...kvs) {
 function copy(o) {
   switch (typeConst(o)) {
     case MAP_TYPE:
-      return new Map(o.entries());
+      return new Map(o);
+    case SET_TYPE:
+      return new Set(o);
     case ARRAY_TYPE:
       return [...o];
     case OBJECT_TYPE:

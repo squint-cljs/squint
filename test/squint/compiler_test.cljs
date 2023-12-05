@@ -1249,7 +1249,9 @@
     (is (thrown? js/Error (jsv! '(into "foo" [])))))
   (testing "xform"
     (is (eq (into [] (map inc) [1 2 3])
-            (jsv! '(into [] (map inc) [1 2 3]))))))
+            (jsv! '(into [] (map inc) [1 2 3]))))
+    (is (eq (new js/Set (into #{} (map inc) [1 2 3]))
+            (jsv! '(into #{} (map inc) [1 2 3]))))))
 
 (deftest iterable-protocol
   (is (eq [true true [1 2 3 4 5]]

@@ -2,9 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## 0.4.xx (2023-12-05)
+## 0.4.73 (2023-12-05)
 
 - #407: fix conditional rendering
+- Add `not-empty`
+- Fix `into` + set + xform
 
 ## 0.4.72 (2023-12-04)
 
