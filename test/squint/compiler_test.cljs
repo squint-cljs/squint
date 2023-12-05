@@ -203,7 +203,8 @@
                 "(if (neg? 1) 0 1)" "(if (not 1) 0 1)"
                 "(if \"foo\" 1 2)" "(if :foo 1 2)"
                 "(let [x nil] (if (nil? x) 1 2))"
-                "(let [x (zero? 0) y x] (if y 1 2))"]]
+                "(let [x (zero? 0) y x] (if y 1 2))"
+                "(if (coercive-boolean (range 0 1)) 1 2)"]]
     (doseq [input inputs]
       (let [js (jss! input)]
         (is (not (str/includes? js "truth_")) (str "contains truth check: " input "\n" js))

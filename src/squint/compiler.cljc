@@ -92,7 +92,11 @@
                       'js-template defclass/js-template
                       'or macros/core-or
                       'and macros/core-and
-                      'assert macros/core-assert})
+                      'assert macros/core-assert
+                      'coercive-boolean macros/coercive-boolean
+                      'coercive-= macros/coercive-=
+                      'coercive-not= macros/coercive-not=
+                      'coercive-not macros/coercive-not})
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 

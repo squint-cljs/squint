@@ -18,18 +18,29 @@
     (format "return %s" s)
     s))
 
+(defrecord Code [js bool]
+  Object
+  (toString [_] js))
+
+(defn bool-expr [js]
+  (map->Code {:js js
+              :bool true}))
+
 (defmethod emit-special 'js* [_ env [_js* & opts :as expr]]
-  (let [[env' template substitutions] (if (map? (first opts))
+  (let [bool? (= 'boolean (:tag (meta expr)))
+        [env' template substitutions] (if (map? (first opts))
                                         [(first opts)
                                          (second opts)
                                          (drop 2 opts)]
                                         [nil (first opts) (rest opts)])]
-    (-> (reduce (fn [template substitution]
-                 (str/replace-first template "~{}"
-                                    (emit substitution (merge (assoc env :context :expr) env'))))
-               template
-               substitutions)
-        (emit-return (merge env (meta expr))))))
+    (cond->
+        (-> (reduce (fn [template substitution]
+                      (str/replace-first template "~{}"
+                                            (emit substitution (merge (assoc env :context :expr) env'))))
+                       template
+                       substitutions)
+               (emit-return (merge env (meta expr))))
+      bool? bool-expr)))
 
 (defn expr-env [env]
   (assoc env :context :expr :top-level false))
@@ -98,14 +109,6 @@
       (emit-return env)
       (escape-jsx env)))
 
-(defrecord Code [js bool]
-  Object
-  (toString [_] js))
-
-(defn bool-expr [js]
-  (map->Code {:js js
-              :bool true}))
-
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
   (cond-> (if (and (:jsx env)
                    (not (:jsx-attr env))
@@ -134,10 +137,10 @@
 
 (def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "=" "==" "===" "<" ">" "<=" ">=" "!="
                        "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"
-                       "bit-or" "bit-and" "coercive-=" "js-mod"})
+                       "bit-or" "bit-and" "js-mod"})
 
 (def boolean-infix-operators
-  #{"=" "==" "===" "<" ">" "<=" ">=" "!=" "not=" "instanceof" "coercive-="})
+  #{"=" "==" "===" "<" ">" "<=" ">=" "!=" "not=" "instanceof"})
 
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and"})
 
@@ -169,8 +172,7 @@
       (if (and (= '- operator)
                (= 1 acount))
         (str "-" (emit (first args) env))
-        (-> (let [substitutions {'coercive-= "=="
-                                 '= "===" == "===" '!= "!=="
+        (-> (let [substitutions {'= "===" == "===" '!= "!=="
                                  'not= "!=="
                                  '+ "+"
                                  'bit-or "|"
@@ -877,7 +879,8 @@ break;}" body)
   (let [expr-env (assoc env :context :expr)
         naked-condition (emit test expr-env)
         skip-truth? (or (:bool naked-condition)
-                        (:bool (meta expr)))
+                        (:bool (meta expr))
+                        (= 'boolean (:tag (meta test))))
         condition (if skip-truth?
                     naked-condition
                     (emit (list 'clojure.core/truth_ (list 'js* naked-condition)) expr-env))]

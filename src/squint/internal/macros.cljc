@@ -9,6 +9,7 @@
 ;;   software.
 
 (ns squint.internal.macros
+  (:refer-clojure :exclude [coercive-boolean coercive-= coercive-not= coercive-not])
   (:require [clojure.string :as str]))
 
 (defn core->
@@ -502,3 +503,19 @@
    `(when-not ~x
       (throw (js/Error.
               (cljs.core/str "Assert failed: " ~message "\n" ~(pr-str x)))))))
+
+(defn coercive-=
+  [_ _ x y]
+  (bool-expr (list 'js* "(~{} == ~{})" x y)))
+
+(defn coercive-not=
+  [_ _ x y]
+  (bool-expr (list 'js* "(~{} != ~{})" x y)))
+
+(defn coercive-not
+  [_ _ x]
+  (bool-expr (list 'js* "(!~{})" x)))
+
+(defn coercive-boolean
+  [_ _ x]
+  (bool-expr (list 'js* "~{}" x)))
