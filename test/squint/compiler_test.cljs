@@ -1736,7 +1736,7 @@
   (is (nil? (jsv! "(not-empty \"\")")))
   (is (nil? (jsv! "(not-empty {})")))
   (is (= "foo" (jsv! "(not-empty \"foo\")")))
-  (is (eq {:a 1} (jsv! "(not-empty {:a 1}")"))))
+  (is (eq {:a 1} (jsv! "(not-empty {:a 1})"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
