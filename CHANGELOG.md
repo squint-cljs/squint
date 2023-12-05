@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Fix `not` with respect to truthiness
+
 ## 0.4.73 (2023-12-05)
 
 - #407: fix conditional rendering
