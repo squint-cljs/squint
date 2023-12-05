@@ -209,7 +209,8 @@
       sym)))
 
 (defn emit-list [expr env]
-  (let [env (assoc env :jsx (::jsx (meta expr)))]
+  (let [env* env
+        env (assoc env :jsx (::jsx (meta expr)))]
     (escape-jsx
      (let [fexpr (first expr)]
        (if (:quote env)
@@ -283,7 +284,7 @@
                (cc/emit-special 'funcall env expr)
                :else
                (throw (new Exception (str "invalid form: " expr))))))
-     env)))
+     env*)))
 
 (defn emit-vector [expr env]
   (if (and (:jsx env)

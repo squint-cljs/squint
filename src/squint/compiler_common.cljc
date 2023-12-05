@@ -901,8 +901,9 @@ break;}" body)
     (if (:jsx-runtime env)
       (when v
         (emit v (dissoc env :jsx)))
-      (if v
-        (str " "
+      (if (seq v)
+        (str
+         " "
              (str/join " "
                        (map (fn [[k v]]
                               (if (= :& k)
