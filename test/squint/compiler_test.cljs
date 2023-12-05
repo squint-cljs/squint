@@ -1732,5 +1732,11 @@
   (is (eq #js {"0" 1, "1" 2, "2" 3} (jsv! "(zipmap (range) [1 2 3])")))
   (is (eq #js {"1" 0, "2" 1, "3" 2} (jsv! "(zipmap [1 2 3] (range))"))))
 
+(deftest not-empty-test
+  (is (nil? (jsv! "(not-empty \"\")")))
+  (is (nil? (jsv! "(not-empty {})")))
+  (is (= "foo" (jsv! "(not-empty \"foo\")")))
+  (is (eq {:a 1} (jsv! "(not-empty {:a 1}")"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

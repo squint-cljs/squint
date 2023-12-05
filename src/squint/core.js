@@ -1970,7 +1970,7 @@ export function transduce(xform, ...args) {
 }
 
 export function zipmap(keys, vals) {
-  let res = {};
+  const res = {};
   const keyIterator = iterable(keys)[Symbol.iterator]();
   const valIterator = iterable(vals)[Symbol.iterator]();
   let nextKey, nextVal;
@@ -1982,4 +1982,11 @@ export function zipmap(keys, vals) {
     res[nextKey.value] = nextVal.value;
   }
   return res;
+}
+
+export function not_empty(x) {
+  const isSeq = seq(x);
+  if (isSeq) {
+    return x;
+  } else return null;
 }

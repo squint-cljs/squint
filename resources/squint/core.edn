@@ -115,6 +115,7 @@
   nil_QMARK_
   not
   not_any_QMARK_
+  not_empty
   not_every_QMARK_
   nth
   number_QMARK_
