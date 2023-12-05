@@ -210,6 +210,41 @@
   (js-await (confetti))
   (+ 1 2 3))
 `.trim();
+
+      const aocDoc = `
+;; Helper functions:
+;; (fetch-input year day) - get AOC input
+;; (append str) - append str to DOM
+;; (spy x) - log x to console and return x
+
+;; Remember to update the year and day in the fetch-input call.
+(def input (->> (js-await (fetch-input 2022 1))
+             #_spy
+             str/split-lines
+             (mapv parse-long)))
+
+(defn part-1
+  []
+  (->> input
+    (partition-by nil?)
+    (take-nth 2)
+    (map #(apply + %))
+    (apply max)))
+
+(defn part-2
+  []
+  (->> input
+    (partition-by nil?)
+    (take-nth 2)
+    (map #(apply + %))
+    (sort-by -)
+    (take 3)
+    (apply +)))
+
+(time (part-1))
+#_(time (part-2))`.trim();
+      const aocBoilerplateUrl = 'https://gist.githubusercontent.com/borkdude/cf94b492d948f7f418aa81ba54f428ff/raw/a6e9992b079e20e21d753e8c75a7353c5908b225/aoc_ui.cljs';
+
       let boilerplate = urlParams.get('boilerplate');
       let boilerplateSrc;
       if (boilerplate) {
@@ -259,6 +294,15 @@
         url.searchParams.set('src', code);
         window.location = url;
       };
+      window.blankAOC = () => {
+        const code = btoa(aocDoc);
+        const url = new URL(window.location);
+        url.searchParams.set('src', code);
+        url.searchParams.set('boilerplate', aocBoilerplateUrl);
+        url.searchParams.set('repl', true);
+
+        window.location = url;
+      }
 
       window.changeREPL = (target) => {
         document.getElementById('result').innerText = '';
@@ -294,7 +338,7 @@
       <div
         id="editor"
         style="
-          max-height: 90vh;
+          max-height: 90dvh;
           overflow: auto;
           width: 50%;
           border: 1px solid grey;
@@ -302,32 +346,43 @@
           margin-bottom: 10px;
         "
       ></div>
-      <div
-        style="
-          width: 50%;
-          max-height: 90vh;
+      <div style="width: 50%;">
+        <div style="
+          max-height: 90dvh;
           overflow: auto;
           border: 1px solid grey;
           border-radius: 10px;
           margin-left: 10px;
           padding: 10px;
           margin-bottom: 10px;
-        "
-      >
-        <button onClick="compile()">Compile!</button>
-        <button onClick="share()">Share!</button>
-        <br />
-        <label
-          >REPL-mode
-          <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
-        </label>
-        <br />
-        In REPL-mode you can evaluate individual expression by using the ⌘ (macOS) or Windows key +
-        Enter. The result will appear below.
-        <pre><code style="white-space: pre-wrap;max-width:80%;" id="result"></code></pre>
-        <hr />
-        Compiled code:
-        <pre><code style="white-space: pre-wrap;max-width:80%;" id="compiledCode"></code></pre>
+        ">
+          <div style="display: flex;">
+            <button onClick="compile()">
+              Compile!
+            </button>
+            <button onClick="share()">
+              Share!
+            </button>
+            <span>
+              When sharing, the window URL will be updated to encode the code in the text editor. Copy it and share it with your friends!
+            </span>
+            <br>
+          </div>
+          <label
+            >REPL-mode
+            <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+          </label>
+          <br />
+          In REPL-mode you can evaluate individual expression by using the ⌘ (macOS) or Windows key +
+          Enter. The result will appear below.
+          <pre><code style="white-space: pre-wrap;max-width:80%;" id="result"></code></pre>
+          <hr />
+          Compiled code:
+          <pre><code style="white-space: pre-wrap;max-width:80%;" id="compiledCode"></code></pre>
+        </div>
+        <button style="margin-bottom: 10px;" onClick="blankAOC()">
+          Create blank AOC Playground!
+        </button>
       </div>
     </div>
   </body>
