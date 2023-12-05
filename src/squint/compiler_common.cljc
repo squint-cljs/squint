@@ -101,7 +101,9 @@
 
 (defn escape-jsx [expr env]
   (if (and (:jsx env) (not (:jsx-runtime env)))
-    (format "{%s}" expr)
+    (format (str (when (:html env)
+                  "$")
+                 "{%s}") expr)
     expr))
 
 (defmethod emit ::number [expr env]

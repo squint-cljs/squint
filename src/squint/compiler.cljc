@@ -42,6 +42,7 @@
                          'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
+                         'squint-compiler-html
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
                          'clj->js
                          'squint.impl/for-of
@@ -296,6 +297,7 @@
      env*)))
 
 (defn emit-vector [expr env]
+  (prn :meta (meta expr))
   (if (and (:jsx env)
            (let [f (first expr)]
              (or (keyword? f)
@@ -311,7 +313,7 @@
                      (symbol "")
                      tag-name)
           tag-name (emit tag-name* (expr-env (dissoc env :jsx)))]
-      (if (:jsx-runtime env)
+      (if (and (:jsx env) (:jsx-runtime env))
         (let [single-child? (= (count elts) 1)]
           (emit (list (if single-child?
                         '_jsx '_jsxs)
@@ -329,13 +331,15 @@
                           (seq children)
                           (assoc :children children))))
                 env))
-        (emit-return (format "<%s%s>%s</%s>"
-                             tag-name
-                             (cc/jsx-attrs attrs env)
-                             (let [env (expr-env env)]
-                               (str/join "" (map #(emit % env) elts)))
-                             tag-name)
-                     env)))
+        (emit-return
+         (cond->> (format "<%s%s>%s</%s>"
+                         tag-name
+                         (cc/jsx-attrs attrs env)
+                         (let [env (expr-env env)]
+                           (str/join "" (map #(emit % env) elts)))
+                         tag-name)
+           (:outer-html (meta expr)) (format "`%s`"))
+         env)))
     (emit-return (format "[%s]"
                          (str/join ", " (emit-args env expr))) env)))
 
@@ -396,9 +400,17 @@
 (defn jsx [form]
   (list 'squint-compiler-jsx form))
 
+(defn html [form]
+  (list 'squint-compiler-html form))
+
 (defmethod emit-special 'squint-compiler-jsx [_ env [_ form]]
   (set! *jsx* true)
   (let [env (assoc env :jsx true)]
+    (emit form env)))
+
+(defmethod emit-special 'squint-compiler-html [_ env [_ form]]
+  (let [env (assoc env :html true :jsx true)
+        form (vary-meta form assoc :outer-html true)]
     (emit form env)))
 
 (def squint-parse-opts
@@ -407,7 +419,8 @@
     :end-location false
     :location? seq?
     :readers {'js #(vary-meta % assoc ::js true)
-              'jsx jsx}
+              'jsx jsx
+              'html html}
     :read-cond :allow
     :features #{:squint :cljs}}))
 
