@@ -4,6 +4,7 @@
    [babashka.process :refer [sh] :as p]
    [clojure.string :as str]
    [clojure.test :refer [deftest is] :as t]
+   [clojure.edn :as edn]
    [squint.compiler :as sq]))
 
 (defn to-js [code {:keys [requires]}]
@@ -25,7 +26,10 @@
   (is (str/includes? (test-expr "(prn (+ 1 2 3))")
                      "6"))
   (is (str/includes? (test-expr "(ns foo (:require [\"fs\" :as fs])) (prn (fs/existsSync \".\"))")
-                     "true")))
+                     "true"))
+  (is (= [0 1 2 3 4 5 6 7 8 9]
+         (edn/read-string
+          (format "[%s]" (test-expr "(vec (for [i (range 10)] (println i)))"))))))
 
 (def our-ns *ns*)
 (defn run-tests [_]
