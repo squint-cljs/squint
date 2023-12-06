@@ -1116,7 +1116,8 @@
   (testing "creates an empty list"
     (is (eq '() (jsv! '(list))))
     (is (eq '() (jsv! "()")))
-    (is (eq '() (jsv! "'()")))))
+    (is (eq '() (jsv! "'()")))
+    (is (eq '(1 2 3) (jsv! "'(1 2 3)")))))
 
 (deftest instance-test
   (is (true? (jsv! '(instance? js/Array []))))

@@ -821,9 +821,6 @@ break;}" body)
 (derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)
 (derive #?(:clj clojure.lang.LazySeq :cljs LazySeq) ::list)
 #?(:cljs (derive List ::list))
-#_(derive #?(:bb (class (list))
-           :clj clojure.lang.PersistentList$EmptyList
-           :cljs EmptyList) ::list)
 (derive #?(:bb (class (list))
            :clj clojure.lang.PersistentList$EmptyList
            :cljs EmptyList) ::empty-list)
