@@ -173,7 +173,7 @@
         gensym (:gensym env)
         local (gensym)
         env (update env :var->ident assoc local local)]
-    (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" local)
+    (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" (str local))
                      (list 'clojure.core/iterable v))
                env)
          " {\n"
@@ -377,10 +377,12 @@
                       :top-level true
                       :core-vars core-vars
                       :gensym (let [ctr (volatile! 0)]
-                                (fn [sym]
-                                  (let [next-id (vswap! ctr inc)]
-                                    (symbol (str (if sym (munge sym)
-                                                     "G__") next-id)))))
+                                (fn gensym*
+                                  ([] (gensym* nil))
+                                  ([sym]
+                                     (let [next-id (vswap! ctr inc)]
+                                       (symbol (str (if sym (munge sym)
+                                                        "G__") next-id))))))
                       :emit {::cc/list emit-list
                              ::cc/vector emit-vector
                              ::cc/map emit-map
