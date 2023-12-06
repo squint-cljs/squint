@@ -888,7 +888,7 @@
 
 (deftest reduce-test
   (testing "no val"
-    (is (= 10 (jsv! '(reduce #(+ %1 %2) (range 5)))))
+    (is (= 10 (jsv! '(reduce + (range 5)))))
     (is (= 3 (jsv! '(reduce #(if (< %2 3)
                                (+ %1 %2)
                                (reduced %1))
@@ -937,8 +937,9 @@
                              (js/Object.values {:a 1 :b 2 :c 3 :d 4})))))
     (is (= 10 (jsv! '(reduce #(+ %1 (second %2))
                              0
-                             {:a 1 :b 2 :c 3 :d 4}))))))
-
+                             {:a 1 :b 2 :c 3 :d 4})))))
+  (testing "empty coll"
+    (is (= 0 (jsv! '(reduce + []))))))
 
 (deftest reduced-test
   (is (jsv! '(reduced? (reduced 5))))

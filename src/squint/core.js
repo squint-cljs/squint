@@ -42,7 +42,7 @@ export function _LT__EQ_(...xs) {
 }
 
 export function _PLUS_(...xs) {
-  return xs.reduce((x, y) => x + y, 0);
+  return xs.reduce((x, y) => x + y,  0);
 }
 
 export function _STAR_(...xs) {
@@ -557,7 +557,12 @@ export function reduce(f, arg1, arg2) {
   if (arg2 === undefined) {
     // (reduce f coll)
     const iter = iterable(arg1)[Symbol.iterator]();
-    val = iter.next().value;
+    const vd = iter.next();
+    if (vd.done) {
+      val = f();
+    } else {
+      val = vd.value;
+    }
     coll = iter;
   } else {
     // (reduce f val coll)
