@@ -821,18 +821,18 @@ break;}" body)
 (derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)
 (derive #?(:clj clojure.lang.LazySeq :cljs LazySeq) ::list)
 #?(:cljs (derive List ::list))
-
-(defmethod emit ::list [expr env]
-  ((-> env :emit ::list) expr env))
-
+#_(derive #?(:bb (class (list))
+           :clj clojure.lang.PersistentList$EmptyList
+           :cljs EmptyList) ::list)
 (derive #?(:bb (class (list))
            :clj clojure.lang.PersistentList$EmptyList
            :cljs EmptyList) ::empty-list)
 
+(defmethod emit ::list [expr env]
+  ((-> env :emit ::list) expr env))
+
 (defmethod emit ::empty-list [_expr env]
-  ;; NOTE: we can later optimize this to a constant, but (.-EMPTY List) is prone
-  ;; to advanced optimization
-  (emit '(list) env))
+  (emit '(clojure.core/list) (dissoc env :quote)))
 
 #?(:cljs (derive PersistentVector ::vector))
 

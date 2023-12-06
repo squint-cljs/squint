@@ -1114,7 +1114,9 @@
   (testing "accepts a single, numeric element in the list"
     (is (eq '(23) (jsv! '(list 23)))))
   (testing "creates an empty list"
-    (is (eq '() (jsv! '(list))))))
+    (is (eq '() (jsv! '(list))))
+    (is (eq '() (jsv! "()")))
+    (is (eq '() (jsv! "'()")))))
 
 (deftest instance-test
   (is (true? (jsv! '(instance? js/Array []))))

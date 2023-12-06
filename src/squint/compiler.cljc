@@ -126,9 +126,6 @@
 (defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-return (str "typeof " (emit form (expr-env env))) env))
 
-(defmethod emit-special 'quote [_ env [_ form]]
-  (emit-return (emit form (expr-env (assoc env :quote true))) env))
-
 (defmethod emit-special 'clj->js [_ env [_ form]]
   (emit form env))
 
