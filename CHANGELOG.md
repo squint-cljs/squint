@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix `not` with respect to truthiness
+- Fix `reduce` without initial value + empty coll, it should call `f()`
 - Add serve-playground bb task
 - Update playground with button for creating a blank AOC playground
 
