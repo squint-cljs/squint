@@ -583,20 +583,36 @@ export function reduce(f, arg1, arg2) {
 }
 
 function _reductions2(f, coll) {
-  const s = seq(coll);
+  let s = iterable(coll)[Symbol.iterator]();
+  let fst, rst;
+  const vd = s.next();
+  if (vd.done) {
+    s = null;
+  } else {
+    fst = vd.value;
+    rst = s;
+  }
   return new LazySeq(function () {
-    return s ? _reductions3(f, first(s), rest(s)) : list(f());
+    return s ? _reductions3(f, fst, rst) : list(f());
   });
 }
 
 function _reductions3(f, init, coll) {
-  const s = seq(coll);
-    if (reduced_QMARK_(init)) {
-      return list(init.value);
-    }
-    return cons(init, new LazySeq(function () {
+  if (reduced_QMARK_(init)) {
+    return list(init.value);
+  }
+  let s = iterable(coll)[Symbol.iterator]();
+  let fst, rst;
+  const vd = s.next();
+  if (vd.done) {
+    s = null;
+  } else {
+    fst = vd.value;
+    rst = s;
+  }
+  return cons(init, new LazySeq(function () {
       if (s) {
-        return _reductions3(f, f(init, first(s)), rest(s));
+        return _reductions3(f, f(init, fst), rst);
       }
     }));
 }

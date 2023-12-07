@@ -1019,7 +1019,12 @@
             (jsv! '(vec (take 3 (as-> (repeat {:height 50}) posts
                                   (map #(assoc %1 :offset %2)
                                        posts
-                                       (reductions + 0 (map :height posts)))))))))))
+                                       (reductions + 0 (map :height posts))))))))))
+  (testing "lazy-reusage"
+    (is (= 100 (jsv! '(do (def a (atom []))
+                          (defn spy [x] (swap! a conj x) x)
+                          (vec (reductions + (map spy (range 100))))
+                          (count @a)))))))
 
 (deftest seq-test
   (is (= "abc" (jsv! '(seq "abc"))))
