@@ -16,8 +16,9 @@
                             unsigned-bit-shift-right bit-set])
   (:require [clojure.string :as str]
             [squint.compiler-common :as-alias ana]
-            [clojure.core :as cc])
-  (:require-macros [squint.internal.defmacro :as core]))
+            [clojure.core :as cc]
+            #?(:clj [squint.internal.defmacro :as core]))
+  #?(:cljs (:require-macros [squint.internal.defmacro :as core])))
 
 (defn core->
   [_ _ x & forms]
