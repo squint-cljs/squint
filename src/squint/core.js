@@ -603,6 +603,7 @@ function* _reductions3(f, init, coll) {
     yield init.value;
     return;
   }
+  yield init;
   let s = iterable(coll)[Symbol.iterator]();
   let fst, rst;
   const vd = s.next();
@@ -612,7 +613,6 @@ function* _reductions3(f, init, coll) {
     fst = vd.value;
     rst = s;
   }
-  yield init;
   if (s) {
     yield* _reductions3(f, f(init, fst), rst);
   }
