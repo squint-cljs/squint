@@ -101,3 +101,16 @@ export function superset_QMARK_(x, y) {
   }
   return _superset_QMARK_2(y, x);
 }
+
+export function select(pred, xset) {
+  if (xset === undefined) {
+    return null;
+  }
+  const res = new Set();
+  for (const elem of xset) {
+    if (pred(elem)) {
+      res.add(elem);
+    }
+  }
+  return res;
+}
