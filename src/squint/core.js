@@ -582,39 +582,29 @@ export function reduce(f, arg1, arg2) {
   return val;
 }
 
-function* _reductions2(f, coll) {
-  let s = iterable(coll)[Symbol.iterator]();
-  let fst, rst;
+function* _reductions2(f, s) {
   const vd = s.next();
   if (vd.done) {
-    s = null;
+    yield f();
+    return;
   } else {
-    fst = vd.value;
-    rst = s;
+    yield* _reductions3(f, vd.value, s);
   }
-  if (s) {
-    yield* _reductions3(f, fst, rst);
-  }
-  else yield f();
 }
 
 function* _reductions3(f, init, coll) {
-  if (reduced_QMARK_(init)) {
-    yield init.value;
-    return;
-  }
-  yield init;
-  let s = iterable(coll)[Symbol.iterator]();
-  let fst, rst;
-  const vd = s.next();
-  if (vd.done) {
-    s = null;
-  } else {
+  let i = init, fst, rst = coll;
+  while (true) {
+    if (reduced_QMARK_(i)) {
+      yield i.value;
+      return;
+    } else yield i;
+    const vd = rst.next();
+    if (vd.done) {
+      break;
+    }
     fst = vd.value;
-    rst = s;
-  }
-  if (s) {
-    yield* _reductions3(f, f(init, fst), rst);
+    i = f(i, fst);
   }
 }
 
@@ -622,11 +612,11 @@ export function reductions(f, arg1, arg2) {
   f = toFn(f);
   if (arg2 === undefined) {
     return lazy(function* () {
-      yield* _reductions2(f, arg1);
+      yield* _reductions2(f, iterable(arg1)[Symbol.iterator]());
     });
   }
   return lazy(function* () {
-    yield* _reductions3(f, arg1, arg2);
+    yield* _reductions3(f, arg1, iterable(arg2)[Symbol.iterator]());
   });
 }
 

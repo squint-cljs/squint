@@ -1035,7 +1035,9 @@
             (jsv! '(do (let [a (atom [])
                              spy (fn [x] (swap! a conj x) x)]
                          (doall (take 10 (reductions + (map spy (range)))))
-                         (count @a))))))))
+                         (count @a)))))))
+  (testing "stack consumptions"
+    (is (= 49995000 (jsv! '(last (reductions + (range 10000))))))))
 
 (deftest seq-test
   (is (= "abc" (jsv! '(seq "abc"))))
