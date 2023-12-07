@@ -80,7 +80,7 @@ export function subset_QMARK_(x, y) {
   return _subset_QMARK_2(x, y);
 }
 
-function subset_QMARK_2(x, y) {
+function _superset_QMARK_2(x, y) {
   for (const elem of x) {
     if (!y.has(elem)) {
       return false;
@@ -99,5 +99,5 @@ export function superset_QMARK_(x, y) {
   if (x.size < y.size) {
     return false;
   }
-  return subset_QMARK_2(y, x);
+  return _superset_QMARK_2(y, x);
 }
