@@ -1870,11 +1870,24 @@
 
 (deftest Symbol_iterator-is-destructurable-test
   (let [js-obj (js/eval "
+function define(obj, props) {
+    for (const key of Reflect.ownKeys(props)) {
+        const { get, set, value } = Object.getOwnPropertyDescriptor(props, key);
+        let desc =
+            get || set
+                ? { get, set, configurable: true }
+                : { value, writable: true, configurable: true };
+        Object.defineProperty(obj, key, desc);
+    }
+}
+
 class Foo {
   [Symbol.iterator]() {
     return { next: () => ({value: 1, done: false}) };
   }
 };
+
+
 new Foo();")
         f (jsv! '(let [f (fn [js-obj]
                            (let [[x y] js-obj]

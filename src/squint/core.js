@@ -451,13 +451,13 @@ export function get(coll, key, otherwise = undefined) {
 }
 
 export function seqable_QMARK_(x) {
-  // String is iterable but doesn't allow `m in s`
   return (
-    typeof x === 'string' ||
+    // typeof x === 'string' ||
     x === null ||
     x === undefined ||
-    x instanceof Object && !!x[Symbol.iterator]
-  );
+    // we used to check instanceof Object but this returns false for TC39 Records
+    // also we used to write `Symbol.iterator in` but this does not work for strings and some other types
+    !!x[Symbol.iterator]);
 }
 
 export function iterable(x) {
