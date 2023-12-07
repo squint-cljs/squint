@@ -1033,7 +1033,7 @@
                        [(count xs) (count xs)])))))
     (is (eq 10
             (jsv! '(do (let [a (atom [])
-                             spy (fn [x] (swap! a conj x))]
+                             spy (fn [x] (swap! a conj x) x)]
                          (doall (take 10 (reductions + (map spy (range)))))
                          (count @a))))))))
 
