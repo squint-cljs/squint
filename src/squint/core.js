@@ -582,30 +582,31 @@ export function reduce(f, arg1, arg2) {
   return val;
 }
 
-function _reductions(f, arg1, arg2) {
-  const [init, coll] = arg2 === undefined ? [undefined, arg1]: [arg1, arg2];
+function _reductions2(f, coll) {
   const s = seq(coll);
-  if (init === undefined) {
-    // (reductions f coll)
-    return new LazySeq(function () {
-      return s ? _reductions(f, first(s), rest(s)) : list(f());
-    });
-  } else {
-    // (reductions f val coll)
+  return new LazySeq(function () {
+    return s ? _reductions3(f, first(s), rest(s)) : list(f());
+  });
+}
+
+function _reductions3(f, init, coll) {
+  const s = seq(coll);
     if (reduced_QMARK_(init)) {
       return list(init.value);
     }
     return cons(init, new LazySeq(function () {
       if (s) {
-        return _reductions(f, f(init, first(s)), rest(s));
+        return _reductions3(f, f(init, first(s)), rest(s));
       }
     }));
-  }
 }
 
 export function reductions(f, arg1, arg2) {
   f = toFn(f);
-  return _reductions(f, arg1, arg2);
+  if (arg2 === undefined) {
+    return _reductions2(f, arg1);
+  }
+  return _reductions3(f, arg1, arg2);
 }
 
 var tolr = false;
