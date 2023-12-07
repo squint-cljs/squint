@@ -14,8 +14,12 @@
   (doseq [k (js/Object.keys clstr)]
     (aset mut k (aget clstr k))))
 
-(defn eq [a b]
-  (ld/isEqual (clj->js a) (clj->js b)))
+(defn eq
+  ([a b]
+   (ld/isEqual (clj->js a) (clj->js b)))
+  ([a b & more]
+   (and (eq a b)
+        (apply eq b (rest more)))))
 
 (def old-fail (get-method t/report [:cljs.test/default :fail]))
 

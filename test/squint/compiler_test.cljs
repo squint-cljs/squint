@@ -1030,7 +1030,12 @@
                 [(count xs) (count xs)]))
             (jsv! '(do
                      (let [ xs (reductions + (range 3))]
-                       [(count xs) (count xs)])))))))
+                       [(count xs) (count xs)])))))
+    (is (eq 10
+            (jsv! '(do (let [a (atom [])
+                             spy (fn [x] (swap! a conj x))]
+                         (doall (take 10 (reductions + (map spy (range)))))
+                         (count @a))))))))
 
 (deftest seq-test
   (is (= "abc" (jsv! '(seq "abc"))))
