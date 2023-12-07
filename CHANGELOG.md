@@ -2,9 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.4.76 (2023-12-07)
 
-- Add more `clojure.set` functions: `difference`, `union`, `subset?`, and `superset?`
+- Add more `clojure.set` functions: `difference`, `union`, `subset?`, and `superset?` ([@PEZ](https://github.com/PEZ))
 
 ## 0.4.75 (2023-12-07)
 
