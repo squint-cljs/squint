@@ -1858,7 +1858,7 @@
           js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
              [(set/intersection #{:a :b})
               (set/intersection #{:a :b} #{:b :c})]" {:repl true
-                                                                                                                           :context :return})]
+                                                      :context :return})]
       (-> (.then (js/eval (wrap-async js))
                  (fn [vs]
                    (let [expected [(set "a" "b") (set "b")]
