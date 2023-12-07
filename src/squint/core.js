@@ -456,7 +456,7 @@ export function seqable_QMARK_(x) {
     typeof x === 'string' ||
     x === null ||
     x === undefined ||
-    (x instanceof Object && Symbol.iterator in x)
+    x instanceof Object && !!x[Symbol.iterator]
   );
 }
 
