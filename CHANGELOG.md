@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Add more `clojure.set` functions: `difference`, `union`, `subset?`, and `superset?`
+
 ## 0.4.75 (2023-12-07)
 
 - Let any object that has `Symbol.iterable` be destructureable even if it is not `instance of Object`
