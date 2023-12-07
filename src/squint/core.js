@@ -586,14 +586,13 @@ function* _reductions2(f, s) {
   const vd = s.next();
   if (vd.done) {
     yield f();
-    return;
   } else {
     yield* _reductions3(f, vd.value, s);
   }
 }
 
 function* _reductions3(f, init, coll) {
-  let i = init, fst, rst = coll;
+  let i = init, rst = coll;
   while (true) {
     if (reduced_QMARK_(i)) {
       yield i.value;
@@ -603,8 +602,7 @@ function* _reductions3(f, init, coll) {
     if (vd.done) {
       break;
     }
-    fst = vd.value;
-    i = f(i, fst);
+    i = f(i, vd.value);
   }
 }
 
