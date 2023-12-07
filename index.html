@@ -118,7 +118,7 @@
           compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
           let js = compilerState.javascript;
           if (dev) {
-            js = js.replace('squint-cljs/core.js', 'http://' + window.location.host + '/core.js');
+            js = js.replaceAll("'squint-cljs/", "'http://" + window.location.host + '/');
           }
           document.querySelector('#compiledCode').innerText = js;
           if (!repl) {
