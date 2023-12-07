@@ -1934,13 +1934,35 @@
                       (set/superset? #{:a :b :c} #{:a :b :d})
                       (set/superset? #{:a :b} #{:a :b})]" {:repl true
                                                            :context :return})]
+               (-> (.then (js/eval (wrap-async js))
+                          (fn [vs]
+                            (let [expected [true
+                                            true
+                                            true
+                                            false
+                                            true]
+                                  pairs (map vector expected vs)]
+                              (doseq [[expected s] pairs]
+                                (is (eq expected s))))))
+                   (.finally done)))))
+
+(deftest set-lib-select-test
+  (t/async done
+           (let [set (fn [& xs] (new js/Set xs))
+                 js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                   [(set/select)
+                    (set/select even?)
+                    (set/select even? #{1 2 3 4 5})
+                    (set/select #(> % 2) #{1 2 3 4 5})
+                    (set/select #(= % :a) #{:a :b :c})]" {:repl true
+                                                          :context :return})]
              (-> (.then (js/eval (wrap-async js))
                         (fn [vs]
-                          (let [expected [true
-                                          true
-                                          true
-                                          false
-                                          true]
+                          (let [expected [nil
+                                          nil
+                                          (set 2 4)
+                                          (set 3 4 5)
+                                          (set "a")]
                                 pairs (map vector expected vs)]
                             (doseq [[expected s] pairs]
                               (is (eq expected s))))))
