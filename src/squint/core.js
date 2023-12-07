@@ -42,7 +42,7 @@ export function _LT__EQ_(...xs) {
 }
 
 export function _PLUS_(...xs) {
-  return xs.reduce((x, y) => x + y,  0);
+  return xs.reduce((x, y) => x + y, 0);
 }
 
 export function _STAR_(...xs) {
@@ -582,7 +582,7 @@ export function reduce(f, arg1, arg2) {
   return val;
 }
 
-function _reductions2(f, coll) {
+function* _reductions2(f, coll) {
   let s = iterable(coll)[Symbol.iterator]();
   let fst, rst;
   const vd = s.next();
@@ -592,14 +592,16 @@ function _reductions2(f, coll) {
     fst = vd.value;
     rst = s;
   }
-  return new LazySeq(function () {
-    return s ? _reductions3(f, fst, rst) : list(f());
-  });
+  if (s) {
+    yield* _reductions3(f, fst, rst);
+  }
+  else yield* list(f());
 }
 
-function _reductions3(f, init, coll) {
+function* _reductions3(f, init, coll) {
   if (reduced_QMARK_(init)) {
-    return list(init.value);
+    yield init.value;
+    return;
   }
   let s = iterable(coll)[Symbol.iterator]();
   let fst, rst;
@@ -610,11 +612,10 @@ function _reductions3(f, init, coll) {
     fst = vd.value;
     rst = s;
   }
-  return cons(init, new LazySeq(function () {
-      if (s) {
-        return _reductions3(f, f(init, fst), rst);
-      }
-    }));
+  yield init;
+  if (s) {
+    yield* _reductions3(f, f(init, fst), rst);
+  }
 }
 
 export function reductions(f, arg1, arg2) {
@@ -1221,9 +1222,9 @@ export function into(...args) {
         return conj_BANG_(coll, v);
       };
       return transduce(xform, rf, c, from);
-      default:
-        throw TypeError(`Invalid arity call of into: ${args.length}`);
-    }
+    default:
+      throw TypeError(`Invalid arity call of into: ${args.length}`);
+  }
 }
 
 export function identical_QMARK_(x, y) {
@@ -1240,13 +1241,13 @@ export function repeat(...args) {
     [IIterable__iterator]:
       args.length == 1
         ? function* () {
-            const x = args[0];
-            while (true) yield x;
-          }
+          const x = args[0];
+          while (true) yield x;
+        }
         : function* () {
-            const [n, x] = args;
-            for (var i = 0; i < n; i++) yield x;
-          },
+          const [n, x] = args;
+          for (var i = 0; i < n; i++) yield x;
+        },
   };
 }
 
@@ -1407,7 +1408,7 @@ export function sort(f, coll) {
   }
   f = toFn(f);
   coll = iterable(coll);
-    // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
+  // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
   const clone = [...coll];
   // result is guaranteed to be stable since ES2019, like CLJS
   return clone.sort(f || compare);
@@ -1611,7 +1612,7 @@ export function pos_QMARK_(x) {
 export function js_obj(...args) {
   let ctr = 0;
   const ret = {};
-  for (;;) {
+  for (; ;) {
     if (ctr >= args.length) {
       break;
     }
@@ -1774,16 +1775,16 @@ export function compare(x, y) {
     if (y == null) {
       return 1;
     }
-    const tx = typeof(x);
-    const ty = typeof(y);
+    const tx = typeof (x);
+    const ty = typeof (y);
     if (tx === 'number' && ty === 'number' || tx === 'string' && ty === 'string') {
-        if (x === y) {
-          return 0;
-        }
-        if (x < y) {
-          return -1;
-        }
-        return 1;
+      if (x === y) {
+        return 0;
+      }
+      if (x < y) {
+        return -1;
+      }
+      return 1;
     } else {
       throw new Error(`comparing ${tx} to ${ty}`);
     }
@@ -2028,7 +2029,7 @@ export function zipmap(keys, vals) {
   const keyIterator = iterable(keys)[Symbol.iterator]();
   const valIterator = iterable(vals)[Symbol.iterator]();
   let nextKey, nextVal;
-  for (;;) {
+  for (; ;) {
     nextKey = keyIterator.next();
     if (nextKey.done) break;
     nextVal = valIterator.next();
