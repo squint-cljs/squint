@@ -441,7 +441,8 @@
   (case *target*
     :squint
     (case alias
-      (squint.string clojure.string) "squint-cljs/string.js"
+      (squint.string clojure.string) "squint-cljs/src/squint/string.js"
+      (squint.set clojure.set) "squint-cljs/src/squint/set.js"
       (if (symbol? alias)
         (if-let [resolve-ns (:resolve-ns env)]
           (or (resolve-ns alias)

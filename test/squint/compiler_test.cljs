@@ -1849,5 +1849,24 @@
   (is (false? (jsv! "(not \"\")")))
   (is (not (str/includes? (jss! "(not (zero? 1))") "not"))))
 
+(defn wrap-async [s]
+  (str/replace "(async function () {\n%s\n})()" "%s" s))
+
+(deftest set-lib-test
+  (t/async done
+    (let [set (fn [& xs] (new js/Set xs))
+          js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+             [(set/intersection #{:a :b})
+              (set/intersection #{:a :b} #{:b :c})]" {:repl true
+                                                                                                                           :context :return})]
+      (-> (.then (js/eval (wrap-async js))
+                 (fn [vs]
+                   (let [expected [(set "a" "b") (set "b")]
+                         pairs (map vector expected vs)]
+                     (doseq [[expected s] pairs]
+                       (is (eq expected s))))
+                  ))
+          (.finally done)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

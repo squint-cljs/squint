@@ -7,6 +7,8 @@
     "core.js",
     "src/squint/core.js",
     "string.js",
+    "src/squint/string.js",
+    "src/squint/set.js",
     "lib",
     "node_cli.js",
     "index.js",
