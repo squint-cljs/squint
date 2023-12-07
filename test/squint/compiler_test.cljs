@@ -1853,20 +1853,38 @@
   (str/replace "(async function () {\n%s\n})()" "%s" s))
 
 (deftest set-lib-test
-  (t/async done
-    (let [set (fn [& xs] (new js/Set xs))
-          js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+  (testing "intersection"
+    (t/async done
+             (let [set (fn [& xs] (new js/Set xs))
+                   js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
              [(set/intersection #{:a :b})
               (set/intersection #{:a :b} #{:b :c})]" {:repl true
                                                       :context :return})]
-      (-> (.then (js/eval (wrap-async js))
-                 (fn [vs]
-                   (let [expected [(set "a" "b") (set "b")]
-                         pairs (map vector expected vs)]
-                     (doseq [[expected s] pairs]
-                       (is (eq expected s))))
-                  ))
-          (.finally done)))))
+               (-> (.then (js/eval (wrap-async js))
+                          (fn [vs]
+                            (let [expected [(set "a" "b") (set "b")]
+                                  pairs (map vector expected vs)]
+                              (doseq [[expected s] pairs]
+                                (is (eq expected s))))
+                            ))
+                   (.finally done)))))
+  (testing "difference"
+    (t/async done
+             (let [set (fn [& xs] (new js/Set xs))
+                   js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                 [(set/difference)
+                  (set/difference #{:a :b})
+                  (set/difference #{:a :b} #{:b :c})]" {:repl true
+                                                        :context :return})]
+               (-> (.then (js/eval (wrap-async js))
+                          (fn [vs]
+                            (let [expected [nil
+                                            (set "a" "b")
+                                            (set "a")]
+                                  pairs (map vector expected vs)]
+                              (doseq [[expected s] pairs]
+                                (is (eq expected s))))))
+                   (.finally done))))))
 
 (deftest Symbol_iterator-is-destructurable-test
   (let [js-obj (js/eval "
