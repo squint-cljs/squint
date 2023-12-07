@@ -452,7 +452,6 @@ export function get(coll, key, otherwise = undefined) {
 
 export function seqable_QMARK_(x) {
   return (
-    // typeof x === 'string' ||
     x === null ||
     x === undefined ||
     // we used to check instanceof Object but this returns false for TC39 Records
