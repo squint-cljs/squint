@@ -945,6 +945,82 @@
   (is (jsv! '(reduced? (reduced 5))))
   (is (= 4 (jsv! '(deref (reduced 4))))))
 
+(deftest reductions-test
+  (testing "lazy"
+    (is (eq (vec (take 10 (reductions + (range))))
+            (jsv! `(vec (take 10 (reductions + (range))))))
+        "Returns a lazy sequence"))
+  (testing "no val"
+    (is (eq (vec (reductions + [1 1 1 1])) (jsv! '(vec (reductions + [1 1 1 1])))))
+    (is (eq (vec (reductions #(if (< %2 3)
+                                (+ %1 %2)
+                                (reduced %1))
+                             (range 5)))
+            (jsv! '(vec (reductions #(if (< %2 3)
+                                       (+ %1 %2)
+                                       (reduced %1))
+                                    (range 5)))))
+        "reduced early")
+    (is (eq (reduce #(if (< %2 4)
+                       (+ %1 %2)
+                       (reduced %1))
+                    (range 5))
+            (jsv! '(reduce #(if (< %2 4)
+                              (+ %1 %2)
+                              (reduced %1))
+                           (range 5))))
+        "reduced last el")
+    (is (eq (vec (reductions (fn [x _] (reduced x))
+                             (range 5)))
+            (jsv! '(vec (reductions (fn [x _] (reduced x))
+                                    (range 5)))))
+        "reduced first el"))
+  (testing "val"
+    (is (eq (vec (reductions conj [] '(1 2 3)))
+            (jsv! '(vec (reductions conj [] '(1 2 3)))))))
+  (testing "sets"
+    (is (eq (vec (reductions #(+ %1 %2) #{1 2 3 4}))
+            (jsv! '(vec (reductions #(+ %1 %2) #{1 2 3 4}))))))
+  (testing "maps"
+    (is (eq (vec (reductions #(+ %1 (second %2))
+                             0
+                             {:a 1, :b 2, :c 3, :d 4}))
+            (jsv! '(vec (reductions #(+ %1 (second %2))
+                                    0
+                                    (js/Map. [[:a 1] [:b 2] [:c 3] [:d 4]])))))))
+  (testing "objects"
+    (is (eq (vec (reductions #(+ %1 (second %2))
+                             0
+                             {:a 1, :b 2, :c 3, :d 4}))
+            (jsv! '(vec (reductions #(+ %1 (second %2))
+                                    0
+                                    (js/Object.entries {:a 1, :b 2, :c 3, :d 4}))))))
+    (is (eq (vec (reductions #(+ %1 %2)
+                             0
+                             (vals {:a 1 :b 2 :c 3 :d 4})))
+            (jsv! '(vec (reductions #(+ %1 %2)
+                                    0
+                                    (js/Object.values {:a 1 :b 2 :c 3 :d 4}))))))
+    (is (eq (vec (reductions #(+ %1 (second %2))
+                             0
+                             {:a 1, :b 2, :c 3, :d 4}))
+            (jsv! '(vec (reductions #(+ %1 (second %2))
+                                    0
+                                    {:a 1 :b 2 :c 3 :d 4}))))))
+  (testing "empty coll"
+    (is (eq (vec (reductions + '())) (jsv! '(vec (reductions + '())))))
+    (is (eq (vec (reductions + [])) (jsv! '(vec (reductions + []))))))
+  (testing "composability"
+    ;; https://clojuredocs.org/clojure.core/reductions#example-58bdd686e4b01f4add58fe6b
+    (is (eq (vec (take 3 (as-> (repeat {:height 50}) posts
+                           (map #(assoc %1 :offset %2)
+                                posts
+                                (reductions + 0 (map :height posts))))))
+            (jsv! '(vec (take 3 (as-> (repeat {:height 50}) posts
+                                  (map #(assoc %1 :offset %2)
+                                       posts
+                                       (reductions + 0 (map :height posts)))))))))))
+
 (deftest seq-test
   (is (= "abc" (jsv! '(seq "abc"))))
   (is (eq '(1 2 3) (jsv! '(seq [1 2 3]))))

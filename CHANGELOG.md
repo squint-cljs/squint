@@ -8,6 +8,7 @@
 - Fix `reduce` without initial value + empty coll, it should call `f()`
 - Add serve-playground bb task
 - Update playground with button for creating a blank AOC playground
+- [#418](): Add `reductions`
 
 ## 0.4.73 (2023-12-05)
 
