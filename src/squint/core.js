@@ -595,7 +595,7 @@ function* _reductions2(f, coll) {
   if (s) {
     yield* _reductions3(f, fst, rst);
   }
-  else yield* list(f());
+  else yield f();
 }
 
 function* _reductions3(f, init, coll) {
