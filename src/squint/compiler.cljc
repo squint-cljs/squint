@@ -447,19 +447,7 @@
              jsx-dev (:development jsx-runtime)
              imports (atom (if cc/*repl*
                              (str (format "var %s = await import('%s');\n"
-                                          core-alias cc/*core-package*)
-                                  (when jsx-runtime
-                                    (format
-                                     (str/trim "
-var {jsx%s: _jsx, jsx%s%s: _jsxs, Fragment: _Fragment } = await import('%s');\n")
-                                     (if jsx-dev "DEV" "")
-                                     (if jsx-dev "" "s")
-                                     (if jsx-dev "DEV" "")
-                                     (str (:import-source jsx-runtime
-                                                          "react")
-                                          (if jsx-dev
-                                            "/jsx-dev-runtime"
-                                            "/jsx-runtime")))))
+                                          core-alias cc/*core-package*))
                              (format "import * as %s from '%s';\n"
                                      core-alias cc/*core-package*)))]
          (binding [*imported-vars* imported-vars
@@ -474,6 +462,19 @@ var {jsx%s: _jsx, jsx%s%s: _jsxs, Fragment: _Fragment } = await import('%s');\n"
                                                         :core-alias core-alias
                                                         :imports imports
                                                         :jsx false))
+                 jsx *jsx*
+                 _ (when (and jsx cc/*repl* jsx-runtime)
+                     (swap! imports str
+                            (format
+                             "var {jsx%s: _jsx, jsx%s%s: _jsxs, Fragment: _Fragment } = await import('%s');\n"
+                             (if jsx-dev "DEV" "")
+                             (if jsx-dev "" "s")
+                             (if jsx-dev "DEV" "")
+                             (str (:import-source jsx-runtime
+                                                  "react")
+                                  (if jsx-dev
+                                    "/jsx-dev-runtime"
+                                    "/jsx-runtime")))))
                  imports (when-not elide-imports @imports)
                  exports (when-not elide-exports
                            (str
@@ -488,7 +489,7 @@ var {jsx%s: _jsx, jsx%s%s: _jsxs, Fragment: _Fragment } = await import('%s');\n"
                     :exports exports
                     :body transpiled
                     :javascript (str imports transpiled exports)
-                    :jsx *jsx*
+                    :jsx jsx
                     :ns *cljs-ns*
                     :ns-state (:ns-state opts)))))))))
 
