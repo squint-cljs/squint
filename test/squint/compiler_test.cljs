@@ -1009,7 +1009,17 @@
                                     {:a 1 :b 2 :c 3 :d 4}))))))
   (testing "empty coll"
     (is (eq (vec (reductions + '())) (jsv! '(vec (reductions + '())))))
-    (is (eq (vec (reductions + [])) (jsv! '(vec (reductions + [])))))))
+    (is (eq (vec (reductions + [])) (jsv! '(vec (reductions + []))))))
+  (testing "composability"
+    ;; https://clojuredocs.org/clojure.core/reductions#example-58bdd686e4b01f4add58fe6b
+    (is (eq (vec (take 3 (as-> (repeat {:height 50}) posts
+                           (map #(assoc %1 :offset %2)
+                                posts
+                                (reductions + 0 (map :height posts))))))
+            (jsv! '(vec (take 3 (as-> (repeat {:height 50}) posts
+                                  (map #(assoc %1 :offset %2)
+                                       posts
+                                       (reductions + 0 (map :height posts)))))))))))
 
 (deftest seq-test
   (is (= "abc" (jsv! '(seq "abc"))))
