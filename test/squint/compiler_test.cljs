@@ -1884,6 +1884,63 @@
                                   pairs (map vector expected vs)]
                               (doseq [[expected s] pairs]
                                 (is (eq expected s))))))
+                   (.finally done)))))
+  (testing "union"
+    (t/async done
+             (let [set (fn [& xs] (new js/Set xs))
+                   js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                   [(set/union)
+                    (set/union #{:a :b})
+                    (set/union #{:a :b} #{:b :c})]" {:repl true
+                                                     :context :return})]
+               (-> (.then (js/eval (wrap-async js))
+                          (fn [vs]
+                            (let [expected [nil
+                                            (set "a" "b")
+                                            (set "a" "b" "c")]
+                                  pairs (map vector expected vs)]
+                              (doseq [[expected s] pairs]
+                                (is (eq expected s))))))
+                   (.finally done)))))
+  (testing "subset?"
+    (t/async done
+             (let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                   [(set/subset?)
+                    (set/subset? #{:a :b})
+                    (set/subset? #{:a :b} #{:a :b :c})
+                    (set/subset? #{:a :b :d} #{:a :b :c})
+                    (set/subset? #{:a :b} #{:a :b})]" {:repl true
+                                                       :context :return})]
+               (-> (.then (js/eval (wrap-async js))
+                          (fn [vs]
+                            (let [expected [true
+                                            false
+                                            true
+                                            false
+                                            true]
+                                  pairs (map vector expected vs)]
+                              (doseq [[expected s] pairs]
+                                (is (eq expected s))))))
+                   (.finally done)))))
+  (testing "superset?"
+    (t/async done
+             (let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                     [(set/superset?)
+                      (set/superset? #{:a :b})
+                      (set/superset? #{:a :b :c} #{:a :b})
+                      (set/superset? #{:a :b :c} #{:a :b :d})
+                      (set/superset? #{:a :b} #{:a :b})]" {:repl true
+                                                           :context :return})]
+               (-> (.then (js/eval (wrap-async js))
+                          (fn [vs]
+                            (let [expected [true
+                                            true
+                                            true
+                                            false
+                                            true]
+                                  pairs (map vector expected vs)]
+                              (doseq [[expected s] pairs]
+                                (is (eq expected s))))))
                    (.finally done))))))
 
 (deftest Symbol_iterator-is-destructurable-test
