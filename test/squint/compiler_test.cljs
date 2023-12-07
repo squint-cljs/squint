@@ -1024,7 +1024,13 @@
     (is (= 100 (jsv! '(do (def a (atom []))
                           (defn spy [x] (swap! a conj x) x)
                           (vec (reductions + (map spy (range 100))))
-                          (count @a)))))))
+                          (count @a)))))
+    (is (eq (do
+              (let [ xs (reductions + (range 3))]
+                [(count xs) (count xs)]))
+            (jsv! '(do
+                     (let [ xs (reductions + (range 3))]
+                       [(count xs) (count xs)])))))))
 
 (deftest seq-test
   (is (= "abc" (jsv! '(seq "abc"))))

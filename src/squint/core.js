@@ -620,9 +620,13 @@ function _reductions3(f, init, coll) {
 export function reductions(f, arg1, arg2) {
   f = toFn(f);
   if (arg2 === undefined) {
-    return _reductions2(f, arg1);
+    return lazy(function* () {
+      yield* _reductions2(f, arg1);
+    });
   }
-  return _reductions3(f, arg1, arg2);
+  return lazy(function* () {
+    yield* _reductions3(f, arg1, arg2);
+  });
 }
 
 var tolr = false;
