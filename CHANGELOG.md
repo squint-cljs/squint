@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## 0.4.75 (2023-12-07)
+
+- Let any object that has `Symbol.iterable` be destructureable even if it is not `instance of Object`
+
 ## 0.4.74 (2023-12-07)
 
 - Initial version of `clojure.set`
