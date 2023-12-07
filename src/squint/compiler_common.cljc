@@ -3,7 +3,29 @@
   (:require
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [squint.internal.macros :as macros]))
+
+(def common-macros
+  {'coercive-boolean macros/coercive-boolean
+   'coercive-= macros/coercive-=
+   'coercive-not= macros/coercive-not=
+   'coercive-not macros/coercive-not
+   'bit-not macros/bit-not
+   'bit-and macros/bit-and
+   'unsafe-bit-and macros/unsafe-bit-and
+   'bit-or macros/bit-or
+   'int macros/int
+   'bit-xor macros/bit-xor
+   'bit-and-not macros/bit-and-not
+   'bit-clear macros/bit-clear
+   'bit-flip macros/bit-flip
+   'bit-test macros/bit-test
+   'bit-shift-left macros/bit-shift-left
+   'bit-shift-right macros/bit-shift-right
+   'bit-shift-right-zero-fill macros/bit-shift-right-zero-fill
+   'unsigned-bit-shift-right macros/unsigned-bit-shift-right
+   'bit-set macros/bit-set})
 
 #?(:cljs (def Exception js/Error))
 
@@ -36,10 +58,10 @@
     (cond->
         (-> (reduce (fn [template substitution]
                       (str/replace-first template "~{}"
-                                            (emit substitution (merge (assoc env :context :expr) env'))))
-                       template
-                       substitutions)
-               (emit-return (merge env (meta expr))))
+                                         (emit substitution (merge (assoc env :context :expr) env'))))
+                    template
+                    substitutions)
+            (emit-return (merge env (meta expr))))
       bool? bool-expr)))
 
 (defn expr-env [env]
@@ -636,10 +658,10 @@
         true
         (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
 
-  (defmethod emit-special 'or [_type env [_ & more]]
-    (if (empty? more)
-      nil
-      (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
+(defmethod emit-special 'or [_type env [_ & more]]
+  (if (empty? more)
+    nil
+    (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
   (str "while (" (emit test) ") { \n"
@@ -806,16 +828,12 @@ break;}" body)
 (defmethod emit-special 'js-in [_ env [_ key obj]]
   (bool-expr (emit (list 'js* "~{} in ~{}" key obj) env)))
 
-(defmethod emit-special 'int [_ env [_ obj]]
-  (-> (format "(%s | 0)" (emit obj (assoc env :context :expr)))
-      (emit-return env)))
-
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
   ;; RegExp case moved here:
   ;; References to the global RegExp object prevents optimization of regular expressions.
   (emit (vec expr) env))
 
-(def special-forms '#{zero? pos? neg? js-delete nil? js-in int})
+(def special-forms '#{zero? pos? neg? js-delete nil? js-in})
 
 (derive #?(:clj clojure.lang.Cons :cljs Cons) ::list)
 (derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)
@@ -904,16 +922,16 @@ break;}" body)
       (if (seq v)
         (str
          " "
-             (str/join " "
-                       (map (fn [[k v]]
-                              (if (= :& k)
-                                (str "{..." (emit v (dissoc env :jsx)) "}")
-                                (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
-                                                    (not (string? v))
-                                                    ;; since we escape here, we
-                                                    ;; can probably remove
-                                                    ;; escaping elsewhere?
-                                                    (escape-jsx env)))))
-                            v)))
+         (str/join " "
+                   (map (fn [[k v]]
+                          (if (= :& k)
+                            (str "{..." (emit v (dissoc env :jsx)) "}")
+                            (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
+                                                (not (string? v))
+                                                ;; since we escape here, we
+                                                ;; can probably remove
+                                                ;; escaping elsewhere?
+                                                (escape-jsx env)))))
+                        v)))
         "")
       )))

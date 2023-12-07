@@ -47,56 +47,54 @@
                          'squint.impl/for-of
                          'squint.impl/defonce]))
 
-(def built-in-macros {'-> macros/core->
-                      '->> macros/core->>
-                      'as-> macros/core-as->
-                      'comment macros/core-comment
-                      'dotimes macros/core-dotimes
-                      'if-not macros/core-if-not
-                      'when macros/core-when
-                      'when-not macros/core-when-not
-                      'doto macros/core-doto
-                      'cond macros/core-cond
-                      'cond-> macros/core-cond->
-                      'cond->> macros/core-cond->>
-                      'condp macros/core-condp
-                      'if-let macros/core-if-let
-                      'if-some macros/core-if-some
-                      'when-let macros/core-when-let
-                      'when-first macros/core-when-first
-                      'when-some macros/core-when-some
-                      'some-> macros/core-some->
-                      'some->> macros/core-some->>
-                      'loop loop/core-loop
-                      'doseq macros/core-doseq
-                      'for macros/core-for
-                      'lazy-seq macros/core-lazy-seq
-                      'defonce macros/core-defonce
-                      'exists? macros/core-exists?
-                      'case macros/core-case
-                      '.. macros/core-dotdot
-                      'defmacro core-defmacro
-                      'this-as macros/core-this-as
-                      'unchecked-get macros/core-unchecked-get
-                      'unchecked-set macros/core-unchecked-set
-                      'defprotocol protocols/core-defprotocol
-                      'extend-type protocols/core-extend-type
-                      'deftype deftype/core-deftype
-                      'defn core-defn
-                      'defn- core-defn
-                      'instance? macros/core-instance?
-                      'time macros/core-time
-                      'declare macros/core-declare
-                      'letfn macros/core-letfn
-                      'defclass defclass/defclass
-                      'js-template defclass/js-template
-                      'or macros/core-or
-                      'and macros/core-and
-                      'assert macros/core-assert
-                      'coercive-boolean macros/coercive-boolean
-                      'coercive-= macros/coercive-=
-                      'coercive-not= macros/coercive-not=
-                      'coercive-not macros/coercive-not})
+(def built-in-macros (merge {'-> macros/core->
+                             '->> macros/core->>
+                             'as-> macros/core-as->
+                             'comment macros/core-comment
+                             'dotimes macros/core-dotimes
+                             'if-not macros/core-if-not
+                             'when macros/core-when
+                             'when-not macros/core-when-not
+                             'doto macros/core-doto
+                             'cond macros/core-cond
+                             'cond-> macros/core-cond->
+                             'cond->> macros/core-cond->>
+                             'condp macros/core-condp
+                             'if-let macros/core-if-let
+                             'if-some macros/core-if-some
+                             'when-let macros/core-when-let
+                             'when-first macros/core-when-first
+                             'when-some macros/core-when-some
+                             'some-> macros/core-some->
+                             'some->> macros/core-some->>
+                             'loop loop/core-loop
+                             'doseq macros/core-doseq
+                             'for macros/core-for
+                             'lazy-seq macros/core-lazy-seq
+                             'defonce macros/core-defonce
+                             'exists? macros/core-exists?
+                             'case macros/core-case
+                             '.. macros/core-dotdot
+                             'defmacro core-defmacro
+                             'this-as macros/core-this-as
+                             'unchecked-get macros/core-unchecked-get
+                             'unchecked-set macros/core-unchecked-set
+                             'defprotocol protocols/core-defprotocol
+                             'extend-type protocols/core-extend-type
+                             'deftype deftype/core-deftype
+                             'defn core-defn
+                             'defn- core-defn
+                             'instance? macros/core-instance?
+                             'time macros/core-time
+                             'declare macros/core-declare
+                             'letfn macros/core-letfn
+                             'defclass defclass/defclass
+                             'js-template defclass/js-template
+                             'or macros/core-or
+                             'and macros/core-and
+                             'assert macros/core-assert
+                             }
+                            cc/common-macros))
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 
@@ -305,8 +303,8 @@
           tag-name (symbol tag)
           fragment? (= '<> tag-name)
           tag-name* (if fragment?
-                     (symbol "")
-                     tag-name)
+                      (symbol "")
+                      tag-name)
           tag-name (emit tag-name* (expr-env (dissoc env :jsx)))]
       (if (:jsx-runtime env)
         (let [single-child? (= (count elts) 1)]
@@ -380,9 +378,9 @@
                                 (fn gensym*
                                   ([] (gensym* nil))
                                   ([sym]
-                                     (let [next-id (vswap! ctr inc)]
-                                       (symbol (str (if sym (munge sym)
-                                                        "G__") next-id))))))
+                                   (let [next-id (vswap! ctr inc)]
+                                     (symbol (str (if sym (munge sym)
+                                                      "G__") next-id))))))
                       :emit {::cc/list emit-list
                              ::cc/vector emit-vector
                              ::cc/map emit-map
@@ -454,14 +452,14 @@
                                     (format
                                      (str/trim "
 var {jsx%s: _jsx, jsx%s%s: _jsxs, Fragment: _Fragment } = await import('%s');\n")
-                                            (if jsx-dev "DEV" "")
-                                            (if jsx-dev "" "s")
-                                            (if jsx-dev "DEV" "")
-                                            (str (:import-source jsx-runtime
-                                                                 "react")
-                                                 (if jsx-dev
-                                                   "/jsx-dev-runtime"
-                                                   "/jsx-runtime")))))
+                                     (if jsx-dev "DEV" "")
+                                     (if jsx-dev "" "s")
+                                     (if jsx-dev "DEV" "")
+                                     (str (:import-source jsx-runtime
+                                                          "react")
+                                          (if jsx-dev
+                                            "/jsx-dev-runtime"
+                                            "/jsx-runtime")))))
                              (format "import * as %s from '%s';\n"
                                      core-alias cc/*core-package*)))]
          (binding [*imported-vars* imported-vars
