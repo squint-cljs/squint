@@ -2,17 +2,19 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.4.74 (2023-12-07)
 
+- Initial version of `clojure.set`
+- [#418](https://github.com/squint-cljs/squint/issues/418): Add `reductions`
+- Add `bit-shift-left` and more `bit-` related macros
 - Fix `not` with respect to truthiness
 - Fix `reduce` without initial value + empty coll, it should call `f()`
 - Add serve-playground bb task
 - Update playground with button for creating a blank AOC playground
-- [#418](): Add `reductions`
 
 ## 0.4.73 (2023-12-05)
 
-- #407: fix conditional rendering
+- [#407](https://github.com/squint-cljs/squint/issues/407): fix conditional rendering
 - Add `not-empty`
 - Fix `into` + set + xform
 
@@ -37,8 +39,8 @@
 
 ## 0.4.68 (2023-12-01)
 
-- #394: add `int`
-- #393: `Math` can be used without `js/` prefix
+- [#394](https://github.com/squint-cljs/squint/issues/394): add `int`
+- [#393](https://github.com/squint-cljs/squint/issues/393): `Math` can be used without `js/` prefix
 - Expose compiler state via `compileStringEx` for playground, preserves namespace transitions
 
 ## 0.4.67 (2023-11-28)
