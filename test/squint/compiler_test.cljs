@@ -8,7 +8,8 @@
    [squint.test-utils :refer [eq js! jss! jsv!]]
    ["fs" :as fs]
    ["child_process" :as process]
-   ["node:util" :as util]))
+   ["node:util" :as util]
+   [promesa.core :as p]))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -117,9 +118,9 @@
                       {:repl repl}))))
     (testing "multi vararg vararg arity"
       (is (eq [2] (jsv! '(let [f (fn foo
-                                 ([y] 1)
+                                   ([y] 1)
                                    ([y & zs] zs))]
-                         (f 1 2)) {:repl repl}))))))
+                           (f 1 2)) {:repl repl}))))))
 
 (deftest fn-multi-arity-test
   (is (= 1 (jsv! '(let [f (fn foo ([x] x) ([x y] y))] (f 1)))))
@@ -318,30 +319,30 @@
                             y [4 5 6]
                             :when (< (+ x y) 8)]
                         [x y])))]
-     (is (eq [[1 4] [1 5] [1 6] [2 4] [2 5] [3 4]]
-             (js/eval s))))
+    (is (eq [[1 4] [1 5] [1 6] [2 4] [2 5] [3 4]]
+            (js/eval s))))
   (let [s (jss! '(vec (for [x (range 3) y (range 3) :while (not= x y)]
                         [x y])))]
-     (is (eq [[1 0] [2 0] [2 1]]
-             (js/eval s))))
+    (is (eq [[1 0] [2 0] [2 1]]
+            (js/eval s))))
   ;; https://clojuredocs.org/clojure.core/for#example-542692d3c026201cdc326fa9
   (testing ":while placement"
     (let [s (jss! '(vec
-                     (for [x [1 2 3]
-                             y [1 2 3]
-                             :while (<= x y)
-                             z [1 2 3]]
-                       [x y z])))]
+                    (for [x [1 2 3]
+                          y [1 2 3]
+                          :while (<= x y)
+                          z [1 2 3]]
+                      [x y z])))]
       (is (eq [[1 1 1] [1 1 2] [1 1 3]
                [1 2 1] [1 2 2] [1 2 3]
                [1 3 1] [1 3 2] [1 3 3]]
               (js/eval s))))
     (let [s (jss! '(vec
-                     (for [x [1 2 3]
-                             y [1 2 3]
-                             z [1 2 3]
-                             :while (<= x y)]
-                       [x y z])))]
+                    (for [x [1 2 3]
+                          y [1 2 3]
+                          z [1 2 3]
+                          :while (<= x y)]
+                      [x y z])))]
       (is (eq [[1 1 1] [1 1 2] [1 1 3]
                [1 2 1] [1 2 2] [1 2 3]
                [1 3 1] [1 3 2] [1 3 3]
@@ -504,42 +505,42 @@
 
 (deftest await-test
   (async done
-         (->
-          (.then (jsv! '(do (defn ^:async foo []
-                              (js/await (js/Promise.resolve :hello)))
+    (->
+     (.then (jsv! '(do (defn ^:async foo []
+                         (js/await (js/Promise.resolve :hello)))
 
-                            (defn ^:async bar []
-                              (let [x (js/await (foo))]
-                                x))
+                       (defn ^:async bar []
+                         (let [x (js/await (foo))]
+                           x))
 
-                            (bar)))
-                 (fn [v]
-                   (is (= "hello" v))))
-          (.catch (fn [err]
-                    (is false (.-message err))))
-          (.finally #(done)))))
+                       (bar)))
+            (fn [v]
+              (is (= "hello" v))))
+     (.catch (fn [err]
+               (is false (.-message err))))
+     (.finally #(done)))))
 
 (deftest top-level-await-test
   (is (str/includes? (jss! "(js-await 1)") "await")))
 
 (deftest await-variadic-test
   (async done
-         (->
-          (.then (jsv! '(do (defn ^:async foo [& xs] (js/await 10))
-                            (defn ^:async bar [x & xs] (js/await 20))
-                            (defn ^:async baz
-                              ([x] (baz x 1 2 3))
-                              ([x & xs]
-                               (let [x (js/await (foo x))
-                                     y (js/await (apply bar xs))]
-                                 (+ x y))))
+    (->
+     (.then (jsv! '(do (defn ^:async foo [& xs] (js/await 10))
+                       (defn ^:async bar [x & xs] (js/await 20))
+                       (defn ^:async baz
+                         ([x] (baz x 1 2 3))
+                         ([x & xs]
+                          (let [x (js/await (foo x))
+                                y (js/await (apply bar xs))]
+                            (+ x y))))
 
-                            (baz 1)))
-                 (fn [v]
-                   (is (= 30 v))))
-          (.catch (fn [err]
-                    (is false (.-message err))))
-          (.finally #(done)))))
+                       (baz 1)))
+            (fn [v]
+              (is (= 30 v))))
+     (.catch (fn [err]
+               (is false (.-message err))))
+     (.finally #(done)))))
 
 (deftest native-js-array-test
   (let [s (jss! "(let [x 2
@@ -1644,8 +1645,8 @@
                                x))))
   (is (eq #js {} (jsv! '(dissoc! {}))))
   (is (eq #js {} (jsv! '(let [x {"1" 2 "3" 4}]
-                               (dissoc! x "1" "3")
-                               x)))))
+                          (dissoc! x "1" "3")
+                          x)))))
 
 (deftest dissoc-test
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc {"1" 2 "3" 4}))))
@@ -1856,140 +1857,118 @@
 (deftest set-lib-intersection-test
   (testing "intersection"
     (t/async done
-             (let [set (fn [& xs] (new js/Set xs))
-                   js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+      (->
+       (p/do
+         (testing "intersection"
+           (let [set (fn [& xs] (new js/Set xs))
+                 js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
              [(set/intersection #{:a :b})
               (set/intersection #{:a :b} #{:b :c})]" {:repl true
                                                       :context :return})]
-               (-> (.then (js/eval (wrap-async js))
-                          (fn [vs]
-                            (let [expected [(set "a" "b") (set "b")]
-                                  pairs (map vector expected vs)]
-                              (doseq [[expected s] pairs]
-                                (is (eq expected s))))
-                            ))
-                   (.finally done))))))
-
-(deftest set-lib-difference-test
-  (t/async done
+             (p/let [vs (js/eval (wrap-async js))]
+               (let [expected [(set "a" "b") (set "b")]
+                     pairs (map vector expected vs)]
+                 (doseq [[expected s] pairs]
+                   (is (eq expected s)))))))
+         (testing "difference"
            (let [set (fn [& xs] (new js/Set xs))
                  js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                  [(set/difference)
                   (set/difference #{:a :b})
                   (set/difference #{:a :b} #{:b :c})]" {:repl true
                                                         :context :return})]
-             (-> (.then (js/eval (wrap-async js))
-                        (fn [vs]
-                          (let [expected [nil
-                                          (set "a" "b")
-                                          (set "a")]
-                                pairs (map vector expected vs)]
-                            (doseq [[expected s] pairs]
-                              (is (eq expected s))))))
-                 (.finally done)))))
-
-(deftest set-lib-union-test
-  (t/async done
+             (p/let [vs (js/eval (wrap-async js))]
+               (let [expected [nil
+                               (set "a" "b")
+                               (set "a")]
+                     pairs (map vector expected vs)]
+                 (doseq [[expected s] pairs]
+                   (is (eq expected s)))))))
+         (testing "union"
            (let [set (fn [& xs] (new js/Set xs))
                  js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                    [(set/union)
                     (set/union #{:a :b})
                     (set/union #{:a :b} #{:b :c})]" {:repl true
                                                      :context :return})]
-             (-> (.then (js/eval (wrap-async js))
-                        (fn [vs]
-                          (let [expected [nil
-                                          (set "a" "b")
-                                          (set "a" "b" "c")]
-                                pairs (map vector expected vs)]
-                            (doseq [[expected s] pairs]
-                              (is (eq expected s))))))
-                 (.finally done)))))
-(deftest set-lib-subset?-test
-  (t/async done
-           (let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+             (p/let [vs (js/eval (wrap-async js))]
+               (let [expected [nil
+                               (set "a" "b")
+                               (set "a" "b" "c")]
+                     pairs (map vector expected vs)]
+                 (doseq [[expected s] pairs]
+                   (is (eq expected s)))))))
+         (testing "subset"
+           (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                    [(set/subset?)
                     (set/subset? #{:a :b})
                     (set/subset? #{:a :b} #{:a :b :c})
                     (set/subset? #{:a :b :d} #{:a :b :c})
                     (set/subset? #{:a :b} #{:a :b})]" {:repl true
-                                                       :context :return})]
-             (-> (.then (js/eval (wrap-async js))
-                        (fn [vs]
-                          (let [expected [true
-                                          false
-                                          true
-                                          false
-                                          true]
-                                pairs (map vector expected vs)]
-                            (doseq [[expected s] pairs]
-                              (is (eq expected s))))))
-                 (.finally done)))))
-
-(deftest set-lib-superset?-test
-  (t/async done
-           (let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                                                       :context :return})
+                   vs (js/eval (wrap-async js))]
+             (let [expected [true
+                             false
+                             true
+                             false
+                             true]
+                   pairs (map vector expected vs)]
+               (doseq [[expected s] pairs]
+                 (is (eq expected s))))))
+         (testing "superset?"
+           (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                      [(set/superset?)
                       (set/superset? #{:a :b})
                       (set/superset? #{:a :b :c} #{:a :b})
                       (set/superset? #{:a :b :c} #{:a :b :d})
                       (set/superset? #{:a :b} #{:a :b})]" {:repl true
-                                                           :context :return})]
-               (-> (.then (js/eval (wrap-async js))
-                          (fn [vs]
-                            (let [expected [true
-                                            true
-                                            true
-                                            false
-                                            true]
-                                  pairs (map vector expected vs)]
-                              (doseq [[expected s] pairs]
-                                (is (eq expected s))))))
-                   (.finally done)))))
-
-(deftest set-lib-select-test
-  (t/async done
-           (let [set (fn [& xs] (new js/Set xs))
-                 js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                                                           :context :return})
+                   vs (js/eval (wrap-async js))]
+             (let [expected [true
+                             true
+                             true
+                             false
+                             true]
+                   pairs (map vector expected vs)]
+               (doseq [[expected s] pairs]
+                 (is (eq expected s))))))
+         (testing "select"
+           (p/let [set (fn [& xs] (new js/Set xs))
+                   js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                    [(set/select)
                     (set/select even?)
                     (set/select even? #{1 2 3 4 5})
                     (set/select #(> % 2) #{1 2 3 4 5})
                     (set/select #(= % :a) #{:a :b :c})]" {:repl true
-                                                          :context :return})]
-             (-> (.then (js/eval (wrap-async js))
-                        (fn [vs]
-                          (let [expected [nil
-                                          nil
-                                          (set 2 4)
-                                          (set 3 4 5)
-                                          (set "a")]
-                                pairs (map vector expected vs)]
-                            (doseq [[expected s] pairs]
-                              (is (eq expected s))))))
-                 (.finally done)))))
-
-(deftest set-lib-rename-keys-test
-  (t/async done
-           (let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                                                          :context :return})
+                   vs (js/eval (wrap-async js))]
+             (let [expected [nil
+                             nil
+                             (set 2 4)
+                             (set 3 4 5)
+                             (set "a")]
+                   pairs (map vector expected vs)]
+               (doseq [[expected s] pairs]
+                 (is (eq expected s))))))
+         (testing "rename-keys"
+           (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                  [(set/rename-keys {:a 1, :b 2} {:a :new-a, :b :new-b})
                   (set/rename-keys {:a 1} {:b :new-b})
                   (set/rename-keys {:a 1 :b 2} {:a :b})
                   (set/rename-keys {:a 1 :b 2}  {:a :b :b :a})
                   (set/rename-keys (new js/Map [[:a {:b 1}]]) {:a {:c 2}})]" {:repl true
-                                                                 :context :return})]
-             (-> (.then (js/eval (wrap-async js))
-                        (fn [vs]
-                          (let [expected [{:new-a 1, :new-b 2}
-                                          {:a 1}
-                                          {:b 1}
-                                          {:b 1, :a 2}
-                                          (new js/Map (clj->js [[{:c 2} {:b 1}]]))]
-                                pairs (map vector expected vs)]
-                            (doseq [[expected s] pairs]
-                              (is (eq expected s) (str "expected vs actual:"
-                                                       (util/inspect expected) (util/inspect s)))))))
-                 (.finally done)))))
+                                                                              :context :return})
+                   vs (js/eval (wrap-async js))]
+             (let [expected [{:new-a 1, :new-b 2}
+                             {:a 1}
+                             {:b 1}
+                             {:b 1, :a 2}
+                             (new js/Map (clj->js [[{:c 2} {:b 1}]]))]
+                   pairs (map vector expected vs)]
+               (doseq [[expected s] pairs]
+                 (is (eq expected s) (str "expected vs actual:"
+                                          (util/inspect expected) (util/inspect s))))))))
+       (p/finally done)))))
 
 (deftest Symbol_iterator-is-destructurable-test
   (let [js-obj (js/eval "
