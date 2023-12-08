@@ -127,7 +127,7 @@ function emptyOfType(type) {
     case ARRAY_TYPE:
       return [];
     case OBJECT_TYPE:
-      return {};
+      return {}; // Object.create?
     case LIST_TYPE:
       return new List();
     case SET_TYPE:
