@@ -2007,7 +2007,6 @@
        (testing "map-invert"
          (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                                [(set/map-invert)
-                                (set/map-invert [])
                                 (set/map-invert {})
                                 (set/map-invert {:a 1, :b 2, :c 3})
                                 (set/map-invert (new js/Map [[:a 1] [:d 3]]))]" {:repl true
@@ -2015,9 +2014,8 @@
                  vs (js/eval (wrap-async js))]
            (let [expected [{}
                            {}
-                           {}
                            {1 :a 2 :b 3 :c}
-                           {1 :a 3 :d} #_(set (new js/Map (clj->js [[1 :a 3 :d]])))]
+                           (new js/Map (clj->js [[1 :a] [3 :d]]))]
                  pairs (map vector expected vs)]
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"

@@ -1,4 +1,4 @@
-import { contains_QMARK_, assoc, get, dissoc, keys, map, set, select_keys, reduce_kv } from './core.js';
+import { contains_QMARK_, assoc, assoc_BANG_, get, dissoc, keys, map, set, select_keys, reduce_kv, empty } from './core.js';
 
 function _intersection2(x, y) {
   if (x.size > y.size) {
@@ -137,5 +137,8 @@ export function project(xrel, ...ks) {
 }
 
 export function map_invert(xmap) {
-  return reduce_kv((m, k, v) => assoc(m, v, k), {}, xmap);
+  if (xmap === undefined) {
+    return {};
+  }
+  return reduce_kv((m, k, v) => assoc_BANG_(m, v, k), empty(xmap), xmap);
 }
