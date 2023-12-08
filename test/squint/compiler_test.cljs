@@ -1970,6 +1970,23 @@
                  pairs (map vector expected vs)]
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"
+                                        (util/inspect expected) (util/inspect s)))))))
+       (testing "rename"
+         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                        [(set/rename #{ {:a 1, :b 2} {:a 3, :b 4} } {:a :new-a, :b :new-b})
+                         (set/rename #{ {:a 1} {:a 2 :b 3} } {:b :new-b})
+                         (set/rename #{ {:a 1 :b 2} {:a 3 :b 4} }  {:a :b :b :a})
+                         (set/rename #{ (new js/Map [[:a {:b 1}]]) } {:a {:c 2}})]" {:repl true
+                                                                                     :context :return})
+                 vs (js/eval (wrap-async js))]
+           (let [set (fn [& xs] (new js/Set xs))
+                 expected [(set #js {:new-a 1, :new-b 2} #js {:new-a 3, :new-b 4})
+                           (set #js {:a 1} #js {:a 2 :new-b 3})
+                           (set #js {:b 1, :a 2} #js {:b 3, :a 4})
+                           (set (new js/Map (clj->js [[{:c 2} {:b 1}]])))]
+                 pairs (map vector expected vs)]
+             (doseq [[expected s] pairs]
+               (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s))))))))
      (p/finally done))))
 

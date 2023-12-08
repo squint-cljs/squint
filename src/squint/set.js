@@ -1,4 +1,4 @@
-import { contains_QMARK_, assoc, get, dissoc, keys } from './core.js';
+import { contains_QMARK_, assoc, get, dissoc, keys, map, set } from './core.js';
 
 function _intersection2(x, y) {
   if (x.size > y.size) {
@@ -126,4 +126,8 @@ export function rename_keys(map, kmap) {
     }
     return m;
   }, dissoc(map, ...ks));
+}
+
+export function rename(xrel, kmap) {
+  return set(map(x => rename_keys(x, kmap), xrel));
 }
