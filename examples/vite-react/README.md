@@ -1,53 +1,24 @@
-# Vite-react example
+<img width="525" src="https://github.com/sher/squint-vite/assets/381501/b563dea5-0b13-449b-978f-c573fe1be544">
 
-To set up a project with vite + react, go through the following steps:
+# Squint + React + Vite
 
-- Create a `package.json` file
+This template provides a minimal setup to get Squint compiling to React working in Vite with HMR.
 
-- Install dependencies:
+## Dependencies
+- [babashka](https://babashka.org/) is used for task running (ref: [bb.edn](bb.edn))
 
-  ```
-  $ npm install --save-dev vite
-  $ npm install react-dom
-  $ npm install squint-cljs
-  ```
-
-- Create a `public/index.html` page (see [public/index.html](public/index.html)).
-
-- Create a `viteconfig.js` with the React plugin
-
-  See [viteconfig.js](viteconfig.js)
-
-- Create a `squint.edn` to specify the source directories and to use the `.jsx`
-  extension for outputted files
-
-  See [squint.edn](squint.edn)
-
-- Run `npx squint watch` to start compiling `.cljs` -> `.jsx`
-
-  E.g. see [src/MyComponent.cljs](src/MyComponent.cljs):
-
-  ``` clojure
-  (ns my-component
-    (:require ["react" :refer [useState]]))
-
-  (defn MyComponent []
-    (let [[state setState] (useState 0)]
-      #jsx [:div "You clicked " state "times"
-            [:button {:onClick #(setState (inc state))}
-             "Click me"]]))
-  ```
-
-- Run `npx vite --config viteconfig.js public` to start a webserver and to hot-reload your React project!
-
-## Babashka tasks
-
-To run all of the above using one command, run `bb dev`. See [bb.edn](bb.edn).
-
-## Production
-
-To build your production website:
-
+## Development
+```sh
+$ bb dev
 ```
-$ npx vite --config viteconfig.js build public
+What this command does is:
+- compiles every `.cljs` file inside `src-cljs` to `.jsx` and outputs it into `src` folder
+- copies all other files in `src-cljs` to `src` folder keeping the directory structure
+- starts _squint watch_ and _vite dev_ processes with HMR, piping their stdio
+
+For configuration options, refer to [squint.edn](squint.edn).
+
+## Production build
+```sh
+$ bb build
 ```

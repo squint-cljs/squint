@@ -1,2 +1,0 @@
-{:lint-as {squint.core/defclass clj-kondo.lint-as/def-catch-all}
- :linters {:discouraged-var {clojure.core/gensym {:message "gensym makes compiler not deterministic"}}}}
