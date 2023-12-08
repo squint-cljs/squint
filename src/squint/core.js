@@ -1668,7 +1668,7 @@ export function reduce_kv(f, init, m) {
     return init;
   }
   var ret = init;
-  for (const o of Object.entries(m)) {
+  for (const o of seq(m)) {
     ret = f(ret, o[0], o[1]);
   }
   return ret;
