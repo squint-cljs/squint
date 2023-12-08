@@ -2011,7 +2011,7 @@
                                 (set/map-invert {})
                                 (set/map-invert {:a 1, :b 2, :c 3})
                                 #_(set/map-invert (new js/Map [[:a 1] [:d 3]]))]" {:repl true
-                                                                                 :context :return})
+                                                                                   :context :return})
                  vs (js/eval (wrap-async js))]
            (let [expected [{}
                            {}
