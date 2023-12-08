@@ -119,7 +119,7 @@ export function select(pred, xset) {
 
 export function rename_keys(map, kmap) {
   return keys(kmap).reduce((m, old) => {
-    const newKey = kmap[old];
+    const newKey = get(kmap, old);
     if (contains_QMARK_(map, old)) {
       return assoc(m, newKey, get(map, old));
     }
