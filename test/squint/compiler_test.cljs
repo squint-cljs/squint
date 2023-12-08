@@ -1853,7 +1853,8 @@
 
 (deftest reduce-kv-test
   (is (eq {1 :a, 2 :b, 3 :c} (jsv! "(reduce-kv #(assoc %1 %3 %2) {} {:a 1 :b 2 :c 3})")))
-  (is (eq {1 :a, 2 :b, 3 :c} (jsv! "(reduce-kv #(assoc %1 %3 %2) {} (new js/Map (js/Object.entries {:a 1 :b 2 :c 3})))"))))
+  (is (eq {1 :a, 2 :b, 3 :c} (jsv! "(reduce-kv #(assoc %1 %3 %2) {} (new js/Map (js/Object.entries {:a 1 :b 2 :c 3})))")))
+  (is (eq {:a 1} (jsv! "(reduce-kv #(assoc %1 %3 %2) {:a 1} {})"))))
 
 (defn wrap-async [s]
   (str/replace "(async function () {\n%s\n})()" "%s" s))
