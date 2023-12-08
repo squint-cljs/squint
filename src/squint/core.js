@@ -148,6 +148,10 @@ export function object_QMARK_(coll) {
   return coll != null && isObj(coll);
 }
 
+export function type(obj) {
+  if (obj != null) return obj.contructor;
+}
+
 function typeConst(obj) {
   if (obj == null) {
     return undefined;
@@ -202,11 +206,10 @@ export function assoc_in(o, keys, value) {
 
 export function assoc_in_BANG_(o, keys, value) {
   var currObj = o;
-  const baseType = typeConst(o);
   for (const k of keys.splice(0, keys.length - 1)) {
     let v = get(currObj, k);
     if (v === undefined) {
-      v = emptyOfType(baseType);
+      v = empty(o);
       assoc_BANG_(currObj, k, v);
     }
     currObj = v;
@@ -631,7 +634,7 @@ export function warn_on_lazy_reusage_BANG_() {
 
 class LazyIterable {
   constructor(gen) {
-    this.gen = gen;
+    this.gen = gen || function*() {};
     this.usages = 0;
   }
   [Symbol.iterator]() {
@@ -1037,9 +1040,8 @@ export function interpose(sep, coll) {
 }
 
 export function select_keys(o, ks) {
-  const type = typeConst(o);
   // ret could be object or array, but in the future, maybe we'll have an IEmpty protocol
-  const ret = emptyOfType(type) || {};
+  const ret = empty(o) || {};
   for (const k of ks) {
     const v = get(o, k);
     if (v != undefined) {
@@ -1135,11 +1137,12 @@ export function partition_by(f, coll) {
 }
 
 export function empty(coll) {
-  const type = typeConst(coll);
-  if (type != null) {
-    return emptyOfType(type);
-  } else {
-    throw new Error(`Can't create empty of ${typeof coll}`);
+  if (coll == null) {
+    return undefined;
+  }
+  const ctor = coll.constructor;
+  if (ctor) {
+    return new ctor;
   }
 }
 

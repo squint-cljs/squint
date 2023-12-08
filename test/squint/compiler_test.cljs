@@ -1846,6 +1846,10 @@
   (is (= "foo" (jsv! "(not-empty \"foo\")")))
   (is (eq {:a 1} (jsv! "(not-empty {:a 1})"))))
 
+(deftest empty-test
+  (is (zero? (jsv! "(count (empty (map inc [])))")))
+  (is (zero? (jsv! "(count (empty []))"))))
+
 (deftest not-test
   (is (false? (jsv! "(not 0)")))
   (is (false? (jsv! "(not \"\")")))
