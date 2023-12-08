@@ -365,12 +365,19 @@ export function dissoc_BANG_(m, ...ks) {
 }
 
 export function dissoc(m, ...ks) {
-  const m2 = { ...m };
-
-  for (const k of ks) {
-    delete m2[k];
+  const m2 = copy(m);
+  switch (typeConst(m)) {
+    case MAP_TYPE:
+      for (const k of ks) {
+        m2.delete(k);
+      }
+      break;
+    default:
+      for (const k of ks) {
+        delete m2[k];
+      }
+      break;
   }
-
   return m2;
 }
 

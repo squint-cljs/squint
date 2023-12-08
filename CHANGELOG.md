@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- Add `clojure.set/select`
+- Add `clojure.set` functions `select`, and `rename-keys`
 
 ## 0.4.76 (2023-12-07)
 

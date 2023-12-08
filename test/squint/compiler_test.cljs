@@ -7,7 +7,8 @@
    [squint.string-test]
    [squint.test-utils :refer [eq js! jss! jsv!]]
    ["fs" :as fs]
-   ["child_process" :as process]))
+   ["child_process" :as process]
+   ["node:util" :as util]))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -1966,6 +1967,28 @@
                                 pairs (map vector expected vs)]
                             (doseq [[expected s] pairs]
                               (is (eq expected s))))))
+                 (.finally done)))))
+
+(deftest set-lib-rename-keys-test
+  (t/async done
+           (let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                 [(set/rename-keys {:a 1, :b 2} {:a :new-a, :b :new-b})
+                  (set/rename-keys {:a 1} {:b :new-b})
+                  (set/rename-keys {:a 1 :b 2} {:a :b})
+                  (set/rename-keys {:a 1 :b 2}  {:a :b :b :a})
+                  (set/rename-keys (new js/Map [[:a {:b 1}]]) {:a {:c 2}})]" {:repl true
+                                                                 :context :return})]
+             (-> (.then (js/eval (wrap-async js))
+                        (fn [vs]
+                          (let [expected [{:new-a 1, :new-b 2}
+                                          {:a 1}
+                                          {:b 1}
+                                          {:b 1, :a 2}
+                                          (new js/Map (clj->js [[{:c 2} {:b 1}]]))]
+                                pairs (map vector expected vs)]
+                            (doseq [[expected s] pairs]
+                              (is (eq expected s) (str "expected vs actual:"
+                                                       (util/inspect expected) (util/inspect s)))))))
                  (.finally done)))))
 
 (deftest Symbol_iterator-is-destructurable-test
