@@ -289,7 +289,7 @@ export function conj(...xs) {
 
   let o = _o;
   if (o === null || o === undefined) {
-    o = [];
+    o = list();
   }
   let m, o2;
 
