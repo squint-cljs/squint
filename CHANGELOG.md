@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- Add `clojure.set` functions `select`, `rename-keys`, and `rename`
+- Add `clojure.set` functions `select`, `rename-keys`, `rename`, and `project`
 - Fix `reduce-kv` with `js/Map` input
 
 ## 0.4.76 (2023-12-07)

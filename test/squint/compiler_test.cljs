@@ -1988,7 +1988,23 @@
                  pairs (map vector expected vs)]
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"
-                                        (util/inspect expected) (util/inspect s))))))))
+                                        (util/inspect expected) (util/inspect s)))))))
+       (testing "project"
+         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                        [(set/project #{ {:a 1, :b 2, :c 3} {:a 4, :b 5, :c 6} } [:a :b])
+                         (set/project #{ {:a 1 :b 2} {:a 4 :b 5 :c 6} }  [:a :b :c :d])
+                         (set/project #{ (new js/Map [[:a 1] [:d 3]]) } [:a])]" {:repl true
+                                                                                              :context :return})
+                 vs (js/eval (wrap-async js))]
+           (let [set (fn [& xs] (new js/Set xs))
+                 expected [(set #js {:a 1, :b 2} #js {:a 4, :b 5})
+                           (set #js {:a 1, :b 2} #js {:a 4, :b 5, :c 6})
+                           (set (new js/Map (clj->js [[:a 1]])))]
+                 pairs (map vector expected vs)]
+             (doseq [[expected s] pairs]
+               (is (eq expected s) (str "expected vs actual:"
+                                        (util/inspect expected) (util/inspect s)))))))
+       )
      (p/finally done))))
 
 (deftest Symbol_iterator-is-destructurable-test
