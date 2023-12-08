@@ -595,7 +595,7 @@
     (is (= true, (jsv! '(vector? (conj)))))
     (is (eq '(), (jsv! '(conj nil))))
     (is (= true, (jsv! '(array? (conj nil)))))
-    (is (eq [1 2] (jsv! '(conj nil 1 2)))))
+    (is (eq [2 1] (jsv! '(conj nil 1 2)))))
   (testing "arrays"
     (is (eq [1 2 3 4] (jsv! '(conj [1 2 3 4]))))
     (is (eq [1 2 3 4] (jsv! '(conj [1 2 3] 4))))
