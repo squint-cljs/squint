@@ -142,3 +142,26 @@ export function map_invert(xmap) {
   }
   return core.reduce_kv((m, k, v) => core.assoc_BANG_(m, v, k), core.empty(xmap), xmap);
 }
+
+export function join(xrel, yrel, kmap) {
+  if (kmap === undefined) {  // natural join
+    if (core.seq(xrel) && core.seq(yrel)) {
+      const ks = intersection(core.set(core.keys(core.first(xrel))), core.set(core.keys(core.first(yrel))));
+      const [r, s] = core.count(xrel) <= core.count(yrel) ? [xrel, yrel] : [yrel, xrel];
+      const idx = core.group_by(core.juxt(...ks), r);
+      return core.reduce((ret, x) => {
+        const found = core.get(idx, core.juxt(...ks)(x));
+        return found ? core.reduce((acc, y) => core.conj(acc, core.merge(y, x)), ret, found) : ret;
+      }, new Set(), s);
+    } else {
+      return new Set();
+    }
+  } else { // arbitrary key mapping
+    const [r, s, k] = core.count(xrel) <= core.count(yrel) ? [xrel, yrel, map_invert(kmap)] : [yrel, xrel, kmap];
+    const idx = core.group_by(core.juxt(...core.vals(k)), r);
+    return core.reduce((ret, x) => {
+      const found = core.get(idx, core.juxt(...core.keys(k))(x));
+      return found ? core.reduce((acc, y) => core.conj(acc, core.merge(y, x)), ret, found) : ret;
+    }, new Set(), s);
+  }
+}

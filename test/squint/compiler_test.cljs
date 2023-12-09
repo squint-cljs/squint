@@ -2015,12 +2015,61 @@
                                 (set/map-invert {})
                                 (set/map-invert {:a 1, :b 2, :c 3})
                                 (set/map-invert (new js/Map [[:a 1] [:d 3]]))]" {:repl true
-                                                                                   :context :return})
+                                                                                 :context :return})
                  vs (js/eval (wrap-async js))]
            (let [expected [{}
                            {}
                            {1 :a 2 :b 3 :c}
                            (new js/Map (clj->js [[1 :a] [3 :d]]))]
+                 pairs (map vector expected vs)]
+             (doseq [[expected s] pairs]
+               (is (eq expected s) (str "expected vs actual:"
+                                        (util/inspect expected) (util/inspect s)))))))
+       (testing "join"
+         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                      [(set/join #{ {:a 1} {:a 2} } #{ {:b 1} {:b 2} })
+                       (set/join #{ {:name \"betsy\" :owner \"brian\" :kind \"cow\"}
+                                     {:name \"jake\"  :owner \"brian\" :kind \"horse\"}
+                                     {:name \"josie\" :owner \"dawn\"  :kind \"cow\"} }
+                                 #{ {:kind \"cow\" :personality \"stoic\"}
+                                    {:kind \"horse\" :personality \"skittish\"} })
+                       (set/join #{ {:name \"betsy\" :owner \"brian\" :kind \"cow\"}
+                                     {:name \"jake\"  :owner \"brian\" :kind \"horse\"}
+                                     {:name \"josie\" :owner \"dawn\"  :kind \"cow\"} }
+                                 #{ {:species \"cow\" :personality \"stoic\"}
+                                    {:species \"horse\" :personality \"skittish\"} }
+                                 {:kind :species})]" {:repl true
+                                                                   :context :return})
+                 vs (js/eval (wrap-async js))]
+           (let [set (fn [& xs] (new js/Set xs))
+                 expected [(set #js {:a 1, :b 1} #js {:a 1, :b 2} #js {:a 2, :b 1} #js {:a 2, :b 2})
+                           (set #js {:name "betsy", :owner "brian", :kind "cow", :personality "stoic"}
+                                #js {:name "jake", :owner "brian", :kind "horse", :personality "skittish"}
+                                #js {:name "josie", :owner "dawn", :kind "cow", :personality "stoic"})
+                           (set #js {:name "betsy", :owner "brian", :kind "cow", :species "cow", :personality "stoic"}
+                                #js {:name "jake", :owner "brian", :kind "horse", :species "horse", :personality "skittish"}
+                                #js {:name "josie", :owner "dawn", :kind "cow", :species "cow", :personality "stoic"})]
+                 pairs (map vector expected vs)]
+             (doseq [[expected s] pairs]
+               (is (eq expected s) (str "expected vs actual:"
+                                        (util/inspect expected) (util/inspect s)))))))
+       (testing "join-renaming-keys"
+         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                      [(set/project
+                       (set/join #{{:user-id 2, :name \"jake\", :age 28, :type \"company\"}
+                                   {:user-id 3, :name \"amanda\", :age 63, :type \"personal\"}
+                                   {:user-id 1, :name \"john\", :age 22, :type \"personal\"}}
+                                 (set/rename #{{:acc-id 2, :user-id 2, :amount 1200, :type \"saving\"}
+                                               {:acc-id 3, :user-id 1, :amount 850.1, :type \"debit\"}
+                                               {:acc-id 1, :user-id 1, :amount 300.45, :type \"saving\"}}
+                                             {:type :atype}))
+                       [:user-id :acc-id :type :atype])]" {:repl true
+                                     :context :return})
+                 vs (js/eval (wrap-async js))]
+           (let [set (fn [& xs] (new js/Set xs))
+                 expected [(set #js {:user-id 1, :acc-id 1, :type "personal", :atype "saving"}
+                                #js {:user-id 2, :acc-id 2, :type "company", :atype "saving"}
+                                #js {:user-id 1, :acc-id 3, :type "personal", :atype "debit"})]
                  pairs (map vector expected vs)]
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"
