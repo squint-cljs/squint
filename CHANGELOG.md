@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## v0.4.78 (2023-12-09)
 
 - Add `clojure.set/join`
+- Add `tree-seq`, `flatten`, `seq?` and `sequential?`
 
 ## 0.4.77 (2023-12-09)
 
