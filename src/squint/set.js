@@ -1,5 +1,12 @@
 import * as core from './core.js';
 
+function _bubble_max_key(k, coll) {
+  const max = coll.reduce((max, curr) => k(curr) > k(max) ? curr : max);
+  return [max, ...coll.filter(x => x !== max)];
+}
+
+export const __testing__bubble_max_key = _bubble_max_key;
+
 function _intersection2(x, y) {
   if (x.size > y.size) {
     const tmp = y;
@@ -19,8 +26,10 @@ export function intersection(...xs) {
   switch (xs.length) {
     case 0: return null;
     case 1: return xs[0];
-    case 2: return _intersection2(xs[0], xs[1]);
-    default: return xs.reduce(_intersection2);
+    case 2: return xs[0].length > xs[1].length ? 
+      _intersection2(xs[0], xs[1]) :
+      _intersection2(xs[1], xs[0]);
+    default: return _bubble_max_key(core.count, xs).reduce(_intersection2);
   }
 }
 
@@ -55,8 +64,10 @@ export function union(...xs) {
   switch (xs.length) {
     case 0: return null;
     case 1: return xs[0];
-    case 2: return _union2(xs[0], xs[1]);
-    default: return xs.reduce(_union2);
+    case 2: return xs[0].length > xs[1].length ? 
+      _union2(xs[0], xs[1]) : 
+      _union2(xs[1], xs[0]);
+    default: return _bubble_max_key(core.count, xs).reduce(_union2);
   }
 }
 
