@@ -2048,10 +2048,10 @@ export function not_empty(x) {
 }
 
 export function tree_seq(isBranch, children, root) {
-  const walk = function*(node) {
+  const walk = function* (node) {
     yield node;
     if (truth_(isBranch(node))) {
-      for (const c of children(node)) {
+      for (const c of iterable(children(node))) {
         yield* walk(c);
       }
     }
@@ -2062,5 +2062,6 @@ export function tree_seq(isBranch, children, root) {
 }
 
 export function flatten(x) {
-  return filter(complement(sequential_QMARK_), rest(tree_seq(sequential_QMARK_, seq, x)));
+  return filter(complement(sequential_QMARK_),
+    rest(tree_seq(sequential_QMARK_, seq, x)));
 }
