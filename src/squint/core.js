@@ -457,6 +457,12 @@ export function get(coll, key, otherwise = undefined) {
   return v !== undefined ? v : otherwise;
 }
 
+export function seq_QMARK_(x) {
+  return x != null && !!x[Symbol.iterator];
+}
+
+export const sequential_QMARK_ = seq_QMARK_;
+
 export function seqable_QMARK_(x) {
   return (
     x === null ||
@@ -1915,7 +1921,7 @@ export function boolean_QMARK_(x) {
 export function counted_QMARK_(x) {
   const tc = typeConst(x);
   switch (tc) {
-    case (ARRAY_TYPE, MAP_TYPE, OBJECT_TYPE, LIST_TYPE, SET_TYPE):
+    case ARRAY_TYPE: case MAP_TYPE: case OBJECT_TYPE: case LIST_TYPE: case SET_TYPE:
       return true;
   }
   return false;
@@ -2039,4 +2045,22 @@ export function not_empty(x) {
   if (isSeq) {
     return x;
   } else return null;
+}
+
+export function tree_seq(isBranch, children, root) {
+  const walk = function*(node) {
+    yield node;
+    if (truth_(isBranch(node))) {
+      for (const c of children(node)) {
+        yield* walk(c);
+      }
+    }
+  };
+  return lazy(function* () {
+    yield* walk(root);
+  });
+}
+
+export function flatten(x) {
+  return filter(complement(sequential_QMARK_), rest(tree_seq(sequential_QMARK_, seq, x)));
 }

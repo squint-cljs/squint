@@ -69,6 +69,7 @@
   filterv
   find
   first
+  flatten
   fn_QMARK_
   fnil
   frequencies
@@ -156,7 +157,9 @@
   second
   select_keys
   seq
+  seq_QMARK_
   seqable_QMARK_
+  sequential_QMARK_
   set
   shuffle
   some
@@ -178,6 +181,7 @@
   take_while
   to_array
   transduce
+  tree_seq
   true_QMARK_
   truth_
   update

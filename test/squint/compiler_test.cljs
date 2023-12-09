@@ -2103,5 +2103,11 @@ new Foo();")
                    f))]
     (is (eq [1 1 1 1] (f js-obj)))))
 
+(deftest flatten-test
+  (is (eq [1 2 3 4 3] (jsv! '(vec (flatten '(1 2 (3 (4 (((3))))))))))))
+
+(deftest counted?-test
+  (is (true? (jsv! '(counted? {})))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
