@@ -2,9 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## 0.4.77 (2023-12-09)
 
-- Add `clojure.set` functions `select`, `rename-keys`, `rename`, `project`, and `map-invert`
+- Add `clojure.set` functions `select`, `rename-keys`, `rename`, `project`, and `map-invert` ([@PEZ](https://github.com/PEZ))
 - Fix `reduce-kv` with `js/Map` input
 
 ## 0.4.76 (2023-12-07)
