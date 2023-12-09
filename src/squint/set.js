@@ -1,4 +1,4 @@
-import { contains_QMARK_, assoc, get, dissoc, keys } from './core.js';
+import * as core from './core.js';
 
 function _intersection2(x, y) {
   if (x.size > y.size) {
@@ -118,12 +118,27 @@ export function select(pred, xset) {
 }
 
 export function rename_keys(map, kmap) {
-  const ks = keys(kmap);
+  const ks = core.keys(kmap);
   return ks.reduce((m, k) => {
-    const newKey = get(kmap, k);
-    if (contains_QMARK_(map, k)) {
-      return assoc(m, newKey, get(map, k));
+    const newKey = core.get(kmap, k);
+    if (core.contains_QMARK_(map, k)) {
+      return core.assoc(m, newKey, core.get(map, k));
     }
     return m;
-  }, dissoc(map, ...ks));
+  }, core.dissoc(map, ...ks));
+}
+
+export function rename(xrel, kmap) {
+  return core.set(core.map(x => rename_keys(x, kmap), xrel));
+}
+
+export function project(xrel, ...ks) {
+  return core.set(core.map(x => core.select_keys(x, ...ks), xrel));
+}
+
+export function map_invert(xmap) {
+  if (xmap === undefined) {
+    return {};
+  }
+  return core.reduce_kv((m, k, v) => core.assoc_BANG_(m, v, k), core.empty(xmap), xmap);
 }

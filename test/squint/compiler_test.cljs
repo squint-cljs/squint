@@ -1958,16 +1958,62 @@
          (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                  [(set/rename-keys {:a 1, :b 2} {:a :new-a, :b :new-b})
                   (set/rename-keys {:a 1} {:b :new-b})
-                  (set/rename-keys {:a 1 :b 2} {:a :b})
                   (set/rename-keys {:a 1 :b 2}  {:a :b :b :a})
                   (set/rename-keys (new js/Map [[:a {:b 1}]]) {:a {:c 2}})]" {:repl true
                                                                               :context :return})
                  vs (js/eval (wrap-async js))]
            (let [expected [{:new-a 1, :new-b 2}
                            {:a 1}
-                           {:b 1}
                            {:b 1, :a 2}
                            (new js/Map (clj->js [[{:c 2} {:b 1}]]))]
+                 pairs (map vector expected vs)]
+             (doseq [[expected s] pairs]
+               (is (eq expected s) (str "expected vs actual:"
+                                        (util/inspect expected) (util/inspect s)))))))
+       (testing "rename"
+         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                        [(set/rename #{ {:a 1, :b 2} {:a 3, :b 4} } {:a :new-a, :b :new-b})
+                         (set/rename #{ {:a 1} {:a 2 :b 3} } {:b :new-b})
+                         (set/rename #{ {:a 1 :b 2} {:a 3 :b 4} }  {:a :b :b :a})
+                         (set/rename #{ (new js/Map [[:a {:b 1}]]) } {:a {:c 2}})]" {:repl true
+                                                                                     :context :return})
+                 vs (js/eval (wrap-async js))]
+           (let [set (fn [& xs] (new js/Set xs))
+                 expected [(set #js {:new-a 1, :new-b 2} #js {:new-a 3, :new-b 4})
+                           (set #js {:a 1} #js {:a 2 :new-b 3})
+                           (set #js {:b 1, :a 2} #js {:b 3, :a 4})
+                           (set (new js/Map (clj->js [[{:c 2} {:b 1}]])))]
+                 pairs (map vector expected vs)]
+             (doseq [[expected s] pairs]
+               (is (eq expected s) (str "expected vs actual:"
+                                        (util/inspect expected) (util/inspect s)))))))
+       (testing "project"
+         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                        [(set/project #{ {:a 1, :b 2, :c 3} {:a 4, :b 5, :c 6} } [:a :b])
+                         (set/project #{ {:a 1 :b 2} {:a 4 :b 5 :c 6} }  [:a :b :c :d])
+                         (set/project #{ (new js/Map [[:a 1] [:d 3]]) } [:a])]" {:repl true
+                                                                                 :context :return})
+                 vs (js/eval (wrap-async js))]
+           (let [set (fn [& xs] (new js/Set xs))
+                 expected [(set #js {:a 1, :b 2} #js {:a 4, :b 5})
+                           (set #js {:a 1, :b 2} #js {:a 4, :b 5, :c 6})
+                           (set (new js/Map (clj->js [[:a 1]])))]
+                 pairs (map vector expected vs)]
+             (doseq [[expected s] pairs]
+               (is (eq expected s) (str "expected vs actual:"
+                                        (util/inspect expected) (util/inspect s)))))))
+       (testing "map-invert"
+         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                               [(set/map-invert)
+                                (set/map-invert {})
+                                (set/map-invert {:a 1, :b 2, :c 3})
+                                (set/map-invert (new js/Map [[:a 1] [:d 3]]))]" {:repl true
+                                                                                   :context :return})
+                 vs (js/eval (wrap-async js))]
+           (let [expected [{}
+                           {}
+                           {1 :a 2 :b 3 :c}
+                           (new js/Map (clj->js [[1 :a] [3 :d]]))]
                  pairs (map vector expected vs)]
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"
