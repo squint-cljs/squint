@@ -1941,6 +1941,7 @@
                  js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                    [(set/select)
                     (set/select even?)
+                    (set/select identity #{0 1 2 3})
                     (set/select even? #{1 2 3 4 5})
                     (set/select #(> % 2) #{1 2 3 4 5})
                     (set/select #(= % :a) #{:a :b :c})]" {:repl true
@@ -1948,12 +1949,14 @@
                  vs (js/eval (wrap-async js))]
            (let [expected [nil
                            nil
+                           (set 0 1 2 3)
                            (set 2 4)
                            (set 3 4 5)
                            (set "a")]
                  pairs (map vector expected vs)]
              (doseq [[expected s] pairs]
-               (is (eq expected s))))))
+               (is (eq expected s) (str "expected vs actual:"
+                                        (util/inspect expected) (util/inspect s)))))))
        (testing "rename-keys"
          (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                  [(set/rename-keys {:a 1, :b 2} {:a :new-a, :b :new-b})

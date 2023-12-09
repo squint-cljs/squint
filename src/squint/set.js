@@ -110,7 +110,7 @@ export function select(pred, xset) {
   }
   const res = new Set();
   for (const elem of xset) {
-    if (pred(elem)) {
+    if (core.truth_(pred(elem))) {
       res.add(elem);
     }
   }
