@@ -1531,7 +1531,11 @@
 (deftest group-by-test
   (is (eq [1 3] (jsv! '(get (group-by odd? [1 2 3 4]) true))))
   (is (eq [2 4] (jsv! '(get (group-by odd? [1 2 3 4]) false))))
-  (is (eq [[1 [1 2 3]]] (jsv! '(get (group-by second [[1 [1 2 3]] [2 [3 4 5]]]) [1 2 3])))))
+  (is (eq [[1 [1 2 3]]] (jsv! '(get (group-by second [[1 [1 2 3]] [2 [3 4 5]]]) [1 2 3]))))
+  (is (eq #js [#js {:weight 1000, :name "John"} #js {:weight 1000, :name "Jim"}]
+          (jsv! '(get (group-by
+                       :weight
+                       [{:weight 1000 :name :John} {:weight 1000 :name :Jim} {:weight 999 :name :Mary}]) 1000)))))
 
 (deftest frequencies-test
   (is (eq 3 (jsv! '(get (frequencies [:a :a :b :b :b]) :b)))))

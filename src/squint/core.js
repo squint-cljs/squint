@@ -1512,6 +1512,7 @@ export function update_BANG_(m, k, f, ...args) {
 }
 
 export function group_by(f, coll) {
+  f = toFn(f);
   const res = {};
   for (const o of iterable(coll)) {
     const key = f(o);
