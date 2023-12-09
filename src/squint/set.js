@@ -122,7 +122,7 @@ export function rename_keys(map, kmap) {
   return ks.reduce((m, k) => {
     const newKey = core.get(kmap, k);
     if (core.contains_QMARK_(map, k)) {
-      return core.assoc(m, newKey, core.get(map, k));
+      return core.assoc_BANG_(m, newKey, core.get(map, k));
     }
     return m;
   }, core.dissoc(map, ...ks));
@@ -148,10 +148,11 @@ export function join(xrel, yrel, kmap) {
     if (core.seq(xrel) && core.seq(yrel)) {
       const ks = intersection(core.set(core.keys(core.first(xrel))), core.set(core.keys(core.first(yrel))));
       const [r, s] = core.count(xrel) <= core.count(yrel) ? [xrel, yrel] : [yrel, xrel];
-      const idx = core.group_by(core.juxt(...ks), r);
+      const select = core.juxt(...ks);
+      const idx = core.group_by(select, r);
       return core.reduce((ret, x) => {
-        const found = core.get(idx, core.juxt(...ks)(x));
-        return found ? core.reduce((acc, y) => core.conj(acc, core.merge(y, x)), ret, found) : ret;
+        const found = core.get(idx, select(x));
+        return found ? core.reduce((acc, y) => acc.add(core.merge(y, x)), ret, found) : ret;
       }, new Set(), s);
     } else {
       return new Set();
@@ -159,9 +160,10 @@ export function join(xrel, yrel, kmap) {
   } else { // arbitrary key mapping
     const [r, s, k] = core.count(xrel) <= core.count(yrel) ? [xrel, yrel, map_invert(kmap)] : [yrel, xrel, kmap];
     const idx = core.group_by(core.juxt(...core.vals(k)), r);
+    const select = core.juxt(...core.keys(k));
     return core.reduce((ret, x) => {
-      const found = core.get(idx, core.juxt(...core.keys(k))(x));
-      return found ? core.reduce((acc, y) => core.conj(acc, core.merge(y, x)), ret, found) : ret;
+      const found = core.get(idx, select(x));
+      return found ? core.reduce((acc, y) => acc.add(core.merge(y, x)), ret, found) : ret;
     }, new Set(), s);
   }
 }
