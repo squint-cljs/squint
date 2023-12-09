@@ -2073,15 +2073,7 @@
                  pairs (map vector expected vs)]
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"
-                                        (util/inspect expected) (util/inspect s)))))))
-       (testing "bubble-max-key"
-         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
-                      (set/__testing__bubble_max_key #(:v %) [{:v 1} {:v 2} {:v 3}])"
-                                             {:repl true :context :return})
-                 vs (js/eval (wrap-async js))]
-           (let [expected [#js {:v 3} #js {:v 1} #js {:v 2}]]
-             (is (eq expected vs) (str "expected vs actual:"
-                                       (util/inspect expected) (util/inspect vs)))))))
+                                        (util/inspect expected) (util/inspect s))))))))
      (p/finally done))))
 
 (deftest Symbol_iterator-is-destructurable-test

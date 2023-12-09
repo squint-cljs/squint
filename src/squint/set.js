@@ -5,8 +5,6 @@ function _bubble_max_key(k, coll) {
   return [max, ...coll.filter(x => x !== max)];
 }
 
-export const __testing__bubble_max_key = _bubble_max_key;
-
 function _intersection2(x, y) {
   if (x.size > y.size) {
     const tmp = y;
