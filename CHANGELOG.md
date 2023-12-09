@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## v0.4.79 (2023-12-09)
+
+- The `children` function in `tree-seq` may return `nil`
+
 ## v0.4.78 (2023-12-09)
 
 - Add `clojure.set/join`

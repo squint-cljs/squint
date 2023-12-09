@@ -2104,7 +2104,8 @@ new Foo();")
     (is (eq [1 1 1 1] (f js-obj)))))
 
 (deftest flatten-test
-  (is (eq [1 2 3 4 3] (jsv! '(vec (flatten '(1 2 (3 (4 (((3))))))))))))
+  (is (eq [1 2 3 4 3] (jsv! '(vec (flatten '(1 2 (3 (4 (((3)))))))))))
+  (is (eq 0 (jsv! '(first (flatten (map range (range))))))))
 
 (deftest counted?-test
   (is (true? (jsv! '(counted? {})))))
