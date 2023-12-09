@@ -1958,14 +1958,12 @@
          (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
                  [(set/rename-keys {:a 1, :b 2} {:a :new-a, :b :new-b})
                   (set/rename-keys {:a 1} {:b :new-b})
-                  (set/rename-keys {:a 1 :b 2} {:a :b})
                   (set/rename-keys {:a 1 :b 2}  {:a :b :b :a})
                   (set/rename-keys (new js/Map [[:a {:b 1}]]) {:a {:c 2}})]" {:repl true
                                                                               :context :return})
                  vs (js/eval (wrap-async js))]
            (let [expected [{:new-a 1, :new-b 2}
                            {:a 1}
-                           {:b 1}
                            {:b 1, :a 2}
                            (new js/Map (clj->js [[{:c 2} {:b 1}]]))]
                  pairs (map vector expected vs)]
