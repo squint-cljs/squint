@@ -104,8 +104,6 @@ function copy(o) {
   }
 }
 
-export const __copy = copy; // PRIVATE, DO NOT USE
-
 export function assoc(o, k, v, ...kvs) {
   if (!o) {
     o = {};

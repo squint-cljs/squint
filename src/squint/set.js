@@ -130,7 +130,7 @@ export function rename_keys(map, kmap) {
   const ks = core.keys(kmap);
   let without = core.dissoc(map, ...ks);
   if (without === map) {
-    without = core.__copy(map);
+    without = {...map};
   }
   return ks.reduce((m, k) => {
     const newKey = core.get(kmap, k);
