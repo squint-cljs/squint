@@ -1,8 +1,8 @@
 import * as core from './core.js';
 
 function _bubble_max_key(k, coll) {
-  const max = coll.reduce((max, curr) => k(curr) > k(max) ? curr : max);
-  return [max, ...coll.filter(x => x !== max)];
+  const max = core.apply(core.max_key, k, coll);
+  return [max, ...coll.filter(x => core.identical_QMARK_(x, max))];
 }
 
 function _intersection2(x, y) {
