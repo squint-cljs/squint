@@ -128,13 +128,17 @@ export function select(pred, xset) {
 
 export function rename_keys(map, kmap) {
   const ks = core.keys(kmap);
+  let without = core.dissoc(map, ...ks);
+  if (without === map) {
+    without = core.__copy(map);
+  }
   return ks.reduce((m, k) => {
     const newKey = core.get(kmap, k);
     if (core.contains_QMARK_(map, k)) {
       return core.assoc_BANG_(m, newKey, core.get(map, k));
     }
     return m;
-  }, core.dissoc(map, ...ks));
+  }, without);
 }
 
 export function rename(xrel, kmap) {

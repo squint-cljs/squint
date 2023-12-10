@@ -104,6 +104,8 @@ function copy(o) {
   }
 }
 
+export const __copy = copy; // PRIVATE, DO NOT USE
+
 export function assoc(o, k, v, ...kvs) {
   if (!o) {
     o = {};
@@ -365,6 +367,7 @@ export function dissoc_BANG_(m, ...ks) {
 }
 
 export function dissoc(m, ...ks) {
+  if (ks.length === 0) return m;
   const m2 = copy(m);
   switch (typeConst(m)) {
     case MAP_TYPE:
