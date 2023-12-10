@@ -2039,7 +2039,7 @@
                                  #{ {:species \"cow\" :personality \"stoic\"}
                                     {:species \"horse\" :personality \"skittish\"} }
                                  {:kind :species})]" {:repl true
-                                                                   :context :return})
+                                                      :context :return})
                  vs (js/eval (wrap-async js))]
            (let [set (fn [& xs] (new js/Set xs))
                  expected [(set #js {:a 1, :b 1} #js {:a 1, :b 2} #js {:a 2, :b 1} #js {:a 2, :b 2})
@@ -2064,7 +2064,7 @@
                                                {:acc-id 1, :user-id 1, :amount 300.45, :type \"saving\"}}
                                              {:type :atype}))
                        [:user-id :acc-id :type :atype])]" {:repl true
-                                     :context :return})
+                                                           :context :return})
                  vs (js/eval (wrap-async js))]
            (let [set (fn [& xs] (new js/Set xs))
                  expected [(set #js {:user-id 1, :acc-id 1, :type "personal", :atype "saving"}

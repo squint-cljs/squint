@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## Unreleased
+
+- Optimization: sort largest set first for `set/union`, and smallest first for `set/intersection`
+
 ## v0.4.79 (2023-12-09)
 
 - The `children` function in `tree-seq` may return `nil`
