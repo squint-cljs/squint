@@ -365,6 +365,7 @@ export function dissoc_BANG_(m, ...ks) {
 }
 
 export function dissoc(m, ...ks) {
+  if (ks.length === 0) return m;
   const m2 = copy(m);
   switch (typeConst(m)) {
     case MAP_TYPE:
