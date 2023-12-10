@@ -2066,3 +2066,11 @@ export function flatten(x) {
   return filter(complement(sequential_QMARK_),
     rest(tree_seq(sequential_QMARK_, seq, x)));
 }
+
+export function transient$(x) {
+  return copy(x);
+}
+
+export function persistent_BANG_(x) {
+  return Object.freeze(x);
+}

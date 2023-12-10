@@ -127,6 +127,7 @@
   partition
   partition_all
   partition_by
+  persistent_BANG_
   pos_QMARK_
   pr_str
   println
@@ -181,6 +182,7 @@
   take_while
   to_array
   transduce
+  transient$
   tree_seq
   true_QMARK_
   truth_

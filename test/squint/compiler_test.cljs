@@ -2110,5 +2110,10 @@ new Foo();")
 (deftest counted?-test
   (is (true? (jsv! '(counted? {})))))
 
+(deftest persistent!-test
+  (is (eq {} (jsv! '(persistent! (transient {})))))
+  (is (thrown? js/Error (jsv! '(assoc! (persistent! (transient {})) :a 1))))
+  (is (eq {:a 1} (jsv! '(assoc! (transient (persistent! (transient {}))) :a 1)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
