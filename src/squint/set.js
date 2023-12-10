@@ -27,7 +27,7 @@ export function intersection(...xs) {
     case 2: return xs[0].length > xs[1].length ? 
       _intersection2(xs[0], xs[1]) :
       _intersection2(xs[1], xs[0]);
-    default: return _bubble_max_key(core.count, xs).reduce(_intersection2);
+    default: return _bubble_max_key((x) => 0 - x.size, xs).reduce(_intersection2);
   }
 }
 
@@ -65,7 +65,7 @@ export function union(...xs) {
     case 2: return xs[0].length > xs[1].length ? 
       _union2(xs[0], xs[1]) : 
       _union2(xs[1], xs[0]);
-    default: return _bubble_max_key(core.count, xs).reduce(_union2);
+    default: return _bubble_max_key((x) => x.size, xs).reduce(_union2);
   }
 }
 

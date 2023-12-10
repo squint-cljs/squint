@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- Optimization: sort largest set first for `set/union` and `set/intersection`
+- Optimization: sort largest set first for `set/union`, and smallest first for `set/intersection`
 
 ## v0.4.79 (2023-12-09)
 
