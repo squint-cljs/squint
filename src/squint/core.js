@@ -236,6 +236,13 @@ export function comp(...fs) {
   };
 }
 
+function conj_BANG_set(o, rest) {
+  for (const x of rest) {
+    o.add(x);
+  }
+  return o;
+}
+
 export function conj_BANG_(...xs) {
   if (xs.length === 0) {
     return vector();
@@ -250,9 +257,7 @@ export function conj_BANG_(...xs) {
 
   switch (typeConst(o)) {
     case SET_TYPE:
-      for (const x of rest) {
-        o.add(x);
-      }
+      conj_BANG_set(o, rest);
       break;
     case LIST_TYPE:
       o.unshift(...rest.reverse());
@@ -299,7 +304,12 @@ export function conj(...xs) {
 
   switch (typeConst(o)) {
     case SET_TYPE:
-      return new o.constructor([...o, ...rest]);
+      if (o instanceof SortedSet) {
+        // prevent re-sorting of collection
+        return conj_BANG_set(new o.constructor(o), rest);
+      } else {
+        return new o.constructor([...o, ...rest]);
+      }
     case LIST_TYPE:
       return new List(...rest.reverse(), ...o);
     case ARRAY_TYPE:
@@ -2109,14 +2119,16 @@ export function persistent_BANG_(x) {
 
 class SortedSet {
   constructor(xs) {
-    xs = sort(xs);
+    const isSorted = xs instanceof SortedSet;
+    if (!isSorted) {
+      xs = sort(xs);
+    }
     const s = new Set(xs);
     // we don't re-use xs since xs can contain duplicates
     this._elts = [...s];
     this._set = s;
   }
   add(x) {
-    // TODO: conj could go through conj_BANG_ path since that is more optimal
     if (this._set.has(x)) return this;
     const xs = this._elts;
     let added = false;
