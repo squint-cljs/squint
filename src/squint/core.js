@@ -2174,11 +2174,21 @@ function mkBoundFn(_sc, test, key) {
   };
 }
 
+function indexFrom(sc, startKey, _asc=true) {
+  let i = 0;
+  for (; i < sc.length; i++) {
+    if (!(compare(startKey, sc[i]) > 0)) {
+      break;
+    }
+  }
+  return i;
+}
+
 function subseq3([sc, test, key]) {
   const includeFn = mkBoundFn(sc, test, key);
   if (test === _GT_ || test === _GT__EQ_) {
     const seqFrom = [...sc];
-    const startIdx = seqFrom.indexOf(key);
+    const startIdx = indexFrom(seqFrom, key, true);
     // delete startIdx items from the start;
     seqFrom.splice(0, startIdx);
     if (includeFn(seqFrom[0])) {
@@ -2195,7 +2205,7 @@ function subseq3([sc, test, key]) {
 
 function subseq5([sc, startTest, startKey, endTest, endKey]) {
   const seqFrom = [...sc];
-  const startIdx = seqFrom.indexOf(startKey);
+  const startIdx = indexFrom(seqFrom, startKey, true);
   // delete startIdx items from the start
   seqFrom.splice(0, startIdx);
   const whileFn = mkBoundFn(sc, endTest, endKey);

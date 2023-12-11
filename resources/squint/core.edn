@@ -13,6 +13,7 @@
   _PLUS_
   _STAR_
   _iterator
+  abs
   aclone
   add_watch
   alength
