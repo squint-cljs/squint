@@ -762,7 +762,7 @@ export function map_indexed(f, coll) {
   return ret;
 }
 
-export function keep_indexed(f, coll) {
+function keep_indexed2(f, coll) {
   f = toFn(f);
   const ret = [];
   let i = 0;
@@ -774,6 +774,34 @@ export function keep_indexed(f, coll) {
     i++;
   }
   return ret;
+}
+
+function keep_indexed1(f) {
+  return (rf) => {
+    let ia = -1;
+    return (result, input) => {
+      if (result === undefined) {
+        return rf();
+      }
+      if (input === undefined) {
+        return rf(result);
+      }
+      ia++;
+      const v = f(ia, input);
+      if (v == null) {
+        return result;
+      }
+      return rf(result, v);
+    }
+  }
+}
+
+export function keep_indexed(f, coll) {
+  if (coll === undefined) {
+    return keep_indexed1(f);
+  } else {
+    return keep_indexed2(f, coll);
+  }
 }
 
 export function str(...xs) {
