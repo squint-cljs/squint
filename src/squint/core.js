@@ -2167,3 +2167,50 @@ class SortedSet {
 export function sorted_set(...xs) {
   return new SortedSet(xs);
 }
+
+function mkBoundFn(_sc, test, key) {
+  return (e) => {
+    return test(compare(e, key), 0);
+  };
+}
+
+function subseq3([sc, test, key]) {
+  const includeFn = mkBoundFn(sc, test, key);
+  if (test === _GT_ || test === _GT__EQ_) {
+    const seqFrom = [...sc];
+    const startIdx = seqFrom.indexOf(key);
+    // delete startIdx items from the start;
+    seqFrom.splice(0, startIdx);
+    if (includeFn(seqFrom[0])) {
+      return seqFrom;
+    } else {
+      // delete 1 item from the start;
+      seqFrom.splice(0,1);
+      return seqFrom;
+    }
+  } else {
+    return [...take_while(includeFn, sc)];
+  }
+}
+
+function subseq5([sc, startTest, startKey, endTest, endKey]) {
+  const seqFrom = [...sc];
+  const startIdx = seqFrom.indexOf(startKey);
+  // delete startIdx items from the start
+  seqFrom.splice(0, startIdx);
+  const whileFn = mkBoundFn(sc, endTest, endKey);
+  if (!mkBoundFn(sc, startTest, startKey)(seqFrom[0])) {
+    // delete 1 item from the start
+    seqFrom.splice(0, 1);
+  }
+  return [...take_while(whileFn, seqFrom)];
+}
+
+export function subseq(...xs) {
+  if (xs.length === 3) {
+    return subseq3(xs);
+  }
+  if (xs.length === 5) {
+    return subseq5(xs);
+  }
+}

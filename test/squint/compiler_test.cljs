@@ -2121,5 +2121,9 @@ new Foo();")
   (is (eq -10 (first (jsv! '(sorted-set 1 2 3 -10)))))
   (is (eq [-10000 -1000 1 100] (jsv! '(vec (conj (disj (sorted-set 1 -10 100 -1000) -10) -10000))))))
 
+(deftest subseq-test
+  (is (eq [3 4] (jsv! '(subseq (sorted-set 1 2 3 4) > 2))))
+  (is (eq [4 5 6 7 8 9] (jsv! '(subseq (sorted-set 1 2 3 4 5 6 7 8 9 0) <= 4 >= 2)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
