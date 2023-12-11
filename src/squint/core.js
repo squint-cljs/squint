@@ -2214,3 +2214,7 @@ export function subseq(...xs) {
     return subseq5(xs);
   }
 }
+
+export function abs(x) {
+  return Math.abs(x);
+}
