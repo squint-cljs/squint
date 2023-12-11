@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## v0.4.81 (2023-12-11)
+
+- Fix `compileString` in JS API
+
 ## v0.4.80 (2023-12-11)
 
 - Optimization: sort largest set first for `set/union`, and smallest first for `set/intersection`
