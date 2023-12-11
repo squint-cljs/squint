@@ -792,8 +792,8 @@ function keep_indexed1(f) {
         return result;
       }
       return rf(result, v);
-    }
-  }
+    };
+  };
 }
 
 export function keep_indexed(f, coll) {

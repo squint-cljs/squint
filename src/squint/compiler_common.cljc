@@ -16,6 +16,7 @@
    'unsafe-bit-and macros/unsafe-bit-and
    'bit-or macros/bit-or
    'int macros/int
+   'long macros/int
    'bit-xor macros/bit-xor
    'bit-and-not macros/bit-and-not
    'bit-clear macros/bit-clear
