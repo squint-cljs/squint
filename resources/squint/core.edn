@@ -99,6 +99,7 @@
   lazy
   list
   list_QMARK_
+  long$
   map
   map_QMARK_
   map_indexed

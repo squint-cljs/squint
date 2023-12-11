@@ -2228,3 +2228,7 @@ export function subseq(...xs) {
 export function abs(x) {
   return Math.abs(x);
 }
+
+export function long$(x) {
+  return fix(x);
+}
