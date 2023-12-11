@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## Unreleased
+## v0.4.80 (2023-12-11)
 
 - Optimization: sort largest set first for `set/union`, and smallest first for `set/intersection`
+- Add `sorted-set`, `long`, `abs`, `keep-indexed` transducer arity
 
 ## v0.4.79 (2023-12-09)
 
