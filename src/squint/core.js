@@ -2116,6 +2116,7 @@ class SortedSet {
     this._set = s;
   }
   add(x) {
+    // TODO: conj could go through conj_BANG_ path since that is more optimal
     if (this._set.has(x)) return this;
     const xs = this._elts;
     let added = false;
