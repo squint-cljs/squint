@@ -168,6 +168,7 @@
   some_fn
   sort
   sort_by
+  sorted_set
   split_at
   split_with
   str

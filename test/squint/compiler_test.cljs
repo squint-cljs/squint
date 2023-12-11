@@ -2115,5 +2115,10 @@ new Foo();")
   (is (thrown? js/Error (jsv! '(assoc! (persistent! (transient {})) :a 1))))
   (is (eq {:a 1} (jsv! '(assoc! (transient (persistent! (transient {}))) :a 1)))))
 
+(deftest sorted-set-test
+  (is (eq -10 (first (jsv! '(sorted-set 1 2 3 -10)))))
+  (is (eq -10 (first (jsv! '(sorted-set 1 2 3 -10)))))
+  (is (eq [-10000 -1000 1 100] (jsv! '(vec (conj (disj (sorted-set 1 -10 100 -1000) -10) -10000))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

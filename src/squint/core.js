@@ -94,7 +94,7 @@ function copy(o) {
     case MAP_TYPE:
       return new Map(o);
     case SET_TYPE:
-      return new Set(o);
+      return new o.constructor(o);
     case ARRAY_TYPE:
       return [...o];
     case OBJECT_TYPE:
@@ -161,7 +161,11 @@ function typeConst(obj) {
   if (obj instanceof List) return LIST_TYPE;
   if (Array.isArray(obj)) return ARRAY_TYPE;
   if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
+  if (obj instanceof SortedSet) return SET_TYPE;
+
+  // everything more specific than Object should go before this
   if (obj instanceof Object) return OBJECT_TYPE;
+
   return undefined;
 }
 
@@ -295,7 +299,7 @@ export function conj(...xs) {
 
   switch (typeConst(o)) {
     case SET_TYPE:
-      return new Set([...o, ...rest]);
+      return new o.constructor([...o, ...rest]);
     case LIST_TYPE:
       return new List(...rest.reverse(), ...o);
     case ARRAY_TYPE:
@@ -340,7 +344,7 @@ export function disj_BANG_(s, ...xs) {
 }
 
 export function disj(s, ...xs) {
-  const s1 = new Set([...s]);
+  const s1 = new s.constructor([...s]);
   return disj_BANG_(s1, ...xs);
 }
 
@@ -2073,4 +2077,65 @@ export function transient$(x) {
 
 export function persistent_BANG_(x) {
   return Object.freeze(x);
+}
+
+class SortedSet {
+  constructor(xs) {
+    xs = sort(xs);
+    this._elts = xs;
+    this._set = new Set(xs);
+  }
+  add(x) {
+    if (this._set.has(x)) return this;
+    const xs = this._elts;
+    let added = false;
+    for (let i = 0; i < xs.length; i++) {
+      if (compare(x, xs[i]) <= 0) {
+        xs.splice(i, 0, x);
+        added = true;
+        break;
+      }
+    }
+    if (!added) {
+      xs.push(x);
+    }
+    this._set = new Set(xs);
+    this.size = xs.length;
+    return this;
+  }
+  delete(x) {
+    if (!this._set.has(x)) return this;
+    const xs = this._elts;
+    const idx = xs.indexOf(x);
+    xs.splice(idx, 1);
+    this._set = new Set(xs);
+    this.size = xs.length;
+    return this;
+  }
+  has(x) {
+    return this._set.has(x);
+  }
+  keys() {
+    return this.values();
+  }
+  values() {
+    return this._elts[Symbol.iterator]();
+  }
+  entries() {
+    return this._set.entries();
+  }
+  forEach(...xs) {
+    return this.set.forEach(...xs);
+  }
+  clear() {
+    this._elts = [];
+    this._set = new Set(this._elts);
+  }
+  [Symbol.iterator]() {
+    return this.keys();
+  }
+}
+
+export function sorted_set(...xs) {
+  return new SortedSet(xs);
 }
