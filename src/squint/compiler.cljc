@@ -495,15 +495,17 @@
 
 #?(:cljs
    (defn clj-ize-opts [opts]
-     (cond-> (js->clj opts :keywordize-keys true)
-       (:context opts) (update :context keyword)
-       (:ns opts) (update :ns symbol)
-       (:elide_imports opts) (assoc :elide-imports (:elide_imports opts))
-       (:elide_exports opts) (assoc :elide-exports (:elide_exports opts)))))
+     (let [opts (js->clj opts :keywordize-keys true)]
+       (cond-> opts
+         (:context opts) (update :context keyword)
+         (:ns opts) (update :ns symbol)
+         (:elide_imports opts) (assoc :elide-imports (:elide_imports opts))
+         (:elide_exports opts) (assoc :elide-exports (:elide_exports opts))))))
 
 #?(:cljs
    (defn compileStringEx [s opts state]
-     (clj->js (compile-string* s (clj-ize-opts opts) (clj-ize-opts state)))))
+     (let [res (compile-string* s (clj-ize-opts opts) (clj-ize-opts state))]
+       (clj->js res))))
 
 (defn compile-string
   ([s] (compile-string s nil))
