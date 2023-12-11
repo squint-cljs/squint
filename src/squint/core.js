@@ -2126,8 +2126,12 @@ class SortedSet {
     }
     if (!added) {
       xs.push(x);
+      // in this case we can re-use the set, since we add the element last
+      this._set.add(x);
     }
-    this._set = new Set(xs);
+    else {
+      this._set = new Set(xs);
+    }
     this.size = xs.length;
     return this;
   }
@@ -2174,7 +2178,7 @@ function mkBoundFn(_sc, test, key) {
   };
 }
 
-function indexFrom(sc, startKey, _asc=true) {
+function indexFrom(sc, startKey, _asc = true) {
   let i = 0;
   for (; i < sc.length; i++) {
     if (!(compare(startKey, sc[i]) > 0)) {
@@ -2195,7 +2199,7 @@ function subseq3([sc, test, key]) {
       return seqFrom;
     } else {
       // delete 1 item from the start;
-      seqFrom.splice(0,1);
+      seqFrom.splice(0, 1);
       return seqFrom;
     }
   } else {
