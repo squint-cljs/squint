@@ -43,7 +43,7 @@
 
 (deftest repl-api-test
   (let [out (:out (p/shell {:out :string} "node test-resources/js_api.mjs"))]
-    (is (= ["1" "1"]  (str/split-lines out)))))
+    (is (= ["1" "1" "6"]  (str/split-lines out)))))
 
 (defn run-tests [_]
   (let [{:keys [fail error]}

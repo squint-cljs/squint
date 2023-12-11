@@ -1,4 +1,4 @@
-import { compileStringEx } from 'squint-cljs/index.js';
+import { compileString, compileStringEx } from 'squint-cljs/index.js';
 
 // repl = output suitable for REPL
 // async = start in async mode (allows top level awaits)
@@ -21,3 +21,6 @@ state = compileStringEx('x', opts, state);
 // since we're evaluating x in the same namespace it was defined in, evaluating
 // the returned javascript gives 1
 console.log(await eval(wrappedInAsyncFn(state.javascript)));
+
+const js = compileString('(+ 1 2 3)', {...opts, elide_imports: true, context: 'expression'});
+console.log(eval(js));
