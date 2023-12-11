@@ -2110,8 +2110,10 @@ export function persistent_BANG_(x) {
 class SortedSet {
   constructor(xs) {
     xs = sort(xs);
-    this._elts = xs;
-    this._set = new Set(xs);
+    const s = new Set(xs);
+    // we don't re-use xs since xs can contain duplicates
+    this._elts = [...s];
+    this._set = s;
   }
   add(x) {
     if (this._set.has(x)) return this;
@@ -2235,4 +2237,8 @@ export function abs(x) {
 
 export function long$(x) {
   return fix(x);
+}
+
+export function type(x) {
+  return x != null && x.constructor;
 }

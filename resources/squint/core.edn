@@ -190,6 +190,7 @@
   tree_seq
   true_QMARK_
   truth_
+  type
   update
   update_BANG_
   update_in

@@ -2119,7 +2119,7 @@ new Foo();")
 (deftest sorted-set-test
   (is (eq -10 (first (jsv! '(sorted-set 1 2 3 -10)))))
   (is (eq -10 (first (jsv! '(sorted-set 1 2 3 -10)))))
-  (is (eq [-10000 -1000 1 100] (jsv! '(vec (conj (disj (sorted-set 1 -10 100 -1000) -10) -10000))))))
+  (is (eq [-10000 -1000 1 100] (jsv! '(vec (conj (disj (sorted-set 1 -10 100 -1000) -10) -10000 -10000))))))
 
 (deftest subseq-test
   (is (eq [1] (jsv! '(subseq (sorted-set 1 2 3 4) < 2))))
