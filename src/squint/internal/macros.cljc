@@ -13,7 +13,7 @@
                             bit-not bit-and unsafe-bit-and bit-or int bit-xor
                             bit-and-not bit-clear bit-flip bit-test
                             bit-shift-left bit-shift-right bit-shift-right-zero-fill
-                            unsigned-bit-shift-right bit-set])
+                            unsigned-bit-shift-right bit-set undefined?])
   (:require [clojure.string :as str]
             [squint.compiler-common :as-alias ana]
             [clojure.core :as cc]
@@ -578,3 +578,7 @@
 
 (core/defmacro ^::ana/numeric bit-set [x n]
   (core/list 'js* "(~{} | (1 << ~{}))" x n))
+
+(core/defmacro undefined?
+  [x]
+  (bool-expr (core/list 'js* "(void 0 === ~{})" x)))
