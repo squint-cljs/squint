@@ -485,12 +485,13 @@
                          (fn [ns-state]
                            (let [current (:current ns-state)]
                              (update-in ns-state [current :refers] (fnil into #{}) refer))))
-                  (if *repl*
-                    (str (statement (format "var { %s } = await import('%s')" (str/join ", " (map munge refer)) libname))
-                         (str/join (map (fn [sym]
-                                          (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym)))
-                                        refer)))
-                    (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname)))))]
+                  (let [munged-refers (map munge refer)]
+                    (if *repl*
+                      (str (statement (format "var { %s } = await import('%s')" (str/join ", " munged-refers) libname))
+                           (str/join (map (fn [sym]
+                                            (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym)))
+                                          munged-refers)))
+                      (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname))))))]
       (when as
         (swap! (:ns-state env)
                (fn [ns-state]

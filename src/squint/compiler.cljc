@@ -182,7 +182,7 @@
          (emit-return nil enc-env))))
 
 (defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
-  (emit (list 'do (list 'js* (str "var " (munge name) ";\n"))
+  (emit (list 'do #_(list 'js* (str "var " (munge name) ";\n"))
               (if (:repl env)
                 `(when-not (exists? ~(symbol *cljs-ns* name))
                    ~(vary-meta `(def ~name ~init)
@@ -480,8 +480,13 @@
                            (str
                             (when-let [vars (disj @public-vars "default$")]
                               (when (seq vars)
-                                (str (format "\nexport { %s }\n"
-                                             (str/join ", " vars)))))
+                                (if cc/*repl*
+                                  (str/join "\n"
+                                            (map (fn [var]
+                                                   (str "export const " var " = " (munge cc/*cljs-ns*) "." var ";"))
+                                                 vars))
+                                  (str (format "\nexport { %s }\n"
+                                               (str/join ", " vars))))))
                             (when (contains? @public-vars "default$")
                               "export default default$\n")))]
              (assoc opts
