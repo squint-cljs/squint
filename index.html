@@ -22,6 +22,7 @@
           "@codemirror/language": "https://ga.jspm.io/npm:@codemirror/language@6.9.2/dist/index.js",
           "@codemirror/state": "https://ga.jspm.io/npm:@codemirror/state@6.3.1/dist/index.js",
           "@codemirror/view": "https://ga.jspm.io/npm:@codemirror/view@6.21.4/dist/index.js",
+          "@codemirror/commands": "https://ga.jspm.io/npm:@codemirror/commands@6.0.0/dist/index.js",
           "@nextjournal/clojure-mode": "https://ga.jspm.io/npm:@nextjournal/clojure-mode@0.3.0/dist/nextjournal/clojure_mode.mjs",
           "@nextjournal/clojure-mode/extensions/eval-region": "https://ga.jspm.io/npm:@nextjournal/clojure-mode@0.3.0/dist/nextjournal/clojure_mode/extensions/eval_region.mjs",
           "react": "https://esm.sh/react@18.2.0",
@@ -56,6 +57,7 @@
 
     <script type="module">
       import { default_extensions, complete_keymap } from '@nextjournal/clojure-mode';
+      import { history, historyKeymap } from '@codemirror/commands';
       import * as eval_region from '@nextjournal/clojure-mode/extensions/eval-region';
       import { EditorView, drawSelection, keymap } from '@codemirror/view';
       import { EditorState } from '@codemirror/state';
@@ -179,11 +181,13 @@
       });
       let modifier = localStorage.getItem("editor.modifier") || 'Meta'; // force redeploy
       let extensions = [
+        history(),
         theme,
         foldGutter(),
         syntaxHighlighting(defaultHighlightStyle),
         drawSelection(),
         keymap.of(complete_keymap),
+        keymap.of(historyKeymap),
         squintExtension({ modifier: modifier }),
         eval_region.extension({ modifier: modifier }),
         updateExt,
