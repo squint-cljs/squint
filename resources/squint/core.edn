@@ -29,6 +29,7 @@
   boolean_QMARK_
   bounded_count
   butlast
+  cat
   coll_QMARK_
   comp
   compare

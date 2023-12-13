@@ -2255,3 +2255,24 @@ export function long$(x) {
 export function type(x) {
   return x != null && x.constructor;
 }
+
+function preserving_reduced (rf) {
+  return (a1, a2) => {
+  const ret = rf(a1, a2)
+  if (reduced_QMARK_(ret)) {
+    return reduced(ret);
+  }
+  else return ret;
+  };
+}
+
+export function cat(rf) {
+  rf = preserving_reduced(rf);
+  return (...args) => {
+    switch (args.length) {
+      case 0: return rf();
+      case 1: return rf(args[0]);
+      case 2: return reduce(rf, args[0], args[1]);
+    }
+  };
+}

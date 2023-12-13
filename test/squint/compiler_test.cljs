@@ -2127,5 +2127,8 @@ new Foo();")
   (is (eq [104] (jsv! '(subseq (sorted-set 3 27 49 70 71 104) > 87 < 128))))
   (is (eq [4 5 6 7 8 9] (jsv! '(subseq (sorted-set 1 2 3 4 5 6 7 8 9 0) <= 4 >= 2)))))
 
+(deftest cat-test
+  (is (eq [1 2 3 4 5 6] (jsv! '(into [] cat [[1 2 3] [4 5 6]])))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
