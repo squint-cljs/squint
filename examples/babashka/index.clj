@@ -19,8 +19,7 @@
                [:html
                 [:head
                  [:link {:rel "stylesheet"
-                         :href "https://cdn.jsdelivr.net/npm/water.css@2/out/light.css"}
-                  ]
+                         :href "https://cdn.jsdelivr.net/npm/water.css@2/out/light.css"}]
                  [:script {:type "importmap"}
                   (h/raw
                    (json/generate-string
