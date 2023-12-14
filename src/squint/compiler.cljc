@@ -424,13 +424,7 @@
            (let [next-t (-> (transpile-form next-form env)
                             not-empty)
                  next-js
-                 (if (re-matches #"^(/\*|//|\"|\').*" (str next-t))
-                   (let [js (str next-t "\n")]
-                     (if-let [p (:pragmas env)]
-                       (do (swap! p str js)
-                           nil)
-                       js))
-                   (statement next-t))]
+                 (cc/save-pragma env next-t)]
              (recur (str transpiled next-js)))))))))
 
 (defn compile-string*
@@ -447,7 +441,8 @@
                cc/*target* :squint
                *jsx* false
                cc/*repl* (:repl opts cc/*repl*)]
-       (let [opts (merge {:ns-state (atom {})} opts)
+       (let [opts (merge {:ns-state (atom {})
+                          :top-level true} opts)
              imported-vars (atom {})
              public-vars (atom #{})
              aliases (atom (merge aliases {core-alias cc/*core-package*}))

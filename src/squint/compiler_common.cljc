@@ -282,13 +282,23 @@
    (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
      *async* (wrap-await return?))))
 
+(defn save-pragma [env next-t]
+  (if (and (:top-level env)
+           (re-matches #"^(/\*|//|\"|\').*" (str next-t)))
+    (let [js (str next-t "\n")]
+      (if-let [p (:pragmas env)]
+        (do (swap! p str js)
+            nil)
+        js))
+    (statement next-t)))
+
 (defn emit-do [env exprs]
   (let [bl (butlast exprs)
         l (last exprs)
         ctx (:context env)
         statement-env (assoc env :context :statement)
         iife? (and (seq bl) (= :expr ctx))
-        s (cond-> (str (str/join "" (map #(statement (emit % statement-env)) bl))
+        s (cond-> (str (str/join "" (map #(save-pragma env (emit % statement-env)) bl))
                        (emit l (assoc env :context
                                       (if iife? :return
                                           ctx))))
