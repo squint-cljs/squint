@@ -2133,14 +2133,21 @@ new Foo();")
 (deftest pragmas-test
   (let [code "\"use client\"
 (js* \"// ts-check\")
+(js* \"/*
+yolo
+*/\")
+(js* \"'use server'\")
 (defn foo [] (merge nil nil))"]
     (doseq [code [code (str/replace "(do %s)" "%s" code)]]
       (let [{:keys [pragmas javascript]} (compiler/compile-string* code)]
         (is (str/includes? pragmas "use client"))
         (is (str/includes? pragmas "// ts-check"))
         (is (not (str/includes? pragmas ";")))
-        (is (< (str/index-of javascript "use client") (str/index-of javascript "ts-check")))
-        (is (< (str/index-of javascript "ts-check") (str/index-of javascript "import")))))))
+        (is (< (str/index-of javascript "use client")
+               (str/index-of javascript "ts-check")
+               (str/index-of javascript "yolo")
+               (str/index-of javascript "'use server'")
+               (str/index-of javascript "import")))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

@@ -284,7 +284,7 @@
 
 (defn save-pragma [env next-t]
   (if (and (:top-level env)
-           (re-matches #"^(/\*|//|\"|\').*" (str next-t)))
+           (re-find #"^(/\*|//|\"|\')" (str next-t)))
     (let [js (str next-t "\n")]
       (if-let [p (:pragmas env)]
         (do (swap! p str js)
