@@ -1,4 +1,4 @@
-(ns alpinejs
+(ns alpinejs-tictactoe
   (:require [babashka.deps :as deps]
             [hiccup2.core :as h]
             [org.httpkit.server :as srv]
@@ -26,43 +26,40 @@
                        {"squint-cljs/src/squint/core.js" "https://cdn.jsdelivr.net/npm/squint-cljs@0.4.81/src/squint/core.js"
                         "squint-cljs/src/squint/string.js" "https://cdn.jsdelivr.net/npm/squint-cljs@0.4.81/src/squint/string.js"}}))]
                    [:title "Squint"]]
-                  [:body {:x-data (->js '{:grid [["-" "-" "-"]
-                                                 ["-" "-" "-"]
-                                                 ["-" "-" "-"]]
-                                          :player "X"
-                                          :winner ""
-                                          :otherPlayer (fn [player]
-                                                         (if (= player "X") "O" "X"))
-                                          :getWinner (let [get-board-cell (fn [grid i j]
-                                                                            (get-in grid [i j]))
-                                                           winner-in-rows? (fn [board player]
-                                                                             (some (fn [row] (every? (fn [c] (= c player)) row)) board)
-                                                                             )
-                                                           transposed (fn [board] (vec (apply map vector board)))
-                                                           winner-in-cols? (fn [board player]
-                                                                             (winner-in-rows? (transposed board) player))
-                                                           winner-in-diagonals? (fn [board player]
-                                                                                  (let [diag-coords [[[0 0] [1 1] [2 2]]
-                                                                                                     [[0 2] [1 1] [2 0]]]]
-                                                                                    (some (fn [coords]
-                                                                                            (every? (fn [coord]
-                                                                                                      (= player (apply get-board-cell board coord)))
-                                                                                                    coords))
-                                                                                          diag-coords)))]
-                                                       (fn isWinner
-                                                         ([board]
-                                                          (prn :board board)
-                                                          (or (isWinner board "X")
-                                                              (isWinner board "X")))
-                                                         ([board player]
-                                                          (if (or (winner-in-rows? board player)
-                                                                  (winner-in-cols? board player)
-                                                                  (winner-in-diagonals? board player))
-                                                            player))))
-                                          :isFull (fn [board]
-                                                    (let [all-cells (apply concat board)]
-                                                      (not-any? #(= % "-") all-cells)))})}
-                   [:div "The winner is: " [:span {:x-test "winner"}]]
+                  [:body {:x-data
+                          (->js '{:grid [["-" "-" "-"]
+                                         ["-" "-" "-"]
+                                         ["-" "-" "-"]]
+                                  :player "X"
+                                  :winner nil
+                                  :otherPlayer (fn [player]
+                                                 (if (= player "X") "O" "X"))
+                                  :getWinner (let [get-board-cell (fn [grid i j]
+                                                                    (get-in grid [i j]))
+                                                   winner-in-rows? (fn [board player]
+                                                                     (some (fn [row] (every? (fn [c] (= c player)) row)) board)
+                                                                     )
+                                                   transposed (fn [board] (vec (apply map vector board)))
+                                                   winner-in-cols? (fn [board player]
+                                                                     (winner-in-rows? (transposed board) player))
+                                                   winner-in-diagonals? (fn [board player]
+                                                                          (let [diag-coords [[[0 0] [1 1] [2 2]]
+                                                                                             [[0 2] [1 1] [2 0]]]]
+                                                                            (some (fn [coords]
+                                                                                    (every? (fn [coord]
+                                                                                              (= player (apply get-board-cell board coord)))
+                                                                                            coords))
+                                                                                  diag-coords)))]
+                                               (fn isWinner
+                                                 ([board]
+                                                  (or (isWinner board "X")
+                                                      (isWinner board "O")))
+                                                 ([board player]
+                                                  (if (or (winner-in-rows? board player)
+                                                          (winner-in-cols? board player)
+                                                          (winner-in-diagonals? board player))
+                                                    player))))})}
+                   [:div "The winner is: " [:span {:x-text "winner"}]]
                    [:div {:style "color: #666; position: absolute; top: 200px, left: 45%;"}
                     [:table
                      (for [i (range 0 3)]
@@ -73,12 +70,11 @@
                                         line-height: 50px; text-align: center; background: #fff;"
                                 :x-text (->js `(str (aget ~'grid ~i ~j)))
                                 :x-on:click (->js `(if (and (= "-" (aget ~'grid ~i ~j))
-                                                            (= "" ~'winner))
+                                                            (nil? ~'winner))
                                                      (do (aset ~'grid ~i ~j ~'player)
                                                          (set! ~'player (~'otherPlayer ~'player))
                                                          (when-let [w# (~'getWinner ~'grid)]
-                                                           (set! ~'winner w#)))))}])])]]
-                   ]
+                                                           (set! ~'winner w#)))))}])])]]]
                   [:script {:type "module"}
                    (h/raw
                     "const squint_core = await import('squint-cljs/src/squint/core.js');
