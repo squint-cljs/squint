@@ -25,22 +25,32 @@
                     (h/raw
                      (json/generate-string
                       {:imports
-                       {"squint-cljs/src/squint/core.js" "https://cdn.jsdelivr.net/npm/squint-cljs@0.4.81/src/squint/core.js"}}))]
+                       {"squint-cljs/src/squint/core.js" "https://cdn.jsdelivr.net/npm/squint-cljs@0.4.81/src/squint/core.js"
+                        "squint-cljs/src/squint/string.js" "https://cdn.jsdelivr.net/npm/squint-cljs@0.4.81/src/squint/string.js"}}))]
                    [:title "Squint"]]
-                  [:body
-                   [:div {:x-data (->js '{:counter (atom 0)
-                                          :counter2 0})}
+                  [:body {:x-data (->js '{:counter 0
+                                          :username "User"})}
+                   [:div
+                    [:input {:type "text"
+                             :x-model "username"}]
+                    [:div
+                     [:span "Hello "]
+                     [:span {:x-text "username"}]
+                     [:span ", your name reversed is: "]
+                     [:span {:x-text (->js '($str/join (reverse username)))}] "!"]]
+                   [:div
                     [:button {:x-on:click (->js '(do
-                                                   (swap! counter inc)
-                                                   (set! counter2 (inc counter2))))}
+                                                   (set! counter (inc counter))))}
                      "Increment"]
-                    [:span {:x-text "[$squint_core.deref(counter), counter2]"}]]]
+                    [:span {:x-text "counter"}]]]
                   [:script {:type "module"}
                    (h/raw
                     "const squint_core = await import('squint-cljs/src/squint/core.js');
+                     const squint_string = await import('squint-cljs/src/squint/string.js');
                      const { default: Alpine } = await import('https://unpkg.com/alpinejs@3.13.3/dist/module.esm.js');
                      Alpine.data('squint_core', squint_core);
                      Alpine.magic('squint_core', () => squint_core);
+                     Alpine.magic('str', () => squint_string);
                      Alpine.start();")]]))
      :status 200}))
 
