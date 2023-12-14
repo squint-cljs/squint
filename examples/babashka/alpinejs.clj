@@ -48,7 +48,6 @@
                     "const squint_core = await import('squint-cljs/src/squint/core.js');
                      const squint_string = await import('squint-cljs/src/squint/string.js');
                      const { default: Alpine } = await import('https://unpkg.com/alpinejs@3.13.3/dist/module.esm.js');
-                     Alpine.data('squint_core', squint_core);
                      Alpine.magic('squint_core', () => squint_core);
                      Alpine.magic('str', () => squint_string);
                      Alpine.start();")]]))
