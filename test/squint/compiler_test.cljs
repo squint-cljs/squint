@@ -2130,5 +2130,16 @@ new Foo();")
 (deftest cat-test
   (is (eq [1 2 3 4 5 6] (jsv! '(into [] cat [[1 2 3] [4 5 6]])))))
 
+(deftest pragmas-test
+  (let [{:keys [pragmas javascript]} (compiler/compile-string* "
+\"use client\"
+(js* \"// ts-check\")
+(defn foo [] (merge nil nil))")]
+    (is (str/includes? pragmas "use client"))
+    (is (str/includes? pragmas "// ts-check"))
+    (is (not (str/includes? pragmas ";")))
+    (is (< (str/index-of javascript "use client") (str/index-of javascript "ts-check")))
+    (is (< (str/index-of javascript "ts-check") (str/index-of javascript "import")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

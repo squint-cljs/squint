@@ -421,8 +421,16 @@
              next-form (e/parse-next rdr opts)]
          (if (= ::e/eof next-form)
            transpiled
-           (let [next-t (transpile-form next-form env)
-                 next-js (some-> next-t not-empty (statement))]
+           (let [next-t (-> (transpile-form next-form env)
+                            not-empty)
+                 next-js
+                 (if (re-matches #"^(/\*|//|\"|\').*" (str next-t))
+                   (let [js (str next-t "\n")]
+                     (if-let [p (:pragmas env)]
+                       (do (swap! p str js)
+                           nil)
+                       js))
+                   (statement next-t))]
              (recur (str transpiled next-js)))))))))
 
 (defn compile-string*
@@ -449,7 +457,8 @@
                              (str (format "var %s = await import('%s');\n"
                                           core-alias cc/*core-package*))
                              (format "import * as %s from '%s';\n"
-                                     core-alias cc/*core-package*)))]
+                                     core-alias cc/*core-package*)))
+             pragmas (atom "")]
          (binding [*imported-vars* imported-vars
                    *public-vars* public-vars
                    *aliases* aliases
@@ -461,7 +470,8 @@
            (let [transpiled (transpile-string* s (assoc opts
                                                         :core-alias core-alias
                                                         :imports imports
-                                                        :jsx false))
+                                                        :jsx false
+                                                        :pragmas pragmas))
                  jsx *jsx*
                  _ (when (and jsx cc/*repl* jsx-runtime)
                      (swap! imports str
@@ -475,6 +485,7 @@
                                   (if jsx-dev
                                     "/jsx-dev-runtime"
                                     "/jsx-runtime")))))
+                 pragmas @pragmas
                  imports (when-not elide-imports @imports)
                  exports (when-not elide-exports
                            (str
@@ -490,10 +501,11 @@
                             (when (contains? @public-vars "default$")
                               "export default default$\n")))]
              (assoc opts
+                    :pragmas pragmas
                     :imports imports
                     :exports exports
                     :body transpiled
-                    :javascript (str imports transpiled exports)
+                    :javascript (str pragmas imports transpiled exports)
                     :jsx jsx
                     :ns *cljs-ns*
                     :ns-state (:ns-state opts)))))))))

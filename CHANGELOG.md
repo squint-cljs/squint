@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## v0.4.82 (2-23-12-14)
+
+- Keep top level strings and comments (via `js*`) before imports (for JSDoc, Next.js `"use client"`, etc)
+
 ## v0.4.81 (2023-12-11)
 
 - Fix `compileString` in JS API
