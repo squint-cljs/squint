@@ -453,7 +453,7 @@
                                           core-alias cc/*core-package*))
                              (format "import * as %s from '%s';\n"
                                      core-alias cc/*core-package*)))
-             pragmas (atom "")]
+             pragmas (atom {:js ""})]
          (binding [*imported-vars* imported-vars
                    *public-vars* public-vars
                    *aliases* aliases
@@ -480,7 +480,7 @@
                                   (if jsx-dev
                                     "/jsx-dev-runtime"
                                     "/jsx-runtime")))))
-                 pragmas @pragmas
+                 pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
                  exports (when-not elide-exports
                            (str

@@ -108,7 +108,7 @@
         }
 
       let compilerState = null;
-      let evalCode = async (code) => {
+        let evalCode = async (code) => {
         try {
           let importSource = url.searchParams.get('jsx.import-source') || 'react';
           let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement', "jsx-runtime": {"import-source": importSource, development: true} };
@@ -289,7 +289,7 @@
       var compileStringEx = squint.compileStringEx;
       window.compile = () => {
         let code = editor.state.doc.toString();
-        code = '' + boilerplateSrc + '\n\n' + code;
+        code = (boilerplateSrc || '') + '\n\n' + code;
         evalCode(code);
       };
       window.share = () => {

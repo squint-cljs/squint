@@ -283,14 +283,20 @@
      *async* (wrap-await return?))))
 
 (defn save-pragma [env next-t]
-  (if (and (:top-level env)
-           (re-find #"^(/\*|//|\"|\')" (str next-t)))
-    (let [js (str next-t "\n")]
-      (if-let [p (:pragmas env)]
-        (do (swap! p str js)
-            nil)
-        js))
-    (statement next-t)))
+  (let [p (:pragmas env)
+        past (and p (:past @p))]
+    (if (and (:top-level env)
+             (re-find #"^(/\*|//|\"|\')" (str next-t)))
+      (let [js (str next-t "\n")]
+        (if (and p (not past))
+          (do (swap! p update :js str js)
+              nil)
+          js))
+      (let [js (statement next-t)]
+        (if (or (not p) past) js
+            (do
+              (swap! p assoc :past true)
+              js))))))
 
 (defn emit-do [env exprs]
   (let [bl (butlast exprs)
