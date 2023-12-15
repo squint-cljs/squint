@@ -1707,7 +1707,9 @@
   (is (true? (jsv! "(fn? inc)"))))
 
 (deftest re-seq-test
-  (is (eq #js ["foo" "foo" "foo"] (jsv! "(vec (re-seq #\"foo\" \"foobfoobfoo\"))"))))
+  (is (eq #js ["foo" "foo" "foo"] (jsv! "(vec (re-seq #\"foo\" \"foobfoobfoo\"))")))
+  (testing "stack consumption"
+    (is (eq 4000 (jsv! '(count (re-seq #"d" (apply str (repeat 4000 "d")))))))))
 
 (deftest bit-tests
   (is (= 3 (jsv! "(+ (bit-and 1 2 3) (bit-or 1 2 3))")))

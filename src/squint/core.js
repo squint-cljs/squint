@@ -1853,21 +1853,20 @@ export function fn_QMARK_(x) {
   return 'function' === typeof x;
 }
 
-export function* re_seq(re, s) {
-  const matches = re.exec(s);
-  if (matches) {
-    const match_str = matches[0];
-    const match_vals = matches.length === 1 ? match_str : vec(matches);
-    yield* cons(
-      match_vals,
-      lazy(function* () {
+export function re_seq(re, s) {
+  return lazy(function* () {
+    while (true) {
+      const matches = re.exec(s);
+      if (matches) {
+        const match_str = matches[0];
+        const match_vals = matches.length === 1 ? match_str : vec(matches);
+        yield match_vals;
         const post_idx = matches.index + max(1, match_str.length);
-        if (post_idx <= s.length) {
-          yield* re_seq(re, subs(s, post_idx));
-        }
-      })
-    );
-  }
+        if (post_idx > s.length) break;
+        s = subs(s, post_idx);
+      } else break;
+    }
+  });
 }
 
 export function NaN_QMARK_(x) {
@@ -2256,13 +2255,13 @@ export function type(x) {
   return x != null && x.constructor;
 }
 
-function preserving_reduced (rf) {
+function preserving_reduced(rf) {
   return (a1, a2) => {
-  const ret = rf(a1, a2)
-  if (reduced_QMARK_(ret)) {
-    return reduced(ret);
-  }
-  else return ret;
+    const ret = rf(a1, a2)
+    if (reduced_QMARK_(ret)) {
+      return reduced(ret);
+    }
+    else return ret;
   };
 }
 
@@ -2275,4 +2274,9 @@ export function cat(rf) {
       case 2: return reduce(rf, args[0], args[1]);
     }
   };
+}
+
+export function rem(n, d) {
+  const q = quot(n, d);
+  return n - (d * q);
 }
