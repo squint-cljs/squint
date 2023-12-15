@@ -58,6 +58,10 @@ export function starts_with_QMARK_(s, substr) {
   return s.startsWith(substr);
 }
 
+export function ends_with_QMARK_(s, substr) {
+  return s.endsWith(substr);
+}
+
 const escapeRegex = function(s) {
   return s.replace(/([-()\[\]{}+?*.$\^|,:#<!\\])/g, '\\$1').replace(/\x08/g, '\\x08');
 };
