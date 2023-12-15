@@ -2139,7 +2139,9 @@ new Foo();")
 yolo
 */\")
 (js* \"'use server'\")
-(defn foo [] (merge nil nil))"]
+(defn foo [] (merge nil nil))
+\"use serverless\"
+"]
     (doseq [code [code (str/replace "(do %s)" "%s" code)]]
       (let [{:keys [pragmas javascript]} (compiler/compile-string* code)]
         (is (str/includes? pragmas "use client"))
@@ -2149,7 +2151,8 @@ yolo
                (str/index-of javascript "ts-check")
                (str/index-of javascript "yolo")
                (str/index-of javascript "'use server'")
-               (str/index-of javascript "import")))))))
+               (str/index-of javascript "import")
+               (str/index-of javascript "use serverless")))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
