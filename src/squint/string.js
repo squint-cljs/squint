@@ -1,6 +1,6 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
-import { iterable, string_QMARK_ } from './core.js';
+import { iterable, neg_QMARK_, string_QMARK_ } from './core.js';
 
 export function blank_QMARK_(s) {
   if (!s) return true;
@@ -109,4 +109,20 @@ export function replace(s, match, replacement) {
 
 export function split_lines(s) {
   return split(s, /\n|\r\n/);
+}
+
+export function index_of(s, value, from) {
+  const res = s.indexOf(value, from);
+  if (res < 0) {
+    return null;
+  }
+  return res;
+}
+
+export function last_index_of(s, value, from) {
+  const res = s.lastIndexOf(value, from);
+  if (res < 0) {
+    return null;
+  }
+  return res;
 }
