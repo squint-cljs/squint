@@ -2154,5 +2154,9 @@ new Foo();")
                (str/index-of javascript "@param")
                (str/index-of javascript "use serverless")))))))
 
+(deftest js-doc-compat-test
+  (let [js (compiler/compile-string "(js* \"/**\n* @param {number} x\n*/\") (defn foo [x] x)")]
+    (is (str/includes? js "var foo = function"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

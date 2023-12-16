@@ -333,7 +333,8 @@
         m m #_(conj {:arglists (list 'quote (sigs fdecl))} m)
         m (conj (if (meta name) (meta name) {}) m)]
     (list 'def (with-meta name m)
-          (with-meta (cons `fn fdecl) m))))
+          (with-meta (cons `fn fdecl)
+            (assoc m ::def true)))))
 
 (defn core-defmacro
   "Like defn, but the resulting function name is declared as a

@@ -730,7 +730,7 @@ break;}" body)
              " {\n"
              body "\n}")))))
 
-(defn emit-function* [env expr]
+(defn emit-function* [env expr opts]
   (let [name (when (symbol? (first expr)) (first expr))
         expr (if name (rest expr) expr)
         expr (if (seq? (first expr))
@@ -746,13 +746,15 @@ break;}" body)
           (let [signature (first expr)
                 body (rest expr)]
             (str (emit-function env nil signature body))))
-        (cond-> (= :expr (:context env)) (wrap-parens))
+        (cond-> (and
+                 (not (:squint.internal.fn/def opts))
+                 (= :expr (:context env))) (wrap-parens))
         (emit-return env))))
 
 (defmethod emit-special 'fn* [_type env [_fn & sigs :as expr]]
   (let [async? (:async (meta expr))]
     (binding [*async* async?]
-      (emit-function* env sigs))))
+      (emit-function* env sigs (meta expr)))))
 
 (defmethod emit-special 'try [_type env [_try & body :as expression]]
   (let [gensym (:gensym env)
