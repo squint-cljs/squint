@@ -117,6 +117,7 @@
   neg_QMARK_
   next
   nil_QMARK_
+  nnext
   not
   not_any_QMARK_
   not_empty
