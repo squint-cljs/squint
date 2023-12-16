@@ -2,7 +2,13 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
-## v0.4.82 (2-23-12-14)
+## v0.4.83 (2023-12-16)
+
+- Better support for pragmas and JSDoc via `js*` + `//` and `/* */`
+- Add `rem`, `nnext`, `str/end-with?`, `str/index-of` and `str/last-index-of`
+- Fix alias with hypen in REPL mode
+
+## v0.4.82 (2023-12-14)
 
 - Keep top level strings and comments (via `js*`) before imports (for JSDoc, Next.js `"use client"`, etc)
 
