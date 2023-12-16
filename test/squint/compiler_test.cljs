@@ -2135,11 +2135,11 @@ new Foo();")
 (deftest pragmas-test
   (let [code "\"use client\"
 (js* \"// ts-check\")
-(js* \"/*
-yolo
-*/\")
 (js* \"'use server'\")
-(defn foo [] (merge nil nil))
+(js* \"/**
+* @param {number} x
+*/\")
+(defn foo [x] (merge x nil))
 \"use serverless\"
 "]
     (doseq [code [code (str/replace "(do %s)" "%s" code)]]
@@ -2149,9 +2149,9 @@ yolo
         (is (not (str/includes? pragmas ";")))
         (is (< (str/index-of javascript "use client")
                (str/index-of javascript "ts-check")
-               (str/index-of javascript "yolo")
                (str/index-of javascript "'use server'")
                (str/index-of javascript "import")
+               (str/index-of javascript "@param")
                (str/index-of javascript "use serverless")))))))
 
 (defn init []

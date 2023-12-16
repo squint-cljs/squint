@@ -288,7 +288,9 @@
     (if (and (:top-level env)
              (re-find #"^(/\*|//|\"|\')" (str next-t)))
       (let [js (str next-t "\n")]
-        (if (and p (not past))
+        (if (and p (not past)
+                 ;; always leave jsdoc untouched
+                 (not (str/starts-with? js "/*")))
           (do (swap! p update :js str js)
               nil)
           js))
@@ -722,7 +724,8 @@ break;}" body)
                    body)]
         (str (when-not elide-function?
                (str (when *async*
-                      "async ") "function "))
+                      "async ") "function " #_(when name
+                                              (str name " "))))
              (comma-list (map munge sig))
              " {\n"
              body "\n}")))))
