@@ -606,8 +606,9 @@
               #_#_ns-obj " = {aliases: {}};\n"
               (reduce-kv (fn [acc k _v]
                            (if (symbol? k)
-                             (str acc
-                                  ns-obj "." #_".aliases." k " = " k ";\n")
+                             (let [k (munge k)]
+                               (str acc
+                                    ns-obj "." #_".aliases." k " = " k ";\n"))
                              acc))
                          ""
                          @*aliases*)))))))

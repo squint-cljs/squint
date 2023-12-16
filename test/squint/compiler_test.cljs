@@ -1636,7 +1636,11 @@
     (is (str/includes? s "local_file.some_fn();")))
   (let [s (compiler/compile-string "(ns bar (:require [\"./foo.mjs\" #_#_:refer [foo-bar] :as foo-alias])) (prn foo-alias/foo-bar)")]
     (is (str/includes? s "import * as foo_alias from './foo.mjs'"))
-    (is (str/includes? s "prn(foo_alias.foo_bar);"))))
+    (is (str/includes? s "prn(foo_alias.foo_bar);")))
+  (doseq [repl [false true]]
+    (let [js (compiler/compile-string "(require '[clojure.string :as str-ing]) (str-ing/join [1 2 3])" {:repl repl})]
+      (is (not (str/includes? js "str-ing")))
+      (is (str/includes? js "str_ing")))))
 
 (deftest dissoc!-test
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc! {"1" 2 "3" 4}))))
