@@ -1809,6 +1809,10 @@ export function next(x) {
   }
 }
 
+export function nnext(x) {
+  return next(next(x));
+}
+
 export function compare(x, y) {
   if (x === y) {
     return 0;
