@@ -2284,3 +2284,15 @@ export function rem(n, d) {
   const q = quot(n, d);
   return n - (d * q);
 }
+
+export function memoize(f) {
+  const cache = new Map();
+  return (...xs) => {
+    const res = get_in(cache, xs);
+    if (res === undefined) {
+      const v = f(...xs);
+      assoc_in_BANG_(cache, xs, v);
+      return v;
+    } else return res;
+  };
+}

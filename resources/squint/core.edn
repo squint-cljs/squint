@@ -108,6 +108,7 @@
   mapv
   max
   max_key
+  memoize
   merge
   merge_with
   meta
