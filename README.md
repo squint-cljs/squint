@@ -353,6 +353,8 @@ See [examples/babashka/index.clj](examples/babashka/index.clj).
 - [Three-js](https://squint-cljs.github.io/squint/examples/threejs/playground.html?repl=true)
 - [Vue.js](https://squint-cljs.github.io/squint/?repl=true&src=KHJlcXVpcmUgJ1siaHR0cHM6Ly9jZG4uanNkZWxpdnIubmV0L25wbS92dWVAMy4zLjEwL2Rpc3QvdnVlLmVzbS1icm93c2VyLmpzIiA6YXMgdnVlXSkKKGRlZm9uY2UgZWx0CiAgKGRvdG8gKGpzL2RvY3VtZW50LmNyZWF0ZUVsZW1lbnQgImRpdiIpCiAgICAoanMvZG9jdW1lbnQuYm9keS5wcmVwZW5kKQogICAgKHNldCEgLWlubmVySFRNTCAiPGRpdiBpZD1cImFwcFwiPgogIDxidXR0b24gQGNsaWNrPVwiY291bnQrK1wiPgogICAgQ291bnQgaXM6IHt7IGNvdW50IH19CiAgPC9idXR0b24%2BCjwvZGl2PiIpKSkKCihkZWYgYXBwICh2dWUvY3JlYXRlQXBwCiAgICAgICAgICAgezpzZXR1cCAoZm4gW10KICAgICAgICAgICAgICAgICAgICAgezpjb3VudCAodnVlL3JlZiAwKX0pfSkpCgooLm1vdW50IGFwcCAiI2FwcCIp)
 - [Tic-tac-toe](https://squint-cljs.github.io/squint/?src=https://gist.githubusercontent.com/borkdude/6463b9628292e820742838b840096386/raw/8602b9153010af1a11c775dadebbedeae32c8e08/tictactoe.cljs)
+- [Date-fns](https://squint-cljs.github.io/squint/?src=KHJlcXVpcmUgJ1siaHR0cHM6L2VzbS5zaC9kYXRlLWZuc0AzLjAuMC9pbmRleC5tanMiIDphcyBkXSkKCihkL2Zvcm1hdFJlbGF0aXZlIChkL3N1YkRheXMgKGpzL0RhdGUuKSAyKSAoanMvRGF0ZS4pKQ%3D%3D)
+
 License
 =======
 
