@@ -2163,7 +2163,11 @@ new Foo();")
     (is (str/includes? js "var foo = function"))))
 
 (deftest memoize-test
-  (is (eq #js [#js [1 2] 2] (jsv! "(def state (atom 0)) (defn foo [x y] (swap! state inc) [x y]) (def foo (memoize foo)) (foo 1 2) (foo 2 3) [(foo 1 2) @state]"))))
+  (is (eq #js [1 #js [1 2] 3]
+          (jsv! "(def state (atom 0))
+                 (defn foo ([x] (swap! state inc) x) ([x y] (swap! state inc) [x y]))
+                 (def foo (memoize foo))
+                 (foo 1) (foo 1 2) (foo 2 3) [(foo 1) (foo 1 2) @state]"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

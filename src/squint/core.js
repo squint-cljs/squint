@@ -2287,11 +2287,13 @@ export function rem(n, d) {
 
 export function memoize(f) {
   const cache = new Map();
+  const val_key = {};
   return (...xs) => {
-    const res = get_in(cache, xs);
+    const path = [...xs, val_key]
+    const res = get_in(cache, path);
     if (res === undefined) {
       const v = f(...xs);
-      assoc_in_BANG_(cache, xs, v);
+      assoc_in_BANG_(cache, path, v);
       return v;
     } else return res;
   };
