@@ -170,6 +170,7 @@ function typeConst(obj) {
 }
 
 function assoc_in_with(f, fname, o, keys, value) {
+  keys = vec(keys);
   const baseType = typeConst(o);
   if (baseType !== MAP_TYPE && baseType !== ARRAY_TYPE && baseType !== OBJECT_TYPE)
     throw new Error(
@@ -205,6 +206,7 @@ export function assoc_in(o, keys, value) {
 }
 
 export function assoc_in_BANG_(o, keys, value) {
+  keys = vec(keys);
   var currObj = o;
   const baseType = typeConst(o);
   for (const k of keys.splice(0, keys.length - 1)) {
@@ -2287,9 +2289,8 @@ export function rem(n, d) {
 
 export function memoize(f) {
   const cache = new Map();
-  const val_key = {};
   return (...xs) => {
-    const path = [...xs, val_key]
+    const path = [xs.length, ...xs];
     const res = get_in(cache, path);
     if (res === undefined) {
       const v = f(...xs);
