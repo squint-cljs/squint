@@ -48,6 +48,49 @@
       body {
         max-width: inherit;
       }
+
+      #main {
+        display: flex;
+        flex-direction: column;
+        max-height: 90dvh;
+
+        @media screen and (min-width: 768px) {
+          overflow: auto;
+          flex-direction: row;
+        }
+      }
+
+      #editor {
+        width: 100%;
+        max-height: 90dvh;
+        max-width: calc(100dvw - 20px);
+        border: 1px solid grey;
+        border-radius: 10px;
+        overflow: auto;
+
+        @media screen and (min-width: 768px) {
+          margin-bottom: 10px;
+          width: 50%;
+        }
+      }
+
+      #sidebar {
+        width: 100%;
+        max-height: 90dvh;
+        max-width: calc(100dvw - 40px);
+        border: 1px solid grey;
+        border-radius: 10px;
+        padding: 10px;
+        margin-top: 10px;
+        overflow: auto;
+
+        @media screen and (min-width: 768px) {
+          margin-top: 0px;
+          margin-left: 10px;
+          margin-bottom: 10px;
+          width: 50%;
+        }
+      }
     </style>
 
     <script type="module">
@@ -328,12 +371,12 @@
   </head>
 
   <body>
-    <div style="display: flex; flex-direction: row; max-height: 90dvh; overflow: auto;">
+    <div id="main">
       <div style="position: absolute; right: 0px; top: 0px; margin: 2px">
       <a href="https://gitHub.com/squint-cljs/squint"><img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a></div>
-      <div id="editor" style="max-height: 90dvh; overflow: auto; width: 50%; border: 1px solid grey; border-radius: 10px; margin-bottom: 10px;">
+      <div id="editor">
       </div>
-      <div style="width: 50%; max-height: 90dvh; overflow: auto; border: 1px solid grey; border-radius: 10px; margin-left: 10px; padding: 10px; margin-bottom: 10px;">
+      <div id="sidebar">
               <button onClick="compile()">
         Compile!
               </button>
