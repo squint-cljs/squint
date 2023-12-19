@@ -13,8 +13,10 @@
   (:require-macros [squint.resource :refer [version]]))
 
 (defn file-in-output-dir [file paths output-dir]
-  (path/resolve output-dir
-                (compiler/adjust-file-for-paths file paths)))
+  (if output-dir
+    (path/resolve output-dir
+                  (compiler/adjust-file-for-paths file paths))
+    file))
 
 (defn resolve-ns [opts in-file x]
   (let [output-dir (:output-dir opts)

@@ -744,7 +744,28 @@ export function map(f, ...colls) {
   }
 }
 
+function filter1(pred) {
+  return (rf) => {
+    return (...args) => {
+      switch (args.length) {
+        case 0: return rf();
+        case 1: return rf(args[0]);
+        case 2: {
+          const result = args[0];
+          const input = args[1];
+          if (truth_(pred(input))) {
+            return rf(result, input);
+          } else return result;
+        }
+      }
+    };
+  };
+}
+
 export function filter(pred, coll) {
+  if (coll === undefined) {
+    return filter1(pred);
+  }
   pred = toFn(pred);
   return lazy(function* () {
     for (const x of iterable(coll)) {
