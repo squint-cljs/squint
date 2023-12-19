@@ -1681,7 +1681,12 @@
   (is (eq 2 (jsv! '(#(inc %) 1)))))
 
 (deftest defclass-test
-  (is (= "<<<<1-3-3>>>>,1-3-3" (str (jsv! (str (fs/readFileSync "test-resources/defclass_test.cljs")))))))
+  (is (= "<<<<1-3-3>>>>,1-3-3" (str (jsv! (str (fs/readFileSync "test-resources/defclass_test.cljs"))))))
+  (is (str/includes? (compiler/compile-string "(defclass Foo (constructor [this]))")
+                     "export { Foo }"))
+  (is (str/includes? (compiler/compile-string "(defclass Foo (constructor [this]))" {:repl true
+                                                                                     :context :return})
+                     "return class Foo")))
 
 (deftest atom-test
   (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y"))))
