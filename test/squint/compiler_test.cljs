@@ -2171,5 +2171,9 @@ new Foo();")
                  (def foo (memoize foo))
                  (foo 1) (foo 1 2) (foo 2 3) [(foo 1) (foo 1 2) @state]"))))
 
+(deftest peek-pop-test
+  (is (= 3 (jsv! '(peek [1 2 3]))))
+  (is (eq [1 2] (jsv! '(pop [1 2 3])))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

@@ -132,7 +132,9 @@
   partition
   partition_all
   partition_by
+  peek
   persistent_BANG_
+  pop
   pos_QMARK_
   pr_str
   println

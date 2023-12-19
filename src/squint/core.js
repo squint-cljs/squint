@@ -2320,3 +2320,21 @@ export function memoize(f) {
     } else return res;
   };
 }
+
+export function peek(vec) {
+  if (array_QMARK_(vec)) {
+    return vec[vec.length - 1];
+  } else {
+    return first(vec);
+  }
+}
+
+export function pop(vec) {
+  if (array_QMARK_(vec)) {
+    const ret = [...vec];
+    ret.pop();
+    return ret;
+  } else {
+    return rest(vec);
+  }
+}
