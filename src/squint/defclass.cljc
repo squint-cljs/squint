@@ -31,7 +31,7 @@
              :fields fields
              :protocols protocols}
             (cond->
-              protocol
+                protocol
               (update :protocols conj {:protocol-name protocol :protocol-fns protocol-fns})))
 
         ;; SomeClass, symbol before any other form
@@ -73,10 +73,10 @@
         ;; (protocol-fn [] ...)
         (and l? protocol)
         (recur classname fields constructor extends protocols protocol
-          ;; this is important so that the extend-type code emits a var self__ = this;
-          ;; no clue why ::ana/type controls that
-          (conj protocol-fns (vary-meta head assoc :xana/type classname))
-          more)
+               ;; this is important so that the extend-type code emits a var self__ = this;
+               ;; no clue why ::ana/type controls that
+               (conj protocol-fns (vary-meta head assoc :xana/type classname))
+               more)
 
         :else
         (throw (ex-info "invalid defclass form" {:form head}))
@@ -113,29 +113,33 @@
   (let [super-args forms]
     (str "super("
          (str/join ", " (emit-args env emit-fn super-args))
-          ");"
-          (str "const self__ = this;\n")
-          (str "const " (emit-fn this-sym env) " = this;\n")
-          (emit-field-defaults env emit-fn fields))))
+         ");"
+         (str "const self__ = this;\n")
+         (str "const " (emit-fn this-sym env) " = this;\n")
+         (emit-field-defaults env emit-fn fields))))
 
 (defn- emit-object-fn [env emit-fn object-fn]
   (let [[fn-name arglist & body] object-fn
         [this-arg & arglist] arglist
         env (update env :var->ident merge (assoc (zipmap arglist arglist)
                                                  'super "super"
-                                                 this-arg (munge this-arg)))]
-    (str (emit-fn fn-name env) "("
-         (str/join ", " (emit-args env emit-fn arglist))
-         ") { \n"
-         (str "const " (emit-fn this-arg env)) " = this;\n"
-         "const self__ = this;"
-         (let [ret-val (last body)
-               ret-ctx (assoc env :context :return :top-level false)
-               non-ret-vals (butlast body)
-               non-ret-ctx (assoc env :context :statement :top-level false)]
-           (str (str/join (map #(str (emit-fn % non-ret-ctx) ";\n") non-ret-vals))
-                (emit-fn ret-val ret-ctx)))
-        "\n}")))
+                                                 this-arg (munge this-arg)))
+        async? (:async (meta fn-name))]
+    (str
+     (when async?
+       "async ")
+     (emit-fn fn-name env) "("
+     (str/join ", " (emit-args env emit-fn arglist))
+     ") { \n"
+     (str "const " (emit-fn this-arg env)) " = this;\n"
+     "const self__ = this;"
+     (let [ret-val (last body)
+           ret-ctx (assoc env :context :return :top-level false)
+           non-ret-vals (butlast body)
+           non-ret-ctx (assoc env :context :statement :top-level false)]
+       (str (str/join (map #(str (emit-fn % non-ret-ctx) ";\n") non-ret-vals))
+            (emit-fn ret-val ret-ctx)))
+     "\n}")))
 
 (defn emit-class
   [env emit-fn form]
@@ -151,16 +155,16 @@
         #_#_arg-syms (vec (take (count ctor-args) (repeatedly gensym)))
         field-syms (map :field-name fields)
         field-locals (reduce
-                (fn [m fld]
-                  (assoc m fld
-                         (symbol (str "self__." (munge fld)))))
-                {}
-                field-syms)
+                      (fn [m fld]
+                        (assoc m fld
+                               (symbol (str "self__." (munge fld)))))
+                      {}
+                      field-syms)
         fields-env (update env :var->ident merge field-locals)
         ctor-args-munged (zipmap (cons this-sym ctor-args) (cons (munge this-sym) (map munge ctor-args)))
         ctor-args-env (update fields-env :var->ident merge ctor-args-munged)
         object-fns (-> (some #(when (= 'Object (:protocol-name %)) %) protocols)
-                                :protocol-fns)
+                       :protocol-fns)
         extend-form
         `(cljs.core/extend-type ~classname
            ~@(->> (for [{:keys [protocol-name protocol-fns]
