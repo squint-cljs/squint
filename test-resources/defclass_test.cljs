@@ -25,8 +25,17 @@
              (super.get-name-separator)
              (.get-name-separator super)))
 
+  (^:async myAsync [_]
+   (let [x (js-await (js/Promise.resolve 1))
+         y (js-await (let [x (js-await (js/Promise.resolve 2))
+                           y (js-await (js/Promise.resolve 3))]
+                       (+ x y)))]
+     (+ x y)))
+
   (toString [this] (str "<<<<" (.dude this) ">>>>") ))
 
 (def c (new Class2 1 2))
 
-[(.toString c) (.dude c)]
+(^:async
+ (fn []
+   [(.toString c) (.dude c) (js-await (.myAsync c))]))

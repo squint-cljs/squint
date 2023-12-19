@@ -160,7 +160,13 @@
 (defmethod emit-special 'squint.defclass/defclass* [_ env form]
   (let [name (second form)]
     (swap! *public-vars* conj name)
-    (emit-return (defclass/emit-class (assoc env :context :statement) emit form) env)))
+    (emit-return
+     (defclass/emit-class (assoc env :context :statement)
+       emit
+       (fn [async body-fn]
+         (binding [cc/*async* async]
+           (body-fn)))
+       form) env)))
 
 (defmethod emit-special 'squint.defclass/super* [_ env form]
   (defclass/emit-super env emit (second form)))
