@@ -48,6 +48,49 @@
       body {
         max-width: inherit;
       }
+
+      #main {
+        display: flex;
+        flex-direction: column;
+        max-height: 90dvh;
+
+        @media screen and (min-width: 768px) {
+          overflow: auto;
+          flex-direction: row;
+        }
+      }
+
+      #editor {
+        width: 100%;
+        max-height: 90dvh;
+        max-width: calc(100dvw - 20px);
+        border: 1px solid grey;
+        border-radius: 10px;
+        overflow: auto;
+
+        @media screen and (min-width: 768px) {
+          margin-bottom: 10px;
+          width: 50%;
+        }
+      }
+
+      #sidebar {
+        width: 100%;
+        max-height: 90dvh;
+        max-width: calc(100dvw - 40px);
+        border: 1px solid grey;
+        border-radius: 10px;
+        padding: 10px;
+        margin-top: 10px;
+        overflow: auto;
+
+        @media screen and (min-width: 768px) {
+          margin-top: 0px;
+          margin-left: 10px;
+          margin-bottom: 10px;
+          width: 50%;
+        }
+      }
     </style>
 
     <script type="module">
@@ -325,50 +368,6 @@
       }
       compile();
     </script>
-    <style>
-      #main {
-        display: flex;
-        flex-direction: column;
-        max-height: 90dvh;
-
-        @media screen and (min-width: 600px) {
-          overflow: auto;
-          flex-direction: row;
-        }
-      }
-
-      #editor {
-        width: 100%;
-        max-height: 90dvh;
-        max-width: 95dvw;
-        border: 1px solid grey;
-        border-radius: 10px;
-
-        @media screen and (min-width: 600px) {
-          margin-bottom: 10px;
-          overflow: auto;
-          width: 50%;
-        }
-      }
-
-      #sidebar {
-        width: 100%;
-        max-height: 90dvh;
-        max-width: 90dvw;
-        border: 1px solid grey;
-        border-radius: 10px;
-        padding: 10px;
-        margin-top: 10px;
-
-        @media screen and (min-width: 600px) {
-          margin-top: 0px;
-          margin-left: 10px;
-          margin-bottom: 10px;
-          width: 50%;
-          overflow: auto;
-        }
-      }
-    </style>
   </head>
 
   <body>
