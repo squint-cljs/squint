@@ -2,6 +2,12 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## v0.4.84 (2023-12-19)
+
+- Add `memoize`, `filter` transducer arity, `peek`, `pop`
+- Export classes defined with `defclass`
+- Support `^:async` Object method in `defclass`
+
 ## v0.4.83 (2023-12-16)
 
 - Better support for pragmas and JSDoc via `js*` + `//` and `/* */`

@@ -1687,8 +1687,9 @@
   (is (str/includes? (compiler/compile-string "(defclass Foo (constructor [this]))" {:repl true
                                                                                      :context :return})
                      "return class Foo"))
-  (is (str/includes? (compiler/compile-string "(defclass Foo (constructor [this]) Object (^:async fetch [_]))")
-                     "async fetch")))
+  (let [js (compiler/compile-string "(defclass Foo (constructor [this]) Object (^:async fetch [this] (let [x (js-await (+ 1 2 3))] (+ x 1))))")]
+    (is (str/includes? js "async fetch"))
+    (is (str/includes? js "= await (1 + 2 + 3)"))))
 
 (deftest atom-test
   (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y"))))
