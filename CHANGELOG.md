@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## v0.4.85 (2023-12-20)
+
+- [#449](https://github.com/squint-cljs/squint/issues/449): fix issue with `:refer`
+
 ## v0.4.84 (2023-12-19)
 
 - Add `memoize`, `filter` transducer arity, `peek`, `pop`
