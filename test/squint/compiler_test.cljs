@@ -1607,7 +1607,10 @@
       (-> (.then (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))
                  (fn [v]
                    (is (= "1231,2,3" v))))
-          (.finally done)))))
+          (.finally done))))
+  (is (str/ends-with?
+       (str/trim (compiler/compile-string "(ns foo (:require [\"fs\" :refer [readFileSync]])) readFileSync" {:repl true}))
+       "globalThis.foo.readFileSync;")))
 
 (deftest letfn-test
   (is (= 3 (jsv! '(letfn [(f [x] (g x)) (g [x] (inc x))] (f 2)))))

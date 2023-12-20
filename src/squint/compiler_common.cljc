@@ -503,7 +503,9 @@
                   (swap! (:ns-state env)
                          (fn [ns-state]
                            (let [current (:current ns-state)]
-                             (update-in ns-state [current :refers] (fnil into #{}) refer))))
+                             (update-in ns-state [current :refers]
+                                        (fn [refers]
+                                          (merge refers (zipmap refer (repeat libname))))))))
                   (let [munged-refers (map munge refer)]
                     (if *repl*
                       (str (statement (format "var { %s } = await import('%s')" (str/join ", " munged-refers) libname))

@@ -4,7 +4,7 @@
             [my-other-src :as src]
             ["fs" :as fs]
             ["path" :as path]
-            ["url" :as url]))
+            ["url" :as url :refer [fileURLToPath]]))
 
 (defn foo []
   (m/debug :foo (+ 1 2 3)))
@@ -15,7 +15,7 @@
 (src/debug :dude (+ 1 2 3))
 
 (-> (js* "import.meta.url")
-    url/fileURLToPath
+    fileURLToPath
     path/dirname
     (path/resolve "foo.json")
     (fs/readFileSync "UTF-8")
