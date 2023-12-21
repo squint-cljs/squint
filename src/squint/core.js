@@ -25,6 +25,10 @@ function walkArray(arr, comp) {
   });
 }
 
+export function _EQ_(...xs) {
+  return walkArray(xs, (x,y) => x === y);
+}
+
 export function _GT_(...xs) {
   return walkArray(xs, (x, y) => x > y);
 }

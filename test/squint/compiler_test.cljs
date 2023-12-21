@@ -1858,7 +1858,9 @@
   (is (true? (jsv! "(apply < [1 2 3])")))
   (is (true? (jsv! "(apply <= [1 1 2 3])")))
   (is (true? (jsv! "(apply > (reverse [1 2 3]))")))
-  (is (true? (jsv! "(apply >= (reverse [1 1 2 3]))"))))
+  (is (true? (jsv! "(apply >= (reverse [1 1 2 3]))")))
+  (is (true? (jsv! "(apply = [1 1 1])")))
+  (is (false? (jsv! "(apply = [1 1 2])"))))
 
 (deftest zipmap-test
   (is (eq #js {} (jsv! "(zipmap nil [1 2 3])")))
