@@ -377,24 +377,27 @@
   ([f] (transpile-form f nil))
   ([f env]
    (binding [cc/*repl* (:repl env cc/*repl*)]
-     (str
-      (emit f (merge {:ns-state (atom {})
-                      :context :statement
-                      :top-level true
-                      :core-vars core-vars
-                      :gensym (let [ctr (volatile! 0)]
-                                (fn gensym*
-                                  ([] (gensym* nil))
-                                  ([sym]
-                                   (let [next-id (vswap! ctr inc)]
-                                     (symbol (str (if sym (munge sym)
-                                                      "G__") next-id))))))
-                      :emit {::cc/list emit-list
-                             ::cc/vector emit-vector
-                             ::cc/map emit-map
-                             ::cc/keyword emit-keyword
-                             ::cc/set emit-set
-                             ::cc/special emit-special}} env))))))
+     (let [js (str
+                 (emit f (merge {:ns-state (atom {})
+                                 :context :statement
+                                 :top-level true
+                                 :core-vars core-vars
+                                 :gensym (let [ctr (volatile! 0)]
+                                           (fn gensym*
+                                             ([] (gensym* nil))
+                                             ([sym]
+                                              (let [next-id (vswap! ctr inc)]
+                                                (symbol (str (if sym (munge sym)
+                                                                 "G__") next-id))))))
+                                 :emit {::cc/list emit-list
+                                        ::cc/vector emit-vector
+                                        ::cc/map emit-map
+                                        ::cc/keyword emit-keyword
+                                        ::cc/set emit-set
+                                        ::cc/special emit-special}} env)))
+           hoisted (when (seq @*public-vars*)
+                     (str "var " (str/join "," @*public-vars*) ";\n"))]
+       (str js hoisted)))))
 
 (def ^:dynamic *jsx* false)
 
@@ -489,6 +492,7 @@
                                     "/jsx-dev-runtime"
                                     "/jsx-runtime")))))
                  pragmas (:js @pragmas)
+                 hoisted (str "var " (str/join "," @public-vars) ";\n")
                  imports (when-not elide-imports @imports)
                  exports (when-not elide-exports
                            (str
@@ -505,10 +509,11 @@
                               "export default default$\n")))]
              (assoc opts
                     :pragmas pragmas
+                    :hoisted hoisted
                     :imports imports
                     :exports exports
                     :body transpiled
-                    :javascript (str pragmas imports transpiled exports)
+                    :javascript (str pragmas imports hoisted transpiled exports)
                     :jsx jsx
                     :ns *cljs-ns*
                     :ns-state (:ns-state opts)))))))))

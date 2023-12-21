@@ -294,7 +294,7 @@
           (do (swap! p update :js str js)
               nil)
           js))
-      (let [js (statement next-t)]
+      (let [js next-t #_(statement next-t)]
         (if (or (not p) past) js
             (do
               (swap! p assoc :past true)
@@ -305,14 +305,16 @@
         l (last exprs)
         ctx (:context env)
         statement-env (assoc env :context :statement)
-        iife? (and (seq bl) (= :expr ctx))
-        s (cond-> (str (str/join "" (map #(save-pragma env (emit % statement-env)) bl))
-                       (emit l (assoc env :context
+        expr-env (assoc env :context :expr)
+        ;; iife? (and (seq bl) (= :expr ctx))
+        s
+        (cond-> (str (str/join ",\n" (map #(save-pragma expr-env (emit % expr-env)) exprs #_bl))
+                       #_(emit l expr-env #_(assoc env :context
                                       (if iife? :return
                                           ctx))))
-            iife?
+            #_#_iife?
             (wrap-iife))]
-    s))
+    (emit-return (format "(%s)" s) env)))
 
 (defmethod emit-special 'do [_type env [_ & exprs]]
   (emit-do env exprs))
@@ -430,8 +432,10 @@
                 (when *cljs-ns*
                   (str (munge *cljs-ns*) ".") #_"var ")
                 (munge name))
-           (str "var " (munge name))) " = "
-         (emit expr (expr-env env)) ";\n")))
+           (str #_"var " (munge name))) " = "
+         (emit expr (expr-env env))
+         (when (= :statement (:context env))
+           ";\n"))))
 
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
