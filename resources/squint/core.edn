@@ -201,6 +201,8 @@
   update
   update_BANG_
   update_in
+  update_keys
+  update_vals
   val
   vals
   vec

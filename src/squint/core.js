@@ -64,6 +64,24 @@ export function satisfies_QMARK_(protocol, x) {
   return x[protocol];
 }
 
+function mapAssocMut(m, k, v) {
+  m.set(k, v);
+  return m;
+}
+
+function objAssocMut(m, k, v) {
+  m[k] = v;
+  return m;
+}
+
+function getAssocMut(m) {
+  switch (typeConst(m)) {
+    case MAP_TYPE: return mapAssocMut;
+    case ARRAY_TYPE:
+    case OBJECT_TYPE: return objAssocMut;
+  }
+}
+
 export function assoc_BANG_(m, k, v, ...kvs) {
   if (kvs.length % 2 !== 0) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
@@ -2341,4 +2359,22 @@ export function pop(vec) {
   } else {
     return rest(vec);
   }
+}
+
+export function update_keys(m, f) {
+  const m2 = empty(m);
+  const assocFn = getAssocMut(m) || assoc_BANG_;
+  reduce_kv( (acc, k, v) => {
+    return assocFn(acc, f(k), v);
+  }, m2, m);
+  return m2;
+}
+
+export function update_vals(m, f) {
+  const m2 = empty(m);
+  const assocFn = getAssocMut(m) || assoc_BANG_;
+  reduce_kv( (acc, k, v) => {
+    return assocFn(acc, k, f(v));
+  }, m2, m);
+  return m2;
 }
