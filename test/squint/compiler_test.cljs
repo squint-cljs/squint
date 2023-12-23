@@ -2196,6 +2196,8 @@ new Foo();")
 (deftest gen-test
   (is (eq [0 1 2 3 4 5 6]
           (jsv! "(defn ^:gen foo [] (let [f (fn [] 0)] (js-yield (f))) (js-yield 1) (js-yield 2) (js-yield (let [x (do (js-yield 3) 4)] x)) (js-yield* [5 6])) (vec (foo))")))
+  (testing "varargs"
+    (is (eq [0 1 2 3] (jsv! "(defn ^:gen foo [& xs] (js-yield 0) (js-yield* xs)) (vec (foo 1 2 3))"))))
   (testing "multi-arity"
     (is (eq [6 7] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x] (js-yield x))) (into [] cat [(foo) (foo 7)])")))))
 

@@ -231,7 +231,7 @@
                        (.
                         ;; prevent resolving rname, for REPL mode
                         ~(list 'js* (str rname)) (~'cljs$core$IFn$_invoke$arity$variadic ~@(dest-args c-1) argseq#)))))
-                {:async async
+                nil #_{:async async
                  :gen gen})]
          ~(variadic-fn* name method)
          ~name))))
