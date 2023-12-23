@@ -272,15 +272,24 @@
                      env)))))
 
 (defn wrap-await
-  ([s] (wrap-await s false))
-  ([s _return?]
-   (format "(%s)" (str "await " s))))
+  [s _env]
+  (format "(%s)" (str "await " s)))
+
+(defn yield-iife
+  [s env]
+  (if (:gen env)
+    (format "yield* (%s)" s)
+    s))
 
 (defn wrap-iife
-  ([s] (wrap-iife s false))
-  ([s return?]
-   (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
-     *async* (wrap-await return?))))
+  [s env]
+  (cond-> (format "(%sfunction%s () {\n %s\n})()"
+                  (if *async* "async " "")
+                  (if (:gen env)
+                    "*" "")
+                  s)
+    *async* (wrap-await env)
+    true (yield-iife env)))
 
 (defn save-pragma [env next-t]
   (let [p (:pragmas env)
@@ -311,7 +320,7 @@
                                       (if iife? :return
                                           ctx))))
             iife?
-            (wrap-iife))]
+            (wrap-iife env))]
     s))
 
 (defmethod emit-special 'do [_type env [_ & exprs]]
@@ -359,7 +368,7 @@
                ;; (loop [x 1] (+ 1 2 x)) breaks
                (str ";break;\n}\n")))
       iife?
-      (wrap-iife)
+      (wrap-iife env)
       iife?
       (emit-return enc-env))))
 
@@ -444,7 +453,7 @@
       (emit-var more skip-var? env))))
 
 (defn js-await [env more]
-  (emit-return (wrap-await (emit more (expr-env env))) env))
+  (emit-return (wrap-await (emit more (expr-env env)) env) env))
 
 (defmethod emit-special 'js/await [_ env [_await more]]
   (js-await env more))
@@ -727,8 +736,12 @@ break;}" body)
                    body)]
         (str (when-not elide-function?
                (str (when *async*
-                      "async ") "function " #_(when name
-                                              (str name " "))))
+                      "async ") "function"
+                    (when (:gen env)
+                      "*")
+                    " "
+                    #_(when name
+                        (str name " "))))
              (comma-list (map munge sig))
              " {\n"
              body "\n}")))))
@@ -744,7 +757,12 @@ break;}" body)
           (let [signature (first expr)
                 body (rest expr)]
             (str (when *async*
-                   "async ") "function " (munge name) " "
+                   "async ") "function"
+                 ;; TODO: why is this duplicated here and in emit-function?
+                 (when (:gen env)
+                   "*")
+                 " "
+                 (munge name) " "
                  (emit-function env name signature body true)))
           (let [signature (first expr)
                 body (rest expr)]
@@ -755,7 +773,9 @@ break;}" body)
         (emit-return env))))
 
 (defmethod emit-special 'fn* [_type env [_fn & sigs :as expr]]
-  (let [async? (:async (meta expr))]
+  (let [async? (:async (meta expr))
+        gen? (:gen (meta expr))
+        env (assoc env :gen gen?)]
     (binding [*async* async?]
       (emit-function* env sigs (meta expr)))))
 
@@ -856,12 +876,19 @@ break;}" body)
 (defmethod emit-special 'js-in [_ env [_ key obj]]
   (bool-expr (emit (list 'js* "~{} in ~{}" key obj) env)))
 
+(defmethod emit-special 'js-yield [_ env [_ key obj]]
+  (emit (list 'js* "yield ~{}" key obj) env))
+
+(defmethod emit-special 'js-yield* [_ env [_ key obj]]
+  (emit (list 'js* "yield* ~{}" key obj) env))
+
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
   ;; RegExp case moved here:
   ;; References to the global RegExp object prevents optimization of regular expressions.
   (emit (vec expr) env))
 
-(def special-forms '#{zero? pos? neg? js-delete nil? js-in})
+(def special-forms '#{zero? pos? neg? js-delete nil? js-in js-yield
+                      js-yield*})
 
 (derive #?(:clj clojure.lang.Cons :cljs Cons) ::list)
 (derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)

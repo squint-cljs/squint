@@ -124,13 +124,16 @@
         env (update env :var->ident merge (assoc (zipmap arglist arglist)
                                                  'super "super"
                                                  this-arg (munge this-arg)))
-        async? (:async (meta fn-name))
+        mf (meta fn-name)
+        async? (:async mf)
+        gen? (:gen mf)
         env (if async? (assoc env :async async?) env)]
     (async-fn async?
               (fn []
                 (str
                  (when async?
                    "async ")
+                 (when gen? "* ")
                  (emit-fn fn-name env) "("
                  (str/join ", " (emit-args env emit-fn arglist))
                  ") { \n"
