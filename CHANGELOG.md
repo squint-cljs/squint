@@ -4,7 +4,7 @@
 
 ## v0.5.86 (2023-12-23)
 
-- Support `^:gen` + `js-yield` + `js-yield*` to write JS generator functions
+- Support `^:gen` + `js-yield` + `js-yield*` to write JS generator functions. See [playground](https://squint-cljs.github.io/squint/?src=KGRlZm4gXjpnZW4gZm9vIFtdCiAgKGpzLXlpZWxkIDEpCiAgKGpzLXlpZWxkKiBbMiAzXSkKICAobGV0IFt4IChpbmMgMyldCiAgICAoanMteWllbGQgeCkpCiAgKGxldCBbeCAoZG8gKGpzLXlpZWxkIDUpCiAgICAgICAgICAgIDYpXQogICAgKGpzLXlpZWxkIHgpKSkKCih2ZWMgKGZvbykp)
 - Add `update-keys` and `update-vals`
 - Add `=` as reified function
 

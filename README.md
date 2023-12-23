@@ -232,6 +232,8 @@ Anonymous functions must have `^:gen` on the argument vector:
 (^:gen fn [] (js-yield 1) (js-yield 2))
 ```
 
+See the [playground](https://squint-cljs.github.io/squint/?src=KGRlZm4gXjpnZW4gZm9vIFtdCiAgKGpzLXlpZWxkIDEpCiAgKGpzLXlpZWxkKiBbMiAzXSkKICAobGV0IFt4IChpbmMgMyldCiAgICAoanMteWllbGQgeCkpCiAgKGxldCBbeCAoZG8gKGpzLXlpZWxkIDUpCiAgICAgICAgICAgIDYpXQogICAgKGpzLXlpZWxkIHgpKSkKCih2ZWMgKGZvbykp) for an example.
+
 ## Defclass
 
 See [doc/defclass.md](doc/defclass.md).
