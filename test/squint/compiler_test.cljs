@@ -520,6 +520,9 @@
                (is false (.-message err))))
      (.finally #(done)))))
 
+(deftest async-await-multi-arity-test
+  (is (instance? js/Promise (jsv! "(defn ^:async foo ([] (js-await (+ 1 2 3) 4)) ([x] (js-await x) 5)) (foo)"))))
+
 (deftest top-level-await-test
   (is (str/includes? (jss! "(js-await 1)") "await")))
 
@@ -2192,7 +2195,9 @@ new Foo();")
 
 (deftest gen-test
   (is (eq [0 1 2 3 4 5 6]
-          (jsv! "(defn ^:gen foo [] (let [f (fn [] 0)] (js-yield (f))) (js-yield 1) (js-yield 2) (js-yield (let [x (do (js-yield 3) 4)] x)) (js-yield* [5 6])) (vec (foo))"))))
+          (jsv! "(defn ^:gen foo [] (let [f (fn [] 0)] (js-yield (f))) (js-yield 1) (js-yield 2) (js-yield (let [x (do (js-yield 3) 4)] x)) (js-yield* [5 6])) (vec (foo))")))
+  (testing "multi-arity"
+    (is (eq [6 7] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x] (js-yield x))) (into [] cat [(foo) (foo 7)])")))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

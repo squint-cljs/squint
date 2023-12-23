@@ -50,7 +50,9 @@
   ([sym [arglist & body :as _method] solo]
    (let [sig (remove '#{&} arglist)
          restarg (gensym "seq")
-         async (:async (meta sym))]
+         sm (meta sym)
+         async (:async sm)
+         gen (:gen sm)]
      (letfn [(get-delegate []
                'cljs$core$IFn$_invoke$arity$variadic)
              (get-delegate-prop []
@@ -67,18 +69,21 @@
                          (let [~@(mapcat param-bind params)]
                            (this-as self#
                              (. self# (~(get-delegate) ~@params ~restarg))))))
-                     {:async async}))
+                     {:async async
+                      :gen gen}))
                  (with-meta
                    `(fn
                       ([~restarg]
                        (this-as self#
                          (. self# (~(get-delegate) (seq ~restarg))))))
-                   {:async async})))]
+                   {:async async
+                    :gen gen})))]
        `(do
           (set! (. ~sym ~(get-delegate-prop))
                 ~(with-meta `(fn (~(vec sig)
                                   ~@body))
-                   {:async async}))
+                   {:async async
+                    :gen gen}))
           ~@(when solo
               `[(set! (. ~sym ~'-cljs$lang$maxFixedArity)
                       ~(dec (count sig)))])
@@ -110,7 +115,9 @@
                                  {:variadic? false :fixed-arity (count sig)})
                      ~(symbol (str "-cljs$core$IFn$_invoke$arity$"
                                    (count sig))))
-                  (fn ~method))))]
+                  ~(with-meta
+                     `(fn ~method)
+                     (select-keys meta [:gen :async])))))]
       (let [rname    (symbol
                       ;; TODO:
                       #_(str  ana/*cljs-ns*) (str name))
@@ -193,6 +200,7 @@
             (map (fn [n] (core-unchecked-get (core-js-arguments) n))
                  (range c)))]
     (let [async (:async meta)
+          gen (:gen meta)
           name (or name (gensym "f"))
           rname (symbol #_(str nil #_ana/*cljs-ns*) (str name))
           sig   (remove '#{&} arglist)
@@ -208,7 +216,8 @@
                         :arglists (cond-> (list arglist) macro? elide-implicit-macro-args)
                         :arglists-meta (doall (map clojure.core/meta [arglist]))}
                        :squint.compiler/no-rename true
-                       :async async)
+                       :async async
+                       :gen gen)
           name  (with-meta name meta)
           args-sym (gensym "args")]
       `(let [~name
@@ -222,7 +231,8 @@
                        (.
                         ;; prevent resolving rname, for REPL mode
                         ~(list 'js* (str rname)) (~'cljs$core$IFn$_invoke$arity$variadic ~@(dest-args c-1) argseq#)))))
-                {:async async})]
+                {:async async
+                 :gen gen})]
          ~(variadic-fn* name method)
          ~name))))
 
