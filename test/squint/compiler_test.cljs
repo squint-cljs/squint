@@ -2190,5 +2190,9 @@ new Foo();")
   (is (= 3 (jsv! '(peek [1 2 3]))))
   (is (eq [1 2] (jsv! '(pop [1 2 3])))))
 
+(deftest gen-test
+  (is (eq [1 2 3 4 5 6]
+          (jsv! "(defn ^:gen foo [] (js-yield 1) (js-yield 2) (js-yield (let [x (do (js-yield 3) 4)] x)) (js-yield* [5 6])) (vec (foo))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

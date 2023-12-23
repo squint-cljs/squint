@@ -274,8 +274,12 @@
                                body)]
                     (maybe-destructured params body)))
         m (meta name)
-        async? (:async (meta &form))
-        m (cond-> m async? (assoc :async true))
+        mf (meta &form)
+        async? (:async mf)
+        gen? (:gen mf)
+        m (cond-> m
+            async? (assoc :async true)
+            gen? (assoc :gen true))
         new-sigs (map psig sigs)]
     (cond
       (< 1 (count sigs))
