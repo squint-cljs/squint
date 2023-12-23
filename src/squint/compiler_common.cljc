@@ -405,7 +405,7 @@
              (when expr?
                (str "return " gs ";"))
              "}")
-      expr? (wrap-iife))))
+      expr? (wrap-iife env))))
 
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [gensym (:gensym env)
@@ -821,7 +821,7 @@ break;}" body)
                               (emit-do (assoc env :context :statement) finally-body)
                               "}\n")))
             (not= :statement (:context env))
-            (wrap-iife))
+            (wrap-iife env))
           (emit-return outer-env)))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
