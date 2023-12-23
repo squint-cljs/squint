@@ -543,6 +543,7 @@
      (.finally #(done)))))
 
 (deftest async-await-anon-fn-test
+  (is (instance? js/Promise (jsv! "((fn ^:async foo [] (js-await {})))")))
   (is (instance? js/Promise (jsv! "((^:async fn [] (js-await {})))"))))
 
 (deftest native-js-array-test
@@ -1696,7 +1697,7 @@
                        "return class Foo"))
     (-> (jsv! (str (fs/readFileSync "test-resources/defclass_test.cljs")))
         (.then (fn [v]
-                 (is (= "<<<<1-3-3>>>>,1-3-3,6" (str v)))))
+                 (is (= "<<<<1-3-3>>>>,1-3-3,6,1,2,foo,bar" (str v)))))
         (.finally done))))
 
 (deftest atom-test
@@ -2202,7 +2203,8 @@ new Foo();")
     (is (eq [6 7] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x] (js-yield x))) (into [] cat [(foo) (foo 7)])"))))
   (testing "multi-arirt + variadic"
     (is (eq [6 7 8 9] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x & xs] (js-yield x) (js-yield* xs))) (into [] cat [(foo) (foo 7 8 9)])"))))
-  (is (eq [1 2] (jsv! "(vec ((^:gen fn [] (js-yield 1) (js-yield 2))))"))))
+  (is (eq [1 2] (jsv! "(vec ((^:gen fn [] (js-yield 1) (js-yield 2))))")))
+  (is (eq [1 2] (jsv! "(vec ((fn ^:gen foo [] (js-yield 1) (js-yield 2))))"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
