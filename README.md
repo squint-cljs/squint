@@ -196,7 +196,7 @@ See an example of an application using JSX [here](https://squint-cljs.github.io/
 
 ## Async/await
 
-squint supports `async/await`:
+Squint supports `async/await`:
 
 ``` clojure
 (defn ^:async foo [] (js/Promise.resolve 10))
@@ -204,6 +204,32 @@ squint supports `async/await`:
 (def x (js-await (foo)))
 
 (println x) ;;=> 10
+```
+
+Anonymous functions must have `^:async` on the `fn` symbol or the function's name:
+
+``` clojure
+(^:async fn [] (js-await {}) 3)
+```
+
+## Generator functions
+
+Generator functions must be marked with `^:gen`:
+
+``` clojure
+(defn ^:gen foo []
+  (js-yield 1)
+  (js-yield* [2 3])
+  (let [x (inc 3)]
+    (yield x)))
+
+(vec (foo)) ;;=> [1 2 3 4]
+```
+
+Anonymous functions must have `^:gen` on the argument vector:
+
+``` clojure
+(^:gen fn [] (js-yield 1) (js-yield 2))
 ```
 
 ## Defclass

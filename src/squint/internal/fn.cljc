@@ -284,7 +284,7 @@
                                body)]
                     (maybe-destructured params body)))
         m (meta name)
-        mf (meta &form)
+        mf (merge (meta &form) (meta (first &form)))
         async? (:async mf)
         gen? (:gen mf)
         m (cond-> m
@@ -307,7 +307,7 @@
         (if name
           (list* 'fn* name new-sigs)
           (cons 'fn* new-sigs))
-        (meta &form)))))
+        (merge mf m)))))
 
 (defn
   ^{:doc "Same as (def name (core/fn [params* ] exprs*)) or (def

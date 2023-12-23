@@ -2,6 +2,12 @@
 
 [Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
 
+## v0.5.86 (2023-12-23)
+
+- Support `^:gen` + `js-yield` + `js-yield*` to write JS generator functions
+- Add `update-keys` and `update-vals`
+- Add `=` as reified function
+
 ## v0.4.85 (2023-12-20)
 
 - [#449](https://github.com/squint-cljs/squint/issues/449): fix issue with `:refer`

@@ -542,6 +542,9 @@
                (is false (.-message err))))
      (.finally #(done)))))
 
+(deftest async-await-anon-fn-test
+  (is (instance? js/Promise (jsv! "((^:async fn [] (js-await {})))"))))
+
 (deftest native-js-array-test
   (let [s (jss! "(let [x 2
                        x #js [1 2 x]]
@@ -2198,7 +2201,8 @@ new Foo();")
   (testing "multi-arity"
     (is (eq [6 7] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x] (js-yield x))) (into [] cat [(foo) (foo 7)])"))))
   (testing "multi-arirt + variadic"
-    (is (eq [6 7 8 9] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x & xs] (js-yield x) (js-yield* xs))) (into [] cat [(foo) (foo 7 8 9)])")))))
+    (is (eq [6 7 8 9] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x & xs] (js-yield x) (js-yield* xs))) (into [] cat [(foo) (foo 7 8 9)])"))))
+  (is (eq [1 2] (jsv! "(vec ((^:gen fn [] (js-yield 1) (js-yield 2))))"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
