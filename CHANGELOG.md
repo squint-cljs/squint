@@ -1,6 +1,6 @@
 # Changelog
 
-[Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
+[Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
 ## v0.5.86 (2023-12-23)
 
