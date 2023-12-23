@@ -507,10 +507,10 @@
   (async done
     (->
      (.then (jsv! '(do (defn ^:async foo []
-                         (js/await (js/Promise.resolve :hello)))
+                         (js-await (js/Promise.resolve :hello)))
 
                        (defn ^:async bar []
-                         (let [x (js/await (foo))]
+                         (let [x (js-await (foo))]
                            x))
 
                        (bar)))
@@ -520,17 +520,14 @@
                (is false (.-message err))))
      (.finally #(done)))))
 
-(deftest async-await-multi-arity-test
-  (is (instance? js/Promise (jsv! "(defn ^:async foo ([] (js-await (+ 1 2 3) 4)) ([x] (js-await x) 5)) (foo)"))))
-
 (deftest top-level-await-test
   (is (str/includes? (jss! "(js-await 1)") "await")))
 
 (deftest await-variadic-test
   (async done
     (->
-     (.then (jsv! '(do (defn ^:async foo [& xs] (js/await 10))
-                       (defn ^:async bar [x & xs] (js/await 20))
+     (.then (jsv! '(do (defn ^:async foo [& xs] (js-await 10))
+                       (defn ^:async bar [x & xs] (js-await 20))
                        (defn ^:async baz
                          ([x] (baz x 1 2 3))
                          ([x & xs]
@@ -2199,7 +2196,9 @@ new Foo();")
   (testing "varargs"
     (is (eq [0 1 2 3] (jsv! "(defn ^:gen foo [& xs] (js-yield 0) (js-yield* xs)) (vec (foo 1 2 3))"))))
   (testing "multi-arity"
-    (is (eq [6 7] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x] (js-yield x))) (into [] cat [(foo) (foo 7)])")))))
+    (is (eq [6 7] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x] (js-yield x))) (into [] cat [(foo) (foo 7)])"))))
+  (testing "multi-arirt + variadic"
+    (is (eq [6 7 8 9] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x & xs] (js-yield x) (js-yield* xs))) (into [] cat [(foo) (foo 7 8 9)])")))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
