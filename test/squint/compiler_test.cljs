@@ -1164,8 +1164,10 @@
                   (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
                       (js/Map.))))))
   (testing "nil"
-    (is (eq () (jsv! '(map-indexed vector nil))))
-    (is (eq () (jsv! '(map-indexed vector js/undefined))))))
+    (is (eq () (jsv! '(map-indexed vector nil)))))
+  (testing "transducer"
+    (is (eq [[0 10] [1 11] [2 12] [3 13] [4 14] [5 15] [6 16] [7 17] [8 18] [9 19]]
+            (jsv! "(into [] (map-indexed vector) (range 10 20))")))))
 
 (deftest complement-test
   (is (= false (jsv! '((complement (constantly true))))))

@@ -806,8 +806,24 @@ export function remove(pred, coll) {
   return filter(complement(pred), coll);
 }
 
+function map_indexed1(f) {
+  return (rf) => {
+    let i = -1;
+    return (...args) => {
+      switch (args.length) {
+        case 0: return rf();
+        case 1: return rf(args[0]);
+        case 2: return rf(args[0], f((i = i + 1, i), args[1]));
+      }
+    };
+  };
+}
+
 export function map_indexed(f, coll) {
   f = toFn(f);
+  if (coll === undefined) {
+    return map_indexed1(f);
+  }
   const ret = [];
   let i = 0;
   for (const x of iterable(coll)) {
