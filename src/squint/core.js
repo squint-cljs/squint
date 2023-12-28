@@ -821,7 +821,7 @@ function map_indexed1(f) {
 
 export function map_indexed(f, coll) {
   f = toFn(f);
-  if (coll === undefined) {
+  if (arguments.length === 1) {
     return map_indexed1(f);
   }
   const ret = [];
@@ -868,7 +868,7 @@ function keep_indexed1(f) {
 }
 
 export function keep_indexed(f, coll) {
-  if (coll === undefined) {
+  if (arguments.length === 1) {
     return keep_indexed1(f);
   } else {
     return keep_indexed2(f, coll);
