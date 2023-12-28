@@ -916,30 +916,32 @@ export function prn(...xs) {
   println(pr_str(...xs));
 }
 
-export function Atom(init) {
-  this.val = init;
-  this._watches = {};
-  this._deref = () => this.val;
-  this._hasWatches = false;
-  this._reset_BANG_ = (x) => {
-    const old_val = this.val;
-    this.val = x;
-    if (this._hasWatches) {
-      for (const entry of Object.entries(this._watches)) {
-        const k = entry[0];
-        const f = entry[1];
-        f(k, this, old_val, x);
+export class Atom {
+  constructor(init) {
+    this.val = init;
+    this._watches = {};
+    this._deref = () => this.val;
+    this._hasWatches = false;
+    this._reset_BANG_ = (x) => {
+      const old_val = this.val;
+      this.val = x;
+      if (this._hasWatches) {
+        for (const entry of Object.entries(this._watches)) {
+          const k = entry[0];
+          const f = entry[1];
+          f(k, this, old_val, x);
+        }
       }
-    }
-    return x;
-  };
-  this._add_watch = (k, fn) => {
-    this._watches[k] = fn;
-    this._hasWatches = true;
-  };
-  this._remove_watch = (k) => {
-    delete this._watches[k];
-  };
+      return x;
+    };
+    this._add_watch = (k, fn) => {
+      this._watches[k] = fn;
+      this._hasWatches = true;
+    };
+    this._remove_watch = (k) => {
+      delete this._watches[k];
+    };
+  }
 }
 
 export function atom(init) {
