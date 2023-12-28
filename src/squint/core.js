@@ -1144,7 +1144,33 @@ export function interleave(...colls) {
   });
 }
 
+function interpose1(sep) {
+  return (rf) => {
+    let started = false;
+    return (...args) => {
+      switch (args.length) {
+        case 0: return rf();
+        case 1: return rf(args[0]);
+        case 2: {
+          if (started) {
+            const sepr = rf(args[0], sep);
+            if (reduced_QMARK_(sepr)) {
+              return sepr;
+            } else {
+              return rf(sepr, args[1]);
+            }
+          } else {
+            started = true;
+            return rf(args[0], args[1]);
+          }
+        }
+      }
+    };
+  };
+}
+
 export function interpose(sep, coll) {
+  if (arguments.length === 1) return interpose1(sep);
   return drop(1, interleave(repeat(sep), coll));
 }
 
