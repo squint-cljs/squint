@@ -26,7 +26,7 @@ function walkArray(arr, comp) {
 }
 
 export function _EQ_(...xs) {
-  return walkArray(xs, (x,y) => x === y);
+  return walkArray(xs, (x, y) => x === y);
 }
 
 export function _GT_(...xs) {
@@ -1187,7 +1187,50 @@ export function select_keys(o, ks) {
   return ret;
 }
 
+export function unreduced(x) {
+  if (reduced_QMARK_(x)) {
+    return deref(x);
+  } else {
+    return x;
+  }
+}
+
+function partition_all1(n) {
+  return (rf) => {
+    let a = [];
+    return (...args) => {
+      let result, v;
+      switch (args.length) {
+        case 0: return rf();
+        case 1: {
+          result = args[0];
+          if (a.length !== 0) {
+            v = [...a];
+            a = [];
+            result = unreduced(rf(result, v));
+          }
+          return rf(result);
+        }
+        case 2: {
+          result = args[0];
+          a.push(args[1]);
+          if (n === a.length) {
+            v = [...a];
+            a = [];
+            return rf(result, v);
+          } else {
+            return result;
+          }
+        }
+      }
+    };
+  };
+}
+
 export function partition_all(n, ...args) {
+  if (arguments.length === 1) {
+    return partition_all1(n);
+  }
   let step = n,
     coll = args[0];
 
@@ -2408,7 +2451,7 @@ export function pop(vec) {
 export function update_keys(m, f) {
   const m2 = empty(m);
   const assocFn = getAssocMut(m) || assoc_BANG_;
-  reduce_kv( (acc, k, v) => {
+  reduce_kv((acc, k, v) => {
     return assocFn(acc, f(k), v);
   }, m2, m);
   return m2;
@@ -2417,7 +2460,7 @@ export function update_keys(m, f) {
 export function update_vals(m, f) {
   const m2 = empty(m);
   const assocFn = getAssocMut(m) || assoc_BANG_;
-  reduce_kv( (acc, k, v) => {
+  reduce_kv((acc, k, v) => {
     return assocFn(acc, k, f(v));
   }, m2, m);
   return m2;
