@@ -1408,7 +1408,8 @@
                               s)
                       s'' (take 2 s')]
                   (vec s'')
-                  (:count o))))))
+                  (:count o)))))
+  (is (eq [0 1 2] (jsv! "(into [] (take 3) (range))"))))
 
 (deftest take-while-test
   (is (eq [2 4] (jsv! '(vec (take-while even? [2 4 5])))))

@@ -1472,7 +1472,49 @@ export function repeat(...args) {
   };
 }
 
+export function ensure_reduced(x) {
+  if (reduced_QMARK_(x)) {
+    return x;
+  } else {
+    return reduced(x);
+  }
+}
+
+function take1(n) {
+  return (rf) => {
+    let na = n;
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) {
+        return rf();
+      }
+      if (al === 1) {
+        const result = args[0];
+        return rf(result);
+      }
+      if (al === 2) {
+        let result = args[0];
+        const input = args[1];
+        const n = na;
+        const nn = (na = na - 1, na);
+        if (n > 0) {
+          result = rf(result, input);
+        }
+        if (!(nn > 0)) {
+          return ensure_reduced(result);
+        }
+        else {
+          return result;
+        }
+      }
+    };
+  };
+}
+
 export function take(n, coll) {
+  if (arguments.length === 1) {
+    return take1(n);
+  }
   return lazy(function* () {
     let i = n - 1;
     for (const x of iterable(coll)) {
