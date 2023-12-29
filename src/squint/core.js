@@ -1282,8 +1282,54 @@ function partitionInternal(n, step, pad, coll, all) {
   });
 }
 
+function partition_by1(f) {
+  return (rf) => {
+    let a = [];
+    const none = {};
+    let pa = none;
+    return (...args) => {
+      const l = args.length;
+      let v;
+      if (l === 0) {
+        return rf();
+      }
+      if (l === 1) {
+        let result = args[0];
+        if (a.length !== 0) {
+          const v = [...a];
+          a = [];
+          result = unreduced(rf(result, v));
+        }
+        return rf(result);
+      }
+      if (l === 2) {
+        const result = args[0];
+        const input = args[1];
+        const pval = pa;
+        const val = f(input);
+        pa = val;
+        if (pval === none || val === pval) {
+          a.push(input);
+          return result;
+        } else {
+          const v = [...a];
+          a = [];
+          const ret = rf(result, v);
+          if (!reduced_QMARK_(ret)) {
+            a.push(input);
+          }
+          return ret;
+        }
+      }
+    };
+  };
+}
+
 export function partition_by(f, coll) {
   f = toFn(f);
+  if (arguments.length === 1) {
+    return partition_by1(f);
+  }
   return lazy(function* () {
     const iter = es6_iterator(coll);
     const _fst = iter.next();
