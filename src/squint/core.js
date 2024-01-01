@@ -1589,7 +1589,32 @@ export function cycle(coll) {
   });
 }
 
+function drop1(n) {
+  return (rf) => {
+    let na = n;
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) {
+        return rf();
+      }
+      if (al === 1) {
+        return rf(args[0]);
+      }
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        const n = na;
+        na--;
+        if (n > 0) {
+          return result;
+        } else return rf(result, input);
+      }
+    };
+  };
+}
+
 export function drop(n, xs) {
+  if (arguments.length === 1) return drop1(n);
   return lazy(function* () {
     const iter = _iterator(iterable(xs));
     for (let x = 0; x < n; x++) {
