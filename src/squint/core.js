@@ -2600,3 +2600,13 @@ export function update_vals(m, f) {
   }, m2, m);
   return m2;
 }
+
+class Eduction {
+  constructor(xforms, coll) {
+    this.xforms = xforms;
+    this.coll = coll;
+  }
+  [Symbol.iterator]() {
+    
+  }
+}
