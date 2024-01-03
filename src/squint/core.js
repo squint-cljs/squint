@@ -1624,8 +1624,35 @@ export function drop(n, xs) {
   });
 }
 
+function drop_while1(pred) {
+  return (rf) => {
+    let da = true;
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) {
+        return rf();
+      }
+      if (al === 1) {
+        return rf(args[0]);
+      }
+      if (al === 2) {
+        const isDrop = da;
+        const result = args[0];
+        const input = args[1];
+        if (isDrop && truth_(pred(input))) {
+          return result;
+        } else {
+          da = null;
+          return rf(result, input);
+        }
+      }
+    };
+  };
+}
+
 export function drop_while(pred, xs) {
   pred = toFn(pred);
+  if (arguments.length === 1) return drop_while1(pred);
   return lazy(function* () {
     const iter = _iterator(iterable(xs));
     while (true) {
