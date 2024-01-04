@@ -1670,7 +1670,26 @@ export function drop_while(pred, xs) {
   });
 }
 
+function distinct1() {
+  return (rf) => {
+    const seen = new Set();
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) return rf();
+      if (al === 1) return rf(args[0]);
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        if (seen.has(input)) return result;
+        seen.add(input);
+        return rf(result, input);
+      }
+    };
+  };
+}
+
 export function distinct(coll) {
+  if (arguments.length === 0) return distinct1();
   return lazy(function* () {
     const seen = new Set();
     for (const x of iterable(coll)) {
