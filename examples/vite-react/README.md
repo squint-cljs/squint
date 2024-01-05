@@ -8,7 +8,7 @@ To set up a project with vite + react, go through the following steps:
 
   ```
   $ npm install --save-dev vite
-  $ npm install react-dom
+  $ npm install react react-dom
   $ npm install squint-cljs
   ```
 
