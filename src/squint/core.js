@@ -1742,8 +1742,26 @@ export function not_every_QMARK_(pred, coll) {
   return !every_QMARK_(pred, coll);
 }
 
+function keep1(pred) {
+  return (rf) => {
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) return rf();
+      if (al === 1) return rf(args[0]);
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        const v = pred(input);
+        if (v == null) return result;
+        return rf(result, v);
+      }
+    };
+  };
+}
+
 export function keep(pred, coll) {
   pred = toFn(pred);
+  if (arguments.length === 1) return keep1(pred);
   return lazy(function* () {
     for (const o of iterable(coll)) {
       const res = pred(o);
