@@ -1560,7 +1560,28 @@ export function take_while(pred, coll) {
   });
 }
 
+function take_nth1(n) {
+  return (rf) => {
+      let ia = -1;
+      return (...args) => {
+        const al = args.length;
+        if (al === 0) return rf();
+        if (al === 1) return rf(args[0]);
+        if (al === 2) {
+          const result = args[0];
+          const input = args[1];
+          ia++;
+          const i = ia;
+          if (rem(i, n) === 0) {
+            return rf(result, input);
+          } else return result;
+        }
+      };
+  };
+}
+
 export function take_nth(n, coll) {
+  if (arguments.length === 1) return take_nth1(n);
   if (n <= 0) {
     return repeat(first(coll));
   }
