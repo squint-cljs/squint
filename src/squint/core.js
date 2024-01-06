@@ -605,7 +605,7 @@ export function reduced_QMARK_(x) {
 export function reduce(f, arg1, arg2) {
   f = toFn(f);
   let coll, val;
-  if (arg2 === undefined) {
+  if (arguments.length === 2) {
     // (reduce f coll)
     const iter = iterable(arg1)[Symbol.iterator]();
     const vd = iter.next();
@@ -659,7 +659,7 @@ function* _reductions3(f, init, coll) {
 
 export function reductions(f, arg1, arg2) {
   f = toFn(f);
-  if (arg2 === undefined) {
+  if (arguments.length === 2) {
     return lazy(function* () {
       yield* _reductions2(f, iterable(arg1)[Symbol.iterator]());
     });
@@ -785,7 +785,7 @@ function filter1(pred) {
 }
 
 export function filter(pred, coll) {
-  if (coll === undefined) {
+  if (arguments.length === 1) {
     return filter1(pred);
   }
   pred = toFn(pred);
@@ -850,19 +850,24 @@ function keep_indexed2(f, coll) {
 function keep_indexed1(f) {
   return (rf) => {
     let ia = -1;
-    return (result, input) => {
-      if (result === undefined) {
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) {
         return rf();
       }
-      if (input === undefined) {
-        return rf(result);
+      if (al === 1) {
+        return rf(args[0]);
       }
-      ia++;
-      const v = f(ia, input);
-      if (v == null) {
-        return result;
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        ia++;
+        const v = f(ia, input);
+        if (v == null) {
+          return result;
+        }
+        return rf(result, v);
       }
-      return rf(result, v);
     };
   };
 }
@@ -1562,21 +1567,21 @@ export function take_while(pred, coll) {
 
 function take_nth1(n) {
   return (rf) => {
-      let ia = -1;
-      return (...args) => {
-        const al = args.length;
-        if (al === 0) return rf();
-        if (al === 1) return rf(args[0]);
-        if (al === 2) {
-          const result = args[0];
-          const input = args[1];
-          ia++;
-          const i = ia;
-          if (rem(i, n) === 0) {
-            return rf(result, input);
-          } else return result;
-        }
-      };
+    let ia = -1;
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) return rf();
+      if (al === 1) return rf(args[0]);
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        ia++;
+        const i = ia;
+        if (rem(i, n) === 0) {
+          return rf(result, input);
+        } else return result;
+      }
+    };
   };
 }
 
@@ -1797,7 +1802,7 @@ export function reverse(coll) {
 }
 
 export function sort(f, coll) {
-  if (coll === undefined) {
+  if (arguments.length === 1) {
     coll = f;
     f = undefined;
   }
@@ -1829,7 +1834,7 @@ function fnToComparator(f) {
 }
 
 export function sort_by(keyfn, comp, coll) {
-  if (coll === undefined) {
+  if (arguments.length === 2) {
     coll = comp;
     comp = compare;
   }
@@ -1895,7 +1900,7 @@ function _repeatedly(f) {
 }
 
 export function repeatedly(n, f) {
-  if (f === undefined) {
+  if (arguments.length === 1) {
     f = n;
     n = undefined;
   }
