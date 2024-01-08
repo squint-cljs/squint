@@ -191,7 +191,7 @@
       (emit (list 'cljs.core/&&
                   (list operator (first args) (second args))
                   (list* operator (rest args)))
-            env)
+            enc-env)
       (if (and (= '- operator)
                (= 1 acount))
         (str "-" (emit (first args) env))
