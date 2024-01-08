@@ -4,7 +4,8 @@
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
-   [squint.internal.macros :as macros]))
+   [squint.internal.macros :as macros]
+   [squint.defclass :as defclass]))
 
 (def common-macros
   {'coercive-boolean macros/coercive-boolean
@@ -990,3 +991,17 @@ break;}" body)
                         v)))
         "")
       )))
+
+(defmethod emit-special 'squint.defclass/defclass* [_ env form]
+  (let [name (second form)]
+    (swap! *public-vars* conj name)
+    (emit-return
+     (defclass/emit-class (assoc env :context :statement)
+       emit
+       (fn [async body-fn]
+         (binding [*async* async]
+           (body-fn)))
+       form) env)))
+
+(defmethod emit-special 'squint.defclass/super* [_ env form]
+  (defclass/emit-super env emit (second form)))
