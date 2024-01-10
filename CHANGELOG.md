@@ -2,7 +2,12 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## v0.6.87 (2024-06-23)
+## v0.6.88 (2024-01-10)
+
+- Fix infix operator in return position
+- Allow playground to use JSX in non-REPL mode
+
+## v0.6.87 (2024-01-06)
 
 - Add transducer arity to all existing core functions
 
