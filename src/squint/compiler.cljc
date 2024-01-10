@@ -462,7 +462,7 @@
                                                         :jsx false
                                                         :pragmas pragmas))
                  jsx *jsx*
-                 _ (when (and jsx cc/*repl* jsx-runtime)
+                 _ (when (and jsx jsx-runtime)
                      (swap! imports str
                             (format
                              "var {jsx%s: _jsx, jsx%s%s: _jsxs, Fragment: _Fragment } = await import('%s');\n"
