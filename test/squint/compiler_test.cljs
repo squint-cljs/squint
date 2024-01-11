@@ -2187,7 +2187,7 @@ new Foo();")
 
 (deftest js-doc-compat-test
   (let [js (compiler/compile-string "(js* \"/**\n* @param {number} x\n*/\") (defn foo [x] x)")]
-    (is (str/includes? js "var foo = function"))))
+    (is (re-find #"var foo.* = function" js))))
 
 (deftest memoize-test
   (is (eq #js [1 #js [1 2] 3]
