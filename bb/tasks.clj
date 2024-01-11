@@ -1,6 +1,7 @@
 (ns tasks
   (:require
    [babashka.fs :as fs]
+   [babashka.http-server :as server]
    [babashka.process :as p :refer [shell]]
    [cheshire.core :as json]
    [node-repl-tests]
@@ -35,7 +36,7 @@
 (defn publish []
   (build-squint-npm-package)
   (run! fs/delete (fs/glob "lib" "*.map"))
-  (shell "esbuild src/squint/core.js --minify --format=iife --global-name=squint.core --outfile=lib/squint.core.umd.js")
+  (shell "npx esbuild src/squint/core.js --minify --format=iife --global-name=squint.core --outfile=lib/squint.core.umd.js")
   (shell "npm publish"))
 
 (defn watch-squint []
@@ -86,3 +87,7 @@
       (shell "node_modules/squint-cljs/node_cli.js" "compile")
       (shell "node dist/nextjournal/clojure_mode_tests.mjs")
       (println "clojure-mode tests successful!"))))
+
+(defn start-playground-server [opts]
+  (server/exec (merge {:dir "."}
+                      opts)))

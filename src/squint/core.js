@@ -19,12 +19,38 @@ function toFn(x) {
   return x;
 }
 
-export function _GT_(x, y) {
-  return x > y;
+function walkArray(arr, comp) {
+  return arr.every(function (x, i) {
+    return i === 0 || comp(arr[i - 1], x);
+  });
+}
+
+export function _EQ_(...xs) {
+  return walkArray(xs, (x, y) => x === y);
+}
+
+export function _GT_(...xs) {
+  return walkArray(xs, (x, y) => x > y);
+}
+
+export function _GT__EQ_(...xs) {
+  return walkArray(xs, (x, y) => x >= y);
+}
+
+export function _LT_(...xs) {
+  return walkArray(xs, (x, y) => x < y);
+}
+
+export function _LT__EQ_(...xs) {
+  return walkArray(xs, (x, y) => x <= y);
 }
 
 export function _PLUS_(...xs) {
   return xs.reduce((x, y) => x + y, 0);
+}
+
+export function _STAR_(...xs) {
+  return xs.reduce((x, y) => x * y, 1);
 }
 
 export function _(...xs) {
@@ -36,6 +62,24 @@ export function _(...xs) {
 
 export function satisfies_QMARK_(protocol, x) {
   return x[protocol];
+}
+
+function mapAssocMut(m, k, v) {
+  m.set(k, v);
+  return m;
+}
+
+function objAssocMut(m, k, v) {
+  m[k] = v;
+  return m;
+}
+
+function getAssocMut(m) {
+  switch (typeConst(m)) {
+    case MAP_TYPE: return mapAssocMut;
+    case ARRAY_TYPE:
+    case OBJECT_TYPE: return objAssocMut;
+  }
 }
 
 export function assoc_BANG_(m, k, v, ...kvs) {
@@ -70,7 +114,9 @@ export function assoc_BANG_(m, k, v, ...kvs) {
 function copy(o) {
   switch (typeConst(o)) {
     case MAP_TYPE:
-      return new Map(o.entries());
+      return new Map(o);
+    case SET_TYPE:
+      return new o.constructor(o);
     case ARRAY_TYPE:
       return [...o];
     case OBJECT_TYPE:
@@ -103,7 +149,7 @@ function emptyOfType(type) {
     case ARRAY_TYPE:
       return [];
     case OBJECT_TYPE:
-      return {};
+      return {}; // Object.create?
     case LIST_TYPE:
       return new List();
     case SET_TYPE:
@@ -137,11 +183,16 @@ function typeConst(obj) {
   if (obj instanceof List) return LIST_TYPE;
   if (Array.isArray(obj)) return ARRAY_TYPE;
   if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
+  if (obj instanceof SortedSet) return SET_TYPE;
+
+  // everything more specific than Object should go before this
   if (obj instanceof Object) return OBJECT_TYPE;
+
   return undefined;
 }
 
 function assoc_in_with(f, fname, o, keys, value) {
+  keys = vec(keys);
   const baseType = typeConst(o);
   if (baseType !== MAP_TYPE && baseType !== ARRAY_TYPE && baseType !== OBJECT_TYPE)
     throw new Error(
@@ -177,6 +228,7 @@ export function assoc_in(o, keys, value) {
 }
 
 export function assoc_in_BANG_(o, keys, value) {
+  keys = vec(keys);
   var currObj = o;
   const baseType = typeConst(o);
   for (const k of keys.splice(0, keys.length - 1)) {
@@ -208,6 +260,13 @@ export function comp(...fs) {
   };
 }
 
+function conj_BANG_set(o, rest) {
+  for (const x of rest) {
+    o.add(x);
+  }
+  return o;
+}
+
 export function conj_BANG_(...xs) {
   if (xs.length === 0) {
     return vector();
@@ -222,9 +281,7 @@ export function conj_BANG_(...xs) {
 
   switch (typeConst(o)) {
     case SET_TYPE:
-      for (const x of rest) {
-        o.add(x);
-      }
+      conj_BANG_set(o, rest);
       break;
     case LIST_TYPE:
       o.unshift(...rest.reverse());
@@ -265,13 +322,18 @@ export function conj(...xs) {
 
   let o = _o;
   if (o === null || o === undefined) {
-    o = [];
+    o = list();
   }
   let m, o2;
 
   switch (typeConst(o)) {
     case SET_TYPE:
-      return new Set([...o, ...rest]);
+      if (o instanceof SortedSet) {
+        // prevent re-sorting of collection
+        return conj_BANG_set(new o.constructor(o), rest);
+      } else {
+        return new o.constructor([...o, ...rest]);
+      }
     case LIST_TYPE:
       return new List(...rest.reverse(), ...o);
     case ARRAY_TYPE:
@@ -316,7 +378,7 @@ export function disj_BANG_(s, ...xs) {
 }
 
 export function disj(s, ...xs) {
-  const s1 = new Set([...s]);
+  const s1 = new s.constructor([...s]);
   return disj_BANG_(s1, ...xs);
 }
 
@@ -341,12 +403,20 @@ export function dissoc_BANG_(m, ...ks) {
 }
 
 export function dissoc(m, ...ks) {
-  const m2 = { ...m };
-
-  for (const k of ks) {
-    delete m2[k];
+  if (ks.length === 0) return m;
+  const m2 = copy(m);
+  switch (typeConst(m)) {
+    case MAP_TYPE:
+      for (const k of ks) {
+        m2.delete(k);
+      }
+      break;
+    default:
+      for (const k of ks) {
+        delete m2[k];
+      }
+      break;
   }
-
   return m2;
 }
 
@@ -426,14 +496,19 @@ export function get(coll, key, otherwise = undefined) {
   return v !== undefined ? v : otherwise;
 }
 
+export function seq_QMARK_(x) {
+  return x != null && !!x[Symbol.iterator];
+}
+
+export const sequential_QMARK_ = seq_QMARK_;
+
 export function seqable_QMARK_(x) {
-  // String is iterable but doesn't allow `m in s`
   return (
-    typeof x === 'string' ||
     x === null ||
     x === undefined ||
-    (x instanceof Object && Symbol.iterator in x)
-  );
+    // we used to check instanceof Object but this returns false for TC39 Records
+    // also we used to write `Symbol.iterator in` but this does not work for strings and some other types
+    !!x[Symbol.iterator]);
 }
 
 export function iterable(x) {
@@ -530,10 +605,15 @@ export function reduced_QMARK_(x) {
 export function reduce(f, arg1, arg2) {
   f = toFn(f);
   let coll, val;
-  if (arg2 === undefined) {
+  if (arguments.length === 2) {
     // (reduce f coll)
     const iter = iterable(arg1)[Symbol.iterator]();
-    val = iter.next().value;
+    const vd = iter.next();
+    if (vd.done) {
+      val = f();
+    } else {
+      val = vd.value;
+    }
     coll = iter;
   } else {
     // (reduce f val coll)
@@ -551,6 +631,42 @@ export function reduce(f, arg1, arg2) {
     }
   }
   return val;
+}
+
+function* _reductions2(f, s) {
+  const vd = s.next();
+  if (vd.done) {
+    yield f();
+  } else {
+    yield* _reductions3(f, vd.value, s);
+  }
+}
+
+function* _reductions3(f, init, coll) {
+  let i = init, rst = coll;
+  while (true) {
+    if (reduced_QMARK_(i)) {
+      yield i.value;
+      return;
+    } else yield i;
+    const vd = rst.next();
+    if (vd.done) {
+      break;
+    }
+    i = f(i, vd.value);
+  }
+}
+
+export function reductions(f, arg1, arg2) {
+  f = toFn(f);
+  if (arguments.length === 2) {
+    return lazy(function* () {
+      yield* _reductions2(f, iterable(arg1)[Symbol.iterator]());
+    });
+  }
+  return lazy(function* () {
+    yield* _reductions3(f, arg1, iterable(arg2)[Symbol.iterator]());
+  });
 }
 
 var tolr = false;
@@ -650,7 +766,28 @@ export function map(f, ...colls) {
   }
 }
 
+function filter1(pred) {
+  return (rf) => {
+    return (...args) => {
+      switch (args.length) {
+        case 0: return rf();
+        case 1: return rf(args[0]);
+        case 2: {
+          const result = args[0];
+          const input = args[1];
+          if (truth_(pred(input))) {
+            return rf(result, input);
+          } else return result;
+        }
+      }
+    };
+  };
+}
+
 export function filter(pred, coll) {
+  if (arguments.length === 1) {
+    return filter1(pred);
+  }
   pred = toFn(pred);
   return lazy(function* () {
     for (const x of iterable(coll)) {
@@ -669,8 +806,24 @@ export function remove(pred, coll) {
   return filter(complement(pred), coll);
 }
 
+function map_indexed1(f) {
+  return (rf) => {
+    let i = -1;
+    return (...args) => {
+      switch (args.length) {
+        case 0: return rf();
+        case 1: return rf(args[0]);
+        case 2: return rf(args[0], f((i = i + 1, i), args[1]));
+      }
+    };
+  };
+}
+
 export function map_indexed(f, coll) {
   f = toFn(f);
+  if (arguments.length === 1) {
+    return map_indexed1(f);
+  }
   const ret = [];
   let i = 0;
   for (const x of iterable(coll)) {
@@ -680,7 +833,7 @@ export function map_indexed(f, coll) {
   return ret;
 }
 
-export function keep_indexed(f, coll) {
+function keep_indexed2(f, coll) {
   f = toFn(f);
   const ret = [];
   let i = 0;
@@ -694,12 +847,45 @@ export function keep_indexed(f, coll) {
   return ret;
 }
 
+function keep_indexed1(f) {
+  return (rf) => {
+    let ia = -1;
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) {
+        return rf();
+      }
+      if (al === 1) {
+        return rf(args[0]);
+      }
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        ia++;
+        const v = f(ia, input);
+        if (v == null) {
+          return result;
+        }
+        return rf(result, v);
+      }
+    };
+  };
+}
+
+export function keep_indexed(f, coll) {
+  if (arguments.length === 1) {
+    return keep_indexed1(f);
+  } else {
+    return keep_indexed2(f, coll);
+  }
+}
+
 export function str(...xs) {
   return xs.join('');
 }
 
 export function not(expr) {
-  return !expr;
+  return !truth_(expr);
 }
 
 export function nil_QMARK_(v) {
@@ -735,30 +921,32 @@ export function prn(...xs) {
   println(pr_str(...xs));
 }
 
-export function Atom(init) {
-  this.val = init;
-  this._watches = {};
-  this._deref = () => this.val;
-  this._hasWatches = false;
-  this._reset_BANG_ = (x) => {
-    const old_val = this.val;
-    this.val = x;
-    if (this._hasWatches) {
-      for (const entry of Object.entries(this._watches)) {
-        const k = entry[0];
-        const f = entry[1];
-        f(k, this, old_val, x);
+export class Atom {
+  constructor(init) {
+    this.val = init;
+    this._watches = {};
+    this._deref = () => this.val;
+    this._hasWatches = false;
+    this._reset_BANG_ = (x) => {
+      const old_val = this.val;
+      this.val = x;
+      if (this._hasWatches) {
+        for (const entry of Object.entries(this._watches)) {
+          const k = entry[0];
+          const f = entry[1];
+          f(k, this, old_val, x);
+        }
       }
-    }
-    return x;
-  };
-  this._add_watch = (k, fn) => {
-    this._watches[k] = fn;
-    this._hasWatches = true;
-  };
-  this._remove_watch = (k) => {
-    delete this._watches[k];
-  };
+      return x;
+    };
+    this._add_watch = (k, fn) => {
+      this._watches[k] = fn;
+      this._hasWatches = true;
+    };
+    this._remove_watch = (k) => {
+      delete this._watches[k];
+    };
+  }
 }
 
 export function atom(init) {
@@ -823,6 +1011,22 @@ export function re_find(re, s) {
   } else {
     throw new TypeError('re-find must match against a string.');
   }
+}
+
+export function re_pattern(s) {
+  if (s instanceof RegExp) {
+    return s;
+  }
+
+  // Allow all flags available in JavaScript
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/RegExp#flags
+  const flagMatches = s.match(/^\(\?([dgimsuvy]*)\)/);
+
+  if (flagMatches) {
+    return new RegExp(s.slice(flagMatches[0].length), flagMatches[1]);
+  }
+
+  return new RegExp(s);
 }
 
 export function subvec(arr, start, end) {
@@ -945,7 +1149,33 @@ export function interleave(...colls) {
   });
 }
 
+function interpose1(sep) {
+  return (rf) => {
+    let started = false;
+    return (...args) => {
+      switch (args.length) {
+        case 0: return rf();
+        case 1: return rf(args[0]);
+        case 2: {
+          if (started) {
+            const sepr = rf(args[0], sep);
+            if (reduced_QMARK_(sepr)) {
+              return sepr;
+            } else {
+              return rf(sepr, args[1]);
+            }
+          } else {
+            started = true;
+            return rf(args[0], args[1]);
+          }
+        }
+      }
+    };
+  };
+}
+
 export function interpose(sep, coll) {
+  if (arguments.length === 1) return interpose1(sep);
   return drop(1, interleave(repeat(sep), coll));
 }
 
@@ -962,7 +1192,50 @@ export function select_keys(o, ks) {
   return ret;
 }
 
+export function unreduced(x) {
+  if (reduced_QMARK_(x)) {
+    return deref(x);
+  } else {
+    return x;
+  }
+}
+
+function partition_all1(n) {
+  return (rf) => {
+    let a = [];
+    return (...args) => {
+      let result, v;
+      switch (args.length) {
+        case 0: return rf();
+        case 1: {
+          result = args[0];
+          if (a.length !== 0) {
+            v = [...a];
+            a = [];
+            result = unreduced(rf(result, v));
+          }
+          return rf(result);
+        }
+        case 2: {
+          result = args[0];
+          a.push(args[1]);
+          if (n === a.length) {
+            v = [...a];
+            a = [];
+            return rf(result, v);
+          } else {
+            return result;
+          }
+        }
+      }
+    };
+  };
+}
+
 export function partition_all(n, ...args) {
+  if (arguments.length === 1) {
+    return partition_all1(n);
+  }
   let step = n,
     coll = args[0];
 
@@ -1014,8 +1287,54 @@ function partitionInternal(n, step, pad, coll, all) {
   });
 }
 
+function partition_by1(f) {
+  return (rf) => {
+    let a = [];
+    const none = {};
+    let pa = none;
+    return (...args) => {
+      const l = args.length;
+      let v;
+      if (l === 0) {
+        return rf();
+      }
+      if (l === 1) {
+        let result = args[0];
+        if (a.length !== 0) {
+          const v = [...a];
+          a = [];
+          result = unreduced(rf(result, v));
+        }
+        return rf(result);
+      }
+      if (l === 2) {
+        const result = args[0];
+        const input = args[1];
+        const pval = pa;
+        const val = f(input);
+        pa = val;
+        if (pval === none || val === pval) {
+          a.push(input);
+          return result;
+        } else {
+          const v = [...a];
+          a = [];
+          const ret = rf(result, v);
+          if (!reduced_QMARK_(ret)) {
+            a.push(input);
+          }
+          return ret;
+        }
+      }
+    };
+  };
+}
+
 export function partition_by(f, coll) {
   f = toFn(f);
+  if (arguments.length === 1) {
+    return partition_by1(f);
+  }
   return lazy(function* () {
     const iter = es6_iterator(coll);
     const _fst = iter.next();
@@ -1129,9 +1448,9 @@ export function into(...args) {
         return conj_BANG_(coll, v);
       };
       return transduce(xform, rf, c, from);
-      default:
-        throw TypeError(`Invalid arity call of into: ${args.length}`);
-    }
+    default:
+      throw TypeError(`Invalid arity call of into: ${args.length}`);
+  }
 }
 
 export function identical_QMARK_(x, y) {
@@ -1148,17 +1467,59 @@ export function repeat(...args) {
     [IIterable__iterator]:
       args.length == 1
         ? function* () {
-            const x = args[0];
-            while (true) yield x;
-          }
+          const x = args[0];
+          while (true) yield x;
+        }
         : function* () {
-            const [n, x] = args;
-            for (var i = 0; i < n; i++) yield x;
-          },
+          const [n, x] = args;
+          for (var i = 0; i < n; i++) yield x;
+        },
+  };
+}
+
+export function ensure_reduced(x) {
+  if (reduced_QMARK_(x)) {
+    return x;
+  } else {
+    return reduced(x);
+  }
+}
+
+function take1(n) {
+  return (rf) => {
+    let na = n;
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) {
+        return rf();
+      }
+      if (al === 1) {
+        const result = args[0];
+        return rf(result);
+      }
+      if (al === 2) {
+        let result = args[0];
+        const input = args[1];
+        const n = na;
+        const nn = (na = na - 1, na);
+        if (n > 0) {
+          result = rf(result, input);
+        }
+        if (!(nn > 0)) {
+          return ensure_reduced(result);
+        }
+        else {
+          return result;
+        }
+      }
+    };
   };
 }
 
 export function take(n, coll) {
+  if (arguments.length === 1) {
+    return take1(n);
+  }
   return lazy(function* () {
     let i = n - 1;
     for (const x of iterable(coll)) {
@@ -1172,8 +1533,30 @@ export function take(n, coll) {
   });
 }
 
+function take_while1(pred) {
+  return (rf) => {
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) return rf();
+      if (al === 1) return rf(args[0]);
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        if (truth_(pred(input))) {
+          return rf(result, input);
+        } else {
+          return reduced(result);
+        }
+      }
+    };
+  };
+}
+
 export function take_while(pred, coll) {
   pred = toFn(pred);
+  if (arguments.length === 1) {
+    return take_while1(pred);
+  }
   return lazy(function* () {
     for (const o of iterable(coll)) {
       if (truth_(pred(o))) yield o;
@@ -1182,7 +1565,28 @@ export function take_while(pred, coll) {
   });
 }
 
+function take_nth1(n) {
+  return (rf) => {
+    let ia = -1;
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) return rf();
+      if (al === 1) return rf(args[0]);
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        ia++;
+        const i = ia;
+        if (rem(i, n) === 0) {
+          return rf(result, input);
+        } else return result;
+      }
+    };
+  };
+}
+
 export function take_nth(n, coll) {
+  if (arguments.length === 1) return take_nth1(n);
   if (n <= 0) {
     return repeat(first(coll));
   }
@@ -1211,7 +1615,32 @@ export function cycle(coll) {
   });
 }
 
+function drop1(n) {
+  return (rf) => {
+    let na = n;
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) {
+        return rf();
+      }
+      if (al === 1) {
+        return rf(args[0]);
+      }
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        const n = na;
+        na--;
+        if (n > 0) {
+          return result;
+        } else return rf(result, input);
+      }
+    };
+  };
+}
+
 export function drop(n, xs) {
+  if (arguments.length === 1) return drop1(n);
   return lazy(function* () {
     const iter = _iterator(iterable(xs));
     for (let x = 0; x < n; x++) {
@@ -1221,8 +1650,35 @@ export function drop(n, xs) {
   });
 }
 
+function drop_while1(pred) {
+  return (rf) => {
+    let da = true;
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) {
+        return rf();
+      }
+      if (al === 1) {
+        return rf(args[0]);
+      }
+      if (al === 2) {
+        const isDrop = da;
+        const result = args[0];
+        const input = args[1];
+        if (isDrop && truth_(pred(input))) {
+          return result;
+        } else {
+          da = null;
+          return rf(result, input);
+        }
+      }
+    };
+  };
+}
+
 export function drop_while(pred, xs) {
   pred = toFn(pred);
+  if (arguments.length === 1) return drop_while1(pred);
   return lazy(function* () {
     const iter = _iterator(iterable(xs));
     while (true) {
@@ -1240,7 +1696,26 @@ export function drop_while(pred, xs) {
   });
 }
 
+function distinct1() {
+  return (rf) => {
+    const seen = new Set();
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) return rf();
+      if (al === 1) return rf(args[0]);
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        if (seen.has(input)) return result;
+        seen.add(input);
+        return rf(result, input);
+      }
+    };
+  };
+}
+
 export function distinct(coll) {
+  if (arguments.length === 0) return distinct1();
   return lazy(function* () {
     const seen = new Set();
     for (const x of iterable(coll)) {
@@ -1293,8 +1768,26 @@ export function not_every_QMARK_(pred, coll) {
   return !every_QMARK_(pred, coll);
 }
 
+function keep1(pred) {
+  return (rf) => {
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) return rf();
+      if (al === 1) return rf(args[0]);
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        const v = pred(input);
+        if (v == null) return result;
+        return rf(result, v);
+      }
+    };
+  };
+}
+
 export function keep(pred, coll) {
   pred = toFn(pred);
+  if (arguments.length === 1) return keep1(pred);
   return lazy(function* () {
     for (const o of iterable(coll)) {
       const res = pred(o);
@@ -1309,13 +1802,13 @@ export function reverse(coll) {
 }
 
 export function sort(f, coll) {
-  if (coll === undefined) {
+  if (arguments.length === 1) {
     coll = f;
     f = undefined;
   }
   f = toFn(f);
   coll = iterable(coll);
-    // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
+  // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
   const clone = [...coll];
   // result is guaranteed to be stable since ES2019, like CLJS
   return clone.sort(f || compare);
@@ -1341,7 +1834,7 @@ function fnToComparator(f) {
 }
 
 export function sort_by(keyfn, comp, coll) {
-  if (coll === undefined) {
+  if (arguments.length === 2) {
     coll = comp;
     comp = compare;
   }
@@ -1407,7 +1900,7 @@ function _repeatedly(f) {
 }
 
 export function repeatedly(n, f) {
-  if (f === undefined) {
+  if (arguments.length === 1) {
     f = n;
     n = undefined;
   }
@@ -1425,6 +1918,7 @@ export function update_BANG_(m, k, f, ...args) {
 }
 
 export function group_by(f, coll) {
+  f = toFn(f);
   const res = {};
   for (const o of iterable(coll)) {
     const key = f(o);
@@ -1519,7 +2013,7 @@ export function pos_QMARK_(x) {
 export function js_obj(...args) {
   let ctr = 0;
   const ret = {};
-  for (;;) {
+  for (; ;) {
     if (ctr >= args.length) {
       break;
     }
@@ -1581,7 +2075,7 @@ export function reduce_kv(f, init, m) {
     return init;
   }
   var ret = init;
-  for (const o of Object.entries(m)) {
+  for (const o of iterable(m)) {
     ret = f(ret, o[0], o[1]);
   }
   return ret;
@@ -1672,6 +2166,10 @@ export function next(x) {
   }
 }
 
+export function nnext(x) {
+  return next(next(x));
+}
+
 export function compare(x, y) {
   if (x === y) {
     return 0;
@@ -1682,16 +2180,16 @@ export function compare(x, y) {
     if (y == null) {
       return 1;
     }
-    const tx = typeof(x);
-    const ty = typeof(y);
+    const tx = typeof (x);
+    const ty = typeof (y);
     if (tx === 'number' && ty === 'number' || tx === 'string' && ty === 'string') {
-        if (x === y) {
-          return 0;
-        }
-        if (x < y) {
-          return -1;
-        }
-        return 1;
+      if (x === y) {
+        return 0;
+      }
+      if (x < y) {
+        return -1;
+      }
+      return 1;
     } else {
       throw new Error(`comparing ${tx} to ${ty}`);
     }
@@ -1716,21 +2214,20 @@ export function fn_QMARK_(x) {
   return 'function' === typeof x;
 }
 
-export function* re_seq(re, s) {
-  const matches = re.exec(s);
-  if (matches) {
-    const match_str = matches[0];
-    const match_vals = matches.length === 1 ? match_str : vec(matches);
-    yield* cons(
-      match_vals,
-      lazy(function* () {
+export function re_seq(re, s) {
+  return lazy(function* () {
+    while (true) {
+      const matches = re.exec(s);
+      if (matches) {
+        const match_str = matches[0];
+        const match_vals = matches.length === 1 ? match_str : vec(matches);
+        yield match_vals;
         const post_idx = matches.index + max(1, match_str.length);
-        if (post_idx <= s.length) {
-          yield* re_seq(re, subs(s, post_idx));
-        }
-      })
-    );
-  }
+        if (post_idx > s.length) break;
+        s = subs(s, post_idx);
+      } else break;
+    }
+  });
 }
 
 export function NaN_QMARK_(x) {
@@ -1827,7 +2324,7 @@ export function boolean_QMARK_(x) {
 export function counted_QMARK_(x) {
   const tc = typeConst(x);
   switch (tc) {
-    case (ARRAY_TYPE, MAP_TYPE, OBJECT_TYPE, LIST_TYPE, SET_TYPE):
+    case ARRAY_TYPE: case MAP_TYPE: case OBJECT_TYPE: case LIST_TYPE: case SET_TYPE:
       return true;
   }
   return false;
@@ -1929,4 +2426,267 @@ export function transduce(xform, ...args) {
       return f(ret);
     }
   }
+}
+
+export function zipmap(keys, vals) {
+  const res = {};
+  const keyIterator = iterable(keys)[Symbol.iterator]();
+  const valIterator = iterable(vals)[Symbol.iterator]();
+  let nextKey, nextVal;
+  for (; ;) {
+    nextKey = keyIterator.next();
+    if (nextKey.done) break;
+    nextVal = valIterator.next();
+    if (nextVal.done) break;
+    res[nextKey.value] = nextVal.value;
+  }
+  return res;
+}
+
+export function not_empty(x) {
+  const isSeq = seq(x);
+  if (isSeq) {
+    return x;
+  } else return null;
+}
+
+export function tree_seq(isBranch, children, root) {
+  const walk = function* (node) {
+    yield node;
+    if (truth_(isBranch(node))) {
+      for (const c of iterable(children(node))) {
+        yield* walk(c);
+      }
+    }
+  };
+  return lazy(function* () {
+    yield* walk(root);
+  });
+}
+
+export function flatten(x) {
+  return filter(complement(sequential_QMARK_),
+    rest(tree_seq(sequential_QMARK_, seq, x)));
+}
+
+export function transient$(x) {
+  return copy(x);
+}
+
+export function persistent_BANG_(x) {
+  return Object.freeze(x);
+}
+
+class SortedSet {
+  constructor(xs) {
+    const isSorted = xs instanceof SortedSet;
+    if (!isSorted) {
+      xs = sort(xs);
+    }
+    const s = new Set(xs);
+    // we don't re-use xs since xs can contain duplicates
+    this._elts = [...s];
+    this._set = s;
+  }
+  add(x) {
+    if (this._set.has(x)) return this;
+    const xs = this._elts;
+    let added = false;
+    for (let i = 0; i < xs.length; i++) {
+      if (compare(x, xs[i]) <= 0) {
+        xs.splice(i, 0, x);
+        added = true;
+        break;
+      }
+    }
+    if (!added) {
+      xs.push(x);
+      // in this case we can re-use the set, since we add the element last
+      this._set.add(x);
+    }
+    else {
+      this._set = new Set(xs);
+    }
+    this.size = xs.length;
+    return this;
+  }
+  delete(x) {
+    if (!this._set.has(x)) return this;
+    const xs = this._elts;
+    const idx = xs.indexOf(x);
+    xs.splice(idx, 1);
+    this._set = new Set(xs);
+    this.size = xs.length;
+    return this;
+  }
+  has(x) {
+    return this._set.has(x);
+  }
+  keys() {
+    return this.values();
+  }
+  values() {
+    return this._elts[Symbol.iterator]();
+  }
+  entries() {
+    return this._set.entries();
+  }
+  forEach(...xs) {
+    return this.set.forEach(...xs);
+  }
+  clear() {
+    this._elts = [];
+    this._set = new Set(this._elts);
+  }
+  [Symbol.iterator]() {
+    return this.keys();
+  }
+}
+
+export function sorted_set(...xs) {
+  return new SortedSet(xs);
+}
+
+function mkBoundFn(_sc, test, key) {
+  return (e) => {
+    return test(compare(e, key), 0);
+  };
+}
+
+function indexFrom(sc, startKey, _asc = true) {
+  let i = 0;
+  for (; i < sc.length; i++) {
+    if (!(compare(startKey, sc[i]) > 0)) {
+      break;
+    }
+  }
+  return i;
+}
+
+function subseq3([sc, test, key]) {
+  const includeFn = mkBoundFn(sc, test, key);
+  if (test === _GT_ || test === _GT__EQ_) {
+    const seqFrom = [...sc];
+    const startIdx = indexFrom(seqFrom, key, true);
+    // delete startIdx items from the start;
+    seqFrom.splice(0, startIdx);
+    if (includeFn(seqFrom[0])) {
+      return seqFrom;
+    } else {
+      // delete 1 item from the start;
+      seqFrom.splice(0, 1);
+      return seqFrom;
+    }
+  } else {
+    return [...take_while(includeFn, sc)];
+  }
+}
+
+function subseq5([sc, startTest, startKey, endTest, endKey]) {
+  const seqFrom = [...sc];
+  const startIdx = indexFrom(seqFrom, startKey, true);
+  // delete startIdx items from the start
+  seqFrom.splice(0, startIdx);
+  const whileFn = mkBoundFn(sc, endTest, endKey);
+  if (!mkBoundFn(sc, startTest, startKey)(seqFrom[0])) {
+    // delete 1 item from the start
+    seqFrom.splice(0, 1);
+  }
+  return [...take_while(whileFn, seqFrom)];
+}
+
+export function subseq(...xs) {
+  if (xs.length === 3) {
+    return subseq3(xs);
+  }
+  if (xs.length === 5) {
+    return subseq5(xs);
+  }
+}
+
+export function abs(x) {
+  return Math.abs(x);
+}
+
+export function long$(x) {
+  return fix(x);
+}
+
+export function type(x) {
+  return x != null && x.constructor;
+}
+
+function preserving_reduced(rf) {
+  return (a1, a2) => {
+    const ret = rf(a1, a2)
+    if (reduced_QMARK_(ret)) {
+      return reduced(ret);
+    }
+    else return ret;
+  };
+}
+
+export function cat(rf) {
+  rf = preserving_reduced(rf);
+  return (...args) => {
+    switch (args.length) {
+      case 0: return rf();
+      case 1: return rf(args[0]);
+      case 2: return reduce(rf, args[0], args[1]);
+    }
+  };
+}
+
+export function rem(n, d) {
+  const q = quot(n, d);
+  return n - (d * q);
+}
+
+export function memoize(f) {
+  const cache = new Map();
+  return (...xs) => {
+    const path = [xs.length, ...xs];
+    const res = get_in(cache, path);
+    if (res === undefined) {
+      const v = f(...xs);
+      assoc_in_BANG_(cache, path, v);
+      return v;
+    } else return res;
+  };
+}
+
+export function peek(vec) {
+  if (array_QMARK_(vec)) {
+    return vec[vec.length - 1];
+  } else {
+    return first(vec);
+  }
+}
+
+export function pop(vec) {
+  if (array_QMARK_(vec)) {
+    const ret = [...vec];
+    ret.pop();
+    return ret;
+  } else {
+    return rest(vec);
+  }
+}
+
+export function update_keys(m, f) {
+  const m2 = empty(m);
+  const assocFn = getAssocMut(m) || assoc_BANG_;
+  reduce_kv((acc, k, v) => {
+    return assocFn(acc, f(k), v);
+  }, m2, m);
+  return m2;
+}
+
+export function update_vals(m, f) {
+  const m2 = empty(m);
+  const assocFn = getAssocMut(m) || assoc_BANG_;
+  reduce_kv((acc, k, v) => {
+    return assocFn(acc, k, f(v));
+  }, m2, m);
+  return m2;
 }

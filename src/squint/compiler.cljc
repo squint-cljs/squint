@@ -48,52 +48,54 @@
                          'squint.impl/for-of
                          'squint.impl/defonce]))
 
-(def built-in-macros {'-> macros/core->
-                      '->> macros/core->>
-                      'as-> macros/core-as->
-                      'comment macros/core-comment
-                      'dotimes macros/core-dotimes
-                      'if-not macros/core-if-not
-                      'when macros/core-when
-                      'when-not macros/core-when-not
-                      'doto macros/core-doto
-                      'cond macros/core-cond
-                      'cond-> macros/core-cond->
-                      'cond->> macros/core-cond->>
-                      'condp macros/core-condp
-                      'if-let macros/core-if-let
-                      'if-some macros/core-if-some
-                      'when-let macros/core-when-let
-                      'when-first macros/core-when-first
-                      'when-some macros/core-when-some
-                      'some-> macros/core-some->
-                      'some->> macros/core-some->>
-                      'loop loop/core-loop
-                      'doseq macros/core-doseq
-                      'for macros/core-for
-                      'lazy-seq macros/core-lazy-seq
-                      'defonce macros/core-defonce
-                      'exists? macros/core-exists?
-                      'case macros/core-case
-                      '.. macros/core-dotdot
-                      'defmacro core-defmacro
-                      'this-as macros/core-this-as
-                      'unchecked-get macros/core-unchecked-get
-                      'unchecked-set macros/core-unchecked-set
-                      'defprotocol protocols/core-defprotocol
-                      'extend-type protocols/core-extend-type
-                      'deftype deftype/core-deftype
-                      'defn core-defn
-                      'defn- core-defn
-                      'instance? macros/core-instance?
-                      'time macros/core-time
-                      'declare macros/core-declare
-                      'letfn macros/core-letfn
-                      'defclass defclass/defclass
-                      'js-template defclass/js-template
-                      'or macros/core-or
-                      'and macros/core-and
-                      'assert macros/core-assert})
+(def built-in-macros (merge {'-> macros/core->
+                             '->> macros/core->>
+                             'as-> macros/core-as->
+                             'comment macros/core-comment
+                             'dotimes macros/core-dotimes
+                             'if-not macros/core-if-not
+                             'when macros/core-when
+                             'when-not macros/core-when-not
+                             'doto macros/core-doto
+                             'cond macros/core-cond
+                             'cond-> macros/core-cond->
+                             'cond->> macros/core-cond->>
+                             'condp macros/core-condp
+                             'if-let macros/core-if-let
+                             'if-some macros/core-if-some
+                             'when-let macros/core-when-let
+                             'when-first macros/core-when-first
+                             'when-some macros/core-when-some
+                             'some-> macros/core-some->
+                             'some->> macros/core-some->>
+                             'loop loop/core-loop
+                             'doseq macros/core-doseq
+                             'for macros/core-for
+                             'lazy-seq macros/core-lazy-seq
+                             'defonce macros/core-defonce
+                             'exists? macros/core-exists?
+                             'case macros/core-case
+                             '.. macros/core-dotdot
+                             'defmacro core-defmacro
+                             'this-as macros/core-this-as
+                             'unchecked-get macros/core-unchecked-get
+                             'unchecked-set macros/core-unchecked-set
+                             'defprotocol protocols/core-defprotocol
+                             'extend-type protocols/core-extend-type
+                             'deftype deftype/core-deftype
+                             'defn core-defn
+                             'defn- core-defn
+                             'instance? macros/core-instance?
+                             'time macros/core-time
+                             'declare macros/core-declare
+                             'letfn macros/core-letfn
+                             'defclass defclass/defclass
+                             'js-template defclass/js-template
+                             'or macros/core-or
+                             'and macros/core-and
+                             'assert macros/core-assert
+                             }
+                            cc/common-macros))
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 
@@ -113,13 +115,15 @@
 (defmulti emit-special (fn [disp _env & _args] disp))
 
 (defmethod emit-special 'not [_ env [_ form]]
-  (emit-return (cc/bool-expr (str "!" (emit form (expr-env env)))) env))
+  (let [js (emit form (expr-env env))]
+    (if (:bool js)
+      (emit-return (cc/bool-expr (str "!" js)) env)
+      (cc/bool-expr
+       (emit (list 'js* (format "~{}(%s)" js) 'clojure.core/not)
+             env)))))
 
 (defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-return (str "typeof " (emit form (expr-env env))) env))
-
-(defmethod emit-special 'quote [_ env [_ form]]
-  (emit-return (emit form (expr-env (assoc env :quote true))) env))
 
 (defmethod emit-special 'clj->js [_ env [_ form]]
   (emit form env))
@@ -154,12 +158,6 @@
                                                                 fields)))))
                                                (assoc :type true)))))))
 
-(defmethod emit-special 'squint.defclass/defclass* [_ env form]
-  (defclass/emit-class env emit form))
-
-(defmethod emit-special 'squint.defclass/super* [_ env form]
-  (defclass/emit-super env emit (second form)))
-
 (defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let env bindings more) env))
 
@@ -168,7 +166,7 @@
         gensym (:gensym env)
         local (gensym)
         env (update env :var->ident assoc local local)]
-    (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" local)
+    (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" (str local))
                      (list 'clojure.core/iterable v))
                env)
          " {\n"
@@ -179,7 +177,7 @@
          (emit-return nil enc-env))))
 
 (defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
-  (emit (list 'do (list 'js* (str "var " (munge name) ";\n"))
+  (emit (list 'do #_(list 'js* (str "var " (munge name) ";\n"))
               (if (:repl env)
                 `(when-not (exists? ~(symbol *cljs-ns* name))
                    ~(vary-meta `(def ~name ~init)
@@ -210,98 +208,82 @@
       sym)))
 
 (defn emit-list [expr env]
-  (escape-jsx
-   (let [env (dissoc env :jsx)
-         fexpr (first expr)]
-     (if (:quote env)
-       (do
-         (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
-         (format "%slist(%s)"
-                 (if-let [ca (:core-alias env)]
-                   (str ca ".")
-                   "")
-                 (str/join ", " (emit-args env expr))))
-       (cond (symbol? fexpr)
-             (let [head* (first expr)
-                   head (strip-core-symbol head*)
-                   expr* expr
-                   expr (if (not= head head*)
-                          (with-meta (cons head (rest expr))
-                            (meta expr))
-                          expr)
-                   head-str (str head)
-                   macro (when (symbol? head)
-                           (or (built-in-macros head)
-                               (let [ns (namespace head)
-                                     nm (name head)
-                                     ns-state @(:ns-state env)
-                                     current-ns (:current ns-state)
-                                     nms (symbol nm)
-                                     current-ns-state (get ns-state current-ns)]
-                                 (if ns
-                                   (let [nss (symbol ns)]
-                                     (or
-                                      ;; used by cherry embed:
-                                      (some-> env :macros (get nss) (get nms))
-                                      (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
-                                        (get-in ns-state [:macros resolved-ns nms]))))
-                                   (let [refers (:refers current-ns-state)]
-                                     (when-let [macro-ns (get refers nms)]
-                                       (get-in ns-state [:macros macro-ns nms])))))))]
-               (if macro
-                 (let [;; fix for calling macro with more than 20 args
-                       #?@(:cljs [macro (or (.-afn ^js macro) macro)])
-                       new-expr (apply macro expr {:repl cc/*repl*
-                                                   :gensym (:gensym env)
-                                                   :ns {:name cc/*cljs-ns*}} (rest expr))]
-                   (emit new-expr env))
-                 (cond
-                   (and (= (.charAt head-str 0) \.)
-                        (> (count head-str) 1)
-                        (not (= ".." head-str)))
-                   (cc/emit-special '. env
-                                    (list* '.
-                                           (second expr)
-                                           (symbol (subs head-str 1))
-                                           (nnext expr)))
-                   (and (> (count head-str) 1)
-                        (str/ends-with? head-str "."))
-                   (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
-                         env)
-                   (special-form? head) (cc/emit-special head env expr)
-                   (infix-operator? env head) (emit-infix head env expr)
-                   (prefix-unary? head) (emit-prefix-unary head expr)
-                   (suffix-unary? head) (emit-suffix-unary head expr)
-                   :else (cc/emit-special 'funcall env expr*))))
-             (keyword? fexpr)
-             (let [[k obj & args] expr]
-               (emit (list* 'clojure.core/get obj k args) env))
-             (or (map? fexpr)
-                 (set? fexpr))
-             (let [[obj k & args] expr]
-               (emit (list* 'clojure.core/get obj k args) env))
-             (list? expr)
-             (cc/emit-special 'funcall env expr)
-             :else
-             (throw (new Exception (str "invalid form: " expr))))))
-   env))
-
-(defn jsx-attrs [v env]
-  (let [env (expr-env env)]
-    (if v
-      (str " "
-           (str/join " "
-                     (map (fn [[k v]]
-                            (if (= :& k)
-                              (str "{..." (emit v (dissoc env :jsx)) "}")
-                              (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
-                                                  (not (string? v))
-                                                  ;; since we escape here, we
-                                                  ;; can probably remove
-                                                  ;; escaping elsewhere?
-                                                  (escape-jsx env)))))
-                          v)))
-      "")))
+  (let [env* env
+        env (assoc env :jsx (::jsx (meta expr)))]
+    (escape-jsx
+     (let [fexpr (first expr)]
+       (if (:quote env)
+         (do
+           (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
+           (format "%slist(%s)"
+                   (if-let [ca (:core-alias env)]
+                     (str ca ".")
+                     "")
+                   (str/join ", " (emit-args env expr))))
+         (cond (symbol? fexpr)
+               (let [head* (first expr)
+                     head (strip-core-symbol head*)
+                     expr* expr
+                     expr (if (not= head head*)
+                            (with-meta (cons head (rest expr))
+                              (meta expr))
+                            expr)
+                     head-str (str head)
+                     macro (when (symbol? head)
+                             (or (built-in-macros head)
+                                 (let [ns (namespace head)
+                                       nm (name head)
+                                       ns-state @(:ns-state env)
+                                       current-ns (:current ns-state)
+                                       nms (symbol nm)
+                                       current-ns-state (get ns-state current-ns)]
+                                   (if ns
+                                     (let [nss (symbol ns)]
+                                       (or
+                                        ;; used by cherry embed:
+                                        (some-> env :macros (get nss) (get nms))
+                                        (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
+                                          (get-in ns-state [:macros resolved-ns nms]))))
+                                     (let [refers (:refers current-ns-state)]
+                                       (when-let [macro-ns (get refers nms)]
+                                         (get-in ns-state [:macros macro-ns nms])))))))]
+                 (if macro
+                   (let [;; fix for calling macro with more than 20 args
+                         #?@(:cljs [macro (or (.-afn ^js macro) macro)])
+                         new-expr (apply macro expr {:repl cc/*repl*
+                                                     :gensym (:gensym env)
+                                                     :ns {:name cc/*cljs-ns*}} (rest expr))]
+                     (emit new-expr env))
+                   (cond
+                     (and (= (.charAt head-str 0) \.)
+                          (> (count head-str) 1)
+                          (not (= ".." head-str)))
+                     (cc/emit-special '. env
+                                      (list* '.
+                                             (second expr)
+                                             (symbol (subs head-str 1))
+                                             (nnext expr)))
+                     (and (> (count head-str) 1)
+                          (str/ends-with? head-str "."))
+                     (emit (list* 'new (symbol (subs head-str 0 (dec (count head-str)))) (rest expr))
+                           env)
+                     (special-form? head) (cc/emit-special head env expr)
+                     (infix-operator? env head) (emit-infix head env expr)
+                     (prefix-unary? head) (emit-prefix-unary head expr)
+                     (suffix-unary? head) (emit-suffix-unary head expr)
+                     :else (cc/emit-special 'funcall env expr*))))
+               (keyword? fexpr)
+               (let [[k obj & args] expr]
+                 (emit (list* 'clojure.core/get obj k args) env))
+               (or (map? fexpr)
+                   (set? fexpr))
+               (let [[obj k & args] expr]
+                 (emit (list* 'clojure.core/get obj k args) env))
+               (list? expr)
+               (cc/emit-special 'funcall env expr)
+               :else
+               (throw (new Exception (str "invalid form: " expr))))))
+     env*)))
 
 (defn emit-vector [expr env]
   (if (and (:jsx env)
@@ -314,17 +296,36 @@
           attrs (when (map? attrs) attrs)
           elts (if attrs (nnext v) (next v))
           tag-name (symbol tag)
-          tag-name (if (= '<> tag-name)
-                     (symbol "")
-                     tag-name)
-          tag-name (emit tag-name (expr-env (dissoc env :jsx)))]
-      (emit-return (format "<%s%s>%s</%s>"
-                           tag-name
-                           (jsx-attrs attrs env)
-                           (let [env (expr-env env)]
-                             (str/join "" (map #(emit % env) elts)))
-                           tag-name)
-                   env))
+          fragment? (= '<> tag-name)
+          tag-name* (if fragment?
+                      (symbol "")
+                      tag-name)
+          tag-name (emit tag-name* (expr-env (dissoc env :jsx)))]
+      (if (:jsx-runtime env)
+        (let [single-child? (= (count elts) 1)]
+          (emit (list (if single-child?
+                        '_jsx '_jsxs)
+                      (cond fragment? "_Fragment"
+                            (keyword? tag)
+                            (name tag-name)
+                            :else tag-name*)
+                      (let [elts (map #(emit % (expr-env env)) elts)
+                            elts (map #(list 'js* (str %)) elts)
+                            children
+                            (if single-child?
+                              (first elts)
+                              (vec elts))]
+                        (cond-> (or attrs {})
+                          (seq children)
+                          (assoc :children children))))
+                env))
+        (emit-return (format "<%s%s>%s</%s>"
+                             tag-name
+                             (cc/jsx-attrs attrs env)
+                             (let [env (expr-env env)]
+                               (str/join "" (map #(emit % env) elts)))
+                             tag-name)
+                     env)))
     (emit-return (format "[%s]"
                          (str/join ", " (emit-args env expr))) env)))
 
@@ -339,8 +340,12 @@
           key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
                            (str ns "/" (name k))
                            (name k)))
-          mk-pair (fn [pair] (str (emit (key-fn (key pair)) expr-env) ": "
-                                  (emit (val pair) expr-env)))
+          mk-pair (fn [pair]
+                    (let [k (key pair)]
+                      (str (if (= :& k)
+                             (str "...")
+                             (str (emit (key-fn k) expr-env) ": "))
+                           (emit (val pair) expr-env))))
           keys (str/join ", " (map mk-pair (seq expr)))]
       (escape-jsx (-> (format "({ %s })" keys)
                       (emit-return env))
@@ -358,22 +363,25 @@
 (defn transpile-form
   ([f] (transpile-form f nil))
   ([f env]
-   (str
-    (emit f (merge {:ns-state (atom {})
-                    :context :statement
-                    :top-level true
-                    :core-vars core-vars
-                    :gensym (let [ctr (volatile! 0)]
-                              (fn [sym]
-                                (let [next-id (vswap! ctr inc)]
-                                  (symbol (str (if sym (munge sym)
-                                                   "G__") next-id)))))
-                    :emit {::cc/list emit-list
-                           ::cc/vector emit-vector
-                           ::cc/map emit-map
-                           ::cc/keyword emit-keyword
-                           ::cc/set emit-set
-                           ::cc/special emit-special}} env)))))
+   (binding [cc/*repl* (:repl env cc/*repl*)]
+     (str
+      (emit f (merge {:ns-state (atom {})
+                      :context :statement
+                      :top-level true
+                      :core-vars core-vars
+                      :gensym (let [ctr (volatile! 0)]
+                                (fn gensym*
+                                  ([] (gensym* nil))
+                                  ([sym]
+                                   (let [next-id (vswap! ctr inc)]
+                                     (symbol (str (if sym (munge sym)
+                                                      "G__") next-id))))))
+                      :emit {::cc/list emit-list
+                             ::cc/vector emit-vector
+                             ::cc/map emit-map
+                             ::cc/keyword emit-keyword
+                             ::cc/set emit-set
+                             ::cc/special emit-special}} env))))))
 
 (def ^:dynamic *jsx* false)
 
@@ -408,63 +416,109 @@
              next-form (e/parse-next rdr opts)]
          (if (= ::e/eof next-form)
            transpiled
-           (let [next-t (transpile-form next-form env)
-                 next-js (some-> next-t not-empty (statement))]
+           (let [next-t (-> (transpile-form next-form env)
+                            not-empty)
+                 next-js
+                 (cc/save-pragma env next-t)]
              (recur (str transpiled next-js)))))))))
 
 (defn compile-string*
   ([s] (compile-string* s nil))
+  ([s opts] (compile-string* s opts nil))
   ([s {:keys [elide-exports
+              elide-imports
               core-alias
-              elide-imports]
+              aliases]
        :or {core-alias "squint_core"}
-       :as opts}]
-   (binding [cc/*core-package* "squint-cljs/core.js"
-             cc/*target* :squint
-             *jsx* false
-             cc/*repl* (:repl opts cc/*repl*)]
-     (let [opts (merge {:ns-state (atom {})} opts)
-           imported-vars (atom {})
-           public-vars (atom #{})
-           aliases (atom {core-alias cc/*core-package*})
-           imports (atom (if cc/*repl*
-                           (format "var %s = await import('%s');\n"
-                                   core-alias cc/*core-package*)
-                           (format "import * as %s from '%s';\n"
-                                   core-alias cc/*core-package*)))]
-       (binding [*imported-vars* imported-vars
-                 *public-vars* public-vars
-                 *aliases* aliases
-                 *jsx* false
-                 *excluded-core-vars* (atom #{})
-                 *cljs-ns* *cljs-ns*
-                 cc/*target* :squint
-                 cc/*async* (:async opts)]
-         (let [transpiled (transpile-string* s (assoc opts
-                                                      :core-alias core-alias
-                                                      :imports imports))
-               imports (when-not elide-imports @imports)
-               exports (when-not elide-exports
-                         (str
-                          (when-let [vars (disj @public-vars "default$")]
-                            (when (seq vars)
-                              (str (format "\nexport { %s }\n"
-                                           (str/join ", " vars)))))
-                          (when (contains? @public-vars "default$")
-                            "export default default$\n")))]
-           {:imports imports
-            :exports exports
-            :body transpiled
-            :javascript (str imports transpiled exports)
-            :jsx *jsx*
-            :ns *cljs-ns*}))))))
+       :as opts} state]
+   (let [opts (merge state opts)]
+     (binding [cc/*core-package* "squint-cljs/core.js"
+               cc/*target* :squint
+               *jsx* false
+               cc/*repl* (:repl opts cc/*repl*)]
+       (let [opts (merge {:ns-state (atom {})
+                          :top-level true} opts)
+             imported-vars (atom {})
+             public-vars (atom #{})
+             aliases (atom (merge aliases {core-alias cc/*core-package*}))
+             jsx-runtime (:jsx-runtime opts)
+             jsx-dev (:development jsx-runtime)
+             imports (atom (if cc/*repl*
+                             (str (format "var %s = await import('%s');\n"
+                                          core-alias cc/*core-package*))
+                             (format "import * as %s from '%s';\n"
+                                     core-alias cc/*core-package*)))
+             pragmas (atom {:js ""})]
+         (binding [*imported-vars* imported-vars
+                   *public-vars* public-vars
+                   *aliases* aliases
+                   *jsx* false
+                   *excluded-core-vars* (atom #{})
+                   *cljs-ns* (:ns opts *cljs-ns*)
+                   cc/*target* :squint
+                   cc/*async* (:async opts)]
+           (let [transpiled (transpile-string* s (assoc opts
+                                                        :core-alias core-alias
+                                                        :imports imports
+                                                        :jsx false
+                                                        :pragmas pragmas))
+                 jsx *jsx*
+                 _ (when (and jsx jsx-runtime)
+                     (swap! imports str
+                            (format
+                             "var {jsx%s: _jsx, jsx%s%s: _jsxs, Fragment: _Fragment } = await import('%s');\n"
+                             (if jsx-dev "DEV" "")
+                             (if jsx-dev "" "s")
+                             (if jsx-dev "DEV" "")
+                             (str (:import-source jsx-runtime
+                                                  "react")
+                                  (if jsx-dev
+                                    "/jsx-dev-runtime"
+                                    "/jsx-runtime")))))
+                 pragmas (:js @pragmas)
+                 imports (when-not elide-imports @imports)
+                 exports (when-not elide-exports
+                           (str
+                            (when-let [vars (disj @public-vars "default$")]
+                              (when (seq vars)
+                                (if cc/*repl*
+                                  (str/join "\n"
+                                            (map (fn [var]
+                                                   (str "export const " var " = " (munge cc/*cljs-ns*) "." var ";"))
+                                                 vars))
+                                  (str (format "\nexport { %s }\n"
+                                               (str/join ", " vars))))))
+                            (when (contains? @public-vars "default$")
+                              "export default default$\n")))]
+             (assoc opts
+                    :pragmas pragmas
+                    :imports imports
+                    :exports exports
+                    :body transpiled
+                    :javascript (str pragmas imports transpiled exports)
+                    :jsx jsx
+                    :ns *cljs-ns*
+                    :ns-state (:ns-state opts)))))))))
+
+#?(:cljs
+   (defn clj-ize-opts [opts]
+     (let [opts (js->clj opts :keywordize-keys true)]
+       (cond-> opts
+         (:context opts) (update :context keyword)
+         (:ns opts) (update :ns symbol)
+         (:elide_imports opts) (assoc :elide-imports (:elide_imports opts))
+         (:elide_exports opts) (assoc :elide-exports (:elide_exports opts))))))
+
+#?(:cljs
+   (defn compileStringEx [s opts state]
+     (let [res (compile-string* s (clj-ize-opts opts) (clj-ize-opts state))]
+       (clj->js res))))
 
 (defn compile-string
   ([s] (compile-string s nil))
   ([s opts]
    (let [opts #?(:cljs (if (object? opts)
-                         (cond-> (js->clj opts :keywordize-keys true)
-                           :context (update :context keyword))
+                         (clj-ize-opts opts)
                          opts)
                  :default opts)
          {:keys [javascript]}
@@ -487,3 +541,4 @@
         (let [analyzed (ana/analyze (ana/empty-env) expr)]
           (prn (keys analyzed))
           (prn (compiler/emit-str analyzed))))))
+

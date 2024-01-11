@@ -26,6 +26,8 @@ possible. The syntax is inspired by
   Object
   (dude [_]
         (str -y (super.get-name-separator)))
+  (^:async fetch [_]
+    (js/fetch "https://clojure.org"))
 
   (toString [this] (str "<<<<" (.dude this) ">>>>") ))
 

@@ -1,6 +1,113 @@
 # Changelog
 
-[Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
+[Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
+
+## v0.6.88 (2024-01-10)
+
+- Fix infix operator in return position
+- Allow playground to use JSX in non-REPL mode
+
+## v0.6.87 (2024-01-06)
+
+- Add transducer arity to all existing core functions
+
+## v0.5.86 (2023-12-23)
+
+- Support `^:gen` + `js-yield` + `js-yield*` to write JS generator functions. See [playground](https://squint-cljs.github.io/squint/?src=KGRlZm4gXjpnZW4gZm9vIFtdCiAgKGpzLXlpZWxkIDEpCiAgKGpzLXlpZWxkKiBbMiAzXSkKICAobGV0IFt4IChpbmMgMyldCiAgICAoanMteWllbGQgeCkpCiAgKGxldCBbeCAoZG8gKGpzLXlpZWxkIDUpCiAgICAgICAgICAgIDYpXQogICAgKGpzLXlpZWxkIHgpKSkKCih2ZWMgKGZvbykp)
+- Add `update-keys` and `update-vals`
+- Add `=` as reified function
+
+## v0.4.85 (2023-12-20)
+
+- [#449](https://github.com/squint-cljs/squint/issues/449): fix issue with `:refer`
+
+## v0.4.84 (2023-12-19)
+
+- Add `memoize`, `filter` transducer arity, `peek`, `pop`
+- Export classes defined with `defclass`
+- Support `^:async` Object method in `defclass`
+
+## v0.4.83 (2023-12-16)
+
+- Better support for pragmas and JSDoc via `js*` + `//` and `/* */`
+- Add `rem`, `nnext`, `str/end-with?`, `str/index-of` and `str/last-index-of`
+- Fix alias with hypen in REPL mode
+
+## v0.4.82 (2023-12-14)
+
+- Keep top level strings and comments (via `js*`) before imports (for JSDoc, Next.js `"use client"`, etc)
+
+## v0.4.81 (2023-12-11)
+
+- Fix `compileString` in JS API
+
+## v0.4.80 (2023-12-11)
+
+- Optimization: sort largest set first for `set/union`, and smallest first for `set/intersection`
+- Add `sorted-set`, `long`, `abs`, `keep-indexed` transducer arity
+
+## v0.4.79 (2023-12-09)
+
+- The `children` function in `tree-seq` may return `nil`
+
+## v0.4.78 (2023-12-09)
+
+- Add `clojure.set/join`
+- Add `tree-seq`, `flatten`, `seq?` and `sequential?`
+
+## 0.4.77 (2023-12-09)
+
+- Add `clojure.set` functions `select`, `rename-keys`, `rename`, `project`, and `map-invert` ([@PEZ](https://github.com/PEZ))
+- Fix `reduce-kv` with `js/Map` input
+
+## 0.4.76 (2023-12-07)
+
+- Add more `clojure.set` functions: `difference`, `union`, `subset?`, and `superset?` ([@PEZ](https://github.com/PEZ))
+
+## 0.4.75 (2023-12-07)
+
+- Let any object that has `Symbol.iterable` be destructureable even if it is not `instance of Object`
+
+## 0.4.74 (2023-12-07)
+
+- Initial version of `clojure.set`
+- [#418](https://github.com/squint-cljs/squint/issues/418): Add `reductions`
+- Add `bit-shift-left` and more `bit-` related macros
+- Fix `not` with respect to truthiness
+- Fix `reduce` without initial value + empty coll, it should call `f()`
+- Add serve-playground bb task
+- Update playground with button for creating a blank AOC playground
+
+## 0.4.73 (2023-12-05)
+
+- [#407](https://github.com/squint-cljs/squint/issues/407): fix conditional rendering
+- Add `not-empty`
+- Fix `into` + set + xform
+
+## 0.4.72 (2023-12-04)
+
+- Allow JSX to be used in playground. See [react](https://squint-cljs.github.io/squint/?repl=true&src=KHJlcXVpcmUgJ1sicmVhY3QiIDphcyByZWFjdF0pCihyZXF1aXJlICdbInJlYWN0LWRvbSIgOmFzIHJkb21dKQoKKGRlZm9uY2UgY29tcG9uZW50LXN0YXRlIChhdG9tIDApKQoKKGRlZm4gQmFyIFt7OmtleXMgW2ZpcnN0bmFtZSBsYXN0bmFtZV0gOmFzIHByb3BzfV0KICAobGV0IFtbY2xpY2tzIHNldENsaWNrc10gKHJlYWN0L3VzZVN0YXRlIEBjb21wb25lbnQtc3RhdGUpXQogICAgI2pzeCBbOjw%2BCiAgICAgICAgICBbOnNwYW4gZmlyc3RuYW1lICIgIiBsYXN0bmFtZV0KICAgICAgICAgIFs6ZGl2ICJZb3UgY2xpY2tlZCAiIGNsaWNrcyAiIHRpbWVzISJdCiAgICAgICAgICBbOmJ1dHRvbiB7Om9uQ2xpY2sgIyhzZXRDbGlja3MgKHN3YXAhIGNvbXBvbmVudC1zdGF0ZSBpbmMpKX0KICAgICAgICAgICAiQ2xpY2sgbWUiXV0pKQoKKGRlZm4gRm9vIFtdCiAgI2pzeCBbOmRpdiAiSGVsbG8sICIKICAgICAgICAobGV0IFttIChhc3NvYyB7OmZpcnN0bmFtZSAiTWljaGllbCJ9IDpsYXN0bmFtZSAiQm9ya2VudCIpXQogICAgICAgICAgI2pzeCBbQmFyIHs6JiBtfV0pXSkKCihkZWZvbmNlIGVsdCAoZG90byAoanMvZG9jdW1lbnQuY3JlYXRlRWxlbWVudCAiZGl2IikKICAgICAgICAgICAgICAgKGpzL2RvY3VtZW50LmJvZHkucHJlcGVuZCkpKQoKKGRlZiByb290IChyZG9tL2NyZWF0ZVJvb3QgZWx0KSkKCigucmVuZGVyIHJvb3QgI2pzeCBbRm9vXSk%3D) example.
+- Add `re-pattern` (fixes [#396](https://github.com/squint-cljs/squint/issues/396))
+- Add `zipmap`
+
+## 0.4.71 (2023-12-02)
+
+- More helpful error from JS when using unresolved symbol in REPL mode
+
+## 0.4.70 (2023-12-02)
+
+- Allow `>`, `<` etc to be used as HOFs
+- Fix `str/split` with respect to trailing empty split elements
+
+## 0.4.69 (2023-12-02)
+
+- Fix vararg functions in REPL mode
+
+## 0.4.68 (2023-12-01)
+
+- [#394](https://github.com/squint-cljs/squint/issues/394): add `int`
+- [#393](https://github.com/squint-cljs/squint/issues/393): `Math` can be used without `js/` prefix
+- Expose compiler state via `compileStringEx` for playground, preserves namespace transitions
 
 ## 0.4.67 (2023-11-28)
 

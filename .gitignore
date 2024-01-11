@@ -35,3 +35,6 @@ aoc.txt
 aoc_3.cljs
 aoc_3.mjs
 libtests
+tmp
+!test-resources/js_api.mjs
+.portal

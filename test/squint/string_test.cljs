@@ -29,10 +29,20 @@
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/join "--" (range 10))))))
 
-(deftest reaplace-test
+(deftest replace-test
   (evalll "yyxxyyxx"
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/replace "--xx--xx" "--" "yy")))))
+
+(deftest split-test
+  (evalll (eq ["foo" "bar"])
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result (str/split "foo\nbar\n\n" #"\n")))))
+
+(deftest split-lines-test
+  (evalll (eq ["foo" "bar"])
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result (str/split-lines "foo\nbar\n\n")))))
 
 ;; (deftest string-conflict-test
 ;;   (evalll (fn [res]
