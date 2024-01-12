@@ -6,7 +6,6 @@
   <meta content="width=device-width, initial-scale=1" name="viewport" />
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
   <meta content="utf-8" http-equiv="encoding" />
-  <script src="https://unpkg.com/node-inspect-extracted/dist/inspect.js"></script>
   <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.2/dist/es-module-shims.js"
     crossorigin="anonymous"></script>
   <script type="importmap">
@@ -36,7 +35,8 @@
           "@lezer/lr": "https://ga.jspm.io/npm:@lezer/lr@1.3.13/dist/index.js",
           "@lezer/markdown": "https://ga.jspm.io/npm:@lezer/markdown@1.1.0/dist/index.js",
           "style-mod": "https://ga.jspm.io/npm:style-mod@4.1.0/src/style-mod.js",
-          "w3c-keyname": "https://ga.jspm.io/npm:w3c-keyname@2.2.8/index.js"
+          "w3c-keyname": "https://ga.jspm.io/npm:w3c-keyname@2.2.8/index.js",
+          "react-inspector": "https://esm.sh/react-inspector"
         }
       }
     </script>
@@ -92,6 +92,11 @@
         width: 50%;
       }
     }
+
+    #result {
+      margin: 10px;
+      background: var(--button-base);
+    }
   </style>
 
   <script type="module">
@@ -105,6 +110,9 @@
     import * as prettier from "https://unpkg.com/prettier@3.1.1/standalone.mjs";
     import prettierPluginJS from "https://unpkg.com/prettier@3.1.1/plugins/estree.mjs";
     import prettierPluginBabel from "https://unpkg.com/prettier@3.1.1/plugins/babel.mjs";
+    import React from "react";
+    import ReactDOM from "react-dom";
+    import { Inspector } from "react-inspector";
     let url = new URL(window.location.href);
 
     let theme = EditorView.theme({
@@ -185,6 +193,8 @@
       jsEditor = editor;
     }
 
+    let reactRoot = ReactDOM.createRoot(document.querySelector("#result"));
+
     let evalCode = async (code) => {
       try {
         let importSource = url.searchParams.get('jsx.import-source') || 'react';
@@ -213,7 +223,7 @@
             else result.pop();
             result = new LazyIterable(result);
           }
-          document.querySelector('#result').innerText = util.inspect(result);
+          reactRoot.render(React.createElement(Inspector, {data: result}));
           if (docChanged) {
             url.searchParams.delete('src');
             window.history.replaceState(null, null, url);
@@ -223,7 +233,7 @@
         }
       } catch (e) {
         document.querySelector('#result').innerText =
-          e.message + '\n\n' + decodeURIComponent(util.inspect(e));
+          e.message + '\n\n' + e.stack;
         console.error(e);
       }
     };
@@ -431,8 +441,7 @@
       In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter. The result will
       appear below.
       To evaluate the whole program at once, use Alt + Enter;
-      <pre><code style="white-space: pre-wrap;max-width:80%;" id="result"></code>
-              </pre>
+      <div id="result"></div>
       Compiled code:
       <div id="compiledCode"></div>
     </div>
