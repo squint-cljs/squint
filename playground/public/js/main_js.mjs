@@ -12,7 +12,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { Inspector } from "react-inspector";
 const url = new URL(window.location.href);
-import * as squint_prod from "squint-cljs";
+import * as squint from "squint-cljs";
 
 const theme = EditorView.theme({
   '.cm-content': {
@@ -101,6 +101,7 @@ let evalCode = async (code) => {
     compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
     let js = compilerState.javascript;
     if (dev) {
+      console.log("Loading local squint libs");
       js = js.replaceAll("'squint-cljs/", "'./squint-local/");
     }
     JSEditor(js);
@@ -264,16 +265,13 @@ globalThis.editor = editor;
 var dev = JSON.parse(urlParams.get('dev')) ?? location.hostname === 'localhost';
 
 
-var squintUrl;
+var squintCompiler = squint;
 if (dev) {
-  console.log('Loading development squint.js');
-  squintUrl = './squint-local/index.js';
-} else {
-  squintUrl = 'squint-cljs';
+  console.log('Loading development squint compiler');
+  // squintCompiler = await import('./squint-local/index.js');
 }
-var squint = await import(squintUrl);
 
-var compileStringEx = squint.compileStringEx;
+var compileStringEx = squintCompiler.compileStringEx;
 window.compile = () => {
   let code = editor.state.doc.toString();
   code = (boilerplateSrc || '') + '\n\n' + code;
