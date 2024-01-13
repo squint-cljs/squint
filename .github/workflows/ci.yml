@@ -43,6 +43,7 @@ jobs:
     - name: Run tests
       run: |
         npm install
+        npm install -g npx
         bb test:node
         bb test:bb
         bb test:clj

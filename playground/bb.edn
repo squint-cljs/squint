@@ -1,11 +1,13 @@
 {:tasks
  {init {:requires ([babashka.fs :as fs])
-        :task (when-not (fs/exists? "public/js/squint-local")
-                (fs/create-sym-link "public/js/squint-local" (fs/parent (fs/parent (fs/absolutize ".")))))}
+        :task (do
+                (shell "npm install")
+                (when-not (fs/exists? "public/js/squint-local")
+                  (fs/create-sym-link "public/js/squint-local" (fs/parent (fs/parent (fs/absolutize "."))))))}
   dev:squint (shell "npx squint watch")
-  dev:vite (shell "npx vite --config=viteconfig.js public")
+  dev:vite (shell "npx vite --config=viteconfig.mjs public")
   -dev {:depends [dev:vite dev:squint]}
   dev {:depends [init]
        :task (run '-dev {:parallel true})}
   build {:depends [init]
-         :task (shell "npx vite --config viteconfig.js build public")}}}
+         :task (shell "npx vite --config viteconfig.mjs build public")}}}
