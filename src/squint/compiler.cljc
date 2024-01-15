@@ -398,6 +398,8 @@
    {:all true
     :end-location false
     :location? seq?
+    :row-key :line
+    :col-key :column
     :readers {'js #(vary-meta % assoc ::js true)
               'jsx jsx}
     :read-cond :allow
