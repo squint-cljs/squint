@@ -1,20 +1,19 @@
 {:min-bb-version "0.9.161"
  :deps {borkdude/rewrite-edn {:mvn/version "0.4.6"}
-        org.babashka/cli {:mvn/version "0.2.23"}
-        org.babashka/http-server {:mvn/version "0.1.12"}}
+        org.babashka/cli {:mvn/version "0.2.23"}}
  :paths ["src" "resources" "bb"]
  :tasks {:requires ([babashka.cli :as cli]
                     [tasks :as t])
          :init (def playground-cli-opts (cli/parse-opts *command-line-args* {:coerce {:port :int :headers :edn}}))
          build (t/build-squint-npm-package)
          publish (t/publish)
-         dev  {:doc  "Starts the squint dev watcher and the playground http server"
-               :task (run '-dev {:parallel true})}
-         -dev {:depends [watch serve-playground]}
          watch {:doc "Starts the squint dev watcher"
                 :task (t/watch-squint)}
          serve-playground {:doc "Starts squint the playground http server"
-                           :task (t/start-playground-server playground-cli-opts)}
+                           :task (shell {:dir "playground"} "bb dev")}
+         dev  {:doc  "Starts the squint dev watcher and the playground http server"
+               :task (run '-dev {:parallel true})}
+         -dev {:depends [watch serve-playground]}
          test:node {:doc "Run tests in Node.js"
                     :task (t/test-squint)}
          test:bb  {:doc "Run tests in bb"
