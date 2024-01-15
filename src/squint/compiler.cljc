@@ -25,7 +25,7 @@
    [squint.internal.loop :as loop]
    [squint.internal.macros :as macros]
    [squint.internal.protocols :as protocols]
-   [squint.internal.source-map :as sm])
+   #?(:cljs [squint.internal.source-map :as sm]))
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 
@@ -541,4 +541,3 @@
         (let [analyzed (ana/analyze (ana/empty-env) expr)]
           (prn (keys analyzed))
           (prn (compiler/emit-str analyzed))))))
-
