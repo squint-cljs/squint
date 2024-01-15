@@ -432,16 +432,20 @@
   (dissoc env :top-level))
 
 (defn emit-var [[name ?doc ?expr :as expr] skip-var? env meta]
-  (let [expr (if (= 3 (count expr))
+  (let [source-maps (:source-maps env)
+        expr (if (= 3 (count expr))
                ?expr ?doc)
-        env (no-top-level env)]
+        env (no-top-level env)
+        smid #_:clj-kondo/ignore (gensym "sm")]
+    (when source-maps
+      (swap! source-maps assoc smid meta))
     (str (if *repl*
            (str "globalThis."
                 (when *cljs-ns*
                   (str (munge *cljs-ns*) ".") #_"var ")
                 (munge name))
            (str "var " (munge name)
-                "/*" meta "*/"
+                "/*" smid "*/"
                 )) " = "
          (emit expr (expr-env env)) ";\n"
          (when *repl*

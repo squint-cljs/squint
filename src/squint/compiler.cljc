@@ -424,6 +424,11 @@
                  (cc/save-pragma env next-t)]
              (recur (str transpiled next-js)))))))))
 
+(defn js->source-maps [_source-maps javascript]
+  (let [splits (str/split javascript #"/\*sm")]
+    ;; (prn splits)
+    [nil javascript]))
+
 (defn compile-string*
   ([s] (compile-string* s nil))
   ([s opts] (compile-string* s opts nil))
@@ -450,7 +455,8 @@
                                           core-alias cc/*core-package*))
                              (format "import * as %s from '%s';\n"
                                      core-alias cc/*core-package*)))
-             pragmas (atom {:js ""})]
+             pragmas (atom {:js ""})
+             source-maps (atom {})]
          (binding [*imported-vars* imported-vars
                    *public-vars* public-vars
                    *aliases* aliases
@@ -463,7 +469,8 @@
                                                         :core-alias core-alias
                                                         :imports imports
                                                         :jsx false
-                                                        :pragmas pragmas))
+                                                        :pragmas pragmas
+                                                        :source-maps source-maps))
                  jsx *jsx*
                  _ (when (and jsx jsx-runtime)
                      (swap! imports str
@@ -491,13 +498,18 @@
                                   (str (format "\nexport { %s }\n"
                                                (str/join ", " vars))))))
                             (when (contains? @public-vars "default$")
-                              "export default default$\n")))]
+                              "export default default$\n")))
+                 javascript (str pragmas imports transpiled exports)
+                 [source-maps javascript] (if source-maps
+                                            (js->source-maps @source-maps javascript)
+                                            [nil javascript])]
              (assoc opts
                     :pragmas pragmas
                     :imports imports
                     :exports exports
                     :body transpiled
-                    :javascript (str pragmas imports transpiled exports)
+                    :javascript javascript
+                    :source-maps source-maps
                     :jsx jsx
                     :ns *cljs-ns*
                     :ns-state (:ns-state opts)))))))))
