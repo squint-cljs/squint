@@ -427,10 +427,8 @@
 (defn js->source-maps [_source-maps javascript]
   (let [splits (str/split javascript #"/\*sm")]
     (reduce (fn [[sms js] split]
-              (prn :split split)
-              (if-let [[_ id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
-                (do (prn :js js :id id )
-                    [sms (str js js-remainder)])
+              (if-let [[_ _id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
+                [sms (str js js-remainder)]
                 [sms (str js split)]))
             [{} ""]
             splits)
