@@ -70,7 +70,14 @@
   (assoc env :context :expr :top-level false))
 
 (defmethod emit-special 'throw [_ env [_ expr]]
-  (str "throw " (emit expr (expr-env env))))
+  (let [id #_:clj-kondo/ignore (gensym "sm")
+        sm (:source-maps env)]
+    (when sm (swap! sm assoc id (meta expr)))
+    (str
+     "throw"
+     "/*" id "*/"
+     " "
+     (emit expr (expr-env env)))))
 
 (def statement-separator ";\n")
 

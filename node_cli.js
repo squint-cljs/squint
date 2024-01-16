@@ -1,3 +1,3 @@
-#!/usr/bin/env node --enable-source-maps
+#!/usr/bin/env node
 
 import './lib/cli.js';
