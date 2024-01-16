@@ -427,20 +427,21 @@
 ;; https://www.bugsnag.com/blog/source-maps/
 (defn js->source-maps [source-maps javascript]
   (let [lines (str/split-lines javascript)]
-    (reduce (fn [[sms javascript] line]
+    (reduce (fn [[sms javascript line-no] line]
               (let [splits (str/split line #"/\*sm")
-                    [sms javascript] (reduce (fn [[sms javascript] split]
-                                               (if-let [[_ id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
-                                                 (let [sym (symbol (str "sm" id))
-                                                       data (get source-maps sym)]
-                                                   ;; data contains :line, :column and :name, which are the source positions
-                                                   ;; now calculate the target position, which is probably (length js)-based?
-                                                   [(conj sms (assoc data :js-length (count javascript))) (str javascript js-remainder)])
-                                                 [sms (str javascript split)]))
-                                             [sms javascript]
-                                             splits)]
-                [sms (str javascript "\n")]))
-            [[] ""]
+                    [sms line-javascript]
+                    (reduce (fn [[sms javascript] split]
+                              (if-let [[_ id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
+                                (let [sym (symbol (str "sm" id))
+                                      data (get source-maps sym)]
+                                  ;; data contains :line, :column and :name, which are the source positions
+                                  ;; now calculate the target position, which is probably (length js)-based?
+                                  [(conj sms (assoc data :js-length (count javascript) :js-line line-no :js javascript)) (str javascript js-remainder)])
+                                [sms (str javascript split)]))
+                            [sms ""]
+                            splits)]
+                [sms (str javascript line-javascript "\n") (inc line-no)]))
+            [[] "" 0]
             lines)
     #_[nil javascript]))
 
