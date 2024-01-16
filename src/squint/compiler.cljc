@@ -25,7 +25,8 @@
    [squint.internal.loop :as loop]
    [squint.internal.macros :as macros]
    [squint.internal.protocols :as protocols]
-   #?(:cljs [squint.internal.source-map :as sm]))
+   #?(:cljs [squint.internal.source-map :as sm])
+   #?(:cljs [squint.internal.source-map.base64-vlq :as base64-vlq]))
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 
@@ -424,26 +425,46 @@
                  (cc/save-pragma env next-t)]
              (recur (str transpiled next-js)))))))))
 
+;; gcol, src-file-idx, line, col
+#_ (base64-vlq/encode [0 0 0 0])
 ;; https://www.bugsnag.com/blog/source-maps/
-(defn js->source-maps [source-maps javascript]
-  (let [lines (str/split-lines javascript)]
-    (reduce (fn [[sms javascript line-no] line]
-              (let [splits (str/split line #"/\*sm")
-                    [sms line-javascript]
-                    (reduce (fn [[sms javascript] split]
-                              (if-let [[_ id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
-                                (let [sym (symbol (str "sm" id))
-                                      data (get source-maps sym)]
-                                  ;; data contains :line, :column and :name, which are the source positions
-                                  ;; now calculate the target position, which is probably (length js)-based?
-                                  [(conj sms (assoc data :js-length (count javascript) :js-line line-no :js javascript)) (str javascript js-remainder)])
-                                [sms (str javascript split)]))
-                            [sms ""]
-                            splits)]
-                [sms (str javascript line-javascript "\n") (inc line-no)]))
-            [[] "" 0]
-            lines)
-    #_[nil javascript]))
+;; https://medium.com/@trungutt/yet-another-explanation-on-sourcemap-669797e418ce
+#?(:cljs
+   (defn js->source-maps [source-maps javascript source-file]
+     (let [names (atom [])
+           lines (str/split-lines javascript)
+           [sm js]
+           (reduce (fn [[sms javascript line-no] line]
+                     (let [splits (str/split line #"/\*sm")
+                           [sms line-javascript]
+                           (reduce (fn [[sms javascript] split]
+                                     (if-let [[_ id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
+                                       (let [sym (symbol (str "sm" id))
+                                             data (get source-maps sym)]
+                                         ;; data contains :line, :column and :name, which are the source positions
+                                         ;; now calculate the target position, which is probably (length js)-based?
+                                         [(conj sms (assoc data :js-length (count javascript) :js-line line-no :js javascript)) (str javascript js-remainder)])
+                                       [sms (str javascript split)]))
+                                   [sms ""]
+                                   splits)]
+                       [sms (str javascript line-javascript "\n") (inc line-no)]))
+                   [[] "" 0]
+                   lines)
+           sm (group-by :js-line sm)
+           sm (update-vals sm (fn [cols]
+                                (mapv #(base64-vlq/encode [(:js-length %) 0 (:line %) (:column %)])
+                                      cols)
+                                ;; TODO: cols need to be deltas
+                                #_(mapv #(str (:js-length %) " => " source-file " " (:line %) ":" (:column %) " " (:name %))
+                                        cols)))]
+
+       ;; what we want:
+       ;; :sources ["foo.cljs"]
+       ;; :names [...]
+       ;; :mappings ;;AAAA,AAAC (semi-colon maps to target line, segment: gcol, src-file-idx, line, col)
+       (prn :sm sm)
+       [sm js]
+       #_[nil javascript])))
 
 (defn compile-string*
   ([s] (compile-string* s nil))
@@ -516,10 +537,11 @@
                             (when (contains? @public-vars "default$")
                               "export default default$\n")))
                  javascript (str pragmas imports transpiled exports)
-                 [source-maps javascript] (if source-maps
-                                            (js->source-maps @source-maps javascript)
-                                            [nil javascript])]
-             ;; (prn :source-maps source-maps)
+                 [source-maps javascript] #?(:cljs (if source-maps
+                                                     (js->source-maps @source-maps javascript (or (:file opts) "foo.cljs"))
+                                                     [nil javascript])
+                                             :default [nil javascript])]
+             (prn :source-maps source-maps)
              (assoc opts
                     :pragmas pragmas
                     :imports imports

@@ -182,8 +182,10 @@
     (reduce
       (fn [segs cols]
         (swap! relseg
-          (fn [[_ source line col name]]
+               (fn [[_ source line col name]]
+                 (prn :source source :line line)
             [0 source line col name]))
+        (prn :cols cols)
         (conj segs
           (reduce
             (fn [cols [gcol sidx line col name :as seg]]
@@ -194,6 +196,9 @@
                 (conj cols (base64-vlq/encode offset))))
             [] cols)))
       [] lines)))
+
+;; gcol, src-file-idx, line, col
+(prn (base64-vlq/encode [0 0 0 0]))
 
 (defn encode
   "Take an internal source map representation represented as nested
