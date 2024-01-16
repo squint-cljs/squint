@@ -455,18 +455,19 @@
                                 (let [relseg (atom [0 0 0 0 0])
                                       ]
                                   (mapv (fn [seq]
-                                          (let [gcol (:js-length seq)
+                                          (let [gcol (dec (:js-length seq))
                                                 sidx 0
-                                                line (:line seq)
-                                                col (:column seq)
+                                                line (dec (:line seq))
+                                                col (dec (:column seq))
                                                 name (:name seq)
-                                                newseq [(:js-length seq) 0 (:line seq) (:column seq) (let [name (:name seq)]
-                                                                                                       (when name
-                                                                                                         (let [idx (.indexOf @names name)]
-                                                                                                           (if (= -1 idx)
-                                                                                                             (let [idx (dec (count (swap! names conj name)))]
-                                                                                                               idx)
-                                                                                                             idx))))]
+                                                newseq [gcol sidx line col
+                                                        (let [name (:name seq)]
+                                                          (when name
+                                                            (let [idx (.indexOf @names name)]
+                                                              (if (= -1 idx)
+                                                                (let [idx (dec (count (swap! names conj name)))]
+                                                                  idx)
+                                                                idx))))]
                                                 rel (mapv - newseq @relseg)]
                                             (swap! relseg
                                                    (fn [[_ _ _ _ lname]]
