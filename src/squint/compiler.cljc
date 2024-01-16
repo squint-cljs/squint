@@ -424,18 +424,24 @@
                  (cc/save-pragma env next-t)]
              (recur (str transpiled next-js)))))))))
 
+;; https://www.bugsnag.com/blog/source-maps/
 (defn js->source-maps [source-maps javascript]
-  (let [splits (str/split javascript #"/\*sm")]
-    (reduce (fn [[sms js] split]
-              (if-let [[_ id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
-                (let [sym (symbol (str "sm" id))
-                      data (get source-maps sym)]
-                  ;; data contains :line, :column and :name, which are the source positions
-                  ;; now calculate the target position, which is probably (length js)-based?
-                  [(conj sms (assoc data :js-length (count js))) (str js js-remainder)])
-                [sms (str js split)]))
+  (let [lines (str/split-lines javascript)]
+    (reduce (fn [[sms javascript] line]
+              (let [splits (str/split line #"/\*sm")
+                    [sms javascript] (reduce (fn [[sms javascript] split]
+                                               (if-let [[_ id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
+                                                 (let [sym (symbol (str "sm" id))
+                                                       data (get source-maps sym)]
+                                                   ;; data contains :line, :column and :name, which are the source positions
+                                                   ;; now calculate the target position, which is probably (length js)-based?
+                                                   [(conj sms (assoc data :js-length (count javascript))) (str javascript js-remainder)])
+                                                 [sms (str javascript split)]))
+                                             [sms javascript]
+                                             splits)]
+                [sms (str javascript "\n")]))
             [[] ""]
-            splits)
+            lines)
     #_[nil javascript]))
 
 (defn compile-string*
