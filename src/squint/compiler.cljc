@@ -424,11 +424,14 @@
                  (cc/save-pragma env next-t)]
              (recur (str transpiled next-js)))))))))
 
-(defn js->source-maps [_source-maps javascript]
+(defn js->source-maps [source-maps javascript]
   (let [splits (str/split javascript #"/\*sm")]
     (reduce (fn [[sms js] split]
-              (if-let [[_ _id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
-                [sms (str js js-remainder)]
+              (if-let [[_ id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
+                (let [sym (symbol (str "sm" id))
+                      data (get source-maps sym)]
+                  (prn :data data)
+                  [sms (str js js-remainder)])
                 [sms (str js split)]))
             [{} ""]
             splits)

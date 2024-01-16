@@ -438,7 +438,7 @@
         env (no-top-level env)
         smid #_:clj-kondo/ignore (gensym "sm")]
     (when source-maps
-      (swap! source-maps assoc smid meta))
+      (swap! source-maps assoc smid (assoc meta :name name)))
     (str (if *repl*
            (str "globalThis."
                 (when *cljs-ns*
