@@ -462,7 +462,7 @@
        ;; :sources ["foo.cljs"]
        ;; :names [...]
        ;; :mappings ;;AAAA,AAAC (semi-colon maps to target line, segment: gcol, src-file-idx, line, col)
-       (prn :sm sm)
+       ;; (prn :sm sm)
        [sm js]
        #_[nil javascript])))
 
@@ -541,7 +541,7 @@
                                                      (js->source-maps @source-maps javascript (or (:file opts) "foo.cljs"))
                                                      [nil javascript])
                                              :default [nil javascript])]
-             (prn :source-maps source-maps)
+             ;; (prn :source-maps source-maps)
              (assoc opts
                     :pragmas pragmas
                     :imports imports
