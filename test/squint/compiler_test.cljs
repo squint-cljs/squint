@@ -1619,7 +1619,7 @@
                    (is (= "1231,2,3" v))))
           (.finally done))))
   (is (str/ends-with?
-       (str/trim (compiler/compile-string "(ns foo (:require [\"fs\" :refer [readFileSync]])) readFileSync" {:repl true}))
+       (str/trim (compiler/compile-string "(ns foo (:require [\"fs\" :refer [readFileSync]])) readFileSync" {:repl true :source-maps false}))
        "globalThis.foo.readFileSync;")))
 
 (deftest letfn-test

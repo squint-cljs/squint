@@ -430,7 +430,7 @@
 ;; https://www.bugsnag.com/blog/source-maps/
 ;; https://medium.com/@trungutt/yet-another-explanation-on-sourcemap-669797e418ce
 #?(:cljs
-   (defn js->source-maps [source-maps javascript source-file]
+   (defn js->source-maps [source-maps javascript source-file source]
      (let [names (atom [])
            lines (str/split-lines javascript)
            [sm js]
@@ -452,12 +452,40 @@
                    lines)
            sm (group-by :js-line sm)
            sm (update-vals sm (fn [cols]
-                                (mapv #(base64-vlq/encode [(:js-length %) 0 (:line %) (:column %)])
-                                      cols)
+                                (let [relseg (atom [0 0 0 0 0])
+                                      ]
+                                  (mapv (fn [seq]
+                                          (let [gcol (:js-length seq)
+                                                sidx 0
+                                                line (:line seq)
+                                                col (:column seq)
+                                                name (:name seq)
+                                                newseq [(:js-length seq) 0 (:line seq) (:column seq) (let [name (:name seq)]
+                                                                                                       (when name
+                                                                                                         (let [idx (.indexOf @names name)]
+                                                                                                           (if (= -1 idx)
+                                                                                                             (let [idx (dec (count (swap! names conj name)))]
+                                                                                                               idx)
+                                                                                                             idx))))]
+                                                rel (mapv - newseq @relseg)]
+                                            (swap! relseg
+                                                   (fn [[_ _ _ _ lname]]
+                                                     [gcol sidx line col (or name lname)]))
+                                            (base64-vlq/encode rel)))
+                                        cols))
                                 ;; TODO: cols need to be deltas
                                 #_(mapv #(str (:js-length %) " => " source-file " " (:line %) ":" (:column %) " " (:name %))
-                                        cols)))]
-
+                                        cols)))
+           max (apply max (keys sm))
+           sm {:names @names
+               :mappings (str/join ";" (mapv (fn [i]
+                                               (str/join "," (get sm i)))
+                                             (range 1 (inc max))))
+               :sources ["foo.js"]
+               :sourcesContent [source]}
+           sm (-> sm
+                  (clj->js)
+                  (js/JSON.stringify))]
        ;; what we want:
        ;; :sources ["foo.cljs"]
        ;; :names [...]
@@ -493,7 +521,8 @@
                              (format "import * as %s from '%s';\n"
                                      core-alias cc/*core-package*)))
              pragmas (atom {:js ""})
-             source-maps (atom {})]
+             source-maps (when-not (false? (:source-maps opts))
+                           (atom {}))]
          (binding [*imported-vars* imported-vars
                    *public-vars* public-vars
                    *aliases* aliases
@@ -538,9 +567,17 @@
                               "export default default$\n")))
                  javascript (str pragmas imports transpiled exports)
                  [source-maps javascript] #?(:cljs (if source-maps
-                                                     (js->source-maps @source-maps javascript (or (:file opts) "foo.cljs"))
+                                                     (js->source-maps @source-maps javascript (or (:file opts) "foo.cljs") s)
                                                      [nil javascript])
-                                             :default [nil javascript])]
+                                             :default [nil javascript])
+                 javascript #?(:cljs (if source-maps
+                                       (str javascript "\n\n"
+                                            "//# sourceMappingURL=data:application/json;base64,/*"
+                                            (-> (js/Buffer.from source-maps)
+                                                (.toString "base64"))
+                                            "*/")
+                                       javascript)
+                               :default javascript)]
              ;; (prn :source-maps source-maps)
              (assoc opts
                     :pragmas pragmas
