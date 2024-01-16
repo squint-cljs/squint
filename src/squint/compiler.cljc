@@ -430,10 +430,11 @@
               (if-let [[_ id js-remainder]  (re-matches (re-pattern "(?is)(\\d+)\\*\\/(.*)") split)]
                 (let [sym (symbol (str "sm" id))
                       data (get source-maps sym)]
-                  (prn :data data)
-                  [sms (str js js-remainder)])
+                  ;; data contains :line, :column and :name, which are the source positions
+                  ;; now calculate the target position, which is probably (length js)-based?
+                  [(conj sms (assoc data :js-length (count js))) (str js js-remainder)])
                 [sms (str js split)]))
-            [{} ""]
+            [[] ""]
             splits)
     #_[nil javascript]))
 
@@ -511,6 +512,7 @@
                  [source-maps javascript] (if source-maps
                                             (js->source-maps @source-maps javascript)
                                             [nil javascript])]
+             ;; (prn :source-maps source-maps)
              (assoc opts
                     :pragmas pragmas
                     :imports imports
