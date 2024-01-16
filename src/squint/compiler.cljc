@@ -481,7 +481,7 @@
                :mappings (str/join ";" (mapv (fn [i]
                                                (str/join "," (get sm i)))
                                              (range 1 (inc max))))
-               :sources ["foo.js"]
+               :sources ["squint.cljs"]
                :sourcesContent [source]}
            sm (-> sm
                   (clj->js)
@@ -572,10 +572,11 @@
                                              :default [nil javascript])
                  javascript #?(:cljs (if source-maps
                                        (str javascript "\n\n"
-                                            "//# sourceMappingURL=data:application/json;base64,/*"
+                                            "//# sourceMappingURL=squint.mjs.map"
+                                            #_#_"data:application/json;base64,/*"
                                             (-> (js/Buffer.from source-maps)
                                                 (.toString "base64"))
-                                            "*/")
+                                            #_"*/")
                                        javascript)
                                :default javascript)]
              ;; (prn :source-maps source-maps)
