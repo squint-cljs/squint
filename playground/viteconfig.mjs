@@ -5,6 +5,7 @@ import analyze from "rollup-plugin-analyzer";
 // import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
+  base: './',
   build: {target: "esnext",
           rollupOptions: {
             plugins: [analyze()]
