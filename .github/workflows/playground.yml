@@ -1,8 +1,8 @@
 name: Playground
 on:
-  push:
-    branches:
-      - main
+  push: true
+    # branches:
+    #   - main
 permissions:
   contents: read
   pages: write
