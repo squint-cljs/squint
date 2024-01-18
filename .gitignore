@@ -38,3 +38,4 @@ tmp
 !test-resources/js_api.mjs
 .portal
 playground/public/public/src/squint
+!playground/viteconfig.mjs
