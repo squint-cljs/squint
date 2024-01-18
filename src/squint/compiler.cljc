@@ -571,7 +571,7 @@
                                                      (js->source-maps @source-maps javascript (or (:file opts) "foo.cljs") s)
                                                      [nil javascript])
                                              :default [nil javascript])
-                 javascript #?(:cljs (if source-maps
+                 #_#_javascript #?(:cljs (if source-maps
                                        (str javascript "\n\n"
                                             "//# sourceMappingURL=squint.mjs.map"
                                             #_#_"data:application/json;base64,/*"
@@ -580,7 +580,6 @@
                                             #_"*/")
                                        javascript)
                                :default javascript)]
-             ;; (prn :source-maps source-maps)
              (assoc opts
                     :pragmas pragmas
                     :imports imports
@@ -591,6 +590,8 @@
                     :jsx jsx
                     :ns *cljs-ns*
                     :ns-state (:ns-state opts)))))))))
+
+(prn :dude)
 
 #?(:cljs
    (defn clj-ize-opts [opts]
