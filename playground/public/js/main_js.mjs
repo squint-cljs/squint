@@ -97,21 +97,31 @@ let reactRoot = ReactDOM.createRoot(document.querySelector("#result"));
 let evalCode = async (code) => {
   try {
     let importSource = url.searchParams.get('jsx.import-source') || 'react';
-    let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement', "jsx-runtime": { "import-source": importSource, development: true } };
+    let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement', "jsx-runtime": { "import-source": importSource, development: true },
+                 "source-maps": true};
     compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
-    let js = compilerState.javascript;
+    console.log(compilerState);
+    let jsBody = compilerState.imports + compilerState.body;
+    let js = jsBody;
+    if (repl) {
+      js = `(async function() { ${js} })()`;
+    }
+    const sms = compilerState["source-maps"];
+    const smsBase64 = btoa(sms);
+    js += "\n//# sourceMappingURL=data:application/json;charset=utf-8;base64," + smsBase64;
+    console.log(js);
     if (dev) {
       console.log("Loading local squint libs");
       js = js.replaceAll("'squint-cljs/", "'./squint-local/");
     }
-    JSEditor(js);
+    JSEditor(jsBody);
     if (!repl) {
       const encodedJs = encodeURIComponent(js);
       const dataUri =
         'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
       let result = await import(/* @vite-ignore */dataUri);
     } else {
-      let result = await eval(`(async function() { ${js} })()`);
+      let result = await eval(js);
       if (result && result?.constructor?.name === 'LazyIterable') {
         let stdlib = (await import("squint-cljs/core.js"));
         let take_fn = stdlib.take;
@@ -268,7 +278,7 @@ var dev = JSON.parse(urlParams.get('dev')) ?? location.hostname === 'localhost';
 var squintCompiler = squint;
 if (dev) {
   console.log('Loading development squint compiler');
-  // squintCompiler = await import('./squint-local/index.js');
+  squintCompiler = await import('./squint-local/index.js');
 }
 
 var compileStringEx = squintCompiler.compileStringEx;
