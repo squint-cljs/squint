@@ -5,14 +5,14 @@ import { EditorView, drawSelection, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
 import { javascript } from "@codemirror/lang-javascript";
-import * as prettier from "https://unpkg.com/prettier@3.1.1/standalone.mjs";
-import prettierPluginJS from "https://unpkg.com/prettier@3.1.1/plugins/estree.mjs";
-import prettierPluginBabel from "https://unpkg.com/prettier@3.1.1/plugins/babel.mjs";
+import prettierPluginJS from "prettier/plugins/estree.mjs";
+import prettierPluginBabel from "prettier/plugins/babel.mjs";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Inspector } from "react-inspector";
 const url = new URL(window.location.href);
 import * as squint from "squint-cljs";
+import * as prettier from "prettier";
 
 const theme = EditorView.theme({
   '.cm-content': {
