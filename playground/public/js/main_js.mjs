@@ -125,7 +125,7 @@ let evalCode = async (code) => {
         globalThis.replResolve = resolve;
         globalThis.replReject = reject;
       });
-      document.body.append(script);
+      document.body.appendChild(script);
       let result = await resultPromise;
       if (result && result?.constructor?.name === 'LazyIterable') {
         let stdlib = (await import("squint-cljs/core.js"));
