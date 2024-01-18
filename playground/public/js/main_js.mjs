@@ -100,19 +100,17 @@ let evalCode = async (code) => {
     let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement', "jsx-runtime": { "import-source": importSource, development: true },
                  "source-maps": true};
     compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
-    console.log(compilerState);
     let jsBody = compilerState.imports + compilerState.body;
     let js = jsBody;
     if (repl) {
-      js = `(async function() { ${js} })()`;
+      js = `(async function() { ${js} })().then(replResolve).catch(replReject)`;
     }
     const sms = compilerState["source-maps"];
     const smsBase64 = btoa(sms);
     js += "\n//# sourceMappingURL=data:application/json;charset=utf-8;base64," + smsBase64;
-    console.log(js);
     if (dev) {
       console.log("Loading local squint libs");
-      js = js.replaceAll("'squint-cljs/", "'./squint-local/");
+      // js = js.replaceAll("'squint-cljs/", "'./squint-local/");
     }
     JSEditor(jsBody);
     if (!repl) {
@@ -121,7 +119,14 @@ let evalCode = async (code) => {
         'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
       let result = await import(/* @vite-ignore */dataUri);
     } else {
-      let result = await eval(js);
+      let script = document.createElement("script");
+      script.innerText = js;
+      const resultPromise = new Promise(function(resolve, reject){
+        globalThis.replResolve = resolve;
+        globalThis.replReject = reject;
+      });
+      document.body.append(script);
+      let result = await resultPromise;
       if (result && result?.constructor?.name === 'LazyIterable') {
         let stdlib = (await import("squint-cljs/core.js"));
         let take_fn = stdlib.take;

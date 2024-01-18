@@ -591,8 +591,6 @@
                     :ns *cljs-ns*
                     :ns-state (:ns-state opts)))))))))
 
-(prn :dude)
-
 #?(:cljs
    (defn clj-ize-opts [opts]
      (let [opts (js->clj opts :keywordize-keys true)]
