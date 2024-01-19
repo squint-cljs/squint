@@ -4,8 +4,12 @@
 
 (set! js/globalThis.squint_core squint-core)
 
+(def bar 1)
+
 (def foo (js! (fn [{:keys [a b]}]
-                [a b])))
+                (+ a b
+                   ;; caveat, you need to fully qualify references to other namespaces
+                   squint.embed/bar))))
 
 (defn init []
-  (prn (foo #js {:a 1 :b 2})))
+  (js/console.log (foo #js {:a 1 :b 2})))
