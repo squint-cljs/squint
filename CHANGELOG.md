@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.6.89 (2024-02-01)
+
+- [#455](https://github.com/squint-cljs/squint/issues/455): don't export non-public vars
+
 ## v0.6.88 (2024-01-10)
 
 - Fix infix operator in return position
