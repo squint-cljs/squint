@@ -446,7 +446,8 @@
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
     ;; TODO: move *public-vars* to :ns-state atom
-    (swap! *public-vars* conj (munge* name))
+    (when-not (:private (meta name))
+      (swap! *public-vars* conj (munge* name)))
     (swap! (:ns-state env) (fn [state]
                              (let [current (:current state)]
                                (assoc-in state [current name] {}))))
