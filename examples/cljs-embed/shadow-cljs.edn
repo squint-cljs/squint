@@ -1,0 +1,9 @@
+{:deps {:aliases [:shadow]}
+ :builds
+ {:squint.embed
+  {:target :esm
+   :runtime :node
+   :output-dir "out"
+   :modules {:eval {:init-fn squint.embed/init}}
+   :build-hooks [(shadow.cljs.build-report/hook
+                  {:output-to "report.html"})]}}}

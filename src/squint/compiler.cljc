@@ -17,11 +17,11 @@
                                           #?(:cljs format)
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
                                           comma-list emit emit-args emit-infix emit-return escape-jsx
-                                          expr-env infix-operator? prefix-unary? statement suffix-unary?]]
+                                          expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
-   [squint.internal.fn :refer [core-defmacro core-defn core-fn]]
+   [squint.internal.fn :refer [core-defmacro core-defn core-defn- core-fn]]
    [squint.internal.loop :as loop]
    [squint.internal.macros :as macros]
    [squint.internal.protocols :as protocols]
@@ -85,7 +85,7 @@
                              'extend-type protocols/core-extend-type
                              'deftype deftype/core-deftype
                              'defn core-defn
-                             'defn- core-defn
+                             'defn- core-defn-
                              'instance? macros/core-instance?
                              'time macros/core-time
                              'declare macros/core-declare

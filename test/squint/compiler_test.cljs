@@ -2215,5 +2215,10 @@ new Foo();")
 (deftest infix-return-test
   (is (true? (jsv! "(defn foo [x] (and (int? x) (< 10 x 18))) (foo 12)"))))
 
+(deftest no-private-export-test
+  (let [exports (:exports (compiler/compile-string* "(defn- foo []) (defn bar [])"))]
+    (is (not (str/includes? exports "foo")))
+    (is (str/includes? exports "bar"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))

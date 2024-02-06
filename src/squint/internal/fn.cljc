@@ -351,6 +351,9 @@
                        (assoc m ::def true)))
       (meta &form))))
 
+(defn core-defn- [_&form _&env name & args]
+  `(clojure.core/defn ~(vary-meta name assoc :private true) ~@args))
+
 (defn core-defmacro
   "Like defn, but the resulting function name is declared as a
   macro and will be used as a macro by the compiler when it is

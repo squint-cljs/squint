@@ -40,3 +40,4 @@ tmp
 .tmp*
 playground/public/public/src/squint
 !playground/viteconfig.mjs
+out

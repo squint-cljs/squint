@@ -100,9 +100,10 @@
       (.substring s (- (count s) n)))))
 
 (defn statement [expr]
-  (if (not (= statement-separator (str-tail (count statement-separator) expr)))
-    (str expr statement-separator)
-    expr))
+  (when-not (str/blank? expr)
+    (if (not (= statement-separator (str-tail (count statement-separator) expr)))
+      (str expr statement-separator)
+      expr)))
 
 (defn comma-list [coll]
   (str "(" (str/join ", " coll) ")"))
@@ -124,7 +125,8 @@
        :clj munged)))
 
 (defmethod emit nil [_ env]
-  (emit-return "null" env))
+  (when-not (= :statement (:context env))
+    (emit-return "null" env)))
 
 #?(:clj (derive #?(:clj java.lang.Integer) ::number))
 #?(:clj (derive #?(:clj java.lang.Long) ::number))
@@ -467,7 +469,8 @@
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
     ;; TODO: move *public-vars* to :ns-state atom
-    (swap! *public-vars* conj (munge* name))
+    (when-not (:private (meta name))
+      (swap! *public-vars* conj (munge* name)))
     (swap! (:ns-state env) (fn [state]
                              (let [current (:current state)]
                                (assoc-in state [current name] {}))))
