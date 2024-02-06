@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.6.90 (2024-02-06)
 
 - #458: don't emit `null` in statement position
 
