@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- #458: don't emit `null` in statement position
+
 ## v0.6.89 (2024-02-01)
 
 - [#455](https://github.com/squint-cljs/squint/issues/455): don't export non-public vars
