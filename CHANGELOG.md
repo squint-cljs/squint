@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.6.91 (2024-02-14)
 
 - [#462](https://github.com/squint-cljs/squint/issues/462): Add `"exports"` field to `package.json`
 - [#460](https://github.com/squint-cljs/squint/issues/460): escape `<` and `>` in JSX strings
