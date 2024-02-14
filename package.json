@@ -45,6 +45,7 @@
     }
   ],
   "exports": {".": "./index.js",
+              "./index.js": "./index.js",
               "./core.js": "./core.js",
               "./string.js": "./string.js",
               "./src/squint/core.js": "./src/squint/core.js",
