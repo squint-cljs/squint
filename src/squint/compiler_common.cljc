@@ -139,7 +139,10 @@
   (cond-> (if (and (:jsx env)
                    (not (:jsx-attr env))
                    (not (:jsx-runtime env)))
-            expr
+            (str/replace expr #"([<>])" (fn [x]
+                                          (get
+                                           {"<" "&lt;"
+                                            ">" "&gt;"} (second x))))
             (emit-return (pr-str expr) env))
     (pos? (count expr)) (bool-expr)))
 

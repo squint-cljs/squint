@@ -5,6 +5,7 @@
 ## Unreleased
 
 - [#462](https://github.com/squint-cljs/squint/issues/462): Add `"exports"` field to `package.json`
+- [#460](https://github.com/squint-cljs/squint/issues/460): escape `<` and `>` in JSX strings
 
 ## v0.6.90 (2024-02-06)
 
