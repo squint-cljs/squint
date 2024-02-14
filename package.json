@@ -43,5 +43,6 @@
       "type": "github",
       "url": "https://github.com/sponsors/borkdude"
     }
-  ]
+  ],
+  "exports": {".": "./index.js"}
 }

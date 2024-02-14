@@ -2,9 +2,13 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- [#462](https://github.com/squint-cljs/squint/issues/462): Add `"exports"` field to `package.json`
+
 ## v0.6.90 (2024-02-06)
 
-- #458: don't emit `null` in statement position
+- [#458](https://github.com/squint-cljs/squint/issues/458): don't emit `null` in statement position
 
 ## v0.6.89 (2024-02-01)
 
