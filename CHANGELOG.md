@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.6.92 (2024-02-15)
+
+- #466: Fix `doseq` expression with `set!` in function return position
+
 ## v0.6.91 (2024-02-14)
 
 - [#462](https://github.com/squint-cljs/squint/issues/462): Add `"exports"` field to `package.json`
