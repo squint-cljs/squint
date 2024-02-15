@@ -286,13 +286,14 @@
                [3 3 1] [3 3 2] [3 3 3]]
               (js/eval s)))))
   (testing "return position in function"
-
     (let [f (jsv! '(do (defn foo [x a] (doseq [i x] (swap! a conj i))) foo))]
       (is f)
       (let [a (jsv! '(atom []))
             d (jsv! 'deref)]
         (f [1 2 3] a)
-        (is (eq #js [1 2 3] (d a))))))
+        (is (eq #js [1 2 3] (d a)))))
+    (let [f (jsv! '(do (def a {}) (doseq [i [1 2 3]] (set! (.-foo a) (+ (or (.-foo a) 0) i))) a))]
+      (is (= 6 (aget f "foo")))))
   (testing "iterate over object"
     (let [r (jsv! '(do
                      (def a (atom []))
