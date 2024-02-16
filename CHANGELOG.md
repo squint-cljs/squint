@@ -2,9 +2,13 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.6.93 (2024-02-16)
+
+- [#468](https://github.com/squint-cljs/squint/issues/468): Keywords in JSX should render with hyphens
+
 ## v0.6.92 (2024-02-15)
 
-- #466: Fix `doseq` expression with `set!` in function return position
+- [#466](https://github.com/squint-cljs/squint/issues/466): Fix `doseq` expression with `set!` in function return position
 
 ## v0.6.91 (2024-02-14)
 

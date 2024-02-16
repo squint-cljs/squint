@@ -66,7 +66,9 @@
       (is (str/includes? s "<div>{(squint_core.truth_(picked_emoji1))"))
       (is (= "<div><div>Picker</div></div>" (test-jsx cljs)))))
   (testing "less than, greater than"
-    (is (= "<div>&lt;&gt;</div>" (test-jsx "#jsx [:div \"<>\"]")))))
+    (is (= "<div>&lt;&gt;</div>" (test-jsx "#jsx [:div \"<>\"]"))))
+  (testing "keyword components should render with hyphen"
+    (is (= "<foo-bar data-foo-bar=\"true\"></foo-bar>" (test-jsx "#jsx [:foo-bar {:data-foo-bar true}]")))))
 
 
 
