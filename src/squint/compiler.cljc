@@ -291,6 +291,7 @@
                  (symbol? f))))
     (let [v expr
           tag (first v)
+          keyw? (keyword? tag)
           attrs (second v)
           attrs (when (map? attrs) attrs)
           elts (if attrs (nnext v) (next v))
@@ -299,7 +300,9 @@
           tag-name* (if fragment?
                       (symbol "")
                       tag-name)
-          tag-name (emit tag-name* (expr-env (dissoc env :jsx)))]
+          tag-name (if keyw?
+                     (subs (str tag) 1)
+                     (emit tag-name* (expr-env (dissoc env :jsx))))]
       (if (:jsx-runtime env)
         (let [single-child? (= (count elts) 1)]
           (emit (list (if single-child?
