@@ -13,7 +13,8 @@
                             bit-not bit-and unsafe-bit-and bit-or int bit-xor
                             bit-and-not bit-clear bit-flip bit-test
                             bit-shift-left bit-shift-right bit-shift-right-zero-fill
-                            unsigned-bit-shift-right bit-set undefined?])
+                            unsigned-bit-shift-right bit-set undefined?
+                            simple-benchmark])
   (:require [clojure.string :as str]
             [squint.compiler-common :as-alias ana]
             [clojure.core :as cc]
@@ -582,3 +583,15 @@
 (core/defmacro undefined?
   [x]
   (bool-expr (core/list 'js* "(void 0 === ~{})" x)))
+
+(core/defmacro simple-benchmark
+  [bindings expr iterations & {:keys [print-fn] :or {print-fn 'println}}]
+  (let [bs-str   (pr-str bindings)
+             expr-str (pr-str expr)]
+    `(let ~bindings
+       (let [start#   (.getTime (js/Date.))
+             ret#     (dotimes [_# ~iterations] ~expr)
+             end#     (.getTime (js/Date.))
+             elapsed# (- end# start#)]
+         (~print-fn (str ~bs-str ", " ~expr-str ", "
+                         ~iterations " runs, " elapsed# " msecs"))))))

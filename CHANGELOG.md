@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.6.94 (2024-02-20)
+
+- Add `simple-benchmark`
+
 ## v0.6.93 (2024-02-16)
 
 - [#468](https://github.com/squint-cljs/squint/issues/468): Keywords in JSX should render with hyphens
