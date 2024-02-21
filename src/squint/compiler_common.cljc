@@ -248,9 +248,9 @@
                          (when (= "js" sym-ns)
                            (munge* (name expr)))
                          (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
-                           (str (if (symbol? resolved-ns)
-                                  (munge resolved-ns)
-                                  sym-ns) "." #_#_sym-ns "_" (munged-name sn)))
+                           (str sym-ns "."
+                                #_#_sym-ns "_"
+                                (munged-name sn)))
                          (let [munged (munge (namespace expr))]
                            (if (and *repl* (not= "Math" munged))
                              (str "globalThis." (munge *cljs-ns*) "." munged "." (munge (name expr)))
