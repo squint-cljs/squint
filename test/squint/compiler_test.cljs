@@ -2221,5 +2221,15 @@ new Foo();")
     (is (not (str/includes? exports "foo")))
     (is (str/includes? exports "bar"))))
 
+(deftest use-existing-alias-test
+  (testing "single-word alias"
+    (let [s (compiler/compile-string "(require '[my.foo-bar :as foo]) (foo/some-fn)")]
+      (is (str/includes? s "import * as foo from 'my.foo-bar'"))
+      (is (str/includes? s "foo.some_fn();"))))
+  (testing "munged alias"
+    (let [s (compiler/compile-string "(require '[my.foo-bar :as foo-bar]) (foo-bar/some-fn)")]
+      (is (str/includes? s "import * as foo_bar from 'my.foo-bar'"))
+      (is (str/includes? s "foo_bar.some_fn();")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
