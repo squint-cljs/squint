@@ -249,7 +249,6 @@
                            (munge* (name expr)))
                          (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
                            (str sym-ns "."
-                                #_#_sym-ns "_"
                                 (munged-name sn)))
                          (let [munged (munge (namespace expr))]
                            (if (and *repl* (not= "Math" munged))
