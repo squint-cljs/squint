@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.6.95
+
+- [#472](https://github.com/squint-cljs/squint/issues/472): Use consistent alias
+
 ## v0.6.94 (2024-02-20)
 
 - Add `simple-benchmark`
