@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## v0.6.95
+## v0.6.95 (2024-02-26)
 
 - [#472](https://github.com/squint-cljs/squint/issues/472): Use consistent alias
 - [#474](https://github.com/squint-cljs/squint/issues/474): fix JSX fragment
