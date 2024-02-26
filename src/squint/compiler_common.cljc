@@ -247,7 +247,7 @@
                            (some-> (maybe-core-var sn env) munge))
                          (when (= "js" sym-ns)
                            (munge* (name expr)))
-                         (when-let [resolved-ns (get @*aliases* (symbol sym-ns))]
+                         (when (contains? @*aliases* (symbol sym-ns))
                            (str sym-ns "."
                                 (munged-name sn)))
                          (let [munged (munge (namespace expr))]
