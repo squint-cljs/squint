@@ -68,7 +68,9 @@
   (testing "less than, greater than"
     (is (= "<div>&lt;&gt;</div>" (test-jsx "#jsx [:div \"<>\"]"))))
   (testing "keyword components should render with hyphen"
-    (is (= "<foo-bar data-foo-bar=\"true\"></foo-bar>" (test-jsx "#jsx [:foo-bar {:data-foo-bar true}]")))))
+    (is (= "<foo-bar data-foo-bar=\"true\"></foo-bar>" (test-jsx "#jsx [:foo-bar {:data-foo-bar true}]"))))
+  (testing "fragment"
+    (is (= "<div><div>Hello</div></div>" (test-jsx "#jsx [:div [:<> [:div \"Hello\"]]]")))))
 
 
 

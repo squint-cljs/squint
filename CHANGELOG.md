@@ -5,6 +5,7 @@
 ## v0.6.95
 
 - [#472](https://github.com/squint-cljs/squint/issues/472): Use consistent alias
+- [#474](https://github.com/squint-cljs/squint/issues/474): fix JSX fragment
 - [#475](https://github.com/squint-cljs/squint/issues/475): don't crash watcher on deleting file
 
 ## v0.6.94 (2024-02-20)

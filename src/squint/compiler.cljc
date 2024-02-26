@@ -300,7 +300,7 @@
           tag-name* (if fragment?
                       (symbol "")
                       tag-name)
-          tag-name (if keyw?
+          tag-name (if (and (not fragment?) keyw?)
                      (subs (str tag) 1)
                      (emit tag-name* (expr-env (dissoc env :jsx))))]
       (if (:jsx-runtime env)
