@@ -182,13 +182,14 @@ Options:
                    (doseq [path paths]
                      (.on ^js (watch path) "all"
                           (fn [event path]
-                            (when-not (.isDirectory (fs/lstatSync path))
-                              (if (and (contains? #{"add" "change"} event)
-                                       (contains? #{".cljs" ".cljc"} (path/extname path)))
-                                (-> (compile-files opts [path])
-                                    (.catch (fn [e]
-                                              (js/console.error e))))
-                                (copy-file path output-dir paths))))))))))))
+                            (when (fs/existsSync path)
+                              (when-not (.isDirectory (fs/lstatSync path))
+                                (if (and (contains? #{"add" "change"} event)
+                                         (contains? #{".cljs" ".cljc"} (path/extname path)))
+                                  (-> (compile-files opts [path])
+                                      (.catch (fn [e]
+                                                (js/console.error e))))
+                                  (copy-file path output-dir paths)))))))))))))
 
 (defn start-nrepl [{:keys [opts]}]
   (-> (esm/dynamic-import "./node.nrepl_server.js")
