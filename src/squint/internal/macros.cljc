@@ -9,8 +9,17 @@
 ;;   software.
 
 (ns squint.internal.macros
-  (:refer-clojure :exclude [coercive-boolean coercive-= coercive-not= coercive-not])
-  (:require [clojure.string :as str]))
+  (:refer-clojure :exclude [coercive-boolean coercive-= coercive-not= coercive-not
+                            bit-not bit-and unsafe-bit-and bit-or int bit-xor
+                            bit-and-not bit-clear bit-flip bit-test
+                            bit-shift-left bit-shift-right bit-shift-right-zero-fill
+                            unsigned-bit-shift-right bit-set undefined?
+                            simple-benchmark])
+  (:require [clojure.string :as str]
+            [squint.compiler-common :as-alias ana]
+            [clojure.core :as cc]
+            #?(:clj [squint.internal.defmacro :as core]))
+  #?(:cljs (:require-macros [squint.internal.defmacro :as core])))
 
 (defn core->
   [_ _ x & forms]
@@ -261,7 +270,7 @@
   (let [res (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
                   step (fn step [exprs]
                          (if-not exprs
-                           [true `(do ~@body)]
+                           `(do ~@body)
                            (let [k (first exprs)
                                  v (second exprs)
                                  subform (step (nnext exprs))]
@@ -519,3 +528,70 @@
 (defn coercive-boolean
   [_ _ x]
   (bool-expr (list 'js* "~{}" x)))
+
+(core/defmacro ^::ana/numeric bit-not [x]
+  (core/list 'js* "(~ ~{})" x))
+
+(core/defmacro ^::ana/numeric bit-and
+  ([x y] (core/list 'js* "(~{} & ~{})" x y))
+  ([x y & more] `(cc/bit-and (cc/bit-and ~x ~y) ~@more)))
+
+;; internal do not use
+(core/defmacro ^::ana/numeric unsafe-bit-and
+  ([x y] (bool-expr (core/list 'js* "(~{} & ~{})" x y)))
+  ([x y & more] `(cc/unsafe-bit-and (cc/unsafe-bit-and ~x ~y) ~@more)))
+
+(core/defmacro ^::ana/numeric bit-or
+  ([x y] (core/list 'js* "(~{} | ~{})" x y))
+  ([x y & more] `(cc/bit-or (cc/bit-or ~x ~y) ~@more)))
+
+(core/defmacro ^::ana/numeric int [x]
+  `(cc/bit-or ~x 0))
+
+(core/defmacro ^::ana/numeric bit-xor
+  ([x y] (core/list 'js* "(~{} ^ ~{})" x y))
+  ([x y & more] `(cc/bit-xor (cc/bit-xor ~x ~y) ~@more)))
+
+(core/defmacro ^::ana/numeric bit-and-not
+  ([x y] (core/list 'js* "(~{} & ~~{})" x y))
+  ([x y & more] `(cc/bit-and-not (cc/bit-and-not ~x ~y) ~@more)))
+
+(core/defmacro ^::ana/numeric bit-clear [x n]
+  (core/list 'js* "(~{} & ~(1 << ~{}))" x n))
+
+(core/defmacro ^::ana/numeric bit-flip [x n]
+  (core/list 'js* "(~{} ^ (1 << ~{}))" x n))
+
+(core/defmacro bit-test [x n]
+  (bool-expr (core/list 'js* "((~{} & (1 << ~{})) != 0)" x n)))
+
+(core/defmacro ^::ana/numeric bit-shift-left [x n]
+  (core/list 'js* "(~{} << ~{})" x n))
+
+(core/defmacro ^::ana/numeric bit-shift-right [x n]
+  (core/list 'js* "(~{} >> ~{})" x n))
+
+(core/defmacro ^::ana/numeric bit-shift-right-zero-fill [x n]
+  (core/list 'js* "(~{} >>> ~{})" x n))
+
+(core/defmacro ^::ana/numeric unsigned-bit-shift-right [x n]
+  (core/list 'js* "(~{} >>> ~{})" x n))
+
+(core/defmacro ^::ana/numeric bit-set [x n]
+  (core/list 'js* "(~{} | (1 << ~{}))" x n))
+
+(core/defmacro undefined?
+  [x]
+  (bool-expr (core/list 'js* "(void 0 === ~{})" x)))
+
+(core/defmacro simple-benchmark
+  [bindings expr iterations & {:keys [print-fn] :or {print-fn 'println}}]
+  (let [bs-str   (pr-str bindings)
+             expr-str (pr-str expr)]
+    `(let ~bindings
+       (let [start#   (.getTime (js/Date.))
+             ret#     (dotimes [_# ~iterations] ~expr)
+             end#     (.getTime (js/Date.))
+             elapsed# (- end# start#)]
+         (~print-fn (str ~bs-str ", " ~expr-str ", "
+                         ~iterations " runs, " elapsed# " msecs"))))))

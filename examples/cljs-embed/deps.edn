@@ -1,0 +1,4 @@
+{:deps {io.github.squint-cljs/squint
+        {:git/sha "648f1ba30629b3775e602c83a3c799010cc524fe"}}
+ :aliases {:shadow {:extra-deps {thheller/shadow-cljs {:mvn/version "2.22.9"}}
+                    :main-opts ["-m" "shadow.cljs.devtools.cli"]}}}

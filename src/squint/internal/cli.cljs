@@ -13,8 +13,10 @@
   (:require-macros [squint.resource :refer [version]]))
 
 (defn file-in-output-dir [file paths output-dir]
-  (path/resolve output-dir
-                (compiler/adjust-file-for-paths file paths)))
+  (if output-dir
+    (path/resolve output-dir
+                  (compiler/adjust-file-for-paths file paths))
+    file))
 
 (defn resolve-ns [opts in-file x]
   (let [output-dir (:output-dir opts)
@@ -121,7 +123,8 @@ Options:
                 e)
             res (cc/compile-string e (assoc opts :repl (:repl opts) :ns-state (atom {:current 'user})
                                             :context (if (:repl opts) :return :statement)
-                                            :elide-exports (:repl opts)))
+                                            :elide-exports (and (:repl opts)
+                                                                (not (false? (:elide-exports opts))))))
             res (if (:repl opts)
                   (str/replace "(async function() { %s })()" "%s" res)
                   res)
@@ -179,13 +182,14 @@ Options:
                    (doseq [path paths]
                      (.on ^js (watch path) "all"
                           (fn [event path]
-                            (when-not (.isDirectory (fs/lstatSync path))
-                              (if (and (contains? #{"add" "change"} event)
-                                       (contains? #{".cljs" ".cljc"} (path/extname path)))
-                                (-> (compile-files opts [path])
-                                    (.catch (fn [e]
-                                              (js/console.error e))))
-                                (copy-file path output-dir paths))))))))))))
+                            (when (fs/existsSync path)
+                              (when-not (.isDirectory (fs/lstatSync path))
+                                (if (and (contains? #{"add" "change"} event)
+                                         (contains? #{".cljs" ".cljc"} (path/extname path)))
+                                  (-> (compile-files opts [path])
+                                      (.catch (fn [e]
+                                                (js/console.error e))))
+                                  (copy-file path output-dir paths)))))))))))))
 
 (defn start-nrepl [{:keys [opts]}]
   (-> (esm/dynamic-import "./node.nrepl_server.js")

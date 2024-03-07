@@ -27,7 +27,6 @@ examples/quickjs/hello
 scratch.js
 compiler-common
 garbage.js
-playground
 !examples/vite-react/public/index.html
 wordle.cljs
 bun.lockb
@@ -37,3 +36,7 @@ aoc_3.mjs
 libtests
 tmp
 !test-resources/js_api.mjs
+.portal
+playground/public/public/src/squint
+!playground/viteconfig.mjs
+out

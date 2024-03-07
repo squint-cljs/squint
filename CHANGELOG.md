@@ -1,14 +1,117 @@
 # Changelog
 
-[Squint](https://github.com/squint-cljs/squint): ClojureScript syntax to JavaScript compiler
+[Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.6.95 (2024-02-26)
 
+- [#472](https://github.com/squint-cljs/squint/issues/472): Use consistent alias
+- [#474](https://github.com/squint-cljs/squint/issues/474): fix JSX fragment
+- [#475](https://github.com/squint-cljs/squint/issues/475): don't crash watcher on deleting file
+
+## v0.6.94 (2024-02-20)
+
+- Add `simple-benchmark`
+
+## v0.6.93 (2024-02-16)
+
+- [#468](https://github.com/squint-cljs/squint/issues/468): Keywords in JSX should render with hyphens
+
+## v0.6.92 (2024-02-15)
+
+- [#466](https://github.com/squint-cljs/squint/issues/466): Fix `doseq` expression with `set!` in function return position
+
+## v0.6.91 (2024-02-14)
+
+- [#462](https://github.com/squint-cljs/squint/issues/462): Add `"exports"` field to `package.json`
+- [#460](https://github.com/squint-cljs/squint/issues/460): escape `<` and `>` in JSX strings
+
+## v0.6.90 (2024-02-06)
+
+- [#458](https://github.com/squint-cljs/squint/issues/458): don't emit `null` in statement position
+
+## v0.6.89 (2024-02-01)
+
+- [#455](https://github.com/squint-cljs/squint/issues/455): don't export non-public vars
+
+## v0.6.88 (2024-01-10)
+
+- Fix infix operator in return position
+- Allow playground to use JSX in non-REPL mode
+
+## v0.6.87 (2024-01-06)
+
+- Add transducer arity to all existing core functions
+
+## v0.5.86 (2023-12-23)
+
+- Support `^:gen` + `js-yield` + `js-yield*` to write JS generator functions. See [playground](https://squint-cljs.github.io/squint/?src=KGRlZm4gXjpnZW4gZm9vIFtdCiAgKGpzLXlpZWxkIDEpCiAgKGpzLXlpZWxkKiBbMiAzXSkKICAobGV0IFt4IChpbmMgMyldCiAgICAoanMteWllbGQgeCkpCiAgKGxldCBbeCAoZG8gKGpzLXlpZWxkIDUpCiAgICAgICAgICAgIDYpXQogICAgKGpzLXlpZWxkIHgpKSkKCih2ZWMgKGZvbykp)
+- Add `update-keys` and `update-vals`
+- Add `=` as reified function
+
+## v0.4.85 (2023-12-20)
+
+- [#449](https://github.com/squint-cljs/squint/issues/449): fix issue with `:refer`
+
+## v0.4.84 (2023-12-19)
+
+- Add `memoize`, `filter` transducer arity, `peek`, `pop`
+- Export classes defined with `defclass`
+- Support `^:async` Object method in `defclass`
+
+## v0.4.83 (2023-12-16)
+
+- Better support for pragmas and JSDoc via `js*` + `//` and `/* */`
+- Add `rem`, `nnext`, `str/end-with?`, `str/index-of` and `str/last-index-of`
+- Fix alias with hypen in REPL mode
+
+## v0.4.82 (2023-12-14)
+
+- Keep top level strings and comments (via `js*`) before imports (for JSDoc, Next.js `"use client"`, etc)
+
+## v0.4.81 (2023-12-11)
+
+- Fix `compileString` in JS API
+
+## v0.4.80 (2023-12-11)
+
+- Optimization: sort largest set first for `set/union`, and smallest first for `set/intersection`
+- Add `sorted-set`, `long`, `abs`, `keep-indexed` transducer arity
+
+## v0.4.79 (2023-12-09)
+
+- The `children` function in `tree-seq` may return `nil`
+
+## v0.4.78 (2023-12-09)
+
+- Add `clojure.set/join`
+- Add `tree-seq`, `flatten`, `seq?` and `sequential?`
+
+## 0.4.77 (2023-12-09)
+
+- Add `clojure.set` functions `select`, `rename-keys`, `rename`, `project`, and `map-invert` ([@PEZ](https://github.com/PEZ))
+- Fix `reduce-kv` with `js/Map` input
+
+## 0.4.76 (2023-12-07)
+
+- Add more `clojure.set` functions: `difference`, `union`, `subset?`, and `superset?` ([@PEZ](https://github.com/PEZ))
+
+## 0.4.75 (2023-12-07)
+
+- Let any object that has `Symbol.iterable` be destructureable even if it is not `instance of Object`
+
+## 0.4.74 (2023-12-07)
+
+- Initial version of `clojure.set`
+- [#418](https://github.com/squint-cljs/squint/issues/418): Add `reductions`
+- Add `bit-shift-left` and more `bit-` related macros
 - Fix `not` with respect to truthiness
+- Fix `reduce` without initial value + empty coll, it should call `f()`
+- Add serve-playground bb task
+- Update playground with button for creating a blank AOC playground
 
 ## 0.4.73 (2023-12-05)
 
-- #407: fix conditional rendering
+- [#407](https://github.com/squint-cljs/squint/issues/407): fix conditional rendering
 - Add `not-empty`
 - Fix `into` + set + xform
 
@@ -33,8 +136,8 @@
 
 ## 0.4.68 (2023-12-01)
 
-- #394: add `int`
-- #393: `Math` can be used without `js/` prefix
+- [#394](https://github.com/squint-cljs/squint/issues/394): add `int`
+- [#393](https://github.com/squint-cljs/squint/issues/393): `Math` can be used without `js/` prefix
 - Expose compiler state via `compileStringEx` for playground, preserves namespace transitions
 
 ## 0.4.67 (2023-11-28)

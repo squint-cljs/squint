@@ -6,6 +6,7 @@
   NaN_QMARK_
   PROTOCOL_SENTINEL
   _
+  _EQ_
   _GT_
   _GT__EQ_
   _LT_
@@ -13,6 +14,7 @@
   _PLUS_
   _STAR_
   _iterator
+  abs
   aclone
   add_watch
   alength
@@ -28,6 +30,7 @@
   boolean_QMARK_
   bounded_count
   butlast
+  cat
   coll_QMARK_
   comp
   compare
@@ -55,6 +58,7 @@
   drop_while
   empty
   empty_QMARK_
+  ensure_reduced
   es6_iterator
   even_QMARK_
   every_QMARK_
@@ -69,6 +73,7 @@
   filterv
   find
   first
+  flatten
   fn_QMARK_
   fnil
   frequencies
@@ -97,6 +102,7 @@
   lazy
   list
   list_QMARK_
+  long$
   map
   map_QMARK_
   map_indexed
@@ -104,6 +110,7 @@
   mapv
   max
   max_key
+  memoize
   merge
   merge_with
   meta
@@ -113,6 +120,7 @@
   neg_QMARK_
   next
   nil_QMARK_
+  nnext
   not
   not_any_QMARK_
   not_empty
@@ -126,6 +134,9 @@
   partition
   partition_all
   partition_by
+  peek
+  persistent_BANG_
+  pop
   pos_QMARK_
   pr_str
   println
@@ -142,7 +153,9 @@
   reduce_kv
   reduced
   reduced_QMARK_
+  reductions
   regexp_QMARK_
+  rem
   remove
   remove_watch
   repeat
@@ -155,7 +168,9 @@
   second
   select_keys
   seq
+  seq_QMARK_
   seqable_QMARK_
+  sequential_QMARK_
   set
   shuffle
   some
@@ -163,11 +178,13 @@
   some_fn
   sort
   sort_by
+  sorted_set
   split_at
   split_with
   str
   string_QMARK_
   subs
+  subseq
   subvec
   swap_BANG_
   system_time
@@ -177,11 +194,17 @@
   take_while
   to_array
   transduce
+  transient$
+  tree_seq
   true_QMARK_
   truth_
+  type
+  unreduced
   update
   update_BANG_
   update_in
+  update_keys
+  update_vals
   val
   vals
   vec
