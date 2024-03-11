@@ -979,7 +979,8 @@ break;}" body)
 
 (defn jsx-attrs [v env]
   (let [env (expr-env env)]
-    (if (:jsx-runtime env)
+    (if (and (not (:html env))
+             (:jsx-runtime env))
       (when v
         (emit v (dissoc env :jsx)))
       (if (seq v)

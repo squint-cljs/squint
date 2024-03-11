@@ -286,7 +286,7 @@
      env*)))
 
 (defn emit-vector [expr env]
-  (prn :meta (meta expr))
+  (prn :meta expr (meta expr))
   (if (and (:jsx env)
            (let [f (first expr)]
              (or (keyword? f)
@@ -305,7 +305,7 @@
           tag-name (if (and (not fragment?) keyw?)
                      (subs (str tag) 1)
                      (emit tag-name* (expr-env (dissoc env :jsx))))]
-    (if (and (:jsx env) (:jsx-runtime env))
+    (if (and (not (:html env)) (:jsx env) (:jsx-runtime env))
         (let [single-child? (= (count elts) 1)]
           (emit (list (if single-child?
                         '_jsx '_jsxs)
