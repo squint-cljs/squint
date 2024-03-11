@@ -128,9 +128,13 @@
 (defn escape-jsx [expr env]
   (if (and (:jsx env) (or (:html env)
                           (not (:jsx-runtime env))))
-    (format (str (when (:html env)
-                  "$")
-                 "{%s}") expr)
+    (do
+      (when (:html env)
+        (when-let [dyn (:has-dynamic-expr env)]
+          (reset! dyn true)))
+      (format (str (when (:html env)
+                     "$")
+                   "{%s}") expr))
     expr))
 
 (defmethod emit ::number [expr env]

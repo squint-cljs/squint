@@ -286,12 +286,14 @@
      env*)))
 
 (defn emit-vector [expr env]
-  (prn :meta expr (meta expr))
   (if (and (:jsx env)
            (let [f (first expr)]
              (or (keyword? f)
                  (symbol? f))))
-    (let [v expr
+    (let [top-dynamic-expr (:has-dynamic-expr env)
+          has-dynamic-expr? (atom false)
+          env (assoc env :has-dynamic-expr has-dynamic-expr?)
+          v expr
           tag (first v)
           keyw? (keyword? tag)
           attrs (second v)
@@ -305,7 +307,8 @@
           tag-name (if (and (not fragment?) keyw?)
                      (subs (str tag) 1)
                      (emit tag-name* (expr-env (dissoc env :jsx))))]
-    (if (and (not (:html env)) (:jsx env) (:jsx-runtime env))
+      
+      (if (and (not (:html env)) (:jsx env) (:jsx-runtime env))
         (let [single-child? (= (count elts) 1)]
           (emit (list (if single-child?
                         '_jsx '_jsxs)
@@ -325,15 +328,21 @@
                 env))
         (emit-return
          (cond->> (format "<%s%s>%s</%s>"
-                         tag-name
-                         (cc/jsx-attrs attrs env)
-                         (let [env (expr-env env)]
-                           (str/join "" (map #(emit % env) elts)))
-                         tag-name)
+                          tag-name
+                          (cc/jsx-attrs attrs env)
+                          (let [env (expr-env env)]
+                            (str/join "" (map #(emit % env) elts)))
+                          tag-name)
            (:outer-html (meta expr)) (format "%s`%s`"
                                              (if-let [t (:tag (meta expr))]
                                                (emit t (expr-env (dissoc env :jsx :html)))
-                                               "")))
+                                               (if @has-dynamic-expr?
+                                                 (do
+                                                   (prn :yo)
+                                                   (when top-dynamic-expr
+                                                     (reset! top-dynamic-expr true))
+                                                   "squint.lit")
+                                                 ""))))
          env)))
     (emit-return (format "[%s]"
                          (str/join ", " (emit-args env expr))) env)))
@@ -455,7 +464,8 @@
                *jsx* false
                cc/*repl* (:repl opts cc/*repl*)]
        (let [opts (merge {:ns-state (atom {})
-                          :top-level true} opts)
+                          :top-level true
+                          :has-dynamic-expr (atom false)} opts)
              imported-vars (atom {})
              public-vars (atom #{})
              aliases (atom (merge aliases {core-alias cc/*core-package*}))
