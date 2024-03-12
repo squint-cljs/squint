@@ -291,7 +291,6 @@
              (or (keyword? f)
                  (symbol? f))))
     (let [top-dynamic-expr (:top-has-dynamic-expr env)
-          _ (prn :top @top-dynamic-expr)
           has-dynamic-expr? (or (:has-dynamic-expr env) (atom false))
           env (assoc env :has-dynamic-expr has-dynamic-expr?)
           v expr
@@ -338,9 +337,7 @@
                                                (emit t (expr-env (dissoc env :jsx :html)))
                                                (if @has-dynamic-expr?
                                                  (do
-                                                   (prn :yo)
                                                    (when top-dynamic-expr
-                                                     (prn :top!!! true)
                                                      (reset! top-dynamic-expr true))
                                                    "squint_html.tag")
                                                  ""))))
@@ -465,11 +462,8 @@
                *jsx* false
                cc/*repl* (:repl opts cc/*repl*)]
        (let [has-dynamic-expr (atom false)
-             _ (add-watch has-dynamic-expr :foo (fn [_ _ _ x]
-                                                   (prn :watch x)))
              opts (merge {:ns-state (atom {})
-                          :top-level true
-                          :top-has-dynamic-expr has-dynamic-expr} opts)
+                          :top-level true} opts)
              imported-vars (atom {})
              public-vars (atom #{})
              aliases (atom (merge aliases {core-alias cc/*core-package*}))
@@ -493,7 +487,8 @@
                                                         :core-alias core-alias
                                                         :imports imports
                                                         :jsx false
-                                                        :pragmas pragmas))
+                                                        :pragmas pragmas
+                                                        :top-has-dynamic-expr has-dynamic-expr))
                  jsx *jsx*
                  _ (when (and jsx jsx-runtime)
                      (swap! imports str
@@ -507,12 +502,11 @@
                                   (if jsx-dev
                                     "/jsx-dev-runtime"
                                     "/jsx-runtime")))))
-                 _ (prn :> @has-dynamic-expr)
                  _ (when @has-dynamic-expr
                      (swap! imports str
                             (if cc/*repl*
                               "var squint_html = await import('squint-cljs/src/squint/html.js');\n"
-                              "import squint_html as * from 'squint-cljs/src/squint/html.js';\n")))
+                              "import * as squint_html from 'squint-cljs/src/squint/html.js';\n")))
                  pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
                  exports (when-not elide-exports

@@ -4,6 +4,7 @@
    [clojure.test :as t :refer [async deftest is testing]]
    [squint.compiler :as compiler]
    [squint.jsx-test]
+   [squint.html-test]
    [squint.string-test]
    [squint.test-utils :refer [eq js! jss! jsv!]]
    ["fs" :as fs]
@@ -2232,4 +2233,4 @@ new Foo();")
       (is (str/includes? s "foo_bar.some_fn();")))))
 
 (defn init []
-  (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test))
+  (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

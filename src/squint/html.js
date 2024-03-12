@@ -12,6 +12,5 @@ export function tag(strs, ...vals) {
     out += toHTML(vals[i]);
     out += strs[i+1];
   }
-  console.log(out);
   return out;  
 }
