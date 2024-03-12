@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - html
 permissions:
   contents: read
   pages: write
@@ -33,16 +34,17 @@ jobs:
 
       - name: Install and Build 🔧
         run: |
+          bb build
           cd playground && bb build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
+      # - name: Setup Pages
+      #   uses: actions/configure-pages@v3
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: 'playground/public/dist'
+      # - name: Upload artifact
+      #   uses: actions/upload-pages-artifact@v2
+      #   with:
+      #     path: 'playground/public/dist'
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+      # - name: Deploy to GitHub Pages
+      #   id: deployment
+      #   uses: actions/deploy-pages@v2
