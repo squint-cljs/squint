@@ -10,6 +10,9 @@
     (is (str/includes?
          (jss! "#html [:div \"Hello\"]")
          "`<div>Hello</div>"))
+    (is (str/includes?
+         (jss! "#html ^foo/bar [:div \"Hello\"]")
+         "foo.bar`<div>Hello</div>"))
     (let [{:keys [imports body]} (squint.compiler/compile-string* "(defn foo [x] #html [:div \"Hello\" x])")]
       (is (str/includes? imports "import * as squint_html from 'squint-cljs/src/squint/html.js'"))
       (is (str/includes? body "squint_html.tag`<div>Hello${x}</div>`")))
