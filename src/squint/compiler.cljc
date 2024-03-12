@@ -292,7 +292,7 @@
                  (symbol? f))))
     (let [top-dynamic-expr (:top-has-dynamic-expr env)
           _ (prn :top @top-dynamic-expr)
-          has-dynamic-expr? (atom false)
+          has-dynamic-expr? (or (:has-dynamic-expr env) (atom false))
           env (assoc env :has-dynamic-expr has-dynamic-expr?)
           v expr
           tag (first v)
