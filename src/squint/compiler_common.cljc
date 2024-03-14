@@ -126,8 +126,15 @@
 #?(:cljs (derive js/Number ::number))
 
 (defn escape-jsx [expr env]
-  (if (and (:jsx env) (not (:jsx-runtime env)))
-    (format "{%s}" expr)
+  (if (and (:jsx env) (or (:html env)
+                          (not (:jsx-runtime env))))
+    (do
+      (when (:html env)
+        (when-let [dyn (:has-dynamic-expr env)]
+          (reset! dyn true)))
+      (format (str (when (:html env)
+                     "$")
+                   "{%s}") expr))
     expr))
 
 (defmethod emit ::number [expr env]
@@ -138,7 +145,8 @@
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
   (cond-> (if (and (:jsx env)
                    (not (:jsx-attr env))
-                   (not (:jsx-runtime env)))
+                   (or (:html env)
+                       (not (:jsx-runtime env))))
             (str/replace expr #"([<>])" (fn [x]
                                           (get
                                            {"<" "&lt;"
@@ -977,7 +985,8 @@ break;}" body)
 
 (defn jsx-attrs [v env]
   (let [env (expr-env env)]
-    (if (:jsx-runtime env)
+    (if (and (not (:html env))
+             (:jsx-runtime env))
       (when v
         (emit v (dissoc env :jsx)))
       (if (seq v)

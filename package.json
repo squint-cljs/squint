@@ -9,6 +9,7 @@
     "string.js",
     "src/squint/string.js",
     "src/squint/set.js",
+    "src/squint/html.js",
     "lib",
     "node_cli.js",
     "index.js",
@@ -50,6 +51,7 @@
               "./string.js": "./string.js",
               "./src/squint/core.js": "./src/squint/core.js",
               "./src/squint/set.js": "./src/squint/set.js",
-              "./src/squint/string.js": "./src/squint/string.js"
+              "./src/squint/string.js": "./src/squint/string.js",
+              "./src/squint/html.js": "./src/squint/html.js"
              }
 }

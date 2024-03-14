@@ -42,6 +42,7 @@
                          'js/await 'js-await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
+                         'squint-compiler-html
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
                          'clj->js
                          'squint.impl/for-of
@@ -289,7 +290,10 @@
            (let [f (first expr)]
              (or (keyword? f)
                  (symbol? f))))
-    (let [v expr
+    (let [top-dynamic-expr (:top-has-dynamic-expr env)
+          has-dynamic-expr? (or (:has-dynamic-expr env) (atom false))
+          env (assoc env :has-dynamic-expr has-dynamic-expr?)
+          v expr
           tag (first v)
           keyw? (keyword? tag)
           attrs (second v)
@@ -303,7 +307,7 @@
           tag-name (if (and (not fragment?) keyw?)
                      (subs (str tag) 1)
                      (emit tag-name* (expr-env (dissoc env :jsx))))]
-      (if (:jsx-runtime env)
+      (if (and (not (:html env)) (:jsx env) (:jsx-runtime env))
         (let [single-child? (= (count elts) 1)]
           (emit (list (if single-child?
                         '_jsx '_jsxs)
@@ -321,13 +325,23 @@
                           (seq children)
                           (assoc :children children))))
                 env))
-        (emit-return (format "<%s%s>%s</%s>"
-                             tag-name
-                             (cc/jsx-attrs attrs env)
-                             (let [env (expr-env env)]
-                               (str/join "" (map #(emit % env) elts)))
-                             tag-name)
-                     env)))
+        (emit-return
+         (cond->> (format "<%s%s>%s</%s>"
+                          tag-name
+                          (cc/jsx-attrs attrs env)
+                          (let [env (expr-env env)]
+                            (str/join "" (map #(emit % env) elts)))
+                          tag-name)
+           (:outer-html (meta expr)) (format "%s`%s`"
+                                             (if-let [t (:tag (meta expr))]
+                                               (emit t (expr-env (dissoc env :jsx :html)))
+                                               (if @has-dynamic-expr?
+                                                 (do
+                                                   (when top-dynamic-expr
+                                                     (reset! top-dynamic-expr true))
+                                                   "squint_html.tag")
+                                                 ""))))
+         env)))
     (emit-return (format "[%s]"
                          (str/join ", " (emit-args env expr))) env)))
 
@@ -390,9 +404,17 @@
 (defn jsx [form]
   (list 'squint-compiler-jsx form))
 
+(defn html [form]
+  (list 'squint-compiler-html form))
+
 (defmethod emit-special 'squint-compiler-jsx [_ env [_ form]]
   (set! *jsx* true)
   (let [env (assoc env :jsx true)]
+    (emit form env)))
+
+(defmethod emit-special 'squint-compiler-html [_ env [_ form]]
+  (let [env (assoc env :html true :jsx true)
+        form (vary-meta form assoc :outer-html true)]
     (emit form env)))
 
 (def squint-parse-opts
@@ -401,7 +423,8 @@
     :end-location false
     :location? seq?
     :readers {'js #(vary-meta % assoc ::js true)
-              'jsx jsx}
+              'jsx jsx
+              'html html}
     :read-cond :allow
     :features #{:squint :cljs}}))
 
@@ -438,7 +461,8 @@
                cc/*target* :squint
                *jsx* false
                cc/*repl* (:repl opts cc/*repl*)]
-       (let [opts (merge {:ns-state (atom {})
+       (let [has-dynamic-expr (atom false)
+             opts (merge {:ns-state (atom {})
                           :top-level true} opts)
              imported-vars (atom {})
              public-vars (atom #{})
@@ -463,7 +487,8 @@
                                                         :core-alias core-alias
                                                         :imports imports
                                                         :jsx false
-                                                        :pragmas pragmas))
+                                                        :pragmas pragmas
+                                                        :top-has-dynamic-expr has-dynamic-expr))
                  jsx *jsx*
                  _ (when (and jsx jsx-runtime)
                      (swap! imports str
@@ -477,6 +502,11 @@
                                   (if jsx-dev
                                     "/jsx-dev-runtime"
                                     "/jsx-runtime")))))
+                 _ (when @has-dynamic-expr
+                     (swap! imports str
+                            (if cc/*repl*
+                              "var squint_html = await import('squint-cljs/src/squint/html.js');\n"
+                              "import * as squint_html from 'squint-cljs/src/squint/html.js';\n")))
                  pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
                  exports (when-not elide-exports

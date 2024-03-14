@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+
 permissions:
   contents: read
   pages: write
@@ -33,6 +34,7 @@ jobs:
 
       - name: Install and Build 🔧
         run: |
+          bb build
           cd playground && bb build
 
       - name: Setup Pages
