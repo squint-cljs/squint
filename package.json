@@ -9,6 +9,7 @@
     "string.js",
     "src/squint/string.js",
     "src/squint/set.js",
+    "src/squint/html.js",
     "lib",
     "node_cli.js",
     "index.js",
