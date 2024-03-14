@@ -29,6 +29,9 @@
    'bit-set macros/bit-set
    'undefined? macros/undefined?})
 
+(defn wrap-parens [s]
+  (str "(" s ")"))
+
 #?(:cljs (def Exception js/Error))
 
 #?(:cljs (def format gstring/format))
@@ -215,9 +218,9 @@
                                  'bit-or "|"
                                  'bit-and "&"
                                  'js-mod "%"}]
-              (str "(" (str/join (str " " (or (substitutions operator)
-                                              operator) " ")
-                                 (emit-args env args)) ")"))
+              (str/join (str " " (or (substitutions operator)
+                                     operator) " ")
+                        (map wrap-parens (emit-args env args))))
             (emit-return enc-env)
             (cond-> bool? (bool-expr)))))))
 
@@ -697,9 +700,6 @@
 
 #_(defmethod emit-special '? [_type env [_ test then else]]
     (str (emit test env) " ? " (emit then env) " : " (emit else env)))
-
-(defn wrap-parens [s]
-  (str "(" s ")"))
 
 #_#_(defmethod emit-special 'and [_type env [_ & more]]
       (if (empty? more)

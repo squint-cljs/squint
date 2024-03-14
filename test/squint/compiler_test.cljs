@@ -2232,5 +2232,8 @@ new Foo();")
       (is (str/includes? s "import * as foo_bar from 'my.foo-bar'"))
       (is (str/includes? s "foo_bar.some_fn();")))))
 
+(deftest infix-issue-483-test
+  (is (= 1 (jsv! "(/ 10 (when (odd? 3) 10))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
