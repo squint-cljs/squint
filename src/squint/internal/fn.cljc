@@ -27,7 +27,8 @@
             (if (and (map? fparam)
                      (let [m (meta fparam)]
                        (or (:js m)
-                           (= 'js (:tag m)))))
+                           (= 'js (:tag m))
+                           (not (:as m)))))
               (recur (next params)
                      (conj new-params fparam)
                      lets)
