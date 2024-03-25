@@ -23,9 +23,17 @@
       (if params
         (if (symbol? (first params))
           (recur (next params) (conj new-params (first params)) lets)
-          (let [gparam (gensym "p__")]
-            (recur (next params) (conj new-params gparam)
-                   (-> lets (conj (first params)) (conj gparam)))))
+          (let [fparam (first params)]
+            (if (and (map? fparam)
+                     (let [m (meta fparam)]
+                       (or (:js m)
+                           (= 'js (:tag m)))))
+              (recur (next params)
+                     (conj new-params fparam)
+                     lets)
+              (let [gparam (gensym "p__")]
+                (recur (next params) (conj new-params gparam)
+                       (-> lets (conj fparam) (conj gparam)))))))
         `(~new-params
           (let ~lets
             ~@body))))))

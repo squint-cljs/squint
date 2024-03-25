@@ -731,6 +731,10 @@
             [env [] #{}]
             sig)))
 
+(defn destructured-map [x]
+  (prn :x x)
+  (str "{}"))
+
 (defn emit-function [env _name sig body & [elide-function?]]
   ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
@@ -756,7 +760,11 @@ break;}" body)
                     " "
                     #_(when name
                         (str name " "))))
-             (comma-list (map munge sig))
+             (comma-list (map (fn [x]
+                                (if (map? x)
+                                  (destructured-map x)
+                                  (munge x)
+                                  )) sig))
              " {\n"
              body "\n}")))))
 
