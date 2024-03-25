@@ -45,20 +45,30 @@
 (defn files-from-paths [paths]
   (vec (mapcat files-from-path paths)))
 
-(defn copy-file [path output-dir paths ]
-  (let [out-file (path/resolve output-dir (compiler/adjust-file-for-paths path paths))
-        out-path (path/dirname out-file)]
-    (when-not (fs/existsSync out-path)
-      (println "[squint] Creating directory:" out-path)
-      (fs/mkdirSync out-path #js {:recursive true}))
-    (println "[squint] Copying resource" path "to" out-path)
-    (fs/copyFileSync path out-file)))
+(defn match-file [x out-path]
+  (cond (keyword? x)
+        (re-find (re-pattern (str "\\." (name x) "$")) out-path)
+        (string? x)
+        (re-find (re-pattern x) out-path)))
+
+(defn copy-file [copy-resources path output-dir paths]
+  (when copy-resources
+    (let [out-file (path/resolve output-dir (compiler/adjust-file-for-paths path paths))
+          out-path (path/dirname out-file)]
+      (when (some #(match-file % out-file)
+                  copy-resources)
+        (when-not (fs/existsSync out-path)
+          (println "[squint] Creating directory:" out-path)
+          (fs/mkdirSync out-path #js {:recursive true}))
+        (println "[squint] zCopying resource" path "to" out-path)
+        (fs/copyFileSync path out-file)))))
 
 (defn compile-files
   [opts files]
   (let [cfg @utils/!cfg
         opts (merge cfg opts)
         paths (:paths cfg)
+        copy-resources (:copy-resources cfg)
         output-dir (:output-dir cfg ".")
         files (if (empty? files)
                 (files-from-paths paths)
@@ -86,7 +96,7 @@
                                                             :in-file f
                                                             :resolve-ns (fn [x]
                                                                           (resolve-ns opts f x)))))
-                          (copy-file f output-dir paths))))
+                          (copy-file copy-resources f output-dir paths))))
                     (.then (fn [{:keys [out-file]}]
                              (when out-file (println "[squint] Wrote file:" out-file))
                              out-file))))
@@ -172,7 +182,8 @@ Options:
   (let [cfg @utils/!cfg
         opts (merge cfg opts)
         paths (:paths cfg)
-        output-dir (:output-dir cfg ".")]
+        output-dir (:output-dir cfg ".")
+        copy-resources (:copy-resources cfg)]
     (-> (-> (esm/dynamic-import "chokidar")
             (.catch (fn [err]
                       (js/console.error err))))
@@ -189,7 +200,7 @@ Options:
                                   (-> (compile-files opts [path])
                                       (.catch (fn [e]
                                                 (js/console.error e))))
-                                  (copy-file path output-dir paths)))))))))))))
+                                  (copy-file copy-resources path output-dir paths)))))))))))))
 
 (defn start-nrepl [{:keys [opts]}]
   (-> (esm/dynamic-import "./node.nrepl_server.js")

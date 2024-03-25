@@ -329,6 +329,10 @@ In `squint.edn` you can describe the following options:
 
 - `:paths`: the source paths to search for files. At the moment, only `.cljc` and `.cljs` are supported.
 - `:extension`: the preferred extension to output, which defaults to `.mjs`, but can be set to `.jsx` for React(-like) projects.
+- `:copy-resources`: a set of keywords that represent file extensions of files
+  that should be copied over from source paths. E.g. `:css`, `:json`. Strings
+  may also be used which represent regexes which are processed through
+  `re-find`.
 
 See [examples/vite-react](examples/vite-react) for an example project which uses a `squint.edn`.
 
