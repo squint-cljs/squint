@@ -2235,5 +2235,9 @@ new Foo();")
 (deftest infix-issue-483-test
   (is (= 1 (jsv! "(/ 10 (when (odd? 3) 10))"))))
 
+(deftest fn-params-destructuring-test
+  (let [s (compiler/compile-string "(defn foo [^:js {:keys [x y]}] [x y])")]
+    (is (str/includes? s "{x,y}"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
