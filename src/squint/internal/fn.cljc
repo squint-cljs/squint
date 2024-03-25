@@ -26,9 +26,11 @@
           (let [fparam (first params)]
             (if (and (map? fparam)
                      (let [m (meta fparam)]
-                       (or (:js m)
-                           (= 'js (:tag m))
-                           (not (:as m)))))
+                       (and (not (:as fparam))
+                            (or (:js m)
+                                (= 'js (:tag m)))
+                            (:keys fparam)
+                            (empty? (dissoc fparam :keys)))))
               (recur (next params)
                      (conj new-params fparam)
                      lets)
