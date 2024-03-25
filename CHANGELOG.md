@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.7.98 (2024-03-25)
+
+- Compile destructured function args to JS destructuring when annotated with `^:js`. This benefits working with vitest and playwright.
+
 ## v0.7.97 (2024-03-25)
 
 - #481: BREAKING, squint no longer automatically copies all non-compiled files to the `:output-dir`. This behavior is now explicit with `:copy-resources`, see docs.
