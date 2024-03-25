@@ -716,24 +716,33 @@
        (emit-do env body)
        "\n }"))
 
+(defn map-params [m]
+  (let [ks (:keys m)]
+    (zipmap ks (map munge ks))))
+
 (defn ->sig [env sig]
   (let [gensym (:gensym env)]
     (reduce (fn [[env sig seen] param]
-              (if (contains? seen param)
-                (let [new-param (gensym param)
-                      env (update env :var->ident assoc param (munge new-param))
-                      sig (conj sig new-param)
-                      seen (conj seen param)]
-                  [env sig seen])
-                [(update env :var->ident assoc param (munge param))
-                 (conj sig param)
-                 (conj seen param)]))
+              (if (map? param)
+                (let [params (map-params param)]
+                  [(update env :var->ident merge params)
+                   (conj sig param)
+                   (into seen params)])
+                (if (contains? seen param)
+                  (let [new-param (gensym param)
+                        env (update env :var->ident assoc param (munge new-param))
+                        sig (conj sig new-param)
+                        seen (conj seen param)]
+                    [env sig seen])
+                  [(update env :var->ident assoc param (munge param))
+                   (conj sig param)
+                   (conj seen param)])))
             [env [] #{}]
             sig)))
 
-(defn destructured-map [x]
-  (prn :x x)
-  (str "{}"))
+(defn destructured-map [_env x]
+  (let [keys (:keys x)]
+    (str "{" (str/join "," (map munge keys)) "}")))
 
 (defn emit-function [env _name sig body & [elide-function?]]
   ;; (assert (or (symbol? name) (nil? name)))
@@ -762,7 +771,7 @@ break;}" body)
                         (str name " "))))
              (comma-list (map (fn [x]
                                 (if (map? x)
-                                  (destructured-map x)
+                                  (destructured-map env x)
                                   (munge x)
                                   )) sig))
              " {\n"
