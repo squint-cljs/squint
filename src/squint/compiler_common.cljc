@@ -1000,6 +1000,9 @@ break;}" body)
                   (emit else env)
                   "}"))))))
 
+(defn wrap-double-quotes [x]
+  (str \" x \"))
+
 (defn jsx-attrs [v env]
   (let [env (expr-env env)]
     (if (and (not (:html env))
@@ -1018,7 +1021,9 @@ break;}" body)
                                                 ;; since we escape here, we
                                                 ;; can probably remove
                                                 ;; escaping elsewhere?
-                                                (escape-jsx env)))))
+                                                (escape-jsx env)
+                                                (:html env)
+                                                (wrap-double-quotes)))))
                         v)))
         "")
       )))

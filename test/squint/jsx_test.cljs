@@ -17,12 +17,15 @@
 (gobject/set js/global "Rdom" Rdom)
 (gobject/set js/global "squint_core" squint_core)
 
-(defn test-jsx [s]
-  (let [expr (jss! s)
-        code (:code (js->clj (transformSync expr #js {:presets #js ["@babel/preset-react"]}) :keywordize-keys true))]
+(defn test-jsx* [expr]
+  (let [code (:code (js->clj (transformSync expr #js {:presets #js ["@babel/preset-react"]}) :keywordize-keys true))]
     ;; (println s)
     ;; (prn (js/eval code))
     (Rdom/renderToString (js/eval code))))
+
+(defn test-jsx [s]
+  (let [expr (jss! s)]
+    (test-jsx* expr)))
 
 (def testing (constantly nil))
 
@@ -70,7 +73,11 @@
   (testing "keyword components should render with hyphen"
     (is (= "<foo-bar data-foo-bar=\"true\"></foo-bar>" (test-jsx "#jsx [:foo-bar {:data-foo-bar true}]"))))
   (testing "fragment"
+    (is (= "<div><div>Hello</div></div>" (test-jsx "#jsx [:div [:<> [:div \"Hello\"]]]"))))
+
+  (testing "fragment"
     (is (= "<div><div>Hello</div></div>" (test-jsx "#jsx [:div [:<> [:div \"Hello\"]]]")))))
 
-
+;; uncomment to test how JSX behaves
+#_(prn (test-jsx* "<div></div>"))
 
