@@ -25,3 +25,14 @@
            #(is (= "<ul><li>0</li><li>1</li><li>2</li><li>3</li><li>4</li></ul>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
+
+(deftest html-attrs-test
+  (t/async done
+    (let [js (squint.compiler/compile-string "#html [:div {:id (+ 1 2 3)}]"
+                                             {:repl true :elide-exports true :context :return})
+          js (str/replace "(async function() { %s } )()" "%s" js)]
+      (-> (js/eval js)
+          (.then
+           #(is (= "<div id=\"6\"></div>" %)))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))

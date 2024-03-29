@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.7.99 (2024-03-29)
+
+- Fix rendering of attribute expressions in HTML (should be wrapped in quotes)
+
 ## v0.7.98 (2024-03-25)
 
 - Compile destructured function args to JS destructuring when annotated with `^:js`. This benefits working with vitest and playwright.
