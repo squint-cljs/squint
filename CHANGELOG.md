@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.7.100 (2024-03-29)
+
+- Fix [#496](https://github.com/squint-cljs/squint/issues/496): don't wrap strings in another set of quotes
+
 ## v0.7.99 (2024-03-29)
 
 - Fix rendering of attribute expressions in HTML (should be wrapped in quotes)
@@ -12,7 +16,7 @@
 
 ## v0.7.97 (2024-03-25)
 
-- #481: BREAKING, squint no longer automatically copies all non-compiled files to the `:output-dir`. This behavior is now explicit with `:copy-resources`, see docs.
+- [#481](https://github.com/squint-cljs/squint/issues/481): BREAKING, squint no longer automatically copies all non-compiled files to the `:output-dir`. This behavior is now explicit with `:copy-resources`, see docs.
 
 ## v0.7.96 (2024-03-14)
 
