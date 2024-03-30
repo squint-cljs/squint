@@ -1004,8 +1004,9 @@ break;}" body)
   (str \" x \"))
 
 (defn jsx-attrs [v env]
-  (let [env (expr-env env)]
-    (if (and (not (:html env))
+  (let [env (expr-env env)
+        html? (:html env)]
+    (if (and (not html?)
              (:jsx-runtime env))
       (when v
         (emit v (dissoc env :jsx)))
@@ -1014,16 +1015,17 @@ break;}" body)
          " "
          (str/join " "
                    (map (fn [[k v]]
-                          (if (= :& k)
-                            (str "{..." (emit v (dissoc env :jsx)) "}")
-                            (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
-                                                (not (string? v))
-                                                ;; since we escape here, we
-                                                ;; can probably remove
-                                                ;; escaping elsewhere?
-                                                (escape-jsx env)
-                                                (:html env)
-                                                (wrap-double-quotes)))))
+                          (let [str? (string? v)]
+                            (if (= :& k)
+                              (str "{..." (emit v (dissoc env :jsx)) "}")
+                              (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
+                                                  (not str?)
+                                                  ;; since we escape here, we
+                                                  ;; can probably remove
+                                                  ;; escaping elsewhere?
+                                                  (escape-jsx env)
+                                                  (and html? (not str?))
+                                                  (wrap-double-quotes))))))
                         v)))
         "")
       )))
