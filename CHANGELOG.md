@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix [#490](https://github.com/squint-cljs/squint/issues/490): render css maps in html mode
+- Fix [#502](https://github.com/squint-cljs/squint/issues/502): allow method names in `defclass` to override squint built-ins
 
 ## v0.7.100 (2024-03-29)
 

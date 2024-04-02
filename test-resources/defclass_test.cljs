@@ -40,6 +40,9 @@
    (js-yield :foo)
    (js-yield :bar))
 
+  ;; override built-in function name
+  (update [_] 3)
+
   (toString [this] (str "<<<<" (.dude this) ">>>>") ))
 
 (def c (new Class2 1 2))
@@ -53,4 +56,4 @@ res.push(val);
 }
 return res;
 } ")]
-     [(.toString c) (.dude c) (js-await (.myAsync c)) (vec (.myGen c)) (js-await (async-gen-consumer (.myAsyncGen c)))])))
+     [(.toString c) (.dude c) (js-await (.myAsync c)) (vec (.myGen c)) (js-await (async-gen-consumer (.myAsyncGen c))) (.update c)])))

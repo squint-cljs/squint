@@ -1705,7 +1705,7 @@
                        "return class Foo"))
     (-> (jsv! (str (fs/readFileSync "test-resources/defclass_test.cljs")))
         (.then (fn [v]
-                 (is (= "<<<<1-3-3>>>>,1-3-3,6,1,2,foo,bar" (str v)))))
+                 (is (= "<<<<1-3-3>>>>,1-3-3,6,1,2,foo,bar,3" (str v)))))
         (.finally done))))
 
 (deftest atom-test
