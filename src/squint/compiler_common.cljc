@@ -1003,6 +1003,17 @@ break;}" body)
 (defn wrap-double-quotes [x]
   (str \" x \"))
 
+(defn emit-css
+  [v env]
+  (-> (reduce
+       (fn [acc [k v]]
+         (str acc
+              (emit k env) ":"
+              (emit v env) ";"))
+       ""
+       v)
+      (wrap-double-quotes)))
+
 (defn jsx-attrs [v env]
   (let [env (expr-env env)
         html? (:html env)]
@@ -1018,14 +1029,17 @@ break;}" body)
                           (let [str? (string? v)]
                             (if (= :& k)
                               (str "{..." (emit v (dissoc env :jsx)) "}")
-                              (str (name k) "=" (cond-> (emit v (assoc env :jsx false))
-                                                  (not str?)
-                                                  ;; since we escape here, we
-                                                  ;; can probably remove
-                                                  ;; escaping elsewhere?
-                                                  (escape-jsx env)
-                                                  (and html? (not str?))
-                                                  (wrap-double-quotes))))))
+                              (str (name k) "="
+                                   (if (map? v)
+                                     (emit-css v env)
+                                     (cond-> (emit v (assoc env :jsx false))
+                                       (not str?)
+                                       ;; since we escape here, we
+                                       ;; can probably remove
+                                       ;; escaping elsewhere?
+                                       (escape-jsx env)
+                                       (and html? (not str?))
+                                       (wrap-double-quotes)))))))
                         v)))
         "")
       )))
