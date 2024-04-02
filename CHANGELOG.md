@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#490](https://github.com/squint-cljs/squint/issues/490): render css maps in html mode
+
 ## v0.7.100 (2024-03-29)
 
 - Fix [#496](https://github.com/squint-cljs/squint/issues/496): don't wrap strings in another set of quotes

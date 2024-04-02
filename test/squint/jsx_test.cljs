@@ -79,5 +79,5 @@
     (is (= "<div><div>Hello</div></div>" (test-jsx "#jsx [:div [:<> [:div \"Hello\"]]]")))))
 
 ;; uncomment to test how JSX behaves
-#_(prn (test-jsx* "<div></div>"))
+#_(prn (test-jsx* "<div className={[\"dude\", \"bar\"]}></div>"))
 

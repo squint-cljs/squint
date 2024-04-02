@@ -28,11 +28,13 @@
 
 (deftest html-attrs-test
   (t/async done
-    (let [js (squint.compiler/compile-string "#html [:div {:class \"foo\" :id (+ 1 2 3)}]"
+    (let [js (squint.compiler/compile-string
+              "#html [:div {:class \"foo\" :id (+ 1 2 3)
+                            :style {:color :green}}]"
                                              {:repl true :elide-exports true :context :return})
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
-           #(is (= "<div class=\"foo\" id=\"6\"></div>" %)))
+           #(is (= "<div class=\"foo\" id=\"6\" style=\"color:green;\"></div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
