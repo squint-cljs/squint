@@ -134,7 +134,7 @@
                  (when async?
                    "async ")
                  (when gen? "* ")
-                 (emit-fn fn-name env) "("
+                 (munge fn-name) "("
                  (str/join ", " (emit-args env emit-fn arglist))
                  ") { \n"
                  (str "const " (emit-fn this-arg env)) " = this;\n"
