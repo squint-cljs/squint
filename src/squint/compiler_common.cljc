@@ -4,8 +4,8 @@
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
-   [squint.internal.macros :as macros]
-   [squint.defclass :as defclass]))
+   [squint.defclass :as defclass]
+   [squint.internal.macros :as macros]))
 
 (def common-macros
   {'coercive-boolean macros/coercive-boolean
@@ -61,12 +61,12 @@
                                          (drop 2 opts)]
                                         [nil (first opts) (rest opts)])]
     (cond->
-        (-> (reduce (fn [template substitution]
-                      (str/replace-first template "~{}"
-                                         (emit substitution (merge (assoc env :context :expr) env'))))
-                    template
-                    substitutions)
-            (emit-return (merge env (meta expr))))
+     (-> (reduce (fn [template substitution]
+                   (str/replace-first template "~{}"
+                                      (emit substitution (merge (assoc env :context :expr) env'))))
+                 template
+                 substitutions)
+         (emit-return (merge env (meta expr))))
       bool? bool-expr)))
 
 (defn expr-env [env]
@@ -706,10 +706,10 @@
         true
         (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
 
-(defmethod emit-special 'or [_type env [_ & more]]
-  (if (empty? more)
-    nil
-    (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
+  (defmethod emit-special 'or [_type env [_ & more]]
+    (if (empty? more)
+      nil
+      (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
   (str "while (" (emit test) ") { \n"
@@ -772,8 +772,7 @@ break;}" body)
              (comma-list (map (fn [x]
                                 (if (map? x)
                                   (destructured-map env x)
-                                  (munge x)
-                                  )) sig))
+                                  (munge x))) sig))
              " {\n"
              body "\n}")))))
 
@@ -1025,35 +1024,41 @@ break;}" body)
         (str
          " "
          (str/join " "
-                   (map (fn [[k v]]
-                          (let [str? (string? v)]
-                            (if (= :& k)
-                              (str "{..." (emit v (dissoc env :jsx)) "}")
-                              (str (name k) "="
-                                   (if (and html? (map? v))
-                                     (emit-css v env)
-                                     (cond-> (emit v (assoc env :jsx false))
-                                       (not str?)
-                                       ;; since we escape here, we
-                                       ;; can probably remove
-                                       ;; escaping elsewhere?
-                                       (escape-jsx env)
-                                       (and html? (not str?))
-                                       (wrap-double-quotes)))))))
-                        v)))
-        "")
-      )))
+                   (map
+                    (fn [[k v]]
+                      (let [str? (string? v)]
+                        (if (= :& k)
+                          (str "{..." (emit v (dissoc env :jsx)) "}")
+                          (str (name k) "="
+                               (let [env env]
+                                 (cond
+                                   (and html? (map? v))
+                                   (emit-css v env)
+                                   (and html? (vector? v))
+                                   (-> (str/join " " (map #(emit % env) v))
+                                       (wrap-double-quotes))
+                                   :else
+                                   (cond-> (emit v (assoc env :jsx false))
+                                     (not str?)
+                                         ;; since we escape here, we
+                                         ;; can probably remove
+                                         ;; escaping elsewhere?
+                                     (escape-jsx env)
+                                     (and html? (not str?))
+                                     (wrap-double-quotes))))))))
+                    v)))
+        ""))))
 
 (defmethod emit-special 'squint.defclass/defclass* [_ env form]
   (let [name (second form)]
     (swap! *public-vars* conj name)
     (emit-return
      (defclass/emit-class (assoc env :context :statement)
-       emit
-       (fn [async body-fn]
-         (binding [*async* async]
-           (body-fn)))
-       form) env)))
+                          emit
+                          (fn [async body-fn]
+                            (binding [*async* async]
+                              (body-fn)))
+                          form) env)))
 
 (defmethod emit-special 'squint.defclass/super* [_ env form]
   (defclass/emit-super env emit (second form)))
