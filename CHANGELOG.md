@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.7.101 (2024-04-02)
 
 - Fix [#490](https://github.com/squint-cljs/squint/issues/490): render css maps in html mode
 - Fix [#502](https://github.com/squint-cljs/squint/issues/502): allow method names in `defclass` to override squint built-ins
