@@ -1030,7 +1030,7 @@ break;}" body)
                             (if (= :& k)
                               (str "{..." (emit v (dissoc env :jsx)) "}")
                               (str (name k) "="
-                                   (if (map? v)
+                                   (if (and html? (map? v))
                                      (emit-css v env)
                                      (cond-> (emit v (assoc env :jsx false))
                                        (not str?)
