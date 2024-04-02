@@ -1034,7 +1034,7 @@ break;}" body)
                                  (cond
                                    (and html? (map? v))
                                    (emit-css v env)
-                                   (and html? (vector? v))
+                                   #_#_(and html? (vector? v))
                                    (-> (str/join " " (map #(emit % env) v))
                                        (wrap-double-quotes))
                                    :else
