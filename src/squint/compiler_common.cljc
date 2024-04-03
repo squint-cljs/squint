@@ -270,18 +270,20 @@
                        (:bool (meta renamed)) (bool-expr))
                      (let [ns-state @(:ns-state env)
                            current (:current ns-state)
-                           current-ns (get ns-state current)
-                           m (munged-name expr)]
+                           current-ns (get ns-state current)]
                        (or
                         (when (contains? current-ns expr)
                           (str (when *repl*
-                                 (str "globalThis." (munge *cljs-ns*) ".")) m))
+                                 (str "globalThis." (munge *cljs-ns*) ".")) (munged-name expr)))
                         (some-> (maybe-core-var expr env) munge)
-                        (when (or (contains? (:refers current-ns) expr)
-                                  (let [alias (get (:aliases current-ns) expr)]
-                                    alias))
-                          (str (when *repl*
-                                 (str "globalThis." (munge *cljs-ns*) ".")) m))
+                        (let [renamed (:rename current-ns)
+                              expr (get renamed expr expr)]
+                          (when (or (contains? (:refers current-ns) expr)
+                                    (let [alias (get (:aliases current-ns) expr)]
+                                      alias))
+                            (str (when *repl*
+                                   (str "globalThis." (munge *cljs-ns*) "."))
+                                 (munged-name expr))))
                         (let [m (munged-name expr)]
                           m)))))]
         (emit-return (escape-jsx expr env)
@@ -502,7 +504,7 @@
       alias)
     alias))
 
-(defn process-require-clause [env current-ns-name [libname & {:keys [refer as]}]]
+(defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as]}]]
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
     (let [libname (resolve-ns env libname)
@@ -532,6 +534,12 @@
                              (update-in ns-state [current :refers]
                                         (fn [refers]
                                           (merge refers (zipmap refer (repeat libname))))))))
+                  (when rename
+                    (swap! (:ns-state env)
+                           (fn [ns-state]
+                             (let [current (:current ns-state)]
+                               (update-in ns-state [current :rename]
+                                          merge (zipmap (vals rename) (keys rename)))))))
                   (let [munged-refers (map munge refer)]
                     (if *repl*
                       (str (statement (format "var { %s } = await import('%s')" (str/join ", " munged-refers) libname))

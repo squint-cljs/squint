@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.7.102 (2024-04-03)
+
+- Fix [#505](https://github.com/squint-cljs/squint/issues/505): Support `:rename` in `:require`
+
 ## v0.7.101 (2024-04-02)
 
 - Fix [#490](https://github.com/squint-cljs/squint/issues/490): render css maps in html mode

@@ -1657,7 +1657,9 @@
   (doseq [repl [false true]]
     (let [js (compiler/compile-string "(require '[clojure.string :as str-ing]) (str-ing/join [1 2 3])" {:repl repl})]
       (is (not (str/includes? js "str-ing")))
-      (is (str/includes? js "str_ing")))))
+      (is (str/includes? js "str_ing"))))
+  (let [s (compiler/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
+    (is (str/includes? s "existsSync(\"README.md\")"))))
 
 (deftest dissoc!-test
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc! {"1" 2 "3" 4}))))
