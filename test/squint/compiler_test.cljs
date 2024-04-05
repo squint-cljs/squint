@@ -2241,5 +2241,11 @@ new Foo();")
   (let [s (compiler/compile-string "(defn foo [^:js {:keys [x y]}] [x y])")]
     (is (str/includes? s "{x,y}"))))
 
+(deftest arrow-fn-test
+  (is (true? (jsv! "(def obj {:a (fn [] (this-as this this))}) (= obj (.a obj))")))
+  (is (true? (jsv! "(def obj {:a ^:=> (fn [] (this-as this this))}) (not= obj (.a obj))")))
+  (is (true? (jsv! "(def obj {:a (^:=> fn [] (this-as this this))}) (not= obj (.a obj))")))
+  (is (true? (jsv! "(def obj {:a (fn ^:=> [] (this-as this this))}) (not= obj (.a obj))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
