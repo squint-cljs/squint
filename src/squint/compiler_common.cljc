@@ -755,7 +755,8 @@
 (defn emit-function [env _name sig body & [elide-function?]]
   ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
-  (let [[env sig] (->sig env sig)]
+  (let [arrow? (or (:arrow env) (:=> (meta sig)))
+        [env sig] (->sig env sig)]
     (binding [*recur-targets* sig]
       (let [recur? (volatile! nil)
             env (assoc env :recur-callback
@@ -771,16 +772,19 @@ break;}" body)
                    body)]
         (str (when-not elide-function?
                (str (when *async*
-                      "async ") "function"
+                      "async ")
+                    (when-not arrow? "function")
                     (when (:gen env)
                       "*")
-                    " "
-                    #_(when name
-                        (str name " "))))
+                    (when (or (not arrow?)
+                              *async*)
+                      " ")))
              (comma-list (map (fn [x]
                                 (if (map? x)
                                   (destructured-map env x)
                                   (munge x))) sig))
+             (when arrow?
+               " =>")
              " {\n"
              body "\n}")))))
 
@@ -811,9 +815,12 @@ break;}" body)
         (emit-return env))))
 
 (defmethod emit-special 'fn* [_type env [_fn & sigs :as expr]]
-  (let [async? (:async (meta expr))
-        gen? (:gen (meta expr))
-        env (assoc env :gen gen?)]
+  (let [m (meta expr)
+        async? (:async m)
+        gen? (:gen m)
+        env (assoc env :gen gen?)
+        arrow? (:=> m)
+        env (assoc env :arrow arrow?)]
     (binding [*async* async?]
       (emit-function* env sigs (meta expr)))))
 

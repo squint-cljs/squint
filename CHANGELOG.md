@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.7.103 (2024-04-05)
+
+- Fix [#499](https://github.com/squint-cljs/squint/issues/499): add support for emitting arrow functions with `^:=>` metadata
+
 ## v0.7.102 (2024-04-03)
 
 - Fix [#505](https://github.com/squint-cljs/squint/issues/505): Support `:rename` in `:require`

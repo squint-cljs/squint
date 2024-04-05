@@ -261,6 +261,16 @@ Anonymous functions must have `^:gen` on the argument vector:
 
 See the [playground](https://squint-cljs.github.io/squint/?src=KGRlZm4gXjpnZW4gZm9vIFtdCiAgKGpzLXlpZWxkIDEpCiAgKGpzLXlpZWxkKiBbMiAzXSkKICAobGV0IFt4IChpbmMgMyldCiAgICAoanMteWllbGQgeCkpCiAgKGxldCBbeCAoZG8gKGpzLXlpZWxkIDUpCiAgICAgICAgICAgIDYpXQogICAgKGpzLXlpZWxkIHgpKSkKCih2ZWMgKGZvbykp) for an example.
 
+## Arrow functions
+
+If for some reason you need to emit arrow functions `() => ...` rather than
+`function`, you can use `:=>` metadata on the function expression, `fn` symbol
+or argument vector:
+
+``` clojure
+(fn ^:=> [] 1)
+```
+
 ## Defclass
 
 See [doc/defclass.md](doc/defclass.md).
