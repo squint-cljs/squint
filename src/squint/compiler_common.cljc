@@ -755,7 +755,7 @@
 (defn emit-function [env _name sig body & [elide-function?]]
   ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
-  (let [arrow? (or (:arrow env) (:=> (meta sig)))
+  (let [arrow? (:arrow env)
         [env sig] (->sig env sig)]
     (binding [*recur-targets* sig]
       (let [recur? (volatile! nil)
@@ -794,10 +794,12 @@ break;}" body)
         expr (if (seq? (first expr))
                ;; TODO: multi-arity:
                (first expr)
-               expr)]
+               expr)
+        signature (first expr)
+        arrow? (or (:arrow env) (:=> (meta signature)))
+        env (assoc env :arrow arrow?)]
     (-> (if name
-          (let [signature (first expr)
-                body (rest expr)]
+          (let [body (rest expr)]
             (str (when *async*
                    "async ") "function"
                  ;; TODO: why is this duplicated here and in emit-function?
@@ -806,11 +808,11 @@ break;}" body)
                  " "
                  (munge name) " "
                  (emit-function env name signature body true)))
-          (let [signature (first expr)
-                body (rest expr)]
+          (let [body (rest expr)]
             (str (emit-function env nil signature body))))
         (cond-> (and
                  (not (:squint.internal.fn/def opts))
+                 (not arrow?)
                  (= :expr (:context env))) (wrap-parens))
         (emit-return env))))
 

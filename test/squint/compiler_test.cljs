@@ -2245,7 +2245,9 @@ new Foo();")
   (is (true? (jsv! "(def obj {:a (fn [] (this-as this this))}) (= obj (.a obj))")))
   (is (true? (jsv! "(def obj {:a ^:=> (fn [] (this-as this this))}) (not= obj (.a obj))")))
   (is (true? (jsv! "(def obj {:a (^:=> fn [] (this-as this this))}) (not= obj (.a obj))")))
-  (is (true? (jsv! "(def obj {:a (fn ^:=> [] (this-as this this))}) (not= obj (.a obj))"))))
+  (is (true? (jsv! "(def obj {:a (fn ^:=> [] (this-as this this))}) (not= obj (.a obj))")))
+  (testing "no paren wrapping"
+    (is (str/starts-with? (:body (compiler/compile-string* "(fn ^:=> [] 1)")) "() =>"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
