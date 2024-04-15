@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Optimization: use arrow fn for implicit IIFE when possible
+- Optimization: emit `const` in let expressions, which esbuild optimizes better
+
 ## v0.7.104 (2024-04-05)
 
 - Don't wrap arrow function in parens, see [this issue](https://github.com/squint-cljs/vite-plugin-squint/pull/12)
