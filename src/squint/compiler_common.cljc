@@ -365,7 +365,7 @@
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
                           rhs-bool? (:bool rhs)
-                          expr (format "let %s = %s;\n" lhs rhs)
+                          expr (format "const %s = %s;\n" lhs rhs)
                           var->ident (assoc var->ident var-name
                                             (vary-meta renamed
                                                        assoc :bool rhs-bool?))]
