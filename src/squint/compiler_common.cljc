@@ -303,8 +303,8 @@
   [s env]
   (let [gen? (:gen env)]
     (cond-> (format (if gen?
-                      "(%sfunction%s () {\n %s\n})()"
-                      "(%s() =>%s {\n %s\n})()")
+                      "(%sfunction%s () {\n%s\n})()"
+                      "(%s() =>%s {\n%s\n})()")
                     (if *async* "async " "")
                     (if gen?
                       "*" "")
@@ -347,7 +347,7 @@
 (defmethod emit-special 'do [_type env [_ & exprs]]
   (emit-do env exprs))
 
-(defn emit-let [enc-env bindings body is-loop]
+(defn emit-let [enc-env bindings body loop?]
   (let [gensym (:gensym enc-env)
         context (:context enc-env)
         env (assoc enc-env :context :expr)
@@ -365,7 +365,7 @@
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
                           rhs-bool? (:bool rhs)
-                          expr (format "const %s = %s;\n" lhs rhs)
+                          expr (format "%s %s = %s;\n" (if loop? "let" "const")lhs rhs)
                           var->ident (assoc var->ident var-name
                                             (vary-meta renamed
                                                        assoc :bool rhs-bool?))]
@@ -375,16 +375,16 @@
         enc-env (assoc enc-env :var->ident var->ident :top-level false)]
     (cond-> (str
              bindings
-             (when is-loop
+             (when loop?
                (str "while(true){\n"))
              ;; TODO: move this to env arg?
              (binding [*recur-targets*
-                       (if is-loop (map var->ident (map first partitioned))
+                       (if loop? (map var->ident (map first partitioned))
                            *recur-targets*)]
                (emit-do (if iife?
                           (assoc enc-env :context :return)
                           enc-env) body))
-             (when is-loop
+             (when loop?
                ;; TODO: not sure why I had to insert the ; here, but else
                ;; (loop [x 1] (+ 1 2 x)) breaks
                (str ";break;\n}\n")))
