@@ -899,12 +899,14 @@ break;}" body)
                  env)))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
-  (let [bindings (take-nth 2 form)
+  (let [gensym (:gensym env)
+        bindings (take-nth 2 form)
         fns (take-nth 2 (rest form))
-        sets (map (fn [binding fn]
-                    `(set! ~binding ~fn))
-                  bindings fns)
-        let `(let ~(vec (interleave bindings (repeat nil))) ~@sets ~@body)]
+        binding-map (zipmap bindings (map #(gensym %) bindings))
+        env (update env :var->ident merge binding-map)
+        bindings (map #(vary-meta (get binding-map %) assoc :squint.compiler/no-rename true) bindings)
+        form (interleave bindings fns)
+        let `(let* ~(vec form) ~@body)]
     (emit let env)))
 
 (defmethod emit-special 'zero? [_ env [_ num]]
