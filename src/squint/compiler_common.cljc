@@ -42,7 +42,7 @@
 
 (defn emit-return [s env]
   (if (= :return (:context env))
-    (format "return %s" s)
+    (format "return %s;" s)
     s))
 
 (defrecord Code [js bool]
