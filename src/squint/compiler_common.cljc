@@ -42,7 +42,7 @@
 
 (defn emit-return [s env]
   (if (= :return (:context env))
-    (format "return %s" s)
+    (format "return %s;" s)
     s))
 
 (defrecord Code [js bool]
@@ -299,15 +299,18 @@
     (format "yield* (%s)" s)
     s))
 
-(defn wrap-iife
+(defn wrap-implicit-iife
   [s env]
-  (cond-> (format "(%sfunction%s () {\n %s\n})()"
-                  (if *async* "async " "")
-                  (if (:gen env)
-                    "*" "")
-                  s)
-    *async* (wrap-await env)
-    true (yield-iife env)))
+  (let [gen? (:gen env)]
+    (cond-> (format (if gen?
+                      "(%sfunction%s () {\n%s\n})()"
+                      "(%s() =>%s {\n%s\n})()")
+                    (if *async* "async " "")
+                    (if gen?
+                      "*" "")
+                    s)
+      *async* (wrap-await env)
+      true (yield-iife env))))
 
 (defn save-pragma [env next-t]
   (let [p (:pragmas env)
@@ -338,13 +341,13 @@
                                       (if iife? :return
                                           ctx))))
             iife?
-            (wrap-iife env))]
+            (wrap-implicit-iife env))]
     s))
 
 (defmethod emit-special 'do [_type env [_ & exprs]]
   (emit-do env exprs))
 
-(defn emit-let [enc-env bindings body is-loop]
+(defn emit-let [enc-env bindings body loop?]
   (let [gensym (:gensym enc-env)
         context (:context enc-env)
         env (assoc enc-env :context :expr)
@@ -362,7 +365,7 @@
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
                           rhs-bool? (:bool rhs)
-                          expr (format "let %s = %s;\n" lhs rhs)
+                          expr (format "%s %s = %s;\n" (if loop? "let" "const")lhs rhs)
                           var->ident (assoc var->ident var-name
                                             (vary-meta renamed
                                                        assoc :bool rhs-bool?))]
@@ -372,21 +375,21 @@
         enc-env (assoc enc-env :var->ident var->ident :top-level false)]
     (cond-> (str
              bindings
-             (when is-loop
+             (when loop?
                (str "while(true){\n"))
              ;; TODO: move this to env arg?
              (binding [*recur-targets*
-                       (if is-loop (map var->ident (map first partitioned))
+                       (if loop? (map var->ident (map first partitioned))
                            *recur-targets*)]
                (emit-do (if iife?
                           (assoc enc-env :context :return)
                           enc-env) body))
-             (when is-loop
+             (when loop?
                ;; TODO: not sure why I had to insert the ; here, but else
                ;; (loop [x 1] (+ 1 2 x)) breaks
                (str ";break;\n}\n")))
       iife?
-      (wrap-iife env)
+      (wrap-implicit-iife env)
       iife?
       (emit-return enc-env))))
 
@@ -423,7 +426,7 @@
              (when expr?
                (str "return " gs ";"))
              "}")
-      expr? (wrap-iife env))))
+      expr? (wrap-implicit-iife env))))
 
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [gensym (:gensym env)
@@ -868,7 +871,7 @@ break;}" body)
                               (emit-do (assoc env :context :statement) finally-body)
                               "}\n")))
             (not= :statement (:context env))
-            (wrap-iife env))
+            (wrap-implicit-iife env))
           (emit-return outer-env)))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
@@ -896,12 +899,14 @@ break;}" body)
                  env)))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
-  (let [bindings (take-nth 2 form)
+  (let [gensym (:gensym env)
+        bindings (take-nth 2 form)
         fns (take-nth 2 (rest form))
-        sets (map (fn [binding fn]
-                    `(set! ~binding ~fn))
-                  bindings fns)
-        let `(let ~(vec (interleave bindings (repeat nil))) ~@sets ~@body)]
+        binding-map (zipmap bindings (map #(gensym %) bindings))
+        env (update env :var->ident merge binding-map)
+        bindings (map #(vary-meta (get binding-map %) assoc :squint.compiler/no-rename true) bindings)
+        form (interleave bindings fns)
+        let `(let* ~(vec form) ~@body)]
     (emit let env)))
 
 (defmethod emit-special 'zero? [_ env [_ num]]

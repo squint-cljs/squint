@@ -38,11 +38,11 @@
   (let [[v s] (js! '(do (def x (do 4 5 6))
                         x))]
     (is (= 6 v))
-    (is (str/includes? s "function")))
+    (is (str/includes? s "() =>")))
   (let [[v s] (js! '(let [x (do 4 5 6)]
                       x))]
     (is (= 6 v))
-    (is (str/includes? s "function"))))
+    (is (str/includes? s "() => "))))
 
 (deftest let-test
   (is (= 3 (jsv! '(let [x (do 1 2 3)] x))))
