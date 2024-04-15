@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- Optimization: use arrow fn for implicit IIFE when possible
+- [#509](https://github.com/squint-cljs/squint/issues/509): Optimization: use arrow fn for implicit IIFE when possible
 - Optimization: emit `const` in let expressions, which esbuild optimizes better
 
 ## v0.7.104 (2024-04-05)
