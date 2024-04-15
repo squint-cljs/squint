@@ -299,15 +299,18 @@
     (format "yield* (%s)" s)
     s))
 
-(defn wrap-iife
+(defn wrap-implicit-iife
   [s env]
-  (cond-> (format "(%sfunction%s () {\n %s\n})()"
-                  (if *async* "async " "")
-                  (if (:gen env)
-                    "*" "")
-                  s)
-    *async* (wrap-await env)
-    true (yield-iife env)))
+  (let [gen? (:gen env)]
+    (cond-> (format (if gen?
+                      "(%sfunction%s () {\n %s\n})()"
+                      "(%s() =>%s {\n %s\n})()")
+                    (if *async* "async " "")
+                    (if gen?
+                      "*" "")
+                    s)
+      *async* (wrap-await env)
+      true (yield-iife env))))
 
 (defn save-pragma [env next-t]
   (let [p (:pragmas env)
@@ -338,7 +341,7 @@
                                       (if iife? :return
                                           ctx))))
             iife?
-            (wrap-iife env))]
+            (wrap-implicit-iife env))]
     s))
 
 (defmethod emit-special 'do [_type env [_ & exprs]]
@@ -386,7 +389,7 @@
                ;; (loop [x 1] (+ 1 2 x)) breaks
                (str ";break;\n}\n")))
       iife?
-      (wrap-iife env)
+      (wrap-implicit-iife env)
       iife?
       (emit-return enc-env))))
 
@@ -423,7 +426,7 @@
              (when expr?
                (str "return " gs ";"))
              "}")
-      expr? (wrap-iife env))))
+      expr? (wrap-implicit-iife env))))
 
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [gensym (:gensym env)
@@ -868,7 +871,7 @@ break;}" body)
                               (emit-do (assoc env :context :statement) finally-body)
                               "}\n")))
             (not= :statement (:context env))
-            (wrap-iife env))
+            (wrap-implicit-iife env))
           (emit-return outer-env)))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
