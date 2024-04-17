@@ -454,13 +454,23 @@
 (defn emit-var [[name ?doc ?expr :as expr] _skip-var? env]
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
-        env (no-top-level env)]
+        env (no-top-level env)
+        fn? (let [fst (first expr)]
+              (= `fn fst))
+        expr (if fn?
+               (vary-meta expr assoc :top-level-fn true)
+               expr)
+        fn?? (and (not *repl*)
+                  fn?)]
     (str (if *repl*
            (str "globalThis."
                 (when *cljs-ns*
                   (str (munge *cljs-ns*) ".") #_"var ")
                 (munge name))
-           (str "var " (munge name))) " = "
+           (if fn??
+             (str "function " (munge name))
+             (str "var " (munge name))))
+         (when-not fn?? " = ")
          (emit expr (expr-env env)) ";\n")))
 
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
@@ -804,7 +814,8 @@ break;}" body)
     (-> (if name
           (let [body (rest expr)]
             (str (when *async*
-                   "async ") "function"
+                   "async ")
+                 "function"
                  ;; TODO: why is this duplicated here and in emit-function?
                  (when (:gen env)
                    "*")
@@ -812,7 +823,8 @@ break;}" body)
                  (munge name) " "
                  (emit-function env name signature body true)))
           (let [body (rest expr)]
-            (str (emit-function env nil signature body))))
+            (str (emit-function env nil signature body (and (not *repl*)
+                                                            (:top-level-fn opts))))))
         (cond-> (and
                  (not (:squint.internal.fn/def opts))
                  (not arrow?)
