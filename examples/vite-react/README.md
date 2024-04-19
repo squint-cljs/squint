@@ -38,6 +38,18 @@ To set up a project with vite + react, go through the following steps:
              "Click me"]]))
   ```
 
+  And [src/index.cljs](src/index.cljs):
+
+  ```clojure
+  (ns index
+    (:require
+     [MyComponent :as MyComponent]
+     ["react-dom/client" :as rdom]))
+
+  (def root (rdom/createRoot (js/document.getElementById "app")))
+  (.render root #jsx [MyComponent/MyComponent])
+  ```
+
 - Run `npx vite --config viteconfig.js public` to start a webserver and to hot-reload your React project!
 
 ## Babashka tasks
