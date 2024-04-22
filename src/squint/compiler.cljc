@@ -452,8 +452,7 @@
   ([s opts] (compile-string* s opts nil))
   ([s {:keys [elide-exports
               elide-imports
-              core-alias
-              aliases]
+              core-alias]
        :or {core-alias "squint_core"}
        :as opts} state]
    (let [opts (merge state opts)]
@@ -466,7 +465,7 @@
                           :top-level true} opts)
              imported-vars (atom {})
              public-vars (atom #{})
-             aliases (atom (merge aliases {core-alias cc/*core-package*}))
+             aliases (atom {core-alias cc/*core-package*})
              jsx-runtime (:jsx-runtime opts)
              jsx-dev (:development jsx-runtime)
              imports (atom (if cc/*repl*

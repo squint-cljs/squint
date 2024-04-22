@@ -10,7 +10,8 @@
    ["fs" :as fs]
    ["child_process" :as process]
    ["node:util" :as util]
-   [promesa.core :as p]))
+   [promesa.core :as p]
+   [squint.compiler :as squint]))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -2248,6 +2249,11 @@ new Foo();")
   (is (true? (jsv! "(def obj {:a (fn ^:=> [] (this-as this this))}) (not= obj (.a obj))")))
   (testing "no paren wrapping"
     (is (str/starts-with? (:body (compiler/compile-string* "(fn ^:=> [] 1)")) "() =>"))))
+
+(deftest alias-test
+  (is (str/includes?
+       (squint/compile-string "(m/dude)" {:aliases {'m 'malli.core}})
+       "malli.core.dude()")))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
