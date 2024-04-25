@@ -17,6 +17,60 @@
 (defn spit [f s]
   (fs/writeFileSync f s "utf-8"))
 
+(defn in-dir? [dir file]
+  (let [dir (.split ^js (path/resolve dir) path/sep)
+        file (.split ^js (path/resolve file) path/sep)]
+    (loop [dir dir
+           file file]
+      (or (empty? dir)
+          (and (seq file)
+               (= (first dir)
+                  (first file))
+               (recur (rest dir)
+                      (rest file)))))))
+
+(defn adjust-file-for-paths [in-file paths]
+  (let [out-file (reduce (fn [acc path]
+                           (if (in-dir? path in-file)
+                             (reduced (path/relative path in-file))
+                             acc))
+                         in-file
+                         paths)]
+    out-file))
+
+(defn file-in-output-dir [file paths output-dir]
+  (if output-dir
+    (path/resolve output-dir
+                  (adjust-file-for-paths file paths))
+    file))
+
+(defn files-from-path [path]
+  (let [files (fs/readdirSync path)]
+    (vec (mapcat (fn [f]
+                   (let [f (path/resolve path f)]
+                     (if (.isDirectory (fs/lstatSync f))
+                       (files-from-path f)
+                       [f]))) files))))
+
+(defn files-from-paths [paths]
+  (vec (mapcat files-from-path paths)))
+
+(defn resolve-ns [opts in-file x]
+  (let [output-dir (:output-dir opts)
+        paths (:paths opts)
+        in-file-in-output-dir (file-in-output-dir in-file paths output-dir)]
+    (when-let [resolved
+               (some-> (utils/resolve-file x)
+                       (file-in-output-dir paths output-dir)
+                       (some->> (path/relative (path/dirname (str in-file-in-output-dir)))))]
+      (let [ext (:extension opts ".mjs")
+            ext (if (str/starts-with? ext ".")
+                  ext
+                  (str "." ext))
+            ext' (path/extname resolved)
+            file (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext))]
+        file))))
+
 (defn scan-macros [s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
     (when (and (seq? maybe-ns)
@@ -59,34 +113,19 @@
                       require-macros)))))))))
 
 (defn compile-string [contents opts]
-  (-> (js/Promise.resolve (scan-macros contents opts))
-      (.then #(compiler/compile-string* contents opts))))
+  (let [resolve-ns (or resolve-ns
+                       (when-let [if (:in-file opts)]
+                         (fn [x] (resolve-ns opts if x))))
+        opts (assoc opts :resolve-ns resolve-ns)]
+    (-> (js/Promise.resolve (scan-macros contents opts))
+        (.then #(compiler/compile-string* contents opts)))))
 
-(defn in-dir? [dir file]
-  (let [dir (.split ^js (path/resolve dir) path/sep)
-        file (.split ^js (path/resolve file) path/sep)]
-    (loop [dir dir
-           file file]
-      (or (empty? dir)
-          (and (seq file)
-               (= (first dir)
-                  (first file))
-               (recur (rest dir)
-                      (rest file)))))))
-
-(defn adjust-file-for-paths [in-file paths]
-  (let [out-file (reduce (fn [acc path]
-                           (if (in-dir? path in-file)
-                             (reduced (path/relative path in-file))
-                             acc))
-                         in-file
-                         paths)]
-    out-file))
-
-(defn compile-file [{:keys [in-file in-str out-file extension output-dir]
+(defn compile-file [{:keys [in-file in-str out-file extension output-dir resolve-ns]
                      :or {output-dir ""}
                      :as opts}]
-  (let [contents (or in-str (slurp in-file))]
+  (let [contents (or in-str (slurp in-file))
+        resolve-ns (or resolve-ns (fn [x](resolve-ns opts in-file x)))
+        opts (assoc opts :resolve-ns resolve-ns)]
     (-> (compile-string contents (assoc opts :ns-state (atom {:current 'user})))
         (.then (fn [{:keys [javascript jsx] :as opts}]
                  (let [paths (:paths @utils/!cfg ["." "src"])

@@ -12,39 +12,6 @@
    [clojure.string :as str])
   (:require-macros [squint.resource :refer [version]]))
 
-(defn file-in-output-dir [file paths output-dir]
-  (if output-dir
-    (path/resolve output-dir
-                  (compiler/adjust-file-for-paths file paths))
-    file))
-
-(defn resolve-ns [opts in-file x]
-  (let [output-dir (:output-dir opts)
-        paths (:paths opts)
-        in-file-in-output-dir (file-in-output-dir in-file paths output-dir)]
-    (when-let [resolved
-               (some-> (utils/resolve-file x)
-                       (file-in-output-dir paths output-dir)
-                       (some->> (path/relative (path/dirname (str in-file-in-output-dir)))))]
-      (let [ext (:extension opts ".mjs")
-            ext (if (str/starts-with? ext ".")
-                  ext
-                  (str "." ext))
-            ext' (path/extname resolved)
-            file (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext))]
-        file))))
-
-(defn files-from-path [path]
-  (let [files (fs/readdirSync path)]
-    (vec (mapcat (fn [f]
-                   (let [f (path/resolve path f)]
-                     (if (.isDirectory (fs/lstatSync f))
-                       (files-from-path f)
-                       [f]))) files))))
-
-(defn files-from-paths [paths]
-  (vec (mapcat files-from-path paths)))
-
 (defn match-file [x out-path]
   (cond (keyword? x)
         (re-find (re-pattern (str "\\." (name x) "$")) out-path)
@@ -60,7 +27,7 @@
         (when-not (fs/existsSync out-path)
           (println "[squint] Creating directory:" out-path)
           (fs/mkdirSync out-path #js {:recursive true}))
-        (println "[squint] zCopying resource" path "to" out-path)
+        (println "[squint] Copying resource" path "to" out-path)
         (fs/copyFileSync path out-file)))))
 
 (defn compile-files
@@ -71,7 +38,7 @@
         copy-resources (:copy-resources cfg)
         output-dir (:output-dir cfg ".")
         files (if (empty? files)
-                (files-from-paths paths)
+                (compiler/files-from-paths paths)
                 files)]
     ;; shouldn't need this if :coerce worked in babashka.cli
     (when-let [out-dir (:output-dir opts)]
@@ -95,7 +62,7 @@
                               (compiler/compile-file (assoc opts
                                                             :in-file f
                                                             :resolve-ns (fn [x]
-                                                                          (resolve-ns opts f x)))))
+                                                                          (compiler/resolve-ns opts f x)))))
                           (copy-file copy-resources f output-dir paths))))
                     (.then (fn [{:keys [out-file]}]
                              (when out-file (println "[squint] Wrote file:" out-file))
