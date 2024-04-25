@@ -135,7 +135,7 @@ Options:
       nil
       (do (println "[squint] Running" file)
           (-> (.then (compiler/compile-file (assoc opts :in-file file :resolve-ns (fn [x]
-                                                                                    (resolve-ns opts file x))))
+                                                                                    (compiler/resolve-ns opts file x))))
                      (fn [{:keys [out-file]}]
                        (let [path (if (path/isAbsolute out-file) out-file
                                       (str (js/process.cwd) "/" out-file))]

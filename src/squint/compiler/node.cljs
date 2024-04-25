@@ -113,10 +113,14 @@
                       require-macros)))))))))
 
 (defn compile-string [contents opts]
-  (let [resolve-ns (or resolve-ns
+  (let [resolve-ns (or (:resolve-ns opts)
                        (when-let [if (:in-file opts)]
-                         (fn [x] (resolve-ns opts if x))))
+                         (fn [x]
+                           (let [resolved (resolve-ns opts if x)]
+                             (js/console.log "resolve-ns" "in-file" if "->" resolved)
+                             (str/replace resolved ".mjs" ".cljs")))))
         opts (assoc opts :resolve-ns resolve-ns)]
+    (js/console.log ">> resolve-ns" resolve-ns)
     (-> (js/Promise.resolve (scan-macros contents opts))
         (.then #(compiler/compile-string* contents opts)))))
 
