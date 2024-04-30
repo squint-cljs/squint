@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- [#513](https://github.com/squint-cljs/squint/issues/513): Fix `shuffle` core function random distribution and performances
+
 ## v0.7.105 (2024-04-15)
 
 - [#509](https://github.com/squint-cljs/squint/issues/509): Optimization: use arrow fn for implicit IIFE when possible
