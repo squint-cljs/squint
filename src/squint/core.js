@@ -1849,9 +1849,16 @@ export function sort_by(keyfn, comp, coll) {
 }
 
 export function shuffle(coll) {
-  return [...coll].sort(function (_a, _b) {
-    return Math.random() - 0.5;
-  });
+  const result = [...coll];
+  let remaining = coll.length;
+  while (remaining) {
+    const i = Math.floor(Math.random() * remaining--);
+    const tmp = result[remaining];
+    result[remaining] = result[i];
+    result[i] = tmp;
+  }
+
+  return result;
 }
 
 export function some(pred, coll) {
