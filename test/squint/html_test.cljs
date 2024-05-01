@@ -38,3 +38,15 @@
            #(is (= "<div class=\"foo\" id=\"6\" style=\"color:green;\"></div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
+
+(deftest html-nil-test
+  (t/async done
+    (let [js (squint.compiler/compile-string
+              "(let [p nil] #html [:div p])"
+              {:repl true :elide-exports true :context :return})
+          js (str/replace "(async function() { %s } )()" "%s" js)]
+      (-> (js/eval js)
+          (.then
+           #(is (= "<div>undefined</div>" %)))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))
