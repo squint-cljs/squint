@@ -5,6 +5,7 @@
 ## Unreleased
 
 - [#513](https://github.com/squint-cljs/squint/issues/513): Fix `shuffle` core function random distribution and performances
+- [#522](https://github.com/squint-cljs/squint/issues/522): fix `nil` `#html` rendering issue
 
 ## v0.7.105 (2024-04-15)
 

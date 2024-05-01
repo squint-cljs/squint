@@ -1,9 +1,10 @@
 function toHTML(v) {
-    if (typeof(v) === 'string') return v;
-    if (v[Symbol.iterator]) {
-        return [...v].join("");
-    }
-    return v;
+  if (v == null) return;
+  if (typeof(v) === 'string') return v;
+  if (v[Symbol.iterator]) {
+    return [...v].join("");
+  }
+  return v;
 }
 
 export function tag(strs, ...vals) {
@@ -12,5 +13,5 @@ export function tag(strs, ...vals) {
     out += toHTML(vals[i]);
     out += strs[i+1];
   }
-  return out;  
+  return out;
 }
