@@ -181,7 +181,7 @@
                (mapcat identity)))]
     (str
      "class "
-     (emit-fn classname env)
+     (munge classname)
      (when extends
        (str " extends "
             (emit-fn extends env)))
