@@ -148,8 +148,9 @@
                  "\n}")))))
 
 (defn emit-class
-  [env emit-fn async-fn form]
-  (let [{:keys [classname extends extend constructor fields protocols] :as _all} (parse-class (rest form))
+  [env* emit-fn async-fn form]
+  (let [env (assoc env* :context :statement)
+        {:keys [classname extends extend constructor fields protocols] :as _all} (parse-class (rest form))
         [_ ctor-args & ctor-body] constructor
         _ (assert (pos? (count ctor-args)) "contructor requires at least one argument name for this")
 
@@ -198,7 +199,9 @@
      (when extend
        (str extend))
      (when (:repl env)
-       (emit-fn (list 'def classname (list 'js* (munge classname))) env)))))
+       (emit-fn (list 'def classname (list 'js* (munge classname))) env))
+     (when (= :return (:context env*))
+       (str "return " (munge classname) ";")))))
 
 (defn process-template-arg [arg]
   (if (string? arg)
