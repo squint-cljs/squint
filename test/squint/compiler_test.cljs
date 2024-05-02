@@ -1714,15 +1714,17 @@
               _ (is (= "<<<<1-3-3>>>>,1-3-3,6,1,2,foo,bar,3" (str v)))
               state {}
               {:keys [state javascript]}
-              (squint/compile-string*  "(defclass Foo (constructor [this]) Object (toString [_] \"foo\"))"
-                                       {:repl :true
+              (squint/compile-string*  "
+(defclass Foo (constructor [this]) Object (toString [_] \"foo\"))"
+                                       {:repl true
                                         :context :return
                                         :elide-exports true}
                                        state)
+              _ (println javascript)
               _ (js/eval (wrap-async javascript))
               {:keys [_state javascript]}
               (squint/compile-string*  "(str (new Foo))"
-                                       {:repl :true
+                                       {:repl true
                                         :context :return
                                         :elide-exports true}
                                        state)

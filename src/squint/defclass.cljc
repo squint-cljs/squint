@@ -196,7 +196,9 @@
      (str "};\n")
      (str (emit-fn extend-form fields-env))
      (when extend
-       (str extend)))))
+       (str extend))
+     (when (:repl env)
+       (emit-fn (list 'def classname (list 'js* (munge classname))) env)))))
 
 (defn process-template-arg [arg]
   (if (string? arg)
