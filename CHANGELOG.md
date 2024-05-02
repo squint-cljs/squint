@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.7.106
 
 - [#513](https://github.com/squint-cljs/squint/issues/513): Fix `shuffle` core function random distribution and performances
 - [#517](https://github.com/squint-cljs/squint/issues/517): Fix re-definition of class with `defclass` in REPL
