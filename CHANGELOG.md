@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.7.107
+
+- [#517](https://github.com/squint-cljs/squint/issues/517): Preserve state over REPL evals
+
 ## v0.7.106
 
 - [#513](https://github.com/squint-cljs/squint/issues/513): Fix `shuffle` core function random distribution and performances
