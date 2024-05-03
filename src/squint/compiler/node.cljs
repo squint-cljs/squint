@@ -58,9 +58,16 @@
                       (js/Promise.resolve nil)
                       require-macros)))))))))
 
+(defn default-ns-state []
+  (atom {:current 'user}))
+
+(defn ->opts [opts]
+  (assoc opts :ns-state (or (:ns-state opts) (default-ns-state))))
+
 (defn compile-string [contents opts]
-  (-> (js/Promise.resolve (scan-macros contents opts))
-      (.then #(compiler/compile-string* contents opts))))
+  (let [opts (->opts opts)]
+    (-> (js/Promise.resolve (scan-macros contents opts))
+        (.then #(compiler/compile-string* contents opts)))))
 
 (defn in-dir? [dir file]
   (let [dir (.split ^js (path/resolve dir) path/sep)
@@ -86,8 +93,9 @@
 (defn compile-file [{:keys [in-file in-str out-file extension output-dir]
                      :or {output-dir ""}
                      :as opts}]
-  (let [contents (or in-str (slurp in-file))]
-    (-> (compile-string contents (assoc opts :ns-state (atom {:current 'user})))
+  (let [contents (or in-str (slurp in-file))
+        opts (->opts opts)]
+    (-> (compile-string contents opts)
         (.then (fn [{:keys [javascript jsx] :as opts}]
                  (let [paths (:paths @utils/!cfg ["." "src"])
                        out-file (path/resolve output-dir
