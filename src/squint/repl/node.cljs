@@ -79,8 +79,7 @@
             :else
             (do (erase-processed rdr)
                 (if-not (= :edamame.core/eof the-val)
-                  (do (*print-err-fn* "the-val" (pr-str the-val))
-                      (compile the-val rl socket))
+                  (compile the-val rl socket)
                   (continue rl socket) #_(reset! in-progress false)))))))
 
 (defn input-handler [socket rl input]
