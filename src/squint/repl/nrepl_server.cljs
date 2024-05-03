@@ -95,16 +95,17 @@
                       "ns" (str cc/*cljs-ns*)})))
 
 (def in-progress (atom false))
-(def ns-state (atom {}))
+(def state (atom nil))
 
 (defn compile [the-val]
   (let [{js-str :javascript
-         cljs-ns :ns} (binding [*cljs-ns* @last-ns]
-                        (compiler/compile-string* the-val {:context :return
-                                                           :ns-state ns-state
+         cljs-ns :ns
+         :as new-state} (compiler/compile-string* the-val {:context :return
                                                            :elide-exports true
                                                            :repl true
-                                                           :async true}))
+                                                           :async true}
+                                                  @state)
+        _ (reset! state new-state)
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
     js-str))

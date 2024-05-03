@@ -33,7 +33,8 @@
   (is (str/includes? (:out (repl "(ns foo (:require [\"playwright$default\" :as pw])) (let [chrome pw/chromium] (when (some? chrome) :success))")) "success"))
   (is (str/includes? (:out (repl "(require '[\"playwright$default\" :as pw]) (let [chrome pw/chromium] (when (some? chrome) :success))")) "success"))
   (is (str/includes? (:out (repl "(loop [] 1)")) "1"))
-  (is (str/includes? (:out (repl "(defn ^:async foo [] (let [x (js-await (js/Promise.resolve 10))] (str \"the-answer\"(inc x)))) (foo)")) "the-answer11")))
+  (is (str/includes? (:out (repl "(defn ^:async foo [] (let [x (js-await (js/Promise.resolve 10))] (str \"the-answer\"(inc x)))) (foo)")) "the-answer11"))
+  (is (str/includes? (:out (repl "(defclass Foo (constructor [_]) Object (toString [_] \"3\")) (str (new Foo))")) "3")))
 
 (deftest use-alias-as-object-test
   (is (str/includes? (:out (repl "(ns foo (:require [\"node:util\" :as util])) ((.-inspect util) {:a 1})")) "{ a: 1 }")))
