@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v.0.7.108
+
+- [#492](https://github.com/squint-cljs/squint/issues/492): defclass static methods and fields
+
 ## v0.7.107
 
 - [#517](https://github.com/squint-cljs/squint/issues/517): Preserve state over REPL evals
