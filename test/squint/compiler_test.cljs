@@ -1711,7 +1711,7 @@
                        "return Foo"))
     (let [source (str (fs/readFileSync "test-resources/defclass_test.cljs"))]
       (-> (p/let [v (jsv! source)
-                  _ (is (= "<<<<1-3-3>>>>,1-3-3,42,4,6,1,2,foo,bar,3" (str v)))
+                  _ (is (= "<<<<1-3-3>>>>,1-3-3,true,false,42,4,6,1,2,foo,bar,3" (str v)))
                   state {}
                   {:keys [javascript] :as state}
                   (squint/compile-string*  "

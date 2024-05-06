@@ -2,6 +2,8 @@
   (:require [squint.core :refer [defclass]]))
 
 (defclass class-1
+  (field a nil)
+  (field b false)
   (field -x)
   (field __secret :dude)
   (^:static field z 42)
@@ -58,4 +60,4 @@ res.push(val);
 }
 return res;
 } ")]
-     [(.toString c) (.dude c) (.-z Class2) (Class2.add-two 2) (js-await (.myAsync c)) (vec (.myGen c)) (js-await (async-gen-consumer (.myAsyncGen c))) (.update c)])))
+     [(.toString c) (.dude c) (nil? (.-a c)) (.-b c) (.-z Class2) (Class2.add-two 2) (js-await (.myAsync c)) (vec (.myGen c)) (js-await (async-gen-consumer (.myAsyncGen c))) (.update c)])))

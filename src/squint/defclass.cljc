@@ -101,10 +101,11 @@
   (let [fields-str
         (str/join "\n"
           (for [field fields
-                :let [default (:field-default field)
+                :let [env (assoc env :context :expr)
+                      default? (contains? field :field-default)
                       static (-> field :field-form first meta :static)]]
             (str (when static "static ") (munge (:field-name field))
-             (if default " = " ";") (emit-fn default env) (when default ";"))))]
+             (if default? " = " ";") (emit-fn (:field-default field) env) (when default? ";"))))]
     (when-not (empty? fields-str)
       (str fields-str "\n"))))
 
