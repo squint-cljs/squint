@@ -105,7 +105,7 @@
                       default? (contains? field :field-default)
                       static (-> field :field-form first meta :static)]]
             (str (when static "static ") (munge (:field-name field))
-             (if default? " = " ";") (emit-fn (:field-default field) env) (when default? ";"))))]
+             (if-not default? ";" (str " = " (emit-fn (:field-default field) env) ";")))))]
     (when-not (empty? fields-str)
       (str fields-str "\n"))))
 
