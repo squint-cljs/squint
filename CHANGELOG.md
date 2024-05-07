@@ -5,6 +5,7 @@
 ## v.0.7.108
 
 - [#492](https://github.com/squint-cljs/squint/issues/492): defclass static methods and fields
+- [#526](https://github.com/squint-cljs/squint/issues/526): Fix export of class name with dashes
 
 ## v0.7.107
 

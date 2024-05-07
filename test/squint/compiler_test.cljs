@@ -1704,8 +1704,8 @@
 (deftest defclass-test
   (async done
     #_(println (jss! (str (fs/readFileSync "test-resources/defclass_test.cljs"))))
-    (is (str/includes? (compiler/compile-string "(defclass Foo (constructor [this]))")
-                       "export { Foo }"))
+    (is (str/includes? (compiler/compile-string "(defclass Foo-bar (constructor [this]))")
+                       "export { Foo_bar }"))
     (is (str/includes? (:javascript (compiler/compile-string* "(defclass Foo (constructor [this]))" {:repl true
                                                                                                      :context :return}))
                        "return Foo"))
