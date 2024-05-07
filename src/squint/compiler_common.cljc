@@ -1079,7 +1079,7 @@ break;}" body)
 
 (defmethod emit-special 'squint.defclass/defclass* [_ env form]
   (let [name (second form)]
-    (swap! *public-vars* conj name)
+    (swap! *public-vars* conj (munge* name))
     (defclass/emit-class env
       emit
       (fn [async body-fn]
