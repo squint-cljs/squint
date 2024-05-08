@@ -24,7 +24,7 @@ possible. The syntax is inspired by
   (extends class-1)
   (field -y 1)
   (constructor [_ x y]
-               (super (+ x y -y)))
+               (super (+ x y)))
 
   Object
   (dude [_]
