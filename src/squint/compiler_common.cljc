@@ -533,9 +533,12 @@
                     (statement (format "import '%s'" libname))))
                 (when (and as (not= "default" p))
                   (swap! *imported-vars* update libname (fnil identity #{}))
-                  (statement (if *repl*
-                               (format "var %s = await import('%s')" as libname)
-                               (format "import * as %s from '%s'" as libname))))
+                  (statement
+                   (if (= "js" libname)
+                     (format "const %s = globalThis%s" as (str (when suffix (str "." suffix))))
+                     (if *repl*
+                       (format "var %s = await import('%s')" as libname)
+                       (format "import * as %s from '%s'" as libname)))))
                 (when refer
                   (swap! (:ns-state env)
                          (fn [ns-state]
@@ -550,12 +553,18 @@
                                (update-in ns-state [current :rename]
                                           merge (zipmap (vals rename) (keys rename)))))))
                   (let [munged-refers (map munge refer)]
-                    (if *repl*
-                      (str (statement (format "var { %s } = await import('%s')" (str/join ", " munged-refers) libname))
-                           (str/join (map (fn [sym]
-                                            (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym)))
-                                          munged-refers)))
-                      (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname))))))]
+                    (if (= "js" libname)
+                      (format "const %s = globalThis.%s"
+                              (format "{%s}"
+                                      (str/join "," munged-refers)) suffix )
+                      (if *repl*
+                        (str (statement (format "var { %s } = await import('%s')"
+                                                (str/join ", " munged-refers) libname))
+                             (str/join (map (fn [sym]
+                                              (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym)))
+                                            munged-refers)))
+                        (statement (format "import { %s } from '%s'"
+                                           (str/join ", " (map munge refer)) libname)))))))]
       (when as
         (swap! (:ns-state env)
                (fn [ns-state]
