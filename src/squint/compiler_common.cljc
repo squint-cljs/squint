@@ -1052,39 +1052,37 @@ break;}" body)
         (let [v* v]
           (str
            " "
-           (str/join " "
-                     (map
-                      (fn [[k v]]
-                        (let [str? (string? v)]
-                          (if (= :& k)
-                            (if html?
-                              (do
-                                (when-let [dyn (:has-dynamic-expr env)]
-                                  (reset! dyn true))
-                                (format "${squint_html.attrs(%s,%s)}" (emit v (dissoc env :jsx))
-                                        (format "new Set([%s])" (str/join "," (map (comp wrap-double-quotes
-                                                                                         #(subs % 1)
-                                                                                         str)
-                                                                                   (disj (set (keys v*)) :&))))))
-                              (str "{..." (emit v (dissoc env :jsx)) "}"))
-                            (str (name k) "="
-                                 (let [env env]
-                                   (cond
-                                     (and html? (map? v))
-                                     (emit-css v env)
-                                     #_#_(and html? (vector? v))
-                                     (-> (str/join " " (map #(emit % env) v))
-                                         (wrap-double-quotes))
-                                     :else
-                                     (cond-> (emit v (assoc env :jsx false))
-                                       (not str?)
-                                       ;; since we escape here, we
-                                       ;; can probably remove
-                                       ;; escaping elsewhere?
-                                       (escape-jsx env)
-                                       (and html? (not str?))
-                                       (wrap-double-quotes))))))))
-                      v))))
+           (if (and html? (contains? v* :&))
+             (let [rest-opts (dissoc v* :&)]
+               (when-let [dyn (:has-dynamic-expr env)]
+                 (reset! dyn true))
+               (format "${squint_html.attrs(%s,%s)}"
+                       (emit (get v* :&) (dissoc env :jsx))
+                       (emit rest-opts (dissoc env :jsx))))
+             (str/join " "
+                       (map
+                        (fn [[k v]]
+                          (let [str? (string? v)]
+                            (if (= :& k)
+                              (str "{..." (emit v (dissoc env :jsx)) "}")
+                              (str (name k) "="
+                                   (let [env env]
+                                     (cond
+                                       (and html? (map? v))
+                                       (emit-css v env)
+                                       #_#_(and html? (vector? v))
+                                       (-> (str/join " " (map #(emit % env) v))
+                                           (wrap-double-quotes))
+                                       :else
+                                       (cond-> (emit v (assoc env :jsx false))
+                                         (not str?)
+                                         ;; since we escape here, we
+                                         ;; can probably remove
+                                         ;; escaping elsewhere?
+                                         (escape-jsx env)
+                                         (and html? (not str?))
+                                         (wrap-double-quotes))))))))
+                        v)))))
         ""))))
 
 (defmethod emit-special 'squint.defclass/defclass* [_ env form]

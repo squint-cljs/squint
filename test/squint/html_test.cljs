@@ -59,6 +59,6 @@
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
-           #(is (= "<div b=\"2\" a=\"2\" style=\"color:red;\">Hello</div>" %)))
+           #(is (= "<div a=\"1\" style=\"color:red;\" b=\"2\">Hello</div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
