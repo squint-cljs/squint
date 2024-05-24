@@ -1060,7 +1060,7 @@ break;}" body)
                             (do
                               (when-let [dyn (:has-dynamic-expr env)]
                                 (reset! dyn true))
-                              (format "${%s}" (emit v (dissoc env :jsx))))
+                              (format "${squint_html.attrs(%s)}" (emit v (dissoc env :jsx))))
                             (str "{..." (emit v (dissoc env :jsx)) "}"))
                           (str (name k) "="
                                (let [env env]

@@ -1,17 +1,45 @@
+function css(v) {
+  let ret = "";
+  if (v == null) return ret;
+  let first = true;
+  for (const kv of Object.entries(v)) {
+    if (!first) ret += ' ';
+    ret += kv[0];
+    ret += ":";
+    ret += kv[1];
+    ret += ';';
+    first = false;
+  }
+  return ret;
+}
+
+export function attrs(v) {
+  let ret = "";
+  if (v == null) return ret;
+  let first = true;
+  for (const kv of Object.entries(v)) {
+    if (!first) {
+      ret += ' ';
+    }
+    ret += kv[0];
+    ret += "=";
+    ret += '"';
+    const v1 = kv[1];
+    if (typeof(v1) === 'object') {
+      ret += css(v1);
+    } else
+      ret += v1;
+    ret += '"';
+    first = false;
+  }
+  return ret;
+}
+
 function toHTML(v) {
   if (v == null) return;
   if (typeof(v) === 'string') return v;
   if (v[Symbol.iterator]) {
     return [...v].join("");
-  }
-  if (typeof v === 'object') {
-    let ret = "";
-    for (const kv of Object.entries(v)) {
-      ret += kv[0];
-      ret += "=";
-      ret += '"' + kv[1] + '"';
-      return ret;
-    }
   }
   return v;
 }
