@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.7.110
+
+- Prefer value from props map over explicit value
+
 ## v0.7.109
 
 - `#html` improvements, support `:&` for spreading props
