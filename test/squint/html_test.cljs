@@ -50,3 +50,15 @@
            #(is (= "<div>undefined</div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
+
+(deftest html-props-test
+  (t/async done
+    (let [js (squint.compiler/compile-string
+              "(let [m {:a 1 :b 2}] #html [:div {:& m :a 2 :style {:color :red}} \"Hello\"])"
+              {:repl true :elide-exports true :context :return})
+          js (str/replace "(async function() { %s } )()" "%s" js)]
+      (-> (js/eval js)
+          (.then
+           #(is (= "<div b=\"2\" a=\"2\" style=\"color:red;\">Hello</div>" %)))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))
