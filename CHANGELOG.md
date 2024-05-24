@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.7.109
+
+- `#html` improvements, support `:&` for spreading props
+
 ## v.0.7.108
 
 - [#492](https://github.com/squint-cljs/squint/issues/492): defclass static methods and fields
