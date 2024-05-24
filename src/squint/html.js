@@ -13,7 +13,7 @@ function css(v) {
   return ret;
 }
 
-export function attrs(v) {
+export function attrs(v, exclude) {
   let ret = "";
   if (v == null) return ret;
   let first = true;
@@ -21,6 +21,8 @@ export function attrs(v) {
     if (!first) {
       ret += ' ';
     }
+    const k = kv[0];
+    if (exclude.has(k)) continue;
     ret += kv[0];
     ret += "=";
     ret += '"';
