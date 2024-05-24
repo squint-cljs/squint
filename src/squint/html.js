@@ -4,6 +4,15 @@ function toHTML(v) {
   if (v[Symbol.iterator]) {
     return [...v].join("");
   }
+  if (typeof v === 'object') {
+    let ret = "";
+    for (const kv of Object.entries(v)) {
+      ret += kv[0];
+      ret += "=";
+      ret += '"' + kv[1] + '"';
+      return ret;
+    }
+  }
   return v;
 }
 

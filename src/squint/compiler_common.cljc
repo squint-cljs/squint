@@ -1056,7 +1056,12 @@ break;}" body)
                     (fn [[k v]]
                       (let [str? (string? v)]
                         (if (= :& k)
-                          (str "{..." (emit v (dissoc env :jsx)) "}")
+                          (if html?
+                            (do
+                              (when-let [dyn (:has-dynamic-expr env)]
+                                (reset! dyn true))
+                              (format "${%s}" (emit v (dissoc env :jsx))))
+                            (str "{..." (emit v (dissoc env :jsx)) "}"))
                           (str (name k) "="
                                (let [env env]
                                  (cond

@@ -255,7 +255,7 @@
                                                      :ns {:name cc/*cljs-ns*}} (rest expr))]
                      (emit new-expr env))
                    (cond
-                     (and (= (.charAt head-str 0) \.)
+                     (and (= \. (.charAt head-str 0))
                           (> (count head-str) 1)
                           (not (= ".." head-str)))
                      (cc/emit-special '. env
@@ -308,7 +308,7 @@
                      (subs (str tag) 1)
                      (emit tag-name* (expr-env (dissoc env :jsx))))]
       (if (and (not (:html env)) (:jsx env) (:jsx-runtime env))
-        (let [single-child? (= (count elts) 1)]
+        (let [single-child? (= 1 (count elts))]
           (emit (list (if single-child?
                         '_jsx '_jsxs)
                       (cond fragment? "_Fragment"
