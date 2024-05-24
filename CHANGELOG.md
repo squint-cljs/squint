@@ -2,6 +2,21 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v.0.7.108
+
+- [#492](https://github.com/squint-cljs/squint/issues/492): defclass static methods and fields
+- [#526](https://github.com/squint-cljs/squint/issues/526): Fix export of class name with dashes
+
+## v0.7.107
+
+- [#517](https://github.com/squint-cljs/squint/issues/517): Preserve state over REPL evals
+
+## v0.7.106
+
+- [#513](https://github.com/squint-cljs/squint/issues/513): Fix `shuffle` core function random distribution and performances
+- [#517](https://github.com/squint-cljs/squint/issues/517): Fix re-definition of class with `defclass` in REPL
+- [#522](https://github.com/squint-cljs/squint/issues/522): fix `nil` `#html` rendering issue
+
 ## v0.7.105 (2024-04-15)
 
 - [#509](https://github.com/squint-cljs/squint/issues/509): Optimization: use arrow fn for implicit IIFE when possible

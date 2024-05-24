@@ -1698,18 +1698,38 @@
 (deftest fn-direct-invoke-test
   (is (eq 2 (jsv! '(#(inc %) 1)))))
 
+(defn wrap-async [s]
+  (str/replace "(async function () {\n%s\n})()" "%s" s))
+
 (deftest defclass-test
   (async done
     #_(println (jss! (str (fs/readFileSync "test-resources/defclass_test.cljs"))))
-    (is (str/includes? (compiler/compile-string "(defclass Foo (constructor [this]))")
-                       "export { Foo }"))
-    (is (str/includes? (compiler/compile-string "(defclass Foo (constructor [this]))" {:repl true
-                                                                                       :context :return})
-                       "return class Foo"))
-    (-> (jsv! (str (fs/readFileSync "test-resources/defclass_test.cljs")))
-        (.then (fn [v]
-                 (is (= "<<<<1-3-3>>>>,1-3-3,6,1,2,foo,bar,3" (str v)))))
-        (.finally done))))
+    (is (str/includes? (compiler/compile-string "(defclass Foo-bar (constructor [this]))")
+                       "export { Foo_bar }"))
+    (is (str/includes? (:javascript (compiler/compile-string* "(defclass Foo (constructor [this]))" {:repl true
+                                                                                                     :context :return}))
+                       "return Foo"))
+    (let [source (str (fs/readFileSync "test-resources/defclass_test.cljs"))]
+      (-> (p/let [v (jsv! source)
+                  _ (is (= "<<<<1-3-3>>>>,1-3-3,true,false,42,4,6,1,2,foo,bar,3" (str v)))
+                  state {}
+                  {:keys [javascript] :as state}
+                  (squint/compile-string*  "
+(defclass Foo (constructor [this]) Object (toString [_] \"foo\"))"
+                                           {:repl true
+                                            :context :return
+                                            :elide-exports true}
+                                           state)
+                  _ (js/eval (wrap-async javascript))
+                  {:keys [_state javascript]}
+                  (squint/compile-string* "(str (new Foo))"
+                                          {:repl true
+                                           :context :return
+                                           :elide-exports true}
+                                          state)
+                  v (js/eval (wrap-async javascript))]
+            (is (= "foo" v)))
+          (p/finally done)))))
 
 (deftest atom-test
   (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y"))))
@@ -1898,9 +1918,6 @@
   (is (eq {1 :a, 2 :b, 3 :c} (jsv! "(reduce-kv #(assoc %1 %3 %2) {} {:a 1 :b 2 :c 3})")))
   (is (eq {1 :a, 2 :b, 3 :c} (jsv! "(reduce-kv #(assoc %1 %3 %2) {} (new js/Map (js/Object.entries {:a 1 :b 2 :c 3})))")))
   (is (eq {:a 1} (jsv! "(reduce-kv #(assoc %1 %3 %2) {:a 1} {})"))))
-
-(defn wrap-async [s]
-  (str/replace "(async function () {\n%s\n})()" "%s" s))
 
 (deftest set-lib--test
   (t/async done

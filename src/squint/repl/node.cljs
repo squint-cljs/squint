@@ -36,58 +36,18 @@
 (def tty (and js/process.stdout.isTTY
               js/process.stdin.setRawMode))
 
-(defn eval-expr [socket f]
-  (let [ctx #js {:f f}
-        _ (.createContext vm ctx)]
-    (try
-      (when (and tty (not socket))
-        (.setRawMode js/process.stdin false))
-      (-> (.runInContext vm "f()" ctx
-                         #js {:displayErrors true
-                              ;; :timeout 1000
-                              :breakOnSigint true
-                              :microtaskMode "afterEvaluate"})
-          (.then (fn [wrapper]
-                   (let [ctx #js {:f (if socket (fn [] wrapper)
-                                         (fn []
-                                           (let [v (first wrapper)]
-                                             (js/console.log v)
-                                             wrapper)))}
-                         _ (.createContext vm ctx)]
-                     (.runInContext vm "f()" ctx
-                                    #js {:displayErrors true
-                                         ;; :timeout 1000
-                                         :breakOnSigint true
-                                         :microtaskMode "afterEvaluate"}))))
-          (.finally (fn []
-                      (when (and tty (not socket))
-                        (.setRawMode js/process.stdin true)))))
-      (catch :default e
-        (when (and tty (not socket))
-          (.setRawMode js/process.stdin true))
-        (js/Promise.reject e)))))
-
-#_(defn eval-js [js-str]
-    (let [filename (str ".repl/" (gensym) ".mjs")]
-      (when-not (fs/existsSync ".repl")
-        (fs/mkdirSync ".repl"))
-      (fs/writeFileSync filename js-str)
-      (-> (esm/dynamic-import (-> (path/resolve (process/cwd) filename)
-                                  url/pathToFileURL
-                                  str))
-          (.finally (fn [] #_(prn filename) (fs/unlinkSync filename))))))
-
-(def ns-state (atom {}))
+(def state (atom nil))
 
 (defn compile [the-val rl socket]
   (let [{js-str :javascript
-         cljs-ns :ns} (binding [*cljs-ns* @last-ns]
+         cljs-ns :ns
+         :as new-state} (binding [*cljs-ns* @last-ns]
                         (compiler/compile-string* (binding [*print-meta* true]
                                                     (pr-str the-val)) {:context :return
-                                                                       :ns-state ns-state
-                                                                       :elide-exports true}))
+                                                                       :elide-exports true}
+                                                  @state))
+        _ (reset! state new-state)
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
-    ;; (println :js-str js-str)
     (reset! last-ns cljs-ns)
     (->
      (js/Promise.resolve (js/eval js-str))
@@ -119,7 +79,6 @@
             :else
             (do (erase-processed rdr)
                 (if-not (= :edamame.core/eof the-val)
-                  ;; (prn :pending @pending)
                   (compile the-val rl socket)
                   (continue rl socket) #_(reset! in-progress false)))))))
 

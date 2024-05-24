@@ -107,20 +107,26 @@
                                                                 as (assoc-in [the-ns-name :aliases as] macro-ns)
                                                                 refer (assoc-in [the-ns-name :refers] (zipmap refer (repeat macro-ns))))))
                                             #_(set! compiler/built-in-macros
-                                                  ;; hack
-                                                  (assoc compiler/built-in-macros macro-ns macros))))))))
+                                                    ;; hack
+                                                    (assoc compiler/built-in-macros macro-ns macros))))))))
                       (js/Promise.resolve nil)
                       require-macros)))))))))
 
+(defn default-ns-state []
+  (atom {:current 'user}))
+
+(defn ->opts [opts]
+  (assoc opts :ns-state (or (:ns-state opts) (default-ns-state))))
+
 (defn compile-string [contents opts]
-  (let [resolve-ns (or (:resolve-ns opts)
+  (let [opts (->opts opts)
+        resolve-ns (or (:resolve-ns opts)
                        (when-let [if (:in-file opts)]
                          (fn [x]
                            (let [resolved (resolve-ns opts if x)]
                              (js/console.log "resolve-ns" "in-file" if "->" resolved)
                              (str/replace resolved ".mjs" ".cljs")))))
         opts (assoc opts :resolve-ns resolve-ns)]
-    (js/console.log ">> resolve-ns" resolve-ns)
     (-> (js/Promise.resolve (scan-macros contents opts))
         (.then #(compiler/compile-string* contents opts)))))
 
@@ -128,9 +134,10 @@
                      :or {output-dir ""}
                      :as opts}]
   (let [contents (or in-str (slurp in-file))
+        opts (->opts opts)
         resolve-ns (or resolve-ns (fn [x](resolve-ns opts in-file x)))
         opts (assoc opts :resolve-ns resolve-ns)]
-    (-> (compile-string contents (assoc opts :ns-state (atom {:current 'user})))
+    (-> (compile-string contents opts)
         (.then (fn [{:keys [javascript jsx] :as opts}]
                  (let [paths (:paths @utils/!cfg ["." "src"])
                        out-file (path/resolve output-dir

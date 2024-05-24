@@ -30,7 +30,7 @@ jobs:
         restore-keys: "${{ runner.os }}-deps-"
 
     - name: Setup Clojure
-      uses: DeLaGuardo/setup-clojure@12.1
+      uses: DeLaGuardo/setup-clojure@12.5
       with:
         cli: 1.10.3.1040
         bb: latest

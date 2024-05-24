@@ -97,26 +97,30 @@
       (if super? (cons `(super*) form)
           form))))
 
-(defn- emit-field-defaults [env emit-fn fields]
-  (str/join "\n"
-            (for [field fields
-                  :let [default (:field-default field)]
-                  :when default]
-              (str "this." (munge (:field-name field)) " = " (emit-fn default env) ";"))))
+(defn- emit-fields [env emit-fn fields]
+  (let [fields-str
+        (str/join "\n"
+          (for [field fields
+                :let [env (assoc env :context :expr)
+                      default? (contains? field :field-default)
+                      static (-> field :field-form first meta :static)]]
+            (str (when static "static ") (munge (:field-name field))
+             (if-not default? ";" (str " = " (emit-fn (:field-default field) env) ";")))))]
+    (when-not (empty? fields-str)
+      (str fields-str "\n"))))
 
 (defn- emit-args [env emit-fn args]
   (let [arg-env (assoc env :context :expr :top-level false)]
     (map #(emit-fn % arg-env) args)))
 
 (defn emit-super
-  [env emit-fn {:keys [forms fields this-sym]}]
+  [env emit-fn {:keys [forms this-sym]}]
   (let [super-args forms]
     (str "super("
          (str/join ", " (emit-args env emit-fn super-args))
          ");"
          (str "const self__ = this;\n")
-         (str "const " (emit-fn this-sym env) " = this;\n")
-         (emit-field-defaults env emit-fn fields))))
+         (str "const " (emit-fn this-sym env) " = this;\n"))))
 
 (defn- emit-object-fn [env emit-fn async-fn object-fn]
   (let [[fn-name arglist & body] object-fn
@@ -127,10 +131,13 @@
         mf (meta fn-name)
         async? (:async mf)
         gen? (:gen mf)
+        static? (:static mf)
         env (if async? (assoc env :async async?) env)]
     (async-fn async?
               (fn []
                 (str
+                 (when static?
+                   "static ")
                  (when async?
                    "async ")
                  (when gen? "* ")
@@ -148,8 +155,9 @@
                  "\n}")))))
 
 (defn emit-class
-  [env emit-fn async-fn form]
-  (let [{:keys [classname extends extend constructor fields protocols] :as _all} (parse-class (rest form))
+  [env* emit-fn async-fn form]
+  (let [env (assoc env* :context :statement)
+        {:keys [classname extends extend constructor fields protocols] :as _all} (parse-class (rest form))
         [_ ctor-args & ctor-body] constructor
         _ (assert (pos? (count ctor-args)) "contructor requires at least one argument name for this")
 
@@ -180,23 +188,27 @@
                (mapcat identity)))]
     (str
      "class "
-     (emit-fn classname env)
+     (munge classname)
      (when extends
        (str " extends "
             (emit-fn extends env)))
      (str " {\n")
+     (emit-fields env emit-fn fields)
      (str "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n")
      (when-not super?
        (str "const self__ = this;\n"
-            (str "const " (emit-fn this-sym ctor-args-env)) " = this;\n"
-            (emit-field-defaults ctor-args-env emit-fn fields)))
+            (str "const " (emit-fn this-sym ctor-args-env)) " = this;\n"))
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env)))
      (str "  }\n")
      (str/join "\n" (map #(emit-object-fn fields-env emit-fn async-fn %) object-fns))
      (str "};\n")
      (str (emit-fn extend-form fields-env))
      (when extend
-       (str extend)))))
+       (str extend))
+     (when (:repl env)
+       (emit-fn (list 'def classname (list 'js* (munge classname))) env))
+     (when (= :return (:context env*))
+       (str "return " (munge classname) ";")))))
 
 (defn process-template-arg [arg]
   (if (string? arg)

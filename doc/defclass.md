@@ -12,16 +12,19 @@ possible. The syntax is inspired by
 (defclass class-1
   (field -x)
   (field -y :dude) ;; default
+  (^:static field a)
+  (^:static field b :dude) ;; default
   (constructor [this x] (set! -x x))
 
   Object
-  (get-name-separator [_] (str "-" -x)))
+  (get-name-separator [_] (str "-" -x))
+  (^:static static-method [_] (str "static field: " a)))
 
 (defclass Class2
   (extends class-1)
   (field -y 1)
   (constructor [_ x y]
-               (super (+ x y -y)))
+               (super (+ x y)))
 
   Object
   (dude [_]
