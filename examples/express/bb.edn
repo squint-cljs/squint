@@ -1,0 +1,8 @@
+{:tasks {:requires ([babashka.fs :as fs])
+         squint:watch (shell "npx squint watch")
+         node:watch (shell "node --watch js/app.mjs")
+         -dev {:depends [node:watch squint:watch]}
+         dev (do
+               (fs/create-dirs "js")
+               (spit "js/app.mjs" "") ;; ensure this exists before node watcher starts
+               (run '-dev {:parallel true}))}}
