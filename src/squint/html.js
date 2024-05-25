@@ -13,6 +13,15 @@ function css(v) {
   return ret;
 }
 
+export function attr(v) {
+  if (typeof(v) === 'object') {
+    return css(v);
+  } else
+  {
+    return v;
+  }
+}
+
 export function attrs(v, props) {
   v = Object.assign(props, v);
   let ret = "";
@@ -25,11 +34,8 @@ export function attrs(v, props) {
     ret += kv[0];
     ret += "=";
     ret += '"';
-    const v1 = kv[1];
-    if (typeof(v1) === 'object') {
-      ret += css(v1);
-    } else
-      ret += v1;
+    const v1 = attr(kv[1]);
+    ret += v1;
     ret += '"';
     first = false;
   }

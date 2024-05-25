@@ -129,16 +129,22 @@
 #?(:cljs (derive js/Number ::number))
 
 (defn escape-jsx [expr env]
-  (if (and (:jsx env) (or (:html env)
-                          (not (:jsx-runtime env))))
-    (do
-      (when (:html env)
-        (when-let [dyn (:has-dynamic-expr env)]
-          (reset! dyn true)))
-      (format (str (when (:html env)
-                     "$")
-                   "{%s}") expr))
-    expr))
+  (let [html? (:html env)]
+    (if (and (:jsx env) (or html?
+                            (not (:jsx-runtime env))))
+      (do
+        (when html?
+          (when-let [dyn (:has-dynamic-expr env)]
+            (reset! dyn true)))
+        (format "%s{%s}"
+                (if html?
+                  "$"
+                  "")
+                (format (if (:html-attr env)
+                          "squint_html.attr(%s)"
+                          "%s")
+                        expr)))
+      expr)))
 
 (defmethod emit ::number [expr env]
   (-> (str expr)
@@ -1062,7 +1068,9 @@ break;}" body)
              (str/join " "
                        (map
                         (fn [[k v]]
-                          (let [str? (string? v)]
+                          (let [str? (or (string? v)
+                                         (when (= :squint *target*)
+                                           (keyword? v)))]
                             (if (= :& k)
                               (str "{..." (emit v (dissoc env :jsx)) "}")
                               (str (name k) "="
@@ -1079,7 +1087,7 @@ break;}" body)
                                          ;; since we escape here, we
                                          ;; can probably remove
                                          ;; escaping elsewhere?
-                                         (escape-jsx env)
+                                         (escape-jsx (assoc env :html-attr (and html? (not str?))))
                                          (and html? (not str?))
                                          (wrap-double-quotes))))))))
                         v)))))
