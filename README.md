@@ -96,7 +96,8 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 
 - [@nextjournal/clojure-mode](https://github.com/nextjournal/clojure-mode)
 - [static search index for Tumblr](https://github.com/holyjak/clj-tumblr-summarizer/commit/a8b2ca8a9f777e4a9059fa0f1381ded24e5f1a0f)
-- [worlde](https://github.com/jackdbd/squint-wordle)
+- [wordle](https://github.com/jackdbd/squint-wordle)
+- [Zenith](https://tofutheloafu.itch.io/zenith): a game developed for the Lisp Game Jame 2024 by Trevor
 
 ## Advent of Code
 
