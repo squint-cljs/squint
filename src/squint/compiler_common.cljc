@@ -183,12 +183,12 @@
 
 (def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "=" "==" "===" "<" ">" "<=" ">=" "!="
                        "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"
-                       "bit-or" "bit-and" "js-mod"})
+                       "bit-or" "bit-and" "js-mod" "js-??"})
 
 (def boolean-infix-operators
   #{"=" "==" "===" "<" ">" "<=" ">=" "!=" "not=" "instanceof"})
 
-(def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and"})
+(def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and" "js-??"})
 
 (defn infix-operator? [env expr]
   (contains? (or (:infix-operators env)
@@ -223,7 +223,8 @@
                                  '+ "+"
                                  'bit-or "|"
                                  'bit-and "&"
-                                 'js-mod "%"}]
+                                 'js-mod "%"
+                                 'js-?? "??"}]
               (str/join (str " " (or (substitutions operator)
                                      operator) " ")
                         (map wrap-parens (emit-args env args))))
