@@ -1601,7 +1601,8 @@
   (is (true? (jsv! '(> 5 4 3))))
   (is (true? (jsv! '(> 5 4))))
   ;; I would say this is undefined in squint for now:
-  #_(is (true? (jsv! '(> 5)))))
+  #_(is (true? (jsv! '(> 5))))
+  (is (eq (jsv! '(js-?? nil js/undefined 4)) 4)))
 
 (deftest some?-test
   (is (jsv! '(some? 1)))
