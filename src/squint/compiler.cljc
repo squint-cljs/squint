@@ -469,8 +469,8 @@
              jsx-runtime (:jsx-runtime opts)
              jsx-dev (:development jsx-runtime)
              imports (atom (if cc/*repl*
-                             (str (format "var %s = await import('%s');\n"
-                                          core-alias cc/*core-package*))
+                             (format "var %s = await import('%s');\n"
+                                     core-alias cc/*core-package*)
                              (format "import * as %s from '%s';\n"
                                      core-alias cc/*core-package*)))
              pragmas (atom {:js ""})]

@@ -255,8 +255,9 @@
              (str/includes? (str expr) "."))
       (let [[fname path] (str/split (str expr) #"\." 2)
             fname (symbol fname)]
-        (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
-                         "." (munge** path)) env))
+        (emit-return (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
+                                      "." (munge** path)) env)
+                     env))
       (let [munged-name (fn [expr] (munge* (name expr)))
             expr (if-let [sym-ns (some-> (namespace expr) munge)]
                    (let [sn (symbol (name expr))]

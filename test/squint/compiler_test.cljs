@@ -2,7 +2,7 @@
   (:require
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]
-   [squint.compiler :as compiler]
+   [squint.compiler :as squint]
    [squint.jsx-test]
    [squint.html-test]
    [squint.string-test]
@@ -10,8 +10,7 @@
    ["fs" :as fs]
    ["child_process" :as process]
    ["node:util" :as util]
-   [promesa.core :as p]
-   [squint.compiler :as squint]))
+   [promesa.core :as p]))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -1611,19 +1610,19 @@
   (is (jsv! '(not (some? js/undefined)))))
 
 (deftest ns-test
-  (is (str/includes? (compiler/compile-string (pr-str '(ns foo (:require ["./popup.css" ]))))
+  (is (str/includes? (squint/compile-string (pr-str '(ns foo (:require ["./popup.css" ]))))
                      "import './popup.css'"))
   (is (re-find #"import.*'./popup.css'"
-               (compiler/compile-string (pr-str '(ns foo (:require ["./popup.css" :as pop]))))))
+               (squint/compile-string (pr-str '(ns foo (:require ["./popup.css" :as pop]))))))
   (t/async done
-    (let [js (compiler/compile-string "(ns foo (:require [clojure.string :as str])) (str 1 2 3 (str/join \",\" [1 2 3]))" {:repl true
+    (let [js (squint/compile-string "(ns foo (:require [clojure.string :as str])) (str 1 2 3 (str/join \",\" [1 2 3]))" {:repl true
                                                                                                                            :context :return})]
       (-> (.then (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))
                  (fn [v]
                    (is (= "1231,2,3" v))))
           (.finally done))))
   (is (str/ends-with?
-       (str/trim (compiler/compile-string "(ns foo (:require [\"fs\" :refer [readFileSync]])) readFileSync" {:repl true}))
+       (str/trim (squint/compile-string "(ns foo (:require [\"fs\" :refer [readFileSync]])) readFileSync" {:repl true}))
        "globalThis.foo.readFileSync;")))
 
 (deftest letfn-test
@@ -1641,26 +1640,26 @@
   (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2))))))
 
 (deftest require-with-kebab-case-alias-test
-  (let [s (compiler/compile-string "(ns test-namespace (:require [\"some-js-library$default\" :as some-js-lib])) (some-js-lib/some_fn)")]
+  (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library$default\" :as some-js-lib])) (some-js-lib/some_fn)")]
     (is (str/includes? s "import some_js_lib from 'some-js-library';"))
     (is (str/includes? s "some_js_lib.some_fn();"))
     (is (not (str/includes? s "import * as some_js_lib"))))
 
-  (let [s (compiler/compile-string "(ns test-namespace (:require [\"some-js-library\" :as some-js-lib])) (some-js-lib/some_fn)")]
+  (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :as some-js-lib])) (some-js-lib/some_fn)")]
     (is (str/includes? s "import * as some_js_lib from 'some-js-library'"))
     (is (str/includes? s "some_js_lib.some_fn();")))
 
-  (let [s (compiler/compile-string "(ns test-namespace (:require [\"./local_file.mjs\" :as local-file])) (local-file/some_fn)")]
+  (let [s (squint/compile-string "(ns test-namespace (:require [\"./local_file.mjs\" :as local-file])) (local-file/some_fn)")]
     (is (str/includes? s "import * as local_file from './local_file.mjs'"))
     (is (str/includes? s "local_file.some_fn();")))
-  (let [s (compiler/compile-string "(ns bar (:require [\"./foo.mjs\" #_#_:refer [foo-bar] :as foo-alias])) (prn foo-alias/foo-bar)")]
+  (let [s (squint/compile-string "(ns bar (:require [\"./foo.mjs\" #_#_:refer [foo-bar] :as foo-alias])) (prn foo-alias/foo-bar)")]
     (is (str/includes? s "import * as foo_alias from './foo.mjs'"))
     (is (str/includes? s "prn(foo_alias.foo_bar);")))
   (doseq [repl [false true]]
-    (let [js (compiler/compile-string "(require '[clojure.string :as str-ing]) (str-ing/join [1 2 3])" {:repl repl})]
+    (let [js (squint/compile-string "(require '[clojure.string :as str-ing]) (str-ing/join [1 2 3])" {:repl repl})]
       (is (not (str/includes? js "str-ing")))
       (is (str/includes? js "str_ing"))))
-  (let [s (compiler/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
+  (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
     (is (str/includes? s "existsSync(\"README.md\")"))))
 
 (deftest dissoc!-test
@@ -1705,9 +1704,9 @@
 (deftest defclass-test
   (async done
     #_(println (jss! (str (fs/readFileSync "test-resources/defclass_test.cljs"))))
-    (is (str/includes? (compiler/compile-string "(defclass Foo-bar (constructor [this]))")
+    (is (str/includes? (squint/compile-string "(defclass Foo-bar (constructor [this]))")
                        "export { Foo_bar }"))
-    (is (str/includes? (:javascript (compiler/compile-string* "(defclass Foo (constructor [this]))" {:repl true
+    (is (str/includes? (:javascript (squint/compile-string* "(defclass Foo (constructor [this]))" {:repl true
                                                                                                      :context :return}))
                        "return Foo"))
     (let [source (str (fs/readFileSync "test-resources/defclass_test.cljs"))]
@@ -1772,7 +1771,7 @@
 
 (deftest alias-conflict-test
   (let [expr (fs/readFileSync "test-resources/alias_conflict_test.cljs" "UTF-8")
-        js (:javascript (compiler/compile-string* expr {:core-alias "squint_core"}))]
+        js (:javascript (squint/compile-string* expr {:core-alias "squint_core"}))]
     (when (not (fs/existsSync "test-output"))
       (fs/mkdirSync "test-output"))
     (fs/writeFileSync "test-output/foo.mjs" js)
@@ -1926,7 +1925,7 @@
      (p/do
        (testing "intersection"
          (let [set (fn [& xs] (new js/Set xs))
-               js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+               js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
              [(set/intersection #{:a :b})
               (set/intersection #{:a :b} #{:b :c})]" {:repl true
                                                       :context :return})]
@@ -1937,7 +1936,7 @@
                  (is (eq expected s)))))))
        (testing "difference"
          (let [set (fn [& xs] (new js/Set xs))
-               js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+               js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                  [(set/difference)
                   (set/difference #{:a :b})
                   (set/difference #{:a :b} #{:b :c})]" {:repl true
@@ -1951,7 +1950,7 @@
                  (is (eq expected s)))))))
        (testing "union"
          (let [set (fn [& xs] (new js/Set xs))
-               js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+               js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                    [(set/union)
                     (set/union #{:a :b})
                     (set/union #{:a :b} #{:b :c})]" {:repl true
@@ -1964,7 +1963,7 @@
                (doseq [[expected s] pairs]
                  (is (eq expected s)))))))
        (testing "subset"
-         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                    [(set/subset?)
                     (set/subset? #{:a :b})
                     (set/subset? #{:a :b} #{:a :b :c})
@@ -1981,7 +1980,7 @@
              (doseq [[expected s] pairs]
                (is (eq expected s))))))
        (testing "superset?"
-         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                      [(set/superset?)
                       (set/superset? #{:a :b})
                       (set/superset? #{:a :b :c} #{:a :b})
@@ -1999,7 +1998,7 @@
                (is (eq expected s))))))
        (testing "select"
          (p/let [set (fn [& xs] (new js/Set xs))
-                 js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+                 js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                    [(set/select)
                     (set/select even?)
                     (set/select identity #{0 1 2 3})
@@ -2019,7 +2018,7 @@
                (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s)))))))
        (testing "rename-keys"
-         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                  [(set/rename-keys {:a 1, :b 2} {:a :new-a, :b :new-b})
                   (set/rename-keys {:a 1} {:b :new-b})
                   (set/rename-keys {:a 1 :b 2}  {:a :b :b :a})
@@ -2035,7 +2034,7 @@
                (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s)))))))
        (testing "rename"
-         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                         [(set/rename #{ {:a 1, :b 2} {:a 3, :b 4} } {:a :new-a, :b :new-b})
                          (set/rename #{ {:a 1} {:a 2 :b 3} } {:b :new-b})
                          (set/rename #{ {:a 1 :b 2} {:a 3 :b 4} }  {:a :b :b :a})
@@ -2052,7 +2051,7 @@
                (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s)))))))
        (testing "project"
-         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                         [(set/project #{ {:a 1, :b 2, :c 3} {:a 4, :b 5, :c 6} } [:a :b])
                          (set/project #{ {:a 1 :b 2} {:a 4 :b 5 :c 6} }  [:a :b :c :d])
                          (set/project #{ (new js/Map [[:a 1] [:d 3]]) } [:a])]" {:repl true
@@ -2067,7 +2066,7 @@
                (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s)))))))
        (testing "map-invert"
-         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                                [(set/map-invert)
                                 (set/map-invert {})
                                 (set/map-invert {:a 1, :b 2, :c 3})
@@ -2083,7 +2082,7 @@
                (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s)))))))
        (testing "join"
-         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                       [(set/join #{ {:a 1} {:a 2} } #{ {:b 1} {:b 2} })
                        (set/join #{ {:name \"betsy\" :owner \"brian\" :kind \"cow\"}
                                      {:name \"jake\"  :owner \"brian\" :kind \"horse\"}
@@ -2111,7 +2110,7 @@
                (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s)))))))
        (testing "join-renaming-keys"
-         (p/let [js (compiler/compile-string "(ns foo (:require [clojure.set :as set]))
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                       [(set/project
                        (set/join #{{:user-id 2, :name \"jake\", :age 28, :type \"company\"}
                                    {:user-id 3, :name \"amanda\", :age 63, :type \"personal\"}
@@ -2197,7 +2196,7 @@ new Foo();")
 \"use serverless\"
 "]
     (doseq [code [code (str/replace "(do %s)" "%s" code)]]
-      (let [{:keys [pragmas javascript]} (compiler/compile-string* code)]
+      (let [{:keys [pragmas javascript]} (squint/compile-string* code)]
         (is (str/includes? pragmas "use client"))
         (is (str/includes? pragmas "// ts-check"))
         (is (not (str/includes? pragmas ";")))
@@ -2209,7 +2208,7 @@ new Foo();")
                (str/index-of javascript "use serverless")))))))
 
 (deftest js-doc-compat-test
-  (let [js (compiler/compile-string "(js* \"/**\n* @param {number} x\n*/\") (defn foo [x] x)")]
+  (let [js (squint/compile-string "(js* \"/**\n* @param {number} x\n*/\") (defn foo [x] x)")]
     (is (str/includes? js "var foo = function"))))
 
 (deftest memoize-test
@@ -2239,17 +2238,17 @@ new Foo();")
   (is (true? (jsv! "(defn foo [x] (and (int? x) (< 10 x 18))) (foo 12)"))))
 
 (deftest no-private-export-test
-  (let [exports (:exports (compiler/compile-string* "(defn- foo []) (defn bar [])"))]
+  (let [exports (:exports (squint/compile-string* "(defn- foo []) (defn bar [])"))]
     (is (not (str/includes? exports "foo")))
     (is (str/includes? exports "bar"))))
 
 (deftest use-existing-alias-test
   (testing "single-word alias"
-    (let [s (compiler/compile-string "(require '[my.foo-bar :as foo]) (foo/some-fn)")]
+    (let [s (squint/compile-string "(require '[my.foo-bar :as foo]) (foo/some-fn)")]
       (is (str/includes? s "import * as foo from 'my.foo-bar'"))
       (is (str/includes? s "foo.some_fn();"))))
   (testing "munged alias"
-    (let [s (compiler/compile-string "(require '[my.foo-bar :as foo-bar]) (foo-bar/some-fn)")]
+    (let [s (squint/compile-string "(require '[my.foo-bar :as foo-bar]) (foo-bar/some-fn)")]
       (is (str/includes? s "import * as foo_bar from 'my.foo-bar'"))
       (is (str/includes? s "foo_bar.some_fn();")))))
 
@@ -2257,7 +2256,7 @@ new Foo();")
   (is (= 1 (jsv! "(/ 10 (when (odd? 3) 10))"))))
 
 (deftest fn-params-destructuring-test
-  (let [s (compiler/compile-string "(defn foo [^:js {:keys [x y]}] [x y])")]
+  (let [s (squint/compile-string "(defn foo [^:js {:keys [x y]}] [x y])")]
     (is (str/includes? s "{x,y}"))))
 
 (deftest arrow-fn-test
@@ -2266,12 +2265,16 @@ new Foo();")
   (is (true? (jsv! "(def obj {:a (^:=> fn [] (this-as this this))}) (not= obj (.a obj))")))
   (is (true? (jsv! "(def obj {:a (fn ^:=> [] (this-as this this))}) (not= obj (.a obj))")))
   (testing "no paren wrapping"
-    (is (str/starts-with? (:body (compiler/compile-string* "(fn ^:=> [] 1)")) "() =>"))))
+    (is (str/starts-with? (:body (squint/compile-string* "(fn ^:=> [] 1)")) "() =>"))))
 
 (deftest alias-test
   (is (str/includes?
        (squint/compile-string "(m/dude)" {:aliases {'m 'malli.core}})
        "malli.core.dude()")))
+
+(deftest interop-test
+  (is (= 1 (jsv! "(defn foo [x] x.a) (foo {:a 1})"))))
+
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
