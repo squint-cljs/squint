@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Return interop expression in function body
+
 ## v0.7.110
 
 - Prefer value from props map over explicit value
