@@ -340,7 +340,7 @@
                                                    (when top-dynamic-expr
                                                      (reset! top-dynamic-expr true))
                                                    "squint_html.tag")
-                                                 ""))))
+                                                 "squint_html.html"))))
          env)))
     (emit-return (format "[%s]"
                          (str/join ", " (emit-args env expr))) env)))

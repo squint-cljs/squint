@@ -1,10 +1,13 @@
 (ns squint.html-test
   (:require
    [clojure.test :as t :refer [deftest is]]
-   [squint.test-utils :refer [jss! jsv!]]
+   [squint.test-utils :refer [jss!]]
    [squint.compiler :as squint]
    [clojure.string :as str]
    [promesa.core :as p]))
+
+(defn html= [x y]
+  (= (str x) (str y)))
 
 (deftest html-test
   (t/async done
@@ -23,7 +26,7 @@
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
-           #(is (= "<ul><li>0</li><li>1</li><li>2</li><li>3</li><li>4</li></ul>" %)))
+           #(is (html= "<ul><li>0</li><li>1</li><li>2</li><li>3</li><li>4</li></ul>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
 
@@ -36,7 +39,7 @@
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
-           #(is (= "<div class=\"foo\" id=\"6\" style=\"color:green;\"></div>" %)))
+           #(is (html= "<div class=\"foo\" id=\"6\" style=\"color:green;\"></div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
 
@@ -48,7 +51,7 @@
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
-           #(is (= "<div>undefined</div>" %)))
+           #(is (html= "<div>undefined</div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
 
@@ -60,7 +63,7 @@
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
-           #(is (= "<div a=\"1\" style=\"color:red;\" b=\"2\">Hello</div>" %)))
+           #(is (html= "<div a=\"1\" style=\"color:red;\" b=\"2\">Hello</div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
 
@@ -72,7 +75,7 @@
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
-           #(is (=  "<div style=\"color:green; width:200;\">Hello</div>" %)))
+           #(is (html=  "<div style=\"color:green; width:200;\">Hello</div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
 
@@ -85,9 +88,15 @@
 (deftest html-safe-test
   (t/async done
     (->
-     (p/let [js (compile-html
-                 "(defn foo [x] #html [:div x]) (foo \"<>\")")
-             v (js/eval js)
-             _ (is (= "<div>&lt;&gt;</div>" v))])
+     (p/do
+       (p/let [js (compile-html
+                   "(defn foo [x] #html [:div x]) (foo \"<>\")")
+               v (js/eval js)
+               _ (is (html= "<div>&lt;&gt;</div>" v))])
+       (p/let [js (compile-html
+                   "(defn foo [x] #html [:div x]) (defn bar [] #html [:div (foo 1)])
+                    (bar)")
+               v (js/eval js)
+               _ (is (html= "<div><div>1</div></div>" v))]))
      (p/catch #(is false "nooooo"))
      (p/finally done))))
