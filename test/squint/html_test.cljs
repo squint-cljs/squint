@@ -3,7 +3,8 @@
    [clojure.test :as t :refer [deftest is]]
    [squint.test-utils :refer [jss! jsv!]]
    [squint.compiler :as squint]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [promesa.core :as p]))
 
 (deftest html-test
   (t/async done
@@ -75,14 +76,18 @@
           (.catch #(is false "nooooo"))
           (.finally done)))))
 
+(defn compile-html [s]
+  (let [js (squint.compiler/compile-string s
+            {:repl true :elide-exports true :context :return})
+        js (str/replace "(async function() { %s } )()" "%s" js)]
+    js))
+
 (deftest html-safe-test
   (t/async done
-    (let [js (squint.compiler/compile-string
-              "(defn foo [x] #html [:div x]) (foo \"<>\")"
-              {:repl true :elide-exports true :context :return})
-          js (str/replace "(async function() { %s } )()" "%s" js)]
-      (-> (js/eval js)
-          (.then
-           #(is (= "<div>&lt;&gt;</div>" %)))
-          (.catch #(is false "nooooo"))
-          (.finally done)))))
+    (->
+     (p/let [js (compile-html
+                 "(defn foo [x] #html [:div x]) (foo \"<>\")")
+             v (js/eval js)
+             _ (is (= "<div>&lt;&gt;</div>" v))])
+     (p/catch #(is false "nooooo"))
+     (p/finally done))))
