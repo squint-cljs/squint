@@ -1,3 +1,21 @@
+import * as squint_core from './core.js';
+
+function escapeHTML(text) {
+  return text.toString()
+    .replace("&",  "&amp;")
+    .replace("<",  "&lt;")
+    .replace(">", "&gt;")
+    .replace("\"", "&quot;")
+    .replace("'", "&apos;");
+}
+
+export function _safe(x) {
+  if (squint_core.string_QMARK_(x)) {
+    return escapeHTML(x);
+  }
+  return x;
+}
+
 function css(v) {
   let ret = "";
   if (v == null) return ret;
