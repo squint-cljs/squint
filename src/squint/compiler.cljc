@@ -290,7 +290,7 @@
            (let [f (first expr)]
              (or (keyword? f)
                  (symbol? f))))
-    (let [top-dynamic-expr (:top-has-dynamic-expr env)
+    (let [need-html-import (:need-html-import env)
           has-dynamic-expr? (or (:has-dynamic-expr env) (atom false))
           env (assoc env :has-dynamic-expr has-dynamic-expr?)
           v expr
@@ -332,15 +332,16 @@
                           (let [env (expr-env env)]
                             (str/join "" (map #(emit % env) elts)))
                           tag-name)
-           (:outer-html (meta expr)) (format "%s`%s`"
-                                             (if-let [t (:tag (meta expr))]
-                                               (emit t (expr-env (dissoc env :jsx :html)))
-                                               (if @has-dynamic-expr?
-                                                 (do
-                                                   (when top-dynamic-expr
-                                                     (reset! top-dynamic-expr true))
-                                                   "squint_html.tag")
-                                                 "squint_html.html"))))
+           (:outer-html (meta expr))
+           (format "%s`%s`"
+                   (do
+                     (when need-html-import
+                       (reset! need-html-import true))
+                     (if-let [t (:tag (meta expr))]
+                       (emit t (expr-env (dissoc env :jsx :html)))
+                       (if @has-dynamic-expr?
+                         "squint_html.tag"
+                         "squint_html.html")))))
          env)))
     (emit-return (format "[%s]"
                          (str/join ", " (emit-args env expr))) env)))
@@ -460,7 +461,7 @@
                cc/*target* :squint
                *jsx* false
                cc/*repl* (:repl opts cc/*repl*)]
-       (let [has-dynamic-expr (atom false)
+       (let [need-html-import (atom false)
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
              imported-vars (atom {})
@@ -487,7 +488,7 @@
                                                         :imports imports
                                                         :jsx false
                                                         :pragmas pragmas
-                                                        :top-has-dynamic-expr has-dynamic-expr))
+                                                        :need-html-import need-html-import))
                  jsx *jsx*
                  _ (when (and jsx jsx-runtime)
                      (swap! imports str
@@ -501,7 +502,7 @@
                                   (if jsx-dev
                                     "/jsx-dev-runtime"
                                     "/jsx-runtime")))))
-                 _ (when @has-dynamic-expr
+                 _ (when @need-html-import
                      (swap! imports str
                             (if cc/*repl*
                               "var squint_html = await import('squint-cljs/src/squint/html.js');\n"
