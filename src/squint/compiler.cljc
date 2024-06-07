@@ -359,7 +359,7 @@
           mk-pair (fn [pair]
                     (let [k (key pair)]
                       (str (if (= :& k)
-                             (str "...")
+                             "..."
                              (str (emit (key-fn k) expr-env) ": "))
                            (emit (val pair) expr-env))))
           keys (str/join ", " (map mk-pair (seq expr)))]
@@ -517,8 +517,8 @@
                                             (map (fn [var]
                                                    (str "export const " var " = " (munge cc/*cljs-ns*) "." var ";"))
                                                  vars))
-                                  (str (format "\nexport { %s }\n"
-                                               (str/join ", " vars))))))
+                                  (format "\nexport { %s }\n"
+                                          (str/join ", " vars)))))
                             (when (contains? @public-vars "default$")
                               "export default default$\n")))]
              (assoc opts
