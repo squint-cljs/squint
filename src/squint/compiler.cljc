@@ -117,7 +117,7 @@
 (defmethod emit-special 'not [_ env [_ form]]
   (let [js (emit form (expr-env env))]
     (if (:bool js)
-      (emit-return (cc/bool-expr (str "!" js)) env)
+      (emit-return (cc/bool-expr (format "!(%s)" js)) env)
       (cc/bool-expr
        (emit (list 'js* (format "~{}(%s)" js) 'clojure.core/not)
              env)))))

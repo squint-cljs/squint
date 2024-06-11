@@ -2275,6 +2275,8 @@ new Foo();")
 (deftest interop-test
   (is (= 1 (jsv! "(defn foo [x] x.a) (foo {:a 1})"))))
 
+(deftest issue-537-test
+  (is (true? (jsv! "(not (= 1 2))"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
