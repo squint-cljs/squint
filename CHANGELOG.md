@@ -2,8 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.7.111
 
+- [#537](https://github.com/squint-cljs/squint/issues/537): Fix `not`: wrap argument in parens
 - Return interop expression in function body
 
 ## v0.7.110
