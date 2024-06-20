@@ -325,18 +325,18 @@
                           (seq children)
                           (assoc :children children))))
                 env))
-        (do
+        (let [ret (format "<%s%s>%s</%s>"
+                          tag-name
+                          (cc/jsx-attrs attrs env)
+                          (let [env (expr-env env)]
+                            (str/join "" (map #(emit % env) elts)))
+                          tag-name)]
           (when @has-dynamic-expr?
             (when top-dynamic-expr
               (reset! top-dynamic-expr true)))
           (emit-return
-           (cond->> (format "<%s%s>%s</%s>"
-                            tag-name
-                            (cc/jsx-attrs attrs env)
-                            (let [env (expr-env env)]
-                              (str/join "" (map #(emit % env) elts)))
-                            tag-name)
-             (:outer-html (meta expr))
+           (cond->> ret
+               (:outer-html (meta expr))
              (format "%s`%s`"
                      (if-let [t (:tag (meta expr))]
                        (emit t (expr-env (dissoc env :jsx :html)))
@@ -361,7 +361,7 @@
           mk-pair (fn [pair]
                     (let [k (key pair)]
                       (str (if (= :& k)
-                             (str "...")
+                             "..."
                              (str (emit (key-fn k) expr-env) ": "))
                            (emit (val pair) expr-env))))
           keys (str/join ", " (map mk-pair (seq expr)))]
