@@ -306,8 +306,9 @@
                       tag-name)
           tag-name (if (and (not fragment?) keyw?)
                      (subs (str tag) 1)
-                     (emit tag-name* (expr-env (dissoc env :jsx))))]
-      (if (and (not (:html env)) (:jsx env) (:jsx-runtime env))
+                     (emit tag-name* (expr-env (dissoc env :jsx))))
+          html? (:html env)]
+      (if (and (not html?) (:jsx env) (:jsx-runtime env))
         (let [single-child? (= 1 (count elts))]
           (emit (list (if single-child?
                         '_jsx '_jsxs)
@@ -325,12 +326,17 @@
                           (seq children)
                           (assoc :children children))))
                 env))
-        (let [ret (format "<%s%s>%s</%s>"
-                          tag-name
-                          (cc/jsx-attrs attrs env)
-                          (let [env (expr-env env)]
-                            (str/join "" (map #(emit % env) elts)))
-                          tag-name)]
+        (let [ret (str
+                   (if (and html? fragment?)
+                     ""
+                     (str "<"
+                          tag-name  ">"))
+                   (cc/jsx-attrs attrs env)
+                   (let [env (expr-env env)]
+                     (str/join "" (map #(emit % env) elts)))
+                   (if (and html? fragment?)
+                     ""
+                     (str "</" tag-name ">")))]
           (when @has-dynamic-expr?
             (when top-dynamic-expr
               (reset! top-dynamic-expr true)))
