@@ -325,23 +325,25 @@
                           (seq children)
                           (assoc :children children))))
                 env))
-        (emit-return
-         (cond->> (format "<%s%s>%s</%s>"
-                          tag-name
-                          (cc/jsx-attrs attrs env)
-                          (let [env (expr-env env)]
-                            (str/join "" (map #(emit % env) elts)))
-                          tag-name)
-           (:outer-html (meta expr)) (format "%s`%s`"
-                                             (if-let [t (:tag (meta expr))]
-                                               (emit t (expr-env (dissoc env :jsx :html)))
-                                               (if @has-dynamic-expr?
-                                                 (do
-                                                   (when top-dynamic-expr
-                                                     (reset! top-dynamic-expr true))
-                                                   "squint_html.tag")
-                                                 ""))))
-         env)))
+        (do
+          (when @has-dynamic-expr?
+            (when top-dynamic-expr
+              (reset! top-dynamic-expr true)))
+          (emit-return
+           (cond->> (format "<%s%s>%s</%s>"
+                            tag-name
+                            (cc/jsx-attrs attrs env)
+                            (let [env (expr-env env)]
+                              (str/join "" (map #(emit % env) elts)))
+                            tag-name)
+             (:outer-html (meta expr))
+             (format "%s`%s`"
+                     (if-let [t (:tag (meta expr))]
+                       (emit t (expr-env (dissoc env :jsx :html)))
+                       (if @has-dynamic-expr?
+                         "squint_html.tag"
+                         ""))))
+           env))))
     (emit-return (format "[%s]"
                          (str/join ", " (emit-args env expr))) env)))
 
