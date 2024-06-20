@@ -326,17 +326,24 @@
                           (seq children)
                           (assoc :children children))))
                 env))
-        (let [ret (str
-                   (if (and html? fragment?)
-                     ""
-                     (str "<"
-                          tag-name  ">"))
-                   (cc/jsx-attrs attrs env)
-                   (let [env (expr-env env)]
-                     (str/join "" (map #(emit % env) elts)))
-                   (if (and html? fragment?)
-                     ""
-                     (str "</" tag-name ">")))]
+        (let [ret #_(format "<%s%s>%s</%s>"
+                          tag-name
+                          (cc/jsx-attrs attrs env)
+                          (let [env (expr-env env)]
+                            (str/join "" (map #(emit % env) elts)))
+                          tag-name)
+              (str
+               (if (and html? fragment?)
+                   ""
+                   (str "<"
+                        tag-name
+                        (cc/jsx-attrs attrs env)
+                        ">"))
+               (let [env (expr-env env)]
+                 (str/join "" (map #(emit % env) elts)))
+               (if (and html? fragment?)
+                   ""
+                   (str "</" tag-name ">")))]
           (when @has-dynamic-expr?
             (when top-dynamic-expr
               (reset! top-dynamic-expr true)))
