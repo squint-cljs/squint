@@ -2,14 +2,16 @@ import * as squint_core from './core.js';
 
 export class Html {
   constructor(s) {
+    // if (typeof(s) !== 'string')
+    //   throw Error(`Object not a string: ${s.constructor}`);
     this.s = s;
   }
   toString() {
-    return this.s;
+    return this.s.toString();
   }
 }
 
-export function html(s) {
+export function html([s]) {
   return new Html(s);
 }
 

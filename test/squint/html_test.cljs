@@ -88,7 +88,9 @@
       (-> (js/eval js)
           (.then
            #(is (html= "<div>Hello</div>" %)))
-          (.catch #(is false "nooooo"))
+          (.catch #(do
+                     (js/console.log %)
+                     (is false "nooooo")))
           (.finally done)))))
 
 (defn compile-html [s]
