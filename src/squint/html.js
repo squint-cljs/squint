@@ -1,5 +1,18 @@
 import * as squint_core from './core.js';
 
+export class Html {
+  constructor(s) {
+    this.s = s;
+  }
+  toString() {
+    return this.s;
+  }
+}
+
+export function html(s) {
+  return new Html(s);
+}
+
 function escapeHTML(text) {
   return text.toString()
     .replace("&",  "&amp;")
@@ -10,6 +23,7 @@ function escapeHTML(text) {
 }
 
 export function _safe(x) {
+  if (x instanceof Html) return x;
   if (squint_core.string_QMARK_(x)) {
     return escapeHTML(x);
   }
@@ -75,5 +89,5 @@ export function tag(strs, ...vals) {
     out += toHTML(vals[i]);
     out += strs[i+1];
   }
-  return out;
+  return new Html(out);
 }
