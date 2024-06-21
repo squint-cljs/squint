@@ -19,7 +19,7 @@
          "foo.bar`<div>Hello</div>"))
     (let [{:keys [imports body]} (squint.compiler/compile-string* "(defn foo [x] #html [:div \"Hello\" x])")]
       (is (str/includes? imports "import * as squint_html from 'squint-cljs/src/squint/html.js'"))
-      (is (str/includes? body "squint_html.tag`<div>Hello${squint_html._safe(x)}</div>")))
+      (is (str/includes? body "squint_html.tag`<div>Hello${x}</div>")))
     (let [js (squint.compiler/compile-string "
 (defn li [x] #html [:li x])
 (defn foo [x] #html [:ul (map #(li %) (range x))]) (foo 5)" {:repl true :elide-exports true :context :return})

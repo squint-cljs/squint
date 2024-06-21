@@ -56,6 +56,17 @@ export function attr(v) {
   }
 }
 
+function toHTML(v) {
+  // console.log('v', v);
+  if (v == null) return;
+  if (v instanceof Html) return v;
+  if (typeof(v) === 'string') return _safe(v);
+  if (v[Symbol.iterator]) {
+    return [...v].map(toHTML).join("");
+  }
+  return _safe(v.toString());
+}
+
 export function attrs(v, props) {
   v = Object.assign(props, v);
   let ret = "";
@@ -73,16 +84,7 @@ export function attrs(v, props) {
     ret += '"';
     first = false;
   }
-  return ret;
-}
-
-function toHTML(v) {
-  if (v == null) return;
-  if (typeof(v) === 'string') return v;
-  if (v[Symbol.iterator]) {
-    return [...v].join("");
-  }
-  return v;
+  return new Html(ret);
 }
 
 export function tag(strs, ...vals) {
