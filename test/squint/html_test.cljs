@@ -71,6 +71,18 @@
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
-           #(is (=  "<div style=\"color:green; width:200;\">Hello</div>" %)))
+           #(is (= "<div style=\"color:green; width:200;\">Hello</div>" %)))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))
+
+(deftest html-fragment-test
+  (t/async done
+    (let [js (squint.compiler/compile-string
+              "#html [:div [:<> \"Hello\"]]"
+              {:repl true :elide-exports true :context :return})
+          js (str/replace "(async function() { %s } )()" "%s" js)]
+      (-> (js/eval js)
+          (.then
+           #(is (= "<div>Hello</div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
