@@ -1,6 +1,6 @@
 import * as squint_core from './core.js';
 
-export class Html {
+class Html {
   constructor(s) {
     // if (typeof(s) !== 'string')
     //   throw Error(`Object not a string: ${s.constructor}`);
@@ -24,12 +24,12 @@ function escapeHTML(text) {
     .replace("'", "&apos;");
 }
 
-export function _safe(x) {
+function safe(x) {
   if (x instanceof Html) return x;
   if (squint_core.string_QMARK_(x)) {
     return escapeHTML(x);
   }
-  return x;
+  return escapeHTML(x.toString());
 }
 
 function css(v) {
@@ -60,11 +60,11 @@ function toHTML(v) {
   // console.log('v', v);
   if (v == null) return;
   if (v instanceof Html) return v;
-  if (typeof(v) === 'string') return _safe(v);
+  if (typeof(v) === 'string') return safe(v);
   if (v[Symbol.iterator]) {
     return [...v].map(toHTML).join("");
   }
-  return _safe(v.toString());
+  return safe(v.toString());
 }
 
 export function attrs(v, props) {
