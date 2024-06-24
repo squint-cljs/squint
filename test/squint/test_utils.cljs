@@ -6,6 +6,20 @@
    [clojure.test :as t]
    [squint.compiler :as squint]))
 
+(defn testing-vars-str
+  "Returns a string representation of the current test.  Renders names
+  in *testing-vars* as a list, then the source file and line of
+  current assertion."
+  [m]
+  (let [{:keys [file line column]} m]
+    (str
+     (reverse (map #(:name (meta %)) (:testing-vars (t/get-current-env))))
+     " (" file ":" line (when column (str ":" column)) ")")))
+
+(defmethod cljs.test/report [:cljs.test/default :begin-test-var] [m]
+  (println "===" (-> m testing-vars-str))
+  (println))
+
 (doseq [k (js/Object.keys cl)]
   (aset js/globalThis k (aget cl k)))
 

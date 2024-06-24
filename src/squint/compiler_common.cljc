@@ -142,7 +142,9 @@
                   "")
                 (format (if (:html-attr env)
                           "squint_html.attr(%s)"
-                          "%s")
+                          "%s" #_(if html?
+                            "squint_html._safe(%s)"
+                            "%s"))
                         expr)))
       expr)))
 
