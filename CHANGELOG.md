@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.112
+
+- [#536](https://github.com/squint-cljs/squint/issues/536): HTML is not escaped in dynamic expression
+
 ## v0.7.111
 
 - [#537](https://github.com/squint-cljs/squint/issues/537): Fix `not`: wrap argument in parens
