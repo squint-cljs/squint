@@ -115,3 +115,13 @@
      (p/catch #(is false "nooooo"))
      (p/finally done))))
 
+(deftest html5-test
+  (t/async done
+    (->
+     (p/do
+       (p/let [js (compile-html "#html [:div [:br]]")
+               v (js/eval js)
+               _ (is (html= "<div><br></div>" v))])
+       )
+     (p/catch #(is false "nooooo"))
+     (p/finally done))))

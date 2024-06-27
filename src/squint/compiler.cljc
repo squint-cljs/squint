@@ -342,7 +342,8 @@
                         ">"))
                (let [env (expr-env env)]
                  (str/join "" (map #(emit % env) elts)))
-               (if (and html? fragment?)
+               (if (and html? (or fragment?
+                                  (cc/void-tag? tag-name)))
                    ""
                    (str "</" tag-name ">")))]
           (when outer-html?

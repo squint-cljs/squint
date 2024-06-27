@@ -1109,3 +1109,12 @@ break;}" body)
 
 (defmethod emit-special 'squint.defclass/super* [_ env form]
   (defclass/emit-super env emit (second form)))
+
+(def ^{:doc "A list of elements that must be rendered without a closing tag. From hiccup."
+       :private true}
+  void-tags
+  #{"area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen" "link"
+    "meta" "param" "source" "track" "wbr"})
+
+(defn void-tag? [tag-name]
+  (contains? void-tags tag-name))
