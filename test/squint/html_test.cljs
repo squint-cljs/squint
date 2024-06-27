@@ -108,10 +108,10 @@
                v (js/eval js)
                _ (is (html= "<div>&lt;&gt;</div>" v))])
        (p/let [js (compile-html
-                   "(defn foo [x] #html [:div x]) (defn bar [] #html [:div (foo 1)])
+                   "(defn foo [x] #html [:div x]) (defn bar [] #html [:div (foo \"<script>\")])
                     (bar)")
                v (js/eval js)
-               _ (is (html= "<div><div>1</div></div>" v))]))
+               _ (is (html= "<div><div>&lt;script&gt;</div></div>" v))]))
      (p/catch #(is false "nooooo"))
      (p/finally done))))
 
