@@ -28,7 +28,7 @@
 
 - [#517](https://github.com/squint-cljs/squint/issues/517): Preserve state over REPL evals
 
-## v0.7.106
+## v0.7.106 (2024-05-02)
 
 - [#513](https://github.com/squint-cljs/squint/issues/513): Fix `shuffle` core function random distribution and performances
 - [#517](https://github.com/squint-cljs/squint/issues/517): Fix re-definition of class with `defclass` in REPL
