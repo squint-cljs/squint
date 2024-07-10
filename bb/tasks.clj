@@ -48,6 +48,8 @@
 (defn test-project [_]
   (let [dir "test-project"]
     (fs/delete-tree (fs/path dir "lib"))
+    ;; dummy invocation
+    (shell "npx -v")
     (shell {:dir dir} "npx squint compile")
     (let [output (:out (shell {:dir dir :out :string} "node lib/main.mjs"))]
       (println output)
