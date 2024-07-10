@@ -48,17 +48,17 @@ jobs:
         bb -e '(babashka.process/shell "npx")'
         bb -e '(babashka.process/shell "npx -v")'
 
-    # - name: Run tests
-    #   shell: bash
-    #   run: |
-    #     npx -v
-    #     npm install
-    #     bb test:node
-    #     bb test:bb
-    #     bb test:clj
+    - name: Run tests
+      shell: bash
+      run: |
+        npx -v
+        npm install
+        bb test:node
+        bb test:bb
+        bb test:clj
 
-    # - name: Run library tests
-    #   if: matrix.os != 'windows-latest'
-    #   run: |
-    #     npm install --global yarn
-    #     bb test:libs
+    - name: Run library tests
+      if: matrix.os != 'windows-latest'
+      run: |
+        npm install --global yarn
+        bb test:libs
