@@ -50,6 +50,8 @@
     (fs/delete-tree (fs/path dir "lib"))
     ;; dummy invocation
     (shell "npx -v")
+    (shell {:dir dir :continue true} "npx -v")
+    (shell {:dir dir :continue true} (fs/which "npx") "-v")
     (shell {:dir dir} "npx squint compile")
     (let [output (:out (shell {:dir dir :out :string} "node lib/main.mjs"))]
       (println output)
