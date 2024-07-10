@@ -62,6 +62,7 @@
     (assert (not (fs/exists? "test-project/lib/bar.json")))))
 
 (defn test-run [_]
+  (shell {:continue true} "npx") ;; dummy invocation
   (let [dir "test-project"
         out (:out (shell {:dir dir :out :string} "npx squint run script.cljs"))]
     (prn :out out)))
