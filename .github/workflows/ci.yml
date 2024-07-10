@@ -45,8 +45,8 @@ jobs:
       shell: bash
       run: |
         where npx
-        bb -e '(shell "npx")'
-        bb -e '(shell "npx -v")'
+        bb -e '(babashka.process/shell "npx")'
+        bb -e '(babashka.process/shell "npx -v")'
 
     # - name: Run tests
     #   shell: bash
