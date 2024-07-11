@@ -4,7 +4,7 @@
 
 ## v0.8.113
 
-- Fix `run` on Windows
+- [#542](https://github.com/squint-cljs/squint/issues/542): fix `run` on Windows
 
 ## v0.8.112
 
