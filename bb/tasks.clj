@@ -48,7 +48,8 @@
 (defn test-project [_]
   (let [dir "test-project"]
     (fs/delete-tree (fs/path dir "lib"))
-    (shell {:dir dir} "npx squint compile")
+    ;; dummy invocation
+    (shell {:dir dir} (fs/which "npx") "squint" "compile")
     (let [output (:out (shell {:dir dir :out :string} "node lib/main.mjs"))]
       (println output)
       (assert (str/includes? output "macros2/debug 10"))
@@ -61,6 +62,12 @@
     (assert (fs/exists? "test-project/lib/baz.css"))
     (assert (not (fs/exists? "test-project/lib/bar.json")))))
 
+(defn test-run [_]
+  (shell {:continue true} "npx") ;; dummy invocation
+  (let [dir "test-project"
+        out (:out (shell {:dir dir :out :string} (fs/which "npx") "squint" "run" "script.cljs"))]
+    (assert (str/includes? out "dude"))))
+
 (defn test-squint []
   (fs/create-dirs ".work")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
@@ -68,7 +75,8 @@
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn compile squint")
   (shell "node lib/squint_tests.js")
   (node-repl-tests/run-tests {})
-  (test-project {}))
+  (test-project {})
+  (test-run {}))
 
 (defn libtests []
   #_(build-squint-npm-package)

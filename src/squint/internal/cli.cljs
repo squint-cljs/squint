@@ -2,6 +2,7 @@
   (:require
    ["fs" :as fs]
    ["path" :as path]
+   ["url" :as url]
    [babashka.cli :as cli]
    [shadow.esm :as esm]
    [squint.compiler :as cc]
@@ -145,7 +146,8 @@ Options:
           (println res))
         (when-not (false? (:run opts))
           (let [path (if (path/isAbsolute f) f
-                         (str (js/process.cwd) "/" f))]
+                         (path/resolve (js/process.cwd) f))
+                path (str (url/pathToFileURL path))]
             (-> (if (:repl opts)
                   (js/Promise.resolve (js/eval res))
                   (esm/dynamic-import path))
@@ -171,7 +173,8 @@ Options:
                                                                                     (resolve-ns opts file x))))
                      (fn [{:keys [out-file]}]
                        (let [path (if (path/isAbsolute out-file) out-file
-                                      (str (js/process.cwd) "/" out-file))]
+                                      (path/resolve (js/process.cwd) out-file))
+                             path (str (url/pathToFileURL path))]
                          (esm/dynamic-import path)))))))))
 
 #_(defn compile-form [{:keys [opts]}]
