@@ -66,7 +66,7 @@
   (shell {:continue true} "npx") ;; dummy invocation
   (let [dir "test-project"
         out (:out (shell {:dir dir :out :string} (fs/which "npx") "squint" "run" "script.cljs"))]
-    (prn :out out)))
+    (assert (str/includes? out "dude"))))
 
 (defn test-squint []
   (fs/create-dirs ".work")
