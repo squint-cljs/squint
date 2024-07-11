@@ -49,11 +49,7 @@
   (let [dir "test-project"]
     (fs/delete-tree (fs/path dir "lib"))
     ;; dummy invocation
-    (shell "npx -v")
-    (try (shell {:dir dir :continue true} "npx -v")
-         (catch Exception _ nil))
-    (shell {:dir dir :continue true} (fs/which "npx") "-v")
-    (shell {:dir dir} "npx squint compile")
+    (shell {:dir dir} (fs/which "npx") "squint" "compile")
     (let [output (:out (shell {:dir dir :out :string} "node lib/main.mjs"))]
       (println output)
       (assert (str/includes? output "macros2/debug 10"))
@@ -69,7 +65,7 @@
 (defn test-run [_]
   (shell {:continue true} "npx") ;; dummy invocation
   (let [dir "test-project"
-        out (:out (shell {:dir dir :out :string} "npx" "squint" "run" "script.cljs"))]
+        out (:out (shell {:dir dir :out :string} (fs/which "npx") "squint" "run" "script.cljs"))]
     (prn :out out)))
 
 (defn test-squint []
