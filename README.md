@@ -1,4 +1,4 @@
-## Squint
+<img src="./logo/logo-bg.svg" width="100%">
 
 Squint is a light-weight dialect of ClojureScript with a compiler and standard
 library.
