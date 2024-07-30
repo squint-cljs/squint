@@ -5,7 +5,7 @@ library.
 
 Squint is not intended as a full replacement for ClojureScript but as a tool to
 target JS when you need something more light-weight in terms of interop and
-bundle size. The most significant different with CLJS is that squint uses only
+bundle size. The most significant difference with CLJS is that squint uses only
 built-in JS data structures. Squint's output is designed to work well with ES
 modules.
 
