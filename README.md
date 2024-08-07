@@ -344,6 +344,8 @@ In `squint.edn` you can describe the following options:
   that should be copied over from source paths. E.g. `:css`, `:json`. Strings
   may also be used which represent regexes which are processed through
   `re-find`.
+- `:output-dir`: the directory where compiled files will be created,
+  which defaults to the project root directory.
 
 See [examples/vite-react](examples/vite-react) for an example project which uses a `squint.edn`.
 
