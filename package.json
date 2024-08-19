@@ -26,6 +26,7 @@
     "chalk": "^5.0.1",
     "esbuild": "^0.14.49",
     "eslint": "^8.54.0",
+    "immutable": "^4.3.7",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "playwright": "^1.26.1",
@@ -45,13 +46,14 @@
       "url": "https://github.com/sponsors/borkdude"
     }
   ],
-  "exports": {".": "./index.js",
-              "./index.js": "./index.js",
-              "./core.js": "./core.js",
-              "./string.js": "./string.js",
-              "./src/squint/core.js": "./src/squint/core.js",
-              "./src/squint/set.js": "./src/squint/set.js",
-              "./src/squint/string.js": "./src/squint/string.js",
-              "./src/squint/html.js": "./src/squint/html.js"
-             }
+  "exports": {
+    ".": "./index.js",
+    "./index.js": "./index.js",
+    "./core.js": "./core.js",
+    "./string.js": "./string.js",
+    "./src/squint/core.js": "./src/squint/core.js",
+    "./src/squint/set.js": "./src/squint/set.js",
+    "./src/squint/string.js": "./src/squint/string.js",
+    "./src/squint/html.js": "./src/squint/html.js"
+  }
 }

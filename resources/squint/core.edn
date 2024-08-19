@@ -1,5 +1,7 @@
 #{Atom
   Cons
+  IAssociative
+  IAssociative__assoc
   IIterable
   IIterable__iterator
   LazySeq
