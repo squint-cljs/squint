@@ -132,10 +132,12 @@ export const IAssociative__assoc = Symbol("IAssociative__assoc");
 export function assoc(o, k, v, ...kvs) {
   const f = o[IAssociative__assoc];
   if (f) {
-    console.log('o', o);
-    console.log('f', f.toString());
-    const ret = f(o, k, v);
-    return (kvs.length > 0) ? assoc(ret, ...kvs) : ret;
+    let ret = f(o, k, v);
+    if (kvs.length == 0) return ret;
+    for (var i = 0; i < kvs.length; i+=2) {
+      ret = f(ret, kvs[i], kvs[i+1]);
+    }
+    return ret;
   }
   if (!o) {
     o = {};
