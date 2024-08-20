@@ -57,7 +57,7 @@
 (defn insert-this [method-bodies]
   (if (vector? (first method-bodies))
     (list* (first method-bodies)
-           (list 'js* "~{} = this; const self__ = this" (ffirst method-bodies))
+           (list 'js* "const self__ = this")
            (rest method-bodies))
     ;; multi-arity
     (map insert-this method-bodies)))
