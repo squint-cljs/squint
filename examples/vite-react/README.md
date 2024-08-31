@@ -7,7 +7,7 @@ To set up a project with vite + react, go through the following steps:
 - Install dependencies:
 
   ```
-  $ npm install --save-dev vite
+  $ npm install --save-dev vite @vitejs/plugin-react
   $ npm install react react-dom
   $ npm install squint-cljs
   ```
