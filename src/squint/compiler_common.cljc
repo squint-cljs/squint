@@ -1042,14 +1042,15 @@ break;}" body)
 
 (defn emit-css
   [v env]
-  (-> (reduce
-       (fn [acc [k v]]
-         (str acc
-              (emit k env) ":"
-              (emit v env) ";"))
-       ""
-       v)
-      (wrap-double-quotes)))
+  (let [env (assoc env :html-attr true)]
+    (-> (reduce
+         (fn [acc [k v]]
+           (str acc
+                (emit k env) ":"
+                (emit v env) ";"))
+         ""
+         v)
+        (wrap-double-quotes))))
 
 (defn jsx-attrs [v env]
   (let [env (expr-env env)
@@ -1066,9 +1067,13 @@ break;}" body)
              (let [rest-opts (dissoc v* :&)]
                (when-let [dyn (:has-dynamic-expr env)]
                  (reset! dyn true))
-               (format "${squint_html.attrs(%s,%s)}"
-                       (emit (get v* :&) (dissoc env :jsx))
-                       (emit rest-opts (dissoc env :jsx))))
+               (let [env (assoc env :js true)
+                     cherry? (= :cherry *target*)]
+                 (format "${squint_html.attrs(%s,%s)}"
+                         (emit (cond->> (get v* :&)
+                                 cherry? (list `clj->js)) (dissoc env :jsx))
+                         (emit (cond->> rest-opts
+                                 cherry? (list `clj->js)) (dissoc env :jsx)))))
              (str/join " "
                        (map
                         (fn [[k v]]
@@ -1204,3 +1209,8 @@ break;}" body)
        (format "[%s]"
                (str/join ", " (emit-args env expr))))
      env)))
+
+(defmethod emit-special 'squint-compiler-html [_ env [_ form]]
+  (let [env (assoc env :html true :jsx true)
+        form (vary-meta form assoc :outer-html true)]
+    (emit form env)))

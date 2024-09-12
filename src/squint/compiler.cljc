@@ -352,11 +352,6 @@
   (let [env (assoc env :jsx true)]
     (emit form env)))
 
-(defmethod emit-special 'squint-compiler-html [_ env [_ form]]
-  (let [env (assoc env :html true :jsx true)
-        form (vary-meta form assoc :outer-html true)]
-    (emit form env)))
-
 (def squint-parse-opts
   (e/normalize-opts
    {:all true
