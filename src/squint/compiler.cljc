@@ -285,83 +285,6 @@
                (throw (new Exception (str "invalid form: " expr))))))
      env*)))
 
-(defn emit-vector [expr env]
-  (if (and (:jsx env)
-           (let [f (first expr)]
-             (or (keyword? f)
-                 (symbol? f))))
-    (let [need-html-import (:need-html-import env)
-          has-dynamic-expr? (or (:has-dynamic-expr env) (atom false))
-          env (assoc env :has-dynamic-expr has-dynamic-expr?)
-          v expr
-          tag (first v)
-          keyw? (keyword? tag)
-          attrs (second v)
-          attrs (when (map? attrs) attrs)
-          elts (if attrs (nnext v) (next v))
-          tag-name (symbol tag)
-          fragment? (= '<> tag-name)
-          tag-name* (if fragment?
-                      (symbol "")
-                      tag-name)
-          tag-name (if (and (not fragment?) keyw?)
-                     (subs (str tag) 1)
-                     (emit tag-name* (expr-env (dissoc env :jsx))))
-          html? (:html env)
-          outer-html? (:outer-html (meta expr))]
-      (if (and (not html?) (:jsx env) (:jsx-runtime env))
-        (let [single-child? (= 1 (count elts))]
-          (emit (list (if single-child?
-                        '_jsx '_jsxs)
-                      (cond fragment? "_Fragment"
-                            (keyword? tag)
-                            (name tag-name)
-                            :else tag-name*)
-                      (let [elts (map #(emit % (expr-env env)) elts)
-                            elts (map #(list 'js* (str %)) elts)
-                            children
-                            (if single-child?
-                              (first elts)
-                              (vec elts))]
-                        (cond-> (or attrs {})
-                          (seq children)
-                          (assoc :children children))))
-                env))
-        (let [ret #_(format "<%s%s>%s</%s>"
-                          tag-name
-                          (cc/jsx-attrs attrs env)
-                          (let [env (expr-env env)]
-                            (str/join "" (map #(emit % env) elts)))
-                          tag-name)
-              (str
-               (if (and html? fragment?)
-                   ""
-                   (str "<"
-                        tag-name
-                        (cc/jsx-attrs attrs env)
-                        ">"))
-               (let [env (expr-env env)]
-                 (str/join "" (map #(emit % env) elts)))
-               (if (and html? (or fragment?
-                                  (cc/void-tag? tag-name)))
-                   ""
-                   (str "</" tag-name ">")))]
-          (when outer-html?
-            (when need-html-import
-              (reset! need-html-import true)))
-          (emit-return
-           (cond->> ret
-               outer-html?
-             (format "%s`%s`"
-                     (if-let [t (:tag (meta expr))]
-                       (emit t (expr-env (dissoc env :jsx :html)))
-                       (if @has-dynamic-expr?
-                         "squint_html.tag"
-                         "squint_html.html"))))
-           env))))
-    (emit-return (format "[%s]"
-                         (str/join ", " (emit-args env expr))) env)))
-
 (defn emit-map [expr env]
   (if (every? #(or (string? %)
                    (keyword? %)
@@ -410,7 +333,7 @@
                                      (symbol (str (if sym (munge sym)
                                                       "G__") next-id))))))
                       :emit {::cc/list emit-list
-                             ::cc/vector emit-vector
+                             ::cc/vector cc/emit-vector
                              ::cc/map emit-map
                              ::cc/keyword emit-keyword
                              ::cc/set emit-set
