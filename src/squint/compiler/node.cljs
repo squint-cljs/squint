@@ -110,7 +110,7 @@
                    (when-not (fs/existsSync out-path)
                      (fs/mkdirSync out-path #js {:recursive true}))
                    (when-not (fs/existsSync out-path)
-                     (throw (js/Error. (str "File not found, make sure output-dir is a valid path: ")
+                     (throw (js/Error. "File not found, make sure output-dir is a valid path: "
                                        {:output-dir output-dir
                                         :out-file out-file})))
                    (spit out-file javascript)

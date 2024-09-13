@@ -203,7 +203,8 @@
   (let [sym-ns (namespace sym)]
     (if (and sym-ns
              (or (= "clojure.core" sym-ns)
-                 (= "cljs.core" sym-ns)))
+                 (= "cljs.core" sym-ns)
+                 (= "squint.core" sym-ns)))
       (symbol (name sym))
       sym)))
 
@@ -230,7 +231,7 @@
                             expr)
                      head-str (str head)
                      macro (when (symbol? head)
-                             (or (built-in-macros head)
+                             (or (built-in-macros (strip-core-symbol head))
                                  (let [ns (namespace head)
                                        nm (name head)
                                        ns-state @(:ns-state env)
