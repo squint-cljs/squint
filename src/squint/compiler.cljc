@@ -370,7 +370,7 @@
    (let [env (merge {:ns-state (atom {})} env)
          rdr (e/reader s)
          opts squint-parse-opts]
-     (loop [transpiled (if cc/*repl*
+     (loop [transpiled "" #_(if cc/*repl*
                          (str "globalThis." *cljs-ns* " = globalThis." *cljs-ns* " || {};\n")
                          "")]
        (let [opts (assoc opts :auto-resolve @*aliases*)
