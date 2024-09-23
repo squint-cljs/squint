@@ -622,11 +622,10 @@
              clauses)
      (when *repl*
        (str
-        #_#_ns-obj " = {aliases: {}};\n"
         (reduce-kv (fn [acc k _v]
                      (if (symbol? k)
                        (str acc
-                            ns-obj "." #_".aliases." k " = " k ";\n")
+                            ns-obj "." k " = " k ";\n")
                        acc))
                    ""
                    @*aliases*))))))

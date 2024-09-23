@@ -371,7 +371,9 @@
          rdr (e/reader s)
          opts squint-parse-opts]
      (loop [transpiled (if cc/*repl*
-                         (str "globalThis." *cljs-ns* " = globalThis." *cljs-ns* " || {};\n")
+                         (let [ns (munge *cljs-ns*)]
+                           (str "globalThis." ns " = globalThis."
+                                ns " || {};\n"))
                          "")]
        (let [opts (assoc opts :auto-resolve @*aliases*)
              next-form (e/parse-next rdr opts)]

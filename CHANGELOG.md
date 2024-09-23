@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.114 (2024-09-23)
+
+- [#552](https://github.com/squint-cljs/squint/issues/552): fix REPL output with hyphen in ns name
+
 ## v0.8.113
 
 - [#542](https://github.com/squint-cljs/squint/issues/542): fix `run` on Windows

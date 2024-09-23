@@ -49,6 +49,9 @@
         _ (reset! state new-state)
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
+    ;; (println "---")
+    ;; (println js-str)
+    ;; (println "---")
     (->
      (js/Promise.resolve (js/eval js-str))
      (.then (fn [^js val]

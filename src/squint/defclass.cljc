@@ -119,8 +119,9 @@
     (str "super("
          (str/join ", " (emit-args env emit-fn super-args))
          ");"
-         (str "const self__ = this;\n")
-         (str "const " (emit-fn this-sym env) " = this;\n"))))
+         "const self__ = this;\n"
+         (when this-sym
+           (str "const " (emit-fn this-sym env) " = this;\n")))))
 
 (defn- emit-object-fn [env emit-fn async-fn object-fn]
   (let [[fn-name arglist & body] object-fn
@@ -192,16 +193,16 @@
      (when extends
        (str " extends "
             (emit-fn extends env)))
-     (str " {\n")
+     " {\n"
      (emit-fields env emit-fn fields)
      (str "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n")
      (when-not super?
        (str "const self__ = this;\n"
             (str "const " (emit-fn this-sym ctor-args-env)) " = this;\n"))
      (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env)))
-     (str "  }\n")
+     "  }\n"
      (str/join "\n" (map #(emit-object-fn fields-env emit-fn async-fn %) object-fns))
-     (str "};\n")
+     "};\n"
      (str (emit-fn extend-form fields-env))
      (when extend
        (str extend))
