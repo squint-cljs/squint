@@ -38,15 +38,20 @@ jobs:
     - name: Setup Node
       uses: actions/setup-node@v3
       with:
-        node-version: 18
+        node-version: 20
 
     - name: npx on Windows
       if: matrix.os == 'windows-latest'
+      shell: bash
       run: |
-        npm install -g npx
+        where npx
+        bb -e '(babashka.process/shell "npx")'
+        bb -e '(babashka.process/shell "npx -v")'
 
     - name: Run tests
+      shell: bash
       run: |
+        npx -v
         npm install
         bb test:node
         bb test:bb

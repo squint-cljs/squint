@@ -2,6 +2,31 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.114 (2024-09-23)
+
+- [#552](https://github.com/squint-cljs/squint/issues/552): fix REPL output with hyphen in ns name
+
+## v0.8.113
+
+- [#542](https://github.com/squint-cljs/squint/issues/542): fix `run` on Windows
+
+## v0.8.112
+
+- [#536](https://github.com/squint-cljs/squint/issues/536): HTML is not escaped in dynamic expression
+
+## v0.7.111
+
+- [#537](https://github.com/squint-cljs/squint/issues/537): Fix `not`: wrap argument in parens
+- Return interop expression in function body
+
+## v0.7.110
+
+- Prefer value from props map over explicit value
+
+## v0.7.109
+
+- `#html` improvements, support `:&` for spreading props
+
 ## v.0.7.108
 
 - [#492](https://github.com/squint-cljs/squint/issues/492): defclass static methods and fields
@@ -11,7 +36,7 @@
 
 - [#517](https://github.com/squint-cljs/squint/issues/517): Preserve state over REPL evals
 
-## v0.7.106
+## v0.7.106 (2024-05-02)
 
 - [#513](https://github.com/squint-cljs/squint/issues/513): Fix `shuffle` core function random distribution and performances
 - [#517](https://github.com/squint-cljs/squint/issues/517): Fix re-definition of class with `defclass` in REPL

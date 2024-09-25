@@ -129,16 +129,24 @@
 #?(:cljs (derive js/Number ::number))
 
 (defn escape-jsx [expr env]
-  (if (and (:jsx env) (or (:html env)
-                          (not (:jsx-runtime env))))
-    (do
-      (when (:html env)
-        (when-let [dyn (:has-dynamic-expr env)]
-          (reset! dyn true)))
-      (format (str (when (:html env)
-                     "$")
-                   "{%s}") expr))
-    expr))
+  (let [html? (:html env)]
+    (if (and (:jsx env) (or html?
+                            (not (:jsx-runtime env))))
+      (do
+        (when html?
+          (when-let [dyn (:has-dynamic-expr env)]
+            (reset! dyn true)))
+        (format "%s{%s}"
+                (if html?
+                  "$"
+                  "")
+                (format (if (:html-attr env)
+                          "squint_html.attr(%s)"
+                          "%s" #_(if html?
+                            "squint_html._safe(%s)"
+                            "%s"))
+                        expr)))
+      expr)))
 
 (defmethod emit ::number [expr env]
   (-> (str expr)
@@ -177,12 +185,12 @@
 
 (def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "=" "==" "===" "<" ">" "<=" ">=" "!="
                        "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "not=" "instanceof"
-                       "bit-or" "bit-and" "js-mod"})
+                       "bit-or" "bit-and" "js-mod" "js-??"})
 
 (def boolean-infix-operators
   #{"=" "==" "===" "<" ">" "<=" ">=" "!=" "not=" "instanceof"})
 
-(def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and"})
+(def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and" "js-??"})
 
 (defn infix-operator? [env expr]
   (contains? (or (:infix-operators env)
@@ -217,7 +225,8 @@
                                  '+ "+"
                                  'bit-or "|"
                                  'bit-and "&"
-                                 'js-mod "%"}]
+                                 'js-mod "%"
+                                 'js-?? "??"}]
               (str/join (str " " (or (substitutions operator)
                                      operator) " ")
                         (map wrap-parens (emit-args env args))))
@@ -248,8 +257,9 @@
              (str/includes? (str expr) "."))
       (let [[fname path] (str/split (str expr) #"\." 2)
             fname (symbol fname)]
-        (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
-                         "." (munge** path)) env))
+        (emit-return (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
+                                      "." (munge** path)) env)
+                     env))
       (let [munged-name (fn [expr] (munge* (name expr)))
             expr (if-let [sym-ns (some-> (namespace expr) munge)]
                    (let [sn (symbol (name expr))]
@@ -612,11 +622,10 @@
              clauses)
      (when *repl*
        (str
-        #_#_ns-obj " = {aliases: {}};\n"
         (reduce-kv (fn [acc k _v]
                      (if (symbol? k)
                        (str acc
-                            ns-obj "." #_".aliases." k " = " k ";\n")
+                            ns-obj "." k " = " k ";\n")
                        acc))
                    ""
                    @*aliases*))))))
@@ -1032,14 +1041,15 @@ break;}" body)
 
 (defn emit-css
   [v env]
-  (-> (reduce
-       (fn [acc [k v]]
-         (str acc
-              (emit k env) ":"
-              (emit v env) ";"))
-       ""
-       v)
-      (wrap-double-quotes)))
+  (let [env (assoc env :html-attr true)]
+    (-> (reduce
+         (fn [acc [k v]]
+           (str acc
+                (emit k env) ":"
+                (emit v env) ";"))
+         ""
+         v)
+        (wrap-double-quotes))))
 
 (defn jsx-attrs [v env]
   (let [env (expr-env env)
@@ -1049,32 +1059,46 @@ break;}" body)
       (when v
         (emit v (dissoc env :jsx)))
       (if (seq v)
-        (str
-         " "
-         (str/join " "
-                   (map
-                    (fn [[k v]]
-                      (let [str? (string? v)]
-                        (if (= :& k)
-                          (str "{..." (emit v (dissoc env :jsx)) "}")
-                          (str (name k) "="
-                               (let [env env]
-                                 (cond
-                                   (and html? (map? v))
-                                   (emit-css v env)
-                                   #_#_(and html? (vector? v))
-                                   (-> (str/join " " (map #(emit % env) v))
-                                       (wrap-double-quotes))
-                                   :else
-                                   (cond-> (emit v (assoc env :jsx false))
-                                     (not str?)
+        (let [v* v]
+          (str
+           " "
+           (if (and html? (contains? v* :&))
+             (let [rest-opts (dissoc v* :&)]
+               (when-let [dyn (:has-dynamic-expr env)]
+                 (reset! dyn true))
+               (let [env (assoc env :js true)
+                     cherry? (= :cherry *target*)]
+                 (format "${squint_html.attrs(%s,%s)}"
+                         (emit (cond->> (get v* :&)
+                                 cherry? (list `clj->js)) (dissoc env :jsx))
+                         (emit (cond->> rest-opts
+                                 cherry? (list `clj->js)) (dissoc env :jsx)))))
+             (str/join " "
+                       (map
+                        (fn [[k v]]
+                          (let [str? (or (string? v)
+                                         (when (= :squint *target*)
+                                           (keyword? v)))]
+                            (if (= :& k)
+                              (str "{..." (emit v (dissoc env :jsx)) "}")
+                              (str (name k) "="
+                                   (let [env env]
+                                     (cond
+                                       (and html? (map? v))
+                                       (emit-css v env)
+                                       #_#_(and html? (vector? v))
+                                       (-> (str/join " " (map #(emit % env) v))
+                                           (wrap-double-quotes))
+                                       :else
+                                       (cond-> (emit v (assoc env :jsx false))
+                                         (not str?)
                                          ;; since we escape here, we
                                          ;; can probably remove
                                          ;; escaping elsewhere?
-                                     (escape-jsx env)
-                                     (and html? (not str?))
-                                     (wrap-double-quotes))))))))
-                    v)))
+                                         (escape-jsx (assoc env :html-attr (and html? (not str?))))
+                                         (and html? (not str?))
+                                         (wrap-double-quotes))))))))
+                        v)))))
         ""))))
 
 (defmethod emit-special 'squint.defclass/defclass* [_ env form]
@@ -1089,3 +1113,103 @@ break;}" body)
 
 (defmethod emit-special 'squint.defclass/super* [_ env form]
   (defclass/emit-super env emit (second form)))
+
+(def ^{:doc "A list of elements that must be rendered without a closing tag. From hiccup."
+       :private true}
+  void-tags
+  #{"area" "base" "br" "col" "command" "embed" "hr" "img" "input" "keygen" "link"
+    "meta" "param" "source" "track" "wbr"})
+
+(defn void-tag? [tag-name]
+  (contains? void-tags tag-name))
+
+(defn emit-vector [expr env]
+  (if (and (:jsx env)
+           (let [f (first expr)]
+             (or (keyword? f)
+                 (symbol? f))))
+    (let [need-html-import (:need-html-import env)
+          has-dynamic-expr? (or (:has-dynamic-expr env) (atom false))
+          env (assoc env :has-dynamic-expr has-dynamic-expr?)
+          v expr
+          tag (first v)
+          keyw? (keyword? tag)
+          attrs (second v)
+          attrs (when (map? attrs) attrs)
+          elts (if attrs (nnext v) (next v))
+          tag-name (symbol tag)
+          fragment? (= '<> tag-name)
+          tag-name* (if fragment?
+                      (symbol "")
+                      tag-name)
+          tag-name (if (and (not fragment?) keyw?)
+                     (subs (str tag) 1)
+                     (emit tag-name* (expr-env (dissoc env :jsx))))
+          html? (:html env)
+          outer-html? (:outer-html (meta expr))]
+      (if (and (not html?) (:jsx env) (:jsx-runtime env))
+        (let [single-child? (= 1 (count elts))]
+          (emit (list (if single-child?
+                        '_jsx '_jsxs)
+                      (cond fragment? "_Fragment"
+                            (keyword? tag)
+                            (name tag-name)
+                            :else tag-name*)
+                      (let [elts (map #(emit % (expr-env env)) elts)
+                            elts (map #(list 'js* (str %)) elts)
+                            children
+                            (if single-child?
+                              (first elts)
+                              (vec elts))]
+                        (cond-> (or attrs {})
+                          (seq children)
+                          (assoc :children children))))
+                env))
+        (let [ret #_(format "<%s%s>%s</%s>"
+                          tag-name
+                          (cc/jsx-attrs attrs env)
+                          (let [env (expr-env env)]
+                            (str/join "" (map #(emit % env) elts)))
+                          tag-name)
+              (str
+               (if (and html? fragment?)
+                   ""
+                   (str "<"
+                        tag-name
+                        (jsx-attrs attrs env)
+                        ">"))
+               (let [env (expr-env env)]
+                 (str/join "" (map #(emit % env) elts)))
+               (if (and html? (or fragment?
+                                  (void-tag? tag-name)))
+                   ""
+                   (str "</" tag-name ">")))]
+          (when outer-html?
+            (when need-html-import
+              (reset! need-html-import true)))
+          (emit-return
+           (cond->> ret
+               outer-html?
+             (format "%s`%s`"
+                     (if-let [t (:tag (meta expr))]
+                       (emit t (expr-env (dissoc env :jsx :html)))
+                       (if @has-dynamic-expr?
+                         "squint_html.tag"
+                         "squint_html.html"))))
+           env))))
+    (emit-return
+     (if (and (= :cherry *target*)
+              (not (::js (meta expr))))
+       (format "%svector(%s)"
+               (if-let [core-alias (:core-alias env)]
+                 (str core-alias ".")
+                 "")
+               (str/join ", " (emit-args env expr)))
+       (format "[%s]"
+               (str/join ", " (emit-args env expr))))
+     env)))
+
+(defmethod emit-special 'squint-compiler-html [_ env [_ form]]
+  (let [env (assoc env :html true :jsx true)
+        form (vary-meta form assoc :outer-html true)]
+    (emit form env)))

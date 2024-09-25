@@ -117,7 +117,7 @@
 (defmethod emit-special 'not [_ env [_ form]]
   (let [js (emit form (expr-env env))]
     (if (:bool js)
-      (emit-return (cc/bool-expr (str "!" js)) env)
+      (emit-return (cc/bool-expr (format "!(%s)" js)) env)
       (cc/bool-expr
        (emit (list 'js* (format "~{}(%s)" js) 'clojure.core/not)
              env)))))
@@ -203,7 +203,8 @@
   (let [sym-ns (namespace sym)]
     (if (and sym-ns
              (or (= "clojure.core" sym-ns)
-                 (= "cljs.core" sym-ns)))
+                 (= "cljs.core" sym-ns)
+                 (= "squint.core" sym-ns)))
       (symbol (name sym))
       sym)))
 
@@ -230,7 +231,7 @@
                             expr)
                      head-str (str head)
                      macro (when (symbol? head)
-                             (or (built-in-macros head)
+                             (or (built-in-macros (strip-core-symbol head))
                                  (let [ns (namespace head)
                                        nm (name head)
                                        ns-state @(:ns-state env)
@@ -255,7 +256,7 @@
                                                      :ns {:name cc/*cljs-ns*}} (rest expr))]
                      (emit new-expr env))
                    (cond
-                     (and (= (.charAt head-str 0) \.)
+                     (and (= \. (.charAt head-str 0))
                           (> (count head-str) 1)
                           (not (= ".." head-str)))
                      (cc/emit-special '. env
@@ -285,66 +286,6 @@
                (throw (new Exception (str "invalid form: " expr))))))
      env*)))
 
-(defn emit-vector [expr env]
-  (if (and (:jsx env)
-           (let [f (first expr)]
-             (or (keyword? f)
-                 (symbol? f))))
-    (let [top-dynamic-expr (:top-has-dynamic-expr env)
-          has-dynamic-expr? (or (:has-dynamic-expr env) (atom false))
-          env (assoc env :has-dynamic-expr has-dynamic-expr?)
-          v expr
-          tag (first v)
-          keyw? (keyword? tag)
-          attrs (second v)
-          attrs (when (map? attrs) attrs)
-          elts (if attrs (nnext v) (next v))
-          tag-name (symbol tag)
-          fragment? (= '<> tag-name)
-          tag-name* (if fragment?
-                      (symbol "")
-                      tag-name)
-          tag-name (if (and (not fragment?) keyw?)
-                     (subs (str tag) 1)
-                     (emit tag-name* (expr-env (dissoc env :jsx))))]
-      (if (and (not (:html env)) (:jsx env) (:jsx-runtime env))
-        (let [single-child? (= (count elts) 1)]
-          (emit (list (if single-child?
-                        '_jsx '_jsxs)
-                      (cond fragment? "_Fragment"
-                            (keyword? tag)
-                            (name tag-name)
-                            :else tag-name*)
-                      (let [elts (map #(emit % (expr-env env)) elts)
-                            elts (map #(list 'js* (str %)) elts)
-                            children
-                            (if single-child?
-                              (first elts)
-                              (vec elts))]
-                        (cond-> (or attrs {})
-                          (seq children)
-                          (assoc :children children))))
-                env))
-        (emit-return
-         (cond->> (format "<%s%s>%s</%s>"
-                          tag-name
-                          (cc/jsx-attrs attrs env)
-                          (let [env (expr-env env)]
-                            (str/join "" (map #(emit % env) elts)))
-                          tag-name)
-           (:outer-html (meta expr)) (format "%s`%s`"
-                                             (if-let [t (:tag (meta expr))]
-                                               (emit t (expr-env (dissoc env :jsx :html)))
-                                               (if @has-dynamic-expr?
-                                                 (do
-                                                   (when top-dynamic-expr
-                                                     (reset! top-dynamic-expr true))
-                                                   "squint_html.tag")
-                                                 ""))))
-         env)))
-    (emit-return (format "[%s]"
-                         (str/join ", " (emit-args env expr))) env)))
-
 (defn emit-map [expr env]
   (if (every? #(or (string? %)
                    (keyword? %)
@@ -359,7 +300,7 @@
           mk-pair (fn [pair]
                     (let [k (key pair)]
                       (str (if (= :& k)
-                             (str "...")
+                             "..."
                              (str (emit (key-fn k) expr-env) ": "))
                            (emit (val pair) expr-env))))
           keys (str/join ", " (map mk-pair (seq expr)))]
@@ -393,7 +334,7 @@
                                      (symbol (str (if sym (munge sym)
                                                       "G__") next-id))))))
                       :emit {::cc/list emit-list
-                             ::cc/vector emit-vector
+                             ::cc/vector cc/emit-vector
                              ::cc/map emit-map
                              ::cc/keyword emit-keyword
                              ::cc/set emit-set
@@ -410,11 +351,6 @@
 (defmethod emit-special 'squint-compiler-jsx [_ env [_ form]]
   (set! *jsx* true)
   (let [env (assoc env :jsx true)]
-    (emit form env)))
-
-(defmethod emit-special 'squint-compiler-html [_ env [_ form]]
-  (let [env (assoc env :html true :jsx true)
-        form (vary-meta form assoc :outer-html true)]
     (emit form env)))
 
 (def squint-parse-opts
@@ -435,7 +371,9 @@
          rdr (e/reader s)
          opts squint-parse-opts]
      (loop [transpiled (if cc/*repl*
-                         (str "globalThis." *cljs-ns* " = globalThis." *cljs-ns* " || {};\n")
+                         (let [ns (munge *cljs-ns*)]
+                           (str "globalThis." ns " = globalThis."
+                                ns " || {};\n"))
                          "")]
        (let [opts (assoc opts :auto-resolve @*aliases*)
              next-form (e/parse-next rdr opts)]
@@ -460,7 +398,7 @@
                cc/*target* :squint
                *jsx* false
                cc/*repl* (:repl opts cc/*repl*)]
-       (let [has-dynamic-expr (atom false)
+       (let [need-html-import (atom false)
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
              imported-vars (atom {})
@@ -469,8 +407,8 @@
              jsx-runtime (:jsx-runtime opts)
              jsx-dev (:development jsx-runtime)
              imports (atom (if cc/*repl*
-                             (str (format "var %s = await import('%s');\n"
-                                          core-alias cc/*core-package*))
+                             (format "var %s = await import('%s');\n"
+                                     core-alias cc/*core-package*)
                              (format "import * as %s from '%s';\n"
                                      core-alias cc/*core-package*)))
              pragmas (atom {:js ""})]
@@ -487,7 +425,7 @@
                                                         :imports imports
                                                         :jsx false
                                                         :pragmas pragmas
-                                                        :top-has-dynamic-expr has-dynamic-expr))
+                                                        :need-html-import need-html-import))
                  jsx *jsx*
                  _ (when (and jsx jsx-runtime)
                      (swap! imports str
@@ -501,7 +439,7 @@
                                   (if jsx-dev
                                     "/jsx-dev-runtime"
                                     "/jsx-runtime")))))
-                 _ (when @has-dynamic-expr
+                 _ (when @need-html-import
                      (swap! imports str
                             (if cc/*repl*
                               "var squint_html = await import('squint-cljs/src/squint/html.js');\n"
@@ -517,8 +455,8 @@
                                             (map (fn [var]
                                                    (str "export const " var " = " (munge cc/*cljs-ns*) "." var ";"))
                                                  vars))
-                                  (str (format "\nexport { %s }\n"
-                                               (str/join ", " vars))))))
+                                  (format "\nexport { %s }\n"
+                                          (str/join ", " vars)))))
                             (when (contains? @public-vars "default$")
                               "export default default$\n")))]
              (assoc opts
