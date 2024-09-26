@@ -9,7 +9,9 @@
 
 (require '[squint.compiler :as squint])
 
-(def cljs (squint/compile-string (slurp (fs/file (fs/parent *file*) "preact.cljs" ))))
+(defn cljs [src]
+  (squint/compile-string src
+   {:jsx-runtime {:import-source "https://esm.sh/preact@10.19.2"}}))
 
 (defn page [req]
   (when (= "/" (:uri req))
@@ -29,7 +31,7 @@
                   [:body
                    [:div {:id "cljs"}]]
                   [:script {:type "module"}
-                   cljs]]))
+                   (h/raw (cljs (slurp (fs/file (fs/parent *file*) "preact.cljs" ))))]]))
      :status 200}))
 
 (srv/run-server #'page {:port 8888})
