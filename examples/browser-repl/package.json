@@ -1,0 +1,7 @@
+{
+  "type": "module",
+  "dependencies": {
+    "squint-cljs": "../..",
+    "vite": "^5.4.8"
+  }
+}

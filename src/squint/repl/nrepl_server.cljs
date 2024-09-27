@@ -4,7 +4,7 @@
    [cljs.pprint :as pp]
    ["fs" :as fs]
    ["net" :as node-net]
-   [squint.compiler-common :as cc :refer [*cljs-ns*]]
+   [squint.compiler-common :as cc]
    [squint.compiler :as compiler]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]))
 
@@ -39,9 +39,7 @@
     (handler request response)))
 
 (defn eval-ctx-mw [handler _]
-  (fn [request send-fn]
-    (handler request
-             send-fn)))
+  handler)
 
 (declare ops)
 
@@ -118,7 +116,9 @@
    (.then (fn [v]
             (println "About to eval:")
             (println v)
-            (js/eval v)))
+            (js/eval v)
+            ;; TODO: here comes the websocket code
+            ))
    (.then (fn [val]
             (send-fn request {"ns" (str @last-ns)
                               "value" (format-value (:nrepl.middleware.print/print request)
