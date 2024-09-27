@@ -19,7 +19,7 @@ export default defineConfig( ({mode}) => {
       name: 'prebuild-commands',
       buildStart: async () => {
         if ( 'development' === mode ) {
-          cmd('squint', 'watch');
+          cmd('squint', 'watch', '--repl');
         }
         else await cmd('squint', 'compile'); },
     },
