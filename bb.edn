@@ -13,6 +13,7 @@
                            :task (shell {:dir "playground"} "bb dev")}
          dev  {:doc  "Starts the squint dev watcher and the playground http server"
                :task (run '-dev {:parallel true})}
+         bump-versions (load-file "script/bump_versions.clj")
          -dev {:depends [watch serve-playground]}
          test:node {:doc "Run tests in Node.js"
                     :task (t/test-squint)}
