@@ -203,7 +203,21 @@ Similar to JSX, squint allows you to produce HTML as strings using hiccup notati
 (def my-html #html [:div "Hello"])
 ```
 
-will set the `my-html` variable to a string equal to `<div>Hello</div>`.
+will set the `my-html` variable to an HTML object equal to
+`<div>Hello</div>`. To produce a string from the HTML object, call `str` on it.
+
+HTML objects can be nested:
+
+``` clojure
+(defn my-html [x] #html [:<> [:div "Hello"] x])
+(my-html #html [:div "Goodbye"]) ;;=> Html {s: "<div>Hello</div><div>Goodbye</div>"}
+```
+
+HTML content is escaped by default:
+
+``` clojure
+(my-html #html [:div "<>"]) ;;=> Html {s: "<div>Hello</div><div>&lt;&gt;</div>"}
+```
 
 Using metadata you can modify the tag function, e.g. to use this together with lit-html:
 
