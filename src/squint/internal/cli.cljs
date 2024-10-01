@@ -220,7 +220,8 @@ Options:
    {:cmds ["socket-repl"]  :fn repl/socket-repl}
    {:cmds ["nrepl-server"] :fn start-nrepl}
 
-   {:cmds ["watch"]      :fn watch}
+   {:cmds ["watch"]      :fn (fn [{:keys [opts]}]
+                               (watch opts))}
    {:cmds []             :fn fallback}])
 
 (defn init []
