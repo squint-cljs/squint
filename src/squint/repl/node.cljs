@@ -48,7 +48,7 @@
         _ (reset! state new-state)
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
-    (binding [*print-fn* *print-err-fn*]
+    #_(binding [*print-fn* *print-err-fn*]
       (println "---")
       (println js-str)
       (println "---"))

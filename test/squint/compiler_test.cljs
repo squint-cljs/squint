@@ -1616,7 +1616,7 @@
                (squint/compile-string (pr-str '(ns foo (:require ["./popup.css" :as pop]))))))
   (t/async done
     (let [js (squint/compile-string "(ns foo (:require [clojure.string :as str])) (str 1 2 3 (str/join \",\" [1 2 3]))" {:repl true
-                                                                                                                           :context :return})]
+                                                                                                                         :context :return})]
       (-> (.then (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))
                  (fn [v]
                    (is (= "1231,2,3" v))))
@@ -1624,6 +1624,16 @@
   (is (str/ends-with?
        (str/trim (squint/compile-string "(ns foo (:require [\"fs\" :refer [readFileSync]])) readFileSync" {:repl true}))
        "globalThis.foo.readFileSync;")))
+
+(deftest global-ns-test
+  #_(t/async done
+    (-> (p/let [js (squint/compile-string "(ns foo.bar) (def x 1) (ns other.ns) foo.bar/x" {:repl true
+                                                                                            :context :return
+                                                                                            :elide-exports true})
+                v (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))]
+          (is (= 1 v)))
+        (p/catch (fn [err] (is (throw err))))
+        (p/finally done))))
 
 (deftest letfn-test
   (is (= 3 (jsv! '(letfn [(f [x] (g x)) (g [x] (inc x))] (f 2)))))

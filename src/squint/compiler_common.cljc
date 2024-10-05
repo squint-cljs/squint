@@ -277,9 +277,18 @@
                          (when (contains? @*aliases* (symbol sym-ns))
                            (str sym-ns "."
                                 (munged-name sn)))
-                         (let [munged (munge (namespace expr))]
+                         (let [ns (namespace expr)
+                               munged (munge ns)
+                               nm (name expr)]
                            (if (and *repl* (not= "Math" munged))
-                             (str "globalThis." (munge *cljs-ns*) "." munged "." (munge (name expr)))
+                             (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))
+                             #_(do
+                               ;; (prn @(:ns-state env))
+                               ;; TODO: check if symbol is referring to a different namespace?
+                               (let [ns-state (some-> env :ns-state deref)]
+                                 (if false #_(get-in ns-state [(symbol ns) (symbol nm)])
+                                   (str (munge ns) "." (munge nm))
+                                   (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm)))))
                              (str munged "." (munge (name expr)))))))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (cond-> (munge** (str renamed))
