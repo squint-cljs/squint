@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.116 (2024-10-05)
+
+- [#556](https://github.com/squint-cljs/squint/issues/556): fix referring to var in other namespace via global object in REPL mode
+
 ## v0.8.115 (2024-10-01)
 
 - Pass `--repl` opts to `watch` subcommand in CLI
