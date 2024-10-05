@@ -281,14 +281,10 @@
                                munged (munge ns)
                                nm (name expr)]
                            (if (and *repl* (not= "Math" munged))
-                             (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))
-                             #_(do
-                               ;; (prn @(:ns-state env))
-                               ;; TODO: check if symbol is referring to a different namespace?
-                               (let [ns-state (some-> env :ns-state deref)]
-                                 (if false #_(get-in ns-state [(symbol ns) (symbol nm)])
-                                   (str (munge ns) "." (munge nm))
-                                   (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm)))))
+                             (let [ns-state (some-> env :ns-state deref)]
+                               (if (get-in ns-state [(symbol ns) (symbol nm)])
+                                 (str (munge ns) "." (munge nm))
+                                 (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))))
                              (str munged "." (munge (name expr)))))))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (cond-> (munge** (str renamed))
@@ -310,7 +306,12 @@
                                    (str "globalThis." (munge *cljs-ns*) "."))
                                  (munged-name expr))))
                         (let [m (munged-name expr)]
-                          m)))))]
+                          (prn :m m)
+                          (if *repl*
+                            (str (when *repl*
+                                   (str "globalThis." (munge *cljs-ns*) "."))
+                                 m)
+                            m))))))]
         (emit-return (escape-jsx expr env)
                      env)))))
 

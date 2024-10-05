@@ -43,7 +43,8 @@
          :as new-state} (binding [*cljs-ns* @last-ns]
                         (compiler/compile-string* (binding [*print-meta* true]
                                                     (pr-str the-val)) {:context :return
-                                                                       :elide-exports true}
+                                                                       :elide-exports true
+                                                                       :repl true}
                                                   @state))
         _ (reset! state new-state)
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
