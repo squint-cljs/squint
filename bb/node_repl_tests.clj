@@ -46,6 +46,9 @@
   (let [out (:out (p/shell {:out :string} "node test-resources/js_api.mjs"))]
     (is (= ["1" "1" "6"]  (str/split-lines out)))))
 
+(deftest repl-namespace-global-test
+  (is (= 1 (:out (repl "(ns foo.bar) (def x 1) (ns other.ns) foo.bar/x")))))
+
 (defn run-tests [_]
   (let [{:keys [fail error]}
         (t/run-tests 'node-repl-tests)]

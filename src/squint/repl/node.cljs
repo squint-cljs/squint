@@ -3,7 +3,6 @@
    ["net" :as net]
    ["readline" :as readline]
    ["squint-cljs/core.js" :as squint]
-   ["vm" :as vm]
    ["node:util" :as util]
    [clojure.string :as str]
    [edamame.core :as e]
@@ -49,9 +48,10 @@
         _ (reset! state new-state)
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
-    ;; (println "---")
-    ;; (println js-str)
-    ;; (println "---")
+    (binding [*print-fn* *print-err-fn*]
+      (println "---")
+      (println js-str)
+      (println "---"))
     (->
      (js/Promise.resolve (js/eval js-str))
      (.then (fn [^js val]
