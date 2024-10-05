@@ -1626,7 +1626,7 @@
        "globalThis.foo.readFileSync;")))
 
 (deftest global-ns-test
-  #_(t/async done
+  (t/async done
     (-> (p/let [js (squint/compile-string "(ns foo.bar) (def x 1) (ns other.ns) foo.bar/x" {:repl true
                                                                                             :context :return
                                                                                             :elide-exports true})
