@@ -47,7 +47,7 @@
     (is (= ["1" "1" "6"]  (str/split-lines out)))))
 
 (deftest repl-namespace-global-test
-  #_(is (str/includes? (:out (repl "(ns foo.bar) (def x 1) (ns other.ns) (= 1 foo.bar/x)")) "true")))
+  (is (str/includes? (:out (repl "(ns foo.bar) (def x 1) (ns other.ns) (= 1 foo.bar/x)")) "true")))
 
 (defn run-tests [_]
   (let [{:keys [fail error]}

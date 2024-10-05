@@ -306,12 +306,7 @@
                                    (str "globalThis." (munge *cljs-ns*) "."))
                                  (munged-name expr))))
                         (let [m (munged-name expr)]
-                          (prn :m m)
-                          (if *repl*
-                            (str (when *repl*
-                                   (str "globalThis." (munge *cljs-ns*) "."))
-                                 m)
-                            m))))))]
+                          m)))))]
         (emit-return (escape-jsx expr env)
                      env)))))
 
