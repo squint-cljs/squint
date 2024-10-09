@@ -19,7 +19,7 @@ To set up a project with vite, go through the following steps:
 
 - Run `npx squint watch` to start compiling `.cljs` -> `.js`
 
-- Run `npx vite public` to start a webserver and to hot-reload your React project!
+- Run `npx vite public` to start a webserver and to hot-reload your project!
 
 ## Babashka tasks
 
