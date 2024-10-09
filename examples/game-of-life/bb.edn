@@ -1,0 +1,5 @@
+{:tasks
+ {dev:squint (shell "npx squint watch")
+  dev:vite (shell "npx vite public")
+  -dev {:depends [dev:vite dev:squint]}
+  dev (run '-dev {:parallel true})}}
