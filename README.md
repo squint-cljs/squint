@@ -84,6 +84,7 @@ need the extra performance, startup time and/or small bundle size.
 - `assoc`, `dissoc`, `conj`, etc. return a new shallow copy of objects
 - `println` is a synonym for `console.log`
 - `pr-str` and `prn` coerce values to a string using `JSON.stringify` (currently, this may change)
+- Since JavaScript only supports strings for keys in maps, any data structures used as keys will be stringified
 
 If you are looking for closer ClojureScript semantics, take a look at [Cherry 🍒](https://github.com/squint-cljs/cherry).
 
