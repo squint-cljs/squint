@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@instantdb/react": "^0.14.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "squint-cljs": "^0.8.117"
+  },
+  "devDependencies": {
+    "vite": "^5.4.8"
+  }
+}
