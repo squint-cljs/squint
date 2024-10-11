@@ -140,12 +140,7 @@
                 (if html?
                   "$"
                   "")
-                (format (if (:html-attr env)
-                          "squint_html.attr(%s)"
-                          "%s" #_(if html?
-                            "squint_html._safe(%s)"
-                            "%s"))
-                        expr)))
+                expr))
       expr)))
 
 (defmethod emit ::number [expr env]
@@ -1046,15 +1041,27 @@ break;}" body)
 
 (defn emit-css
   [v env]
-  (let [env (assoc env :html-attr true)]
-    (-> (reduce
-         (fn [acc [k v]]
-           (str acc
-                (emit k env) ":"
-                (emit v env) ";"))
-         ""
-         v)
-        (wrap-double-quotes))))
+  (if (contains? v :&)
+    (let [rest-opts (dissoc v :&)
+          env (assoc env :js true)
+          cherry? (= :cherry *target*)]
+      (when-let [dyn (:has-dynamic-expr env)]
+        (reset! dyn true))
+      (-> (format "${squint_html.css(%s,%s)}"
+                  (emit (cond->> (get v :&)
+                          cherry? (list `clj->js)) (dissoc env :jsx))
+                  (emit (cond->> rest-opts
+                          cherry? (list `clj->js)) (dissoc env :jsx)))
+          (wrap-double-quotes)))
+    (let [env (assoc env :html-attr true)]
+      (-> (reduce
+           (fn [acc [k v]]
+             (str acc
+                  (emit k env) ":"
+                  (emit v env) ";"))
+           ""
+           v)
+          (wrap-double-quotes)))))
 
 (defn jsx-attrs [v env]
   (let [env (expr-env env)
