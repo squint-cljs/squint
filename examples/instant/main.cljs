@@ -15,15 +15,12 @@
                                     :createdAt (js/Date.now)}))))]
     (js/console.log :v v)))
 
-(defn Names [{:keys [data] :as all}]
-  (js/console.log :data data :all all)
-  (js/console.log :names (.-names data))
-  #_(let [names data.names]
-    #jsx [:<>
-          (map (fn [{:keys [name]}]
-                 (js/console.log :name name)
-                 #jsx [:div "Name: " name])
-               names)]))
+(defn Names [{:keys [names] :as all}]
+  #jsx [:<>
+        (map (fn [{:keys [name]}]
+               (js/console.log :name name)
+               #jsx [:div "Name: " name])
+             names)])
 
 (defn App []
   (let [{:keys [isLoading error data]} (.useQuery db {:names {}})]
@@ -36,9 +33,9 @@
                           (add-name n.value)
                           (set! n.value "")))}
            [:input]]
-          [:div
-           "Names:"
-           [Names {:data data}]]]))
+          (when-not isLoading
+            #jsx [:div
+                  [Names {:names data.names}]])]))
 
 (def root (rdom/createRoot (js/document.getElementById "app")))
 (.render root #jsx [App])
