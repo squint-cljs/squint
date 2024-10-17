@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## v0.8.117 (2024-10-17)
+## v0.8.118 (2024-10-17)
 
 - Fix [#563](https://github.com/squint-cljs/squint/issues/563): prioritize refer over core built-in
 
