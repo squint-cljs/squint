@@ -5,6 +5,7 @@
 ## v0.8.118 (2024-10-17)
 
 - Fix [#563](https://github.com/squint-cljs/squint/issues/563): prioritize refer over core built-in
+- Update `chokidar` to v4 which reduces the number of dependencies
 
 ## v0.8.117 (2024-10-11)
 
