@@ -293,13 +293,17 @@
                                  (str "globalThis." (munge *cljs-ns*) ".")) (munged-name expr)))
                         (let [renamed (:rename current-ns)
                               expr (get renamed expr expr)]
-                          (when (or (contains? (:refers current-ns) expr)
-                                    (let [alias (get (:aliases current-ns) expr)]
-                                      alias))
-                            (str (when *repl*
-                                   (str "globalThis." (munge *cljs-ns*) "."))
-                                 (munged-name expr))))
-                        (some-> (maybe-core-var expr env) munge)
+                          (or
+                           (when (contains? (:refers current-ns) expr)
+                             (str (when *repl*
+                                    (str "globalThis." (munge *cljs-ns*) "."))
+                                  (munged-name expr)))
+                           (some-> (maybe-core-var expr env) munge)
+                           (when (let [alias (get (:aliases current-ns) expr)]
+                                 alias)
+                             (str (when *repl*
+                                    (str "globalThis." (munge *cljs-ns*) "."))
+                                  (munged-name expr)))))
                         (let [m (munged-name expr)]
                           m)))))]
         (emit-return (escape-jsx expr env)
