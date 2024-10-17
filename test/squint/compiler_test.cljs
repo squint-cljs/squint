@@ -1614,16 +1614,21 @@
                      "import './popup.css'"))
   (is (re-find #"import.*'./popup.css'"
                (squint/compile-string (pr-str '(ns foo (:require ["./popup.css" :as pop]))))))
+  (is (str/ends-with?
+       (str/trim (squint/compile-string "(ns foo (:require [\"fs\" :refer [readFileSync]])) readFileSync" {:repl true}))
+       "globalThis.foo.readFileSync;"))
+  (is (str/ends-with?
+       (str/trim (squint/compile-string "(ns foo (:require [\"some-js-lib\" :refer [atom]])) atom" {:repl true}))
+       "foo.atom;")))
+
+(deftest ns-test-async
   (t/async done
     (let [js (squint/compile-string "(ns foo (:require [clojure.string :as str])) (str 1 2 3 (str/join \",\" [1 2 3]))" {:repl true
                                                                                                                          :context :return})]
       (-> (.then (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))
                  (fn [v]
                    (is (= "1231,2,3" v))))
-          (.finally done))))
-  (is (str/ends-with?
-       (str/trim (squint/compile-string "(ns foo (:require [\"fs\" :refer [readFileSync]])) readFileSync" {:repl true}))
-       "globalThis.foo.readFileSync;")))
+          (.finally done)))))
 
 (deftest global-ns-test
   (t/async done
