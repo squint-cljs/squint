@@ -68,9 +68,9 @@
   [opts files]
   (let [cfg @utils/!cfg
         opts (merge cfg opts)
-        paths (:paths cfg)
-        copy-resources (:copy-resources cfg)
-        output-dir (:output-dir cfg ".")
+        paths (:paths opts)
+        copy-resources (:copy-resources opts)
+        output-dir (:output-dir opts ".")
         files (if (empty? files)
                 (files-from-paths paths)
                 files)]
@@ -86,12 +86,13 @@
 --elide-imports: do not include imports
 --elide-exports: do not include exports
 --extension: default extension for JS files
+--paths: source paths to search for cljs/cljc files
 --output-dir: output directory for JS files"))
       (reduce (fn [prev f]
                 (-> (js/Promise.resolve prev)
                     (.then
                      #(do
-                        (if (contains? #{".cljc" ".cljs"} (path/extname f ))
+                        (if (contains? #{".cljc" ".cljs"} (path/extname f))
                           (do (println "[squint] Compiling CLJS file:" f)
                               (compiler/compile-file (assoc opts
                                                             :in-file f
@@ -184,9 +185,9 @@ Options:
 (defn watch [opts]
   (let [cfg @utils/!cfg
         opts (merge cfg opts)
-        paths (:paths cfg)
-        output-dir (:output-dir cfg ".")
-        copy-resources (:copy-resources cfg)]
+        paths (:paths opts)
+        output-dir (:output-dir opts ".")
+        copy-resources (:copy-resources opts)]
     (-> (-> (esm/dynamic-import "chokidar")
             (.catch (fn [err]
                       (js/console.error err))))
