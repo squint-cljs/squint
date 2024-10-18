@@ -221,7 +221,8 @@ Options:
    {:cmds ["nrepl-server"] :fn start-nrepl}
 
    {:cmds ["watch"]      :fn (fn [{:keys [opts]}]
-                               (watch opts))}
+                               (prn :opts opts)
+                               #_(watch opts))}
    {:cmds []             :fn fallback}])
 
 (defn init []
@@ -231,4 +232,6 @@ Options:
                  :coerce {:elide-exports :boolean
                           :elide-imports :boolean
                           :output-dir    :string
-                          :repl          :boolean}}))
+                          :repl          :boolean
+                          :paths         [:string]
+                          :extension     :string}}))
