@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.122 (2024-10-18)
+
+- Fix node compiler internal function not overriding `squint.edn` configurations with command line options `--paths`.
+
 ## v0.8.121 (2024-10-18)
 
 - Fix watcher & compiler not overriding `squint.edn` configurations with command line options.

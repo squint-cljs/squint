@@ -27,6 +27,11 @@
    [squint.internal.protocols :as protocols])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
+(defn opts+cfg->paths [opts cfg]
+  (-> (into (:paths cfg []) (:paths opts []))
+      seq
+      (or ["." "src"])
+      dedupe))
 
 (defn emit-keyword [expr env]
   ;; emitting string already emits return
