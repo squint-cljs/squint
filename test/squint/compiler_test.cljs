@@ -2293,5 +2293,17 @@ new Foo();")
 (deftest issue-537-test
   (is (true? (jsv! "(not (= 1 2))"))))
 
+(deftest opts+cfg->paths-test
+  (is (=  ["." "src"]
+          (squint/opts+cfg->paths {} {})))
+  (is (=  ["src"]
+          (squint/opts+cfg->paths {:paths ["src"]} {})))
+  (is (=  ["src"]
+          (squint/opts+cfg->paths {} {:paths ["src"]})))
+  (is (=  ["src"]
+          (squint/opts+cfg->paths {:paths ["src"]} {:paths ["src"]})))
+  (is (=  ["test" "src"]
+          (squint/opts+cfg->paths {:paths ["src"]} {:paths ["test"]}))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

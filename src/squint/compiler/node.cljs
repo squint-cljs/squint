@@ -97,7 +97,7 @@
         opts (->opts opts)]
     (-> (compile-string contents opts)
         (.then (fn [{:keys [javascript jsx] :as opts}]
-                 (let [paths (:paths opts ["." "src"])
+                 (let [paths (compiler/opts+cfg->paths opts @utils/!cfg)
                        out-file (path/resolve output-dir
                                               (or out-file
                                                   (str/replace (adjust-file-for-paths in-file paths) #".clj(s|c)$"
