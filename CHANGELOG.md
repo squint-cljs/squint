@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.120 (2024-10-18)
+
+- Fix watcher not being called
+
 ## v0.8.119 (2024-10-18)
 
 - Allow passing `--extension` and `--paths` via CLI
