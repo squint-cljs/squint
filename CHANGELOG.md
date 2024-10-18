@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.119 (2024-10-18)
+
+- Allow passing `--extension` and `--paths` via CLI
+
 ## v0.8.118 (2024-10-17)
 
 - Fix [#563](https://github.com/squint-cljs/squint/issues/563): prioritize refer over core built-in
