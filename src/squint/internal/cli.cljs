@@ -221,8 +221,7 @@ Options:
    {:cmds ["nrepl-server"] :fn start-nrepl}
 
    {:cmds ["watch"]      :fn (fn [{:keys [opts]}]
-                               (prn :opts opts)
-                               #_(watch opts))}
+                               (watch opts))}
    {:cmds []             :fn fallback}])
 
 (defn init []
