@@ -11,5 +11,4 @@
 
   build:squint (shell "npx squint compile")
   build:vite (shell "npx vite --config viteconfig.js build public")
-  -build {:depends [build:squint build:vite]}
-  build (run '-build {:parallel false})}}
+  build {:depends [build:squint build:vite]}}}
