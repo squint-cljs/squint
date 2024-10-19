@@ -1,4 +1,4 @@
-# squint-vite-react
+# vite-react
 
 Small experiment with squint + vite(st) + react
 
