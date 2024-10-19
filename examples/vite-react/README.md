@@ -1,6 +1,38 @@
-# Vite-react example
+# squint-vite-react
 
-To set up a project with vite + react, go through the following steps:
+Small experiment with squint + vite(st) + react
+
+## Requirements
+- [npm](https://www.npmjs.com/)
+- [babashka](https://babashka.org/)
+
+## Usage
+To run this example, `run npm install` and then one of the following [babashka tasks](bb.edn):
+
+### Development server
+```bash
+bb dev
+```
+Will start squint watch and vite dev server, the files will be 
+generated on `public/js`.
+
+### Tests watch
+```bash
+bb test:watch
+```
+Will start squint watch on tests and vitest test watcher, the files will be 
+generated on `public/test`.
+
+### Build
+```bash
+bb build
+```
+Will generate an production ready build on `public/dist` and a bundle status 
+report in the root of the project `./bundle-visualization.html`.
+
+## From scratch
+
+To set up a project with vite + react from scratch, go through the following steps:
 
 - Create a `package.json` file
 
@@ -51,15 +83,4 @@ To set up a project with vite + react, go through the following steps:
   ```
 
 - Run `npx vite --config viteconfig.js public` to start a webserver and to hot-reload your React project!
-
-## Babashka tasks
-
-To run all of the above using one command, run `bb dev`. See [bb.edn](bb.edn).
-
-## Production
-
-To build your production website:
-
-```
-$ npx vite --config viteconfig.js build public
-```
+- Run `npx vite --config viteconfig.js build public` to build your production website.
