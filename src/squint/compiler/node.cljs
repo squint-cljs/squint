@@ -98,6 +98,7 @@
     (-> (compile-string contents opts)
         (.then (fn [{:keys [javascript jsx] :as opts}]
                  (let [paths (or (:paths opts)
+                                 (:paths @utils/!cfg)
                                  ["." "src"])
                        out-file (path/resolve output-dir
                                               (or out-file
