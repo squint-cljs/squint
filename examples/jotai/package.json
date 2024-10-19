@@ -6,12 +6,12 @@
   },
   "devDependencies": {
     "concurrently": "^9.0.1",
-    "squint-cljs": "^0.8.117",
+    "squint-cljs": "^0.8.122",
     "vite": "^5.4.9"
   },
   "scripts": {
     "vite:dev": "vite",
-    "squint:watch": "squint watch",
+    "squint:watch": "squint watch --paths .",
     "dev": "concurrently \"npm run vite:dev\" \"npm run squint:watch\""
   }
 }
