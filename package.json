@@ -24,6 +24,7 @@
     "@vercel/ncc": "^0.34.0",
     "argparse": "^2.0.1",
     "chalk": "^5.0.1",
+    "concurrently": "^9.0.1",
     "esbuild": "^0.14.49",
     "eslint": "^8.54.0",
     "jotai": "^2.10.1",
@@ -55,5 +56,8 @@
     "./src/squint/set.js": "./src/squint/set.js",
     "./src/squint/string.js": "./src/squint/string.js",
     "./src/squint/html.js": "./src/squint/html.js"
+  },
+  "scripts": {
+    "dev": "concurrently 'bb watch' 'bb serve-playground'"
   }
 }
