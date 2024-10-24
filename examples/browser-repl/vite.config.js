@@ -23,5 +23,6 @@ export default defineConfig( ({mode}) => {
         }
         else await cmd('squint', 'compile'); },
     },
-  ]};
+    ],
+  };
 });

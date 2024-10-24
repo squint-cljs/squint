@@ -1,7 +1,11 @@
 {
   "type": "module",
   "dependencies": {
-    "squint-cljs": "../..",
+    "concurrently": "^9.0.1",
+    "squint-cljs": "file:../../squint",
     "vite": "^5.4.8"
+  },
+  "scripts": {
+    "dev": "concurrently 'squint watch --repl' 'vite dev'"
   }
 }
