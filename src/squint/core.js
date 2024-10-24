@@ -1258,6 +1258,9 @@ export function partition(n, ...args) {
   return partitionInternal(n, step, pad, coll, false);
 }
 
+export const partitionv = partition; // partition already returns a lazy of arrays
+export const partitionv_all = partition_all;
+
 function partitionInternal(n, step, pad, coll, all) {
   return lazy(function* () {
     let p = [];
@@ -1294,7 +1297,6 @@ function partition_by1(f) {
     let pa = none;
     return (...args) => {
       const l = args.length;
-      let v;
       if (l === 0) {
         return rf();
       }
@@ -2625,7 +2627,7 @@ export function type(x) {
 
 function preserving_reduced(rf) {
   return (a1, a2) => {
-    const ret = rf(a1, a2)
+    const ret = rf(a1, a2);
     if (reduced_QMARK_(ret)) {
       return reduced(ret);
     }

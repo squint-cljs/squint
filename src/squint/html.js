@@ -32,7 +32,8 @@ function safe(x) {
   return escapeHTML(x.toString());
 }
 
-function css(v) {
+export function css(v, props) {
+  v = Object.assign(props, v);
   let ret = "";
   if (v == null) return ret;
   let first = true;
@@ -47,9 +48,9 @@ function css(v) {
   return ret;
 }
 
-export function attr(v) {
+function attr(v) {
   if (typeof(v) === 'object') {
-    return css(v);
+    return css({}, v);
   } else
   {
     return v;

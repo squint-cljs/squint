@@ -16,6 +16,6 @@
   "type": "module",
   "dependencies": {
     "solid-js": "^1.8.5",
-    "squint-cljs": "^0.4.54"
+    "squint-cljs": "0.8.114"
   }
 }

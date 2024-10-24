@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@instantdb/react": "^0.14.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "squint-cljs": "^0.8.117"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "vite": "^5.4.8"
+  },
+  "scripts": {
+    "vite:dev": "vite",
+    "squint:watch": "squint watch",
+    "dev": "concurrently \"npm run vite:dev\" \"npm run squint:watch\""
+  }
+}

@@ -140,12 +140,7 @@
                 (if html?
                   "$"
                   "")
-                (format (if (:html-attr env)
-                          "squint_html.attr(%s)"
-                          "%s" #_(if html?
-                            "squint_html._safe(%s)"
-                            "%s"))
-                        expr)))
+                expr))
       expr)))
 
 (defmethod emit ::number [expr env]
@@ -277,9 +272,14 @@
                          (when (contains? @*aliases* (symbol sym-ns))
                            (str sym-ns "."
                                 (munged-name sn)))
-                         (let [munged (munge (namespace expr))]
+                         (let [ns (namespace expr)
+                               munged (munge ns)
+                               nm (name expr)]
                            (if (and *repl* (not= "Math" munged))
-                             (str "globalThis." (munge *cljs-ns*) "." munged "." (munge (name expr)))
+                             (let [ns-state (some-> env :ns-state deref)]
+                               (if (get-in ns-state [(symbol ns) (symbol nm)])
+                                 (str (munge ns) "." (munge nm))
+                                 (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))))
                              (str munged "." (munge (name expr)))))))
                    (if-let [renamed (get (:var->ident env) expr)]
                      (cond-> (munge** (str renamed))
@@ -291,15 +291,19 @@
                         (when (contains? current-ns expr)
                           (str (when *repl*
                                  (str "globalThis." (munge *cljs-ns*) ".")) (munged-name expr)))
-                        (some-> (maybe-core-var expr env) munge)
                         (let [renamed (:rename current-ns)
                               expr (get renamed expr expr)]
-                          (when (or (contains? (:refers current-ns) expr)
-                                    (let [alias (get (:aliases current-ns) expr)]
-                                      alias))
-                            (str (when *repl*
-                                   (str "globalThis." (munge *cljs-ns*) "."))
-                                 (munged-name expr))))
+                          (or
+                           (when (contains? (:refers current-ns) expr)
+                             (str (when *repl*
+                                    (str "globalThis." (munge *cljs-ns*) "."))
+                                  (munged-name expr)))
+                           (some-> (maybe-core-var expr env) munge)
+                           (when (let [alias (get (:aliases current-ns) expr)]
+                                 alias)
+                             (str (when *repl*
+                                    (str "globalThis." (munge *cljs-ns*) "."))
+                                  (munged-name expr)))))
                         (let [m (munged-name expr)]
                           m)))))]
         (emit-return (escape-jsx expr env)
@@ -1041,15 +1045,27 @@ break;}" body)
 
 (defn emit-css
   [v env]
-  (let [env (assoc env :html-attr true)]
-    (-> (reduce
-         (fn [acc [k v]]
-           (str acc
-                (emit k env) ":"
-                (emit v env) ";"))
-         ""
-         v)
-        (wrap-double-quotes))))
+  (if (contains? v :&)
+    (let [rest-opts (dissoc v :&)
+          env (assoc env :js true)
+          cherry? (= :cherry *target*)]
+      (when-let [dyn (:has-dynamic-expr env)]
+        (reset! dyn true))
+      (-> (format "${squint_html.css(%s,%s)}"
+                  (emit (cond->> (get v :&)
+                          cherry? (list `clj->js)) (dissoc env :jsx))
+                  (emit (cond->> rest-opts
+                          cherry? (list `clj->js)) (dissoc env :jsx)))
+          (wrap-double-quotes)))
+    (let [env (assoc env :html-attr true)]
+      (-> (reduce
+           (fn [acc [k v]]
+             (str acc
+                  (emit k env) ":"
+                  (emit v env) ";"))
+           ""
+           v)
+          (wrap-double-quotes)))))
 
 (defn jsx-attrs [v env]
   (let [env (expr-env env)

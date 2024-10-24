@@ -2,6 +2,40 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.122 (2024-10-19)
+
+- Fix watcher and compiler not overriding `squint.edn` configurations with
+  command line options, take 2
+
+## v0.8.121 (2024-10-18)
+
+- Fix watcher and compiler not overriding `squint.edn` configurations with command line options.
+
+## v0.8.120 (2024-10-18)
+
+- Fix watcher not being called
+
+## v0.8.119 (2024-10-18)
+
+- Allow passing `--extension` and `--paths` via CLI
+
+## v0.8.118 (2024-10-17)
+
+- Fix [#563](https://github.com/squint-cljs/squint/issues/563): prioritize refer over core built-in
+- Update `chokidar` to v4 which reduces the number of dependencies
+
+## v0.8.117 (2024-10-11)
+
+- BREAKING: Dynamic CSS in `#html` must now be explicitly passed as map literal: `(let [m {:color :green}] #html [:div {:style {:& m}}])`. Fixes issue when using `lit-html` in combination with `classMap`. See [demo](https://squint-cljs.github.io/squint/?src=KG5zIG15bGl0CiAgKDpyZXF1aXJlIFtzcXVpbnQuY29yZSA6cmVmZXIgW2RlZmNsYXNzIGpzLXRlbXBsYXRlXV0KICAgWyJodHRwczovL2VzbS5zaC9saXRAMy4wLjAiIDphcyBsaXRdCiAgIFsiaHR0cHM6Ly9lc20uc2gvbGl0QDMuMC4wL2RpcmVjdGl2ZXMvY2xhc3MtbWFwLmpzIiA6cmVmZXIgW2NsYXNzTWFwXV0pKQoKKGRlZmNsYXNzIE15RWxlbWVudAogIChleHRlbmRzIGxpdC9MaXRFbGVtZW50KQogICheOnN0YXRpYyBmaWVsZCBwcm9wZXJ0aWVzIHs6Y291bnQge319KQoKICAoY29uc3RydWN0b3IgW3RoaXNdCiAgICAoc3VwZXIpCiAgICAoc2V0ISB0aGlzLmNvdW50IDApCiAgICAoc2V0ISB0aGlzLm5hbWUgIkhlbGxvIikpCgogIE9iamVjdAogIChyZW5kZXIgW3RoaXNdCiAgICAjaHRtbCBebGl0L2h0bWwKICAgIFs6ZGl2CiAgICAgWzpoMSB7OmNsYXNzIChjbGFzc01hcCB7OmVuYWJsZWQgdHJ1ZX0pfQogICAgICB0aGlzLm5hbWVdCiAgICAgWzpidXR0b24geyJAY2xpY2siIHRoaXMub25DbGljawogICAgICAgICAgICAgICA6cGFydCAiYnV0dG9uIn0KICAgICAgIkNsaWNrIGNvdW50ICIgdGhpcy5jb3VudF1dKQoKICAob25DbGljayBbdGhpc10KICAgIChzZXQhIHRoaXMuY291bnQgKGluYyB0aGlzLmNvdW50KSkpKQoKKGRlZm9uY2UgZm9vCiAgKGRvCiAgICAoanMvd2luZG93LmN1c3RvbUVsZW1lbnRzLmRlZmluZSAibXktZWxlbWVudCIgTXlFbGVtZW50KQogICAgdHJ1ZSkpCgooZGVmIGFwcCAob3IgKGpzL2RvY3VtZW50LnF1ZXJ5U2VsZWN0b3IgIiNhcHAiKQogICAgICAgICAgIChkb3RvIChqcy9kb2N1bWVudC5jcmVhdGVFbGVtZW50ICJkaXYiKQogICAgICAgICAgICAgKHNldCEgLWlkICJhcHAiKQogICAgICAgICAgICAgKGpzL2RvY3VtZW50LmJvZHkucHJlcGVuZCkpKSkKCihzZXQhICguLWlubmVySFRNTCBhcHApICNodG1sIFs6ZGl2CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBbOm15LWVsZW1lbnRdCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAjX1s6bXktZWxlbWVudF1dKQ%3D%3D)
+
+## v0.8.116 (2024-10-05)
+
+- [#556](https://github.com/squint-cljs/squint/issues/556): fix referring to var in other namespace via global object in REPL mode
+
+## v0.8.115 (2024-10-01)
+
+- Pass `--repl` opts to `watch` subcommand in CLI
+
 ## v0.8.114 (2024-09-23)
 
 - [#552](https://github.com/squint-cljs/squint/issues/552): fix REPL output with hyphen in ns name

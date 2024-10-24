@@ -134,6 +134,8 @@
   partition
   partition_all
   partition_by
+  partitionv
+  partitionv_all
   peek
   persistent_BANG_
   pop
