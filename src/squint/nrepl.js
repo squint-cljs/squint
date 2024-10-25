@@ -7,7 +7,17 @@ function nreplWebSocket () {
 }
 
 function handleNreplMessage(event) {
-  console.log(event);
+  let data = event.data;
+  data = JSON.parse(data);
+  const op = data.op;
+  switch (op) {
+  case 'eval':
+    const code = data.code;
+    console.log(code);
+    eval(code);
+    break;
+  default: break;
+  }
 }
 
 if (port) {

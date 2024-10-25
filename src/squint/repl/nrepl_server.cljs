@@ -109,6 +109,8 @@
     (reset! last-ns cljs-ns)
     js-str))
 
+(def !ws-conn (atom nil))
+
 (defn do-handle-eval [{:keys [ns code file
                               _load-file? _line] :as request} send-fn]
   (->
@@ -118,6 +120,10 @@
             (println "About to eval:")
             (println v)
             (js/eval v)
+            (when-let [conn @!ws-conn]
+              (.send conn (js/JSON.stringify
+                           #js {:op "eval"
+                                :code v})))
             ;; TODO: here comes the websocket code
             ))
    (.then (fn [val]
@@ -299,10 +305,12 @@
            (let [wss (new WebSocketServer #js {:port 1340})]
              (println "Websocket server running on port 1340")
              (.on wss "connection" (fn [conn]
-                                     (.on conn "message"
+                                     (reset! !ws-conn conn)
+                                     #_(.on conn "message"
                                           (fn [data]
                                             (js/console.log "data" data)))
-                                     (.send conn "something"))))
+                                     #_(.send conn "something")))
+             #_(reset! !ws-server wss))
            (.listen server
                     port
                     host
