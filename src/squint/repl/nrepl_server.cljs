@@ -101,6 +101,7 @@
          cljs-ns :ns
          :as new-state} (compiler/compile-string* the-val {:context :return
                                                            :elide-exports true
+                                                           :elide-imports true
                                                            :repl true
                                                            :async true}
                                                   @state)
@@ -110,6 +111,7 @@
     js-str))
 
 (def !ws-conn (atom nil))
+(def !target (atom nil))
 
 (defn do-handle-eval [{:keys [ns code file
                               _load-file? _line] :as request} send-fn]
@@ -119,13 +121,14 @@
    (.then (fn [v]
             (println "About to eval:")
             (println v)
-            (js/eval v)
-            (when-let [conn @!ws-conn]
-              (.send conn (js/JSON.stringify
-                           #js {:op "eval"
-                                :code v})))
-            ;; TODO: here comes the websocket code
-            ))
+            (if (= :browser @!target)
+              (if-let [conn @!ws-conn]
+                (.send conn (js/JSON.stringify
+                             #js {:op "eval"
+                                  :code v}))
+                ;; TODO: here comes the websocket code
+                )
+              (js/eval v))))
    (.then (fn [val]
             (send-fn request {"ns" (str @last-ns)
                               "value" (format-value (:nrepl.middleware.print/print request)
@@ -295,22 +298,27 @@
                host (or (:host opts)
                         "127.0.0.1" ;; default
                         )
+               target (or (some-> (:target opts)
+                                  keyword)
+                          :node)
                _log_level (or (if (object? opts)
                                 (.-log_level ^Object opts)
                                 (:log_level opts))
                               "info")
                server (node-net/createServer
                        (partial on-connect {}))]
+           (reset! !target target)
            ;; Expose "app" key under js/app in the repl
-           (let [wss (new WebSocketServer #js {:port 1340})]
-             (println "Websocket server running on port 1340")
-             (.on wss "connection" (fn [conn]
-                                     (reset! !ws-conn conn)
-                                     #_(.on conn "message"
-                                          (fn [data]
-                                            (js/console.log "data" data)))
-                                     #_(.send conn "something")))
-             #_(reset! !ws-server wss))
+           (when (= :browser target)
+             (let [wss (new WebSocketServer #js {:port 1340})]
+               (println "Websocket server running on port 1340")
+               (.on wss "connection" (fn [conn]
+                                       (reset! !ws-conn conn)
+                                       #_(.on conn "message"
+                                              (fn [data]
+                                                (js/console.log "data" data)))
+                                       #_(.send conn "something")))
+               #_(reset! !ws-server wss)))
            (.listen server
                     port
                     host
