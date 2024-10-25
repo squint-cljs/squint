@@ -6,6 +6,6 @@
     "vite": "^5.4.8"
   },
   "scripts": {
-    "dev": "concurrently 'squint watch --repl' 'vite dev'"
+    "dev": "concurrently 'squint watch --repl' 'vite dev' 'squint nrepl-server'"
   }
 }

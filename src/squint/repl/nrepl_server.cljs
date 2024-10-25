@@ -6,7 +6,8 @@
    ["net" :as node-net]
    [squint.compiler-common :as cc]
    [squint.compiler :as compiler]
-   [squint.repl.nrepl.bencode :refer [decode-all encode]]))
+   [squint.repl.nrepl.bencode :refer [decode-all encode]]
+   ["ws" :refer [WebSocketServer]]))
 
 (defn debug [& strs]
   (.debug js/console (str/join " " strs)))
@@ -295,6 +296,13 @@
                server (node-net/createServer
                        (partial on-connect {}))]
            ;; Expose "app" key under js/app in the repl
+           (let [wss (new WebSocketServer #js {:port 1340})]
+             (println "Websocket server running on port 1340")
+             (.on wss "connection" (fn [conn]
+                                     (.on conn "message"
+                                          (fn [data]
+                                            (js/console.log "data" data)))
+                                     (.send conn "something"))))
            (.listen server
                     port
                     host

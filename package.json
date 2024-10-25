@@ -35,7 +35,8 @@
     "react-dom": "^18.2.0",
     "shadow-cljs": "^2.19.8",
     "squint-cljs": ".",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "ws": "^8.18.0"
   },
   "dependencies": {
     "chokidar": "^4.0.1"

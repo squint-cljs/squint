@@ -1,9 +1,8 @@
-var squint_core = await import('squint-cljs/core.js');
-var squint_html = await import('squint-cljs/src/squint/html.js');
-globalThis.user = globalThis.user || {};
-globalThis.index = globalThis.index || {};
-globalThis.index.hello = function () {
+import * as squint_core from 'squint-cljs/core.js';
+import * as squint_html from 'squint-cljs/src/squint/html.js';
+var hello = function () {
 return squint_html.html`<pre>Hello</pre>`;
 };
-window.document.querySelector("#app").innerHTML = globalThis.index.hello();
-export const hello = index.hello;
+window.document.querySelector("#app").innerHTML = hello();
+
+export { hello }
