@@ -182,7 +182,7 @@ Options:
     (let [e (:e opts)]
       (println (t/compile! e))))
 
-(defn watch [{:keys [opts]}]
+(defn watch [opts]
   (let [cfg @utils/!cfg
         opts (merge cfg opts)
         paths (:paths opts)

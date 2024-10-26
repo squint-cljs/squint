@@ -1,5 +1,5 @@
 // vite.config.js
-import { defineConfig } from 'vite';
+import { defineConfig, fetchModule } from 'vite';
 import { spawn } from 'node:child_process';
 
 function cmd(...command) {
@@ -11,10 +11,25 @@ function cmd(...command) {
   });
 }
 
+const ResolveDepsPlugin = {
+  name: 'resolve-deps',
+  configureServer(server) {
+    console.log(server);
+    server.middlewares.use('/@resolve-deps', (req, res, next) => {
+      req.url = '/foo';
+      // import.meta.resolve('joi');
+      console.log(this.resolve('joi'));
+      // console.log(fetchModule(env, 'joi'));
+      next();
+    });
+  }
+};
+
 export default defineConfig( ({mode}) => {
   console.log('mode', mode);
   return {
     plugins: [
+      ResolveDepsPlugin,
     {
       name: 'prebuild-commands',
       buildStart: async () => {
