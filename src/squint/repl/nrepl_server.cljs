@@ -101,7 +101,6 @@
          cljs-ns :ns
          :as new-state} (compiler/compile-string* the-val {:context :return
                                                            :elide-exports true
-                                                           :elide-imports true
                                                            :repl true
                                                            :async true}
                                                   @state)

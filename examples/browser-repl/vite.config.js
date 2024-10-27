@@ -16,14 +16,22 @@ const ResolveDepsPlugin = {
   async configureServer(server) {
     server.middlewares.use('/@resolve-deps', async (req, res, next) => {
       const url = req.url.substring(1);
-      const file = await server.moduleGraph.resolveId(url);
+      var file;
+      try {
+        file = await server.moduleGraph.resolveId(url);
+      }
+      catch (e) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
       console.log('url', url, 'file', file);
       const newUrl = `/@fs${file.id}`;
-      res.writeHead(302, {
-        location: newUrl,
-      });
-      res.end();
-      return;
+        res.writeHead(302, {
+          location: newUrl,
+        });
+        res.end();
+        return;
     });
   }
 };

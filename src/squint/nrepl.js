@@ -6,6 +6,13 @@ function nreplWebSocket () {
   return window.ws_nrepl;
 }
 
+async function evalMe(code) {
+  const updatedCode = code.replace(/import\('(.+?)'\)/g, 'import(\'/@resolve-deps/$1\')');
+  console.log(updatedCode);
+  const res = await eval(updatedCode);
+  console.log(res);
+}
+
 function handleNreplMessage(event) {
   let data = event.data;
   data = JSON.parse(data);
@@ -14,7 +21,7 @@ function handleNreplMessage(event) {
   case 'eval':
     const code = data.code;
     console.log(code);
-    eval(code);
+    evalMe(code);
     break;
   default: break;
   }
@@ -29,4 +36,4 @@ if (port) {
   ws.onerror = (event) => {
     console.error(event);
   };
- }
+}
