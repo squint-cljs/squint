@@ -13,14 +13,17 @@ function cmd(...command) {
 
 const ResolveDepsPlugin = {
   name: 'resolve-deps',
-  configureServer(server) {
-    console.log(server);
-    server.middlewares.use('/@resolve-deps', (req, res, next) => {
-      req.url = '/foo';
-      // import.meta.resolve('joi');
-      console.log(this.resolve('joi'));
-      // console.log(fetchModule(env, 'joi'));
-      next();
+  async configureServer(server) {
+    server.middlewares.use('/@resolve-deps', async (req, res, next) => {
+      const url = req.url.substring(1);
+      const file = await server.moduleGraph.resolveId(url);
+      console.log('url', url, 'file', file);
+      const newUrl = `/@fs${file.id}`;
+      res.writeHead(302, {
+        location: newUrl,
+      });
+      res.end();
+      return;
     });
   }
 };
