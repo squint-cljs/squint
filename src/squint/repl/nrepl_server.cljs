@@ -111,34 +111,42 @@
 
 (def !ws-conn (atom nil))
 (def !target (atom nil))
+(def !response-handler (atom nil))
 
 (defn do-handle-eval [{:keys [ns code file
                               _load-file? _line] :as request} send-fn]
-  (->
-   (js/Promise.resolve code)
-   (.then compile)
-   (.then (fn [v]
-            (println "About to eval:")
-            (println v)
-            (if (= :browser @!target)
-              (if-let [conn @!ws-conn]
-                (.send conn (js/JSON.stringify
-                             #js {:op "eval"
-                                  :code v}))
-                ;; TODO: here comes the websocket code
-                )
-              (js/eval v))))
-   (.then (fn [val]
-            (send-fn request {"ns" (str @last-ns)
-                              "value" (format-value (:nrepl.middleware.print/print request)
-                                                    (:nrepl.middleware.print/options request)
-                                                    val)})))
-   (.catch (fn [e]
-             (js/console.error e)
-             (handle-error send-fn request e)))
-   (.finally (fn []
-               (send-fn request {"ns" (str @last-ns)
-                                 "status" ["done"]})))))
+  (let [browser? (= :browser @!target)
+        error? (atom nil)]
+    (->
+     (js/Promise.resolve code)
+     (.then compile)
+     (.then (fn [v]
+              (println "About to eval:")
+              (println v)
+              (if browser?
+                (if-let [conn @!ws-conn]
+                  (.send conn (js/JSON.stringify
+                               #js {:op "eval"
+                                    :code v
+                                    :id (:id request)}))
+                  (println "No websocket connection to send result to")
+                  ;; TODO: here comes the websocket code
+                  )
+                (js/eval v))))
+     (.then (fn [val]
+              (when-not browser?
+                (send-fn request {"ns" (str @last-ns)
+                                  "value" (format-value (:nrepl.middleware.print/print request)
+                                                        (:nrepl.middleware.print/options request)
+                                                        val)}))))
+     (.catch (fn [e]
+               (js/console.error e)
+               (reset! error? e)
+               (handle-error send-fn request e)))
+     (.finally (fn []
+                 (when (or (not browser?) @error?)
+                   (send-fn request {"ns" (str @last-ns)
+                                     "status" ["done"]})))))))
 
 (defn handle-eval [{:keys [ns] :as request} send-fn]
   (prn :ns ns)
@@ -265,6 +273,7 @@
   (.setNoDelay ^node-net/Socket socket true)
   (let [handler (make-request-handler opts)
         response-handler (make-reponse-handler socket)
+        _ (reset! !response-handler response-handler)
         pending (atom nil)]
     (.on ^node-net/Socket socket "data"
          (fn [data]
@@ -285,6 +294,13 @@
            (debug "Connection closed")))))
 
 (def !server (atom nil))
+
+(defn ws-message-handler [data]
+  (let [data (js/JSON.parse data)
+        data (js->clj data)]
+    (when-let [id (get data "id")]
+      (prn :sending-reply data)
+      (@!response-handler {:id id} data))))
 
 (defn start-server
   "Start nRepl server. Accepts options either as JS object or Clojure map."
@@ -313,9 +329,9 @@
                (println "Websocket server running on port 1340")
                (.on wss "connection" (fn [conn]
                                        (reset! !ws-conn conn)
-                                       #_(.on conn "message"
+                                       (.on conn "message"
                                               (fn [data]
-                                                (js/console.log "data" data)))
+                                                (ws-message-handler data)))
                                        #_(.send conn "something")))
                #_(reset! !ws-server wss)))
            (.listen server

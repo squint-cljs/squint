@@ -7,6 +7,6 @@
     "vite": "^5.4.8"
   },
   "scripts": {
-    "dev": "concurrently 'squint watch --repl' 'vite dev' 'squint nrepl-server --target browser'"
+    "dev": "concurrently 'squint watch --repl' 'vite dev' 'squint nrepl-server --target browser --port 13333'"
   }
 }
