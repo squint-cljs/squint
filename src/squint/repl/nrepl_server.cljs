@@ -128,7 +128,8 @@
                   (.send conn (js/JSON.stringify
                                #js {:op "eval"
                                     :code v
-                                    :id (:id request)}))
+                                    :id (:id request)
+                                    :session (:session request)}))
                   (println "No websocket connection to send result to")
                   ;; TODO: here comes the websocket code
                   )
@@ -298,9 +299,27 @@
 (defn ws-message-handler [data]
   (let [data (js/JSON.parse data)
         data (js->clj data)]
+    (prn ::data data)
     (when-let [id (get data "id")]
-      (prn :sending-reply data)
-      (@!response-handler {:id id} data))))
+      (let [op (get data "op")
+            session (get data "session")
+            value (get data "value")
+            ex (get data "ex")]
+        (case op
+          "eval"
+          (do (when value
+                (@!response-handler
+                 {:id id
+                  :session session}
+                 {"value" value}))
+              (@!response-handler
+               {:id id
+                :session session}
+               (cond-> {"status" ["done"]}
+                 ex (assoc "ex" ex))
+               ))
+          (println "Unhandled op reply:" op))
+        ))))
 
 (defn start-server
   "Start nRepl server. Accepts options either as JS object or Clojure map."

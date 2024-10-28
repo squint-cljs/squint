@@ -9,31 +9,33 @@ function nreplWebSocket () {
 async function evalMe(code) {
   const updatedCode = code.replace(/import\('(.+?)'\)/g, 'import(\'/@resolve-deps/$1\')');
   console.log(updatedCode);
-  var res;
+  var res, ex;
   try {
     res = await eval(updatedCode);
   } catch (e) {
-    console.log('ex', e);
-    res = e;
+    ex = e;
   }
-  console.log(res);
-  return res;
+  return [res, ex];
 }
 
 async function handleNreplMessage(event) {
   let data = event.data;
   data = JSON.parse(data);
   const id = data.id;
+  const session = data.session;
   console.log('data', data);
   const op = data.op;
-  var code, ws, res, msg;
+  var code, ws, res, ex, msg;
   switch (op) {
   case 'eval':
     code = data.code;
     console.log(code);
-    res = await evalMe(code);
-    console.log(res);
-    msg = JSON.stringify({op: 'eval', value: res, id: id});
+    [res, ex] = await evalMe(code);
+    if (ex) {
+      msg = JSON.stringify({op: 'eval', ex: ex.toString, id: id, session: session});
+    } else {
+      msg = JSON.stringify({op: 'eval', value: res?.toString(), id: id, session: session});
+    }
     console.log(msg);
     ws = nreplWebSocket();
     ws.send(msg);
