@@ -1229,3 +1229,7 @@ break;}" body)
   (let [env (assoc env :html true :jsx true)
         form (vary-meta form assoc :outer-html true)]
     (emit form env)))
+
+(defmethod emit-special 'squint.impl/deref [_ env [_ form]]
+  (let [async? (and *async* (:experimental-async-deref env))]
+    (emit (list (if async? 'js-await `deref) form) env)))

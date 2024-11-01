@@ -570,9 +570,16 @@ export function rest(coll) {
   });
 }
 
-class Reduced {
+class IDerefAsync {
+  then(resolve,_reject) {
+    return resolve(this._deref());
+  }
+}
+
+class Reduced extends IDerefAsync {
   value;
   constructor(x) {
+    super();
     this.value = x;
   }
   _deref() {
@@ -921,8 +928,9 @@ export function prn(...xs) {
   println(pr_str(...xs));
 }
 
-export class Atom {
+export class Atom extends IDerefAsync {
   constructor(init) {
+    super();
     this.val = init;
     this._watches = {};
     this._deref = () => this.val;
