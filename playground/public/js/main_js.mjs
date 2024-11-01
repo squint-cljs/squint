@@ -97,7 +97,11 @@ let reactRoot = ReactDOM.createRoot(document.querySelector("#result"));
 let evalCode = async (code) => {
   try {
     let importSource = url.searchParams.get('jsx.import-source') || 'react';
-    let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement', "jsx-runtime": { "import-source": importSource, development: true } };
+    let asyncDeref = url.searchParams.get('experimental.async-deref');
+    let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement',
+                 "jsx-runtime": { "import-source": importSource, development: true },
+                 "experimental-async-deref": asyncDeref
+               };
     compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
     let js = compilerState.javascript;
     if (dev) {
