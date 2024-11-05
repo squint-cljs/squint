@@ -160,6 +160,7 @@
   (let [env (assoc env* :context :statement)
         {:keys [classname extends extend constructor fields protocols] :as _all} (parse-class (rest form))
         [_ ctor-args & ctor-body] constructor
+        classname* (symbol (str classname "$"))
         _ (assert (pos? (count ctor-args)) "contructor requires at least one argument name for this")
 
         [this-sym & ctor-args] ctor-args
@@ -189,7 +190,7 @@
                (mapcat identity)))]
     (str
      "class "
-     (munge classname)
+     (munge classname*)
      (when extends
        (str " extends "
             (emit-fn extends env)))
@@ -206,8 +207,8 @@
      (str (emit-fn extend-form fields-env))
      (when extend
        (str extend))
-     (when (:repl env)
-       (emit-fn (list 'def classname (list 'js* (munge classname))) env))
+     (when true #_(:repl env)
+       (emit-fn (list 'def classname (list 'js* (munge classname*))) env))
      (when (= :return (:context env*))
        (str "return " (munge classname) ";")))))
 
