@@ -475,13 +475,13 @@
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
         env (no-top-level env)]
-    (str (if *repl*
+    (str (str "var " (munge name)) " = "
+         (emit expr (expr-env env)) ";\n"
+         (when *repl*
            (str "globalThis."
                 (when *cljs-ns*
                   (str (munge *cljs-ns*) ".") #_"var ")
-                (munge name))
-           (str "var " (munge name))) " = "
-         (emit expr (expr-env env)) ";\n")))
+                (munge name) " = " (munge name) ";\n")))))
 
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
