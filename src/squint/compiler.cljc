@@ -453,10 +453,10 @@
                            (str
                             (when-let [vars (disj @public-vars "default$")]
                               (when (seq vars)
-                                (if cc/*repl*
+                                (if false #_cc/*repl*
                                   (str/join "\n"
                                             (map (fn [var]
-                                                   (str "export const " var " = " (munge cc/*cljs-ns*) "." var ";"))
+                                                   (str "export " var ";"))
                                                  vars))
                                   (format "\nexport { %s }\n"
                                           (str/join ", " vars)))))
