@@ -2293,5 +2293,9 @@ new Foo();")
 (deftest issue-537-test
   (is (true? (jsv! "(not (= 1 2))"))))
 
+(deftest delay-test
+  (is (eq [0 2 1 2 1]
+          (jsv! "(def a (atom 0)) (def x (delay (do (swap! a inc) 2))) [@a @x @a @x @a]"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

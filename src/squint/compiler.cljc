@@ -95,7 +95,8 @@
                              'or macros/core-or
                              'and macros/core-and
                              'assert macros/core-assert
-                             'simple-benchmark macros/simple-benchmark}
+                             'simple-benchmark macros/simple-benchmark
+                             'delay macros/delay}
                             cc/common-macros))
 
 (def core-config {:vars (edn-resource "squint/core.edn")})

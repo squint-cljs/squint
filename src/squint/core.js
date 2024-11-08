@@ -2707,3 +2707,18 @@ export function update_vals(m, f) {
   }, m2, m);
   return m2;
 }
+
+export class Delay {
+  constructor(f) {
+    this.f = f;
+  }
+  _deref() {
+    if (this.realized) {
+      return this.v;
+    } else {
+      this.v = this.f();
+      this.realized = true;
+      return this.v;
+    }
+  }
+}
