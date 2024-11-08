@@ -1,5 +1,6 @@
 #{Atom
   Cons
+  Delay
   IIterable
   IIterable__iterator
   LazySeq

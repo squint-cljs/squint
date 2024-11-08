@@ -14,7 +14,7 @@
                             bit-and-not bit-clear bit-flip bit-test
                             bit-shift-left bit-shift-right bit-shift-right-zero-fill
                             unsigned-bit-shift-right bit-set undefined?
-                            simple-benchmark])
+                            simple-benchmark delay])
   (:require [clojure.string :as str]
             [squint.compiler-common :as-alias ana]
             [clojure.core :as cc]
@@ -595,3 +595,11 @@
              elapsed# (- end# start#)]
          (~print-fn (str ~bs-str ", " ~expr-str ", "
                          ~iterations " runs, " elapsed# " msecs"))))))
+
+(core/defmacro delay
+  "Takes a body of expressions and yields a Delay object that will
+  invoke the body only the first time it is forced (with force or deref/@), and
+  will cache the result and return it on all subsequent force
+  calls."
+  [& body]
+  `(new cljs.core/Delay (fn [] ~@body) nil))

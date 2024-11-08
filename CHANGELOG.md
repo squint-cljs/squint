@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.124 (2024-11-08)
+
+- Add `delay`
+
 ## v0.8.123 (2024-11-05)
 
 - Fix [#572](https://github.com/squint-cljs/squint/issues/572): prevent vite page reload
