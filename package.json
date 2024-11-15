@@ -54,6 +54,7 @@
     "./src/squint/core.js": "./src/squint/core.js",
     "./src/squint/set.js": "./src/squint/set.js",
     "./src/squint/string.js": "./src/squint/string.js",
+    "./node-api.js": "./node-api.js",
     "./src/squint/html.js": "./src/squint/html.js"
   }
 }
