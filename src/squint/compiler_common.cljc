@@ -534,6 +534,7 @@
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           [p & _props] (when suffix
                          (str/split suffix #"\."))
+          default? (and as (= "default" p))
           as (when as (munge as))
           expr (str
                 (when (and as (= "default" p))
@@ -565,11 +566,17 @@
                                           merge (zipmap (vals rename) (keys rename)))))))
                   (let [munged-refers (map munge refer)]
                     (if *repl*
+                      ;; TODO handle default?
                       (str (statement (format "var { %s } = await import('%s')" (str/join ", " munged-refers) libname))
                            (str/join (map (fn [sym]
                                             (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym)))
                                           munged-refers)))
-                      (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname))))))]
+
+                      (if default?
+                        (let [libname* ((:gensym env) "default")]
+                          (str (statement (format "import %s from '%s'" libname* libname))
+                               (statement (format "const { %s } = %s" (str/join ", " (map munge refer)) libname*))))
+                        (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname)))))))]
       (when as
         (swap! (:ns-state env)
                (fn [ns-state]
