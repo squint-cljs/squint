@@ -1621,6 +1621,13 @@
        (str/trim (squint/compile-string "(ns foo (:require [\"some-js-lib\" :refer [atom]])) atom" {:repl true}))
        "foo.atom;")))
 
+(deftest default-require-test
+  (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom")]
+    (is (str/includes? js "import default$1 from 'some-js-lib'"))
+    (is (str/includes? js "const { atom } = default$1;")))
+  (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom" {:repl true})]
+    (is (str/includes? js "var { atom } = (await import ('some-js-lib')).default;"))))
+
 (deftest ns-test-async
   (t/async done
     (let [js (squint/compile-string "(ns foo (:require [clojure.string :as str])) (str 1 2 3 (str/join \",\" [1 2 3]))" {:repl true
