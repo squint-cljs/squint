@@ -566,8 +566,7 @@
                                           merge (zipmap (vals rename) (keys rename)))))))
                   (let [munged-refers (map munge refer)]
                     (if *repl*
-                      ;; TODO handle default?
-                      (str (statement (format "var { %s } = await import('%s')" (str/join ", " munged-refers) libname))
+                      (str (statement (format "var { %s } = (await import ('%s'))%s" (str/join ", " munged-refers) libname (when default? ".default")))
                            (str/join (map (fn [sym]
                                             (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym)))
                                           munged-refers)))
