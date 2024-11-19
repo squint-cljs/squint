@@ -2112,8 +2112,11 @@ export function min(x, y, ...more) {
   return Math.min(x, y, ...more);
 }
 
-export function map_QMARK_(x) {
-  return x instanceof Object;
+export function map_QMARK_(coll) {
+  if (coll == null) return false;
+  if (isObj(coll)) return true;
+  if (coll instanceof Map) return true;
+  return false;
 }
 
 export function every_pred(...preds) {
