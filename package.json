@@ -21,6 +21,7 @@
   "devDependencies": {
     "@babel/core": "^7.18.13",
     "@babel/preset-react": "^7.18.6",
+    "@thi.ng/hiccup": "^5.2.18",
     "@vercel/ncc": "^0.34.0",
     "argparse": "^2.0.1",
     "chalk": "^5.0.1",
