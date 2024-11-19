@@ -1,18 +1,20 @@
 (ns server
   (:require
+   ["dotenv" :as dotenv]
    ["http" :as http]
    ["url" :as url]
    ["pg$default" :as pg]))
 
+(.config dotenv)
 (def Pool pg.Pool)
 
 (defonce pool
   (Pool.
-   {:user "postgres"
-    :host "localhost"
-    :port 5432
-    :database "postgres"
-    :password "secret"}))
+   {:host (.. js/process -env -DB_HOST)
+    :port (.. js/process -env -DB_PORT)
+    :database (.. js/process -env -DB_NAME)
+    :user (.. js/process -env -DB_USER) 
+    :password (.. js/process -env -DB_PASS)}))
 
 (defn ^:async execute-query [query params]
   (.-rows (js-await (.query pool query params))))
@@ -91,4 +93,4 @@
   (let [server (http/createServer handler)]
     (.listen server port host (fn [] (println "server started on" host port )))))
 
-(start-server "127.0.0.1" 3000)
+(start-server (.. js/process -env -HTTP_HOST) (.. js/process -env -HTTP_PORT))
