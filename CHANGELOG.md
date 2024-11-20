@@ -2,14 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## v0.8.125 (2024-11-19)
-
-- Fix [#575](https://github.com/squint-cljs/squint/issues/575): `map?` should not return `true` for array
-- Fix [#577](https://github.com/squint-cljs/squint/issues/577): support `$default` + `:refer`
-
-## v0.8.124 (2024-11-08)
+## v0.8.124 (2024-11-20)
 
 - Add `delay`
+- Fix [#575](https://github.com/squint-cljs/squint/issues/575): `map?` should not return `true` for array
+- Fix [#577](https://github.com/squint-cljs/squint/issues/577): support `$default` + `:refer`
 
 ## v0.8.123 (2024-11-05)
 
