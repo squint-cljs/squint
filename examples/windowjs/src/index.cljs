@@ -1,8 +1,10 @@
-;; translated from https://github.com/windowjs/windowjs/blob/main/examples/hello.js
+(ns index)
+
+(def canvas (js/document.getElementById "anchor"))
+(def ctx (.getContext canvas "2d"))
 
 (set! js/window.title "Hello")
 
-(def canvas js/window.canvas)
 (def keep-drawing true)
 
 (js/window.addEventListener
@@ -21,20 +23,20 @@
                 (js/requestAnimationFrame draw)))))
 
 (defn draw []
-  (set! canvas.fillStyle "#023047")
-  (canvas.fillRect 0 0 canvas.width canvas.height)
-  (set! canvas.fillStyle "#eb005a")
-  (canvas.fillRect 100 100 200 200)
-  (set! canvas.fillStyle "darkorange")
+  (set! ctx.fillStyle "#023047")
+  (ctx.fillRect 0 0 canvas.width canvas.height)
+  (set! ctx.fillStyle "#eb005a")
+  (ctx.fillRect 100 100 200 200)
+  (set! ctx.fillStyle "darkorange")
   (let [y (/ canvas.height 2)
         w canvas.width
-        t (Math.cos (/ (js/performance.now) 300))
+        t (js/Math.cos (/ (js/performance.now) 300))
         x (+ (/ w 2) (* (/ w 4) t))]
-    (canvas.save)
-    (canvas.translate x y)
-    (canvas.rotate (/ (* t Math/PI) 2))
-    (canvas.fillRect -100 -100 200 200)
-    (canvas.restore))
+    (ctx.save)
+    (ctx.translate x y)
+    (ctx.rotate (/ (* t Math/PI) 2))
+    (ctx.fillRect -100 -100 200 200)
+    (ctx.restore))
   (when keep-drawing
     (js/requestAnimationFrame draw)))
 
