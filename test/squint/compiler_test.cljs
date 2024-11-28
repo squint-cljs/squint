@@ -446,8 +446,10 @@
 #_(deftest munged-core-name-test
     (is (jsv! '(boolean 1))))
 
+
 (deftest defprotocol-extend-type-string-test
-  (is (eq "foo" (jsv! '(do (defprotocol IFoo (foo [_])) (extend-type string IFoo (foo [_] :foo)) (foo "bar"))))))
+  (is (eq "foo" (jsv! '(do (defprotocol IFoo (foo [_] "docstring"))
+                           (extend-type string IFoo (foo [_] :foo)) (foo "bar"))))))
 
 (deftest deftype-test
   (is (= 1 (jsv! '(do (deftype Foo [x]) (.-x (->Foo 1))))))

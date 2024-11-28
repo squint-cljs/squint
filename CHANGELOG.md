@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- #581: support docstring in `defprotocol`
+
 ## v0.8.124 (2024-11-20)
 
 - Add `delay`
