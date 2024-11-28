@@ -1,9 +1,16 @@
 { "type": "module",
   "devDependencies": {
+    "concurrently": "^9.0.1",
     "chokidar": "^4.0.1",
     "vite": "^6.0.1"
   },
   "dependencies": {
     "squint-cljs": "latest"
+  },
+  "scripts": {
+    "vite:dev": "vite",
+    "squint:watch": "squint watch --paths src",
+    "dev": "concurrently \"npm run vite:dev\" \"npm run squint:watch\"",
+    "build": "vite build public"
   }
 }
