@@ -1,6 +1,5 @@
 (ns squint.internal.protocols
-  (:require [clojure.core :as core]
-            [clojure.string :as str]))
+  (:require [clojure.core :as core]))
 
 (core/defn- emit-protocol-method-arity
   [method-sym args]
@@ -86,3 +85,55 @@
              impl-map (->impl-map impls)]
     `(do
        ~@(mapcat #(emit-type-methods type-sym %) impl-map))))
+
+(core/defn- parse-impls [specs]
+  (core/loop [ret {} s specs]
+    (if (seq s)
+      (recur (assoc ret (first s) (take-while seq? (next s)))
+             (drop-while seq? (next s)))
+      ret)))
+
+(core/defn- emit-extend-protocol [p specs]
+  (core/let [impls (parse-impls specs)]
+    `(do
+       ~@(map (core/fn [[t fs]]
+                `(extend-type ~t ~p ~@fs))
+              impls))))
+
+(core/defn core-extend-protocol
+  "Useful when you want to provide several implementations of the same
+     protocol all at once. Takes a single protocol and the implementation
+     of that protocol for one or more types. Expands into calls to
+     extend-type:
+
+     (extend-protocol Protocol
+       AType
+         (foo [x] ...)
+         (bar [x y] ...)
+       BType
+         (foo [x] ...)
+         (bar [x y] ...)
+       AClass
+         (foo [x] ...)
+         (bar [x y] ...)
+       nil
+         (foo [x] ...)
+         (bar [x y] ...))
+
+     expands into:
+
+     (do
+      (clojure.core/extend-type AType Protocol
+        (foo [x] ...)
+        (bar [x y] ...))
+      (clojure.core/extend-type BType Protocol
+        (foo [x] ...)
+        (bar [x y] ...))
+      (clojure.core/extend-type AClass Protocol
+        (foo [x] ...)
+        (bar [x y] ...))
+      (clojure.core/extend-type nil Protocol
+        (foo [x] ...)
+        (bar [x y] ...)))"
+  [_ _ p & specs]
+  (emit-extend-protocol p specs))

@@ -83,6 +83,7 @@
                              'unchecked-set macros/core-unchecked-set
                              'defprotocol protocols/core-defprotocol
                              'extend-type protocols/core-extend-type
+                             'extend-protocol protocols/core-extend-protocol
                              'deftype deftype/core-deftype
                              'defn core-defn
                              'defn- core-defn-
