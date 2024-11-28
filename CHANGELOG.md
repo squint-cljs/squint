@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.125 (2024-11-28)
 
-- #581: support docstring in `defprotocol`
+- [#581](https://github.com/squint-cljs/squint/issues/581): support docstring in `defprotocol`
+- [#582](https://github.com/squint-cljs/squint/issues/582): add `extend-protocol`
 
 ## v0.8.124 (2024-11-20)
 
