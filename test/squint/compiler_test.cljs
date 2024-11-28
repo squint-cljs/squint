@@ -451,6 +451,13 @@
   (is (eq "foo" (jsv! '(do (defprotocol IFoo (foo [_] "docstring"))
                            (extend-type string IFoo (foo [_] :foo)) (foo "bar"))))))
 
+(deftest defprotocol-extend-protocol-test
+  (is (eq ["dudedude" 1]
+          (jsv! '(do (defprotocol Identity (i [this]))
+                     (extend-protocol Identity string (i [s] (str s s))
+                                      object (i [s] s))
+                     [(i "dude") (i 1)])))))
+
 (deftest deftype-test
   (is (= 1 (jsv! '(do (deftype Foo [x]) (.-x (->Foo 1))))))
   (is (eq [:foo :bar]
