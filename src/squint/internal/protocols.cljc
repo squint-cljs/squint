@@ -12,10 +12,10 @@
   [p method]
   (let [mname (first method)
         method-sym (symbol (str p "_" mname))
-        [mdocs margs] (if (string? (second method))
-                        [(second method) (drop 2 method)]
-                        [nil (rest method)])
-        this-sym (first margs)]
+        method (rest method)
+        [mdocs margs] (if (string? (last method))
+                        [(last method) (butlast method)]
+                        [nil method])]
     `((def ~method-sym
         (js/Symbol ~(str p "_" mname)))
       (defn ~mname
