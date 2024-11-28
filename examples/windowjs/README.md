@@ -1,13 +1,11 @@
-# WindowJS
+# canvas animation example
 
-Window.js is an open-source Javascript runtime for desktop graphics programming.
+- Install dependencies:
 
-To run the example in this directory:
+    npm install
 
-```
-$  npx clava hello.cljs && ~/Downloads/windowjs hello.mjs
-```
+- Run `npm run dev` to start compiling `.cljs` -> `.js` and run `vite` server
 
-Replace `~/Downloads/windowsjs` to the location you installed `windowjs`.
+compile with `vite build public`
 
 See the a [demo tweet](https://twitter.com/borkdude/status/1564560835145617408) here.
