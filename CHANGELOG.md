@@ -4,7 +4,7 @@
 
 ## v0.8.126 (2024-11-29)
 
-- #586: support extending protocol to `nil`
+- [#586](https://github.com/squint-cljs/squint/issues/586): support extending protocol to `nil`
 
 ## v0.8.125 (2024-11-28)
 
