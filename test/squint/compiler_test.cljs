@@ -458,6 +458,12 @@
                                       object (i [s] s))
                      [(i "dude") (i 1)])))))
 
+(deftest defprotocol-extend-protocol-empty-body-test
+  (is (eq nil
+          (jsv! '(do (defprotocol Identity (i [this]))
+                     (extend-protocol Identity string (i [s]))
+                     (i "dude"))))))
+
 (deftest deftype-test
   (is (= 1 (jsv! '(do (deftype Foo [x]) (.-x (->Foo 1))))))
   (is (eq [:foo :bar]
