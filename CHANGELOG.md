@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## v0.8.126 (2024-11-29)
+## v0.8.127 (2024-11-29)
 
 - [#586](https://github.com/squint-cljs/squint/issues/586): support extending protocol to `nil`
 
