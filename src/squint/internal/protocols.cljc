@@ -84,7 +84,9 @@
 (core/defn- emit-type-methods
   [type-sym [psym pmethods]]
   (let [flag (if (nil? type-sym)
-               nil
+               `(unchecked-set
+                 ~'clojure.core/__protocol_satisfies
+                 ~psym true)
                `(unchecked-set
                  (.-prototype ~type-sym)
                  ~psym true))]

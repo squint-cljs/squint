@@ -60,7 +60,12 @@ export function _(...xs) {
   return xs.reduce((x, y) => x - y);
 }
 
+export const __protocol_satisfies = {};
+
 export function satisfies_QMARK_(protocol, x) {
+  if (x == null) {
+    return __protocol_satisfies[protocol];
+  }
   return x[protocol];
 }
 

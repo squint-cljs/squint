@@ -14,6 +14,7 @@
   _LT__EQ_
   _PLUS_
   _STAR_
+  __protocol_satisfies
   _iterator
   abs
   aclone

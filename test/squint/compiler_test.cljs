@@ -465,7 +465,7 @@
                      (i "dude"))))))
 
 (deftest defprotocol-extend-protocol-nil
-  (is (eq ["nil" "boolean" "string"]
+  (is (eq ["nil" "boolean" "string" true]
           (jsv! '(do (defprotocol Identity (i [this]))
                      (extend-protocol Identity nil (i [s] "nil"))
                      (extend-protocol Identity boolean (i [s] "boolean"))
