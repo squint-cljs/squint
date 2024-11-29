@@ -56,7 +56,8 @@
 (defn insert-this [method-bodies]
   (if (vector? (first method-bodies))
     (list* (first method-bodies)
-           (list 'js* "const self__ = this")
+           (with-meta (list 'js* "const self__ = this;")
+             {:context :statement})
            (rest method-bodies))
     ;; multi-arity
     (map insert-this method-bodies)))
