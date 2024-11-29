@@ -64,9 +64,10 @@ export const __protocol_satisfies = {};
 
 export function satisfies_QMARK_(protocol, x) {
   if (x == null) {
-    return __protocol_satisfies[protocol];
+    return protocol[null];
   }
-  return x[protocol];
+  if (typeof protocol == 'symbol') return x[protocol];
+  return x[protocol.__sym];
 }
 
 function mapAssocMut(m, k, v) {
