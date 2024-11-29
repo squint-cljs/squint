@@ -35,7 +35,7 @@
                            (partition 2 (rest doc-and-opts)))
                      (into {} (partition 2 doc-and-opts)))]
     `(do
-       (def ~(with-meta p pmeta) (js/Symbol ~(str p)))
+       (def ~(with-meta p pmeta) {:__sym (js/Symbol ~(str p))})
        ~@(mapcat #(emit-protocol-method p %) methods))))
 
 (core/defn ->impl-map [impls]
@@ -85,11 +85,11 @@
   [type-sym [psym pmethods]]
   (let [flag (if (nil? type-sym)
                `(unchecked-set
-                 ~'clojure.core/__protocol_satisfies
-                 ~psym true)
+                 ~psym nil true)
                `(unchecked-set
                  (.-prototype ~type-sym)
-                 ~psym true))]
+                 (unchecked-get ~psym "__sym") true))]
+    ;; (prn :flag flag)
     `(~flag
       ~@(map #(emit-type-method psym type-sym %) pmethods))))
 
