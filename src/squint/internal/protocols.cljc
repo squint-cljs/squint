@@ -2,10 +2,13 @@
   (:require [clojure.core :as core]))
 
 (core/defn- emit-protocol-method-arity
-  [method-sym args]
-  `(~args
-    ((unchecked-get ~(first args) ; this
-                    ~method-sym) ~@args)))
+  [mname method-sym args]
+  (let [this (first args)]
+    `(~args
+      (if (nil? ~this)
+        ((unchecked-get ~mname nil)  ~@args)
+        ((unchecked-get ~(first args) ;; this
+                        ~method-sym) ~@args)))))
 
 (core/defn- emit-protocol-method
   [p method]
@@ -19,7 +22,7 @@
         (js/Symbol ~(str p "_" mname)))
       (defn ~mname
         ~@(when mdocs [mdocs])
-        ~@(map #(emit-protocol-method-arity method-sym %) margs)))))
+        ~@(map #(emit-protocol-method-arity mname method-sym %) margs)))))
 
 (core/defn core-defprotocol
   [_&env _&form p & doc+methods]
@@ -56,7 +59,8 @@
 (defn insert-this [method-bodies]
   (if (vector? (first method-bodies))
     (list* (first method-bodies)
-           (list 'js* "const self__ = this")
+           (with-meta (list 'js* "const self__ = this;")
+             {:context :statement})
            (rest method-bodies))
     ;; multi-arity
     (map insert-this method-bodies)))
@@ -68,16 +72,26 @@
                (str mname)
                (symbol (str psym "_" mname)))
         f `(fn ~@(insert-this (rest method)))]
-    `(let [f# ~f]
-       (unchecked-set
-        (.-prototype ~type-sym) ~msym f#))))
+    (if (nil? type-sym)
+      `(let [f# ~f]
+         (unchecked-set
+          ~mname
+          ~type-sym f#))
+      `(let [f# ~f]
+         (unchecked-set
+          (.-prototype ~type-sym) ~msym f#)))))
 
 (core/defn- emit-type-methods
   [type-sym [psym pmethods]]
-  `((unchecked-set
-      (.-prototype ~type-sym)
-      ~psym true)
-     ~@(map #(emit-type-method psym type-sym %) pmethods)))
+  (let [flag (if (nil? type-sym)
+               `(unchecked-set
+                 ~'clojure.core/__protocol_satisfies
+                 ~psym true)
+               `(unchecked-set
+                 (.-prototype ~type-sym)
+                 ~psym true))]
+    `(~flag
+      ~@(map #(emit-type-method psym type-sym %) pmethods))))
 
 (core/defn core-extend-type
   [_&env _&form type-sym & impls]

@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.126 (2024-11-29)
+
+- [#586](https://github.com/squint-cljs/squint/issues/586): support extending protocol to `nil`
+
 ## v0.8.125 (2024-11-28)
 
 - [#581](https://github.com/squint-cljs/squint/issues/581): support docstring in `defprotocol`

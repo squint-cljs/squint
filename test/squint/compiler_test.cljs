@@ -458,6 +458,22 @@
                                       object (i [s] s))
                      [(i "dude") (i 1)])))))
 
+(deftest defprotocol-extend-protocol-empty-body-test
+  (is (eq nil
+          (jsv! '(do (defprotocol Identity (i [this]))
+                     (extend-protocol Identity string (i [s]))
+                     (i "dude"))))))
+
+(deftest defprotocol-extend-protocol-nil
+  (is (eq ["nil" "boolean" "string" true]
+          (jsv! '(do (defprotocol Identity (i [this]))
+                     (extend-protocol Identity nil (i [s] "nil"))
+                     (extend-protocol Identity boolean (i [s] "boolean"))
+                     (extend-protocol Identity string (i [s] "string"))
+                     [(i nil) (i false) (i "")
+                      (satisfies? Identity nil)
+                      ])))))
+
 (deftest deftype-test
   (is (= 1 (jsv! '(do (deftype Foo [x]) (.-x (->Foo 1))))))
   (is (eq [:foo :bar]
