@@ -470,7 +470,9 @@
                      (extend-protocol Identity nil (i [s] "nil"))
                      (extend-protocol Identity boolean (i [s] "boolean"))
                      (extend-protocol Identity string (i [s] "string"))
-                     [(i nil) (i false) (i "")])))))
+                     [(i nil) (i false) (i "")
+                      (satisfies? Identity nil)
+                      ])))))
 
 (deftest deftype-test
   (is (= 1 (jsv! '(do (deftype Foo [x]) (.-x (->Foo 1))))))
