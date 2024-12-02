@@ -45,7 +45,6 @@
                          'squint-compiler-html
                          'squint.impl/deref
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
-                         'clj->js
                          'squint.impl/for-of
                          'squint.impl/defonce]))
 
@@ -127,9 +126,6 @@
 
 (defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-return (str "typeof " (emit form (expr-env env))) env))
-
-(defmethod emit-special 'clj->js [_ env [_ form]]
-  (emit form env))
 
 (defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
   (let [fields (map munge fields)]

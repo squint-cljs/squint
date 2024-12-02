@@ -2333,5 +2333,11 @@ new Foo();")
   (is (eq [true true false]
           (jsv! "[(map? {}) (map? (new Map [])) (map? [])]"))))
 
+(deftest clj->js-test
+  (is (eq [2 3 4]
+          (jsv! "(clj->js (map inc [1 2 3]))")))
+  (is (eq {:a [2 3 4]}
+          (jsv! "(clj->js {:a (map inc [1 2 3])})"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

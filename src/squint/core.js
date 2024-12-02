@@ -2731,3 +2731,10 @@ export class Delay {
     }
   }
 }
+
+export function clj__GT_js(x) {
+  if (x instanceof LazyIterable) {
+    return vec(x);
+  }
+  return x;
+}
