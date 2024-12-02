@@ -1056,6 +1056,17 @@ export function vector_QMARK_(x) {
 }
 
 export function mapv(...args) {
+  if (args.length === 2) {
+    const [f, coll] = args;
+    if (coll instanceof LazyIterable) {
+      var ret = [];
+      for (const x of coll) {
+        ret.push(f(x));
+      }
+      return ret;
+    }
+    return into([], map(f), coll);
+  }
   return [...map(...args)];
 }
 
@@ -2730,4 +2741,22 @@ export class Delay {
       return this.v;
     }
   }
+}
+
+function clj__GT_js_(x, seen) {
+  // we need to protect against circular objects
+  if (seen.has(x)) return x;
+  seen.add(x);
+  if (map_QMARK_(x)) {
+    return update_vals(x, x => clj__GT_js_(x, seen));
+  }
+
+  if (coll_QMARK_(x)) {
+    return mapv(x => clj__GT_js_(x, seen), x);
+  }
+  return x;
+}
+
+export function clj__GT_js(x) {
+  return clj__GT_js_(x, new Set());
 }
