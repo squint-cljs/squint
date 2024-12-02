@@ -1058,6 +1058,13 @@ export function vector_QMARK_(x) {
 export function mapv(...args) {
   if (args.length === 2) {
     const [f, coll] = args;
+    if (coll instanceof LazyIterable) {
+      var ret = [];
+      for (const x of coll) {
+        ret.push(f(x));
+      }
+      return ret;
+    }
     return into([], map(f), coll);
   }
   return [...map(...args)];
