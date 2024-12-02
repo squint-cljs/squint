@@ -2743,13 +2743,20 @@ export class Delay {
   }
 }
 
-export function clj__GT_js(x) {
+function clj__GT_js_(x, seen) {
+  // we need to protect against circular objects
+  if (seen.has(x)) return x;
+  seen.add(x);
   if (map_QMARK_(x)) {
-    return update_vals(x, clj__GT_js);
+    return update_vals(x, x => clj__GT_js_(x, seen));
   }
 
   if (coll_QMARK_(x)) {
-    return mapv(clj__GT_js, x);
+    return mapv(x => clj__GT_js_(x, seen), x);
   }
   return x;
+}
+
+export function clj__GT_js(x) {
+  return clj__GT_js_(x, new Set());
 }
