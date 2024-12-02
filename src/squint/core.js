@@ -2733,8 +2733,12 @@ export class Delay {
 }
 
 export function clj__GT_js(x) {
-  if (x instanceof LazyIterable) {
-    return vec(x);
+  if (map_QMARK_(x)) {
+    return update_vals(x, clj__GT_js);
+  }
+
+  if (coll_QMARK_(x)) {
+    return mapv(clj__GT_js, x);
   }
   return x;
 }
