@@ -1056,6 +1056,10 @@ export function vector_QMARK_(x) {
 }
 
 export function mapv(...args) {
+  if (args.length === 2) {
+    const [f, coll] = args;
+    return into([], map(f), coll);
+  }
   return [...map(...args)];
 }
 
