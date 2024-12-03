@@ -2751,7 +2751,8 @@ function clj__GT_js_(x, seen) {
     return update_vals(x, x => clj__GT_js_(x, seen));
   }
 
-  if (coll_QMARK_(x)) {
+  const tc = typeConst(x);
+  if (tc && tc != OBJECT_TYPE) {
     return mapv(x => clj__GT_js_(x, seen), x);
   }
   return x;
