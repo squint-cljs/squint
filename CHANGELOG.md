@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.129 (2024-12-03)
+
+- #592: fix `clj->js` to not process custom classes
+
 ## v0.8.128 (2024-12-02)
 
 - [#585](https://github.com/squint-cljs/squint/issues/585): fix `clj->js` to realize lazy seqs into arrays
