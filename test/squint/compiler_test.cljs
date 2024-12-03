@@ -2339,7 +2339,9 @@ new Foo();")
   (is (eq {:a [2 3 4]}
           (jsv! "(clj->js {:a (map inc [1 2 3])})")))
   (is (eq [2 3 4]
-          (jsv! "(def x {:a 1 :b (map inc [1 2 3])}) (set! (.-a x) x) (:b (clj->js x))"))))
+          (jsv! "(def x {:a 1 :b (map inc [1 2 3])}) (set! (.-a x) x) (:b (clj->js x))")))
+  (is (true?
+       (jsv! "(defclass Foo (constructor [this x] (set! this.x x))) (instance? Foo (clj->js (new Foo [1 2 3])))"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
