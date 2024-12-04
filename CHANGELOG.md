@@ -4,7 +4,7 @@
 
 ## v0.8.129 (2024-12-03)
 
-- #592: fix `clj->js` to not process custom classes
+- [#592](https://github.com/squint-cljs/squint/issues/592): fix `clj->js` to not process custom classes
 
 ## v0.8.128 (2024-12-02)
 
