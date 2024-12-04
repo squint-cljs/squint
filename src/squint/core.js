@@ -82,9 +82,11 @@ function objAssocMut(m, k, v) {
 
 function getAssocMut(m) {
   switch (typeConst(m)) {
-    case MAP_TYPE: return mapAssocMut;
+    case MAP_TYPE:
+      return mapAssocMut;
     case ARRAY_TYPE:
-    case OBJECT_TYPE: return objAssocMut;
+    case OBJECT_TYPE:
+      return objAssocMut;
   }
 }
 
@@ -514,7 +516,8 @@ export function seqable_QMARK_(x) {
     x === undefined ||
     // we used to check instanceof Object but this returns false for TC39 Records
     // also we used to write `Symbol.iterator in` but this does not work for strings and some other types
-    !!x[Symbol.iterator]);
+    !!x[Symbol.iterator]
+  );
 }
 
 export function iterable(x) {
@@ -577,7 +580,7 @@ export function rest(coll) {
 }
 
 class IDerefAsync {
-  then(resolve,_reject) {
+  then(resolve, _reject) {
     return resolve(this._deref());
   }
 }
@@ -656,7 +659,8 @@ function* _reductions2(f, s) {
 }
 
 function* _reductions3(f, init, coll) {
-  let i = init, rst = coll;
+  let i = init,
+    rst = coll;
   while (true) {
     if (reduced_QMARK_(i)) {
       yield i.value;
@@ -783,8 +787,10 @@ function filter1(pred) {
   return (rf) => {
     return (...args) => {
       switch (args.length) {
-        case 0: return rf();
-        case 1: return rf(args[0]);
+        case 0:
+          return rf();
+        case 1:
+          return rf(args[0]);
         case 2: {
           const result = args[0];
           const input = args[1];
@@ -824,9 +830,12 @@ function map_indexed1(f) {
     let i = -1;
     return (...args) => {
       switch (args.length) {
-        case 0: return rf();
-        case 1: return rf(args[0]);
-        case 2: return rf(args[0], f((i = i + 1, i), args[1]));
+        case 0:
+          return rf();
+        case 1:
+          return rf(args[0]);
+        case 2:
+          return rf(args[0], f(((i = i + 1), i), args[1]));
       }
     };
   };
@@ -1058,14 +1067,21 @@ export function vector_QMARK_(x) {
 export function mapv(...args) {
   if (args.length === 2) {
     const [f, coll] = args;
-    if (coll instanceof LazyIterable) {
+    const iter = iterable(coll);
+    if (Array.isArray(iter)) {
+      const ret = new Array(iter.length);
+      for (var i = 0; i < iter.length; i++) {
+        ret[i] = f(iter[i]);
+      }
+      return ret;
+    }
+    else {
       var ret = [];
-      for (const x of coll) {
+      for (const x of iter) {
         ret.push(f(x));
       }
       return ret;
     }
-    return into([], map(f), coll);
   }
   return [...map(...args)];
 }
@@ -1179,8 +1195,10 @@ function interpose1(sep) {
     let started = false;
     return (...args) => {
       switch (args.length) {
-        case 0: return rf();
-        case 1: return rf(args[0]);
+        case 0:
+          return rf();
+        case 1:
+          return rf(args[0]);
         case 2: {
           if (started) {
             const sepr = rf(args[0], sep);
@@ -1231,7 +1249,8 @@ function partition_all1(n) {
     return (...args) => {
       let result, v;
       switch (args.length) {
-        case 0: return rf();
+        case 0:
+          return rf();
         case 1: {
           result = args[0];
           if (a.length !== 0) {
@@ -1494,13 +1513,13 @@ export function repeat(...args) {
     [IIterable__iterator]:
       args.length == 1
         ? function* () {
-          const x = args[0];
-          while (true) yield x;
-        }
+            const x = args[0];
+            while (true) yield x;
+          }
         : function* () {
-          const [n, x] = args;
-          for (var i = 0; i < n; i++) yield x;
-        },
+            const [n, x] = args;
+            for (var i = 0; i < n; i++) yield x;
+          },
   };
 }
 
@@ -1528,14 +1547,13 @@ function take1(n) {
         let result = args[0];
         const input = args[1];
         const n = na;
-        const nn = (na = na - 1, na);
+        const nn = ((na = na - 1), na);
         if (n > 0) {
           result = rf(result, input);
         }
         if (!(nn > 0)) {
           return ensure_reduced(result);
-        }
-        else {
+        } else {
           return result;
         }
       }
@@ -2047,7 +2065,7 @@ export function pos_QMARK_(x) {
 export function js_obj(...args) {
   let ctr = 0;
   const ret = {};
-  for (; ;) {
+  for (;;) {
     if (ctr >= args.length) {
       break;
     }
@@ -2217,9 +2235,9 @@ export function compare(x, y) {
     if (y == null) {
       return 1;
     }
-    const tx = typeof (x);
-    const ty = typeof (y);
-    if (tx === 'number' && ty === 'number' || tx === 'string' && ty === 'string') {
+    const tx = typeof x;
+    const ty = typeof y;
+    if ((tx === 'number' && ty === 'number') || (tx === 'string' && ty === 'string')) {
       if (x === y) {
         return 0;
       }
@@ -2361,7 +2379,11 @@ export function boolean_QMARK_(x) {
 export function counted_QMARK_(x) {
   const tc = typeConst(x);
   switch (tc) {
-    case ARRAY_TYPE: case MAP_TYPE: case OBJECT_TYPE: case LIST_TYPE: case SET_TYPE:
+    case ARRAY_TYPE:
+    case MAP_TYPE:
+    case OBJECT_TYPE:
+    case LIST_TYPE:
+    case SET_TYPE:
       return true;
   }
   return false;
@@ -2470,7 +2492,7 @@ export function zipmap(keys, vals) {
   const keyIterator = iterable(keys)[Symbol.iterator]();
   const valIterator = iterable(vals)[Symbol.iterator]();
   let nextKey, nextVal;
-  for (; ;) {
+  for (;;) {
     nextKey = keyIterator.next();
     if (nextKey.done) break;
     nextVal = valIterator.next();
@@ -2502,8 +2524,7 @@ export function tree_seq(isBranch, children, root) {
 }
 
 export function flatten(x) {
-  return filter(complement(sequential_QMARK_),
-    rest(tree_seq(sequential_QMARK_, seq, x)));
+  return filter(complement(sequential_QMARK_), rest(tree_seq(sequential_QMARK_, seq, x)));
 }
 
 export function transient$(x) {
@@ -2540,8 +2561,7 @@ class SortedSet {
       xs.push(x);
       // in this case we can re-use the set, since we add the element last
       this._set.add(x);
-    }
-    else {
+    } else {
       this._set = new Set(xs);
     }
     this.size = xs.length;
@@ -2658,8 +2678,7 @@ function preserving_reduced(rf) {
     const ret = rf(a1, a2);
     if (reduced_QMARK_(ret)) {
       return reduced(ret);
-    }
-    else return ret;
+    } else return ret;
   };
 }
 
@@ -2667,16 +2686,19 @@ export function cat(rf) {
   rf = preserving_reduced(rf);
   return (...args) => {
     switch (args.length) {
-      case 0: return rf();
-      case 1: return rf(args[0]);
-      case 2: return reduce(rf, args[0], args[1]);
+      case 0:
+        return rf();
+      case 1:
+        return rf(args[0]);
+      case 2:
+        return reduce(rf, args[0], args[1]);
     }
   };
 }
 
 export function rem(n, d) {
   const q = quot(n, d);
-  return n - (d * q);
+  return n - d * q;
 }
 
 export function memoize(f) {
@@ -2713,18 +2735,26 @@ export function pop(vec) {
 export function update_keys(m, f) {
   const m2 = empty(m);
   const assocFn = getAssocMut(m) || assoc_BANG_;
-  reduce_kv((acc, k, v) => {
-    return assocFn(acc, f(k), v);
-  }, m2, m);
+  reduce_kv(
+    (acc, k, v) => {
+      return assocFn(acc, f(k), v);
+    },
+    m2,
+    m
+  );
   return m2;
 }
 
 export function update_vals(m, f) {
   const m2 = empty(m);
   const assocFn = getAssocMut(m) || assoc_BANG_;
-  reduce_kv((acc, k, v) => {
-    return assocFn(acc, k, f(v));
-  }, m2, m);
+  reduce_kv(
+    (acc, k, v) => {
+      return assocFn(acc, k, f(v));
+    },
+    m2,
+    m
+  );
   return m2;
 }
 
@@ -2748,12 +2778,12 @@ function clj__GT_js_(x, seen) {
   if (seen.has(x)) return x;
   seen.add(x);
   if (map_QMARK_(x)) {
-    return update_vals(x, x => clj__GT_js_(x, seen));
+    return update_vals(x, (x) => clj__GT_js_(x, seen));
   }
 
   const tc = typeConst(x);
   if (tc && tc != OBJECT_TYPE) {
-    return mapv(x => clj__GT_js_(x, seen), x);
+    return mapv((x) => clj__GT_js_(x, seen), x);
   }
   return x;
 }
