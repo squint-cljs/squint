@@ -269,7 +269,7 @@ Generator functions must be marked with `^:gen`:
 (vec (foo)) ;;=> [1 2 3 4]
 ```
 
-Anonymous functions must have `^:gen` on the argument vector:
+Anonymous functions must have `^:gen` on the `fn` symbol:
 
 ``` clojure
 (^:gen fn [] (js-yield 1) (js-yield 2))
