@@ -212,25 +212,27 @@
                   (list operator (first args) (second args))
                   (list* operator (rest args)))
             enc-env)
-      (cond (and (= '- operator)
-                 (= 1 acount))
-            (str "-" (emit (first args) env))
-            (and (= '/ operator)
-                 (= 1 acount))
-            (str "1 / " (emit (first args) env))
-            :else
-            (-> (let [substitutions {'= "===" == "===" '!= "!=="
-                                     'not= "!=="
-                                     '+ "+"
-                                     'bit-or "|"
-                                     'bit-and "&"
-                                     'js-mod "%"
-                                     'js-?? "??"}]
-                  (str/join (str " " (or (substitutions operator)
-                                         operator) " ")
-                            (map wrap-parens (emit-args env args))))
-                (emit-return enc-env)
-                (cond-> bool? (bool-expr)))))))
+      (->
+       (cond (and (= '- operator)
+                  (= 1 acount))
+             (str "-" (emit (first args) env))
+             (and (= '/ operator)
+                  (= 1 acount))
+             (str "1 / " (emit (first args) env))
+             :else
+             (-> (let [substitutions {'= "===" == "===" '!= "!=="
+                                      'not= "!=="
+                                      '+ "+"
+                                      'bit-or "|"
+                                      'bit-and "&"
+                                      'js-mod "%"
+                                      'js-?? "??"}]
+                   (str/join (str " " (or (substitutions operator)
+                                          operator) " ")
+                             (map wrap-parens (emit-args env args))))
+                 ))
+       (emit-return enc-env)
+       (cond-> bool? (bool-expr))))))
 
 (def core-vars (atom #{}))
 
