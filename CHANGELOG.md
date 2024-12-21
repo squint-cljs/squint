@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.130 (2024-12-21)
+
+- [#596](https://github.com/squint-cljs/squint/issues/596): fix unary division to produce reciprocal
+
 ## v0.8.129 (2024-12-03)
 
 - [#592](https://github.com/squint-cljs/squint/issues/592): fix `clj->js` to not process custom classes

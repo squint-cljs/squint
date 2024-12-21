@@ -61,12 +61,12 @@
                                          (drop 2 opts)]
                                         [nil (first opts) (rest opts)])]
     (cond->
-     (-> (reduce (fn [template substitution]
-                   (str/replace-first template "~{}"
-                                      (emit substitution (merge (assoc env :context :expr) env'))))
-                 template
-                 substitutions)
-         (emit-return (merge env (meta expr))))
+        (-> (reduce (fn [template substitution]
+                      (str/replace-first template "~{}"
+                                         (emit substitution (merge (assoc env :context :expr) env'))))
+                    template
+                    substitutions)
+            (emit-return (merge env (meta expr))))
       bool? bool-expr)))
 
 (defn expr-env [env]
@@ -212,21 +212,25 @@
                   (list operator (first args) (second args))
                   (list* operator (rest args)))
             enc-env)
-      (if (and (= '- operator)
-               (= 1 acount))
-        (str "-" (emit (first args) env))
-        (-> (let [substitutions {'= "===" == "===" '!= "!=="
-                                 'not= "!=="
-                                 '+ "+"
-                                 'bit-or "|"
-                                 'bit-and "&"
-                                 'js-mod "%"
-                                 'js-?? "??"}]
-              (str/join (str " " (or (substitutions operator)
-                                     operator) " ")
-                        (map wrap-parens (emit-args env args))))
-            (emit-return enc-env)
-            (cond-> bool? (bool-expr)))))))
+      (cond (and (= '- operator)
+                 (= 1 acount))
+            (str "-" (emit (first args) env))
+            (and (= '/ operator)
+                 (= 1 acount))
+            (str "1 / " (emit (first args) env))
+            :else
+            (-> (let [substitutions {'= "===" == "===" '!= "!=="
+                                     'not= "!=="
+                                     '+ "+"
+                                     'bit-or "|"
+                                     'bit-and "&"
+                                     'js-mod "%"
+                                     'js-?? "??"}]
+                  (str/join (str " " (or (substitutions operator)
+                                         operator) " ")
+                            (map wrap-parens (emit-args env args))))
+                (emit-return enc-env)
+                (cond-> bool? (bool-expr)))))))
 
 (def core-vars (atom #{}))
 
@@ -300,7 +304,7 @@
                                   (munged-name expr)))
                            (some-> (maybe-core-var expr env) munge)
                            (when (let [alias (get (:aliases current-ns) expr)]
-                                 alias)
+                                   alias)
                              (str (when *repl*
                                     (str "globalThis." (munge *cljs-ns*) "."))
                                   (munged-name expr)))))
@@ -744,10 +748,10 @@
         true
         (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
 
-  (defmethod emit-special 'or [_type env [_ & more]]
-    (if (empty? more)
-      nil
-      (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
+(defmethod emit-special 'or [_type env [_ & more]]
+  (if (empty? more)
+    nil
+    (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
   (str "while (" (emit test) ") { \n"
@@ -1190,30 +1194,30 @@ break;}" body)
                           (assoc :children children))))
                 env))
         (let [ret #_(format "<%s%s>%s</%s>"
-                          tag-name
-                          (cc/jsx-attrs attrs env)
-                          (let [env (expr-env env)]
-                            (str/join "" (map #(emit % env) elts)))
-                          tag-name)
+                            tag-name
+                            (cc/jsx-attrs attrs env)
+                            (let [env (expr-env env)]
+                              (str/join "" (map #(emit % env) elts)))
+                            tag-name)
               (str
                (if (and html? fragment?)
-                   ""
-                   (str "<"
-                        tag-name
-                        (jsx-attrs attrs env)
-                        ">"))
+                 ""
+                 (str "<"
+                      tag-name
+                      (jsx-attrs attrs env)
+                      ">"))
                (let [env (expr-env env)]
                  (str/join "" (map #(emit % env) elts)))
                (if (and html? (or fragment?
                                   (void-tag? tag-name)))
-                   ""
-                   (str "</" tag-name ">")))]
+                 ""
+                 (str "</" tag-name ">")))]
           (when outer-html?
             (when need-html-import
               (reset! need-html-import true)))
           (emit-return
            (cond->> ret
-               outer-html?
+             outer-html?
              (format "%s`%s`"
                      (if-let [t (:tag (meta expr))]
                        (emit t (expr-env (dissoc env :jsx :html)))

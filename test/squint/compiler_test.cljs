@@ -2345,5 +2345,8 @@ new Foo();")
   (is (true?
        (jsv! "(= \"foo\" (clj->js \"foo\"))"))))
 
+(deftest divide-single-arg-test
+  (is (= 0.5 (jsv! "(/ 2)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
