@@ -2349,5 +2349,8 @@ new Foo();")
   (is (= 0.5 (jsv! "(/ 2)")))
   (is (= 0.5 (jsv! "(let [f (fn [] (/ 2))] (f))"))))
 
+(deftest issue-599-test
+  (is (eq [1 2 3] (jsv! "(def f #(apply vector %&)) (f 1 2 3)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
