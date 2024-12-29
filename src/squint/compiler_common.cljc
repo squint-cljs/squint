@@ -834,23 +834,29 @@ break;}" body)
         signature (first expr)
         arrow? (or (:arrow env) (:=> (meta signature)))
         env (assoc env :arrow arrow?)]
-    (-> (if name
-          (let [body (rest expr)]
-            (str (when *async*
-                   "async ") "function"
-                 ;; TODO: why is this duplicated here and in emit-function?
-                 (when (:gen env)
-                   "*")
-                 " "
-                 (munge name) " "
-                 (emit-function env name signature body true)))
-          (let [body (rest expr)]
-            (str (emit-function env nil signature body))))
-        (cond-> (and
-                 (not (:squint.internal.fn/def opts))
-                 (not arrow?)
-                 (= :expr (:context env))) (wrap-parens))
-        (emit-return env))))
+    (if (some #(= '& %) signature)
+      ;; this still needs macro-expansion, see issue #599
+      (let [new-f (with-meta
+                    (cons 'fn expr)
+                    (meta expr))]
+        (emit new-f env))
+      (-> (if name
+            (let [body (rest expr)]
+              (str (when *async*
+                     "async ") "function"
+                   ;; TODO: why is this duplicated here and in emit-function?
+                   (when (:gen env)
+                     "*")
+                   " "
+                   (munge name) " "
+                   (emit-function env name signature body true)))
+            (let [body (rest expr)]
+              (str (emit-function env nil signature body))))
+          (cond-> (and
+                   (not (:squint.internal.fn/def opts))
+                   (not arrow?)
+                   (= :expr (:context env))) (wrap-parens))
+          (emit-return env)))))
 
 (defmethod emit-special 'fn* [_type env [_fn & sigs :as expr]]
   (let [m (meta expr)
