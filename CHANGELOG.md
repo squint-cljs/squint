@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.132 (2024-12-29)
+
+- Fix [#255](https://github.com/squint-cljs/squint/issues/255): fn literal with rest args
+
 ## v0.8.131 (2024-12-21)
 
 - [#596](https://github.com/squint-cljs/squint/issues/596): fix unary division to produce reciprocal
