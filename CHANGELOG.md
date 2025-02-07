@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#605](https://github.com/squint-cljs/squint/issues/605): merge command line `--paths` with `squint.edn` config properly
+
 ## v0.8.132 (2024-12-29)
 
 - Fix [#255](https://github.com/squint-cljs/squint/issues/255): fn literal with rest args
