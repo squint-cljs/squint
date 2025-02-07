@@ -15,15 +15,27 @@
                 full-path)))
           exts)))
 
-(def !cfg (delay (when (fs/existsSync "squint.edn")
-                   (-> (slurp "squint.edn")
-                       (edn/read-string)))))
+(def !cfg (atom nil))
 
-(defn resolve-file [macro-ns]
+(defn get-cfg []
+  (or @!cfg
+      (do (reset! !cfg (when (fs/existsSync "squint.edn")
+                         (-> (slurp "squint.edn")
+                             (edn/read-string))))
+          @!cfg)))
+
+(defn set-cfg! [cfg]
+  (reset! !cfg cfg))
+
+(defn process-opts! [opts]
+  (let [file-cfg (get-cfg)
+        cfg (merge file-cfg opts)]
+    (set-cfg! cfg)
+    cfg))
+
+(defn resolve-file
+  [macro-ns]
   (let [path (-> macro-ns str (str/replace "-" "_") (str/replace "." "/"))]
     (some (fn [dir]
             (resolve-file* dir path))
-          (:paths @!cfg ["." "src"]))))
-
-
-
+          (:paths (get-cfg) ["." "src"]))))

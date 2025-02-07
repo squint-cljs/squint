@@ -66,8 +66,7 @@
 
 (defn compile-files
   [opts files]
-  (let [cfg @utils/!cfg
-        opts (merge cfg opts)
+  (let [opts (utils/process-opts! opts)
         paths (:paths opts)
         copy-resources (:copy-resources opts)
         output-dir (:output-dir opts ".")
@@ -164,8 +163,7 @@ Options:
       (compile-files opts rest-cmds))))
 
 (defn run [{:keys [opts]}]
-  (let [cfg @utils/!cfg
-        opts (merge cfg opts)
+  (let [opts (utils/process-opts! opts)
         {:keys [file help]} opts]
     (if help
       nil
@@ -183,8 +181,7 @@ Options:
       (println (t/compile! e))))
 
 (defn watch [opts]
-  (let [cfg @utils/!cfg
-        opts (merge cfg opts)
+  (let [opts (process-opts! opts)
         paths (:paths opts)
         output-dir (:output-dir opts ".")
         copy-resources (:copy-resources opts)]
@@ -212,7 +209,7 @@ Options:
                ((.-startServer val) opts)))))
 
 (def table
-  [{:cmds ["run"]        :fn run :cmds-opts [:file]}
+  [{:cmds ["run"]        :fn run :args->opts [:file]}
    {:cmds ["compile"]
     :fn (fn [{:keys [rest-cmds opts]}]
           (compile-files opts rest-cmds))}
