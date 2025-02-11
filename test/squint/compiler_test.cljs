@@ -1273,7 +1273,7 @@
   (testing "multiple colls"
     (is (eq ["a" 1 "b" 2] (jsv! '(vec (mapcat list [:a :b :c] [1 2]))))))
   (testing "transducer"
-    (is (eq [1 1001 2 1002 3 1003] (into [] (mapcat (fn [x] [x (+ 1000 x)])) [1 2 3])))))
+    (is (eq [1 1001 2 1002 3 1003] (jsv! '(into [] (mapcat (fn [x] [x (+ 1000 x)])) [1 2 3]))))))
 
 (deftest laziness-test
   (is (eq ["right" "up" "left" "left" "down" "down" "right" "right" "right" "up" "up" "up" "left" "left" "left" "left" "down" "down" "down" "down"]
