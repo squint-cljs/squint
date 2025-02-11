@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix [#605](https://github.com/squint-cljs/squint/issues/605): merge command line `--paths` with `squint.edn` config properly
+- Fix [#607](https://github.com/squint-cljs/squint/issues/607): make `mapcat` return a transducer if no collections are provided
 
 ## v0.8.132 (2024-12-29)
 

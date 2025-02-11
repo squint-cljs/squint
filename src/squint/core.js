@@ -1165,8 +1165,12 @@ concat[IApply__apply] = (colls) => {
 };
 
 export function mapcat(f, ...colls) {
-  const mapped = map(f, ...colls);
-  return concat1(mapped);
+  if (colls.length === 0) {
+    return comp(map(f), cat);
+  } else {
+    const mapped = map(f, ...colls);
+    return concat1(mapped);
+  }
 }
 
 export function identity(x) {
