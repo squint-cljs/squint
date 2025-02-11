@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## v0.8.133 (2024-02-11)
+## v0.8.134 (2024-02-11)
 
 - Fix [#605](https://github.com/squint-cljs/squint/issues/605): merge command line `--paths` with `squint.edn` config properly
 - Fix [#607](https://github.com/squint-cljs/squint/issues/607): make `mapcat` return a transducer if no collections are provided ([@jonasseglare](https://github.com/jonasseglare))
