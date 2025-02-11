@@ -822,6 +822,9 @@ export function filterv(pred, coll) {
 }
 
 export function remove(pred, coll) {
+  if (arguments.length === 1) {
+    return filter1(complement(pred));
+  }
   return filter(complement(pred), coll);
 }
 
