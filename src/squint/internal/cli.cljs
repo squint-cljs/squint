@@ -181,7 +181,7 @@ Options:
       (println (t/compile! e))))
 
 (defn watch [opts]
-  (let [opts (process-opts! opts)
+  (let [opts (utils/process-opts! opts)
         paths (:paths opts)
         output-dir (:output-dir opts ".")
         copy-resources (:copy-resources opts)]
