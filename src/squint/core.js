@@ -822,7 +822,9 @@ export function filterv(pred, coll) {
 }
 
 export function remove(pred, coll) {
-  return filter(complement(pred), coll);
+  return (arguments.length === 1)?
+    filter1(complement(pred))
+    : filter(complement(pred), coll);
 }
 
 function map_indexed1(f) {

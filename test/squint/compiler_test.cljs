@@ -1173,7 +1173,9 @@
   (is (eq [[:a 1]] (jsv! '(vec (remove #(not= :a (first %)) {:a 1 :b 2})))))
   (testing "nil"
     (is (eq () (jsv! '(vec (remove odd? nil)))))
-    (is (eq () (jsv! '(vec (remove odd? js/undefined)))))))
+    (is (eq () (jsv! '(vec (remove odd? js/undefined))))))
+  (testing "transducer"
+    (is (eq [2 4 6 8] (jsv! '(into [] (remove odd?) [1 2 3 4 5 6 7 8 9]))))))
 
 (deftest map-indexed-test
   (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
