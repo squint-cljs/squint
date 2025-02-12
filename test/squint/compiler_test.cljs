@@ -533,6 +533,8 @@
 (deftest set?-test
   (is (true? (jsv! '(set? #{}))))
   (is (true? (jsv! '(set? (set [])))))
+  (is (true? (jsv! '(set? #{1 2 3}))))
+  (is (true? (jsv! '(set? (set [1 2 3])))))
   (is (false? (jsv! '(set? 9))))
   (is (false? (jsv! '(set? []))))
   (is (false? (jsv! '(set? {}))))
