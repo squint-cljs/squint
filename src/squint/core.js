@@ -1101,6 +1101,10 @@ export function set(coll) {
   return new Set(iterable(coll));
 }
 
+export function set_QMARK_(x) {
+  return typeConst(x) === SET_TYPE;
+}
+
 const IApply__apply = Symbol('IApply__apply');
 
 export function apply(f, ...args) {

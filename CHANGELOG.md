@@ -4,7 +4,8 @@
 
 ## Unreleased
 
-- Fix [#609](https://github.com/squint-cljs/squint/issues/609): make `remove` return a transducer when no collection is provided.
+- Fix [#609](https://github.com/squint-cljs/squint/issues/609): make `remove` return a transducer when no collection is provided
+- Fix [#611](https://github.com/squint-cljs/squint/issues/611): Implement the `set?` function
 
 ## v0.8.134 (2024-02-11)
 
