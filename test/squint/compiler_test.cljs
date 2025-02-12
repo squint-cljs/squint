@@ -530,6 +530,18 @@
   (is (eq (js/Set.) (jsv! '(set))))
   (is (eq (js/Set.) (jsv! '(set nil)))))
 
+(deftest set?-test
+  (is (true? (jsv! '(set? #{}))))
+  (is (true? (jsv! '(set? (set [])))))
+  (is (true? (jsv! '(set? #{1 2 3}))))
+  (is (true? (jsv! '(set? (set [1 2 3])))))
+  (is (false? (jsv! '(set? 9))))
+  (is (false? (jsv! '(set? []))))
+  (is (false? (jsv! '(set? {}))))
+  (is (false? (jsv! '(set? [1]))))
+  (is (false? (jsv! '(set? {:a 3}))))
+  (is (true? (jsv! '(set? (sorted-set 1 2 3))))))
+
 (deftest await-test
   (async done
     (->
