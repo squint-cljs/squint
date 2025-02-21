@@ -692,15 +692,9 @@
   (let [eenv (expr-env env)
         method (munge** method)]
     (emit-return (str (emit obj eenv) "."
-                      (str method)
+                      method
                       (comma-list (emit-args env args)))
                  env)))
-
-(defn emit-aget [env var idxs]
-  (emit-return (apply str
-                      (emit var (expr-env env))
-                      (interleave (repeat "[") (emit-args env idxs) (repeat "]")))
-               env))
 
 (defmethod emit-special '. [_type env [_period obj method & args]]
   (let [[method args] (if (seq? method)
@@ -711,8 +705,29 @@
       (emit (list 'js* (str "~{}." (symbol (munge** (subs method-str 1)))) obj) env)
       (emit-method env obj (symbol method-str) args))))
 
+(defn emit-aget [env var idxs]
+  (emit-return (apply str
+                      (emit var (expr-env env))
+                      (interleave (repeat "[") (emit-args env idxs) (repeat "]")))
+               env))
+
 (defmethod emit-special 'aget [_type env [_aget var & idxs]]
   (emit-aget env var idxs))
+
+(defn emit-aset [env var idxs]
+  (let [v (last idxs)
+        idxs (butlast idxs)
+        last-idx (last idxs)
+        idxs (butlast idxs)]
+    (emit-return
+     (emit (list 'clojure.core/unchecked-set
+                 (list* 'clojure.core/aget var idxs)
+                 last-idx
+                 v) env)
+     env)))
+
+(defmethod emit-special 'aset [_type env [_aset var & idxs]]
+  (emit-aset env var idxs))
 
 ;; TODO: this should not be reachable in user space
 (defmethod emit-special 'return [_type env [_return _expr]]

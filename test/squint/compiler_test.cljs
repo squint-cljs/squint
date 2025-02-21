@@ -1908,7 +1908,12 @@
   (is (eq [1] (jsv! "(def x []) (aset x 0 1) x")))
   (testing "multiple dimensions"
     (is (eq [[1]] (jsv! "(def x [[]]) (aset x 0 0 1) x")))
-    (is (eq [[0 1]] (jsv! "(def x [[0]]) (aset x 0 1 1) x")))))
+    (is (eq [[0 1]] (jsv! "(def x [[0]]) (aset x 0 1 1) x"))))
+  (testing "emit direct array access"
+    (let [js (jss! "(aset [[0]] 0 0 :hello)")]
+      (is (not (str/includes? js "aset")))
+      (is (str/includes? js "[[0]][0][0] ="))
+      (is (eq :hello (js/eval js))))))
 
 (deftest toFn-test
   (testing "keywords"
