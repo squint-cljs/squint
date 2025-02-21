@@ -719,12 +719,10 @@
         idxs (butlast idxs)
         last-idx (last idxs)
         idxs (butlast idxs)]
-    (emit-return
-     (emit (list 'clojure.core/unchecked-set
-                 (list* 'clojure.core/aget var idxs)
-                 last-idx
-                 v) env)
-     env)))
+    (emit (list 'clojure.core/unchecked-set
+                (list* 'clojure.core/aget var idxs)
+                last-idx
+                v) env)))
 
 (defmethod emit-special 'aset [_type env [_aset var & idxs]]
   (emit-aset env var idxs))

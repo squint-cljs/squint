@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## v0.8.135 (2024-02-21)
+## v0.8.136 (2024-02-21)
 
 - Fix [#609](https://github.com/squint-cljs/squint/issues/609): make `remove` return a transducer when no collection is provided
 - Fix [#611](https://github.com/squint-cljs/squint/issues/611): Implement the `set?` function ([@jonasseglare](https://github.com/jonasseglare))
