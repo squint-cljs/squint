@@ -33,7 +33,8 @@
   (emit (subs (str expr) 1) env))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
-                         'return 'delete 'new 'do 'aget 'while
+                         'return 'delete 'new 'do
+                         'aget 'aset 'while
                          'inc! 'dec! 'dec 'inc 'defined?
                          '? 'try 'break 'throw 'not
                          'const 'let 'let* 'ns 'def 'loop*
