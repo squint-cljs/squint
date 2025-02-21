@@ -2,10 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.135 (2024-02-21)
 
 - Fix [#609](https://github.com/squint-cljs/squint/issues/609): make `remove` return a transducer when no collection is provided
-- Fix [#611](https://github.com/squint-cljs/squint/issues/611): Implement the `set?` function
+- Fix [#611](https://github.com/squint-cljs/squint/issues/611): Implement the `set?` function ([@jonasseglare](https://github.com/jonasseglare))
 - Fix [#613](https://github.com/squint-cljs/squint/issues/613): Optimize `aset`
 
 ## v0.8.134 (2024-02-11)
