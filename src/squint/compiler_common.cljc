@@ -962,7 +962,7 @@ break;}" body)
     (emit let env)))
 
 (defmethod emit-special 'zero? [_ env [_ num]]
-  (bool-expr (-> (format "(%s == 0)" (emit num (assoc env :context :expr)))
+  (bool-expr (-> (format "(%s === 0)" (emit num (assoc env :context :expr)))
                  (emit-return env))))
 
 (defmethod emit-special 'neg? [_ env [_ num]]

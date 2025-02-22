@@ -202,7 +202,8 @@
 
 (deftest zero?-test
   (is (str/includes? (jss! "(if (zero? x) 1 2)") "== 0"))
-  (is (not (str/includes? (jss! "(if (zero? x) 1 2)") "truth_"))))
+  (is (not (str/includes? (jss! "(if (zero? x) 1 2)") "truth_")))
+  (is (false? (jsv! "(zero? \"0\")"))))
 
 (deftest no-truth-check-test
   (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)" "(when (= 1 1) 1)"
