@@ -402,7 +402,7 @@
     (cond-> (str
              bindings
              (when loop?
-               (str "while(true){\n"))
+               "while(true){\n")
              ;; TODO: move this to env arg?
              (binding [*recur-targets*
                        (if loop? (map var->ident (map first partitioned))
@@ -413,7 +413,7 @@
              (when loop?
                ;; TODO: not sure why I had to insert the ; here, but else
                ;; (loop [x 1] (+ 1 2 x)) breaks
-               (str ";break;\n}\n")))
+               ";break;\n}\n"))
       iife?
       (wrap-implicit-iife env)
       iife?
@@ -433,11 +433,11 @@
     (cond-> (str
              (when expr?
                (str "var " gs ";\n"))
-             (str "switch (" (emit v eenv) ") {")
+             "switch (" (emit v eenv) ") {"
              (str/join (map (fn [test then]
                               (str/join
                                (map (fn [test]
-                                      (str (str "case " (emit test eenv) ":\n")
+                                      (str "case " (emit test eenv) ":\n"
                                            (if expr?
                                              (str gs " = " then)
                                              (emit then env))
