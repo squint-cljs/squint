@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#615](https://github.com/squint-cljs/squint/issues/615): `(zero? "0")` should return `false`
+
 ## v0.8.136 (2024-02-21)
 
 - Fix [#609](https://github.com/squint-cljs/squint/issues/609): make `remove` return a transducer when no collection is provided
