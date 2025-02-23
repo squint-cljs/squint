@@ -4,7 +4,8 @@
 
 ## Unreleased
 
-- Fix [#618](https://github.com/squint-cljs/squint/issues/618): Named multi-arity fns do not get munged
+- Fix [#618](https://github.com/squint-cljs/squint/issues/618): Named multi-arity `fn`s do not get munged
+- Fix [#617](https://github.com/squint-cljs/squint/issues/617): Field names in `deftype` that get munged are not captured
 - Fix [#615](https://github.com/squint-cljs/squint/issues/615): `(zero? "0")` should return `false`
 
 ## v0.8.136 (2024-02-21)

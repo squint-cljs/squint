@@ -128,8 +128,8 @@
 (defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-return (str "typeof " (emit form (expr-env env))) env))
 
-(defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
-  (let [fields (map munge fields)]
+(defmethod emit-special 'deftype* [_ env [_ t raw-fields pmasks body]]
+  (let [fields (map munge raw-fields)]
     (str "var " (munge t) " = " (format "function %s {
 %s
 %s
@@ -155,6 +155,10 @@
                                                    (zipmap fields
                                                            (map (fn [fld]
                                                                   (symbol (str "self__." fld)))
+                                                                fields))
+                                                   (zipmap raw-fields
+                                                           (map (fn [fld]
+                                                                  (symbol (str "self__." (munge fld))))
                                                                 fields)))))
                                                (assoc :type true)))))))
 
