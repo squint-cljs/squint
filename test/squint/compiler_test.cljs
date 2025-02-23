@@ -1880,7 +1880,8 @@
   (is (eq "foo2" (jsv! "((fn [char char] (str :foo char)) 1 2)"))))
 
 (deftest munge-fn-name-test
-  (is (fn? (jsv! "((((fn handle-enter [] handle-enter))))"))))
+  (is (fn? (jsv! "((((fn handle-enter [] handle-enter))))")))
+  (is (false? (str/includes? (jss! "(fn my-fn ([_] 1) ([_ _] 2))") "my-fn"))))
 
 (deftest defonce-test
   (is (eq 1 (jsv! "(defonce x 1) x"))))

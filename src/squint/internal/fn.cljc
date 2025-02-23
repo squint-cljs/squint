@@ -104,7 +104,7 @@
                 ~(apply-to)))))))
 
 (defn- multi-arity-fn [name meta fdecl emit-var?]
-  (let [name (or name (gensym "f"))]
+  (let [name (munge (or name (gensym "f")))]
     (letfn [(dest-args [c]
               (map (fn [n] (core-unchecked-get (core-js-arguments) n))
                    (range c)))
