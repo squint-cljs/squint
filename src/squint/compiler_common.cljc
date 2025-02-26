@@ -1266,3 +1266,35 @@ break;}" body)
 (defmethod emit-special 'squint.impl/deref [_ env [_ form]]
   (let [async? (and *async* (:experimental-async-deref env))]
     (emit (list (if async? 'js-await `deref) form) env)))
+
+(defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
+  (let [fields* (map munge fields)]
+    (str "var " (munge t)
+         " = "
+         (format "function %s {
+%s
+%s
+};
+%s"
+                 (comma-list fields*)
+                 (str/join "\n"
+                           (map (fn [fld]
+                                  (str "this." fld " = " fld ";"))
+                                fields*))
+                 (str/join "\n"
+                           (map (fn [[pno pmask]]
+                                  (str "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
+                                pmasks))
+                 (emit body
+                       (->
+                        env
+                        (update
+                         :var->ident
+                         (fn [vi]
+                           (merge
+                            vi
+                            (zipmap fields
+                                    (map (fn [fld]
+                                           (symbol (str "self__." fld)))
+                                         fields*)))))
+                        (assoc :type true)))))))

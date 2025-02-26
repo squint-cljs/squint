@@ -128,36 +128,6 @@
 (defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-return (str "typeof " (emit form (expr-env env))) env))
 
-(defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
-  (let [fields (map munge fields)]
-    (str "var " (munge t) " = " (format "function %s {
-%s
-%s
-};
-%s"
-                                        (comma-list fields)
-                                        (str/join "\n"
-                                                  (map (fn [fld]
-                                                         (str "this." fld " = " fld ";"))
-                                                       fields))
-                                        (str/join "\n"
-                                                  (map (fn [[pno pmask]]
-                                                         (str "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
-                                                       pmasks))
-                                        (emit body
-                                              (->
-                                               env
-                                               (update
-                                                :var->ident
-                                                (fn [vi]
-                                                  (merge
-                                                   vi
-                                                   (zipmap fields
-                                                           (map (fn [fld]
-                                                                  (symbol (str "self__." fld)))
-                                                                fields)))))
-                                               (assoc :type true)))))))
-
 (defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let env bindings more) env))
 

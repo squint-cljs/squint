@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix [#615](https://github.com/squint-cljs/squint/issues/615): `(zero? "0")` should return `false`
+- Fix [#617](https://github.com/squint-cljs/squint/issues/617): `deftype` field name munging problem
 
 ## v0.8.136 (2024-02-21)
 
