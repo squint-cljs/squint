@@ -484,13 +484,13 @@
                             (bar [_] :bar))
                    (let [x (->Foo 1)]
                      [(foo x) (bar x)])))))
-  (is (eq [:foo 2]
+  (is (eq [:foo 2 2]
           (jsv! '(do (defprotocol IFoo (foo [_]) (bar [_]))
-                     (deftype Foo [^:mutable x]
+                     (deftype Foo [^:mutable x my-y]
                        IFoo
-                       (foo [_] [:foo x])
+                       (foo [_] [:foo x my-y])
                        (bar [_] :bar))
-                     (def x  (->Foo 1))
+                     (def x  (->Foo 1 2))
                      (set! (.-x x) 2)
                      (foo x)))))
   (is (eq [:bar 1 2]
