@@ -104,7 +104,7 @@
                 ~(apply-to)))))))
 
 (defn- multi-arity-fn [name meta fdecl emit-var?]
-  (let [name (or name (gensym "f"))]
+  (let [name (munge (or name (gensym "f")))]
     (letfn [(dest-args [c]
               (map (fn [n] (core-unchecked-get (core-js-arguments) n))
                    (range c)))
@@ -182,9 +182,9 @@
                            (.
                             ;; prevent resolving rname, for REPL mode
                             ~(list 'js* (str rname))
-                              (~'cljs$core$IFn$_invoke$arity$variadic
-                               ~@(dest-args maxfa)
-                               argseq#))))
+                            (~'cljs$core$IFn$_invoke$arity$variadic
+                             ~@(dest-args maxfa)
+                             argseq#))))
                       (if (:macro meta)
                         `(throw (js/Error.
                                  (str "Invalid arity: " (- (alength ~(core-js-arguments)) 2))))
