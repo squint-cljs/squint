@@ -1060,7 +1060,10 @@ break;}" body)
                     (emit (list 'clojure.core/truth_ (list 'js* naked-condition)) expr-env))]
     (if (= :expr (:context env))
       (->
-       (format "(%s) ? (%s) : (%s)"
+       ;; NOTE: we wrap the entire expression in parens here because some macros like bitshift-left expect their args to be already wrapped in parens
+       ;; So far we've taken the approach that at the location where arguments are used we wrap those in parens which is a bit contradictory
+       ;; At some point we may want to clean this up a bit. See #622 as well.
+       (format "((%s) ? (%s) : (%s))"
                condition
                (emit then env)
                (emit else env))
