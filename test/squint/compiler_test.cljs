@@ -125,8 +125,7 @@
 
 (deftest fn-multi-arity-test
   (is (= 1 (jsv! '(let [f (fn foo ([x] x) ([x y] y))] (f 1)))))
-  (is (= 2 (jsv! '(let [f (fn foo ([x] x) ([x y] y))] (f 1 2)))))
-  (is (= 2 (jsv! '(let [f (fn foo-bar ([x] x) ([x y] y))] (f 1 2))))))
+  (is (= 2 (jsv! '(let [f (fn foo ([x] x) ([x y] y))] (f 1 2))))))
 
 (deftest fn-multi-varargs-test
   (is (= 1 (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1)))))

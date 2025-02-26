@@ -6,7 +6,6 @@
 
 - Fix [#615](https://github.com/squint-cljs/squint/issues/615): `(zero? "0")` should return `false`
 - Fix [#617](https://github.com/squint-cljs/squint/issues/617): `deftype` field name munging problem
-- Fix [#618](https://github.com/squint-cljs/squint/issues/618): Named multi-arity `fn` args don't get munged ([@grayrest](https://github.com/grayrest))
 
 ## v0.8.136 (2024-02-21)
 

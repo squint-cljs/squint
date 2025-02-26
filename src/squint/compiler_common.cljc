@@ -387,7 +387,7 @@
                     (let [vm (meta var-name)
                           rename? (not (:squint.compiler/no-rename vm))
                           renamed (if rename? (munge (gensym var-name))
-                                      (munge var-name))
+                                      var-name)
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
                           rhs-bool? (:bool rhs)
