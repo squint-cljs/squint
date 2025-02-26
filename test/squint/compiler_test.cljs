@@ -1832,7 +1832,8 @@
 
 (deftest bit-tests
   (is (= 3 (jsv! "(+ (bit-and 1 2 3) (bit-or 1 2 3))")))
-  (is (= 64 (jsv! "(bit-shift-left 8 3)"))))
+  (is (= 64 (jsv! "(bit-shift-left 8 3)")))
+  (is (= 8 (jsv! "(bit-shift-left (if true 1 2) 3)"))))
 
 (deftest alias-conflict-test
   (let [expr (fs/readFileSync "test-resources/alias_conflict_test.cljs" "UTF-8")
