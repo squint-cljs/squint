@@ -16,7 +16,7 @@
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
-                                          comma-list emit emit-args emit-infix emit-return escape-jsx
+                                          emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
@@ -347,7 +347,11 @@
                            (str "globalThis." ns " = globalThis."
                                 ns " || {};\n"))
                          "")]
-       (let [opts (assoc opts :auto-resolve @*aliases*)
+       (let [ns-state @(:ns-state env)
+             current (:current ns-state)
+             current-ns (get ns-state current)
+             _ (prn :current-ns current-ns)
+             opts (assoc opts :auto-resolve @*aliases*)
              next-form (e/parse-next rdr opts)]
          (if (= ::e/eof next-form)
            transpiled
