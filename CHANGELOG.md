@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- Fix [#XXX](https://github.com/squint-cljs/squint/issues/XXX): Implement `take-last`
+- Fix [#626](https://github.com/squint-cljs/squint/issues/XXX): Implement `take-last`
 - Fix [#615](https://github.com/squint-cljs/squint/issues/615): `(zero? "0")` should return `false`
 - Fix [#617](https://github.com/squint-cljs/squint/issues/617): `deftype` field name munging problem
 - Fix [#618](https://github.com/squint-cljs/squint/issues/618): Named multi-arity `fn` args don't get munged ([@grayrest](https://github.com/grayrest))
