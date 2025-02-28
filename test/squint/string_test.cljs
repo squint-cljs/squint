@@ -44,6 +44,21 @@
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/split-lines "foo\nbar\n\n")))))
 
+(deftest lower-case-test
+  (evalll "foobar"
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result (str/lower-case "FooBar")))))
+
+(deftest upper-case-test
+  (evalll "FOOBAR"
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result (str/upper-case "FooBar")))))
+
+(deftest capitalize-test
+  (evalll "Foobar"
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result (str/capitalize "FooBar")))))
+
 ;; (deftest string-conflict-test
 ;;   (evalll (fn [res]
 ;;             (eq ["foo","bar"] res))

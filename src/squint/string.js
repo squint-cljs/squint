@@ -126,3 +126,15 @@ export function last_index_of(s, value, from) {
   }
   return res;
 }
+
+export function lower_case(s) {
+  return s.toLowerCase();
+}
+
+export function upper_case(s) {
+  return s.toUpperCase();
+}
+
+export function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
