@@ -9,6 +9,7 @@
 - Fix [#617](https://github.com/squint-cljs/squint/issues/617): `deftype` field name munging problem
 - Fix [#618](https://github.com/squint-cljs/squint/issues/618): Named multi-arity `fn` args don't get munged ([@grayrest](https://github.com/grayrest))
 - Fix #622: operator precendence issue with `|` and `if`
+- Add `clojure.string` functions `lower-case`, `upper-case`, `capitalize`
 
 ## v0.8.136 (2024-02-21)
 
