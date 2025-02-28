@@ -196,6 +196,7 @@
   system_time
   t
   take
+  take_last
   take_nth
   take_while
   to_array

@@ -1589,6 +1589,28 @@ export function take(n, coll) {
   });
 }
 
+export function take_last(n, coll) {
+  if (n == 0) {
+    return null;
+  }
+  if (Array.isArray(coll)) {
+    return seq(coll.slice(-Math.abs(n)))
+  } else {
+    let lastN = new Array(n);
+    let i = 0;
+    for (const x of iterable(coll)) {
+      lastN[i % n] = x;
+      i++;
+    }
+    if (i % n !== 0 && i >= n) {
+      return lastN.slice(i%n).concat(lastN.slice(0, i%n));
+    } else {
+      lastN.length = Math.min(i, n);
+      return lastN;
+    }
+  }
+}
+
 function take_while1(pred) {
   return (rf) => {
     return (...args) => {
