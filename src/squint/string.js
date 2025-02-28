@@ -1,6 +1,6 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
-import { iterable, neg_QMARK_, string_QMARK_ } from './core.js';
+import { iterable, string_QMARK_ } from './core.js';
 
 export function blank_QMARK_(s) {
   if (!s) return true;
@@ -136,5 +136,7 @@ export function upper_case(s) {
 }
 
 export function capitalize(s) {
+  if (s.length === 0) return s;
+  if (s.length === 1) return s.toUpperCase();
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }

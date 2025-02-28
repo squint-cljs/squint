@@ -2,14 +2,14 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.137 (2025-02-28)
 
 - Fix [#626](https://github.com/squint-cljs/squint/issues/XXX): Implement `take-last`
 - Fix [#615](https://github.com/squint-cljs/squint/issues/615): `(zero? "0")` should return `false`
 - Fix [#617](https://github.com/squint-cljs/squint/issues/617): `deftype` field name munging problem
 - Fix [#618](https://github.com/squint-cljs/squint/issues/618): Named multi-arity `fn` args don't get munged ([@grayrest](https://github.com/grayrest))
-- Fix #622: operator precendence issue with `|` and `if`
-- Add `clojure.string` functions `lower-case`, `upper-case`, `capitalize`
+- Fix [#622](https://github.com/squint-cljs/squint/issues/622): operator precendence issue with `|` and `if`
+- Add `clojure.string` functions `lower-case`, `upper-case`, `capitalize` ([@plexus](https://github.com/plexus))
 
 ## v0.8.136 (2024-02-21)
 
