@@ -16,7 +16,7 @@
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
-                                          comma-list emit emit-args emit-infix emit-return escape-jsx
+                                          emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
@@ -156,18 +156,9 @@
                            assoc :squint.compiler/skip-var true)))
         env))
 
-(defn emit-var-declarations []
-  #_(when-not (empty? @var-declarations)
-      (apply str "var "
-             (str/join ", " (map emit @var-declarations))
-             statement-separator)))
-
 (defmethod emit-special 'fn [_type env [_fn & sigs :as expr]]
   (let [expanded (apply core-fn expr {} sigs)]
     (emit expanded env)))
-
-#_(defmethod emit-special 'break [_type _env [_break]]
-    (statement "break"))
 
 (defn strip-core-symbol [sym]
   (let [sym-ns (namespace sym)]
@@ -274,7 +265,7 @@
                              (str (emit (key-fn k) expr-env) ": "))
                            (emit (val pair) expr-env))))
           keys (str/join ", " (map mk-pair (seq expr)))]
-      (escape-jsx (-> (format "({ %s })" keys)
+      (escape-jsx (-> (format "({%s})" keys)
                       (emit-return env))
                   env*))
     (let [expr (list* 'doto {} (map (fn [[k v]]

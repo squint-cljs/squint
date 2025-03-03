@@ -42,7 +42,7 @@
 
 (defn emit-return [s env]
   (if (= :return (:context env))
-    (format "return %s;" s)
+    (format "return %s" s)
     s))
 
 (defrecord Code [js bool]
@@ -145,6 +145,7 @@
 
 (defmethod emit ::number [expr env]
   (-> (str expr)
+      (wrap-parens)
       (emit-return env)
       (escape-jsx env)))
 
@@ -481,7 +482,7 @@
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
         env (no-top-level env)]
-    (str (str "var " (munge name)) " = "
+    (str "var " (munge name) " = "
          (emit expr (expr-env env)) ";\n"
          (when *repl*
            (str "globalThis."
@@ -684,9 +685,7 @@
                              acc))
                          ""
                          @*aliases*)))))))
-
-(defmethod emit-special 'str [_type env [_str & args]]
-  (apply clojure.core/str (interpose " + " (emit-args env args))))
+;; HERE
 
 (defn emit-method [env obj method args]
   (let [eenv (expr-env env)

@@ -1925,7 +1925,7 @@
   (testing "emit direct array access"
     (let [js (jss! "(aset [[0]] 0 0 :hello)")]
       (is (not (str/includes? js "aset")))
-      (is (str/includes? js "[[0]][0][0] ="))
+      (is (str/includes? js "[[(0)]][(0)][(0)] ="))
       (is (eq :hello (js/eval js)))))
   (testing "return position"
     (is (eq 1 (jsv! "(let [x [0]] (aset x 0 1))")))))
@@ -2387,6 +2387,9 @@ new Foo();")
 
 (deftest issue-599-test
   (is (eq [1 2 3] (jsv! "(def f #(apply vector %&)) (f 1 2 3)"))))
+
+(deftest number-test
+  (is (eq "9" (jsv! "(.toString 9)"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
