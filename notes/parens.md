@@ -1,0 +1,4 @@
+- Expressions that compile into multiple tokens that need protection by being wrapped in parens
+  - object expression: ({}). not wrapping in parens doesn't work in top level statement mode or when doing interop on the map, e.g. {a: 1}.length;
+  - if in expr context
+  - number expr: (.toString 9)
