@@ -1804,7 +1804,10 @@
                                           state)
                   v (js/eval (wrap-async javascript))]
             (is (= "foo" v)))
-          (p/finally done)))))
+          (p/finally done)))
+    (testing "without constructor"
+      (is (str/includes? (:javascript (squint/compile-string* "(defclass my-el (extends HTMLElement))"))
+                         "class my_el$ extends HTMLElement {\n}")))))
 
 (deftest atom-test
   (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y"))))

@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Allow `defclass` without an explicit constructor
+
 ## v0.8.137 (2025-02-28)
 
 - Fix [#626](https://github.com/squint-cljs/squint/issues/XXX): Implement `take-last`
