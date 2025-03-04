@@ -42,7 +42,10 @@
 
 (defn emit-return [s env]
   (if (= :return (:context env))
-    (format "return %s;" s)
+    (let [top-level (:top-level env)]
+      (format "return%s %s"
+              (if top-level "!!" "")
+              s))
     s))
 
 (defrecord Code [js bool]
@@ -1161,6 +1164,7 @@ break;}" body)
       (fn [async body-fn]
         (binding [*async* async]
           (body-fn)))
+      emit-return
       form)))
 
 (defmethod emit-special 'squint.defclass/super* [_ env form]

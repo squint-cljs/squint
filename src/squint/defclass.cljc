@@ -156,7 +156,7 @@
                  "\n}")))))
 
 (defn emit-class
-  [env* emit-fn async-fn form]
+  [env* emit-fn async-fn emit-return form]
   (let [env (assoc env* :context :statement)
         {:keys [classname extends extend constructor fields protocols] :as _all} (parse-class (rest form))
         [_ ctor-args & ctor-body] constructor
@@ -196,21 +196,21 @@
             (emit-fn extends env)))
      " {\n"
      (emit-fields env emit-fn fields)
-     (str "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n")
+     "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n"
      (when-not super?
        (str "const self__ = this;\n"
-            (str "const " (emit-fn this-sym ctor-args-env)) " = this;\n"))
-     (str (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env)))
+            "const " (emit-fn this-sym ctor-args-env) " = this;\n"))
+     (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env))
      "  }\n"
      (str/join "\n" (map #(emit-object-fn fields-env emit-fn async-fn %) object-fns))
      "};\n"
-     (str (emit-fn extend-form fields-env))
+     (emit-fn extend-form fields-env)
      (when extend
        (str extend))
      (when true #_(:repl env)
        (emit-fn (list 'def classname (list 'js* (munge classname*))) env))
      (when (= :return (:context env*))
-       (str "return " (munge classname) ";")))))
+       (emit-return (munge classname) env*)))))
 
 (defn process-template-arg [arg]
   (if (string? arg)

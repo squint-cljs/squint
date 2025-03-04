@@ -336,6 +336,15 @@
     :deref (fn [e]
              (list 'squint.impl/deref e))}))
 
+(defn fix-multiple-returns [s]
+  (if-let [return-idx (str/last-index-of s "return!! ")]
+    (let [s (str (subs s 0 return-idx)
+                 "return "
+                 (subs s (+ return-idx 9)))
+          s (str/replace s "return!! " "")]
+      s)
+    s))
+
 (defn transpile-string*
   ([s] (transpile-string* s {}))
   ([s env]
@@ -350,7 +359,9 @@
        (let [opts (assoc opts :auto-resolve @*aliases*)
              next-form (e/parse-next rdr opts)]
          (if (= ::e/eof next-form)
-           transpiled
+           (if (= :return (:context env))
+             (fix-multiple-returns transpiled)
+             transpiled)
            (let [next-t (-> (transpile-form next-form env)
                             not-empty)
                  next-js
