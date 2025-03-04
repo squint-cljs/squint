@@ -161,14 +161,10 @@
         {:keys [classname extends extend constructor fields protocols] :as _all} (parse-class (rest form))
         [_ ctor-args & ctor-body] constructor
         classname* (symbol (str classname "$"))
-        _ (assert (pos? (count ctor-args)) "contructor requires at least one argument name for this")
-
         [this-sym & ctor-args] ctor-args
-        _ (assert (symbol? this-sym) "can't destructure first constructur argument")
         super? (some? extends)
         ctor-body
         (find-and-replace-super-call ctor-body super? fields this-sym)
-        #_#_arg-syms (vec (take (count ctor-args) (repeatedly gensym)))
         field-syms (map :field-name fields)
         field-locals (reduce
                       (fn [m fld]
@@ -177,7 +173,10 @@
                       {}
                       field-syms)
         fields-env (update env :var->ident merge field-locals)
-        ctor-args-munged (zipmap (cons this-sym ctor-args) (cons (munge this-sym) (map munge ctor-args)))
+        ctor-args-munged (zipmap (cond->>  ctor-args
+                                   this-sym (cons this-sym))
+                                 (cond->> (map munge ctor-args)
+                                   this-sym (cons (munge this-sym))))
         ctor-args-env (update fields-env :var->ident merge ctor-args-munged)
         object-fns (-> (some #(when (= 'Object (:protocol-name %)) %) protocols)
                        :protocol-fns)
@@ -199,7 +198,8 @@
      "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n"
      (when-not super?
        (str "const self__ = this;\n"
-            "const " (emit-fn this-sym ctor-args-env) " = this;\n"))
+            (when this-sym
+              (str "const " (emit-fn this-sym ctor-args-env) " = this;\n"))))
      (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env))
      "  }\n"
      (str/join "\n" (map #(emit-object-fn fields-env emit-fn async-fn %) object-fns))
