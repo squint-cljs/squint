@@ -1782,7 +1782,7 @@
     (is (str/includes? (squint/compile-string "(defclass Foo-bar (constructor [this]))")
                        "export { Foo_bar }"))
     (is (str/includes? (:javascript (squint/compile-string* "(defclass Foo (constructor [this]))" {:repl true
-                                                                                                     :context :return}))
+                                                                                                   :context :return}))
                        "return Foo"))
     (let [source (str (fs/readFileSync "test-resources/defclass_test.cljs"))]
       (-> (p/let [v (jsv! source)
@@ -2387,6 +2387,17 @@ new Foo();")
 
 (deftest issue-599-test
   (is (eq [1 2 3] (jsv! "(def f #(apply vector %&)) (f 1 2 3)"))))
+
+(deftest issue-603-multiple-forms-in-return-context
+  (t/async done
+    (let [js (squint/compile-string "(def x 1) (inc x)"
+                                    {:context :return
+                                     :repl true
+                                     :elide-exports true})]
+      (-> (.then (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))
+                 (fn [v]
+                   (is (= 2 v))))
+          (.finally done)))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
