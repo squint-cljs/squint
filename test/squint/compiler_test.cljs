@@ -2388,5 +2388,13 @@ new Foo();")
 (deftest issue-599-test
   (is (eq [1 2 3] (jsv! "(def f #(apply vector %&)) (f 1 2 3)"))))
 
+(deftest multiple-forms-in-return-context-test
+  (testing "only the final form gets a `return` prepended"
+    (is (str/includes?
+         (squint/compile-string
+          "(foo) (bar)" {:repl true
+                         :context :return})
+         "foo();\nbar();\nreturn baz();"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

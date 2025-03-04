@@ -341,21 +341,25 @@
   ([s env]
    (let [env (merge {:ns-state (atom {})} env)
          rdr (e/reader s)
-         opts squint-parse-opts]
+         opts (assoc squint-parse-opts :auto-resolve @*aliases*)]
      (loop [transpiled (if cc/*repl*
                          (let [ns (munge *cljs-ns*)]
                            (str "globalThis." ns " = globalThis."
                                 ns " || {};\n"))
-                         "")]
-       (let [opts (assoc opts :auto-resolve @*aliases*)
-             next-form (e/parse-next rdr opts)]
-         (if (= ::e/eof next-form)
-           transpiled
-           (let [next-t (-> (transpile-form next-form env)
-                            not-empty)
-                 next-js
-                 (cc/save-pragma env next-t)]
-             (recur (str transpiled next-js)))))))))
+                         "")
+            next-form (e/parse-next rdr opts)
+            nnext-form (e/parse-next rdr opts)]
+       (if (= ::e/eof next-form)
+         transpiled
+         (let [env (cond-> env
+                     (and (= :return (:context env))
+                          (not= ::e/eof nnext-form))
+                     (assoc :context :statement))
+               next-t (not-empty (transpile-form next-form env))
+               next-js (cc/save-pragma env next-t)]
+           (recur (str transpiled next-js)
+                  nnext-form
+                  (e/parse-next rdr opts))))))))
 
 (defn compile-string*
   ([s] (compile-string* s nil))

@@ -229,8 +229,7 @@
                                       'js-?? "??"}]
                    (str/join (str " " (or (substitutions operator)
                                           operator) " ")
-                             (map wrap-parens (emit-args env args))))
-                 ))
+                             (map wrap-parens (emit-args env args))))))
        (emit-return enc-env)
        (cond-> bool? (bool-expr))))))
 

@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#603] prevent unreachable code due to premature `return`
+
 ## v0.8.137 (2025-02-28)
 
 - Fix [#626](https://github.com/squint-cljs/squint/issues/XXX): Implement `take-last`
