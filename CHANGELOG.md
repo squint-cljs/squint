@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.139 (2025-03-04)
+
+- `defclass`: elide constructor when not provided
+
 ## v0.8.138 (2025-03-04)
 
 - Fix [#603](https://github.com/squint-cljs/squint/issues/603): don't emit multiple returns

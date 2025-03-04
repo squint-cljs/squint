@@ -195,13 +195,15 @@
             (emit-fn extends env)))
      " {\n"
      (emit-fields env emit-fn fields)
-     "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n"
-     (when-not super?
-       (str "const self__ = this;\n"
-            (when this-sym
-              (str "const " (emit-fn this-sym ctor-args-env) " = this;\n"))))
-     (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env))
-     "  }\n"
+     (when constructor
+       (str
+        "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n"
+        (when-not super?
+          (str "const self__ = this;\n"
+               (when this-sym
+                 (str "const " (emit-fn this-sym ctor-args-env) " = this;\n"))))
+        (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env))
+        "  }\n"))
      (str/join "\n" (map #(emit-object-fn fields-env emit-fn async-fn %) object-fns))
      "};\n"
      (emit-fn extend-form fields-env)

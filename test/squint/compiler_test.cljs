@@ -1784,6 +1784,8 @@
     (is (str/includes? (:javascript (squint/compile-string* "(defclass Foo (constructor [this]))" {:repl true
                                                                                                    :context :return}))
                        "return Foo"))
+    (is (not (str/includes? (:javascript (squint/compile-string* "(defclass WithoutConstructor Object (toString [_] \"bar\"))"))
+                            "constructor")))
     (let [source (str (fs/readFileSync "test-resources/defclass_test.cljs"))]
       (-> (p/let [v (jsv! source)
                   _ (is (= "<<<<1-3-3>>>>,1-3-3,true,false,42,4,6,1,2,foo,bar,3" (str v)))
