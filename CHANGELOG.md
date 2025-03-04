@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix [#603](https://github.com/squint-cljs/squint/issues/603): don't emit multiple returns
+- Drop constructor requirement for `defclass`
 
 ## v0.8.137 (2025-02-28)
 

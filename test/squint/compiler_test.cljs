@@ -1782,7 +1782,7 @@
     (is (str/includes? (squint/compile-string "(defclass Foo-bar (constructor [this]))")
                        "export { Foo_bar }"))
     (is (str/includes? (:javascript (squint/compile-string* "(defclass Foo (constructor [this]))" {:repl true
-                                                                                                     :context :return}))
+                                                                                                   :context :return}))
                        "return Foo"))
     (let [source (str (fs/readFileSync "test-resources/defclass_test.cljs"))]
       (-> (p/let [v (jsv! source)
@@ -1790,20 +1790,21 @@
                   state {}
                   {:keys [javascript] :as state}
                   (squint/compile-string*  "
-(defclass Foo (constructor [this]) Object (toString [_] \"foo\"))"
+(defclass Foo (constructor [this]) Object (toString [_] \"foo\"))
+(defclass WithoutConstructor Object (toString [_] \"bar\"))"
                                            {:repl true
                                             :context :return
                                             :elide-exports true}
                                            state)
                   _ (js/eval (wrap-async javascript))
                   {:keys [_state javascript]}
-                  (squint/compile-string* "(str (new Foo))"
+                  (squint/compile-string* "[(str (new Foo)) (str (new WithoutConstructor))]"
                                           {:repl true
                                            :context :return
                                            :elide-exports true}
                                           state)
-                  v (js/eval (wrap-async javascript))]
-            (is (= "foo" v)))
+                  v (js/eval (wrap-async javascript))
+                  _ (is (eq ["foo" "bar"] v))])
           (p/finally done)))))
 
 (deftest atom-test
