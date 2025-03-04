@@ -102,7 +102,7 @@ let evalCode = async (code) => {
                  "jsx-runtime": { "import-source": importSource, development: true },
                  "experimental-async-deref": asyncDeref
                };
-    compilerState = compileStringEx(`(do ${code}\n)`, opts, compilerState);
+    compilerState = compileStringEx(`${code}`, opts, compilerState);
     let js = compilerState.javascript;
     if (dev) {
       console.log("Loading local squint libs");

@@ -2388,5 +2388,23 @@ new Foo();")
 (deftest issue-599-test
   (is (eq [1 2 3] (jsv! "(def f #(apply vector %&)) (f 1 2 3)"))))
 
+(deftest issue-603-multiple-forms-in-return-context
+  (t/async done
+    (->
+     (p/do
+       (p/let [js (squint/compile-string "(def x 1) (inc x)"
+                                         {:context :return
+                                          :repl true
+                                          :elide-exports true})
+               v (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))]
+         (is (= 2 v)))
+       (p/let [js (squint/compile-string "(defclass Foo (constructor [_])) 3"
+                                         {:context :return
+                                          :repl true
+                                          :elide-exports true})
+               v (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))]
+         (is (= 3 v))))
+     (p/finally done))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
