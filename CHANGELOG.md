@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.140 (2025-03-09)
 
 - Fix [#635](https://github.com/squint-cljs/squint/issues/635): `range` fixes
 - Fix [#636](https://github.com/squint-cljs/squint/issues/636): add `run!`
