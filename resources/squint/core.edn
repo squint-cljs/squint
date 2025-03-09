@@ -169,6 +169,7 @@
   reset_BANG_
   rest
   reverse
+  run_BANG_
   satisfies_QMARK_
   second
   select_keys

@@ -4,7 +4,8 @@
 
 ## Unreleased
 
-- Fix #635: `range` fixes
+- Fix [#635](https://github.com/squint-cljs/squint/issues/635): `range` fixes
+- Fix [#636](https://github.com/squint-cljs/squint/issues/636): add `run!`
 
 ## v0.8.139 (2025-03-04)
 
