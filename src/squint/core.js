@@ -2825,3 +2825,7 @@ function clj__GT_js_(x, seen) {
 export function clj__GT_js(x) {
   return clj__GT_js_(x, new Set());
 }
+
+export function run_BANG_(proc, coll) {
+  reduce((_,x) => proc(x), null, coll);
+}
