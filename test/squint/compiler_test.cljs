@@ -2409,5 +2409,12 @@ new Foo();")
          (is (= 3 v))))
      (p/finally done))))
 
+(deftest range-test
+  (is (eq [0 1 2 3 4] (jsv! '(doall (range 5)))))
+  (is (eq [5 6 7 8 9] (jsv! '(doall (range 5 10)))))
+  (is (eq [0 2 4 6 8] (jsv! '(doall (range 0 10 2)))))
+  (is (eq [4 3 2 1 0] (jsv! '(doall (range 4 -1 -1)))))
+  (is (eq [5 5 5 5 5] (jsv! '(doall (take 5 (range 5 6 0)))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

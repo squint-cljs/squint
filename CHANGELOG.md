@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix #635: `range` fixes
+
 ## v0.8.139 (2025-03-04)
 
 - `defclass`: elide constructor when not provided

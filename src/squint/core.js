@@ -1004,8 +1004,9 @@ export function range(begin, end, step) {
       e = begin;
     }
     let i = b || 0;
-    s = step || 1;
-    while (e === undefined || i < e) {
+    s = step ?? 1;
+    const ascending = s >= 0;
+    while (e === undefined || (ascending && i < e) || (!ascending && e < i)) {
       yield i;
       i += s;
     }
