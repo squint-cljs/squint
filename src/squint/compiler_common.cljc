@@ -1179,6 +1179,33 @@ break;}" body)
 (defn void-tag? [tag-name]
   (contains? void-tags tag-name))
 
+(defn- parse-tag
+  "From hiccup, thanks @weavejester"
+  [^String tag]
+  (let [id-index    (let [index (.indexOf tag "#")] (when (pos? index) index))
+        class-index (let [index (.indexOf tag ".")] (when (pos? index) index))]
+    [(cond
+       id-index    (.substring tag 0 id-index)
+       class-index (.substring tag 0 class-index)
+       :else tag)
+     (when id-index
+       (if class-index
+         (.substring tag (unchecked-inc-int id-index) class-index)
+         (.substring tag (unchecked-inc-int id-index))))
+     (when class-index
+       (.substring tag (unchecked-inc-int class-index)))]))
+
+(defn- merge-attrs [attrs short-attrs]
+  (let [attrs (if-let [c (:class attrs)]
+                (if-let [sc (:class short-attrs)]
+                  (assoc attrs :class (str sc " " c))
+                  attrs)
+                attrs)
+        attrs (if-let [id (:id short-attrs (:id attrs))]
+                (assoc attrs :id id)
+                attrs)]
+    attrs))
+
 (defn emit-vector [expr env]
   (if (and (:jsx env)
            (let [f (first expr)]
@@ -1198,9 +1225,17 @@ break;}" body)
           tag-name* (if fragment?
                       (symbol "")
                       tag-name)
-          tag-name (if (and (not fragment?) keyw?)
-                     (subs (str tag) 1)
-                     (emit tag-name* (expr-env (dissoc env :jsx))))
+          [tag-name id class]
+          (if (and (not fragment?) keyw?)
+            (parse-tag  (subs (str tag) 1))
+            [(emit tag-name* (expr-env (dissoc env :jsx)))])
+          classes (when class (str/replace class "." " "))
+          short-attrs (cond-> nil
+                        classes (assoc :class classes)
+                        id (assoc :id id))
+          attrs (if attrs
+                  (merge-attrs attrs short-attrs)
+                  short-attrs)
           html? (:html env)
           outer-html? (:outer-html (meta expr))]
       (if (and (not html?) (:jsx env) (:jsx-runtime env))

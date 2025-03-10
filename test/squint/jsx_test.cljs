@@ -76,7 +76,11 @@
     (is (= "<div><div>Hello</div></div>" (test-jsx "#jsx [:div [:<> [:div \"Hello\"]]]"))))
 
   (testing "fragment"
-    (is (= "<div><div>Hello</div></div>" (test-jsx "#jsx [:div [:<> [:div \"Hello\"]]]")))))
+    (is (= "<div><div>Hello</div></div>" (test-jsx "#jsx [:div [:<> [:div \"Hello\"]]]"))))
+  (testing "class shorthand"
+    (is (= "<div class=\"container\"></div>" (test-jsx "#jsx [:div.container]"))))
+  (testing "id and classes shorthand"
+    (is (= "<div class=\"foo bar\" id=\"my-id\"></div>" (test-jsx "#jsx [:div#my-id.foo.bar]")))))
 
 ;; uncomment to test how JSX behaves
 #_(prn (test-jsx* "<div className={[\"dude\", \"bar\"]}></div>"))
