@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.141 (2025-03-10)
 
 - Fix #602: support hiccup-style shorthand for id and class attributes in `#jsx` and `#html`
 
