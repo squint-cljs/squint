@@ -125,3 +125,18 @@
        )
      (p/catch #(is false "nooooo"))
      (p/finally done))))
+
+(deftest html-id-class-shortcut-test
+  (t/async done
+    (let [js (squint.compiler/compile-string
+              "[(str #html [:div.container])
+                (str #html [:a#foo.bar.baz {:class \"quux\"}])]"
+              {:repl true :elide-exports true :context :return})
+          js (str/replace "(async function() { %s } )()" "%s" js)]
+      (-> (js/eval js)
+          (.then
+           #(doseq [[k v] (map vector ["<div class=\"container\"></div>"
+                                       "<a class=\"bar baz quux\" id=\"foo\"></a>"] %)]
+              (is (html= k v))))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))
