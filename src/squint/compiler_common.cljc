@@ -1106,6 +1106,16 @@ break;}" body)
            v)
           (wrap-double-quotes)))))
 
+(defn str-constant? [v]
+  (or (string? v)
+      (when (= :squint *target*)
+        (keyword? v))))
+
+(defn vec-attr->str [v]
+  (str/join " " (map #(if (keyword? %)
+                        (subs (str %) 1)
+                        %) v)))
+
 (defn jsx-attrs [v env]
   (let [env (expr-env env)
         html? (:html env)]
@@ -1131,9 +1141,12 @@ break;}" body)
              (str/join " "
                        (map
                         (fn [[k v]]
-                          (let [str? (or (string? v)
-                                         (when (= :squint *target*)
-                                           (keyword? v)))]
+                          (let [vec? (vector? v)
+                                v (if (and vec?
+                                           (every? str-constant? v))
+                                    (vec-attr->str v)
+                                    v)
+                                str? (str-constant? v)]
                             (if (= :& k)
                               (str "{..." (emit v (dissoc env :jsx)) "}")
                               (str (name k) "="
