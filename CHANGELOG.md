@@ -4,7 +4,7 @@
 
 ## v0.8.141 (2025-03-10)
 
-- Fix #602: support hiccup-style shorthand for id and class attributes in `#jsx` and `#html`
+- Fix [#602](https://github.com/squint-cljs/squint/issues/602): support hiccup-style shorthand for id and class attributes in `#jsx` and `#html`
 
 ## v0.8.140 (2025-03-09)
 
