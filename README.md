@@ -99,6 +99,7 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 - [static search index for Tumblr](https://github.com/holyjak/clj-tumblr-summarizer/commit/a8b2ca8a9f777e4a9059fa0f1381ded24e5f1a0f)
 - [wordle](https://github.com/jackdbd/squint-wordle)
 - [Zenith](https://tofutheloafu.itch.io/zenith): a game developed for the Lisp Game Jame 2024 by Trevor
+- [hiccupad](https://brianium.github.io/hiccupad/) ([source](https://github.com/brianium/hiccupad))
 
 ## Advent of Code
 
