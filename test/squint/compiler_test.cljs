@@ -2351,7 +2351,7 @@ new Foo();")
   (is (true? (jsv! "(def obj {:a (^:=> fn [] (this-as this this))}) (not= obj (.a obj))")))
   (is (true? (jsv! "(def obj {:a (fn ^:=> [] (this-as this this))}) (not= obj (.a obj))")))
   (testing "no paren wrapping"
-    (is (str/starts-with? (:body (squint/compile-string* "(fn ^:=> [] 1)")) "() =>"))))
+    (is (str/starts-with? (:body (squint/compile-string* "(fn ^:=> [] 1)" {:context :expr})) "() =>"))))
 
 (deftest alias-test
   (is (str/includes?

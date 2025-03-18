@@ -366,9 +366,11 @@
         statement-env (assoc env :context :statement)
         iife? (and (seq bl) (= :expr ctx))
         s (cond-> (str (str/join "" (map #(save-pragma env (emit % statement-env)) bl))
-                       (emit l (assoc env :context
-                                      (if iife? :return
-                                          ctx))))
+                       (let [ctx (if iife? :return
+                                     ctx)]
+                         (cond-> (emit l (assoc env :context
+                                                ctx))
+                           (= :return ctx) (str ";"))))
             iife?
             (wrap-implicit-iife env))]
     s))
