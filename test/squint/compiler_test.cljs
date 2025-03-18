@@ -2388,6 +2388,9 @@ new Foo();")
   (is (= 0.5 (jsv! "(/ 2)")))
   (is (= 0.5 (jsv! "(let [f (fn [] (/ 2))] (f))"))))
 
+(deftest fn-statement-test
+  (is (= 4 (jsv! "(do (fn [] 119) 4)"))))
+
 (deftest issue-599-test
   (is (eq [1 2 3] (jsv! "(def f #(apply vector %&)) (f 1 2 3)"))))
 
