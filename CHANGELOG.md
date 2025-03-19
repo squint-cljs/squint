@@ -2,10 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.142 (2025-03-19)
 
-- Fix [#640](https://github.com/squint-cljs/squint/issues/640): don't emit anonymous function if it is a statement
-- Fix [#643](https://github.com/squint-cljs/squint/issues/643): Support lexicographic compare of arrays
+- Fix [#640](https://github.com/squint-cljs/squint/issues/640): don't emit anonymous function if it is a statement ([@jonasseglare](https://github.com/jonasseglare))
+- Fix [#643](https://github.com/squint-cljs/squint/issues/643): Support lexicographic compare of arrays ([@jonasseglare](https://github.com/jonasseglare))
 
 ## v0.8.141 (2025-03-10)
 
