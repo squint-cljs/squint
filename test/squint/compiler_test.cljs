@@ -1559,9 +1559,38 @@
   (is (eq (sort nil) (jsv! '(sort nil))))
   (is (eq (sort "zoob") (jsv! '(sort "zoob")))))
 
+(deftest compare-test
+  (is (eq 0 (jsv! '(compare nil nil))))
+  (is (eq -1 (jsv! '(compare nil 3))))
+  (is (eq 1 (jsv! '(compare 3 nil))))
+  (is (eq 0 (jsv! '(compare 3 3))))
+  (is (eq -1 (jsv! '(compare 3 4))))
+  (is (eq 1 (jsv! '(compare 4 3))))
+  (is (eq 0 (jsv! '(compare "abc" "abc"))))
+  (is (eq -1 (jsv! '(compare "abc" "xyz"))))
+  (is (eq 1 (jsv! '(compare "xyz" "abc"))))
+  (is (eq 1 (jsv! '(compare ["xyz"] ["abc"]))))
+  (is (eq -1 (jsv! '(compare ["xyz"] ["abc" 3]))))
+  (is (eq 1 (jsv! '(compare ["abc" 3] ["xyz"]))))
+  (is (eq -1 (jsv! '(compare ["abc"] ["xyz"]))))
+  (is (eq -1 (jsv! '(compare ["abc" 3] ["xyz" 2]))))
+  (is (eq -1 (jsv! '(compare ["abc" 2] ["xyz" 3]))))
+  (is (eq 1 (jsv! '(compare ["xyz" 2] ["abc" 3]))))
+  (is (eq 1 (jsv! '(compare ["xyz" 3] ["abc" 2]))))
+  (is (eq -1 (jsv! '(compare ["xyz" 2] ["xyz" 3]))))
+  (is (eq 0 (jsv! '(compare ["xyz" 2] ["xyz" 2]))))
+  (is (eq 1 (jsv! '(compare ["xyz" 3] ["xyz" 2])))))
+
 (deftest sort-by-test
   (is (eq (sort-by count ["aaa" "bb" "c"]) (jsv! '(sort-by count ["aaa" "bb" "c"]))))
-  (is (eq (sort-by - [55445, 54093, 57505]) (jsv! '(sort-by - [55445, 54093, 57505])))))
+  (is (eq (sort-by - [55445, 54093, 57505]) (jsv! '(sort-by - [55445, 54093, 57505]))))
+  (is (eq [{:entity 100 :attribute "b"}
+           {:entity 100 :attribute "c"}
+           {:entity 119 :attribute "a"}]
+          (jsv! '(sort-by (juxt :entity :attribute)
+                          [{:entity 119 :attribute "a"}
+                           {:entity 100 :attribute "c"}
+                           {:entity 100 :attribute "b"}])))))
 
 (deftest shuffle-test
   (let [shuffled (jsv! '(shuffle [1 2 3 4]))]
