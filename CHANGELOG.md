@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix [#640](https://github.com/squint-cljs/squint/issues/640): don't emit anonymous function if it is a statement
+- Fix [#643](https://github.com/squint-cljs/squint/issues/643): Support lexicographic compare of arrays
 
 ## v0.8.141 (2025-03-10)
 

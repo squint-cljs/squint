@@ -2279,6 +2279,22 @@ export function compare(x, y) {
         return -1;
       }
       return 1;
+    } else if (Array.isArray(x) && Array.isArray(y)) {
+      // Implemented like `APersistentVector.compareTo`.
+      if (x.length < y.length) {
+        return -1;
+      } else if (x.length > y.length) {
+        return 1;
+      } else {
+        for (let i = 0; i < x.length; i++) {
+          let c = compare(x[i], y[i]);
+          if (c != 0) {
+            return c;
+          }
+        }
+        return 0;
+      }
+      
     } else {
       throw new Error(`comparing ${tx} to ${ty}`);
     }
