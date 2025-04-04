@@ -513,6 +513,18 @@
       (throw (js/Error.
               (cljs.core/str "Assert failed: " ~message "\n" ~(pr-str x)))))))
 
+(defn core-binding [_ _ bindings & body]
+  (let [binding-triplets (mapv cons
+                               (repeatedly gensym)
+                               (partition 2 bindings))]
+    `(let ~(into [] (mapcat #(take 2 %)) binding-triplets)
+       (try
+         ~@(map (fn [[_ var expr]] `(set! ~var ~expr)) binding-triplets)
+         (do ~@body)
+         (finally
+           ~@(map (fn [[previous var _]] `(set! ~var ~previous))
+                  binding-triplets))))))
+
 (defn coercive-=
   [_ _ x y]
   (bool-expr (list 'js* "(~{} == ~{})" x y)))

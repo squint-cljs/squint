@@ -1844,6 +1844,37 @@
 (deftest override-core-var-test
   (is (= 1 (jsv! "(def count 1) (set! count (inc count)) (defn frequencies [x] (dec x)) (frequencies count)"))))
 
+(deftest binding-test
+  (is (= 4 (jsv! "(def ^:dynamic a 3) (binding [a 4] a)")))
+  (is (= 3 (jsv! "(def ^:dynamic a 3) (binding [a 4] a) a")))
+  (is (eq #js [#js [3 4] #js [100 10] #js [3 4]] (jsv! "(def ^:dynamic a 3) (def ^:dynamic b 4) [[a b] (binding [a 100 b 10] [a b]) [a b]]")))
+  (is (eq #js [500 119] (jsv! "(def ^:dynamic x 119) (def y (try (binding [x 120] (throw (js/Error \"Failed.\")) x) (catch js/Error _ 500))) [y x]")))
+  (is (nil? (jsv! "(def ^:dynamic x 119) (binding [x 120])")))
+  (is (= 1120 (jsv! "(def ^:dynamic x 119) (binding [x 120] (+ x 100) (+ x 200) (+ x 1000))")))
+  (is (eq #js [17 1120 51 119] (jsv! "(def ^:dynamic x 119) (def y 17) [y (binding [x 120] (set! y 51) (+ x 1000)) y x]")))
+  (is (eq #js [3 4] (jsv! "(def ^:dynamic x 3) (def ^:dynamic y 4) (try (binding [x 100 y (do (throw (js/Error \"Failed.\")) 130)] (+ x y)) (catch js/Error _ nil)) [x y]"))))
+
+(deftest async-binding-test
+  (async done
+    (->
+     (.then (jsv! '(do (def ^:dynamic x 119)
+                       
+                       (defn ^:async foo []
+                         (js-await (js/Promise.resolve 10000)))
+
+                       (defn ^:async bar []
+                         [x
+                          (js-await (binding [x 120]
+                                      (+ x (js-await (foo)))))
+                          x])
+
+                       (bar)))
+            (fn [v]
+              (is (eq #js [119 10120 119] v))))
+     (.catch (fn [err]
+               (is false (.-message err))))
+     (.finally #(done)))))
+
 (deftest lazy-seq-test
   (is (eq #js [1] (jsv! "(vec (cons 1 (lazy-seq nil)))")))
   (is (eq #js [1 2] (jsv! "(vec (cons 1 (lazy-seq (cons 2 nil))))")))

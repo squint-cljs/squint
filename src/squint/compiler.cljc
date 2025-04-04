@@ -96,6 +96,7 @@
                              'or macros/core-or
                              'and macros/core-and
                              'assert macros/core-assert
+                             'binding macros/core-binding
                              'simple-benchmark macros/simple-benchmark
                              'delay macros/delay}
                             cc/common-macros))
