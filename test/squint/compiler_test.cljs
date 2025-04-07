@@ -199,7 +199,10 @@
   (let [s (jss! "(let [x (do 1 (if (inc 1) (inc 2) (inc 3)))]
                    x)")]
     (is (= 3 (js/eval s))))
-  (is (eq #js {:a 1} (jsv! "{:a (or 1 (cond true (prn :yes)) 2)}"))))
+  (is (eq #js {:a 1} (jsv! "{:a (or 1 (cond true (prn :yes)) 2)}")))
+  (is (let [v (jsv! "(let [x false] (if x 1 nil))")]
+        (and (nil? v)
+             (not (undefined? v))))))
 
 (deftest zero?-test
   (is (str/includes? (jss! "(if (zero? x) 1 2)") "== 0"))

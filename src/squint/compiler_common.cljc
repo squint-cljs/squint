@@ -1080,7 +1080,7 @@ break;}" body)
       (str (format "if (%s) {\n" condition)
            (emit then env)
            "}"
-           (when (some? else)
+           (when (= 4 (count expr)) ;; explicit else branch
              (str " else {\n"
                   (emit else env)
                   "}"))))))
