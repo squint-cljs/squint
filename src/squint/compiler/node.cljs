@@ -7,7 +7,8 @@
    [edamame.core :as e]
    [shadow.esm :as esm]
    [squint.internal.node.utils :as utils]
-   [squint.compiler :as compiler]))
+   [squint.compiler :as compiler]
+   [squint.compiler-common :as cc]))
 
 (def sci (atom nil))
 
@@ -95,7 +96,7 @@
                      :as opts}]
   (let [contents (or in-str (slurp in-file))
         opts (->opts opts)]
-    (-> (compile-string contents opts)
+    (-> (compile-string contents (assoc opts :ns nil))
         (.then (fn [{:keys [javascript jsx] :as opts}]
                  (let [opts (utils/process-opts! opts)
                        paths (:paths opts ["." "src"])

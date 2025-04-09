@@ -600,17 +600,20 @@
         expr)
       #_nil)))
 
+(defn ensure-global [mname]
+  (let [split-name (str/split (str mname) #"\.")]
+    (-> (reduce (fn [{:keys [js nk]} k]
+                  (let [nk (str (when nk
+                                  (str nk ".")) k)]
+                    {:js (str js "globalThis." nk " = globalThis." nk " || {};\n")
+                     :nk nk}))
+                {}
+                split-name)
+        :js)))
+
 (defmethod emit-special 'ns [_type env [_ns name & clauses]]
   (let [mname (munge name)
-        split-name (str/split (str mname) #"\.")
-        ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
-                                 (let [nk (str (when nk
-                                                 (str nk ".")) k)]
-                                   {:js (str js "globalThis." nk " = globalThis." nk " || {};\n")
-                                    :nk nk}))
-                               {}
-                               split-name)
-                       :js)
+        ensure-obj (ensure-global mname)
         ns-obj (str "globalThis." mname)]
     ;; TODO: deprecate *cljs-ns*
     (set! *cljs-ns* name)
