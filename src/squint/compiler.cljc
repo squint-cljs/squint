@@ -351,10 +351,9 @@
    (let [env (merge {:ns-state (atom {})} env)
          rdr (e/reader s)
          opts squint-parse-opts]
-     (loop [transpiled (if cc/*repl*
+     (loop [transpiled (if (and cc/*repl* *cljs-ns*)
                          (let [ns (munge *cljs-ns*)]
-                           (str "globalThis." ns " = globalThis."
-                                ns " || {};\n"))
+                           (cc/ensure-global ns))
                          "")]
        (let [opts (assoc opts :auto-resolve @*aliases*)
              next-form (e/parse-next rdr opts)]
