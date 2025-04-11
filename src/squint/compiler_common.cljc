@@ -587,7 +587,7 @@
                         (let [libname* ((:gensym env) "default")]
                           (str (statement (format "import %s from '%s'" libname* libname))
                                (statement (format "const { %s } = %s" referred+renamed libname*))))
-                        (statement (format "import * as{ %s } from '%s'" referred+renamed libname)))))))]
+                        (statement (format "import { %s } from '%s'" referred+renamed libname)))))))]
       (when as
         (swap! (:ns-state env)
                (fn [ns-state]
