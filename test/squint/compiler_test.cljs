@@ -1718,7 +1718,18 @@
                                  {:repl true})]
     (is (and
          (str/includes? s "existsSync: exists")
-         (str/includes? s "globalThis.test_namespace.exists(\"README.md\")")))))
+         (str/includes? s "globalThis.test_namespace.exists(\"README.md\")"))))
+  (testing "alias + refer"
+    (let [s (squint/compile-string "(ns foo (:require [\"node:fs\" :as \"fs\" :refer [existsSync]]))")]
+      (is (and
+           (str/includes? s "import * as fs from 'node:fs';")
+           (str/includes? s "import { existsSync } from 'node:fs'"))))
+    (let [s (squint/compile-string "(ns foo (:require [\"node:fs\" :as fs :refer [existsSync]]))"
+                                   {:repl true})]
+      (is (str/includes? s "var fs = await import('node:fs');
+var { existsSync } = (await import ('node:fs'));
+globalThis.foo.existsSync = existsSync;
+globalThis.foo.fs = fs;")))))
 
 (deftest default-require-test
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom")]
