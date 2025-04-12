@@ -300,19 +300,16 @@
                         (when (contains? current-ns expr)
                           (str (when *repl*
                                  (str "globalThis." (munge *cljs-ns*) ".")) (munged-name expr)))
-                        (let [renamed (:rename current-ns)
-                              expr (get renamed expr expr)]
-                          (or
-                           (when (contains? (:refers current-ns) expr)
-                             (str (when *repl*
-                                    (str "globalThis." (munge *cljs-ns*) "."))
-                                  (munged-name expr)))
-                           (some-> (maybe-core-var expr env) munge)
-                           (when (let [alias (get (:aliases current-ns) expr)]
-                                   alias)
-                             (str (when *repl*
-                                    (str "globalThis." (munge *cljs-ns*) "."))
-                                  (munged-name expr)))))
+                        (when (contains? (:refers current-ns) expr)
+                          (str (when *repl*
+                                 (str "globalThis." (munge *cljs-ns*) "."))
+                               (munged-name expr)))
+                        (some-> (maybe-core-var expr env) munge)
+                        (when (let [alias (get (:aliases current-ns) expr)]
+                                alias)
+                          (str (when *repl*
+                                 (str "globalThis." (munge *cljs-ns*) "."))
+                               (munged-name expr)))
                         (let [m (munged-name expr)]
                           m)))))]
         (emit-return (escape-jsx expr env)
@@ -544,21 +541,19 @@
                 (= 'cherry.core libname))
     (let [libname (resolve-ns env libname)
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
-          [p & _props] (when suffix
-                         (str/split suffix #"\."))
-          default? (and as (= "default" p))
+          default? (= "default" suffix) ;; we only support a default suffix for now anyway
           as (when as (munge as))
           expr (str
-                (when (and as (= "default" p))
+                (when (and as default?)
                   (if *repl*
-                    (statement (format "const %s = (await import('%s')).default" as libname))
+                    (statement (format "const %s = (await import('%s')).%s" as libname suffix))
                     (statement (format "import %s from '%s'" as libname))))
-                (when (and (not as) (not p) (not refer))
+                (when (and (not as) (not suffix) (not refer))
                   ;; import presumably for side effects
                   (if *repl*
                     (statement (format "await import('%s')" libname))
                     (statement (format "import '%s'" libname))))
-                (when (and as (not= "default" p))
+                (when (and as (not default?))
                   (swap! *imported-vars* update libname (fnil identity #{}))
                   (statement (if *repl*
                                (format "var %s = await import('%s')" as libname)
@@ -569,27 +564,30 @@
                            (let [current (:current ns-state)]
                              (update-in ns-state [current :refers]
                                         (fn [refers]
-                                          (merge refers (zipmap refer (repeat libname))))))))
-                  (when rename
-                    (swap! (:ns-state env)
-                           (fn [ns-state]
-                             (let [current (:current ns-state)]
-                               (update-in ns-state [current :rename]
-                                          merge (zipmap (vals rename) (keys rename)))))))
-                  (let [munged-refers (map munge refer)]
+                                          (merge refers (zipmap (map (fn [refer]
+                                                                       (get rename refer refer)) refer) (repeat libname))))))))
+                  (let [referred+renamed (str/join ", "
+                                                   (map (fn [refer]
+                                                          (str (munge refer)
+                                                               (when-let [renamed (get rename refer)]
+                                                                 (str " as " (munge renamed)))))
+                                                        refer))]
                     (if *repl*
-                      (str (statement (format "var { %s } = (await import ('%s'))%s" (str/join ", " munged-refers) libname
-                                              (if default? ".default"
-                                                  "")))
+                      (str (statement (format "var { %s } = (await import ('%s'))%s" (str/replace referred+renamed " as " ": ") libname
+                                              (if suffix
+                                                (str "." suffix)
+                                                "")))
                            (str/join (map (fn [sym]
                                             (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym)))
-                                          munged-refers)))
+                                          (map (fn [refer]
+                                                 (get rename refer refer))
+                                               refer))))
 
                       (if default?
                         (let [libname* ((:gensym env) "default")]
                           (str (statement (format "import %s from '%s'" libname* libname))
-                               (statement (format "const { %s } = %s" (str/join ", " (map munge refer)) libname*))))
-                        (statement (format "import { %s } from '%s'" (str/join ", " (map munge refer)) libname)))))))]
+                               (statement (format "const { %s } = %s" referred+renamed libname*))))
+                        (statement (format "import { %s } from '%s'" referred+renamed libname)))))))]
       (when as
         (swap! (:ns-state env)
                (fn [ns-state]

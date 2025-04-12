@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.145 (2024-04-11)
+
+- [#651](https://github.com/squint-cljs/squint/issues/651) Support `:require` + `:rename` + allow renamed value to be used in other :require clause
+
 ## v0.8.144 (2025-04-09)
 
 - Fix [#649](https://github.com/squint-cljs/squint/issues/649): reset ns when compiling file and fix initial global object

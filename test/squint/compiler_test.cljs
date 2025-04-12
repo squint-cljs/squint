@@ -1694,6 +1694,9 @@
   (is (jsv! '(not (some? nil))))
   (is (jsv! '(not (some? js/undefined)))))
 
+
+;;; begin ns / require related tests
+
 (deftest ns-test
   (is (str/includes? (squint/compile-string (pr-str '(ns foo (:require ["./popup.css" ]))))
                      "import './popup.css'"))
@@ -1705,6 +1708,28 @@
   (is (str/ends-with?
        (str/trim (squint/compile-string "(ns foo (:require [\"some-js-lib\" :refer [atom]])) atom" {:repl true}))
        "foo.atom;")))
+
+(deftest require-test
+  (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
+    (is (and
+         (str/includes? s "existsSync as exists")
+         (str/includes? s "exists(\"README.md\")"))))
+  (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")"
+                                 {:repl true})]
+    (is (and
+         (str/includes? s "existsSync: exists")
+         (str/includes? s "globalThis.test_namespace.exists(\"README.md\")"))))
+  (testing "alias + refer"
+    (let [s (squint/compile-string "(ns foo (:require [\"node:fs\" :as \"fs\" :refer [existsSync]]))")]
+      (is (and
+           (str/includes? s "import * as fs from 'node:fs';")
+           (str/includes? s "import { existsSync } from 'node:fs'"))))
+    (let [s (squint/compile-string "(ns foo (:require [\"node:fs\" :as fs :refer [existsSync]]))"
+                                   {:repl true})]
+      (is (str/includes? s "var fs = await import('node:fs');
+var { existsSync } = (await import ('node:fs'));
+globalThis.foo.existsSync = existsSync;
+globalThis.foo.fs = fs;")))))
 
 (deftest default-require-test
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom")]
@@ -1732,20 +1757,6 @@
         (p/catch (fn [err] (is (throw err))))
         (p/finally done))))
 
-(deftest letfn-test
-  (is (= 3 (jsv! '(letfn [(f [x] (g x)) (g [x] (inc x))] (f 2)))))
-  (is (= 20 (jsv! '(do (defn foo [] (letfn [(g [x] (f x)) (f [x] (* 2 x))] (g 10))) (foo))))))
-
-(deftest refer-clojure-exclude-test
-  (is (= "yolo" (jsv! '(do (ns foo (:refer-clojure :exclude [assoc])) (defn assoc [m x y] :yolo) (assoc {} :foo :bar))))))
-
-(deftest double-names-in-sig-test
-  (is (= 2 (jsv! '(do (defn foo [x x] x) (foo 1 2))))))
-
-(deftest try-catch-test
-  (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2)))))
-  (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2))))))
-
 (deftest require-with-kebab-case-alias-test
   (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library$default\" :as some-js-lib])) (some-js-lib/some_fn)")]
     (is (str/includes? s "import some_js_lib from 'some-js-library';"))
@@ -1765,9 +1776,23 @@
   (doseq [repl [false true]]
     (let [js (squint/compile-string "(require '[clojure.string :as str-ing]) (str-ing/join [1 2 3])" {:repl repl})]
       (is (not (str/includes? js "str-ing")))
-      (is (str/includes? js "str_ing"))))
-  (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
-    (is (str/includes? s "existsSync(\"README.md\")"))))
+      (is (str/includes? js "str_ing")))))
+
+;;; end ns / require related tests
+
+(deftest letfn-test
+  (is (= 3 (jsv! '(letfn [(f [x] (g x)) (g [x] (inc x))] (f 2)))))
+  (is (= 20 (jsv! '(do (defn foo [] (letfn [(g [x] (f x)) (f [x] (* 2 x))] (g 10))) (foo))))))
+
+(deftest refer-clojure-exclude-test
+  (is (= "yolo" (jsv! '(do (ns foo (:refer-clojure :exclude [assoc])) (defn assoc [m x y] :yolo) (assoc {} :foo :bar))))))
+
+(deftest double-names-in-sig-test
+  (is (= 2 (jsv! '(do (defn foo [x x] x) (foo 1 2))))))
+
+(deftest try-catch-test
+  (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2)))))
+  (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2))))))
 
 (deftest dissoc!-test
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc! {"1" 2 "3" 4}))))
