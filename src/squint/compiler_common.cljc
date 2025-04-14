@@ -1350,3 +1350,13 @@ break;}" body)
                                            (symbol (str "self__." fld)))
                                          fields*)))))
                         (assoc :type true)))))))
+
+(defmethod emit-special '_truth [_ env [_ expr]]
+  (let [expr-env (assoc env :context :expr)
+        compiled (emit expr expr-env)
+        skip-truth? (or (:bool compiled)
+                        (:bool (meta expr))
+                        (= 'boolean (:tag (meta test))))]
+    (if skip-truth?
+      compiled
+      (emit (list 'clojure.core/truth_ (list 'js* compiled)) expr-env))))

@@ -16,7 +16,7 @@
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
-                                          comma-list emit emit-args emit-infix emit-return escape-jsx
+                                          emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
@@ -47,7 +47,8 @@
                          'squint.impl/deref
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
                          'squint.impl/for-of
-                         'squint.impl/defonce]))
+                         'squint.impl/defonce
+                         '_truth]))
 
 (def built-in-macros (merge {'-> macros/core->
                              '->> macros/core->>

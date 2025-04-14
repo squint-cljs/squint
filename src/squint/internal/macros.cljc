@@ -499,8 +499,10 @@
   ([_ _] true)
   ([_ _ x] x)
   ([_ _ x & next]
-   `(let [and# ~x]
-      (if and# (and ~@next) and#))))
+   `(clojure.core/&& (~'_truth ~x)
+                     ~@(map (fn [expr]
+                              (list '_truth expr))
+                            next))))
 
 (defn core-assert
   "Evaluates expr and throws an exception if it does not evaluate to
