@@ -348,7 +348,8 @@
 (defn transpile-string*
   ([s] (transpile-string* s {}))
   ([s env]
-   (let [env (merge {:ns-state (atom {})} env)
+   (let [env (merge {:ns-state (atom {})
+                     :context :statement} env)
          rdr (e/reader s)
          opts squint-parse-opts]
      (loop [transpiled (if (and cc/*repl* *cljs-ns*)
