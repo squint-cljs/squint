@@ -350,7 +350,9 @@
           (do (swap! p update :js str js)
               nil)
           js))
-      (let [js (statement next-t)]
+      (let [js (if (= :statement (:context env))
+                 (statement next-t)
+                 next-t)]
         (if (or (not p) past) js
             (do
               (swap! p assoc :past true)
@@ -362,7 +364,8 @@
         ctx (:context env)
         statement-env (assoc env :context :statement)
         iife? (and (seq bl) (= :expr ctx))
-        s (cond-> (str (str/join "" (map #(save-pragma env (emit % statement-env)) bl))
+        exprs (map #(save-pragma statement-env (emit % statement-env)) bl)
+        s (cond-> (str (str/join "" exprs)
                        (let [ctx (if iife? :return
                                      ctx)]
                          (cond-> (emit l (assoc env :context
