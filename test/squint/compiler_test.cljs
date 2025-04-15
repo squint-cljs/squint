@@ -1958,7 +1958,10 @@ globalThis.foo.fs = fs;")))))
   (is (eq 1 (jsv! "(defonce x 1) x"))))
 
 (deftest set!-test
-  (is (eq 1 (jsv! "(def x {}) (set! x -foo 1) (.-foo x)"))))
+  (is (eq 1 (jsv! "(def x {}) (set! x -foo 1) (.-foo x)")))
+  (let [s (jss! "(set! {:foo 0} -foo 1)" {:context :expr})]
+    (is (str/includes? s ".foo = 1"))
+    (is (not (str/includes? s ";")))))
 
 (deftest min-max-key-test
   (testing "min-key"
