@@ -5,8 +5,9 @@
 ## Unreleased
 
 - [#653](https://github.com/squint-cljs/squint/issues/653): respect `:context expr` in `compile-string`
+- [#657](https://github.com/squint-cljs/squint/issues/657): respect `:context expr` in `set!` expression
 
-## v0.8.145 (2024-04-11)
+## v0.8.145 (2025-04-11)
 
 - [#651](https://github.com/squint-cljs/squint/issues/651) Support `:require` + `:rename` + allow renamed value to be used in other :require clause
 
