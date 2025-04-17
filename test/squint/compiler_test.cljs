@@ -2502,5 +2502,9 @@ new Foo();")
 (deftest run!-test
   (is (eq [1 2 3] (jsv! '(let [x (atom [])] (run! #(swap! x conj %) [1 2 3]) @x)))))
 
+(deftest context-expr-test
+  (let [s (squint/compile-string "(+ 1 2 3)" {:context :expr :elide-imports true})]
+    (is (not (str/includes? s ";")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
