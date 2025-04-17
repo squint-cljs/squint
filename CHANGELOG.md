@@ -6,6 +6,7 @@
 
 - [#653](https://github.com/squint-cljs/squint/issues/653): respect `:context expr` in `compile-string`
 - [#657](https://github.com/squint-cljs/squint/issues/657): respect `:context expr` in `set!` expression
+- [#659](https://github.com/squint-cljs/squint/issues/659): fix invalid code produced for REPL mode with respect to `return`
 
 ## v0.8.145 (2025-04-11)
 

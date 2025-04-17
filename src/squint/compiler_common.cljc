@@ -7,6 +7,16 @@
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
 
+(def ^:dynamic *aliases* (atom {}))
+(def ^:dynamic *async* false)
+(def ^:dynamic *imported-vars* (atom {}))
+(def ^:dynamic *excluded-core-vars* (atom #{}))
+(def ^:dynamic *public-vars* (atom #{}))
+(def ^:dynamic *recur-targets* (atom []))
+(def ^:dynamic *repl* false)
+(def ^:dynamic *cljs-ns* 'user)
+(def ^:dynamic *target* :squint)
+
 (def common-macros
   {'coercive-boolean macros/coercive-boolean
    'coercive-= macros/coercive-=
@@ -42,7 +52,7 @@
 
 (defn emit-return [s env]
   (if (= :return (:context env))
-    (let [top-level (:top-level env)]
+    (let [top-level (and *repl* (:top-level env))]
       (format "return%s %s%s"
               (if top-level "!!" "")
               s
@@ -80,16 +90,6 @@
   (str "throw " (emit expr (expr-env env))))
 
 (def statement-separator ";\n")
-
-(def ^:dynamic *aliases* (atom {}))
-(def ^:dynamic *async* false)
-(def ^:dynamic *imported-vars* (atom {}))
-(def ^:dynamic *excluded-core-vars* (atom #{}))
-(def ^:dynamic *public-vars* (atom #{}))
-(def ^:dynamic *recur-targets* (atom []))
-(def ^:dynamic *repl* false)
-(def ^:dynamic *cljs-ns* 'user)
-(def ^:dynamic *target* :squint)
 
 (defn str-tail
   "Returns the last n characters of s."

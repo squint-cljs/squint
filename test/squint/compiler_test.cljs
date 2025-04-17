@@ -2472,6 +2472,26 @@ new Foo();")
          (is (= 3 v))))
      (p/finally done))))
 
+(deftest issue-659-repl-return-issue
+  (t/async done
+    (->
+     (p/do
+       (p/let [;; def as the last expression
+               js (squint/compile-string "(def x (js/Promise.resolve 3)) (js-await x) (def y (inc (js-await x)))"
+                                         {:context :return
+                                          :repl true
+                                          :elide-exports true})
+               v (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))]
+         (is (= 4 v)))
+       (p/let [;; def as the last expression
+               js (squint/compile-string "(def x (js/Promise.resolve 3)) (js-await x) (def y (inc (js-await x))) y"
+                                         {:context :return
+                                          :repl true
+                                          :elide-exports true})
+               v (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))]
+         (is (= 4 v))))
+     (p/finally done))))
+
 (deftest range-test
   (is (eq [0 1 2 3 4] (jsv! '(doall (range 5)))))
   (is (eq [5 6 7 8 9] (jsv! '(doall (range 5 10)))))
