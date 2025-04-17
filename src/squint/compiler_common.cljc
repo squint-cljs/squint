@@ -43,9 +43,10 @@
 (defn emit-return [s env]
   (if (= :return (:context env))
     (let [top-level (:top-level env)]
-      (format "return%s %s"
+      (format "return%s %s%s"
               (if top-level "!!" "")
-              s))
+              s
+              (if top-level "!!semicolon-return" ";\n")))
     s))
 
 (defrecord Code [js bool]
@@ -485,14 +486,16 @@
 (defn emit-var [[name ?doc ?expr :as expr] _skip-var? env]
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
-        env (no-top-level env)]
-    (str (str "var " (munge name)) " = "
-         (emit expr (expr-env env)) ";\n"
+        env* (no-top-level env)]
+    (str "var " (munge name) " = "
+         (emit expr (expr-env env*)) ";\n"
          (when *repl*
-           (str "globalThis."
-                (when *cljs-ns*
-                  (str (munge *cljs-ns*) ".") #_"var ")
-                (munge name) " = " (munge name) ";\n")))))
+           (emit-return (str "globalThis."
+                            (when *cljs-ns*
+                              (str (munge *cljs-ns*) "."))
+                            (munge name) " = " (munge name)
+                            (when (= :statement (:context env)) ";\n"))
+                        env)))))
 
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
@@ -506,7 +509,9 @@
       (emit-var more skip-var? env))))
 
 (defn js-await [env more]
-  (emit-return (wrap-await (emit more (expr-env env)) env) env))
+  (emit-return
+   (wrap-await (emit more (expr-env env)) env)
+   env))
 
 (defmethod emit-special 'js/await [_ env [_await more]]
   (js-await env more))
