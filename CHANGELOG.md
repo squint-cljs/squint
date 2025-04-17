@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.146
 
 - [#653](https://github.com/squint-cljs/squint/issues/653): respect `:context expr` in `compile-string`
 - [#657](https://github.com/squint-cljs/squint/issues/657): respect `:context expr` in `set!` expression
