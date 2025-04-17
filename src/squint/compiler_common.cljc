@@ -7,6 +7,16 @@
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
 
+(def ^:dynamic *aliases* (atom {}))
+(def ^:dynamic *async* false)
+(def ^:dynamic *imported-vars* (atom {}))
+(def ^:dynamic *excluded-core-vars* (atom #{}))
+(def ^:dynamic *public-vars* (atom #{}))
+(def ^:dynamic *recur-targets* (atom []))
+(def ^:dynamic *repl* false)
+(def ^:dynamic *cljs-ns* 'user)
+(def ^:dynamic *target* :squint)
+
 (def common-macros
   {'coercive-boolean macros/coercive-boolean
    'coercive-= macros/coercive-=
@@ -42,10 +52,11 @@
 
 (defn emit-return [s env]
   (if (= :return (:context env))
-    (let [top-level (:top-level env)]
-      (format "return%s %s"
+    (let [top-level (and *repl* (:top-level env))]
+      (format "return%s %s%s"
               (if top-level "!!" "")
-              s))
+              s
+              (if top-level "!!semicolon-return" ";\n")))
     s))
 
 (defrecord Code [js bool]
@@ -79,16 +90,6 @@
   (str "throw " (emit expr (expr-env env))))
 
 (def statement-separator ";\n")
-
-(def ^:dynamic *aliases* (atom {}))
-(def ^:dynamic *async* false)
-(def ^:dynamic *imported-vars* (atom {}))
-(def ^:dynamic *excluded-core-vars* (atom #{}))
-(def ^:dynamic *public-vars* (atom #{}))
-(def ^:dynamic *recur-targets* (atom []))
-(def ^:dynamic *repl* false)
-(def ^:dynamic *cljs-ns* 'user)
-(def ^:dynamic *target* :squint)
 
 (defn str-tail
   "Returns the last n characters of s."
@@ -485,14 +486,16 @@
 (defn emit-var [[name ?doc ?expr :as expr] _skip-var? env]
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
-        env (no-top-level env)]
-    (str (str "var " (munge name)) " = "
-         (emit expr (expr-env env)) ";\n"
+        env* (no-top-level env)]
+    (str "var " (munge name) " = "
+         (emit expr (expr-env env*)) ";\n"
          (when *repl*
-           (str "globalThis."
-                (when *cljs-ns*
-                  (str (munge *cljs-ns*) ".") #_"var ")
-                (munge name) " = " (munge name) ";\n")))))
+           (emit-return (str "globalThis."
+                            (when *cljs-ns*
+                              (str (munge *cljs-ns*) "."))
+                            (munge name) " = " (munge name)
+                            (when (= :statement (:context env)) ";\n"))
+                        env)))))
 
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
@@ -506,7 +509,9 @@
       (emit-var more skip-var? env))))
 
 (defn js-await [env more]
-  (emit-return (wrap-await (emit more (expr-env env)) env) env))
+  (emit-return
+   (wrap-await (emit more (expr-env env)) env)
+   env))
 
 (defmethod emit-special 'js/await [_ env [_await more]]
   (js-await env more))

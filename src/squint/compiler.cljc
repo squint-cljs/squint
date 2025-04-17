@@ -341,7 +341,8 @@
     (let [s (str (subs s 0 return-idx)
                  "return "
                  (subs s (+ return-idx 9)))
-          s (str/replace s "return!! " "")]
+          s (str/replace s "return!! " "")
+          s (str/replace s "!!semicolon-return" ";\n")]
       s)
     s))
 
