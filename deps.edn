@@ -1,5 +1,5 @@
 {:paths ["src" "resources" "compiler-common"]
- :deps {borkdude/edamame {:mvn/version "1.0.0"}
+ :deps {borkdude/edamame {:mvn/version "1.4.30"}
         babashka/process {:mvn/version "0.1.7"}
         org.babashka/cli {:mvn/version "0.7.51"}
         org.babashka/sci {:mvn/version "0.6.37"}}

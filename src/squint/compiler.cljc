@@ -346,19 +346,36 @@
       s)
     s))
 
+(defn read-forms [s env]
+  (e/parse-string-all s (assoc squint-parse-opts :auto-resolve-ns true))
+  #_(let [rdr (e/reader s)
+        opts squint-parse-opts]
+    (loop [forms []]
+      (let [next-form (e/parse-next rdr opts)]
+        (cond (= ::e/eof next-form)
+              forms
+              (and (seq? next-form)
+                   (= 'ns (first next-form)))
+              (let [{current-ns :current} (e/parse-ns-form next-form)]
+                (swap! (:ns-state env) assoc :current current-ns)
+                (recur (conj forms next-form)))
+              :else (recur (conj forms next-form)))))))
+
 (defn transpile-string*
   ([s] (transpile-string* s {}))
   ([s env]
    (let [env (merge {:ns-state (atom {})
                      :context :statement} env)
-         rdr (e/reader s)
-         opts squint-parse-opts]
+         ;; rdr (e/reader s)
+         ]
      (loop [transpiled (if (and cc/*repl* *cljs-ns*)
                          (let [ns (munge *cljs-ns*)]
                            (cc/ensure-global ns))
-                         "")]
-       (let [opts (assoc opts :auto-resolve @*aliases*)
-             next-form (e/parse-next rdr opts)]
+                         "")
+            forms (read-forms s env)]
+       (let [;; opts (assoc opts :auto-resolve @*aliases*)
+             next-form (if (seq forms)
+                         (first forms) ::e/eof)]
          (if (= ::e/eof next-form)
            (if (= :return (:context env))
              (fix-multiple-returns transpiled)
@@ -367,7 +384,8 @@
                             not-empty)
                  next-js
                  (cc/save-pragma env next-t)]
-             (recur (str transpiled next-js)))))))))
+             (recur (str transpiled next-js)
+                    (rest forms)))))))))
 
 (defn compile-string*
   ([s] (compile-string* s nil))
