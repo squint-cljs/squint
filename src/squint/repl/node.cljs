@@ -1,13 +1,13 @@
 (ns squint.repl.node
   (:require
-   ["net" :as net]
-   ["readline" :as readline]
-   ["squint-cljs/core.js" :as squint]
+   ["node:net" :as net]
+   ["node:readline" :as readline]
    ["node:util" :as util]
+   ["squint-cljs/core.js" :as squint]
    [clojure.string :as str]
    [edamame.core :as e]
    [squint.compiler :as compiler]
-   [squint.compiler-common :refer [*async* *cljs-ns* *repl*]]))
+   [squint.compiler-common :as cc :refer [*async* *cljs-ns* *repl*]]))
 
 (def pending-input (atom ""))
 

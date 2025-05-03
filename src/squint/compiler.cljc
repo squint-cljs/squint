@@ -347,7 +347,9 @@
     s))
 
 (defn read-forms [s]
-  (e/parse-string-all s (assoc squint-parse-opts :auto-resolve-ns true)))
+  (e/parse-string-all s (assoc squint-parse-opts
+                               :auto-resolve-ns true
+                               :auto-resolve @*aliases*)))
 
 (defn transpile-string*
   ([s] (transpile-string* s {}))
