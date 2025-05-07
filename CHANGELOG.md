@@ -2,6 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+
+- Add an [ajv](examples/ajv) example
+
 ## v0.8.146
 
 - [#653](https://github.com/squint-cljs/squint/issues/653): respect `:context expr` in `compile-string`
