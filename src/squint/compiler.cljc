@@ -336,16 +336,6 @@
     :deref (fn [e]
              (list 'squint.impl/deref e))}))
 
-(defn fix-multiple-returns [s]
-  (if-let [return-idx (str/last-index-of s "return!! ")]
-    (let [s (str (subs s 0 return-idx)
-                 "return "
-                 (subs s (+ return-idx 9)))
-          s (str/replace s "return!! " "")
-          s (str/replace s "!!semicolon-return" ";\n")]
-      s)
-    s))
-
 (defn read-forms [s]
   (e/parse-string-all s (assoc squint-parse-opts
                                :auto-resolve-ns true
