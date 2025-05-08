@@ -2341,8 +2341,10 @@ new Foo();")
 (defn foo [x] (merge x nil))
 \"use serverless\"
 "]
-    (doseq [code [code (str/replace "(do %s)" "%s" code)]]
-      (let [{:keys [pragmas javascript]} (squint/compile-string* code)]
+    (doseq [code [code (str/replace "(do %s)" "%s" code)]
+            repl? [true false]]
+      (let [{:keys [pragmas javascript]} (squint/compile-string* code {:repl repl?})]
+        (println javascript)
         (is (str/includes? pragmas "use client"))
         (is (str/includes? pragmas "// ts-check"))
         (is (not (str/includes? pragmas ";")))
@@ -2351,6 +2353,7 @@ new Foo();")
                (str/index-of javascript "'use server'")
                (str/index-of javascript "import")
                (str/index-of javascript "@param")
+               (str/index-of javascript "foo = function")
                (str/index-of javascript "use serverless")))))))
 
 (deftest js-doc-compat-test
