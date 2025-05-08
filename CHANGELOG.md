@@ -2,8 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
 
 - Add an [ajv](examples/ajv) example
+- Better solution for multiple expressions in return context in combination with pragmas
 
 ## v0.8.146
 
