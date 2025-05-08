@@ -2342,8 +2342,12 @@ new Foo();")
 \"use serverless\"
 "]
     (doseq [code [code (str/replace "(do %s)" "%s" code)]
-            repl? [true false]]
-      (let [{:keys [pragmas javascript]} (squint/compile-string* code {:repl repl?})]
+            repl? [true false]
+            return? [true false]]
+      (let [{:keys [pragmas javascript]} (squint/compile-string* code {:repl repl?
+                                                                       :context (if return?
+                                                                                  :return
+                                                                                  :statement)})]
         (println javascript)
         (is (str/includes? pragmas "use client"))
         (is (str/includes? pragmas "// ts-check"))
