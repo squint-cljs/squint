@@ -336,38 +336,41 @@
     :deref (fn [e]
              (list 'squint.impl/deref e))}))
 
-(defn fix-multiple-returns [s]
-  (if-let [return-idx (str/last-index-of s "return!! ")]
-    (let [s (str (subs s 0 return-idx)
-                 "return "
-                 (subs s (+ return-idx 9)))
-          s (str/replace s "return!! " "")
-          s (str/replace s "!!semicolon-return" ";\n")]
-      s)
-    s))
+(defn read-forms [s]
+  (e/parse-string-all s (assoc squint-parse-opts
+                               :auto-resolve-ns true
+                               :auto-resolve @*aliases*)))
 
 (defn transpile-string*
   ([s] (transpile-string* s {}))
   ([s env]
    (let [env (merge {:ns-state (atom {})
                      :context :statement} env)
-         rdr (e/reader s)
-         opts squint-parse-opts]
+         forms (read-forms s)
+         max-form-idx (dec (count forms))
+         return? (= :return (:context env))
+         env (if return? (assoc env :context :statement) env)]
      (loop [transpiled (if (and cc/*repl* *cljs-ns*)
                          (let [ns (munge *cljs-ns*)]
                            (cc/ensure-global ns))
-                         "")]
-       (let [opts (assoc opts :auto-resolve @*aliases*)
-             next-form (e/parse-next rdr opts)]
+                         "")
+            forms forms
+            form-idx 0]
+       (let [next-form (if (seq forms)
+                         (first forms) ::e/eof)
+             last? (= form-idx max-form-idx)
+             env (if (and return? last?)
+                   (assoc env :context :return)
+                   env)]
          (if (= ::e/eof next-form)
-           (if (= :return (:context env))
-             (fix-multiple-returns transpiled)
-             transpiled)
+           transpiled
            (let [next-t (-> (transpile-form next-form env)
                             not-empty)
                  next-js
                  (cc/save-pragma env next-t)]
-             (recur (str transpiled next-js)))))))))
+             (recur (str transpiled next-js)
+                    (rest forms)
+                    (inc form-idx)))))))))
 
 (defn compile-string*
   ([s] (compile-string* s nil))

@@ -52,11 +52,8 @@
 
 (defn emit-return [s env]
   (if (= :return (:context env))
-    (let [top-level (and *repl* (:top-level env))]
-      (format "return%s %s%s"
-              (if top-level "!!" "")
-              s
-              (if top-level "!!semicolon-return" ";\n")))
+    (format "return %s;"
+            s)
     s))
 
 (defrecord Code [js bool]

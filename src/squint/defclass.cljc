@@ -145,7 +145,7 @@
                  (munge fn-name) "("
                  (str/join ", " (emit-args env emit-fn arglist))
                  ") { \n"
-                 (str "const " (emit-fn this-arg env)) " = this;\n"
+                 "const " (emit-fn this-arg env) " = this;\n"
                  "const self__ = this;"
                  (let [ret-val (last body)
                        ret-ctx (assoc env :context :return :top-level false)
