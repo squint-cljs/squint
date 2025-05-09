@@ -67,7 +67,12 @@
 
 (core/defn- emit-type-method
   [psym type-sym method]
-  (let [mname (first method)
+  (let [pns (namespace psym)
+        mname (first method)
+        mname (if (or (qualified-symbol? mname)
+                      (not pns))
+                mname
+                (symbol (namespace psym) (name mname)))
         msym (if (= 'Object psym)
                (str mname)
                (symbol (str psym "_" mname)))

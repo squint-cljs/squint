@@ -477,7 +477,11 @@
                      (extend-protocol Identity string (i [s] "string"))
                      [(i nil) (i false) (i "")
                       (satisfies? Identity nil)
-                      ])))))
+                      ]))))
+  (is (let [js (jss! "(require '[\"my-protocols\" :as p])
+
+(extend-protocol p/MyProtocol nil (my-foo [_] :nil))")]
+        (is (str/includes? js "p.my_foo[null] =")))))
 
 (deftest deftype-test
   (is (= 1 (jsv! '(do (deftype Foo [x]) (.-x (->Foo 1))))))
