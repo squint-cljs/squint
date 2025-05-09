@@ -83,8 +83,32 @@
 (defn expr-env [env]
   (assoc env :context :expr :top-level false))
 
+(defn yield-iife
+  [s env]
+  (if (:gen env)
+    (format "yield* (%s)" s)
+    s))
+
+(defn wrap-await
+  [s _env]
+  (format "(%s)" (str "await " s)))
+
+(defn wrap-implicit-iife
+  [s env]
+  (let [gen? (:gen env)]
+    (cond-> (format (if gen?
+                      "(%sfunction%s () {\n%s\n})()"
+                      "(%s() =>%s {\n%s\n})()")
+                    (if *async* "async " "")
+                    (if gen?
+                      "*" "")
+                    s)
+      *async* (wrap-await env)
+      true (yield-iife env))))
+
 (defmethod emit-special 'throw [_ env [_ expr]]
-  (str "throw " (emit expr (expr-env env))))
+  (cond-> (str "throw " (emit expr (expr-env env)))
+    (= :expr (:context env)) (wrap-implicit-iife env)))
 
 (def statement-separator ";\n")
 
@@ -312,29 +336,6 @@
                           m)))))]
         (emit-return (escape-jsx expr env)
                      env)))))
-
-(defn wrap-await
-  [s _env]
-  (format "(%s)" (str "await " s)))
-
-(defn yield-iife
-  [s env]
-  (if (:gen env)
-    (format "yield* (%s)" s)
-    s))
-
-(defn wrap-implicit-iife
-  [s env]
-  (let [gen? (:gen env)]
-    (cond-> (format (if gen?
-                      "(%sfunction%s () {\n%s\n})()"
-                      "(%s() =>%s {\n%s\n})()")
-                    (if *async* "async " "")
-                    (if gen?
-                      "*" "")
-                    s)
-      *async* (wrap-await env)
-      true (yield-iife env))))
 
 (defn save-pragma [env next-t]
   (let [p (:pragmas env)

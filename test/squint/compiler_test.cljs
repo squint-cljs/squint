@@ -2506,6 +2506,9 @@ new Foo();")
   (is (eq [4 3 2 1 0] (jsv! '(doall (range 4 -1 -1)))))
   (is (eq [5 5 5 5 5] (jsv! '(doall (take 5 (range 5 6 0)))))))
 
+(deftest throw-test
+  (is (eq 2 (jsv! '(let [v (cond (true? (= 1 2)) (throw (ex-info "O no" {})) :else 2)] v)))))
+
 (deftest run!-test
   (is (eq [1 2 3] (jsv! '(let [x (atom [])] (run! #(swap! x conj %) [1 2 3]) @x)))))
 

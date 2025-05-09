@@ -4,8 +4,10 @@
 
 ## Unreleased
 
+- Fix [#661](https://github.com/squint-cljs/squint/issues/661): support `throw` in expression position
 - Add an [ajv](examples/ajv) example
 - Better solution for multiple expressions in return context in combination with pragmas
+
 
 ## v0.8.146
 
