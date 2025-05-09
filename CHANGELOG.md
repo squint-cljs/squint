@@ -2,14 +2,12 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.147
 
 - Fix [#661](https://github.com/squint-cljs/squint/issues/661): support `throw` in expression position
 - Fix [#662](https://github.com/squint-cljs/squint/issues/662): Fix extending protocol from other namespace to `nil`
 - Better solution for multiple expressions in return context in combination with pragmas
-
 - Add an [ajv](examples/ajv) example
-
 
 ## v0.8.146
 
