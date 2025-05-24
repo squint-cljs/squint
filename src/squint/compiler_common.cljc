@@ -584,7 +584,8 @@
                                                 (str "." suffix)
                                                 "")))
                            (str/join (map (fn [sym]
-                                            (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym)))
+                                            (let [sym (munge sym)]
+                                              (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym))))
                                           (map (fn [refer]
                                                  (get rename refer refer))
                                                refer))))

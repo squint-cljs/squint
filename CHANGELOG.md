@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.148
+
+- Fix [#669](https://github.com/squint-cljs/squint/issues/669): munge refer-ed + renamed var
+
 ## v0.8.147
 
 - Fix [#661](https://github.com/squint-cljs/squint/issues/661): support `throw` in expression position
