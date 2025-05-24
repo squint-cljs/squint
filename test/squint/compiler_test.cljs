@@ -1718,11 +1718,13 @@
     (is (and
          (str/includes? s "existsSync as exists")
          (str/includes? s "exists(\"README.md\")"))))
-  (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")"
+  (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync foo-bar}])) (foo-bar \"README.md\")"
                                  {:repl true})]
+    (println s)
     (is (and
-         (str/includes? s "existsSync: exists")
-         (str/includes? s "globalThis.test_namespace.exists(\"README.md\")"))))
+         (str/includes? s "existsSync: foo_bar")
+         (str/includes? s "globalThis.test_namespace.foo_bar(\"README.md\")")))
+    (is (not (str/includes? s "foo-bar") )))
   (testing "alias + refer"
     (let [s (squint/compile-string "(ns foo (:require [\"node:fs\" :as \"fs\" :refer [existsSync]]))")]
       (is (and
@@ -2352,7 +2354,6 @@ new Foo();")
                                                                        :context (if return?
                                                                                   :return
                                                                                   :statement)})]
-        (println javascript)
         (is (str/includes? pragmas "use client"))
         (is (str/includes? pragmas "// ts-check"))
         (is (not (str/includes? pragmas ";")))
