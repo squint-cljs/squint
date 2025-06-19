@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#673](https://github.com/squint-cljs/squint/issues/673): remove experimental atom as promise option since it causes unexpected behavior
+
 ## v0.8.148
 
 - Fix [#669](https://github.com/squint-cljs/squint/issues/669): munge refer-ed + renamed var

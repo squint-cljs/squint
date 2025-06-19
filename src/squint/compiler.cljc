@@ -30,7 +30,7 @@
 
 (defn emit-keyword [expr env]
   ;; emitting string already emits return
-  (emit (subs (str expr) 1) env))
+  (emit (str (subs (str expr) 1)) env))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do
@@ -44,7 +44,6 @@
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
                          'squint-compiler-html
-                         'squint.impl/deref
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
                          'squint.impl/for-of
                          'squint.impl/defonce]))
@@ -332,9 +331,7 @@
               'jsx jsx
               'html html}
     :read-cond :allow
-    :features #{:squint :cljs}
-    :deref (fn [e]
-             (list 'squint.impl/deref e))}))
+    :features #{:squint :cljs}}))
 
 (defn read-forms [s]
   (e/parse-string-all s (assoc squint-parse-opts
