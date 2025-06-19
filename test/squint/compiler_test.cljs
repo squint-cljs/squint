@@ -1785,12 +1785,12 @@ globalThis.foo.fs = fs;")))))
       (is (str/includes? js "str_ing")))))
 
 (deftest alias-with-dots-test
-  (let [s (squint/compile-string "(ns test-namespace (:require [\"foo\" :as foo] [\"foo_bar\" :as foo.bar]))
-(foo) (foo.bar)")]
-    (println s)
-    (is (str/includes? s "import some_js_lib from 'some-js-library';"))
-    (is (str/includes? s "some_js_lib.some_fn();"))
-    (is (not (str/includes? s "import * as some_js_lib")))))
+  (doseq [repl [false true]]
+    (let [s (squint/compile-string "(ns test-namespace (:require [\"foo\" :as foo] [\"foo_bar\" :as foo.bar]))
+(foo.bar)
+(foo.bar/existsSync \"\")" {:repl repl})]
+      (is (str/includes? s "foo_DOT_bar"))
+      (is (not (str/includes? s "foo.bar"))))))
 
 ;;; end ns / require related tests
 
