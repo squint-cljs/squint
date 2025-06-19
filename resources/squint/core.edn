@@ -201,6 +201,7 @@
   take_nth
   take_while
   to_array
+  trampoline
   transduce
   transient$
   tree_seq
