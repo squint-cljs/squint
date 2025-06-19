@@ -2511,6 +2511,24 @@ export function quot(n, d) {
   return fix((n - rem) / d);
 }
 
+export function trampoline(f, ...args) {
+  if (args.length == 0) {
+    while (true) {
+      const ret = f();
+      if (truth_(fn_QMARK_(ret))) {
+        f = ret;
+        continue;
+      } else {
+        return ret;
+      }
+    }
+  } else {
+    return trampoline(function() {
+      return apply(f, args);
+    });
+  }
+}
+
 export function transduce(xform, ...args) {
   switch (args.length) {
     case 2: {

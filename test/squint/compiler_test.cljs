@@ -2536,5 +2536,9 @@ new Foo();")
          (is (eq {:foo :bar} v))))
      (p/finally done))))
 
+(deftest trampoline-test
+  (let [s (jss! '(trampoline (fn f [n] (if (>= n 10000) n #(f (inc n)))) 0))]
+    (is (= 10000 (js/eval s)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
