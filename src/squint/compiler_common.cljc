@@ -1319,10 +1319,6 @@ break;}" body)
         form (vary-meta form assoc :outer-html true)]
     (emit form env)))
 
-(defmethod emit-special 'squint.impl/deref [_ env [_ form]]
-  (let [async? (and *async* (:experimental-async-deref env))]
-    (emit (list (if async? 'js-await `deref) form) env)))
-
 (defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
   (let [fields* (map munge fields)]
     (str "var " (munge t)

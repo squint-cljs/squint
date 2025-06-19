@@ -2521,5 +2521,20 @@ new Foo();")
   (let [s (squint/compile-string "(+ 1 2 3)" {:context :expr :elide-imports true})]
     (is (not (str/includes? s ";")))))
 
+(deftest issue-673
+  (t/async done
+    (->
+     (p/do
+       (p/let [;; def as the last expression
+               js (squint/compile-string "(-> (new js/Promise (fn [resolve] (resolve (atom {:foo :bar}))))
+                                            (.then (fn [result]
+                                            @result)))"
+                                         {:context :return
+                                          :repl true
+                                          :elide-exports true})
+               v (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))]
+         (is (eq {:foo :bar} v))))
+     (p/finally done))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
