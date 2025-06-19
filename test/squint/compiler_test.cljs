@@ -1,16 +1,16 @@
 (ns squint.compiler-test
   (:require
+   ["child_process" :as process]
+   ["fs" :as fs]
+   ["node:util" :as util]
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]
+   [promesa.core :as p]
    [squint.compiler :as squint]
-   [squint.jsx-test]
    [squint.html-test]
+   [squint.jsx-test]
    [squint.string-test]
-   [squint.test-utils :refer [eq js! jss! jsv!]]
-   ["fs" :as fs]
-   ["child_process" :as process]
-   ["node:util" :as util]
-   [promesa.core :as p]))
+   [squint.test-utils :refer [eq js! jss! jsv!]]))
 
 (deftest return-test
   (is (str/includes? (jss! '(do (def x (do 1 2 nil))))
@@ -1783,6 +1783,14 @@ globalThis.foo.fs = fs;")))))
     (let [js (squint/compile-string "(require '[clojure.string :as str-ing]) (str-ing/join [1 2 3])" {:repl repl})]
       (is (not (str/includes? js "str-ing")))
       (is (str/includes? js "str_ing")))))
+
+(deftest alias-with-dots-test
+  (doseq [repl [false true]]
+    (let [s (squint/compile-string "(ns test-namespace (:require [\"foo\" :as foo] [\"foo_bar\" :as foo.bar]))
+(foo.bar)
+(foo.bar/existsSync \"\")" {:repl repl})]
+      (is (str/includes? s "foo_DOT_bar"))
+      (is (not (str/includes? s "foo.bar"))))))
 
 ;;; end ns / require related tests
 

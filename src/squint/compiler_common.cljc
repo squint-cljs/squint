@@ -273,69 +273,77 @@
          (str core-alias "."))
        m))))
 
+(defn alias-munge [s]
+  (-> s str munge (str/replace #"\." "_DOT_") ))
+
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
     (emit-return (escape-jsx (emit (list 'cljs.core/symbol
                                          (str expr))
                                    (dissoc env :quote)) env)
                  env)
-    (if (and (simple-symbol? expr)
-             (str/includes? (str expr) "."))
-      (let [[fname path] (str/split (str expr) #"\." 2)
-            fname (symbol fname)]
-        (emit-return (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
-                                      "." (munge** path)) env)
-                     env))
-      (let [munged-name (fn [expr] (munge* (name expr)))
-            expr (if-let [sym-ns (some-> (namespace expr) munge)]
-                   (let [sn (symbol (name expr))]
-                     (or (when (or (= "cljs.core" sym-ns)
-                                   (= "clojure.core" sym-ns))
-                           (some-> (maybe-core-var sn env) munge))
-                         (when (= "js" sym-ns)
-                           (munge* (name expr)))
-                         (when-let [resolved-ns (get (:aliases env) (symbol sym-ns))]
-                           (str (if (symbol? resolved-ns)
-                                  (munge resolved-ns)
-                                  sym-ns)
-                                "."
-                                (munged-name sn)))
-                         (when (contains? @*aliases* (symbol sym-ns))
-                           (str sym-ns "."
-                                (munged-name sn)))
-                         (let [ns (namespace expr)
-                               munged (munge ns)
-                               nm (name expr)]
-                           (if (and *repl* (not= "Math" munged))
-                             (let [ns-state (some-> env :ns-state deref)]
-                               (if (get-in ns-state [(symbol ns) (symbol nm)])
-                                 (str (munge ns) "." (munge nm))
-                                 (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))))
-                             (str munged "." (munge (name expr)))))))
-                   (if-let [renamed (get (:var->ident env) expr)]
-                     (cond-> (munge** (str renamed))
-                       (:bool (meta renamed)) (bool-expr))
-                     (let [ns-state @(:ns-state env)
-                           current (:current ns-state)
-                           current-ns (get ns-state current)]
-                       (or
-                        (when (contains? current-ns expr)
-                          (str (when *repl*
-                                 (str "globalThis." (munge *cljs-ns*) ".")) (munged-name expr)))
-                        (when (contains? (:refers current-ns) expr)
-                          (str (when *repl*
-                                 (str "globalThis." (munge *cljs-ns*) "."))
-                               (munged-name expr)))
-                        (some-> (maybe-core-var expr env) munge)
-                        (when (let [alias (get (:aliases current-ns) expr)]
-                                alias)
-                          (str (when *repl*
-                                 (str "globalThis." (munge *cljs-ns*) "."))
-                               (munged-name expr)))
-                        (let [m (munged-name expr)]
-                          m)))))]
-        (emit-return (escape-jsx expr env)
-                     env)))))
+    (let [ns-state @(:ns-state env)
+          current (:current ns-state)
+          current-ns (get ns-state current)
+          aliases (:aliases current-ns)]
+      (if (and (simple-symbol? expr)
+               (not (contains? aliases expr))
+               (str/includes? (str expr) "."))
+        (let [[fname path] (str/split (str expr) #"\." 2)
+              fname (symbol fname)]
+          (emit-return (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
+                                        "." (munge** path)) env)
+                       env))
+        (let [munged-name (fn [expr] (munge* (name expr)))
+              expr (if-let [sym-ns (some-> (namespace expr) munge)]
+                     (let [sn (symbol (name expr))]
+                       (or (when (or (= "cljs.core" sym-ns)
+                                     (= "clojure.core" sym-ns))
+                             (some-> (maybe-core-var sn env) munge))
+                           (when (= "js" sym-ns)
+                             (munge* (name expr)))
+                           (when-let [resolved-ns (get (:aliases env) (symbol sym-ns))]
+                             (str (if (symbol? resolved-ns)
+                                    (munge resolved-ns)
+                                    sym-ns)
+                                  "."
+                                  (munged-name sn)))
+                           (when (contains? aliases (symbol sym-ns))
+                             (str
+                              (when *repl*
+                                (str "globalThis." (munge *cljs-ns*) "."))
+                              (alias-munge sym-ns) "."
+                              (munged-name sn)))
+                           (let [ns (namespace expr)
+                                 munged (munge ns)
+                                 nm (name expr)]
+                             (if (and *repl* (not= "Math" munged))
+                               (let [ns-state (some-> env :ns-state deref)]
+                                 (if (get-in ns-state [(symbol ns) (symbol nm)])
+                                   (str (munge ns) "." (munge nm))
+                                   (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))))
+                               (str munged "." (munge (name expr)))))))
+                     (if-let [renamed (get (:var->ident env) expr)]
+                       (cond-> (munge** (str renamed))
+                         (:bool (meta renamed)) (bool-expr))
+                       (let [alias (get aliases expr)]
+                         (or
+                          (when (contains? current-ns expr)
+                            (str (when *repl*
+                                   (str "globalThis." (munge *cljs-ns*) ".")) (munged-name expr)))
+                          (when (contains? (:refers current-ns) expr)
+                            (str (when *repl*
+                                   (str "globalThis." (munge *cljs-ns*) "."))
+                                 (munged-name expr)))
+                          (some-> (maybe-core-var expr env) munge)
+                          (when alias
+                            (str (when *repl*
+                                   (str "globalThis." (munge *cljs-ns*) "."))
+                                 (alias-munge expr)))
+                          (let [m (munged-name expr)]
+                            m)))))]
+          (emit-return (escape-jsx expr env)
+                       env))))))
 
 (defn save-pragma [env next-t]
   (let [p (:pragmas env)
@@ -552,7 +560,7 @@
           expr (str
                 (when (and as default?)
                   (if *repl*
-                    (statement (format "const %s = (await import('%s')).%s" as libname suffix))
+                    (statement (format "const %s = (await import('%s')).%s" (alias-munge as) libname suffix))
                     (statement (format "import %s from '%s'" as libname))))
                 (when (and (not as) (not suffix) (not refer))
                   ;; import presumably for side effects
@@ -562,8 +570,8 @@
                 (when (and as (not default?))
                   (swap! *imported-vars* update libname (fnil identity #{}))
                   (statement (if *repl*
-                               (format "var %s = await import('%s')" as libname)
-                               (format "import * as %s from '%s'" as libname))))
+                               (format "var %s = await import('%s')" (alias-munge as) libname)
+                               (format "import * as %s from '%s'" (alias-munge as) libname))))
                 (when refer
                   (swap! (:ns-state env)
                          (fn [ns-state]
@@ -657,7 +665,7 @@
         (reduce-kv (fn [acc k _v]
                      (if (symbol? k)
                        (str acc
-                            ns-obj "." k " = " k ";\n")
+                            ns-obj "." (alias-munge k) " = " (alias-munge k) ";\n")
                        acc))
                    ""
                    @*aliases*))))))
@@ -669,7 +677,7 @@
                  (reduce
                   (fn [aliases [full as alias]]
                     (let [full (resolve-ns env full)]
-                      (case as
+                       (case as
                         (:as :as-alias)
                         (assoc aliases alias full)
                         aliases)))
