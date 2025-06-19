@@ -309,8 +309,11 @@
                                   "."
                                   (munged-name sn)))
                            (when (contains? aliases (symbol sym-ns))
-                             (str (alias-munge sym-ns) "."
-                                  (munged-name sn)))
+                             (str
+                              (when *repl*
+                                (str "globalThis." (munge *cljs-ns*) "."))
+                              (alias-munge sym-ns) "."
+                              (munged-name sn)))
                            (let [ns (namespace expr)
                                  munged (munge ns)
                                  nm (name expr)]
