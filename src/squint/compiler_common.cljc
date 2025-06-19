@@ -273,6 +273,9 @@
          (str core-alias "."))
        m))))
 
+(defn alias-munge [s]
+  (-> s str munge (str/replace #"\." "_DOT_") ))
+
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
     (emit-return (escape-jsx (emit (list 'cljs.core/symbol
@@ -331,7 +334,7 @@
                                 alias)
                           (str (when *repl*
                                  (str "globalThis." (munge *cljs-ns*) "."))
-                               (munged-name expr)))
+                               (alias-munge expr)))
                         (let [m (munged-name expr)]
                           m)))))]
         (emit-return (escape-jsx expr env)
@@ -548,7 +551,7 @@
     (let [libname (resolve-ns env libname)
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           default? (= "default" suffix) ;; we only support a default suffix for now anyway
-          as (when as (munge as))
+          as (when as (alias-munge as))
           expr (str
                 (when (and as default?)
                   (if *repl*
@@ -633,7 +636,7 @@
                     (let [full (resolve-ns env full)]
                       (case as
                         (:as :as-alias)
-                        (assoc aliases (munge alias) full)
+                        (assoc aliases (alias-munge alias) full)
                         #_:else
                         aliases)))
                   {:current name
@@ -951,6 +954,7 @@ break;}" body)
         cherry+interop? (and
                          cherry?
                          (= "js" ns))]
+    (prn :fname fname)
     (emit-return (str
                   (emit fname (expr-env env))
                   ;; this is needed when calling keywords, symbols, etc. We could
