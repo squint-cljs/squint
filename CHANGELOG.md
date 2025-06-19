@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- [#671](https://github.com/squint-cljs/squint/issues/671): Implement `trampoline`
+- [#671](https://github.com/squint-cljs/squint/issues/671): Implement `trampoline` ([@rafaeldelboni](https://github.com/rafaeldelboni))
 - Fix [#673](https://github.com/squint-cljs/squint/issues/673): remove experimental atom as promise option since it causes unexpected behavior
 - Fix [#672](https://github.com/squint-cljs/squint/issues/672): alias may contain dots
 
