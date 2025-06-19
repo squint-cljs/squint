@@ -333,13 +333,11 @@
                                    (str "globalThis." (munge *cljs-ns*) "."))
                                  (munged-name expr)))
                           (some-> (maybe-core-var expr env) munge)
-                          (when-let [alias alias #_(get (:aliases current-ns) expr)]
-                            (prn :xalias alias :expr expr :xialiases (:aliases current-ns))
+                          (when alias
                             (str (when *repl*
                                    (str "globalThis." (munge *cljs-ns*) "."))
                                  (alias-munge expr)))
                           (let [m (munged-name expr)]
-                            (prn :expr expr :m m)
                             m)))))]
           (emit-return (escape-jsx expr env)
                        env))))))
