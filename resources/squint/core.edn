@@ -149,6 +149,7 @@
   quot
   rand_int
   rand_nth
+  random_uuid
   range
   re_find
   re_matches

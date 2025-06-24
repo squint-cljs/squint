@@ -2548,5 +2548,10 @@ new Foo();")
   (let [s (jss! '(trampoline (fn f [n] (if (>= n 10000) n #(f (inc n)))) 0))]
     (is (= 10000 (js/eval s)))))
 
+(deftest random-uuid-test
+  (let [s (jss! '(random-uuid))]
+    (is (re-find #"[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}"
+                 (js/eval s)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
