@@ -2818,6 +2818,10 @@ export function update_vals(m, f) {
   return m2;
 }
 
+export function random_uuid () {
+  return crypto.randomUUID();
+}
+
 export class Delay {
   constructor(f) {
     this.f = f;
