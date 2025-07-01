@@ -5,17 +5,17 @@
 ## Unreleased
 - [#678](https://github.com/squint-cljs/squint/issues/678): Implement `random-uuid` ([@rafaeldelboni](https://github.com/rafaeldelboni))
 
-## v0.8.149
+## v0.8.149 (2025-06-19)
 
 - [#671](https://github.com/squint-cljs/squint/issues/671): Implement `trampoline` ([@rafaeldelboni](https://github.com/rafaeldelboni))
 - Fix [#673](https://github.com/squint-cljs/squint/issues/673): remove experimental atom as promise option since it causes unexpected behavior
 - Fix [#672](https://github.com/squint-cljs/squint/issues/672): alias may contain dots
 
-## v0.8.148
+## v0.8.148 (2025-05-25)
 
 - Fix [#669](https://github.com/squint-cljs/squint/issues/669): munge refer-ed + renamed var
 
-## v0.8.147
+## v0.8.147 (2025-05-09)
 
 - Fix [#661](https://github.com/squint-cljs/squint/issues/661): support `throw` in expression position
 - Fix [#662](https://github.com/squint-cljs/squint/issues/662): Fix extending protocol from other namespace to `nil`
