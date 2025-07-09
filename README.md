@@ -221,6 +221,15 @@ HTML content is escaped by default:
 (my-html #html [:div "<>"]) ;;=> Html {s: "<div>Hello</div><div>&lt;&gt;</div>"}
 ```
 
+You can produce unsafe (unescaped) HTML with `[:$ ...]`:
+
+``` clojure
+(str #html
+  [:<> [:$ "<!DOCTYPE html>"]
+   [:html [:head] [:body]]])
+;;=> "<!DOCTYPE html><html><head></head><body></body></html>"
+```
+
 Using metadata you can modify the tag function, e.g. to use this together with lit-html:
 
 ``` clojure

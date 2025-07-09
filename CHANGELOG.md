@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.150 (2025-07-09)
+
 - [#678](https://github.com/squint-cljs/squint/issues/678): Implement `random-uuid` ([@rafaeldelboni](https://github.com/rafaeldelboni))
-- Fix [#681](https://github.com/squint-cljs/squint/issues/681): unsafe HTML via `[:$ ...]` tag
+- Fix [#681](https://github.com/squint-cljs/squint/issues/681): support unsafe HTML via `[:$ ...]` tag
 
 ## v0.8.149 (2025-06-19)
 
