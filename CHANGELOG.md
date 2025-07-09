@@ -4,6 +4,7 @@
 
 ## Unreleased
 - [#678](https://github.com/squint-cljs/squint/issues/678): Implement `random-uuid` ([@rafaeldelboni](https://github.com/rafaeldelboni))
+- Fix [#681](https://github.com/squint-cljs/squint/issues/681): unsafe HTML via `[:$ ...]` tag
 
 ## v0.8.149 (2025-06-19)
 

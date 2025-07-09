@@ -174,16 +174,20 @@
       (escape-jsx env)))
 
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
-  (cond-> (if (and (:jsx env)
-                   (not (:jsx-attr env))
-                   (or (:html env)
-                       (not (:jsx-runtime env))))
-            (str/replace expr #"([<>])" (fn [x]
-                                          (get
-                                           {"<" "&lt;"
-                                            ">" "&gt;"} (second x))))
-            (emit-return (pr-str expr) env))
-    (pos? (count expr)) (bool-expr)))
+  (let [unsafe-html? (:unsafe-html env)]
+    (cond-> (if (and (:jsx env)
+                     (not (:jsx-attr env))
+                     (or (:html env)
+                         (not (:jsx-runtime env)))
+                     (not unsafe-html?))
+              (str/replace expr #"([<>])" (fn [x]
+                                            (get
+                                             {"<" "&lt;"
+                                              ">" "&gt;"} (second x))))
+              (emit-return (cond-> expr
+                             (not (:skip-quotes env))
+                             (pr-str)) env))
+      (pos? (count expr)) (bool-expr))))
 
 (defmethod emit #?(:clj java.lang.Boolean :cljs js/Boolean) [^String expr env]
   (-> (if (:jsx-attr env)
@@ -1240,9 +1244,10 @@ break;}" body)
           tag (first v)
           keyw? (keyword? tag)
           attrs (second v)
-          attrs (when (map? attrs) attrs)
-          elts (if attrs (nnext v) (next v))
           tag-name (symbol tag)
+          unsafe-html? (= '$ tag-name)
+          attrs (when (and (map? attrs) (not unsafe-html?)) attrs)
+          elts (if attrs (nnext v) (next v))
           fragment? (= '<> tag-name)
           tag-name* (if fragment?
                       (symbol "")
@@ -1260,6 +1265,7 @@ break;}" body)
                   short-attrs)
           html? (:html env)
           outer-html? (:outer-html (meta expr))]
+      (when unsafe-html? (reset! has-dynamic-expr? true))
       (if (and (not html?) (:jsx env) (:jsx-runtime env))
         (let [single-child? (= 1 (count elts))]
           (emit (list (if single-child?
@@ -1268,7 +1274,7 @@ break;}" body)
                             (keyword? tag)
                             (name tag-name)
                             :else tag-name*)
-                      (let [elts (map #(emit % (expr-env env)) elts)
+                      (let [elts (map #(emit % env) elts)
                             elts (map #(list 'js* (str %)) elts)
                             children
                             (if single-child?
@@ -1278,22 +1284,25 @@ break;}" body)
                           (seq children)
                           (assoc :children children))))
                 env))
-        (let [ret #_(format "<%s%s>%s</%s>"
-                            tag-name
-                            (cc/jsx-attrs attrs env)
-                            (let [env (expr-env env)]
-                              (str/join "" (map #(emit % env) elts)))
-                            tag-name)
-              (str
-               (if (and html? fragment?)
-                 ""
-                 (str "<"
-                      tag-name
-                      (jsx-attrs attrs env)
-                      ">"))
-               (let [env (expr-env env)]
-                 (str/join "" (map #(emit % env) elts)))
+        (let [expr-env* (assoc (expr-env env) :unsafe-html unsafe-html?)
+              ret (str
+                   (cond (and html? (or fragment?
+                                        unsafe-html?))
+                         ""
+                         :else (str "<"
+                                    tag-name
+                                    (jsx-attrs attrs env)
+                                    ">"))
+                   (let [ret (str/join ""
+                                       (map (fn [elt]
+                                              (if (and unsafe-html? (string? elt))
+                                                (let [expr-env* (assoc expr-env* :skip-quotes true)]
+                                                  (emit elt expr-env*))
+                                                (emit elt expr-env*)))
+                                            elts))]
+                     ret)
                (if (and html? (or fragment?
+                                  unsafe-html?
                                   (void-tag? tag-name)))
                  ""
                  (str "</" tag-name ">")))]
@@ -1305,10 +1314,13 @@ break;}" body)
              outer-html?
              (format "%s`%s`"
                      (if-let [t (:tag (meta expr))]
-                       (emit t (expr-env (dissoc env :jsx :html)))
-                       (if @has-dynamic-expr?
-                         "squint_html.tag"
-                         "squint_html.html"))))
+                       (emit t (dissoc expr-env* :jsx :html))
+                       (if
+                         @has-dynamic-expr? "squint_html.tag"
+                         "squint_html.html")))
+             unsafe-html?
+             (format "${%s`%s`}"
+                     "squint_html.unsafe_tag"))
            env))))
     (emit-return
      (if (and (= :cherry *target*)
