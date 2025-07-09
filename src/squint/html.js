@@ -57,15 +57,14 @@ function attr(v) {
   }
 }
 
-function toHTML(v) {
-  // console.log('v', v);
+function toHTML(v, unsafe) {
   if (v == null) return;
   if (v instanceof Html) return v;
-  if (typeof(v) === 'string') return safe(v);
+  if (typeof(v) === 'string') return unsafe ? v : safe(v);
   if (v[Symbol.iterator]) {
     return [...v].map(toHTML).join("");
   }
-  return safe(v.toString());
+  return unsafe? v.toString() : safe(v.toString());
 }
 
 export function attrs(v, props) {
@@ -88,11 +87,19 @@ export function attrs(v, props) {
   return new Html(ret);
 }
 
-export function tag(strs, ...vals) {
+function tag_(strs, vals, unsafe) {
   let out = strs[0];
   for (let i = 0; i < vals.length; i++) {
-    out += toHTML(vals[i]);
+    out += toHTML(vals[i], unsafe);
     out += strs[i+1];
   }
   return new Html(out);
+}
+
+export function tag(strs, ...vals) {
+  return tag_(strs, vals, false);
+}
+
+export function unsafe_tag(strs, ...vals) {
+  return tag_(strs, vals, true);
 }

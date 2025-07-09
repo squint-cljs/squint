@@ -140,3 +140,16 @@
               (is (html= k v))))
           (.catch #(is false "nooooo"))
           (.finally done)))))
+
+(deftest html-unsafe-test
+  (t/async done
+    (let [js (squint.compiler/compile-string
+              "(str #html [:div [:$ \"<><><>\" (js/JSON.stringify {:a (+ 1 2 3)})]])"
+              {:repl true :elide-exports true :context :return})
+          js (str/replace "(async function() { %s } )()" "%s" js)]
+      (-> (js/eval js)
+          (.then
+           (fn [v]
+             (is (= "<div><><><>{\"a\":6}</div>" v))))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))
