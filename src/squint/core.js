@@ -2859,3 +2859,12 @@ export function clj__GT_js(x) {
 export function run_BANG_(proc, coll) {
   reduce((_,x) => proc(x), null, coll);
 }
+
+export function not_EQ_(x, y, ...more) {
+  if (y === undefined) return false;
+  if (x === y) return false;
+  for (const e of more) {
+    if (x === e) return false;
+  }
+  return true;
+}

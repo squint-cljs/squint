@@ -125,6 +125,7 @@
   nil_QMARK_
   nnext
   not
+  not_EQ_
   not_any_QMARK_
   not_empty
   not_every_QMARK_
