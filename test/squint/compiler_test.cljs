@@ -2553,5 +2553,8 @@ new Foo();")
     (is (re-find #"[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}"
                  (js/eval s)))))
 
+(deftest not=test
+  (is (true? (jsv! '(not= 1 2)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
