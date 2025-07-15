@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.151 (2025-07-15)
 
 - Implement `not=` as function
+- Fix [#684](https://github.com/squint-cljs/squint/issues/684): JSX output
 
 ## v0.8.150 (2025-07-09)
 

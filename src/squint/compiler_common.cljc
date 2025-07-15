@@ -1273,7 +1273,7 @@ break;}" body)
                             (keyword? tag)
                             (name tag-name)
                             :else tag-name*)
-                      (let [elts (map #(emit % env) elts)
+                      (let [elts (map #(emit % (expr-env env)) elts)
                             elts (map #(list 'js* (str %)) elts)
                             children
                             (if single-child?
