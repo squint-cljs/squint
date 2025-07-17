@@ -553,28 +553,55 @@
       alias)
     alias))
 
-(defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as]}]]
+(defn unwrap [s]
+  (str/replace s #"^\(|\)$" ""))
+
+(defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as with]}]]
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
-    (let [libname (resolve-ns env libname)
+    (let [env (expr-env env)
+          libname (resolve-ns env libname)
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           default? (= "default" suffix) ;; we only support a default suffix for now anyway
           as (when as (munge as))
           expr (str
                 (when (and as default?)
                   (if *repl*
-                    (statement (format "const %s = (await import('%s')).%s" (alias-munge as) libname suffix))
-                    (statement (format "import %s from '%s'" as libname))))
+                    (statement (format "const %s = (await import('%s'%s)).%s"
+                                       (alias-munge as)
+                                       libname
+                                       (if with
+                                         (str ", " (emit {:with with} env))
+                                         "")
+                                       suffix))
+                    (statement (format "import %s from '%s'%s" as libname
+                                       (if with
+                                         (str " with " (unwrap (emit with env)))
+                                         "")))))
                 (when (and (not as) (not suffix) (not refer))
                   ;; import presumably for side effects
-                  (if *repl*
-                    (statement (format "await import('%s')" libname))
-                    (statement (format "import '%s'" libname))))
+                  (let [res (if *repl*
+                              (statement (format "await import('%s'%s)" libname
+                                                 (if with
+                                                   (str ", " (emit {:with with} env))
+                                                   "")))
+                              (statement (format "import '%s'%s" libname
+                                                 (if with
+                                                   (str " with " (unwrap (emit with env)))
+                                                   ""))))]
+                    (println :res res)
+                    res))
                 (when (and as (not default?))
                   (swap! *imported-vars* update libname (fnil identity #{}))
                   (statement (if *repl*
-                               (format "var %s = await import('%s')" (alias-munge as) libname)
-                               (format "import * as %s from '%s'" (alias-munge as) libname))))
+                               (format "var %s = await import('%s'%s)" (alias-munge as) libname
+                                       (if with
+                                         (str ", " (emit {:with with} env))
+                                         ""))
+                               (format "import * as %s from '%s'%s" (alias-munge as) libname
+                                       (if with
+                                         (str " with " (unwrap (emit with env)))
+                                         "")))))
                 (when refer
                   (swap! (:ns-state env)
                          (fn [ns-state]
@@ -590,7 +617,10 @@
                                                                  (str " as " (munge renamed)))))
                                                         refer))]
                     (if *repl*
-                      (str (statement (format "var { %s } = (await import ('%s'))%s" (str/replace referred+renamed " as " ": ") libname
+                      (str (statement (format "var { %s } = (await import ('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
+                                              (if with
+                                                (str ", " (emit {:with with} env))
+                                                "")
                                               (if suffix
                                                 (str "." suffix)
                                                 "")))
@@ -603,9 +633,13 @@
 
                       (if default?
                         (let [libname* ((:gensym env) "default")]
-                          (str (statement (format "import %s from '%s'" libname* libname))
+                          (str (statement (format "import %s from '%s'%s" libname* libname (if with
+                                                                                             (str " with " (unwrap (emit with env)))
+                                                                                             "")))
                                (statement (format "const { %s } = %s" referred+renamed libname*))))
-                        (statement (format "import { %s } from '%s'" referred+renamed libname)))))))]
+                        (statement (format "import { %s } from '%s'%s" referred+renamed libname (if with
+                                                                                                  (str " with " (unwrap (emit with env)))
+                                                                                                  ""))))))))]
       (when as
         (swap! (:ns-state env)
                (fn [ns-state]

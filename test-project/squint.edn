@@ -1,4 +1,4 @@
 {:paths ["src" "src-other"
          "resources"]
  :output-dir "lib"
- :copy-resources #{"foo\\.json" :css}}
+ :copy-resources #{"foo\\.json"  "test\\.json" :css}}

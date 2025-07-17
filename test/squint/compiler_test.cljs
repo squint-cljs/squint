@@ -1737,6 +1737,20 @@ var { existsSync } = (await import ('node:fs'));
 globalThis.foo.existsSync = existsSync;
 globalThis.foo.fs = fs;")))))
 
+(deftest import-attributes-test
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})
+                     "with { \"type\": \"json\" }"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false
+                                                                                       :repl true})
+                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+  (println "===")
+  (println :> (squint/compile-string "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false}))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false})
+                     "with { \"type\": \"json\" }"))
+  #_(is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false
+                                                                                               :repl true})
+                     ", ({ \"with\": ({ \"type\": \"json\" }) })")))
+
 (deftest default-require-test
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom")]
     (is (str/includes? js "import default$1 from 'some-js-lib'"))
