@@ -1743,11 +1743,24 @@ globalThis.foo.fs = fs;")))))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false
                                                                                        :repl true})
                      ", ({ \"with\": ({ \"type\": \"json\" }) })"))
-  (println "===")
-  (println :> (squint/compile-string "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false}))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :as dude :with {:type :json}]))" {:elide-imports false})
+                     "with { \"type\": \"json\" }"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :as dude :with {:type :json}]))" {:elide-imports false
+                                                                                       :repl true})
+                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :refer [x] :with {:type :json}]))" {:elide-imports false})
+                     "with { \"type\": \"json\" }"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :refer [x] :with {:type :json}]))" {:elide-imports false
+                                                                                                :repl true})
+                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false})
                      "with { \"type\": \"json\" }"))
-  #_(is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false
+                                                                                               :repl true})
+                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :as dude :with {:type :json}]))" {:elide-imports false})
+                     "with { \"type\": \"json\" }"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :as dude :with {:type :json}]))" {:elide-imports false
                                                                                                :repl true})
                      ", ({ \"with\": ({ \"type\": \"json\" }) })")))
 

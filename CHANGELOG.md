@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.152 (2025-07-18)
 
 - Fix [#680](https://github.com/squint-cljs/squint/issues/680): support import attributes using `:with` option in require, e.g. `:with {:type :json}`
 

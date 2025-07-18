@@ -578,19 +578,17 @@
                                        (if with
                                          (str " with " (unwrap (emit with env)))
                                          "")))))
-                (when (and (not as) (not suffix) (not refer))
+                (when (and (not as) (not refer))
                   ;; import presumably for side effects
-                  (let [res (if *repl*
-                              (statement (format "await import('%s'%s)" libname
-                                                 (if with
-                                                   (str ", " (emit {:with with} env))
-                                                   "")))
-                              (statement (format "import '%s'%s" libname
-                                                 (if with
-                                                   (str " with " (unwrap (emit with env)))
-                                                   ""))))]
-                    (println :res res)
-                    res))
+                  (if *repl*
+                    (statement (format "await import('%s'%s)" libname
+                                       (if with
+                                         (str ", " (emit {:with with} env))
+                                         "")))
+                    (statement (format "import '%s'%s" libname
+                                       (if with
+                                         (str " with " (unwrap (emit with env)))
+                                         "")))))
                 (when (and as (not default?))
                   (swap! *imported-vars* update libname (fnil identity #{}))
                   (statement (if *repl*
