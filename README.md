@@ -77,7 +77,7 @@ need the extra performance, startup time and/or small bundle size.
   results are not cached. If side effects are used in combination with laziness,
   it's recommended to realize the lazy value using `vec` on function
   boundaries. You can detect re-usage of lazy values by calling
-  `warn-on-lazy-reusage!`.
+  [warn-on-lazy-reusage!](#warn-on-lazy-reusage).
 - Supports async/await:`(def x (js-await y))`. Async functions must be marked
   with `^:async`: `(defn ^:async foo [])`.
 - `assoc!`, `dissoc!`, `conj!`, etc. perform in place mutation on objects
@@ -153,6 +153,53 @@ With respect to memory usage:
 ```
 
 Run the above program with `node --expose-gc ./node_cli mem.cljs`
+
+#### Warn on Lazy Reusage
+
+Squint can be asked to log warnings when it detects reusage of lazy values by calling `warn-on-lazy-reusage!`:
+
+`lazy.cljs`
+``` clojure
+(ns lazy)
+
+(warn-on-lazy-reusage!)
+
+(defn lazy-reuser []
+  (let [a (rest [0 1 2])]
+    (concat a a)))
+
+(println (mapv inc (lazy-reuser)))
+```
+
+When you compile `lazy.cljs`, you'll see no warnings:
+```shell
+$ npx squint compile lazy.cljs
+[squint] Compiling CLJS file: lazy.cljs
+[squint] Wrote file: /tmp/squint-lazy-test/lazy.mjs
+```
+
+You'll see the warnings at runtime:
+```shell
+$ node lazy.mjs
+Re-use of lazy value Error
+    at [Symbol.iterator] (file:///tmp/squint-lazy-test/node_modules/squint-cljs/src/squint/core.js:696:15)
+    at LazyIterable.gen (file:///tmp/squint-lazy-test/node_modules/squint-cljs/src/squint/core.js:1153:14)
+    at Generator.next (<anonymous>)
+    at Module.mapv (file:///tmp/squint-lazy-test/node_modules/squint-cljs/src/squint/core.js:1076:18)
+    at file:///tmp/squint-lazy-test/lazy.mjs:7:33
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+[ 2, 3, 2, 3 ]
+```
+
+> [!NOTE]
+> If you are running code in a browser, look for the warnings in the browser console.
+
+> [!TIP]
+> Lazy reusage isn't necessarily incorrect; it's just slower.
+
+Calling `warn-on-lazy-reusage!` incurs little to no overhead, so, if you wish, you can leave this check in production code.
 
 ## JSX
 
