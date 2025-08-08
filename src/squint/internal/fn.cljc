@@ -100,7 +100,7 @@
                       ~(dec (count sig)))])
           #_(js-inline-comment " @this {Function} ")
           ;; dissoc :top-fn so this helper gets ignored in cljs.analyzer/parse 'set!
-          (set! (. ~(vary-meta sym dissoc :top-fn) ~'-cljs$lang$applyTo)
+          #_(set! (. ~(vary-meta sym dissoc :top-fn) ~'-cljs$lang$applyTo)
                 ~(apply-to)))))))
 
 (defn- multi-arity-fn [name meta fdecl _emit-var?]
