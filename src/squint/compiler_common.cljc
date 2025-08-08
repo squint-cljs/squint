@@ -380,7 +380,7 @@
                                      ctx)]
                          (cond-> (emit l (assoc env :context
                                                 ctx))
-                           (= :return ctx) (str ";"))))
+                           (= :return ctx) (statement))))
             iife?
             (wrap-implicit-iife env))]
     s))
@@ -444,30 +444,31 @@
   (let [gensym (:gensym env)
         expr? (= :expr (:context env))
         gs (gensym "caseval__")
-        eenv (expr-env env)]
-    (cond-> (str
-             (when expr?
-               (str "var " gs ";\n"))
-             "switch (" (emit v eenv) ") {"
-             (str/join (map (fn [test then]
-                              (str/join
-                               (map (fn [test]
-                                      (str "case " (emit test eenv) ":\n"
-                                           (if expr?
-                                             (str gs " = " then)
-                                             (emit then env))
-                                           "\nbreak;\n"))
-                                    test)))
-                            tests thens))
-             (when default
-               (str "default:\n"
-                    (if expr?
-                      (str gs " = " (emit default eenv))
-                      (emit default env))))
-             (when expr?
-               (str "return " gs ";"))
-             "}")
-      expr? (wrap-implicit-iife env))))
+        eenv (expr-env env)
+        ret (cond-> (str
+                     (when expr?
+                       (str "var " gs ";\n"))
+                     "switch (" (emit v eenv) ") {"
+                     (str/join (map (fn [test then]
+                                      (str/join
+                                       (map (fn [test]
+                                              (str "case " (emit test eenv) ":\n"
+                                                   (if expr?
+                                                     (str gs " = " then)
+                                                     (statement (emit then env)))
+                                                   "\nbreak;\n"))
+                                            test)))
+                                    tests thens))
+                     (when default
+                       (str "default:\n"
+                            (if expr?
+                              (str gs " = " (emit default eenv))
+                              (emit default env))))
+                     (when expr?
+                       (str "return " gs ";"))
+                     "}")
+              expr? (wrap-implicit-iife env))]
+    ret))
 
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [gensym (:gensym env)
