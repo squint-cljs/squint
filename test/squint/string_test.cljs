@@ -61,6 +61,11 @@
                             (str/capitalize "f")
                             (str/capitalize "FooBar")]))))
 
+(deftest includes-test
+  (evalll (eq [true])
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result [(str/includes? "foo" "o")]))))
+
 ;; (deftest string-conflict-test
 ;;   (evalll (fn [res]
 ;;             (eq ["foo","bar"] res))
