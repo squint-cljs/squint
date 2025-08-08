@@ -52,7 +52,7 @@
 
 (defn emit-return [s env]
   (if (= :return (:context env))
-    (format "return %s;"
+    (format "return %s"
             s)
     s))
 
