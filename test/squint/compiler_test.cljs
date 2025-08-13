@@ -2583,5 +2583,21 @@ new Foo();")
 (deftest not=test
   (is (true? (jsv! '(not= 1 2)))))
 
+(deftest issue-697-test
+  (let [compiler-macros
+        {'custom {'expr-and (fn [_ _ & args]
+                              (let [js (str/join " && " (repeat (count args) "(~{})"))]
+                                (vary-meta
+                                 (concat (list 'js* js) args)
+                                 assoc :tag 'boolean)))}}]
+    (is (true? (js/eval (squint/compile-string
+                         "(let [value 1]
+       (custom/expr-and (= value 1) (= 2 2)))"
+                         {:context :expr
+                          :macros compiler-macros
+                          :elide-imports true
+                          :elide-exports true
+                          :top-level false}))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
