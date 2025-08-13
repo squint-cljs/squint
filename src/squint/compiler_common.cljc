@@ -121,10 +121,11 @@
       (.substring s (- (count s) n)))))
 
 (defn statement [expr]
-  (when-not (str/blank? expr)
-    (if (not (= statement-separator (str-tail (count statement-separator) expr)))
-      (str expr statement-separator)
-      expr)))
+  (let [expr (str expr)]
+    (when-not (str/blank? expr)
+      (if (not (= statement-separator (str-tail (count statement-separator) expr)))
+        (str expr statement-separator)
+        expr))))
 
 (defn comma-list [coll]
   (str "(" (str/join ", " coll) ")"))
