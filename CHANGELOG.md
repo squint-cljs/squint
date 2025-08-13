@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Add `clojure.string/includes?`
+- [#691](https://github.com/squint-cljs/squint/issues/691): Add validation to CLI ([@lread](https://github.com/lread))
 
 ## v0.8.152 (2025-07-18)
 
