@@ -181,7 +181,9 @@
                     :ref "<path>"
                     :squint-edn? true
                     :coerce [:string]
-                    :example-values ["src" "other/src"] }
+                    :default-desc "., src"
+                    :default ["." "src"]
+                    :example-values ["." "src"] }
    :copy-resources {:desc "Copy any non cljs/cljc files found in --paths as resources"
                     :extra-desc ["- use keyword to match files with extension"
                                  "- otherwise matches files by regex"]
@@ -199,9 +201,7 @@
                     :coerce :string}})
 (def compile-opt-order [:elide-imports :elide-exports :extension :paths :copy-resources :output-dir])
 
-(def watch-spec (-> compile-spec
-                    (assoc-in [:paths :require] true)
-                    (assoc-in [:paths :desc] "Watch paths for cljs/cljc files")))
+(def watch-spec (assoc-in compile-spec [:paths :desc] "Watch paths for cljs/cljc files"))
 (def watch-opt-order compile-opt-order)
 
 (def eval-spec
@@ -323,17 +323,10 @@
           (run opts (first args)))}
    {:cmd "compile"
     :usage "Usage: squint compile <file>... [options...]"
-    :usage-note "Must specify one of --paths or <files>."
+    :usage-note "<files> overrides --paths (and :paths in squint.edn)."
     :squint-edn? true
     :spec compile-spec
     :usage-opt-order compile-opt-order
-    :post-validate (fn [{:keys [args opts error-fn]}]
-                     (let [files args
-                           paths (:paths opts)]
-                       (when-not (and (or (seq paths) (seq files))
-                                      (not (and (seq paths) (seq files))))
-                         (error-fn {:type :squint/cli
-                                    :msg "Must specify one of --paths or <files>"}))))
     :fn (fn [{:keys [args opts]}]
           (-> (compile-files opts args)
               (.then (fn [{:keys [compiled copied]}]
@@ -356,7 +349,7 @@
     :arg-count 0
     :fn start-nrepl}
    {:cmd "watch"
-    :usage "Usage: squint watch <files> [options...]"
+    :usage "Usage: squint watch [options...]"
     :squint-edn? true
     :spec watch-spec
     :usage-opt-order watch-opt-order
@@ -447,20 +440,6 @@ Use squint <subcommand> --help to show more info."))))
   (let [{:keys [cmd]} (parse-cmd-opts-args cli-args)]
     (cmd-def-from-cmd cmd-table cmd)))
 
-(defn check-for-required-options
-  "Extracted/adapted from babashka.cli/parse-opts"
-  [{:keys [spec opts error-fn]}]
-  (let [require (:require (cli/spec->opts spec))]
-    (doseq [k require]
-      (when-not (find opts k)
-        (error-fn {:type :org.babashka/cli
-                   :spec spec
-                   :cause :require
-                   :msg (str "Required option: " k)
-                   :require require
-                   :option k
-                   :opts opts})))))
-
 (defn spec-opt-key [spec op spec-key]
   (let [defer-spec-key (keyword (str "deferred-" (name spec-key)))]
     (reduce-kv (fn [m k v]
@@ -486,7 +465,6 @@ Use squint <subcommand> --help to show more info."))))
                               (let [usage-help (cmd-usage-help d)]
                                 (assoc d
                                        :spec (-> spec
-                                                 (spec-opt-key :defer :require)
                                                  (spec-opt-key :defer :default)
                                                  (assoc :help {:alias :h}))
                                        :usage-help usage-help
@@ -505,17 +483,12 @@ Use squint <subcommand> --help to show more info."))))
                                        cmd-opts-args
                                        (assoc cmd-opts-args
                                               :opts (utils/process-opts! (:opts cmd-opts-args))))
-                ;; we separate options validation/defaults from parsing because options can come
+                ;; we separate options defaults from parsing because options can come
                 ;; from 2 sources: command-line and squint.edn
-                cmd-def (update cmd-def :spec #(-> %
-                                                   (spec-opt-key :enable :require)
-                                                   (spec-opt-key :enable :default)))
+                cmd-def (update cmd-def :spec #(spec-opt-key % :enable :default))
                 merged-cmd-opts-args (assoc cmd-opts-args
                                             :opts (apply-opt-defaults (:spec cmd-def)
                                                                       (:opts merged-cmd-opts-args)))]
-            (check-for-required-options (assoc cmd-def :opts (:opts merged-cmd-opts-args)))
             (when (:arg-count cmd-def)
               (args-validate (merge cmd-def merged-cmd-opts-args)))
-            (when-let [f (:post-validate cmd-def)]
-              (f (merge cmd-def merged-cmd-opts-args)))
             ((:fn cmd-def) merged-cmd-opts-args)))))))

@@ -52,11 +52,6 @@
     (is (= 1 exit))
     (is (re-find #".*ERROR.* Option specified without value: --paths" out))))
 
-(deftest missing-required-opt-test
-  (let [{:keys [exit out]} (squint "watch")]
-    (is (= 1 exit))
-    (is (re-find #".*ERROR.* Missing required option: --paths" out))))
-
 (deftest compile-is-assumed-when-not-specified-test
   ;; help alone brings up all cmds help
   (let [{:keys [exit out]} (squint "--help")]
@@ -65,11 +60,7 @@
   ;; if anything else not matching another cmd is specified, assume compile
   (let [{:keys [exit out]} (squint "some-file" "--help")]
     (is (= 0 exit))
-    (is (str/includes? out "Usage: squint compile")))
-  (let [{:keys [exit out]} (squint "some-file" "some-file" "--paths" "foo")]
-    (is (= 1 exit))
-    (is (re-find #".*ERROR.* Must specify one of --paths or <files>" out))
-    (is (str/includes? out "Usage: squint compile")) ))
+    (is (str/includes? out "Usage: squint compile"))))
 
 (deftest eval-test
   ;; -e is our only command-less command, so deserves sanity tests
