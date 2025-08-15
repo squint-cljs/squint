@@ -274,8 +274,7 @@
   (cli/format-table {:rows (opts->table cfg) :indent 1}))
 
 (defn error-text [text]
-  (if (or (str/starts-with? "win" js/process.platform)
-          (.-NO_COLOR js/process.env)
+  (if (or (.-NO_COLOR js/process.env)
           (not js/process.stdout.isTTY))
     text
     (str "\u001B[31m" text "\u001B[0m")))
