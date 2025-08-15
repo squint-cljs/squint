@@ -4,6 +4,7 @@
    [babashka.process :as p :refer [shell]]
    [cheshire.core :as json]
    [node-repl-tests]
+   [node-cli-tests]
    [clojure.string :as str]))
 
 (def test-config
@@ -75,6 +76,7 @@
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn compile squint")
   (shell "node lib/squint_tests.js")
   (node-repl-tests/run-tests {})
+  (node-cli-tests/run-tests {})
   (test-project {})
   (test-run {}))
 
