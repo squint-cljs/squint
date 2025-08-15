@@ -274,11 +274,11 @@
   (cli/format-table {:rows (opts->table cfg) :indent 1}))
 
 (defn error-text [text]
-  (if (str/starts-with? "win" js/process.platform)
+  (if (or (str/starts-with? "win" js/process.platform)
+          (.-NO_COLOR js/process.env)
+          (not js/process.stdout.isTTY))
     text
     (str "\u001B[31m" text "\u001B[0m")))
-
-
 
 (defn make-error-fn [cmd-usage-help]
   (fn [{:keys [type cause msg option value] :as data}]
