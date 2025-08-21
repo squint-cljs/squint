@@ -193,6 +193,9 @@ Re-use of lazy value Error
 [ 2, 3, 2, 3 ]
 ```
 
+> [!TIP]
+> It is sufficient to call `(warn-on-lazy-reusage!)` only from your main or entrypoint namespace.
+
 > [!NOTE]
 > If you are running code in a browser, look for the warnings in the browser console.
 
