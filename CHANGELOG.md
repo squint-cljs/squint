@@ -6,6 +6,10 @@
 
 - Fix [#704](https://github.com/squint-cljs/squint/issues/704): `while` didn't compile correctly
 - Add `clojure.string/includes?`
+- Emit less code for varargs functions
+- Fix solidJS example
+- Documentation improvements ([@lread](https://github.com/lread))
+- Fix [#697](https://github.com/squint-cljs/squint/issues/697): `ClassCastException` in statement function when passed Code records
 
 ## v0.8.152 (2025-07-18)
 
