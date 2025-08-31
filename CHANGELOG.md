@@ -2,8 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.153 (2025-08-31)
 
+- Fix [#704](https://github.com/squint-cljs/squint/issues/704): `while` didn't compile correctly
 - Add `clojure.string/includes?`
 
 ## v0.8.152 (2025-07-18)

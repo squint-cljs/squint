@@ -828,9 +828,9 @@
     (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
-  (str "while (" (emit test) ") { \n"
+  (str "while (" (emit test (expr-env env)) ") { \n"
        (emit-do env body)
-       "\n }"))
+       "\n}"))
 
 (defn map-params [m]
   (let [ks (:keys m)]

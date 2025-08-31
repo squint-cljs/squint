@@ -2599,5 +2599,8 @@ new Foo();")
                           :elide-exports true
                           :top-level false}))))))
 
+(deftest issue-704-test
+  (is (eq 10 (jsv! "(let [a (atom 1)] (while (< @a 10) (swap! a inc)) @a)"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
