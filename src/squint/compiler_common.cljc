@@ -534,26 +534,30 @@
     (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
       *async* (wrap-await)))
 
+(defn resolve-import-map [import-maps lib]
+  (get import-maps lib lib))
+
 (defn resolve-ns [env alias]
-  (case *target*
-    :squint
-    (case alias
-      (squint.string clojure.string) "squint-cljs/src/squint/string.js"
-      (squint.set clojure.set) "squint-cljs/src/squint/set.js"
-      (if (symbol? alias)
-        (if-let [resolve-ns (:resolve-ns env)]
-          (or (resolve-ns alias)
-              alias)
-          alias)
-        alias))
-    :cherry
-    (case alias
-      (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
-      (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
-      (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
-      (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
-      alias)
-    alias))
+  (let [import-maps (:import-maps env)]
+    (case *target*
+      :squint
+      (case alias
+        (squint.string clojure.string) (resolve-import-map import-maps "squint-cljs/src/squint/string.js")
+        (squint.set clojure.set) (resolve-import-map import-maps "squint-cljs/src/squint/set.js")
+        (if (symbol? alias)
+          (if-let [resolve-ns (:resolve-ns env)]
+            (or (resolve-ns alias)
+                alias)
+            alias)
+          (resolve-import-map import-maps alias)))
+      :cherry
+      (case alias
+        (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
+        (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
+        (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
+        (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
+        alias)
+      alias)))
 
 (defn unwrap [s]
   (str/replace s #"^\(|\)$" ""))
