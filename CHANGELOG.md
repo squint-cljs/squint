@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.154 (2025-09-19)
+
+- Basic `:import-maps` support in `squint.edn` (just literal replacements, prefixes not supported yet)
+
 ## v0.8.153 (2025-08-31)
 
 - Fix [#704](https://github.com/squint-cljs/squint/issues/704): `while` didn't compile correctly
