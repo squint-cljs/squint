@@ -2,4 +2,5 @@
          "resources"]
  :output-dir "lib"
  :copy-resources #{"foo\\.json"  "test\\.json" :css}
- :import-maps {"squint-cljs/core.js" "https://foobar.net"}}
+ #_#_:import-maps {"squint-cljs/core.js" "https://foobar.net"
+                   "squint-cljs/src/squint/string.js" "https://foobar.net2"}}
