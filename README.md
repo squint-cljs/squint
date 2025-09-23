@@ -299,6 +299,26 @@ lit/html`<div>Hello</div>`
 
 See [this](https://squint-cljs.github.io/squint/?src=KG5zIG15bGl0CiAgKDpyZXF1aXJlIFtzcXVpbnQuY29yZSA6cmVmZXIgW2RlZmNsYXNzIGpzLXRlbXBsYXRlXV0KICAgWyJodHRwczovL2VzbS5zaC9saXRAMy4wLjAiIDphcyBsaXRdKSkKCihkZWZjbGFzcyBNeUVsZW1lbnQKICAoZXh0ZW5kcyBsaXQvTGl0RWxlbWVudCkKICAoXjpzdGF0aWMgZmllbGQgcHJvcGVydGllcyB7OmNvdW50IHt9fSkKCiAgKGNvbnN0cnVjdG9yIFt0aGlzXQogICAgKHN1cGVyKQogICAgKHNldCEgdGhpcy5jb3VudCAwKQogICAgKHNldCEgdGhpcy5uYW1lICJIZWxsbyIpKQoKICBPYmplY3QKICAocmVuZGVyIFt0aGlzXQogICAgI2h0bWwgXmxpdC9odG1sCiAgICBbOmRpdgogICAgIFs6aDEgdGhpcy5uYW1lXQogICAgIFs6YnV0dG9uIHsiQGNsaWNrIiB0aGlzLm9uQ2xpY2sKICAgICAgICAgICAgICAgOnBhcnQgImJ1dHRvbiJ9CiAgICAgICJDbGljayBjb3VudCAiIHRoaXMuY291bnRdXSkKCiAgKG9uQ2xpY2sgW3RoaXNdCiAgICAoc2V0ISB0aGlzLmNvdW50IChpbmMgdGhpcy5jb3VudCkpKSkKCihkZWZvbmNlIGZvbwogIChkbwogICAgKGpzL3dpbmRvdy5jdXN0b21FbGVtZW50cy5kZWZpbmUgIm15LWVsZW1lbnQiIE15RWxlbWVudCkKICAgIHRydWUpKQoKKGRlZiBhcHAgKG9yIChqcy9kb2N1bWVudC5xdWVyeVNlbGVjdG9yICIjYXBwIikKICAgICAgICAgICAoZG90byAoanMvZG9jdW1lbnQuY3JlYXRlRWxlbWVudCAiZGl2IikKICAgICAgICAgICAgIChzZXQhIC1pZCAiYXBwIikKICAgICAgICAgICAgIChqcy9kb2N1bWVudC5ib2R5LnByZXBlbmQpKSkpCgooc2V0ISAoLi1pbm5lckhUTUwgYXBwKSAjaHRtbCBbOmRpdgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgWzpteS1lbGVtZW50XQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI19bOm15LWVsZW1lbnRdXSk%3D) playground example for a full example.
 
+## Asset imports
+
+You can do static asset imports like this:
+
+```
+["./test.json$default" :as json :with {:type :json}]
+```
+
+This will produce the following code, which tools like vite can inline at compile time:
+
+```
+import data from "../test.json$default" with { type: "json" };
+```
+
+You can also import other types of assets if using vite with `?raw`:
+
+```
+["logo.svg?raw" :as logo]
+```
+
 ## Async/await
 
 Squint supports `async/await`:
