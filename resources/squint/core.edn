@@ -133,6 +133,7 @@
   number_QMARK_
   object_QMARK_
   odd_QMARK_
+  parse_double
   parse_long
   partial
   partition

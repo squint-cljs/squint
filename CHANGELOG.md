@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#710](https://github.com/squint-cljs/squint/issues/710): add `parse-double`
+
 ## v0.8.154 (2025-09-19)
 
 - Basic `:import-maps` support in `squint.edn` (just literal replacements, prefixes not supported yet)
