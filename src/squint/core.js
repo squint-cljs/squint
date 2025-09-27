@@ -2509,7 +2509,7 @@ export function parse_double(s) {
       return null;
     }
   } else {
-    throw new parsing_err(s); // assumes parsingErr is defined elsewhere
+    throw new parsing_err(s);
   }
 }
 
