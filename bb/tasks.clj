@@ -57,13 +57,13 @@
       (assert (str/includes? output "macros/debug 10",))
       (assert (str/includes? output "macros/debug 6"))
       (assert (str/includes? output "my-other-src"))
-      (assert (str/includes? output "json!")))
+      (assert (str/includes? output "json!"))
+      (assert (str/includes? output "{ a: 1 }")))
     (assert (fs/exists? "test-project/lib/foo.json"))
     (assert (fs/exists? "test-project/lib/baz.css"))
     (assert (not (fs/exists? "test-project/lib/bar.json")))))
 
 (defn test-run [_]
-  (shell {:continue true} "npx") ;; dummy invocation
   (let [dir "test-project"
         out (:out (shell {:dir dir :out :string} (fs/which "npx") "squint" "run" "script.cljs"))]
     (assert (str/includes? out "dude"))))

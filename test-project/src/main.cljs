@@ -4,7 +4,8 @@
             [my-other-src :as src]
             ["fs" :as fs]
             ["path" :as path]
-            ["url" :as url :refer [fileURLToPath]]))
+            ["url" :as url :refer [fileURLToPath]]
+            ["./test.json$default" :as json :with {:type :json}]))
 
 (defn foo []
   (m/debug :foo (+ 1 2 3)))
@@ -22,3 +23,5 @@
     js/JSON.parse
     .-a
     println)
+
+(js/console.log json)

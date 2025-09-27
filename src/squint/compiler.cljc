@@ -374,7 +374,8 @@
   ([s opts] (compile-string* s opts nil))
   ([s {:keys [elide-exports
               elide-imports
-              core-alias]
+              core-alias
+              import-maps]
        :or {core-alias "squint_core"}
        :as opts} state]
    (let [opts (merge state opts)]
@@ -382,7 +383,8 @@
                cc/*target* :squint
                *jsx* false
                cc/*repl* (:repl opts cc/*repl*)]
-       (let [need-html-import (atom false)
+       (let [core-package (get import-maps cc/*core-package* cc/*core-package*)
+             need-html-import (atom false)
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
              imported-vars (atom {})
@@ -392,9 +394,9 @@
              jsx-dev (:development jsx-runtime)
              imports (atom (if cc/*repl*
                              (format "var %s = await import('%s');\n"
-                                     core-alias cc/*core-package*)
+                                     core-alias core-package)
                              (format "import * as %s from '%s';\n"
-                                     core-alias cc/*core-package*)))
+                                     core-alias core-package)))
              pragmas (atom {:js ""})]
          (binding [*imported-vars* imported-vars
                    *public-vars* public-vars
@@ -418,16 +420,19 @@
                              (if jsx-dev "DEV" "")
                              (if jsx-dev "" "s")
                              (if jsx-dev "DEV" "")
-                             (str (:import-source jsx-runtime
-                                                  "react")
-                                  (if jsx-dev
-                                    "/jsx-dev-runtime"
-                                    "/jsx-runtime")))))
+                             (let [jsx-package (str (:import-source jsx-runtime
+                                                                    "react")
+                                                    (if jsx-dev
+                                                      "/jsx-dev-runtime"
+                                                      "/jsx-runtime"))]
+                               (get import-maps jsx-package jsx-package)))))
                  _ (when @need-html-import
                      (swap! imports str
-                            (if cc/*repl*
-                              "var squint_html = await import('squint-cljs/src/squint/html.js');\n"
-                              "import * as squint_html from 'squint-cljs/src/squint/html.js';\n")))
+                            (let [html-pkg "squint-cljs/src/squint/html.js"
+                                  html-pkg (get import-maps html-pkg html-pkg)]
+                                (if cc/*repl*
+                                  (format "var squint_html = await import('%s');\n" html-pkg)
+                                  (format "import * as squint_html from '%s';\n" html-pkg)))))
                  pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
                  exports (when-not elide-exports

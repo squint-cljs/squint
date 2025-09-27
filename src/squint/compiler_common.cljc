@@ -52,7 +52,7 @@
 
 (defn emit-return [s env]
   (if (= :return (:context env))
-    (format "return %s;"
+    (format "return %s"
             s)
     s))
 
@@ -121,10 +121,11 @@
       (.substring s (- (count s) n)))))
 
 (defn statement [expr]
-  (when-not (str/blank? expr)
-    (if (not (= statement-separator (str-tail (count statement-separator) expr)))
-      (str expr statement-separator)
-      expr)))
+  (let [expr (str expr)]
+    (when-not (str/blank? expr)
+      (if (not (= statement-separator (str-tail (count statement-separator) expr)))
+        (str expr statement-separator)
+        expr))))
 
 (defn comma-list [coll]
   (str "(" (str/join ", " coll) ")"))
@@ -380,7 +381,7 @@
                                      ctx)]
                          (cond-> (emit l (assoc env :context
                                                 ctx))
-                           (= :return ctx) (str ";"))))
+                           (= :return ctx) (statement))))
             iife?
             (wrap-implicit-iife env))]
     s))
@@ -444,30 +445,31 @@
   (let [gensym (:gensym env)
         expr? (= :expr (:context env))
         gs (gensym "caseval__")
-        eenv (expr-env env)]
-    (cond-> (str
-             (when expr?
-               (str "var " gs ";\n"))
-             "switch (" (emit v eenv) ") {"
-             (str/join (map (fn [test then]
-                              (str/join
-                               (map (fn [test]
-                                      (str "case " (emit test eenv) ":\n"
-                                           (if expr?
-                                             (str gs " = " then)
-                                             (emit then env))
-                                           "\nbreak;\n"))
-                                    test)))
-                            tests thens))
-             (when default
-               (str "default:\n"
-                    (if expr?
-                      (str gs " = " (emit default eenv))
-                      (emit default env))))
-             (when expr?
-               (str "return " gs ";"))
-             "}")
-      expr? (wrap-implicit-iife env))))
+        eenv (expr-env env)
+        ret (cond-> (str
+                     (when expr?
+                       (str "var " gs ";\n"))
+                     "switch (" (emit v eenv) ") {"
+                     (str/join (map (fn [test then]
+                                      (str/join
+                                       (map (fn [test]
+                                              (str "case " (emit test eenv) ":\n"
+                                                   (if expr?
+                                                     (str gs " = " then)
+                                                     (statement (emit then env)))
+                                                   "\nbreak;\n"))
+                                            test)))
+                                    tests thens))
+                     (when default
+                       (str "default:\n"
+                            (if expr?
+                              (str gs " = " (emit default eenv))
+                              (emit default env))))
+                     (when expr?
+                       (str "return " gs ";"))
+                     "}")
+              expr? (wrap-implicit-iife env))]
+    ret))
 
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [gensym (:gensym env)
@@ -532,49 +534,78 @@
     (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
       *async* (wrap-await)))
 
-(defn resolve-ns [env alias]
-  (case *target*
-    :squint
-    (case alias
-      (squint.string clojure.string) "squint-cljs/src/squint/string.js"
-      (squint.set clojure.set) "squint-cljs/src/squint/set.js"
-      (if (symbol? alias)
-        (if-let [resolve-ns (:resolve-ns env)]
-          (or (resolve-ns alias)
-              alias)
-          alias)
-        alias))
-    :cherry
-    (case alias
-      (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
-      (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
-      (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
-      (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
-      alias)
-    alias))
+(defn resolve-import-map [import-maps lib]
+  (get import-maps lib lib))
 
-(defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as]}]]
+(defn resolve-ns [env alias]
+  (let [import-maps (:import-maps env)]
+    (case *target*
+      :squint
+      (case alias
+        (squint.string clojure.string) (resolve-import-map import-maps "squint-cljs/src/squint/string.js")
+        (squint.set clojure.set) (resolve-import-map import-maps "squint-cljs/src/squint/set.js")
+        (if (symbol? alias)
+          (if-let [resolve-ns (:resolve-ns env)]
+            (or (resolve-ns alias)
+                alias)
+            alias)
+          (resolve-import-map import-maps alias)))
+      :cherry
+      (case alias
+        (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
+        (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
+        (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
+        (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
+        alias)
+      alias)))
+
+(defn unwrap [s]
+  (str/replace s #"^\(|\)$" ""))
+
+(defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as with]}]]
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
-    (let [libname (resolve-ns env libname)
+    (let [env (expr-env env)
+          libname (resolve-ns env libname)
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           default? (= "default" suffix) ;; we only support a default suffix for now anyway
           as (when as (munge as))
           expr (str
                 (when (and as default?)
                   (if *repl*
-                    (statement (format "const %s = (await import('%s')).%s" (alias-munge as) libname suffix))
-                    (statement (format "import %s from '%s'" as libname))))
-                (when (and (not as) (not suffix) (not refer))
+                    (statement (format "const %s = (await import('%s'%s)).%s"
+                                       (alias-munge as)
+                                       libname
+                                       (if with
+                                         (str ", " (emit {:with with} env))
+                                         "")
+                                       suffix))
+                    (statement (format "import %s from '%s'%s" as libname
+                                       (if with
+                                         (str " with " (unwrap (emit with env)))
+                                         "")))))
+                (when (and (not as) (not refer))
                   ;; import presumably for side effects
                   (if *repl*
-                    (statement (format "await import('%s')" libname))
-                    (statement (format "import '%s'" libname))))
+                    (statement (format "await import('%s'%s)" libname
+                                       (if with
+                                         (str ", " (emit {:with with} env))
+                                         "")))
+                    (statement (format "import '%s'%s" libname
+                                       (if with
+                                         (str " with " (unwrap (emit with env)))
+                                         "")))))
                 (when (and as (not default?))
                   (swap! *imported-vars* update libname (fnil identity #{}))
                   (statement (if *repl*
-                               (format "var %s = await import('%s')" (alias-munge as) libname)
-                               (format "import * as %s from '%s'" (alias-munge as) libname))))
+                               (format "var %s = await import('%s'%s)" (alias-munge as) libname
+                                       (if with
+                                         (str ", " (emit {:with with} env))
+                                         ""))
+                               (format "import * as %s from '%s'%s" (alias-munge as) libname
+                                       (if with
+                                         (str " with " (unwrap (emit with env)))
+                                         "")))))
                 (when refer
                   (swap! (:ns-state env)
                          (fn [ns-state]
@@ -590,7 +621,10 @@
                                                                  (str " as " (munge renamed)))))
                                                         refer))]
                     (if *repl*
-                      (str (statement (format "var { %s } = (await import ('%s'))%s" (str/replace referred+renamed " as " ": ") libname
+                      (str (statement (format "var { %s } = (await import ('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
+                                              (if with
+                                                (str ", " (emit {:with with} env))
+                                                "")
                                               (if suffix
                                                 (str "." suffix)
                                                 "")))
@@ -603,9 +637,13 @@
 
                       (if default?
                         (let [libname* ((:gensym env) "default")]
-                          (str (statement (format "import %s from '%s'" libname* libname))
+                          (str (statement (format "import %s from '%s'%s" libname* libname (if with
+                                                                                             (str " with " (unwrap (emit with env)))
+                                                                                             "")))
                                (statement (format "const { %s } = %s" referred+renamed libname*))))
-                        (statement (format "import { %s } from '%s'" referred+renamed libname)))))))]
+                        (statement (format "import { %s } from '%s'%s" referred+renamed libname (if with
+                                                                                                  (str " with " (unwrap (emit with env)))
+                                                                                                  ""))))))))]
       (when as
         (swap! (:ns-state env)
                (fn [ns-state]
@@ -794,9 +832,9 @@
     (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
-  (str "while (" (emit test) ") { \n"
+  (str "while (" (emit test (expr-env env)) ") { \n"
        (emit-do env body)
-       "\n }"))
+       "\n}"))
 
 (defn map-params [m]
   (let [ks (:keys m)]
@@ -1273,7 +1311,7 @@ break;}" body)
                             (keyword? tag)
                             (name tag-name)
                             :else tag-name*)
-                      (let [elts (map #(emit % env) elts)
+                      (let [elts (map #(emit % (expr-env env)) elts)
                             elts (map #(list 'js* (str %)) elts)
                             children
                             (if single-child?

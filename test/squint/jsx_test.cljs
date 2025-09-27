@@ -80,7 +80,10 @@
   (testing "class shorthand"
     (is (= "<div class=\"container\"></div>" (test-jsx "#jsx [:div.container]"))))
   (testing "id and classes shorthand"
-    (is (= "<div class=\"foo bar\" id=\"my-id\"></div>" (test-jsx "#jsx [:div#my-id.foo.bar]")))))
+    (is (= "<div class=\"foo bar\" id=\"my-id\"></div>" (test-jsx "#jsx [:div#my-id.foo.bar]"))))
+  (testing "return position"
+    (is (= 1 (count (re-seq #"return" (jss! "(defn foo [] #jsx [:button \"dude\"])"
+                                            {:jsx-runtime true})))))))
 
 ;; uncomment to test how JSX behaves
 #_(prn (test-jsx* "<div className={[\"dude\", \"bar\"]}></div>"))

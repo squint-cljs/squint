@@ -1,4 +1,6 @@
 {:paths ["src" "src-other"
          "resources"]
  :output-dir "lib"
- :copy-resources #{"foo\\.json" :css}}
+ :copy-resources #{"foo\\.json"  "test\\.json" :css}
+ #_#_:import-maps {"squint-cljs/core.js" "https://foobar.net"
+                   "squint-cljs/src/squint/string.js" "https://foobar.net2"}}

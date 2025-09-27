@@ -2,9 +2,27 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.154 (2025-09-19)
+
+- Basic `:import-maps` support in `squint.edn` (just literal replacements, prefixes not supported yet)
+
+## v0.8.153 (2025-08-31)
+
+- Fix [#704](https://github.com/squint-cljs/squint/issues/704): `while` didn't compile correctly
+- Add `clojure.string/includes?`
+- Emit less code for varargs functions
+- Fix solidJS example
+- Documentation improvements ([@lread](https://github.com/lread))
+- Fix [#697](https://github.com/squint-cljs/squint/issues/697): `ClassCastException` in statement function when passed Code records
+
+## v0.8.152 (2025-07-18)
+
+- Fix [#680](https://github.com/squint-cljs/squint/issues/680): support import attributes using `:with` option in require, e.g. `:with {:type :json}`
+
+## v0.8.151 (2025-07-15)
 
 - Implement `not=` as function
+- Fix [#684](https://github.com/squint-cljs/squint/issues/684): JSX output
 
 ## v0.8.150 (2025-07-09)
 

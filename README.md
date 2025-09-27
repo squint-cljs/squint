@@ -77,7 +77,7 @@ need the extra performance, startup time and/or small bundle size.
   results are not cached. If side effects are used in combination with laziness,
   it's recommended to realize the lazy value using `vec` on function
   boundaries. You can detect re-usage of lazy values by calling
-  `warn-on-lazy-reusage!`.
+  [warn-on-lazy-reusage!](#warn-on-lazy-reusage).
 - Supports async/await:`(def x (js-await y))`. Async functions must be marked
   with `^:async`: `(defn ^:async foo [])`.
 - `assoc!`, `dissoc!`, `conj!`, etc. perform in place mutation on objects
@@ -96,6 +96,8 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 ## Projects using squint
 
 - [@nextjournal/clojure-mode](https://github.com/nextjournal/clojure-mode)
+- [cljdoc](https://cljdoc.org) ([source](https://github.com/cljdoc/cljdoc/tree/master/front-end/src/cljdoc/client))
+- [Eucalypt](https://chr15m.github.io/eucalypt/): a Reagent clone in squint
 - [static search index for Tumblr](https://github.com/holyjak/clj-tumblr-summarizer/commit/a8b2ca8a9f777e4a9059fa0f1381ded24e5f1a0f)
 - [wordle](https://github.com/jackdbd/squint-wordle)
 - [Zenith](https://tofutheloafu.itch.io/zenith): a game developed for the Lisp Game Jame 2024 by Trevor
@@ -153,6 +155,56 @@ With respect to memory usage:
 ```
 
 Run the above program with `node --expose-gc ./node_cli mem.cljs`
+
+#### Warn on Lazy Reusage
+
+Squint can be asked to log warnings when it detects reusage of lazy values by calling `warn-on-lazy-reusage!`:
+
+`lazy.cljs`
+``` clojure
+(ns lazy)
+
+(warn-on-lazy-reusage!)
+
+(defn lazy-reuser []
+  (let [a (rest [0 1 2])]
+    (concat a a)))
+
+(println (mapv inc (lazy-reuser)))
+```
+
+When you compile `lazy.cljs`, you'll see no warnings:
+```shell
+$ npx squint compile lazy.cljs
+[squint] Compiling CLJS file: lazy.cljs
+[squint] Wrote file: /tmp/squint-lazy-test/lazy.mjs
+```
+
+You'll see the warnings at runtime:
+```shell
+$ node lazy.mjs
+Re-use of lazy value Error
+    at [Symbol.iterator] (file:///tmp/squint-lazy-test/node_modules/squint-cljs/src/squint/core.js:696:15)
+    at LazyIterable.gen (file:///tmp/squint-lazy-test/node_modules/squint-cljs/src/squint/core.js:1153:14)
+    at Generator.next (<anonymous>)
+    at Module.mapv (file:///tmp/squint-lazy-test/node_modules/squint-cljs/src/squint/core.js:1076:18)
+    at file:///tmp/squint-lazy-test/lazy.mjs:7:33
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:647:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+[ 2, 3, 2, 3 ]
+```
+
+> [!TIP]
+> It is sufficient to call `(warn-on-lazy-reusage!)` only from your main or entrypoint namespace.
+
+> [!NOTE]
+> If you are running code in a browser, look for the warnings in the browser console.
+
+> [!TIP]
+> Lazy reusage isn't necessarily incorrect; it's just slower.
+
+Calling `warn-on-lazy-reusage!` incurs little to no overhead, so, if you wish, you can leave this check in production code.
 
 ## JSX
 
@@ -246,6 +298,26 @@ lit/html`<div>Hello</div>`
 ```
 
 See [this](https://squint-cljs.github.io/squint/?src=KG5zIG15bGl0CiAgKDpyZXF1aXJlIFtzcXVpbnQuY29yZSA6cmVmZXIgW2RlZmNsYXNzIGpzLXRlbXBsYXRlXV0KICAgWyJodHRwczovL2VzbS5zaC9saXRAMy4wLjAiIDphcyBsaXRdKSkKCihkZWZjbGFzcyBNeUVsZW1lbnQKICAoZXh0ZW5kcyBsaXQvTGl0RWxlbWVudCkKICAoXjpzdGF0aWMgZmllbGQgcHJvcGVydGllcyB7OmNvdW50IHt9fSkKCiAgKGNvbnN0cnVjdG9yIFt0aGlzXQogICAgKHN1cGVyKQogICAgKHNldCEgdGhpcy5jb3VudCAwKQogICAgKHNldCEgdGhpcy5uYW1lICJIZWxsbyIpKQoKICBPYmplY3QKICAocmVuZGVyIFt0aGlzXQogICAgI2h0bWwgXmxpdC9odG1sCiAgICBbOmRpdgogICAgIFs6aDEgdGhpcy5uYW1lXQogICAgIFs6YnV0dG9uIHsiQGNsaWNrIiB0aGlzLm9uQ2xpY2sKICAgICAgICAgICAgICAgOnBhcnQgImJ1dHRvbiJ9CiAgICAgICJDbGljayBjb3VudCAiIHRoaXMuY291bnRdXSkKCiAgKG9uQ2xpY2sgW3RoaXNdCiAgICAoc2V0ISB0aGlzLmNvdW50IChpbmMgdGhpcy5jb3VudCkpKSkKCihkZWZvbmNlIGZvbwogIChkbwogICAgKGpzL3dpbmRvdy5jdXN0b21FbGVtZW50cy5kZWZpbmUgIm15LWVsZW1lbnQiIE15RWxlbWVudCkKICAgIHRydWUpKQoKKGRlZiBhcHAgKG9yIChqcy9kb2N1bWVudC5xdWVyeVNlbGVjdG9yICIjYXBwIikKICAgICAgICAgICAoZG90byAoanMvZG9jdW1lbnQuY3JlYXRlRWxlbWVudCAiZGl2IikKICAgICAgICAgICAgIChzZXQhIC1pZCAiYXBwIikKICAgICAgICAgICAgIChqcy9kb2N1bWVudC5ib2R5LnByZXBlbmQpKSkpCgooc2V0ISAoLi1pbm5lckhUTUwgYXBwKSAjaHRtbCBbOmRpdgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgWzpteS1lbGVtZW50XQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI19bOm15LWVsZW1lbnRdXSk%3D) playground example for a full example.
+
+## Asset imports
+
+You can do static asset imports like this:
+
+```
+["./test.json$default" :as json :with {:type :json}]
+```
+
+This will produce the following code, which tools like vite can inline at compile time:
+
+```
+import data from "../test.json$default" with { type: "json" };
+```
+
+You can also import other types of assets if using vite with `?raw`:
+
+```
+["logo.svg?raw" :as logo]
+```
 
 ## Async/await
 

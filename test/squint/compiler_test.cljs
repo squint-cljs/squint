@@ -1737,6 +1737,33 @@ var { existsSync } = (await import ('node:fs'));
 globalThis.foo.existsSync = existsSync;
 globalThis.foo.fs = fs;")))))
 
+(deftest import-attributes-test
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})
+                     "with { \"type\": \"json\" }"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false
+                                                                                       :repl true})
+                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :as dude :with {:type :json}]))" {:elide-imports false})
+                     "with { \"type\": \"json\" }"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :as dude :with {:type :json}]))" {:elide-imports false
+                                                                                       :repl true})
+                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :refer [x] :with {:type :json}]))" {:elide-imports false})
+                     "with { \"type\": \"json\" }"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :refer [x] :with {:type :json}]))" {:elide-imports false
+                                                                                                :repl true})
+                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false})
+                     "with { \"type\": \"json\" }"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false
+                                                                                               :repl true})
+                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :as dude :with {:type :json}]))" {:elide-imports false})
+                     "with { \"type\": \"json\" }"))
+  (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :as dude :with {:type :json}]))" {:elide-imports false
+                                                                                               :repl true})
+                     ", ({ \"with\": ({ \"type\": \"json\" }) })")))
+
 (deftest default-require-test
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom")]
     (is (str/includes? js "import default$1 from 'some-js-lib'"))
@@ -2555,6 +2582,25 @@ new Foo();")
 
 (deftest not=test
   (is (true? (jsv! '(not= 1 2)))))
+
+(deftest issue-697-test
+  (let [compiler-macros
+        {'custom {'expr-and (fn [_ _ & args]
+                              (let [js (str/join " && " (repeat (count args) "(~{})"))]
+                                (vary-meta
+                                 (concat (list 'js* js) args)
+                                 assoc :tag 'boolean)))}}]
+    (is (true? (js/eval (squint/compile-string
+                         "(let [value 1]
+       (custom/expr-and (= value 1) (= 2 2)))"
+                         {:context :expr
+                          :macros compiler-macros
+                          :elide-imports true
+                          :elide-exports true
+                          :top-level false}))))))
+
+(deftest issue-704-test
+  (is (eq 10 (jsv! "(let [a (atom 1)] (while (< @a 10) (swap! a inc)) @a)"))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

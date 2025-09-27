@@ -61,7 +61,7 @@
         (when-not (fs/existsSync out-path)
           (println "[squint] Creating directory:" out-path)
           (fs/mkdirSync out-path #js {:recursive true}))
-        (println "[squint] zCopying resource" path "to" out-path)
+        (println "[squint] Copying resource" path "to" out-path)
         (fs/copyFileSync path out-file)))))
 
 (defn compile-files
