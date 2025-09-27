@@ -2486,17 +2486,31 @@ function parsing_err(x) {
   throw new Error(`Expected string, got: ${typeof x}`);
 }
 
-export function parse_long(x) {
-  if (string_QMARK_(x)) {
-    if (/^[+-]?\d+$/.test(x)) {
-      const i = parseInt(x);
+export function parse_long(s) {
+  if (string_QMARK_(s)) {
+    if (/^[+-]?\d+$/.test(s)) {
+      const i = parseInt(s);
       if (Number.MIN_SAFE_INTEGER <= i <= Number.MAX_SAFE_INTEGER) {
         return i;
       }
     }
     return null;
   }
-  return parsing_err(x);
+  return parsing_err(s);
+}
+
+export function parse_double(s) {
+  if (string_QMARK_(s)) {
+    if (/^[\\x00-\\x20]*[+-]?NaN[\\x00-\\x20]*$/.test(s)) {
+      return NaN;
+    } else if (/^[\\x00-\\x20]*[+-]?(Infinity|((\d+\.?\d*|\.\d+)([eE][+-]?\d+)?)[dDfF]?)[\\x00-\\x20]*$/.test(s)) {
+      return parseFloat(s);
+    } else {
+      return null;
+    }
+  } else {
+    throw new parsing_err(s); // assumes parsingErr is defined elsewhere
+  }
 }
 
 function fix(q) {
