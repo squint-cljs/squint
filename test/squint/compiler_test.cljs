@@ -823,6 +823,8 @@
 (deftest assoc-in-test
   (testing "happy path"
     (is (eq #js {"1" 3}
+            (jsv! '(assoc-in nil ["1"] 3))))
+    (is (eq #js {"1" 3}
             (jsv! '(assoc-in {"1" 2} ["1"] 3))))
     (is (eq #js {"1" #js [(js/Map. #js [#js [8 9]])]}
             (jsv! '(assoc-in {"1" [(js/Map. [[8 5]])]}

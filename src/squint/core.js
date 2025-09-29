@@ -201,6 +201,7 @@ function typeConst(obj) {
 
 function assoc_in_with(f, fname, o, keys, value) {
   keys = vec(keys);
+  o = o || {}; // default nil behavior is JS object
   const baseType = typeConst(o);
   if (baseType !== MAP_TYPE && baseType !== ARRAY_TYPE && baseType !== OBJECT_TYPE)
     throw new Error(
