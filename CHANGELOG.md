@@ -5,7 +5,8 @@
 ## Unreleased
 
 - Fix [#710](https://github.com/squint-cljs/squint/issues/710): add `parse-double`
-- Fix #714: `assoc-in` with `nil` value
+- Fix [#714](https://github.com/squint-cljs/squint/issues/714): `assoc-in` with `nil` value
+- Fix [#714](https://github.com/squint-cljs/squint/issues/714): `dissoc` on `nil`
 
 ## v0.8.154 (2025-09-19)
 

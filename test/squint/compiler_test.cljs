@@ -1852,6 +1852,7 @@ globalThis.foo.fs = fs;")))))
                           x)))))
 
 (deftest dissoc-test
+  (is (eq nil (jsv! '(dissoc nil "1"))))
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc {"1" 2 "3" 4}))))
   (is (eq #js {"3" 4} (jsv! '(dissoc {"1" 2 "3" 4} "1"))))
   (is (eq #js {} (jsv! '(dissoc {"1" 2 "3" 4} "1" "3")))))
