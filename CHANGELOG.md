@@ -2,11 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.155 (2025-10-02)
 
 - Fix [#710](https://github.com/squint-cljs/squint/issues/710): add `parse-double`
-- Fix [#714](https://github.com/squint-cljs/squint/issues/714): `assoc-in` with `nil` value
-- Fix [#714](https://github.com/squint-cljs/squint/issues/714): `dissoc` on `nil`
+- Fix [#714](https://github.com/squint-cljs/squint/issues/714): `assoc-in` on `nil` or `undefined`
+- Fix [#714](https://github.com/squint-cljs/squint/issues/714): `dissoc` on `nil` or `undefined`
 
 ## v0.8.154 (2025-09-19)
 
