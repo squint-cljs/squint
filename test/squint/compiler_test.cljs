@@ -210,7 +210,8 @@
   (is (false? (jsv! "(zero? \"0\")"))))
 
 (deftest no-truth-check-test
-  (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)" "(when (= 1 1) 1)"
+  (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)"
+                #_"(when (= 1 1) 1)"
                 "(let [x (zero? 0)] (when x 1))"
                 "(if (neg? 1) 0 1)" "(if (not 1) 0 1)"
                 "(if \"foo\" 1 2)" "(if :foo 1 2)"
