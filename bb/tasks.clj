@@ -119,4 +119,4 @@
 (defn libtests []
   #_(build-squint-npm-package)
   (eucalypt-test)
-  #_(clojure-mode-test))
+  (clojure-mode-test))
