@@ -19,6 +19,74 @@ function toFn(x) {
   return x;
 }
 
+// inlined and modified version of https://github.com/lukeed/dequal
+var has = Object.prototype.hasOwnProperty;
+
+function findKey(iter, tar, key) {
+  for (key of iter.keys()) {
+    if (dequal(key, tar)) return key;
+  }
+}
+
+function dequal(foo, bar) {
+  // supports primitives, Array, Set, Map and plain objects
+  // like CLJS: does not support NaN
+  if (foo === bar) return true;
+  var ctor, len, tmp;
+
+  if (foo && bar && (ctor = foo.constructor) === bar.constructor) {
+    if (ctor === Array) {
+      if ((len = foo.length) === bar.length) {
+        while (len-- && dequal(foo[len], bar[len]));
+      }
+      return len === -1;
+    }
+
+    if (ctor === Set) {
+      if (foo.size !== bar.size) {
+        return false;
+      }
+      for (const elt of foo) {
+        tmp = elt;
+        if (tmp && typeof tmp === 'object') {
+          tmp = findKey(bar, tmp);
+          if (!tmp) return false;
+        }
+        if (!bar.has(tmp)) return false;
+      }
+      return true;
+    }
+
+    if (ctor === Map) {
+      if (foo.size !== bar.size) {
+        return false;
+      }
+      for (const kv of foo) {
+        tmp = kv[0];
+        if (tmp && typeof tmp === 'object') {
+          tmp = findKey(bar, tmp);
+          if (!tmp) return false;
+        }
+        if (!dequal(len[1], bar.get(tmp))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    if (!ctor || typeof foo === 'object') {
+      len = 0;
+      for (const k in foo) {
+        if (has.call(foo, k) && ++len && !has.call(bar, k)) return false;
+        if (!(k in bar) || !dequal(foo[k], bar[k])) return false;
+      }
+      return Object.keys(bar).length === len;
+    }
+  }
+  return false;
+}
+// end inlined version of dequals
+
 function walkArray(arr, comp) {
   return arr.every(function (x, i) {
     return i === 0 || comp(arr[i - 1], x);
@@ -26,7 +94,7 @@ function walkArray(arr, comp) {
 }
 
 export function _EQ_(...xs) {
-  return walkArray(xs, (x, y) => x === y);
+  return walkArray(xs, (x, y) => dequal(x, y));
 }
 
 export function _GT_(...xs) {
@@ -1072,8 +1140,7 @@ export function mapv(...args) {
         ret[i] = f(iter[i]);
       }
       return ret;
-    }
-    else {
+    } else {
       var ret = [];
       for (const x of iter) {
         ret.push(f(x));
@@ -1589,7 +1656,7 @@ export function take_last(n, coll) {
     return null;
   }
   if (Array.isArray(coll)) {
-    return seq(coll.slice(-Math.abs(n)))
+    return seq(coll.slice(-Math.abs(n)));
   } else {
     let lastN = new Array(n);
     let i = 0;
@@ -1598,7 +1665,7 @@ export function take_last(n, coll) {
       i++;
     }
     if (i % n !== 0 && i >= n) {
-      return lastN.slice(i%n).concat(lastN.slice(0, i%n));
+      return lastN.slice(i % n).concat(lastN.slice(0, i % n));
     } else {
       lastN.length = Math.min(i, n);
       return lastN;
@@ -2288,7 +2355,6 @@ export function compare(x, y) {
         }
         return 0;
       }
-      
     } else {
       throw new Error(`comparing ${tx} to ${ty}`);
     }
@@ -2505,7 +2571,11 @@ export function parse_double(s) {
   if (string_QMARK_(s)) {
     if (/^[\\x00-\\x20]*[+-]?NaN[\\x00-\\x20]*$/.test(s)) {
       return NaN;
-    } else if (/^[\\x00-\\x20]*[+-]?(Infinity|((\d+\.?\d*|\.\d+)([eE][+-]?\d+)?)[dDfF]?)[\\x00-\\x20]*$/.test(s)) {
+    } else if (
+      /^[\\x00-\\x20]*[+-]?(Infinity|((\d+\.?\d*|\.\d+)([eE][+-]?\d+)?)[dDfF]?)[\\x00-\\x20]*$/.test(
+        s
+      )
+    ) {
       return parseFloat(s);
     } else {
       return null;
@@ -2539,7 +2609,7 @@ export function trampoline(f, ...args) {
       }
     }
   } else {
-    return trampoline(function() {
+    return trampoline(function () {
       return apply(f, args);
     });
   }
@@ -2834,7 +2904,7 @@ export function update_vals(m, f) {
   return m2;
 }
 
-export function random_uuid () {
+export function random_uuid() {
   return crypto.randomUUID();
 }
 
@@ -2873,7 +2943,7 @@ export function clj__GT_js(x) {
 }
 
 export function run_BANG_(proc, coll) {
-  reduce((_,x) => proc(x), null, coll);
+  reduce((_, x) => proc(x), null, coll);
 }
 
 export function not_EQ_(x, y, ...more) {

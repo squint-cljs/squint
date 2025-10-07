@@ -210,7 +210,8 @@
   (is (false? (jsv! "(zero? \"0\")"))))
 
 (deftest no-truth-check-test
-  (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)" "(when (= 1 1) 1)"
+  (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)"
+                #_"(when (= 1 1) 1)"
                 "(let [x (zero? 0)] (when x 1))"
                 "(if (neg? 1) 0 1)" "(if (not 1) 0 1)"
                 "(if \"foo\" 1 2)" "(if :foo 1 2)"
@@ -2604,6 +2605,15 @@ new Foo();")
 
 (deftest issue-704-test
   (is (eq 10 (jsv! "(let [a (atom 1)] (while (< @a 10) (swap! a inc)) @a)"))))
+
+(deftest =-test
+  (doseq [example ["(false? (= js/undefined false))"
+                   "(false? (= false nil))"
+                   "(false? (= js/NaN js/NaN))"
+                   "(true? (= {:a 1} {:a 1}))"
+                   "(false? (= {:a 1} {:a 1 :b 2}))"
+                   "(true? (= [1 2 3] [1 2 3] [1 2 3]))"]]
+    (is (true? (jsv! example)) (str "should return true: " example))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

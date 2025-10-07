@@ -78,8 +78,7 @@
   (test-project {})
   (test-run {}))
 
-(defn libtests []
-  #_(build-squint-npm-package)
+(defn clojure-mode-test []
   (let [dir "libtests"]
     (fs/delete-tree dir)
     (fs/create-dir dir)
@@ -97,3 +96,27 @@
       (shell "node_modules/squint-cljs/node_cli.js" "compile")
       (shell "node dist/nextjournal/clojure_mode_tests.mjs")
       (println "clojure-mode tests successful!"))))
+
+(defn eucalypt-test []
+  (let [dir "libtests"]
+    (fs/delete-tree dir)
+    (fs/create-dir dir)
+    (shell {:dir dir} "git clone https://github.com/borkdude/eucalypt")
+    (let [dir (fs/path dir "eucalypt")
+          shell (partial p/shell {:dir dir})
+          squint-local (fs/path dir "node_modules/squint-cljs")]
+      (shell "git reset 92c71758c40db91af9be815155075085dbab362c --hard")
+      (fs/create-dirs dir)
+      (shell "npm install")
+      (fs/delete-tree squint-local)
+      (fs/create-dirs squint-local)
+      (run! #(fs/copy % squint-local) (fs/glob "." "*.{js,json}"))
+      (fs/copy-tree "lib" (fs/path squint-local "lib"))
+      (fs/copy-tree "src" (fs/path squint-local "src"))
+      (shell "npm run test")
+      (println "eucalypt tests successful!"))))
+
+(defn libtests []
+  #_(build-squint-npm-package)
+  (eucalypt-test)
+  (clojure-mode-test))
