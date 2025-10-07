@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.156 (2025-10-07)
+
+- Switch `=` to a deep-equals implementation that works on primitives, objects, `Arrays`, `Maps` and `Sets`
+
 ## v0.8.155 (2025-10-02)
 
 - Fix [#710](https://github.com/squint-cljs/squint/issues/710): add `parse-double`

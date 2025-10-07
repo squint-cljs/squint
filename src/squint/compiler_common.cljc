@@ -208,7 +208,7 @@
 
 (def suffix-unary-operators '#{++ --})
 
-(def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" #_"=" "==" "===" "<" ">" "<=" ">=" "!="
+(def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "==" "===" "<" ">" "<=" ">=" "!="
                        "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "instanceof"
                        "bit-or" "bit-and" "js-mod" "js-??"})
 
@@ -250,7 +250,7 @@
                   (= 1 acount))
              (str "1 / " (emit (first args) env))
              :else
-             (-> (let [substitutions {== "===" '!= "!=="
+             (-> (let [substitutions {'== "===" '!= "!=="
                                       '+ "+"
                                       'bit-or "|"
                                       'bit-and "&"
