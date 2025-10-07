@@ -28,7 +28,7 @@ function findKey(iter, tar, key) {
   }
 }
 
-export function dequal(foo, bar) {
+function dequal(foo, bar) {
   // supports primitives, Array, Set, Map and plain objects
   // like CLJS: does not support NaN
   if (foo === bar) return true;
