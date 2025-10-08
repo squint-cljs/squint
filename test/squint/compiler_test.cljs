@@ -2613,7 +2613,11 @@ new Foo();")
                    "(true? (= {:a 1} {:a 1}))"
                    "(false? (= {:a 1} {:a 1 :b 2}))"
                    "(true? (= [1 2 3] [1 2 3] [1 2 3]))"]]
-    (is (true? (jsv! example)) (str "should return true: " example))))
+    (is (true? (jsv! example)) (str "should return true: " example)))
+  (testing "optimization, bypass _EQ_ function when comparing with primitive literal"
+    (let [res (jss! "(let [f (fn [x] (= 1 x))] f)" {:context :expression})]
+      (is (str/includes? res "1 === x"))
+      (is (false? ((js/eval res)))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
