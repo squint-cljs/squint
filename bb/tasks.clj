@@ -101,11 +101,10 @@
   (let [dir "libtests"]
     (fs/delete-tree dir)
     (fs/create-dir dir)
-    (shell {:dir dir} "git clone https://github.com/borkdude/eucalypt")
+    (shell {:dir dir} "git clone https://github.com/chr15m/eucalypt")
     (let [dir (fs/path dir "eucalypt")
           shell (partial p/shell {:dir dir})
           squint-local (fs/path dir "node_modules/squint-cljs")]
-      (shell "git reset 92c71758c40db91af9be815155075085dbab362c --hard")
       (fs/create-dirs dir)
       (shell "npm install")
       (fs/delete-tree squint-local)
