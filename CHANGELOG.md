@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.8.157 (2025-10-08)
 
 - Compile time optimization for `=` when using it on numbers, strings or keyword literals
 
