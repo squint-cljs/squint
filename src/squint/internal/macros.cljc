@@ -612,4 +612,4 @@
               (string? x) (string? y))
         (core/list 'js* "(~{} === ~{})" x y)
         `(cljs.core/_EQ_ ~x ~y)))
-    `(cljs.core/_EQ_ ~xs)))
+    `(cljs.core/_EQ_ ~@xs)))
