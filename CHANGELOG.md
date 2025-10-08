@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Compile time optimization for `=` when using it on numbers, strings or keyword literals
+
 ## v0.8.156 (2025-10-07)
 
 - Switch `=` to a deep-equals implementation that works on primitives, objects, `Arrays`, `Maps` and `Sets`
