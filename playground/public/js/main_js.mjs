@@ -62,7 +62,7 @@ class LazyIterable extends Array {
   }
 }
 
-let compilerState = null;
+globalThis.compilerState = null;
 
 let jsEditor = null;
 
@@ -100,8 +100,8 @@ let evalCode = async (code) => {
     let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement',
                  "jsx-runtime": { "import-source": importSource, development: true }
                };
-    compilerState = compileStringEx(`${code}`, opts, compilerState);
-    let js = compilerState.javascript;
+    globalThis.compilerState = compileStringEx(`${code}`, opts, globalThis.compilerState);
+    let js = globalThis.compilerState.javascript;
     if (dev) {
       console.log("Loading local squint libs");
       js = js.replaceAll("'squint-cljs/", "'./squint-local/");
