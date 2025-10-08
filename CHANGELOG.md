@@ -6,6 +6,10 @@
 
 - Compile time optimization for `=` when using it on numbers, strings or keyword literals
 
+### News
+
+[Cljdoc](https://github.com/cljdoc/cljdoc/blob/488fe6282737c1237c5394a66a7e8392a000c6bb/doc/cljdoc-developer-technical-guide.adoc#front-end-code) chose squint for its small bundle sizes and easy migration off of TypeScript towards CLJS
+
 ## v0.8.156 (2025-10-07)
 
 - Switch `=` to a deep-equals implementation that works on primitives, objects, `Arrays`, `Maps` and `Sets`
