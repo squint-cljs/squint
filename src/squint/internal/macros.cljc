@@ -603,3 +603,13 @@
   calls."
   [& body]
   `(new cljs.core/Delay (fn [] ~@body) nil))
+
+(core/defmacro equals [& xs]
+  (if (= 2 (count xs))
+    (let [[x y] xs]
+      (if (or (number? x) (number? y)
+              (keyword? x) (keyword? y)
+              (string? x) (string? y))
+        (core/list 'js* "(~{} === ~{})" x y)
+        `(cljs.core/_EQ_ ~x ~y)))
+    `(cljs.core/_EQ_ ~xs)))
