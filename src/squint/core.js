@@ -913,9 +913,8 @@ export function map_indexed(f, coll) {
     return map_indexed1(f);
   }
   return lazy(function* () {
-    const iter = es6_iterator(iterable(coll));
     let idx = 0;
-    for (const i of iter) {
+    for (const i of iterable(coll)) {
       yield f(idx, i);
       idx++;
     }
@@ -925,9 +924,8 @@ export function map_indexed(f, coll) {
 function keep_indexed2(f, coll) {
   f = toFn(f);
   return lazy(function* () {
-    const iter = es6_iterator(iterable(coll));
     let idx = 0;
-    for (const i of iter) {
+    for (const i of iterable(coll)) {
       const v = f(idx, i);
       if (truth_(v)) yield v;
       idx++;
