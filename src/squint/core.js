@@ -912,27 +912,25 @@ export function map_indexed(f, coll) {
   if (arguments.length === 1) {
     return map_indexed1(f);
   }
-  const ret = [];
-  let i = 0;
-  for (const x of iterable(coll)) {
-    ret.push(f(i, x));
-    i++;
-  }
-  return ret;
+  return lazy(function* () {
+    let idx = 0;
+    for (const i of iterable(coll)) {
+      yield f(idx, i);
+      idx++;
+    }
+  });
 }
 
 function keep_indexed2(f, coll) {
   f = toFn(f);
-  const ret = [];
-  let i = 0;
-  for (const x of iterable(coll)) {
-    const fret = f(i, x);
-    if (truth_(fret)) {
-      ret.push(fret);
+  return lazy(function* () {
+    let idx = 0;
+    for (const i of iterable(coll)) {
+      const v = f(idx, i);
+      if (truth_(v)) yield v;
+      idx++;
     }
-    i++;
-  }
-  return ret;
+  });
 }
 
 function keep_indexed1(f) {
