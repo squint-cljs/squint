@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.158 (2025-10-10)
+
+- Make `map-indexed` and `keep-indexed` lazy
+
 ## v0.8.157 (2025-10-08)
 
 - Compile time optimization for `=` when using it on numbers, strings or keyword literals

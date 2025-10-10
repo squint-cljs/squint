@@ -1203,22 +1203,22 @@
 
 (deftest map-indexed-test
   (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
-          (jsv! '(map-indexed vector [0 1 2 3 4]))))
+          (jsv! '(vec (map-indexed vector [0 1 2 3 4])))))
   (is (= 20 (apply + (jsv! '(map-indexed + #{0 1 2 3 4})))))
   (is (eq [[0 :a 1] [1 :b 2]]
-          (jsv! '(map-indexed #(vector %1 (first %2) (inc (second %2)))
-                              {:a 0 :b 1}))))
+          (jsv! '(vec (map-indexed #(vector %1 (first %2) (inc (second %2)))
+                                  {:a 0 :b 1})))))
   (is (eq [[0 "A"] [1 "B"] [2 "C"]]
-          (jsv! '(map-indexed #(vector %1 (.toUpperCase %2))
-                              "abc"))))
+          (jsv! '(vec (map-indexed #(vector %1 (.toUpperCase %2))
+                                   "abc")))))
   (is (eq [[0 0 1] [1 1 2] [2 2 3] [3 3 4] [4 4 5]]
-          (jsv! '(map-indexed
-                  #(vector %1 (first %2) (inc (second %2)))
-                  (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
-                      (js/Map.))))))
+          (jsv! '(vec (map-indexed
+                      #(vector %1 (first %2) (inc (second %2)))
+                      (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
+                          (js/Map.)))))))
   (testing "nil"
-    (is (eq () (jsv! '(map-indexed vector nil))))
-    (is (eq () (jsv! '(map-indexed vector js/undefined)))))
+    (is (eq () (jsv! '(vec (map-indexed vector nil)))))
+    (is (eq () (jsv! '(vec (map-indexed vector js/undefined))))))
   (testing "transducer"
     (is (eq [[0 10] [1 11] [2 12] [3 13] [4 14] [5 15] [6 16] [7 17] [8 18] [9 19]]
             (jsv! "(into [] (map-indexed vector) (range 10 20))")))))
@@ -1925,7 +1925,7 @@ globalThis.foo.fs = fs;")))))
             (js->clj (jsv! "(def a (atom [])) (defn log [x] (swap! a conj x) x)  (def x (lazy-seq (cons (doto 1 log) (lazy-seq (cons (doto 2 log) (vec (map inc [2 3 4]))))))) (vec x) (vec x) [@a (vec x)]"))))))
 
 (deftest keep-indexed-test
-  (is (eq #js [12 14 16 18 20] (jsv! "(keep-indexed (fn [i e] (when (odd? i) (inc e))) (range 10 20))")))
+  (is (eq #js [12 14 16 18 20] (jsv! "(vec (keep-indexed (fn [i e] (when (odd? i) (inc e))) (range 10 20)))")))
   (is (eq #js [12 14 16 18 20] (jsv! "(into [] (keep-indexed (fn [i e] (when (odd? i) (inc e)))) (range 10 20))"))))
 
 (deftest into-array-test
