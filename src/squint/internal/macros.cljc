@@ -615,4 +615,4 @@
     `(cljs.core/_EQ_ ~@xs)))
 
 (core/defmacro stringify [& xs]
-  (cc/list* 'js* (str "`" (str/join "" (repeat (count xs) "${~{}}")) "`") xs))
+  (cc/list* 'js* (str "`" (str/join "" (repeat (count xs) "${~{}??''}")) "`") xs))
