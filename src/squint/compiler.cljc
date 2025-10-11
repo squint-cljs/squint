@@ -97,7 +97,8 @@
                              'assert macros/core-assert
                              'simple-benchmark macros/simple-benchmark
                              'delay macros/delay
-                             '= macros/equals}
+                             '= macros/equals
+                             'str macros/stringify}
                             cc/common-macros))
 
 (def core-config {:vars (edn-resource "squint/core.edn")})

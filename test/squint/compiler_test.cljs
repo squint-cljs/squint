@@ -628,6 +628,7 @@
   (is (eq (js/Set. #js ["a" "b" "c"]) (js/Set. (js/JSON.parse (jsv! '(pr-str #{:a :b :c})))))))
 
 (deftest str-test
+  (is (= "`${1}${2}${3}`" (jss! '(str 1 2 3))))
   (is (eq "123" (jsv! '(str 1 2 3))))
   (is (eq "foobarbaz", (jsv! '(str "foo" "bar" "baz"))))
   (is (eq "1barfirst,second[object Object]"

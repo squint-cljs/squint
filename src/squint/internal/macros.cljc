@@ -613,3 +613,6 @@
         (core/list 'js* "(~{} === ~{})" x y)
         `(cljs.core/_EQ_ ~x ~y)))
     `(cljs.core/_EQ_ ~@xs)))
+
+(core/defmacro stringify [& xs]
+  (cc/list* 'js* (str "`" (str/join "" (repeat (count xs) "${~{}}")) "`") xs))
