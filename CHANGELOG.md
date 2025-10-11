@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.159 (2025-10-11)
+
+- [#723](https://github.com/squint-cljs/squint/issues/723): inline `str` calls
+
 ## v0.8.158 (2025-10-10)
 
 - Make `map-indexed` and `keep-indexed` lazy
