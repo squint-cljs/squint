@@ -97,7 +97,8 @@
                              'assert macros/core-assert
                              'simple-benchmark macros/simple-benchmark
                              'delay macros/delay
-                             '= macros/equals}
+                             '= macros/equals
+                             'str macros/stringify}
                             cc/common-macros))
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
@@ -180,7 +181,8 @@
 
 (defn emit-list [expr env]
   (let [env* env
-        env (assoc env :jsx (::jsx (meta expr)))]
+        mexpr (meta expr)
+        env (assoc env :jsx (::jsx mexpr))]
     (escape-jsx
      (let [fexpr (first expr)]
        (if (:quote env)
@@ -200,7 +202,8 @@
                               (meta expr))
                             expr)
                      head-str (str head)
-                     macro (when (symbol? head)
+                     macro (when (and (symbol? head)
+                                      (not (:squint.compiler/skip-macro mexpr)))
                              (or (built-in-macros (strip-core-symbol head))
                                  (let [ns (namespace head)
                                        nm (name head)

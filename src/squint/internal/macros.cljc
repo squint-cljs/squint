@@ -613,3 +613,11 @@
         (core/list 'js* "(~{} === ~{})" x y)
         `(cljs.core/_EQ_ ~x ~y)))
     `(cljs.core/_EQ_ ~@xs)))
+
+(core/defmacro stringify [& xs]
+  (case (count xs)
+    0 ""
+    1 `(str.$1 ~(first xs))
+    2 `(str.$2 ~(first xs) ~(second xs))
+    3 `(str.$3 ~(first xs) ~(second xs) ~(nth xs 2))
+    (vary-meta &form assoc :squint.compiler/skip-macro true)))
