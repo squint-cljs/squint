@@ -623,7 +623,7 @@
     (str x)))
 
 ;; we use templates because multiline strings won't work otherwise
-
+;; TODO: we can remove the wrapping parens once we address https://github.com/squint-cljs/squint/issues/727
 (core/defmacro stringify [& xs]
   (let [args (map (fn [expr]
                     (cond (constant? expr)
