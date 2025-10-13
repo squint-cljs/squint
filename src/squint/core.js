@@ -2346,7 +2346,7 @@ export function compare(x, y) {
         return 1;
       } else {
         for (let i = 0; i < x.length; i++) {
-          let c = compare(x[i], y[i]);
+          const c = compare(x[i], y[i]);
           if (c != 0) {
             return c;
           }
@@ -2402,10 +2402,13 @@ export function number_QMARK_(x) {
 }
 
 export function keys(obj) {
-  if (obj) {
-    return Object.keys(obj);
-  } else {
-    return null;
+  if (obj == null) return;
+  const t = typeConst(obj);
+  switch (t) {
+    case OBJECT_TYPE:
+      return Object.keys(obj);
+    case MAP_TYPE:
+      return Array.from(obj.keys());
   }
 }
 
@@ -2414,10 +2417,13 @@ export function js_keys(obj) {
 }
 
 export function vals(obj) {
-  if (obj) {
-    return Object.values(obj);
-  } else {
-    return null;
+  if (obj == null) return;
+  const t = typeConst(obj);
+  switch (t) {
+    case OBJECT_TYPE:
+      return Object.values(obj);
+    case MAP_TYPE:
+      return Array.from(obj.values());
   }
 }
 
