@@ -618,20 +618,16 @@
         `(cljs.core/_EQ_ ~x ~y)))
     `(cljs.core/_EQ_ ~@xs)))
 
-(defn ->str [x]
-  (if (keyword? x)
-    (subs (str x) 1)
-    (str x)))
-
-;; we use templates because multiline strings won't work otherwise
 ;; TODO: we can remove the wrapping parens once we address https://github.com/squint-cljs/squint/issues/727
 (core/defmacro stringify [& xs]
   (let [args (map (fn [expr]
                     (cond (constant? expr)
-                          [(->str expr) nil]
+                          [(str "+" (if (string? expr)
+                                           (pr-str expr)
+                                           expr)) nil]
                           (nil? expr)
                           ["" nil]
-                          :else ["${(~{}) ?? ''}" expr])) xs)]
+                          :else ["+~{}" (list 'clojure.core/_or_blank expr)])) xs)]
     `(~'js*
-      ~(str "`" (str/join "" (map first args)) "`")
+      ~(str "''" (str/join "" (map first args)))
       ~@(keep second args))))
