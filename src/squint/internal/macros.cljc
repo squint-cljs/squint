@@ -619,6 +619,8 @@
     `(cljs.core/_EQ_ ~@xs)))
 
 ;; TODO: we can remove the wrapping parens once we address https://github.com/squint-cljs/squint/issues/727
+;; TODO: + does valueOf instead of toString, which we can fix by using a template string again
+;; TODO: but template strings are annoying with literal strings, unless we just put them in a ${}
 (core/defmacro stringify [& xs]
   (let [args (map (fn [expr]
                     (cond (constant? expr)
