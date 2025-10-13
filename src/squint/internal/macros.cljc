@@ -622,14 +622,15 @@
     (subs (str x) 1)
     (str x)))
 
+;; we use templates because multiline strings won't work otherwise
+
 (core/defmacro stringify [& xs]
   (let [args (map (fn [expr]
                     (cond (constant? expr)
-                          [(str "'" (->str expr) "'") nil]
+                          [(->str expr) nil]
                           (nil? expr)
-                          ["''" nil]
-                          :else ["(~{}??'')" expr])) xs)]
+                          ["" nil]
+                          :else ["${(~{}) ?? ''}" expr])) xs)]
     `(~'js*
-      ~(str "(''+"
-            (str/join "+" (map first args)) ")")
+      ~(str "`" (str/join "" (map first args)) "`")
       ~@(keep second args))))
