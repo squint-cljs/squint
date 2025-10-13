@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.8.159 (2025-10-13)
+
+- #725: `keys` and `vals` should work on `js/Map`
+
 ## v0.8.158 (2025-10-10)
 
 - Make `map-indexed` and `keep-indexed` lazy

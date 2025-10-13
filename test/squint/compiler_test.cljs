@@ -2619,5 +2619,11 @@ new Foo();")
       (is (str/includes? res "1 === x"))
       (is (false? ((js/eval res)))))))
 
+(deftest keys-and-vals-test
+  (is (eq [:a :b :c] (jsv! "(keys {:a 1 :b 2 :c 3})")))
+  (is (eq [:a :b :c] (jsv! "(keys (assoc (js/Map.) :a 1 :b 2 :c 3))")))
+  (is (eq [1 2 3] (jsv! "(vals {:a 1 :b 2 :c 3})")))
+  (is (eq [1 2 3] (jsv! "(vals (assoc (js/Map.) :a 1 :b 2 :c 3))"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
