@@ -607,7 +607,8 @@
 (defn constant? [x]
   (or (number? x)
       (keyword? x)
-      (string? x)))
+      (string? x)
+      (boolean? x)))
 
 (core/defmacro equals [& xs]
   (if (= 2 (count xs))
