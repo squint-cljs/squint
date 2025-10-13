@@ -966,17 +966,9 @@ export function keep_indexed(f, coll) {
   }
 }
 
-const $ = x => x ?? '';
-
-export const str = /* @__PURE__ */ Object.assign(
-  (...xs) => xs.join(''),
-  {
-    $1: (x) => '' + $(x),
-    $2: (x, y) => '' + $(x) + $(y),
-    $3: (x, y, z) => '' + $(x) + $(y) + $(z),
-    $$: (...xs) => xs.join(''),
-  }
-);
+export function str(...xs) {
+  return xs.join('');
+}
 
 export function not(expr) {
   return !truth_(expr);
