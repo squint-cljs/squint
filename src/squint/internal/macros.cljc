@@ -604,20 +604,32 @@
   [& body]
   `(new cljs.core/Delay (fn [] ~@body) nil))
 
+(defn constant? [x]
+  (or (number? x)
+      (keyword? x)
+      (string? x)))
+
 (core/defmacro equals [& xs]
   (if (= 2 (count xs))
     (let [[x y] xs]
-      (if (or (number? x) (number? y)
-              (keyword? x) (keyword? y)
-              (string? x) (string? y))
+      (if (or (constant? x) (constant? y))
         (core/list 'js* "(~{} === ~{})" x y)
         `(cljs.core/_EQ_ ~x ~y)))
     `(cljs.core/_EQ_ ~@xs)))
 
+(defn ->str [x]
+  (if (keyword? x)
+    (subs (str x) 1)
+    (str x)))
+
 (core/defmacro stringify [& xs]
-  (case (count xs)
-    0 ""
-    1 `(str.$1 ~(first xs))
-    2 `(str.$2 ~(first xs) ~(second xs))
-    3 `(str.$3 ~(first xs) ~(second xs) ~(nth xs 2))
-    (vary-meta &form assoc :squint.compiler/skip-macro true)))
+  (let [args (map (fn [expr]
+                    (cond (constant? expr)
+                          [(str "'" (->str expr) "'") nil]
+                          (nil? expr)
+                          ["''" nil]
+                          :else ["(~{}??'')" expr])) xs)]
+    `(~'js*
+      ~(str "(''+"
+            (str/join "+" (map first args)) ")")
+      ~@(keep second args))))
