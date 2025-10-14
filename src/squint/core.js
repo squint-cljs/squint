@@ -2958,5 +2958,3 @@ export function not_EQ_(x, y, ...more) {
   }
   return true;
 }
-
-export const _or_blank = (x) => x ?? '';

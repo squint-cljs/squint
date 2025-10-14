@@ -16,7 +16,6 @@
   _STAR_
   __protocol_satisfies
   _iterator
-  _or_blank
   abs
   aclone
   add_watch
