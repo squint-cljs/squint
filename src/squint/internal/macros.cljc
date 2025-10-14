@@ -618,10 +618,8 @@
         `(cljs.core/_EQ_ ~x ~y)))
     `(cljs.core/_EQ_ ~@xs)))
 
-;; TODO: + does valueOf instead of toString, which we can fix by using a template string again
-;; TODO: but template strings are annoying with literal strings, unless we just put them in a ${}
 (core/defmacro stringify [& xs]
-  (let [args (map (fn [expr]
+  (let [args (keep (fn [expr]
                     (cond (constant? expr)
                           ["${~{}}"  expr]
                           (nil? expr)
@@ -629,5 +627,5 @@
                           ;; TODO: we can remove the wrapping parens once we address https://github.com/squint-cljs/squint/issues/727
                           :else ["${(~{})??''}" expr])) xs)]
     `(~'js*
-      ~(str "`" (str/join "" (keep first args)) "`")
-      ~@(keep second args))))
+      ~(str "`" (str/join (map first args)) "`")
+      ~@(map second args))))

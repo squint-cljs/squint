@@ -631,7 +631,17 @@
   (is (eq "123" (jsv! '(str 1 2 3))))
   (is (eq "foobarbaz", (jsv! '(str "foo" "bar" "baz"))))
   (is (eq "1barfirst,second[object Object]"
-          (jsv! '(str 1 "bar" [:first :second] {"hello" "goodbye"})))))
+          (jsv! '(str 1 "bar" [:first :second] {"hello" "goodbye"}))))
+  (let [s (jss! `(let [x# {:toString (fn [] "toString")
+                           :valueOf (fn [] "valueOf")}]
+                   (str nil ::foo ~js/undefined true false 1 2 x# "multiline
+
+with `backticks`")))]
+    (testing "only variables cause ??'' checks"
+      (is (= 1 (count (re-seq #"\?\?''" s)))))
+    (is (eq "squint.compiler-test/footruefalse12toStringmultiline\n\nwith `backticks`"
+            (js/eval s)))
+    #_(js/process.exit)))
 
 (deftest comp-test
   (is (eq "0" (jsv! '((comp) "0")))
