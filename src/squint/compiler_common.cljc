@@ -844,6 +844,7 @@
     (reduce (fn [[env sig seen] param]
               (if (map? param)
                 (let [params (map-params param)]
+                  (prn :map-params param)
                   [(update env :var->ident merge params)
                    (conj sig param)
                    (into seen params)])

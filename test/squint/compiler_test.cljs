@@ -2637,3 +2637,7 @@ new Foo();")
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
+
+;; -[x] (defn foo [^object x] (assoc x :a 1 :b 2))
+;; -[ ] (defn foo [^object x] (fn [x] (assoc x :a 1 :b 2))) ;; should not emit object usage
+
