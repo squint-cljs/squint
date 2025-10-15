@@ -642,6 +642,7 @@
 
 (core/defmacro assoc!-inline [x & xs]
   (if (= 'object (:tag (meta x)))
+    ;; TODO: we can optimize this by avoiding the IIFE when x is a symbol
     (let [sym (gensym "x")]
       (list* 'js* (str "(( (" sym ") => ("
                        (str/join (repeat (/ (count xs) 2) "~{},"))
