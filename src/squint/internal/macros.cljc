@@ -604,12 +604,28 @@
   [& body]
   `(new cljs.core/Delay (fn [] ~@body) nil))
 
+(defn constant? [x]
+  (or (number? x)
+      (keyword? x)
+      (string? x)
+      (boolean? x)))
+
 (core/defmacro equals [& xs]
   (if (= 2 (count xs))
     (let [[x y] xs]
-      (if (or (number? x) (number? y)
-              (keyword? x) (keyword? y)
-              (string? x) (string? y))
+      (if (or (constant? x) (constant? y))
         (core/list 'js* "(~{} === ~{})" x y)
         `(cljs.core/_EQ_ ~x ~y)))
     `(cljs.core/_EQ_ ~@xs)))
+
+(core/defmacro stringify [& xs]
+  (let [args (keep (fn [expr]
+                    (cond (constant? expr)
+                          ["${~{}}"  expr]
+                          (nil? expr)
+                          nil
+                          ;; TODO: we can remove the wrapping parens once we address https://github.com/squint-cljs/squint/issues/727
+                          :else ["${(~{})??''}" expr])) xs)]
+    `(~'js*
+      ~(str "`" (str/join (map first args)) "`")
+      ~@(map second args))))
