@@ -640,6 +640,7 @@
     (vary-meta &form
                assoc :squint.compiler/skip-macro true)))
 
+;; TODO: optimization, we don't even need to return the result if we are in do context
 (core/defmacro assoc!-inline [x & xs]
   (if (= 'object (:tag (meta x)))
     (let [needs-iife? (not (symbol? x))
