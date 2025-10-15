@@ -642,11 +642,14 @@
 
 (core/defmacro assoc!-inline [x & xs]
   (if (= 'object (:tag (meta x)))
-    ;; TODO: we can optimize this by avoiding the IIFE when x is a symbol
-    (let [sym (gensym "x")]
-      (list* 'js* (str "(( (" sym ") => ("
+    (let [needs-iife? (not (symbol? x))
+          sym (if needs-iife? (gensym "x") x)]
+      (list* 'js* (str "(" (when needs-iife? (str "((" sym ") => ("))
                        (str/join (repeat (/ (count xs) 2) "~{},"))
-                       sym") ) (~{}))")
+                       sym
+                       (when needs-iife?
+                         "))(~{})")
+                       ")")
              (concat (map (fn [[k v]]
                             `(aset ~sym ~k ~v))
                           (partition 2 xs))
