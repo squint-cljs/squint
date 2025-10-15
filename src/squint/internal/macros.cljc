@@ -631,14 +631,17 @@
       ~@(map second args))))
 
 (core/defmacro assoc-inline [x & xs]
-  (if (= 'object (:tag (meta x)))
-    (list* 'js* (str "({...~{},"
-                     (str/join ","
-                               (repeat (/ (count xs) 2) "~{}:~{}"))
-                    "})")
-           x xs)
-    (vary-meta &form
-               assoc :squint.compiler/skip-macro true)))
+  (prn (map meta (keys (:var->ident &env))))
+  (let [x (get (:var->ident &env) x x)]
+    (prn :x x (meta x))
+    (if (= 'object (:tag (meta x)))
+      (list* 'js* (str "({...~{},"
+                       (str/join ","
+                                 (repeat (/ (count xs) 2) "~{}:~{}"))
+                       "})")
+             x xs)
+      (vary-meta &form
+                 assoc :squint.compiler/skip-macro true))))
 
 ;; TODO: optimization, we don't even need to return the result if we are in do context
 (core/defmacro assoc!-inline [x & xs]

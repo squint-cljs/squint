@@ -228,7 +228,8 @@
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
                          new-expr (apply macro expr {:repl cc/*repl*
                                                      :gensym (:gensym env)
-                                                     :ns {:name cc/*cljs-ns*}} (rest expr))]
+                                                     :ns {:name cc/*cljs-ns*}
+                                                     :var->ident (:var->ident env)} (rest expr))]
                      (emit new-expr env))
                    (cond
                      (and (= \. (.charAt head-str 0))

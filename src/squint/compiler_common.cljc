@@ -864,40 +864,43 @@
     (str "{" (str/join "," (map munge keys)) "}")))
 
 (defn emit-function [env _name sig body & [elide-function?]]
-  ;; (assert (or (symbol? name) (nil? name)))
-  (assert (vector? sig))
-  (let [arrow? (:arrow env)
-        [env sig] (->sig env sig)]
-    (binding [*recur-targets* sig]
-      (let [recur? (volatile! nil)
-            env (assoc env :recur-callback
-                       (fn [coll]
-                         (when (identical? sig coll)
-                           (vreset! recur? true))))
-            body (emit-do (assoc env :context :return)
-                          body)
-            body (if @recur?
-                   (format "while(true){
+  (let [env (update env :var->ident merge (zipmap sig sig))]
+    (prn (map meta (keys (:var->ident env)))
+         (map meta (vals (:var->ident env))))
+    ;; (assert (or (symbol? name) (nil? name)))
+    (assert (vector? sig))
+    (let [arrow? (:arrow env)
+          [env sig] (->sig env sig)]
+      (binding [*recur-targets* sig]
+        (let [recur? (volatile! nil)
+              env (assoc env :recur-callback
+                         (fn [coll]
+                           (when (identical? sig coll)
+                             (vreset! recur? true))))
+              body (emit-do (assoc env :context :return)
+                            body)
+              body (if @recur?
+                     (format "while(true){
 %s
 break;}" body)
-                   body)]
-        (str (when-not elide-function?
-               (str (when *async*
-                      "async ")
-                    (when-not arrow? "function")
-                    (when (:gen env)
-                      "*")
-                    (when (or (not arrow?)
-                              *async*)
-                      " ")))
-             (comma-list (map (fn [x]
-                                (if (map? x)
-                                  (destructured-map env x)
-                                  (munge x))) sig))
-             (when arrow?
-               " =>")
-             " {\n"
-             body "\n}")))))
+                     body)]
+          (str (when-not elide-function?
+                 (str (when *async*
+                        "async ")
+                      (when-not arrow? "function")
+                      (when (:gen env)
+                        "*")
+                      (when (or (not arrow?)
+                                *async*)
+                        " ")))
+               (comma-list (map (fn [x]
+                                  (if (map? x)
+                                    (destructured-map env x)
+                                    (munge x))) sig))
+               (when arrow?
+                 " =>")
+               " {\n"
+               body "\n}"))))))
 
 (defn emit-function* [env expr opts]
   (let [name (when (symbol? (first expr)) (first expr))
