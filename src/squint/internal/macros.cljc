@@ -631,7 +631,8 @@
       ~@(map second args))))
 
 (core/defmacro assoc-inline [x & xs]
-  (prn (map meta (keys (:var->ident &env))))
+  (prn :vals (map meta (vals (:var->ident &env))))
+  (prn :keys (map meta (keys (:var->ident &env))))
   (let [x (get (:var->ident &env) x x)]
     (prn :x x (meta x))
     (if (= 'object (:tag (meta x)))

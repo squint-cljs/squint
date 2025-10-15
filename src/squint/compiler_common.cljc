@@ -849,6 +849,7 @@
                    (into seen params)])
                 (if (contains? seen param)
                   (let [new-param (gensym param)
+                        ;; here we lose the tag brother
                         env (update env :var->ident assoc param (munge new-param))
                         sig (conj sig new-param)
                         seen (conj seen param)]
