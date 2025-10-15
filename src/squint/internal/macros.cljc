@@ -629,3 +629,26 @@
     `(~'js*
       ~(str "`" (str/join (map first args)) "`")
       ~@(map second args))))
+
+(core/defmacro assoc-inline [x & xs]
+  (if (= 'object (:tag (meta x)))
+    (list* 'js* (str "({...~{},"
+                     (str/join ","
+                               (repeat (/ (count xs) 2) "~{}:~{}"))
+                    "})")
+           x xs)
+    (vary-meta &form
+               assoc :squint.compiler/skip-macro true)))
+
+(core/defmacro assoc!-inline [x & xs]
+  (if (= 'object (:tag (meta x)))
+    (let [sym (gensym "x")]
+      (list* 'js* (str "(( (" sym ") => ("
+                       (str/join (repeat (/ (count xs) 2) "~{},"))
+                       sym") ) (~{}))")
+             (concat (map (fn [[k v]]
+                            `(aset ~sym ~k ~v))
+                          (partition 2 xs))
+                     [x])))
+    (vary-meta &form
+               assoc :squint.compiler/skip-macro true)))
