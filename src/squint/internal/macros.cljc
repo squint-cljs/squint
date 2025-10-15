@@ -646,13 +646,14 @@
           sym (if needs-iife? (gensym "x") x)]
       (list* 'js* (str "(" (when needs-iife? (str "((" sym ") => ("))
                        (str/join (repeat (/ (count xs) 2) "~{},"))
-                       sym
+                       (if needs-iife? sym "~{}")
                        (when needs-iife?
                          "))(~{})")
                        ")")
-             (concat (map (fn [[k v]]
-                            `(aset ~sym ~k ~v))
-                          (partition 2 xs))
-                     [x])))
+             (concat
+              (map (fn [[k v]]
+                     `(aset ~sym ~k ~v))
+                   (partition 2 xs))
+              [x])))
     (vary-meta &form
                assoc :squint.compiler/skip-macro true)))
