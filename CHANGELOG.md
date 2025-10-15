@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Optimize `str` using macro that compiles into template strings + `?? ''` for null/undefined
+
 ## v0.8.159 (2025-10-13)
 
 - #725: `keys` and `vals` should work on `js/Map`
