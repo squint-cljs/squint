@@ -631,11 +631,8 @@
       ~@(map second args))))
 
 (core/defmacro assoc-inline [x & xs]
-  (prn :vals (map meta (vals (:var->ident &env))))
-  (prn :keys (map meta (keys (:var->ident &env))))
-  (let [x (get (:var->ident &env) x x)]
-    (prn :x x (meta x))
-    (if (= 'object (:tag (meta x)))
+  (let [tag (some-> (find (:var->ident &env) x) first meta :tag)]
+    (if (= 'object tag)
       (list* 'js* (str "({...~{},"
                        (str/join ","
                                  (repeat (/ (count xs) 2) "~{}:~{}"))
