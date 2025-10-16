@@ -987,7 +987,10 @@ break;}" body)
                        "}\n"
                        (when-let [[_ _exception binding & catch-body] (first catch-clause)]
                          (let [binding (munge binding)
-                               env (assoc-in env [:var->ident binding] (gensym binding))]
+                               env (update env :var->ident (fn [m]
+                                                             (-> m
+                                                                 (dissoc binding)
+                                                                 (assoc binding (gensym binding)))))]
                            (str "catch(" (emit binding (expr-env env)) "){\n"
                                 (emit-do env catch-body)
                                 "}\n")))
@@ -1409,10 +1412,10 @@ break;}" body)
                         (update
                          :var->ident
                          (fn [vi]
-                           (merge
-                            vi
-                            (zipmap fields
-                                    (map (fn [fld]
-                                           (symbol (str "self__." fld)))
-                                         fields*)))))
+                           (-> (apply dissoc vi fields)
+                               (merge
+                                (zipmap fields
+                                        (map (fn [fld]
+                                               (symbol (str "self__." fld)))
+                                             fields*))))))
                         (assoc :type true)))))))

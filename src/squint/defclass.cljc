@@ -126,9 +126,11 @@
 (defn- emit-object-fn [env emit-fn async-fn object-fn]
   (let [[fn-name arglist & body] object-fn
         [this-arg & arglist] arglist
-        env (update env :var->ident merge (assoc (zipmap arglist arglist)
-                                                 'super "super"
-                                                 this-arg (munge this-arg)))
+        env (update env :var->ident (fn [vi]
+                                      (-> (apply dissoc vi 'super this-arg arglist)
+                                          (merge (assoc (zipmap arglist arglist)
+                                                        'super "super"
+                                                        this-arg (munge this-arg))))))
         mf (meta fn-name)
         async? (:async mf)
         gen? (:gen mf)
@@ -172,12 +174,17 @@
                                (symbol (str "self__." (munge fld)))))
                       {}
                       field-syms)
-        fields-env (update env :var->ident merge field-locals)
-        ctor-args-munged (zipmap (cond->>  ctor-args
-                                   this-sym (cons this-sym))
+        fields-env (update env :var->ident (fn [vi]
+                                             (-> (apply dissoc vi field-syms)
+                                                 (merge field-locals))))
+        ctor-arg-locals (cond->>  ctor-args
+                           this-sym (cons this-sym))
+        ctor-args-munged (zipmap ctor-arg-locals
                                  (cond->> (map munge ctor-args)
                                    this-sym (cons (munge this-sym))))
-        ctor-args-env (update fields-env :var->ident merge ctor-args-munged)
+        ctor-args-env (update fields-env :var->ident (fn [vi]
+                                                       (-> (apply dissoc vi ctor-arg-locals)
+                                                           (merge ctor-args-munged))))
         object-fns (-> (some #(when (= 'Object (:protocol-name %)) %) protocols)
                        :protocol-fns)
         extend-form
