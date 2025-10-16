@@ -2635,6 +2635,19 @@ new Foo();")
   (is (eq [1 2 3] (jsv! "(vals {:a 1 :b 2 :c 3})")))
   (is (eq [1 2 3] (jsv! "(vals (assoc (js/Map.) :a 1 :b 2 :c 3))"))))
 
+(deftest object-tag-inference-test
+  (let [s (jss! "(defn foo [^object x] (assoc x :a 1))")]
+    (is (str/includes? s "...x"))
+    (is (not (str/includes? s "assoc"))))
+  (testing "shadowed by inner fn"
+    (let [s (jss! "(defn foo [^object x] (fn [x] (assoc x :a 1)))")]
+      (is (not (str/includes? s "...x")))
+      (is (str/includes? s "assoc"))))
+  (testing "shadowed by let"
+    (let [s (jss! "(defn foo [^object x] (let [x nil] (assoc x :a 1)))")]
+      (is (not (str/includes? s "...x")))
+      (is (str/includes? s "assoc")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
 

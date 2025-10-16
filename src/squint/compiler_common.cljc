@@ -407,9 +407,11 @@
                           rhs (emit rhs (assoc env :var->ident var->ident))
                           rhs-bool? (:bool rhs)
                           expr (format "%s %s = %s;\n" (if loop? "let" "const")lhs rhs)
-                          var->ident (assoc var->ident var-name
-                                            (vary-meta renamed
-                                                       assoc :bool rhs-bool?))]
+                          var->ident
+                          (-> (dissoc var->ident var-name)
+                              (assoc var-name
+                                     (vary-meta renamed
+                                                assoc :bool rhs-bool?)))]
                       [(str acc expr) var->ident]))
                   ["" upper-var->ident]
                   partitioned))
