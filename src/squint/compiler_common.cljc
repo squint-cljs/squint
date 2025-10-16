@@ -844,17 +844,22 @@
     (reduce (fn [[env sig seen] param]
               (if (map? param)
                 (let [params (map-params param)]
-                  (prn :map-params param)
-                  [(update env :var->ident merge params)
+                  [(update env :var->ident (fn [m]
+                                             (-> (apply dissoc m params)
+                                                 (merge params))))
                    (conj sig param)
                    (into seen params)])
                 (if (contains? seen param)
                   (let [new-param (gensym param)
-                        env (update env :var->ident assoc param (munge new-param))
+                        env (update env :var->ident (fn [m]
+                                                      (-> (dissoc m param)
+                                                          (assoc param (munge new-param)))))
                         sig (conj sig new-param)
                         seen (conj seen param)]
                     [env sig seen])
-                  [(update env :var->ident assoc param (munge param))
+                  [(update env :var->ident (fn [m]
+                                             (-> (dissoc m param)
+                                                 (assoc param (munge param)))))
                    (conj sig param)
                    (conj seen param)])))
             [env [] #{}]
