@@ -100,7 +100,8 @@
                              '= macros/equals
                              'str macros/stringify
                              'assoc macros/assoc-inline
-                             'assoc! macros/assoc!-inline}
+                             'assoc! macros/assoc!-inline
+                             'get macros/get-inline}
                             cc/common-macros))
 
 (def core-config {:vars (edn-resource "squint/core.edn")})

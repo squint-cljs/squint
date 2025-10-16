@@ -631,37 +631,69 @@
       ~(str "`" (str/join (map first args)) "`")
       ~@(map second args))))
 
+(defn object-compatible? [env obj]
+  (= 'object (or
+              (-> obj meta :tag)
+              (some-> (get (:var->ident env) obj) meta :tag))))
+
 (core/defmacro assoc-inline [x & xs]
-  (let [tag (some-> (get (:var->ident &env) x) meta :tag)]
-    (if (= 'object tag)
-      (with-meta
-        (list* 'js* (str "({...~{},"
-                         (str/join ","
-                                   (repeat (/ (count xs) 2) "~{}:~{}"))
-                         "})")
-               x xs)
-        {:tag 'object})
-      (vary-meta &form
-                 assoc :squint.compiler/skip-macro true))))
+  (if (object-compatible? &env x)
+    (with-meta
+      (list* 'js* (str "({...~{},"
+                       (str/join ","
+                                 (repeat (/ (count xs) 2) "~{}:~{}"))
+                       "})")
+             x xs)
+      {:tag 'object})
+    (vary-meta &form
+               assoc :squint.compiler/skip-macro true)))
 
 ;; TODO: optimization, we don't even need to return the result if we are in do context
 (core/defmacro assoc!-inline [x & xs]
-  (let [tag (some-> (get (:var->ident &env) x) meta :tag)]
-    (if (= 'object tag)
-      (let [needs-iife? (not (symbol? x))
-            sym (if needs-iife? (gensym "x") x)]
-        (with-meta
-          (list* 'js* (str "(" (when needs-iife? (str "((" sym ") => ("))
-                           (str/join (repeat (/ (count xs) 2) "~{},"))
-                           (if needs-iife? sym "~{}")
-                           (when needs-iife?
-                             "))(~{})")
-                           ")")
-                 (concat
-                  (map (fn [[k v]]
-                         `(aset ~sym ~k ~v))
-                       (partition 2 xs))
-                  [x]))
-          {:tag 'object}))
-      (vary-meta &form
-                 assoc :squint.compiler/skip-macro true))))
+  (if (object-compatible? &env x)
+    (let [needs-iife? (not (symbol? x))
+          sym (if needs-iife? (gensym "x") x)]
+      ;; TODO: get rid of iife, just generate let, this will work out better when you're already in a do context
+      (with-meta
+        (list* 'js* (str "(" (when needs-iife? (str "((" sym ") => ("))
+                         (str/join (repeat (/ (count xs) 2) "~{},"))
+                         (if needs-iife? sym "~{}")
+                         (when needs-iife?
+                           "))(~{})")
+                         ")")
+               (concat
+                (map (fn [[k v]]
+                       `(aset ~sym ~k ~v))
+                     (partition 2 xs))
+                [x]))
+        {:tag 'object}))
+    (vary-meta &form
+               assoc :squint.compiler/skip-macro true)))
+
+(core/defmacro get-inline
+  ([x b]
+   (if (object-compatible? &env x)
+     `(cljs.core/aget ~x ~b)
+     (vary-meta &form
+                assoc :squint.compiler/skip-macro true)))
+  ([x b not-found]
+   (if (object-compatible? &env x)
+     (if (and (symbol? x)
+              (or (constant? b)
+                  (symbol? b)))
+       (list 'js* "(~{} in ~{} ? ~{} : ~{})"
+             b
+             x
+             `(cljs.core/aget ~x ~b)
+             not-found)
+       (let [obj-sym (gensym)
+             key-sym (gensym)]
+         `(let [~obj-sym ~x
+                ~key-sym ~b]
+            ~(list 'js* "(~{} in ~{} ? ~{} : ~{})"
+                   key-sym
+                   obj-sym
+                   `(cljs.core/aget ~obj-sym ~key-sym)
+                   not-found))))
+     (vary-meta &form
+                assoc :squint.compiler/skip-macro true))))

@@ -2650,7 +2650,17 @@ new Foo();")
   (testing "shadowed by letfn"
     (let [s (jss! "(defn foo [^object x] (letfn [(x [a] a)] (assoc x :a 1)))")]
       (is (not (str/includes? s "...x")))
-      (is (str/includes? s "assoc")))))
+      (is (str/includes? s "assoc"))))
+  (testing "assoc!"
+    (let [s (jss! "(defn foo [^object x] (assoc! x :a 1)) (get ^object (foo {}) :a)"
+                  {:context :return})]
+      (is (str/includes? s "x[\"a\"] = 1),x"))
+      (is (eq 1 ((js/Function. s)))))
+    (let [s (jss! "(def x (assoc! ^object {} :a 1)) (get ^object x :a)"
+                  {:context :return})]
+      (println s)
+      (is (str/includes? s "[\"a\"] = 1),x"))
+      (is (eq 1 ((js/Function. s)))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
