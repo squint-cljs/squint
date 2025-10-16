@@ -333,7 +333,7 @@
                      (if-let [renamed (get (:var->ident env) expr)]
                        (let [tag (:tag (meta renamed))]
                          (cond-> (munge** (str renamed))
-                           tag (tagged-expr 'boolean)))
+                           tag (tagged-expr tag)))
                        (let [alias (get aliases expr)]
                          (or
                           (when (contains? current-ns expr)
