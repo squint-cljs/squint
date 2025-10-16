@@ -331,8 +331,9 @@
                                    (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))))
                                (str munged "." (munge (name expr)))))))
                      (if-let [renamed (get (:var->ident env) expr)]
-                       (cond-> (munge** (str renamed))
-                         (:bool (meta renamed)) (tagged-expr 'boolean))
+                       (let [tag (:tag (meta renamed))]
+                         (cond-> (munge** (str renamed))
+                           tag (tagged-expr 'boolean)))
                        (let [alias (get aliases expr)]
                          (or
                           (when (contains? current-ns expr)
