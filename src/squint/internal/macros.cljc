@@ -632,7 +632,7 @@
       ~@(map second args))))
 
 (core/defmacro assoc-inline [x & xs]
-  (let [tag (some-> (find (:var->ident &env) x) first meta :tag)]
+  (let [tag (some-> (get (:var->ident &env) x) meta :tag)]
     (if (= 'object tag)
       (with-meta
         (list* 'js* (str "({...~{},"
@@ -646,20 +646,22 @@
 
 ;; TODO: optimization, we don't even need to return the result if we are in do context
 (core/defmacro assoc!-inline [x & xs]
-  (if (= 'object (:tag (meta x)))
-    (let [needs-iife? (not (symbol? x))
-          sym (if needs-iife? (gensym "x") x)]
-      (with-meta (list* 'js* (str "(" (when needs-iife? (str "((" sym ") => ("))
-                                 (str/join (repeat (/ (count xs) 2) "~{},"))
-                                 (if needs-iife? sym "~{}")
-                                 (when needs-iife?
-                                   "))(~{})")
-                                 ")")
-                       (concat
-                        (map (fn [[k v]]
-                               `(aset ~sym ~k ~v))
-                             (partition 2 xs))
-                        [x]))
-        {:tag 'object}))
-    (vary-meta &form
-               assoc :squint.compiler/skip-macro true)))
+  (let [tag (some-> (get (:var->ident &env) x) meta :tag)]
+    (if (= 'object tag)
+      (let [needs-iife? (not (symbol? x))
+            sym (if needs-iife? (gensym "x") x)]
+        (with-meta
+          (list* 'js* (str "(" (when needs-iife? (str "((" sym ") => ("))
+                           (str/join (repeat (/ (count xs) 2) "~{},"))
+                           (if needs-iife? sym "~{}")
+                           (when needs-iife?
+                             "))(~{})")
+                           ")")
+                 (concat
+                  (map (fn [[k v]]
+                         `(aset ~sym ~k ~v))
+                       (partition 2 xs))
+                  [x]))
+          {:tag 'object}))
+      (vary-meta &form
+                 assoc :squint.compiler/skip-macro true))))

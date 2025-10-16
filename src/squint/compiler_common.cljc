@@ -846,6 +846,11 @@
   (let [ks (:keys m)]
     (zipmap ks (map munge ks))))
 
+(defn gen-param [param gensym]
+  (let [tag (:tag (meta param))]
+    (cond-> (munge (gensym param))
+      tag (with-meta {:tag tag}))))
+
 (defn ->sig [env sig]
   (let [gensym (:gensym env)]
     (reduce (fn [[env sig seen] param]
@@ -857,18 +862,20 @@
                    (conj sig param)
                    (into seen params)])
                 (if (contains? seen param)
-                  (let [new-param (gensym param)
+                  (let [new-param (gen-param param gensym)
                         env (update env :var->ident (fn [m]
-                                                      (-> (dissoc m param)
-                                                          (assoc param (munge new-param)))))
+                                                      (->
+                                                       m
+                                                       (assoc param new-param))))
                         sig (conj sig new-param)
                         seen (conj seen param)]
                     [env sig seen])
-                  [(update env :var->ident (fn [m]
-                                             (-> (dissoc m param)
-                                                 (assoc param (munge param)))))
-                   (conj sig param)
-                   (conj seen param)])))
+                  (let [new-param (gen-param param identity)]
+                    [(update env :var->ident (fn [m]
+                                               (-> m
+                                                   (assoc param new-param))))
+                     (conj sig new-param)
+                     (conj seen param)]))))
             [env [] #{}]
             sig)))
 
@@ -906,7 +913,7 @@ break;}" body)
              (comma-list (map (fn [x]
                                 (if (map? x)
                                   (destructured-map env x)
-                                  (munge x))) sig))
+                                  x)) sig))
              (when arrow?
                " =>")
              " {\n"
