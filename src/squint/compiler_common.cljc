@@ -1028,7 +1028,9 @@ break;}" body)
         bindings (take-nth 2 form)
         fns (take-nth 2 (rest form))
         binding-map (zipmap bindings (map #(gensym %) bindings))
-        env (update env :var->ident merge binding-map)
+        env (update env :var->ident (fn [m]
+                                      (-> (apply dissoc m (keys binding-map))
+                                          (merge binding-map))))
         bindings (map #(vary-meta (get binding-map %) assoc :squint.compiler/no-rename true) bindings)
         form (interleave bindings fns)
         let `(let* ~(vec form) ~@body)]

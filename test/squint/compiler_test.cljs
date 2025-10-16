@@ -2646,6 +2646,10 @@ new Foo();")
   (testing "shadowed by let"
     (let [s (jss! "(defn foo [^object x] (let [x nil] (assoc x :a 1)))")]
       (is (not (str/includes? s "...x")))
+      (is (str/includes? s "assoc"))))
+  (testing "shadowed by letfn"
+    (let [s (jss! "(defn foo [^object x] (letfn [(x [a] a)] (assoc x :a 1)))")]
+      (is (not (str/includes? s "...x")))
       (is (str/includes? s "assoc")))))
 
 (defn init []
