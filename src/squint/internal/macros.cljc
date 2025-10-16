@@ -611,12 +611,13 @@
       (boolean? x)))
 
 (core/defmacro equals [& xs]
-  (if (= 2 (count xs))
-    (let [[x y] xs]
-      (if (or (constant? x) (constant? y))
-        (core/list 'js* "(~{} === ~{})" x y)
-        `(cljs.core/_EQ_ ~x ~y)))
-    `(cljs.core/_EQ_ ~@xs)))
+  (with-meta (if (= 2 (count xs))
+              (let [[x y] xs]
+                (if (or (constant? x) (constant? y))
+                  (core/list 'js* "(~{} === ~{})" x y)
+                  `(cljs.core/_EQ_ ~x ~y)))
+              `(cljs.core/_EQ_ ~@xs))
+    {:tag 'boolean}))
 
 (core/defmacro stringify [& xs]
   (let [args (keep (fn [expr]
@@ -633,11 +634,13 @@
 (core/defmacro assoc-inline [x & xs]
   (let [tag (some-> (find (:var->ident &env) x) first meta :tag)]
     (if (= 'object tag)
-      (list* 'js* (str "({...~{},"
-                       (str/join ","
-                                 (repeat (/ (count xs) 2) "~{}:~{}"))
-                       "})")
-             x xs)
+      (with-meta
+        (list* 'js* (str "({...~{},"
+                         (str/join ","
+                                   (repeat (/ (count xs) 2) "~{}:~{}"))
+                         "})")
+               x xs)
+        {:tag 'object})
       (vary-meta &form
                  assoc :squint.compiler/skip-macro true))))
 
@@ -646,16 +649,17 @@
   (if (= 'object (:tag (meta x)))
     (let [needs-iife? (not (symbol? x))
           sym (if needs-iife? (gensym "x") x)]
-      (list* 'js* (str "(" (when needs-iife? (str "((" sym ") => ("))
-                       (str/join (repeat (/ (count xs) 2) "~{},"))
-                       (if needs-iife? sym "~{}")
-                       (when needs-iife?
-                         "))(~{})")
-                       ")")
-             (concat
-              (map (fn [[k v]]
-                     `(aset ~sym ~k ~v))
-                   (partition 2 xs))
-              [x])))
+      (with-meta (list* 'js* (str "(" (when needs-iife? (str "((" sym ") => ("))
+                                 (str/join (repeat (/ (count xs) 2) "~{},"))
+                                 (if needs-iife? sym "~{}")
+                                 (when needs-iife?
+                                   "))(~{})")
+                                 ")")
+                       (concat
+                        (map (fn [[k v]]
+                               `(aset ~sym ~k ~v))
+                             (partition 2 xs))
+                        [x]))
+        {:tag 'object}))
     (vary-meta &form
                assoc :squint.compiler/skip-macro true)))

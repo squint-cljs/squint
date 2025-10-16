@@ -60,12 +60,15 @@
   Object
   (toString [_] js))
 
-(defn bool-expr [js]
+(defn tagged-expr [js tag]
   (map->Code {:js js
-              :bool true}))
+              :tag tag}))
+
+:bool
 
 (defmethod emit-special 'js* [_ env [_js* & opts :as expr]]
-  (let [bool? (= 'boolean (:tag (meta expr)))
+  (let [mexpr (meta expr)
+        tag (:tag mexpr)
         [env' template substitutions] (if (map? (first opts))
                                         [(first opts)
                                          (second opts)
@@ -78,7 +81,7 @@
                     template
                     substitutions)
             (emit-return (merge env (meta expr))))
-      bool? bool-expr)))
+      tag (tagged-expr tag))))
 
 (defn expr-env [env]
   (assoc env :context :expr :top-level false))
@@ -188,7 +191,7 @@
               (emit-return (cond-> expr
                              (not (:skip-quotes env))
                              (pr-str)) env))
-      (pos? (count expr)) (bool-expr))))
+      (pos? (count expr)) (tagged-expr 'string))))
 
 (defmethod emit #?(:clj java.lang.Boolean :cljs js/Boolean) [^String expr env]
   (-> (if (:jsx-attr env)
@@ -213,7 +216,7 @@
                        "bit-or" "bit-and" "js-mod" "js-??"})
 
 (def boolean-infix-operators
-  #{"=" "==" "===" "<" ">" "<=" ">=" "!=" "instanceof"})
+  #{"==" "===" "<" ">" "<=" ">=" "!=" "instanceof"})
 
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and" "js-??"})
 
@@ -260,7 +263,8 @@
                                           operator) " ")
                              (map wrap-parens (emit-args env args))))))
        (emit-return enc-env)
-       (cond-> bool? (bool-expr))))))
+       (cond->
+           bool? (tagged-expr 'boolean))))))
 
 (def core-vars (atom #{}))
 
@@ -328,7 +332,7 @@
                                (str munged "." (munge (name expr)))))))
                      (if-let [renamed (get (:var->ident env) expr)]
                        (cond-> (munge** (str renamed))
-                         (:bool (meta renamed)) (bool-expr))
+                         (:bool (meta renamed)) (tagged-expr 'boolean))
                        (let [alias (get aliases expr)]
                          (or
                           (when (contains? current-ns expr)
@@ -405,13 +409,13 @@
                                       (munge var-name))
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
-                          rhs-bool? (:bool rhs)
+                          tag (:tag rhs)
                           expr (format "%s %s = %s;\n" (if loop? "let" "const")lhs rhs)
                           var->ident
                           (-> (dissoc var->ident var-name)
                               (assoc var-name
-                                     (vary-meta renamed
-                                                assoc :bool rhs-bool?)))]
+                                     (cond-> renamed
+                                       tag (vary-meta assoc :tag tag))))]
                       [(str acc expr) var->ident]))
                   ["" upper-var->ident]
                   partitioned))
@@ -1040,23 +1044,28 @@ break;}" body)
     (emit let env)))
 
 (defmethod emit-special 'zero? [_ env [_ num]]
-  (bool-expr (-> (format "(%s === 0)" (emit num (assoc env :context :expr)))
-                 (emit-return env))))
+  (tagged-expr (-> (format "(%s === 0)" (emit num (assoc env :context :expr)))
+                   (emit-return env))
+               'boolean))
 
 (defmethod emit-special 'neg? [_ env [_ num]]
-  (bool-expr (-> (format "(%s < 0)" (emit num (assoc env :context :expr)))
-                 (emit-return env))))
+  (tagged-expr (-> (format "(%s < 0)" (emit num (assoc env :context :expr)))
+                   (emit-return env))
+               'boolean))
 
 (defmethod emit-special 'pos? [_ env [_ num]]
-  (bool-expr (-> (format "(%s > 0)" (emit num (assoc env :context :expr)))
-                 (emit-return env))))
+  (tagged-expr (-> (format "(%s > 0)" (emit num (assoc env :context :expr)))
+                   (emit-return env))
+               'boolean))
 
 (defmethod emit-special 'nil? [_ env [_ obj]]
-  (bool-expr (-> (format "(%s == null)" (emit obj (assoc env :context :expr)))
-                 (emit-return env))))
+  (tagged-expr (-> (format "(%s == null)" (emit obj (assoc env :context :expr)))
+                   (emit-return env))
+               'boolean))
 
 (defmethod emit-special 'js-in [_ env [_ key obj]]
-  (bool-expr (emit (list 'js* "~{} in ~{}" key obj) env)))
+  (tagged-expr (emit (list 'js* "~{} in ~{}" key obj) env)
+               'boolean))
 
 (defmethod emit-special 'js-yield [_ env [_ key obj]]
   (emit (list 'js* "yield ~{}" key obj) env))
@@ -1121,6 +1130,9 @@ break;}" body)
   (let [f (-> env :emit ::special)]
     (f sym env expr)))
 
+(defn skip-truth? [tag]
+  (contains? #{'boolean 'string} tag))
+
 (defmethod emit-special 'if [_type env [_if test then else :as expr]]
   ;; NOTE: I tried making the output smaller if the if is in return position
   ;; if .. return .. else return ..
@@ -1130,9 +1142,9 @@ break;}" body)
   ;; tools like eslint will rewrite in the short form anyway.
   (let [expr-env (assoc env :context :expr)
         naked-condition (emit test expr-env)
-        skip-truth? (or (:bool naked-condition)
-                        (:bool (meta expr))
-                        (= 'boolean (:tag (meta test))))
+        skip-truth? (or (skip-truth? (:tag naked-condition))
+                        (skip-truth? (:tag (meta expr)))
+                        (skip-truth? (:tag (meta test))))
         condition (if skip-truth?
                     naked-condition
                     (emit (list 'clojure.core/truth_ (list 'js* naked-condition)) expr-env))]

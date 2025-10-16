@@ -122,11 +122,12 @@
 
 (defmethod emit-special 'not [_ env [_ form]]
   (let [js (emit form (expr-env env))]
-    (if (:bool js)
-      (emit-return (cc/bool-expr (format "!(%s)" js)) env)
-      (cc/bool-expr
+    (if (= 'boolean (:tag js))
+      (emit-return (cc/tagged-expr (format "!(%s)" js) 'boolean) env)
+      (cc/tagged-expr
        (emit (list 'js* (format "~{}(%s)" js) 'clojure.core/not)
-             env)))))
+             env)
+       'boolean))))
 
 (defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-return (str "typeof " (emit form (expr-env env))) env))
