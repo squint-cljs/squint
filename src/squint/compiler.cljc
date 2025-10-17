@@ -228,10 +228,9 @@
                  (if macro
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
-                         new-expr (apply macro expr {:repl cc/*repl*
-                                                     :gensym (:gensym env)
-                                                     :ns {:name cc/*cljs-ns*}
-                                                     :var->ident (:var->ident env)} (rest expr))]
+                         new-expr (apply macro expr env #_(assoc env
+                                                                 :ns {:name cc/*cljs-ns*}
+                                                                 :repl cc/*repl*) (rest expr))]
                      (emit new-expr env))
                    (cond
                      (and (= \. (.charAt head-str 0))

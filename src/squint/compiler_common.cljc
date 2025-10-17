@@ -4,6 +4,7 @@
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
+   [squint.compiler.utils :as utils]
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
 
@@ -46,7 +47,7 @@
 
 #?(:cljs (def format gstring/format))
 
-(defmulti emit (fn [expr _env] (type expr)))
+(def emit utils/emit)
 
 (defmulti emit-special (fn [disp _env & _args] disp))
 

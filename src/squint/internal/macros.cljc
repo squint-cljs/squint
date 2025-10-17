@@ -15,9 +15,10 @@
                             bit-shift-left bit-shift-right bit-shift-right-zero-fill
                             unsigned-bit-shift-right bit-set undefined?
                             simple-benchmark delay])
-  (:require [clojure.string :as str]
+  (:require [clojure.core :as cc]
+            [clojure.string :as str]
             [squint.compiler-common :as-alias ana]
-            [clojure.core :as cc]
+            [squint.compiler.utils :as cu]
             #?(:clj [squint.internal.defmacro :as core]))
   #?(:cljs (:require-macros [squint.internal.defmacro :as core])))
 
