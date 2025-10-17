@@ -735,6 +735,4 @@
        (vary-meta &form
                   assoc :squint.compiler/skip-macro true)))))
 
-;; TODO: object literal tag tracking
-;; TODO: next step is to make the above special forms (that could be overriden by custom functions!)
-;; so we can use the type of emitted expressions like in (get (let [x {}] (assoc x :a 1)))
+;; TODO: not happy with expansion yet (-> (assoc! {} :a :b) (assoc! :c :d) (assoc! :e :f))
