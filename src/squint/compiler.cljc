@@ -265,29 +265,30 @@
      env*)))
 
 (defn emit-map [expr env]
-  (if (every? #(or (string? %)
-                   (keyword? %)
-                   (and (:quote env)
-                        (symbol? %))) (keys expr))
-    (let [env* env
-          env (dissoc env :jsx)
-          expr-env (assoc env :context :expr)
-          key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
-                           (str ns "/" (name k))
-                           (name k)))
-          mk-pair (fn [pair]
-                    (let [k (key pair)]
-                      (str (if (= :& k)
-                             "..."
-                             (str (emit (key-fn k) expr-env) ": "))
-                           (emit (val pair) expr-env))))
-          keys (str/join ", " (map mk-pair (seq expr)))]
-      (escape-jsx (-> (format "({ %s })" keys)
-                      (emit-return env))
-                  env*))
-    (let [expr (list* 'doto {} (map (fn [[k v]]
-                                      (list 'clojure.core/unchecked-set k v)) expr))]
-      (emit expr env))))
+  (-> (if (every? #(or (string? %)
+                       (keyword? %)
+                       (and (:quote env)
+                            (symbol? %))) (keys expr))
+        (let [env* env
+              env (dissoc env :jsx)
+              expr-env (assoc env :context :expr)
+              key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
+                               (str ns "/" (name k))
+                               (name k)))
+              mk-pair (fn [pair]
+                        (let [k (key pair)]
+                          (str (if (= :& k)
+                                 "..."
+                                 (str (emit (key-fn k) expr-env) ": "))
+                               (emit (val pair) expr-env))))
+              keys (str/join ", " (map mk-pair (seq expr)))]
+          (escape-jsx (-> (format "({ %s })" keys)
+                          (emit-return env))
+                      env*))
+        (let [expr (list* 'doto {} (map (fn [[k v]]
+                                          (list 'clojure.core/unchecked-set k v)) expr))]
+          (emit expr env)))
+      (cc/tagged-expr 'object)))
 
 (defn emit-set [expr env]
   (emit-return

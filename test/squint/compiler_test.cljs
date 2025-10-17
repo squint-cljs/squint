@@ -1751,6 +1751,7 @@ globalThis.foo.existsSync = existsSync;
 globalThis.foo.fs = fs;")))))
 
 (deftest import-attributes-test
+  (prn :> (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false}))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})
                      "with { \"type\": \"json\" }"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false
@@ -2651,16 +2652,20 @@ new Foo();")
     (let [s (jss! "(defn foo [^object x] (letfn [(x [a] a)] (assoc x :a 1)))")]
       (is (not (str/includes? s "...x")))
       (is (str/includes? s "assoc"))))
-  (testing "assoc!"
+  (testing "assoc! + get + non-symbol expr"
     (let [s (jss! "(defn foo [^object x] (assoc! x :a 1)) (get ^object (foo {}) :a)"
                   {:context :return})]
       (is (str/includes? s "x[\"a\"] = 1),x"))
       (is (eq 1 ((js/Function. s)))))
-    (let [s (jss! "(def x (assoc! ^object {} :a 1)) (get ^object x :a)"
-                  {:context :return})]
-      (println s)
-      (is (str/includes? s "[\"a\"] = 1),x"))
-      (is (eq 1 ((js/Function. s)))))))
+    (testing "get + symbol expr"
+      (let [s (jss! "(def x (assoc! ^object {} :a 1)) (get ^object x :a)"
+                    {:context :return})]
+        (println s)
+        (is (str/includes? s "[\"a\"] = 1),x"))
+        (is (eq 1 ((js/Function. s)))))))
+  (testing "object literal inference"
+    (let [s (jss! "(get {:a 1} :a)")]
+      (println s))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

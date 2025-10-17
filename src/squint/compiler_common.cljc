@@ -566,7 +566,7 @@
       alias)))
 
 (defn unwrap [s]
-  (str/replace s #"^\(|\)$" ""))
+  (str/replace (str s) #"^\(|\)$" ""))
 
 (defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as with]}]]
   (when-not (or (= 'squint.core libname)
