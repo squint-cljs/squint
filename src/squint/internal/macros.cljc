@@ -637,7 +637,6 @@
               (-> obj meta :tag)
               (some-> (get (:var->ident env) obj) meta :tag))))
 
-;; TODO: fix (defn foo [] (assoc (or {} {}) :foo :bar))
 (core/defmacro assoc-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
   (let [emit (-> &env :utils :emit)
