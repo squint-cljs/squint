@@ -1751,6 +1751,7 @@ globalThis.foo.existsSync = existsSync;
 globalThis.foo.fs = fs;")))))
 
 (deftest import-attributes-test
+  (prn :> (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false}))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})
                      "with { \"type\": \"json\" }"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false
@@ -2635,5 +2636,43 @@ new Foo();")
   (is (eq [1 2 3] (jsv! "(vals {:a 1 :b 2 :c 3})")))
   (is (eq [1 2 3] (jsv! "(vals (assoc (js/Map.) :a 1 :b 2 :c 3))"))))
 
+(deftest object-tag-inference-test
+  (let [s (jss! "(defn foo [^object x] (assoc x :a 1))")]
+    (is (str/includes? s "...x"))
+    (is (not (str/includes? s "assoc"))))
+  (testing "shadowed by inner fn"
+    (let [s (jss! "(defn foo [^object x] (fn [x] (assoc x :a 1)))")]
+      (is (not (str/includes? s "...x")))
+      (is (str/includes? s "assoc"))))
+  (testing "shadowed by let"
+    (let [s (jss! "(defn foo [^object x] (let [x nil] (assoc x :a 1)))")]
+      (is (not (str/includes? s "...x")))
+      (is (str/includes? s "assoc"))))
+  (testing "shadowed by letfn"
+    (let [s (jss! "(defn foo [^object x] (letfn [(x [a] a)] (assoc x :a 1)))")]
+      (is (not (str/includes? s "...x")))
+      (is (str/includes? s "assoc"))))
+  (testing "assoc! + get + non-symbol expr"
+    (let [s (jss! "(defn foo [^object x] (assoc! x :a 1)) (get ^object (foo {}) :a)"
+                  {:context :return})]
+      (is (str/includes? s "x[\"a\"] = 1),x"))
+      (is (eq 1 ((js/Function. s)))))
+    (testing "get + symbol expr"
+      (let [s (jss! "(def x (assoc! ^object {} :a 1)) (get ^object x :a)"
+                    {:context :return})]
+        (println s)
+        (is (str/includes? s "[\"a\"] = 1),x"))
+        (is (eq 1 ((js/Function. s)))))))
+  (testing "object literal inference"
+    (let [s (jss! "(let [x {:a 1}] (get x :a))")]
+      (is (str/includes? s "[\"a\"]")))
+    ;; TODO: this will work once we treat get as an intrinsic
+    #_(let [s (jss! "(get {:a 1} :a)")]
+      (is (str/includes? s "[\"a\"]")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
+
+;; -[x] (defn foo [^object x] (assoc x :a 1 :b 2))
+;; -[ ] (defn foo [^object x] (fn [x] (assoc x :a 1 :b 2))) ;; should not emit object usage
+

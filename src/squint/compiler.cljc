@@ -100,7 +100,8 @@
                              '= macros/equals
                              'str macros/stringify
                              'assoc macros/assoc-inline
-                             'assoc! macros/assoc!-inline}
+                             'assoc! macros/assoc!-inline
+                             'get macros/get-inline}
                             cc/common-macros))
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
@@ -122,11 +123,12 @@
 
 (defmethod emit-special 'not [_ env [_ form]]
   (let [js (emit form (expr-env env))]
-    (if (:bool js)
-      (emit-return (cc/bool-expr (format "!(%s)" js)) env)
-      (cc/bool-expr
+    (if (= 'boolean (:tag js))
+      (emit-return (cc/tagged-expr (format "!(%s)" js) 'boolean) env)
+      (cc/tagged-expr
        (emit (list 'js* (format "~{}(%s)" js) 'clojure.core/not)
-             env)))))
+             env)
+       'boolean))))
 
 (defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-return (str "typeof " (emit form (expr-env env))) env))
@@ -228,7 +230,8 @@
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
                          new-expr (apply macro expr {:repl cc/*repl*
                                                      :gensym (:gensym env)
-                                                     :ns {:name cc/*cljs-ns*}} (rest expr))]
+                                                     :ns {:name cc/*cljs-ns*}
+                                                     :var->ident (:var->ident env)} (rest expr))]
                      (emit new-expr env))
                    (cond
                      (and (= \. (.charAt head-str 0))
@@ -262,29 +265,30 @@
      env*)))
 
 (defn emit-map [expr env]
-  (if (every? #(or (string? %)
-                   (keyword? %)
-                   (and (:quote env)
-                        (symbol? %))) (keys expr))
-    (let [env* env
-          env (dissoc env :jsx)
-          expr-env (assoc env :context :expr)
-          key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
-                           (str ns "/" (name k))
-                           (name k)))
-          mk-pair (fn [pair]
-                    (let [k (key pair)]
-                      (str (if (= :& k)
-                             "..."
-                             (str (emit (key-fn k) expr-env) ": "))
-                           (emit (val pair) expr-env))))
-          keys (str/join ", " (map mk-pair (seq expr)))]
-      (escape-jsx (-> (format "({ %s })" keys)
-                      (emit-return env))
-                  env*))
-    (let [expr (list* 'doto {} (map (fn [[k v]]
-                                      (list 'clojure.core/unchecked-set k v)) expr))]
-      (emit expr env))))
+  (-> (if (every? #(or (string? %)
+                       (keyword? %)
+                       (and (:quote env)
+                            (symbol? %))) (keys expr))
+        (let [env* env
+              env (dissoc env :jsx)
+              expr-env (assoc env :context :expr)
+              key-fn (fn [k] (if-let [ns (and (keyword? k) (namespace k))]
+                               (str ns "/" (name k))
+                               (name k)))
+              mk-pair (fn [pair]
+                        (let [k (key pair)]
+                          (str (if (= :& k)
+                                 "..."
+                                 (str (emit (key-fn k) expr-env) ": "))
+                               (emit (val pair) expr-env))))
+              keys (str/join ", " (map mk-pair (seq expr)))]
+          (escape-jsx (-> (format "({ %s })" keys)
+                          (emit-return env))
+                      env*))
+        (let [expr (list* 'doto {} (map (fn [[k v]]
+                                          (list 'clojure.core/unchecked-set k v)) expr))]
+          (emit expr env)))
+      (cc/tagged-expr 'object)))
 
 (defn emit-set [expr env]
   (emit-return
