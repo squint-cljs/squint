@@ -389,7 +389,9 @@
                            x))"
                   {:repl true})]
       (is (str/includes? s "globalThis"))
-      (is (eq [1 2 3] (js/eval s))))))
+      (is (eq [1 2 3] (js/eval s)))))
+  (testing "js* and code value as template"
+    (is (eq {:a 1} (jsv! '(let [x (or {:a 1} {})] x))))))
 
 (deftest Math-test
   (let [expr '(Math/sqrt 3.14)]
@@ -2638,8 +2640,8 @@ new Foo();")
 
 (deftest object-tag-inference-test
   (testing "assoc in return position with non-symbolic expression"
-    (is (eq {:foo :bar} ((jsv! '(let [f (fn [] (assoc (or {} {}) :foo :bar))]
-                                  f))))))
+    (is (eq {:a :b :foo :bar} ((jsv! '(let [f (fn [] (assoc (or {:a :b} {}) :foo :bar))]
+                                        f))))))
   (let [s (jss! "(defn foo [^object x] (assoc x :a 1))")]
     (is (str/includes? s "...x"))
     (is (not (str/includes? s "assoc"))))

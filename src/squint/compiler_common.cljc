@@ -65,20 +65,15 @@
   (map->Code {:js js
               :tag tag}))
 
-(defmethod emit-special 'js* [_ env [_js* & opts :as expr]]
+(defmethod emit-special 'js* [_ env [_js* template & args :as expr]]
   (let [mexpr (meta expr)
-        tag (:tag mexpr)
-        [env' template substitutions] (if (map? (first opts))
-                                        [(first opts)
-                                         (second opts)
-                                         (drop 2 opts)]
-                                        [nil (first opts) (rest opts)])]
+        tag (:tag mexpr)]
     (cond->
         (-> (reduce (fn [template substitution]
                       (str/replace-first template "~{}"
-                                         (emit substitution (merge (assoc env :context :expr) env'))))
+                                         (emit substitution (merge (assoc env :context :expr)))))
                     template
-                    substitutions)
+                    args)
             (emit-return (merge env (meta expr))))
       tag (tagged-expr tag))))
 
