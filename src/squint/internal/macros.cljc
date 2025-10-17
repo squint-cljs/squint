@@ -641,51 +641,63 @@
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
   (let [emit (-> &env :utils :emit)
         emitted (emit x (assoc &env :context :expression))
-        tag (:tag emitted)]
+        tag (:tag emitted)
+        x (with-meta (list 'js* (str emitted))
+            {:tag tag})]
     (if (= 'object tag)
-      (let [x (list 'js* (str emitted))]
+      (with-meta
+        (list* 'js* (str "({...~{},"
+                         (str/join ","
+                                   (repeat (/ (count xs) 2) "~{}:~{}"))
+                         "})")
+               x xs)
+        {:tag 'object})
+      (let [[fn _ & tail] &form]
         (with-meta
-          (list* 'js* (str "({...~{},"
-                           (str/join ","
-                                     (repeat (/ (count xs) 2) "~{}:~{}"))
-                           "})")
-                 x xs)
-          {:tag 'object}))
-      (vary-meta &form
-                 assoc :squint.compiler/skip-macro true))))
+          (list* fn x tail)
+          (assoc (meta &form)
+                 :squint.compiler/skip-macro true))))))
 
 ;; TODO: optimization, we don't even need to return the result if we are in do context
 (core/defmacro assoc!-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
-  (if (object-compatible? &env x)
-    (let [needs-iife? (not (symbol? x))
-          sym (if needs-iife? (gensym "x") x)]
-      ;; TODO: get rid of iife, just generate let, this will work out better when you're already in a do context
+  (let [emit (-> &env :utils :emit)
+        emitted (emit x (assoc &env :context :expression))
+        tag (:tag emitted)
+        x (with-meta (list 'js* (str emitted))
+            {:tag tag})]
+    (if (= 'object tag)
       (with-meta
-        (list* 'js* (str "(" (when needs-iife? (str "((" sym ") => ("))
+        (list* 'js* (str "("
                          (str/join (repeat (/ (count xs) 2) "~{},"))
-                         (if needs-iife? sym "~{}")
-                         (when needs-iife?
-                           "))(~{})")
+                         "~{}"
                          ")")
                (concat
                 (map (fn [[k v]]
-                       `(aset ~sym ~k ~v))
+                       `(aset ~x ~k ~v))
                      (partition 2 xs))
                 [x]))
-        {:tag 'object}))
-    (vary-meta &form
-               assoc :squint.compiler/skip-macro true)))
+        {:tag 'object})
+      (let [[fn _ & tail] &form]
+        (with-meta
+          (list* fn x tail)
+          (assoc (meta &form)
+                 :squint.compiler/skip-macro true))))))
 
 (core/defmacro get-inline
   ([x b]
    (let [emit (-> &env :utils :emit)
          emitted (emit x (assoc &env :context :expression))
-         tag (:tag emitted)]
+         tag (:tag emitted)
+         x (with-meta (list 'js* (str emitted))
+             {:tag tag})]
      (if (= 'object tag)
-       `(cljs.core/aget ~(list 'js* (str emitted)) ~b)
-         (vary-meta &form
-                    assoc :squint.compiler/skip-macro true))))
+       `(cljs.core/aget ~x ~b)
+       (let [[fn _ & tail] &form]
+         (with-meta
+           (list* fn x tail)
+           (assoc (meta &form)
+                  :squint.compiler/skip-macro true))))))
   ([x b not-found]
    (if (object-compatible? &env x)
      (if (and (symbol? x)

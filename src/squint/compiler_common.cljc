@@ -1012,29 +1012,31 @@ break;}" body)
             (wrap-implicit-iife env))
           (emit-return outer-env)))))
 
-(defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
+(defmethod emit-special 'funcall [_type env [fname & args :as expr]]
   (let [ns (when (symbol? fname) (namespace fname))
         fname (if ns (symbol (munge ns) (name fname))
                   fname)
         cherry? (= :cherry *target*)
         cherry+interop? (and
                          cherry?
-                         (= "js" ns))]
-    (emit-return (str
-                  (emit fname (expr-env env))
-                  ;; this is needed when calling keywords, symbols, etc. We could
-                  ;; optimize this later by inferring that we're not directly
-                  ;; calling a `function`.
-                  (when (and cherry? (not cherry+interop?)) ".call")
-                  (comma-list (emit-args env
-                                         (if cherry?
-                                           (if (not cherry+interop?)
-                                             (cons
-                                              (if (= "super" (first (str/split (str fname) #"\.")))
-                                                'self__ nil) args)
-                                             args)
-                                           args))))
-                 env)))
+                         (= "js" ns))
+        tag (:tag (meta expr))]
+    (cond-> (emit-return (str
+                         (emit fname (expr-env env))
+                         ;; this is needed when calling keywords, symbols, etc. We could
+                         ;; optimize this later by inferring that we're not directly
+                         ;; calling a `function`.
+                         (when (and cherry? (not cherry+interop?)) ".call")
+                         (comma-list (emit-args env
+                                                (if cherry?
+                                                  (if (not cherry+interop?)
+                                                    (cons
+                                                     (if (= "super" (first (str/split (str fname) #"\.")))
+                                                       'self__ nil) args)
+                                                    args)
+                                                  args))))
+                         env)
+      tag (tagged-expr tag))))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
   (let [gensym (:gensym env)
