@@ -639,16 +639,20 @@
 
 (core/defmacro assoc-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
-  (if (object-compatible? &env x)
-    (with-meta
-      (list* 'js* (str "({...~{},"
-                       (str/join ","
-                                 (repeat (/ (count xs) 2) "~{}:~{}"))
-                       "})")
-             x xs)
-      {:tag 'object})
-    (vary-meta &form
-               assoc :squint.compiler/skip-macro true)))
+  (let [emit (-> &env :utils :emit)
+        emitted (emit x (assoc &env :context :expression))
+        tag (:tag emitted)]
+    (if (= 'object tag)
+      (let [x (list 'js* (str emitted))]
+        (with-meta
+          (list* 'js* (str "({...~{},"
+                           (str/join ","
+                                     (repeat (/ (count xs) 2) "~{}:~{}"))
+                           "})")
+                 x xs)
+          {:tag 'object}))
+      (vary-meta &form
+                 assoc :squint.compiler/skip-macro true))))
 
 ;; TODO: optimization, we don't even need to return the result if we are in do context
 (core/defmacro assoc!-inline [x & xs]
@@ -675,10 +679,13 @@
 
 (core/defmacro get-inline
   ([x b]
-   (if (object-compatible? &env x)
-     `(cljs.core/aget ~x ~b)
-     (vary-meta &form
-                assoc :squint.compiler/skip-macro true)))
+   (let [emit (-> &env :utils :emit)
+         emitted (emit x (assoc &env :context :expression))
+         tag (:tag emitted)]
+     (if (= 'object tag)
+       `(cljs.core/aget ~(list 'js* (str emitted)) ~b)
+         (vary-meta &form
+                    assoc :squint.compiler/skip-macro true))))
   ([x b not-found]
    (if (object-compatible? &env x)
      (if (and (symbol? x)

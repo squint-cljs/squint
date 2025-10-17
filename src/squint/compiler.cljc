@@ -30,7 +30,7 @@
 
 (defn emit-keyword [expr env]
   ;; emitting string already emits return
-  (emit (str (subs (str expr) 1)) env))
+  (emit (subs (str expr) 1) env))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do
@@ -198,7 +198,12 @@
                      "")
                    (str/join ", " (emit-args env expr))))
          (cond (symbol? fexpr)
-               (let [head* (first expr)
+               (let [head* fexpr
+                     ns-state @(:ns-state env)
+                     current (:current ns-state)
+                     current-ns (get ns-state current)
+                     ;; TODO: also check :excluded but right now it's not populated
+                     excluded? (contains? current-ns head*)
                      head (strip-core-symbol head*)
                      expr* expr
                      expr (if (not= head head*)
@@ -207,7 +212,9 @@
                             expr)
                      head-str (str head)
                      macro (when (and (symbol? head)
-                                      (not (:squint.compiler/skip-macro mexpr)))
+                                      (not (:squint.compiler/skip-macro mexpr))
+                                      (not excluded?))
+                             ;; TODO: check excluded
                              (or (built-in-macros (strip-core-symbol head))
                                  (let [ns (namespace head)
                                        nm (name head)
@@ -228,9 +235,11 @@
                  (if macro
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
-                         new-expr (apply macro expr env #_(assoc env
-                                                                 :ns {:name cc/*cljs-ns*}
-                                                                 :repl cc/*repl*) (rest expr))]
+                         new-expr (apply macro expr (assoc env
+                                                           ;; Added for CLJS compat
+                                                           :ns {:name cc/*cljs-ns*}
+                                                           :utils {:emit emit})
+                                         (rest expr))]
                      (emit new-expr env))
                    (cond
                      (and (= \. (.charAt head-str 0))
