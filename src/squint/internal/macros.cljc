@@ -660,7 +660,6 @@
           (assoc (meta &form)
                  :squint.compiler/skip-macro true))))))
 
-;; TODO: optimization, we don't even need to return the result if we are in do context
 (core/defmacro assoc!-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
   (if (not (symbol? x))
@@ -676,8 +675,8 @@
       (if (= 'object tag)
         (with-meta
           (list* 'js* (str "("
-                           (str/join (repeat (/ (count xs) 2) "~{},"))
-                           "~{}"
+                           (str/join "," (repeat (/ (count xs) 2) "~{}"))
+                           ",~{}"
                            ")")
                  (concat
                   (map (fn [[k v]]
@@ -734,5 +733,3 @@
                      not-found))))
        (vary-meta &form
                   assoc :squint.compiler/skip-macro true)))))
-
-;; TODO: not happy with expansion yet (-> (assoc! {} :a :b) (assoc! :c :d) (assoc! :e :f))
