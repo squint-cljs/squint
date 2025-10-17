@@ -2638,8 +2638,8 @@ new Foo();")
 
 (deftest object-tag-inference-test
   (testing "assoc in return position with non-symbolic expression"
-    (is (eq #{:foo :bar} ((jsv! '(let [f (fn [] (assoc (or {} {}) :foo :bar))]
-                                   f))))))
+    (is (eq {:foo :bar} ((jsv! '(let [f (fn [] (assoc (or {} {}) :foo :bar))]
+                                  f))))))
   (let [s (jss! "(defn foo [^object x] (assoc x :a 1))")]
     (is (str/includes? s "...x"))
     (is (not (str/includes? s "assoc"))))
@@ -2673,7 +2673,3 @@ new Foo();")
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
-
-;; -[x] (defn foo [^object x] (assoc x :a 1 :b 2))
-;; -[ ] (defn foo [^object x] (fn [x] (assoc x :a 1 :b 2))) ;; should not emit object usage
-
