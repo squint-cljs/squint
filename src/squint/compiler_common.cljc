@@ -374,15 +374,18 @@
         statement-env (assoc env :context :statement)
         iife? (and (seq bl) (= :expr ctx))
         exprs (map #(save-pragma statement-env (emit % statement-env)) bl)
-        s (cond-> (str (str/join "" exprs)
-                       (let [ctx (if iife? :return
-                                     ctx)]
-                         (cond-> (emit l (assoc env :context
-                                                ctx))
-                           (= :return ctx) (statement))))
+        lctx (if iife? :return
+                ctx)
+        res (emit l (assoc env :context lctx))
+        tag (:tag res)
+        res (cond-> res
+              (= :return ctx) (statement))
+        s (cond-> (str (str/join exprs)
+                       res)
             iife?
             (wrap-implicit-iife env))]
-    s))
+    (cond-> s
+      tag (tagged-expr tag))))
 
 (defmethod emit-special 'do [_type env [_ & exprs]]
   (emit-do env exprs))
@@ -414,18 +417,20 @@
                       [(str acc expr) var->ident]))
                   ["" upper-var->ident]
                   partitioned))
-        enc-env (assoc enc-env :var->ident var->ident :top-level false)]
-    (cond-> (str
-             bindings
-             (when loop?
-               "while(true){\n")
-             ;; TODO: move this to env arg?
-             (binding [*recur-targets*
+        enc-env (assoc enc-env :var->ident var->ident :top-level false)
+        body (binding [*recur-targets*
                        (if loop? (map var->ident (map first partitioned))
                            *recur-targets*)]
                (emit-do (if iife?
                           (assoc enc-env :context :return)
                           enc-env) body))
+        tag (:tag body)]
+    (cond-> (str
+             bindings
+             (when loop?
+               "while(true){\n")
+             ;; TODO: move this to env arg?
+             body
              (when loop?
                ;; TODO: not sure why I had to insert the ; here, but else
                ;; (loop [x 1] (+ 1 2 x)) breaks
@@ -433,7 +438,8 @@
       iife?
       (wrap-implicit-iife env)
       iife?
-      (emit-return enc-env))))
+      (emit-return enc-env)
+      tag (tagged-expr tag))))
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))

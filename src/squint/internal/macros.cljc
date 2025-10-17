@@ -707,26 +707,33 @@
            (assoc (meta &form)
                   :squint.compiler/skip-macro true))))))
   ([x b not-found]
-   (if (object-compatible? &env x)
-     (if (and (symbol? x)
-              (or (constant? b)
-                  (symbol? b)))
-       (list 'js* "(~{} in ~{} ? ~{} : ~{})"
-             b
-             x
-             `(cljs.core/aget ~x ~b)
-             not-found)
-       (let [obj-sym (gensym)
-             key-sym (gensym)]
-         `(let [~obj-sym ~x
-                ~key-sym ~b]
-            ~(list 'js* "(~{} in ~{} ? ~{} : ~{})"
-                   key-sym
-                   obj-sym
-                   `(cljs.core/aget ~obj-sym ~key-sym)
-                   not-found))))
-     (vary-meta &form
-                assoc :squint.compiler/skip-macro true))))
+   (let [emit (-> &env :utils :emit)
+         emitted (emit x (assoc &env :context :expr))
+         tag (or (:tag emitted)
+                 (:tag (meta x)))
+         x* x
+         x (with-meta (list 'js* (str emitted))
+             {:tag tag})]
+     (if (= 'object tag)
+       (if (and (symbol? x*)
+                (or (constant? b)
+                    (symbol? b)))
+         (list 'js* "(~{} in ~{} ? ~{} : ~{})"
+               b
+               x
+               `(cljs.core/aget ~x ~b)
+               not-found)
+         (let [obj-sym (gensym)
+               key-sym (gensym)]
+           `(let [~obj-sym ~x
+                  ~key-sym ~b]
+              ~(list 'js* "(~{} in ~{} ? ~{} : ~{})"
+                     key-sym
+                     obj-sym
+                     `(cljs.core/aget ~obj-sym ~key-sym)
+                     not-found))))
+       (vary-meta &form
+                  assoc :squint.compiler/skip-macro true)))))
 
 ;; TODO: object literal tag tracking
 ;; TODO: next step is to make the above special forms (that could be overriden by custom functions!)
