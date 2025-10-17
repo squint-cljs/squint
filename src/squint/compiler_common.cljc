@@ -373,15 +373,13 @@
         ctx (:context env)
         statement-env (assoc env :context :statement)
         iife? (and (seq bl) (= :expr ctx))
-        exprs (map #(save-pragma statement-env (emit % statement-env)) bl)
-        lctx (if iife? :return
-                ctx)
+        exprs (str/join (map #(save-pragma statement-env (emit % statement-env)) bl))
+        lctx (if iife? :return ctx)
         res (emit l (assoc env :context lctx))
         tag (:tag res)
         res (cond-> res
               (= :return ctx) (statement))
-        s (cond-> (str (str/join exprs)
-                       res)
+        s (cond-> (str exprs res)
             iife?
             (wrap-implicit-iife env))]
     (cond-> s
