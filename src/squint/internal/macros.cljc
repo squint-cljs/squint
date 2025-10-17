@@ -730,5 +730,8 @@
                      obj-sym
                      `(cljs.core/aget ~obj-sym ~key-sym)
                      not-found))))
-       (vary-meta &form
-                  assoc :squint.compiler/skip-macro true)))))
+       (let [[fn _ & tail] &form]
+         (with-meta
+           (list* fn x tail)
+           (assoc (meta &form)
+                  :squint.compiler/skip-macro true)))))))
