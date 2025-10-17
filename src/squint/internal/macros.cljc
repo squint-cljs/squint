@@ -641,7 +641,8 @@
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
   (let [emit (-> &env :utils :emit)
         emitted (emit x (assoc &env :context :expression))
-        tag (:tag emitted)
+        tag (or (:tag emitted)
+                (:tag (meta x)))
         x (with-meta (list 'js* (str emitted))
             {:tag tag})]
     (if (= 'object tag)
@@ -661,34 +662,40 @@
 ;; TODO: optimization, we don't even need to return the result if we are in do context
 (core/defmacro assoc!-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
-  (let [emit (-> &env :utils :emit)
-        emitted (emit x (assoc &env :context :expression))
-        tag (:tag emitted)
-        x (with-meta (list 'js* (str emitted))
-            {:tag tag})]
-    (if (= 'object tag)
-      (with-meta
-        (list* 'js* (str "("
-                         (str/join (repeat (/ (count xs) 2) "~{},"))
-                         "~{}"
-                         ")")
-               (concat
-                (map (fn [[k v]]
-                       `(aset ~x ~k ~v))
-                     (partition 2 xs))
-                [x]))
-        {:tag 'object})
-      (let [[fn _ & tail] &form]
+  (if (not (symbol? x))
+    (let [obj-sym (gensym)]
+      `(let [~obj-sym ~x]
+         (assoc! ~obj-sym ~@xs)))
+    (let [emit (-> &env :utils :emit)
+          emitted (emit x (assoc &env :context :expression))
+          tag (or (:tag emitted)
+                  (:tag (meta x)))
+          x (with-meta (list 'js* (str emitted))
+              {:tag tag})]
+      (if (= 'object tag)
         (with-meta
-          (list* fn x tail)
-          (assoc (meta &form)
-                 :squint.compiler/skip-macro true))))))
+          (list* 'js* (str "("
+                           (str/join (repeat (/ (count xs) 2) "~{},"))
+                           "~{}"
+                           ")")
+                 (concat
+                  (map (fn [[k v]]
+                         `(aset ~x ~k ~v))
+                       (partition 2 xs))
+                  [x]))
+          {:tag 'object})
+        (let [[fn _ & tail] &form]
+          (with-meta
+            (list* fn x tail)
+            (assoc (meta &form)
+                   :squint.compiler/skip-macro true)))))))
 
 (core/defmacro get-inline
   ([x b]
    (let [emit (-> &env :utils :emit)
          emitted (emit x (assoc &env :context :expression))
-         tag (:tag emitted)
+         tag (or (:tag emitted)
+                 (:tag (meta x)))
          x (with-meta (list 'js* (str emitted))
              {:tag tag})]
      (if (= 'object tag)

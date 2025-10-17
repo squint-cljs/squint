@@ -2660,8 +2660,7 @@ new Foo();")
     (testing "get + symbol expr"
       (let [s (jss! "(def x (assoc! ^object {} :a 1)) (get ^object x :a)"
                     {:context :return})]
-        (println s)
-        (is (str/includes? s "[\"a\"] = 1),x"))
+        (is (str/includes? s "[\"a\"] = 1),"))
         (is (eq 1 ((js/Function. s)))))))
   (testing "object literal inference"
     (let [s (jss! "(let [x {:a 1}] (get x :a))")]
