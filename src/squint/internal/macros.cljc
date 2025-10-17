@@ -668,7 +668,7 @@
       `(let [~obj-sym ~x]
          (assoc! ~obj-sym ~@xs)))
     (let [emit (-> &env :utils :emit)
-          emitted (emit x (assoc &env :context :expression))
+          emitted (emit x (assoc &env :context :expr))
           tag (or (:tag emitted)
                   (:tag (meta x)))
           x (with-meta (list 'js* (str emitted))
@@ -694,7 +694,7 @@
 (core/defmacro get-inline
   ([x b]
    (let [emit (-> &env :utils :emit)
-         emitted (emit x (assoc &env :context :expression))
+         emitted (emit x (assoc &env :context :expr))
          tag (or (:tag emitted)
                  (:tag (meta x)))
          x (with-meta (list 'js* (str emitted))

@@ -2666,7 +2666,9 @@ new Foo();")
       (let [s (jss! "(def x (assoc! ^object {} :a 1)) (get ^object x :a)"
                     {:context :return})]
         (is (str/includes? s "[\"a\"] = 1),"))
-        (is (eq 1 ((js/Function. s)))))))
+        (is (eq 1 ((js/Function. s))))))
+    (testing "get compile argument in expr context"
+      (is (eq 1 (jsv! '(do (defn foo [] (get (let [x {:a 1}] x) :a)) (foo)))))))
   (testing "object literal inference"
     (let [s (jss! "(let [x {:a 1}] (get x :a))")]
       (is (str/includes? s "[\"a\"]")))
