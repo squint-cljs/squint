@@ -1650,13 +1650,13 @@ export function take(n, coll) {
 }
 
 export function take_last(n, coll) {
-  if (n == 0) {
+  if (n <= 0) {
     return null;
   }
   if (Array.isArray(coll)) {
-    return seq(coll.slice(-Math.abs(n)));
+    return seq(coll.slice(-n));
   } else {
-    let lastN = new Array(n);
+    const lastN = new Array(n);
     let i = 0;
     for (const x of iterable(coll)) {
       lastN[i % n] = x;

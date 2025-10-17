@@ -5,10 +5,11 @@
 ## Unreleased
 
 - Optimize `str` using macro that compiles into template strings + `?? ''` for null/undefined
+- Fix [#732](https://github.com/squint-cljs/squint/issues/732): `take-last` should return `nil` or empty seq for negative numbers
 
 ## v0.8.159 (2025-10-13)
 
-- #725: `keys` and `vals` should work on `js/Map`
+- [#725](https://github.com/squint-cljs/squint/issues/725): `keys` and `vals` should work on `js/Map`
 
 ## v0.8.158 (2025-10-10)
 
