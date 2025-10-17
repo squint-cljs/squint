@@ -64,8 +64,6 @@
   (map->Code {:js js
               :tag tag}))
 
-:bool
-
 (defmethod emit-special 'js* [_ env [_js* & opts :as expr]]
   (let [mexpr (meta expr)
         tag (:tag mexpr)
@@ -413,7 +411,7 @@
                           tag (:tag rhs)
                           expr (format "%s %s = %s;\n" (if loop? "let" "const")lhs rhs)
                           var->ident
-                          (-> (dissoc var->ident var-name)
+                          (-> var->ident
                               (assoc var-name
                                      (cond-> renamed
                                        tag (vary-meta assoc :tag tag))))]
@@ -857,7 +855,7 @@
               (if (map? param)
                 (let [params (map-params param)]
                   [(update env :var->ident (fn [m]
-                                             (-> (apply dissoc m params)
+                                             (-> m
                                                  (merge params))))
                    (conj sig param)
                    (into seen params)])
@@ -1001,7 +999,6 @@ break;}" body)
                          (let [binding (munge binding)
                                env (update env :var->ident (fn [m]
                                                              (-> m
-                                                                 (dissoc binding)
                                                                  (assoc binding (gensym binding)))))]
                            (str "catch(" (emit binding (expr-env env)) "){\n"
                                 (emit-do env catch-body)
@@ -1044,7 +1041,7 @@ break;}" body)
         fns (take-nth 2 (rest form))
         binding-map (zipmap bindings (map #(gensym %) bindings))
         env (update env :var->ident (fn [m]
-                                      (-> (apply dissoc m (keys binding-map))
+                                      (-> m
                                           (merge binding-map))))
         bindings (map #(vary-meta (get binding-map %) assoc :squint.compiler/no-rename true) bindings)
         form (interleave bindings fns)
@@ -1432,7 +1429,7 @@ break;}" body)
                         (update
                          :var->ident
                          (fn [vi]
-                           (-> (apply dissoc vi fields)
+                           (-> vi
                                (merge
                                 (zipmap fields
                                         (map (fn [fld]

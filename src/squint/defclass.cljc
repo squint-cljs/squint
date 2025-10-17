@@ -127,7 +127,7 @@
   (let [[fn-name arglist & body] object-fn
         [this-arg & arglist] arglist
         env (update env :var->ident (fn [vi]
-                                      (-> (apply dissoc vi 'super this-arg arglist)
+                                      (-> vi
                                           (merge (assoc (zipmap arglist arglist)
                                                         'super "super"
                                                         this-arg (munge this-arg))))))
