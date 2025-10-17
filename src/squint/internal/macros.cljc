@@ -637,6 +637,7 @@
               (some-> (get (:var->ident env) obj) meta :tag))))
 
 (core/defmacro assoc-inline [x & xs]
+  (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
   (if (object-compatible? &env x)
     (with-meta
       (list* 'js* (str "({...~{},"
@@ -650,6 +651,7 @@
 
 ;; TODO: optimization, we don't even need to return the result if we are in do context
 (core/defmacro assoc!-inline [x & xs]
+  (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
   (if (object-compatible? &env x)
     (let [needs-iife? (not (symbol? x))
           sym (if needs-iife? (gensym "x") x)]

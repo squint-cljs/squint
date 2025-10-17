@@ -2664,8 +2664,11 @@ new Foo();")
         (is (str/includes? s "[\"a\"] = 1),x"))
         (is (eq 1 ((js/Function. s)))))))
   (testing "object literal inference"
-    (let [s (jss! "(get {:a 1} :a)")]
-      (println s))))
+    (let [s (jss! "(let [x {:a 1}] (get x :a))")]
+      (is (str/includes? s "[\"a\"]")))
+    ;; TODO: this will work once we treat get as an intrinsic
+    #_(let [s (jss! "(get {:a 1} :a)")]
+      (is (str/includes? s "[\"a\"]")))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
