@@ -641,7 +641,7 @@
 (core/defmacro assoc-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
   (let [emit (-> &env :utils :emit)
-        emitted (emit x (assoc &env :context :expression))
+        emitted (emit x (assoc &env :context :expr))
         tag (or (:tag emitted)
                 (:tag (meta x)))
         x (with-meta (list 'js* (str emitted))

@@ -2637,6 +2637,9 @@ new Foo();")
   (is (eq [1 2 3] (jsv! "(vals (assoc (js/Map.) :a 1 :b 2 :c 3))"))))
 
 (deftest object-tag-inference-test
+  (testing "assoc in return position with non-symbolic expression"
+    (is (eq #{:foo :bar} ((jsv! '(let [f (fn [] (assoc (or {} {}) :foo :bar))]
+                                   f))))))
   (let [s (jss! "(defn foo [^object x] (assoc x :a 1))")]
     (is (str/includes? s "...x"))
     (is (not (str/includes? s "assoc"))))
