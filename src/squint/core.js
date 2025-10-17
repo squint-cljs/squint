@@ -1650,7 +1650,7 @@ export function take(n, coll) {
 }
 
 export function take_last(n, coll) {
-  if (n == 0) {
+  if (n <= 0) {
     return null;
   }
   if (Array.isArray(coll)) {

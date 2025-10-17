@@ -1491,6 +1491,9 @@ with `backticks`")))]
 (deftest take-last-test
     (is (nil? (jsv! '(take-last 0 [1 2 3 4]))))
     (is (nil? (jsv! '(take-last 0 {:a 1 :b 2 :c 3 :d 4}))))
+    (is (nil? (jsv! '(take-last -1 [1 2 3 4]))))
+    (is (nil? (jsv! '(take-last -2 [1 2 3 4 5]))))
+    (is (nil? (jsv! '(take-last -10 {:a 1 :b 2}))))
     (is (eq [3 4] (jsv! '(vec (take-last 2 [1 2 3 4])))))
     (is (eq [[:c 3] [:d 4]] (jsv! '(vec (take-last 2 {:a 1 :b 2 :c 3 :d 4})))))
     (is (eq [[:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 3 {:a 1 :b 2 :c 3 :d 4})))))
