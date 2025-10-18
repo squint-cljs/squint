@@ -674,6 +674,8 @@
                         {:tag tag})]
           (with-meta `(^:=> (fn [~obj-sym]
                          (assoc! ~obj-sym ~@xs)) ~x)
+            ;; TODO: we shouldn't have to add a tag here with function return
+            ;; tag inference, which isn't yet available, but within reach
             {:tag tag}))
         (with-meta
           (list* 'js* (str "("
@@ -724,15 +726,15 @@
                x
                `(cljs.core/aget ~x ~b)
                not-found)
-         (let [obj-sym (gensym)
+         (let [obj-sym (with-meta (gensym)
+                         {:tag tag})
                key-sym (gensym)]
-           `(let [~obj-sym ~x
-                  ~key-sym ~b]
-              ~(list 'js* "(~{} in ~{} ? ~{} : ~{})"
-                     key-sym
-                     obj-sym
-                     `(cljs.core/aget ~obj-sym ~key-sym)
-                     not-found))))
+           `(^:=> (fn [~obj-sym ~key-sym]
+                    ~(list 'js* "(~{} in ~{} ? ~{} : ~{})"
+                           key-sym
+                           obj-sym
+                           `(cljs.core/aget ~obj-sym ~key-sym)
+                           not-found)) ~x ~b)))
        (let [[fn _ & tail] &form]
          (with-meta
            (list* fn x tail)
