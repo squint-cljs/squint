@@ -290,7 +290,7 @@
                                  (str (emit (key-fn k) expr-env) ": "))
                                (emit (val pair) expr-env))))
               keys (str/join ", " (map mk-pair (seq expr)))]
-          (escape-jsx (-> (format "({ %s })" keys)
+          (escape-jsx (-> (format "({%s})" keys)
                           (emit-return env))
                       env*))
         (let [expr (list* 'doto {} (map (fn [[k v]]
