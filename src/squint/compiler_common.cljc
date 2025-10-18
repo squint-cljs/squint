@@ -885,6 +885,7 @@
   ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
   (let [arrow? (:arrow env)
+        single-expr-arrow? (and arrow? (= 1 (count body)))
         [env sig] (->sig env sig)]
     (binding [*recur-targets* sig]
       (let [recur? (volatile! nil)
@@ -892,8 +893,10 @@
                        (fn [coll]
                          (when (identical? sig coll)
                            (vreset! recur? true))))
-            body (emit-do (assoc env :context :return)
-                          body)
+            body (if single-expr-arrow?
+                   (emit (first body) (assoc env :context :expr))
+                   (emit-do (assoc env :context :return)
+                            body))
             body (if @recur?
                    (format "while(true){
 %s
@@ -913,9 +916,12 @@ break;}" body)
                                   (destructured-map env x)
                                   x)) sig))
              (when arrow?
-               " =>")
-             " {\n"
-             body "\n}")))))
+               "=>")
+             (if single-expr-arrow?
+               body
+               (str
+                " {\n"
+                body "\n}")))))))
 
 (defn emit-function* [env expr opts]
   (let [name (when (symbol? (first expr)) (first expr))
@@ -950,7 +956,6 @@ break;}" body)
                 (str (emit-function env nil signature body))))
             (cond-> (and
                      (not (:squint.internal.fn/def opts))
-                     (not arrow?)
                      (= :expr (:context env))) (wrap-parens))
             (emit-return env))))))
 
