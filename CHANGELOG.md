@@ -2,8 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.9.160 (2025-10-18)
 
+- Optimize code produced for `assoc`, `assoc!` and `get` when object argument can be inferred or is type hinted with `^object`
 - Optimize `str` using macro that compiles into template strings + `?? ''` for null/undefined
 - Fix [#732](https://github.com/squint-cljs/squint/issues/732): `take-last` should return `nil` or empty seq for negative numbers
 
