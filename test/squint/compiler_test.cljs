@@ -1754,32 +1754,31 @@ globalThis.foo.existsSync = existsSync;
 globalThis.foo.fs = fs;")))))
 
 (deftest import-attributes-test
-  (prn :> (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false}))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})
-                     "with { \"type\": \"json\" }"))
+                     "with {\"type\": \"json\"}"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false
                                                                                        :repl true})
-                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+                     ", ({\"with\": ({\"type\": \"json\"})})"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :as dude :with {:type :json}]))" {:elide-imports false})
-                     "with { \"type\": \"json\" }"))
+                     "with {\"type\": \"json\"}"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :as dude :with {:type :json}]))" {:elide-imports false
                                                                                        :repl true})
-                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+                     ", ({\"with\": ({\"type\": \"json\"})})"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :refer [x] :with {:type :json}]))" {:elide-imports false})
-                     "with { \"type\": \"json\" }"))
+                     "with {\"type\": \"json\"}"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :refer [x] :with {:type :json}]))" {:elide-imports false
-                                                                                                :repl true})
-                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+                                                                                                  :repl true})
+                     ", ({\"with\": ({\"type\": \"json\"})})"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false})
-                     "with { \"type\": \"json\" }"))
+                     "with {\"type\": \"json\"}"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false
                                                                                                :repl true})
-                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+                     ", ({\"with\": ({\"type\": \"json\"})})"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :as dude :with {:type :json}]))" {:elide-imports false})
-                     "with { \"type\": \"json\" }"))
+                     "with {\"type\": \"json\"}"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :as dude :with {:type :json}]))" {:elide-imports false
                                                                                                :repl true})
-                     ", ({ \"with\": ({ \"type\": \"json\" }) })")))
+                     ", ({\"with\": ({\"type\": \"json\"})})")))
 
 (deftest default-require-test
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom")]
