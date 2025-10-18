@@ -15,9 +15,10 @@
                             bit-shift-left bit-shift-right bit-shift-right-zero-fill
                             unsigned-bit-shift-right bit-set undefined?
                             simple-benchmark delay])
-  (:require [clojure.string :as str]
+  (:require [clojure.core :as cc]
+            [clojure.string :as str]
             [squint.compiler-common :as-alias ana]
-            [clojure.core :as cc]
+            [squint.compiler.utils :as cu]
             #?(:clj [squint.internal.defmacro :as core]))
   #?(:cljs (:require-macros [squint.internal.defmacro :as core])))
 
@@ -638,68 +639,104 @@
 
 (core/defmacro assoc-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
-  (if (object-compatible? &env x)
-    (with-meta
-      (list* 'js* (str "({...~{},"
-                       (str/join ","
-                                 (repeat (/ (count xs) 2) "~{}:~{}"))
-                       "})")
-             x xs)
-      {:tag 'object})
-    (vary-meta &form
-               assoc :squint.compiler/skip-macro true)))
+  (let [emit (-> &env :utils :emit)
+        emitted (emit x (assoc &env :context :expr))
+        tag (or (:tag emitted)
+                (:tag (meta x)))
+        x (with-meta (list 'js* (str emitted))
+            {:tag tag})]
+    (if (= 'object tag)
+      (with-meta
+        (list* 'js* (str "({...~{},"
+                         (str/join ","
+                                   (repeat (/ (count xs) 2) "~{}:~{}"))
+                         "})")
+               x xs)
+        {:tag 'object})
+      (let [[fn _ & tail] &form]
+        (with-meta
+          (list* fn x tail)
+          (assoc (meta &form)
+                 :squint.compiler/skip-macro true))))))
 
-;; TODO: optimization, we don't even need to return the result if we are in do context
 (core/defmacro assoc!-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
-  (if (object-compatible? &env x)
-    (let [needs-iife? (not (symbol? x))
-          sym (if needs-iife? (gensym "x") x)]
-      ;; TODO: get rid of iife, just generate let, this will work out better when you're already in a do context
-      (with-meta
-        (list* 'js* (str "(" (when needs-iife? (str "((" sym ") => ("))
-                         (str/join (repeat (/ (count xs) 2) "~{},"))
-                         (if needs-iife? sym "~{}")
-                         (when needs-iife?
-                           "))(~{})")
-                         ")")
-               (concat
-                (map (fn [[k v]]
-                       `(aset ~sym ~k ~v))
-                     (partition 2 xs))
-                [x]))
-        {:tag 'object}))
-    (vary-meta &form
-               assoc :squint.compiler/skip-macro true)))
+  (let [emit (-> &env :utils :emit)
+        emitted (emit x (assoc &env :context :expr))
+        tag (or (:tag emitted)
+                (:tag (meta x)))
+        x* x
+        x (with-meta (list 'js* (str emitted))
+            {:tag tag})]
+    (if (= 'object tag)
+      (if-not (symbol? x*)
+        (let [obj-sym (with-meta (gensym)
+                        {:tag tag})]
+          (with-meta `(^:=> (fn [~obj-sym]
+                         (assoc! ~obj-sym ~@xs)) ~x)
+            ;; TODO: we shouldn't have to add a tag here with function return
+            ;; tag inference, which isn't yet available, but within reach
+            {:tag tag}))
+        (with-meta
+          (list* 'js* (str "("
+                           (str/join "," (repeat (/ (count xs) 2) "~{}"))
+                           ",~{}"
+                           ")")
+                 (concat
+                  (map (fn [[k v]]
+                         `(aset ~x ~k ~v))
+                       (partition 2 xs))
+                  [x]))
+          {:tag 'object}))
+      (let [[fn _ & tail] &form]
+        (with-meta
+          (list* fn x tail)
+          (assoc (meta &form)
+                 :squint.compiler/skip-macro true))))))
 
 (core/defmacro get-inline
   ([x b]
-   (if (object-compatible? &env x)
-     `(cljs.core/aget ~x ~b)
-     (vary-meta &form
-                assoc :squint.compiler/skip-macro true)))
+   (let [emit (-> &env :utils :emit)
+         emitted (emit x (assoc &env :context :expr))
+         tag (or (:tag emitted)
+                 (:tag (meta x)))
+         x (with-meta (list 'js* (str emitted))
+             {:tag tag})]
+     (if (= 'object tag)
+       `(cljs.core/aget ~x ~b)
+       (let [[fn _ & tail] &form]
+         (with-meta
+           (list* fn x tail)
+           (assoc (meta &form)
+                  :squint.compiler/skip-macro true))))))
   ([x b not-found]
-   (if (object-compatible? &env x)
-     (if (and (symbol? x)
-              (or (constant? b)
-                  (symbol? b)))
-       (list 'js* "(~{} in ~{} ? ~{} : ~{})"
-             b
-             x
-             `(cljs.core/aget ~x ~b)
-             not-found)
-       (let [obj-sym (gensym)
-             key-sym (gensym)]
-         `(let [~obj-sym ~x
-                ~key-sym ~b]
-            ~(list 'js* "(~{} in ~{} ? ~{} : ~{})"
-                   key-sym
-                   obj-sym
-                   `(cljs.core/aget ~obj-sym ~key-sym)
-                   not-found))))
-     (vary-meta &form
-                assoc :squint.compiler/skip-macro true))))
-
-;; TODO: object literal tag tracking
-;; TODO: next step is to make the above special forms (that could be overriden by custom functions!)
-;; so we can use the type of emitted expressions like in (get (let [x {}] (assoc x :a 1)))
+   (let [emit (-> &env :utils :emit)
+         emitted (emit x (assoc &env :context :expr))
+         tag (or (:tag emitted)
+                 (:tag (meta x)))
+         x* x
+         x (with-meta (list 'js* (str emitted))
+             {:tag tag})]
+     (if (= 'object tag)
+       (if (and (symbol? x*)
+                (or (constant? b)
+                    (symbol? b)))
+         (list 'js* "(~{} in ~{} ? ~{} : ~{})"
+               b
+               x
+               `(cljs.core/aget ~x ~b)
+               not-found)
+         (let [obj-sym (with-meta (gensym)
+                         {:tag tag})
+               key-sym (gensym)]
+           `(^:=> (fn [~obj-sym ~key-sym]
+                    ~(list 'js* "(~{} in ~{} ? ~{} : ~{})"
+                           key-sym
+                           obj-sym
+                           `(cljs.core/aget ~obj-sym ~key-sym)
+                           not-found)) ~x ~b)))
+       (let [[fn _ & tail] &form]
+         (with-meta
+           (list* fn x tail)
+           (assoc (meta &form)
+                  :squint.compiler/skip-macro true)))))))

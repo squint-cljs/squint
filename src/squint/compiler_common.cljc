@@ -4,6 +4,7 @@
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
+   [squint.compiler.utils :as utils]
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
 
@@ -46,7 +47,7 @@
 
 #?(:cljs (def format gstring/format))
 
-(defmulti emit (fn [expr _env] (type expr)))
+(def emit utils/emit)
 
 (defmulti emit-special (fn [disp _env & _args] disp))
 
@@ -64,20 +65,15 @@
   (map->Code {:js js
               :tag tag}))
 
-(defmethod emit-special 'js* [_ env [_js* & opts :as expr]]
+(defmethod emit-special 'js* [_ env [_js* template & args :as expr]]
   (let [mexpr (meta expr)
-        tag (:tag mexpr)
-        [env' template substitutions] (if (map? (first opts))
-                                        [(first opts)
-                                         (second opts)
-                                         (drop 2 opts)]
-                                        [nil (first opts) (rest opts)])]
+        tag (:tag mexpr)]
     (cond->
         (-> (reduce (fn [template substitution]
                       (str/replace-first template "~{}"
-                                         (emit substitution (merge (assoc env :context :expr) env'))))
+                                         (emit substitution (merge (assoc env :context :expr)))))
                     template
-                    substitutions)
+                    args)
             (emit-return (merge env (meta expr))))
       tag (tagged-expr tag))))
 
@@ -377,16 +373,17 @@
         ctx (:context env)
         statement-env (assoc env :context :statement)
         iife? (and (seq bl) (= :expr ctx))
-        exprs (map #(save-pragma statement-env (emit % statement-env)) bl)
-        s (cond-> (str (str/join "" exprs)
-                       (let [ctx (if iife? :return
-                                     ctx)]
-                         (cond-> (emit l (assoc env :context
-                                                ctx))
-                           (= :return ctx) (statement))))
+        exprs (str/join (map #(save-pragma statement-env (emit % statement-env)) bl))
+        lctx (if iife? :return ctx)
+        res (emit l (assoc env :context lctx))
+        tag (:tag res)
+        res (cond-> res
+              (= :return ctx) (statement))
+        s (cond-> (str exprs res)
             iife?
             (wrap-implicit-iife env))]
-    s))
+    (cond-> s
+      tag (tagged-expr tag))))
 
 (defmethod emit-special 'do [_type env [_ & exprs]]
   (emit-do env exprs))
@@ -418,18 +415,20 @@
                       [(str acc expr) var->ident]))
                   ["" upper-var->ident]
                   partitioned))
-        enc-env (assoc enc-env :var->ident var->ident :top-level false)]
-    (cond-> (str
-             bindings
-             (when loop?
-               "while(true){\n")
-             ;; TODO: move this to env arg?
-             (binding [*recur-targets*
+        enc-env (assoc enc-env :var->ident var->ident :top-level false)
+        body (binding [*recur-targets*
                        (if loop? (map var->ident (map first partitioned))
                            *recur-targets*)]
                (emit-do (if iife?
                           (assoc enc-env :context :return)
                           enc-env) body))
+        tag (:tag body)]
+    (cond-> (str
+             bindings
+             (when loop?
+               "while(true){\n")
+             ;; TODO: move this to env arg?
+             body
              (when loop?
                ;; TODO: not sure why I had to insert the ; here, but else
                ;; (loop [x 1] (+ 1 2 x)) breaks
@@ -437,7 +436,8 @@
       iife?
       (wrap-implicit-iife env)
       iife?
-      (emit-return enc-env))))
+      (emit-return enc-env)
+      tag (tagged-expr tag))))
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
@@ -885,6 +885,7 @@
   ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
   (let [arrow? (:arrow env)
+        single-expr-arrow? (and arrow? (= 1 (count body)))
         [env sig] (->sig env sig)]
     (binding [*recur-targets* sig]
       (let [recur? (volatile! nil)
@@ -892,8 +893,10 @@
                        (fn [coll]
                          (when (identical? sig coll)
                            (vreset! recur? true))))
-            body (emit-do (assoc env :context :return)
-                          body)
+            body (if single-expr-arrow?
+                   (emit (first body) (assoc env :context :expr))
+                   (emit-do (assoc env :context :return)
+                            body))
             body (if @recur?
                    (format "while(true){
 %s
@@ -913,9 +916,12 @@ break;}" body)
                                   (destructured-map env x)
                                   x)) sig))
              (when arrow?
-               " =>")
-             " {\n"
-             body "\n}")))))
+               "=>")
+             (if single-expr-arrow?
+               body
+               (str
+                " {\n"
+                body "\n}")))))))
 
 (defn emit-function* [env expr opts]
   (let [name (when (symbol? (first expr)) (first expr))
@@ -950,7 +956,6 @@ break;}" body)
                 (str (emit-function env nil signature body))))
             (cond-> (and
                      (not (:squint.internal.fn/def opts))
-                     (not arrow?)
                      (= :expr (:context env))) (wrap-parens))
             (emit-return env))))))
 
@@ -1011,29 +1016,31 @@ break;}" body)
             (wrap-implicit-iife env))
           (emit-return outer-env)))))
 
-(defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
+(defmethod emit-special 'funcall [_type env [fname & args :as expr]]
   (let [ns (when (symbol? fname) (namespace fname))
         fname (if ns (symbol (munge ns) (name fname))
                   fname)
         cherry? (= :cherry *target*)
         cherry+interop? (and
                          cherry?
-                         (= "js" ns))]
-    (emit-return (str
-                  (emit fname (expr-env env))
-                  ;; this is needed when calling keywords, symbols, etc. We could
-                  ;; optimize this later by inferring that we're not directly
-                  ;; calling a `function`.
-                  (when (and cherry? (not cherry+interop?)) ".call")
-                  (comma-list (emit-args env
-                                         (if cherry?
-                                           (if (not cherry+interop?)
-                                             (cons
-                                              (if (= "super" (first (str/split (str fname) #"\.")))
-                                                'self__ nil) args)
-                                             args)
-                                           args))))
-                 env)))
+                         (= "js" ns))
+        tag (:tag (meta expr))]
+    (cond-> (emit-return (str
+                         (emit fname (expr-env env))
+                         ;; this is needed when calling keywords, symbols, etc. We could
+                         ;; optimize this later by inferring that we're not directly
+                         ;; calling a `function`.
+                         (when (and cherry? (not cherry+interop?)) ".call")
+                         (comma-list (emit-args env
+                                                (if cherry?
+                                                  (if (not cherry+interop?)
+                                                    (cons
+                                                     (if (= "super" (first (str/split (str fname) #"\.")))
+                                                       'self__ nil) args)
+                                                    args)
+                                                  args))))
+                         env)
+      tag (tagged-expr tag))))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
   (let [gensym (:gensym env)
