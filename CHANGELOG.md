@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## v0.9.160 (2025-10-18)
+## v0.9.169 (2025-10-18)
 
 - Optimize code produced for `assoc`, `assoc!` and `get` when object argument can be inferred or is type hinted with `^object`
 - Optimize `str` using macro that compiles into template strings + `?? ''` for null/undefined
