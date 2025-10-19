@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.9.171 (2025-10-19)
+
+- Optimize `=` and `not=` even more
+
 ## v0.9.170 (2025-10-19)
 
 - `not=` on undefined and false should return `true`
