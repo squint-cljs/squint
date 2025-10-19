@@ -4,6 +4,10 @@
 
 ## v0.9.171 (2025-10-19)
 
+Remove debug output from compilation
+
+## v0.9.171 (2025-10-19)
+
 - Optimize `=`, `and`, and `not=` even more
 
 ## v0.9.170 (2025-10-19)
