@@ -745,5 +745,4 @@
   ([_] false)
   ([a b] (bool-expr `(cc/not (cc/= ~a ~b))))
   ([a b & xs]
-   `(and (cc/not= ~a ~b)
-         (cc/not= ~b ~@xs))))
+   (list 'js* "(~{} && ~{})" `(cc/not= ~a ~b) `(cc/not= ~b ~@xs))))
