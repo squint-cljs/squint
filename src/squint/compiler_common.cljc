@@ -67,7 +67,8 @@
 
 (defmethod emit-special 'js* [_ env [_js* template & args :as expr]]
   (let [mexpr (meta expr)
-        tag (:tag mexpr)]
+        tag (:tag mexpr)
+        template (str template)]
     (cond->
         (-> (reduce (fn [template substitution]
                       (str/replace-first template "~{}"
