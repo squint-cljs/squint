@@ -491,17 +491,26 @@
    `(let [or# ~x]
       (if or# or# (or ~@next)))))
 
-(defn core-and
+(core/defmacro core-and
   "Evaluates exprs one at a time, from left to right. If a form
   returns logical false (nil or false), and returns that value and
   doesn't evaluate any of the other expressions, otherwise it returns
   the value of the last expr. (and) returns true."
-  {:added "1.0"}
-  ([_ _] true)
-  ([_ _ x] x)
-  ([_ _ x & next]
-   `(let [and# ~x]
-      (if and# (and ~@next) and#))))
+  ([] true)
+  ([x] x)
+  ([x & next]
+   (let [emit (-> &env :utils :emit)
+         emitted (emit x (assoc &env :context :expr))
+         tag (or (:tag emitted)
+                 (:tag (meta x)))
+         x (with-meta (list 'js* emitted)
+             {:tag tag})]
+     (if (= 'boolean tag)
+       (list 'js* "(~{} && ~{})"
+             x
+             `(and ~@next))
+       `(let [and# ~x]
+          (if and# (and ~@next) and#))))))
 
 (defn core-assert
   "Evaluates expr and throws an exception if it does not evaluate to
