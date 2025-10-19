@@ -611,14 +611,31 @@
       (string? x)
       (boolean? x)))
 
-(core/defmacro equals [& xs]
-  (with-meta (if (= 2 (count xs))
-              (let [[x y] xs]
-                (if (or (constant? x) (constant? y))
-                  (core/list 'js* "(~{} === ~{})" x y)
-                  `(cljs.core/_EQ_ ~x ~y)))
-              `(cljs.core/_EQ_ ~@xs))
-    {:tag 'boolean}))
+(defn primitive? [tag]
+  (prn :tag tag)
+  (contains? #{'number 'string 'boolean} tag))
+
+(core/defmacro equals
+  ([_] true)
+  ([x y]
+   (let [emit (-> &env :utils :emit)
+         x-emitted (emit x (assoc &env :context :expr))
+         x-tag (or (:tag x-emitted)
+                   (:tag (meta x)))
+         x (with-meta (list 'js* (str x-emitted))
+             {:tag x-tag})
+         y-emitted (emit y (assoc &env :context :expr))
+         y-tag (or (:tag y-emitted)
+                   (:tag (meta y)))
+         y (with-meta (list 'js* (str y-emitted))
+             {:tag y-tag})]
+     (with-meta
+       (if (or (primitive? x-tag) (primitive? y-tag))
+         (core/list 'js* "(~{} === ~{})" x y)
+         `(cljs.core/_EQ_ ~x ~y))
+       {:tag 'boolean})))
+  ([x y & xs]
+   (list 'js* "(~{} && ~{})" `(cc/= ~x ~y) `(cc/= ~y ~@xs))))
 
 (core/defmacro stringify [& xs]
   (let [args (keep (fn [expr]
@@ -631,11 +648,6 @@
     `(~'js*
       ~(str "`" (str/join (map first args)) "`")
       ~@(map second args))))
-
-(defn object-compatible? [env obj]
-  (= 'object (or
-              (-> obj meta :tag)
-              (some-> (get (:var->ident env) obj) meta :tag))))
 
 (core/defmacro assoc-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
@@ -742,7 +754,5 @@
                   :squint.compiler/skip-macro true)))))))
 
 (core/defmacro not=
-  ([_] false)
-  ([a b] (bool-expr `(cc/not (cc/= ~a ~b))))
-  ([a b & xs]
-   (list 'js* "(~{} && ~{})" `(cc/not= ~a ~b) `(cc/not= ~b ~@xs))))
+  [& xs]
+  `(not (= ~@xs)))

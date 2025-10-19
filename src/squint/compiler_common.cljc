@@ -169,7 +169,8 @@
 (defmethod emit ::number [expr env]
   (-> (str expr)
       (emit-return env)
-      (escape-jsx env)))
+      (escape-jsx env)
+      (tagged-expr 'number)))
 
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
   (let [unsafe-html? (:unsafe-html env)]
