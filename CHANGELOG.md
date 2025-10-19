@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.9.170 (2025-10-19)
+
+- `not=` on undefined and false should return `true`
+
 ## v0.9.169 (2025-10-18)
 
 - Optimize code produced for `assoc`, `assoc!` and `get` when object argument can be inferred or is type hinted with `^object`

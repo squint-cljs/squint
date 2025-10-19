@@ -2597,7 +2597,8 @@ new Foo();")
                  (js/eval s)))))
 
 (deftest not=test
-  (is (true? (jsv! '(not= 1 2)))))
+  (is (true? (jsv! '(not= 1 2))))
+  (is (true? (jsv! '(apply not= [1 2])))))
 
 (deftest issue-697-test
   (let [compiler-macros
