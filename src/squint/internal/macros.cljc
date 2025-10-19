@@ -293,7 +293,6 @@
   "defs name to have the root value of init iff the named var has no root value,
   else init is unevaluated"
   [_&form _&env x init]
-  #_(prn &env)
   (let [qualified (if (namespace x)
                     x
                     x
@@ -621,7 +620,6 @@
       (boolean? x)))
 
 (defn primitive? [tag]
-  (prn :tag tag)
   (contains? #{'number 'string 'boolean} tag))
 
 (core/defmacro equals
