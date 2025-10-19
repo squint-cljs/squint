@@ -67,7 +67,7 @@ function dequal(foo, bar) {
           tmp = findKey(bar, tmp);
           if (!tmp) return false;
         }
-        if (!dequal(len[1], bar.get(tmp))) {
+        if (!dequal(kv[1], bar.get(tmp))) {
           return false;
         }
       }
