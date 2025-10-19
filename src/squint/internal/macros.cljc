@@ -14,7 +14,7 @@
                             bit-and-not bit-clear bit-flip bit-test
                             bit-shift-left bit-shift-right bit-shift-right-zero-fill
                             unsigned-bit-shift-right bit-set undefined?
-                            simple-benchmark delay])
+                            simple-benchmark delay not=])
   (:require [clojure.core :as cc]
             [clojure.string :as str]
             [squint.compiler-common :as-alias ana]
@@ -740,3 +740,10 @@
            (list* fn x tail)
            (assoc (meta &form)
                   :squint.compiler/skip-macro true)))))))
+
+(core/defmacro not=
+  ([_] false)
+  ([a b] (bool-expr `(cc/not (cc/= ~a ~b))))
+  ([a b & xs]
+   `(and (cc/not= ~a ~b)
+         (cc/not= ~b ~@xs))))
