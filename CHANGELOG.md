@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Optimize nested `assoc` calls, e.g. produced with `->`
+
 ## v0.9.173 (2025-10-19)
 
 - Optimize `str` even more
