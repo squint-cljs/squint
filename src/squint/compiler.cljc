@@ -297,7 +297,7 @@
         (let [expr (list* 'doto {} (map (fn [[k v]]
                                           (list 'clojure.core/unchecked-set k v)) expr))]
           (emit expr env)))
-      (cc/tagged-expr 'object)))
+      (cc/tagged-expr 'object true)))
 
 (defn emit-set [expr env]
   (emit-return

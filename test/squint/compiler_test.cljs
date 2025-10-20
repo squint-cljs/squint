@@ -2676,21 +2676,40 @@ new Foo();")
     (let [s (jss! "(get {:a 1} :a)")]
       (is (str/includes? s "[\"a\"]")))
     (testing "nested assoc"
-      (let [s (jss! '(-> (assoc {} :a :b)
-                         (assoc :c :d)))]
+      (let [s (jss! '((fn [^object x]
+                        (-> (assoc x :a :b)
+                            (assoc :c :d))) {}))]
         (is (= 1 (count (re-seq #"\.\.\." s))))
         (is (not (str/includes? s "assoc")))
         (is (eq {:a :b :c :d} (js/eval s))))
-      (let [s (jss! '(assoc (-> (assoc {:a 1} :b 2) (assoc :c :d)) :e :f))]
+      (let [s (jss! '(let [x {:a 1}]
+                       (assoc (-> (assoc x :b 2) (assoc :c :d)) :e :f)))]
         (is (= 1 (count (re-seq #"\.\.\." s))))
         (is (not (str/includes? s "assoc")))
         (is (str/includes? s "[\"e\"] = \"f\""))
         (is (eq {:a 1 :b 2 :c :d :e :f} (js/eval s))))
-      (let [s (jss! '(assoc (let [x 1] (assoc {} :x x)) :b 2))]
+      (let [s (jss! '(assoc (let [x 1 o {}] (assoc o :x x)) :b 2))]
         (is (= 1 (count (re-seq #"\.\.\." s))))
         (is (not (str/includes? s "assoc")))
         (is (str/includes? s "[\"b\"] = 2"))
-        (is (eq {:x 1 :b 2} (js/eval s)))))))
+        (is (eq {:x 1 :b 2} (js/eval s))))
+      (testing "auto-transient"
+        (let [s (jss! '(assoc {:a 1} :b 2))]
+          (is (not (str/includes? s "assoc")))
+          (is (not (str/includes? s "...")))
+          (is (str/includes? s "[\"b\"] = 2")))
+        (let [s (jss! '(assoc (assoc! {} :a 1) :b 2))]
+          (is (not (str/includes? s "assoc")))
+          (is (not (str/includes? s "...")))
+          (is (str/includes? s "[\"a\"] = 1"))
+          (is (str/includes? s "[\"b\"] = 2")))
+        (let [s (jss! '(let [x {}]
+                         (assoc (assoc! x :a 1) :b 2)))]
+          (is (not (str/includes? s "assoc")))
+          (testing "assoc! mutates and potentially returns shared object"
+            (is (str/includes? s "...")))
+          (is (str/includes? s "[\"a\"] = 1"))
+          (is (not (str/includes? s "[\"b\"] = 2"))))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

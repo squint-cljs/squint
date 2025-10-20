@@ -714,6 +714,7 @@
         emitted (emit x (assoc &env :context :expr))
         tag (or (:tag emitted)
                 (:tag (meta x)))
+        transient (:transient emitted)
         x* x
         x (with-meta (list 'js* (str emitted))
             {:tag tag})]
@@ -722,10 +723,10 @@
         (let [obj-sym (with-meta (gensym)
                         {:tag tag})]
           (with-meta `(^:=> (fn [~obj-sym]
-                         (assoc! ~obj-sym ~@xs)) ~x)
+                              (assoc! ~obj-sym ~@xs)) ~x)
             ;; TODO: we shouldn't have to add a tag here with function return
             ;; tag inference, which isn't yet available, but within reach
-            {:tag tag}))
+            {:tag tag :transient transient}))
         (with-meta
           (list* 'js* (str "("
                            (str/join "," (repeat (/ (count xs) 2) "~{}"))
@@ -736,7 +737,7 @@
                          `(aset ~x ~k ~v))
                        (partition 2 xs))
                   [x]))
-          {:tag 'object}))
+          {:tag 'object :transient transient}))
       (let [[fn _ & tail] &form]
         (with-meta
           (list* fn x tail)

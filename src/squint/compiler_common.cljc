@@ -1036,7 +1036,8 @@ break;}" body)
         cherry+interop? (and
                          cherry?
                          (= "js" ns))
-        tag (:tag (meta expr))]
+        tag (:tag (meta expr))
+        transient (:transient (meta expr))]
     (cond-> (emit-return (str
                          (emit fname (expr-env env))
                          ;; this is needed when calling keywords, symbols, etc. We could
@@ -1052,7 +1053,7 @@ break;}" body)
                                                     args)
                                                   args))))
                          env)
-      tag (tagged-expr tag))))
+      tag (tagged-expr tag transient))))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
   (let [gensym (:gensym env)
