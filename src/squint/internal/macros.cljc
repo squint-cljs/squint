@@ -650,7 +650,7 @@
                      (cond
                        (nil? expr) nil
                        (and (string? expr)
-                            (re-matches #"[\n\rA-Za-z0-9_-]*" expr)) expr
+                            (re-matches #"[A-Za-z0-9_-]*" expr)) expr
                        :else
                        (let [emitted (emit expr (assoc &env :context :expr))
                              tag (or (:tag emitted)
