@@ -668,7 +668,9 @@
       {:tag 'string})))
 
 (core/defmacro assoc-inline [x & xs]
-  (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
+  (assert (and (even? (count xs))
+               (seq xs))
+          "assoc! must be called with and object and an even + positive amount of arguments")
   (if (and (= 'assoc (first &form))
            (let [snd (second &form)]
              (and (seq? snd)
@@ -683,16 +685,21 @@
           emitted (emit x (assoc &env :context :expr))
           tag (or (:tag emitted)
                   (:tag (meta x)))
+          transient (:transient emitted)
           x (with-meta (list 'js* (str emitted))
-              {:tag tag})]
+              {:tag tag
+               :transient transient})]
       (if (= 'object tag)
-        (with-meta
-          (list* 'js* (str "({...~{},"
-                           (str/join ","
-                                     (repeat (/ (count xs) 2) "~{}:~{}"))
-                           "})")
-                 x xs)
-          {:tag 'object})
+        (if transient
+          `(assoc! ~x ~@xs)
+          (with-meta
+            (list* 'js* (str "({...~{},"
+                             (str/join ","
+                                       (repeat (/ (count xs) 2) "~{}:~{}"))
+                             "})")
+                   x xs)
+            {:tag 'object
+             :transient true}))
         (let [[fn _ & tail] &form]
           (with-meta
             (list* fn x tail)
@@ -700,11 +707,14 @@
                    :squint.compiler/skip-macro true)))))))
 
 (core/defmacro assoc!-inline [x & xs]
-  (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
+  (assert (and (even? (count xs))
+               (seq xs))
+          "assoc! must be called with and object and an even + positive amount of arguments")
   (let [emit (-> &env :utils :emit)
         emitted (emit x (assoc &env :context :expr))
         tag (or (:tag emitted)
                 (:tag (meta x)))
+        transient (:transient emitted)
         x* x
         x (with-meta (list 'js* (str emitted))
             {:tag tag})]
@@ -713,10 +723,10 @@
         (let [obj-sym (with-meta (gensym)
                         {:tag tag})]
           (with-meta `(^:=> (fn [~obj-sym]
-                         (assoc! ~obj-sym ~@xs)) ~x)
+                              (assoc! ~obj-sym ~@xs)) ~x)
             ;; TODO: we shouldn't have to add a tag here with function return
             ;; tag inference, which isn't yet available, but within reach
-            {:tag tag}))
+            {:tag tag :transient transient}))
         (with-meta
           (list* 'js* (str "("
                            (str/join "," (repeat (/ (count xs) 2) "~{}"))
@@ -727,7 +737,7 @@
                          `(aset ~x ~k ~v))
                        (partition 2 xs))
                   [x]))
-          {:tag 'object}))
+          {:tag 'object :transient transient}))
       (let [[fn _ & tail] &form]
         (with-meta
           (list* fn x tail)

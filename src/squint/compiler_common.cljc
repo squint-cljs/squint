@@ -57,17 +57,23 @@
             s)
     s))
 
-(defrecord Code [js bool]
+(defrecord Code [js tag transient]
   Object
   (toString [_] js))
 
-(defn tagged-expr [js tag]
-  (map->Code {:js js
-              :tag tag}))
+(defn tagged-expr
+  ([js tag]
+   (map->Code {:js js
+               :tag tag}))
+  ([js tag transient]
+   (map->Code {:js js
+               :tag tag
+               :transient transient})))
 
 (defmethod emit-special 'js* [_ env [_js* template & args :as expr]]
   (let [mexpr (meta expr)
         tag (:tag mexpr)
+        transient (:transient mexpr)
         template (str template)]
     (cond->
         (-> (reduce (fn [template substitution]
@@ -76,7 +82,7 @@
                     template
                     args)
             (emit-return (merge env (meta expr))))
-      tag (tagged-expr tag))))
+      tag (tagged-expr tag transient))))
 
 (defn expr-env [env]
   (assoc env :context :expr :top-level false))
@@ -380,13 +386,14 @@
         lctx (if iife? :return ctx)
         res (emit l (assoc env :context lctx))
         tag (:tag res)
+        transient (:transient res)
         res (cond-> res
               (= :return ctx) (statement))
         s (cond-> (str exprs res)
             iife?
             (wrap-implicit-iife env))]
     (cond-> s
-      tag (tagged-expr tag))))
+      tag (tagged-expr tag transient))))
 
 (defmethod emit-special 'do [_type env [_ & exprs]]
   (emit-do env exprs))
@@ -414,7 +421,8 @@
                           (-> var->ident
                               (assoc var-name
                                      (cond-> renamed
-                                       tag (vary-meta assoc :tag tag))))]
+                                       tag
+                                       (vary-meta assoc :tag tag))))]
                       [(str acc expr) var->ident]))
                   ["" upper-var->ident]
                   partitioned))
@@ -425,7 +433,8 @@
                (emit-do (if iife?
                           (assoc enc-env :context :return)
                           enc-env) body))
-        tag (:tag body)]
+        tag (:tag body)
+        transient (:transient body)]
     (cond-> (str
              bindings
              (when loop?
@@ -440,7 +449,7 @@
       (wrap-implicit-iife env)
       iife?
       (emit-return enc-env)
-      tag (tagged-expr tag))))
+      tag (tagged-expr tag transient))))
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
@@ -1027,7 +1036,8 @@ break;}" body)
         cherry+interop? (and
                          cherry?
                          (= "js" ns))
-        tag (:tag (meta expr))]
+        tag (:tag (meta expr))
+        transient (:transient (meta expr))]
     (cond-> (emit-return (str
                          (emit fname (expr-env env))
                          ;; this is needed when calling keywords, symbols, etc. We could
@@ -1043,7 +1053,7 @@ break;}" body)
                                                     args)
                                                   args))))
                          env)
-      tag (tagged-expr tag))))
+      tag (tagged-expr tag transient))))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
   (let [gensym (:gensym env)
