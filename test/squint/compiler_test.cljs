@@ -2674,7 +2674,13 @@ new Foo();")
     (let [s (jss! "(let [x {:a 1}] (get x :a))")]
       (is (str/includes? s "[\"a\"]")))
     (let [s (jss! "(get {:a 1} :a)")]
-      (is (str/includes? s "[\"a\"]")))))
+      (is (str/includes? s "[\"a\"]")))
+    (testing "nested assoc"
+      (let [s (jss! '(-> (assoc {} :a :b)
+                         (assoc :c :d)))]
+        (is (= 1 (re-seq #"..." s)))
+        (is (not (str/includes? s "assoc")))
+        (is (eq {:a :b :c :d} (js/eval s)))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
