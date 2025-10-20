@@ -669,25 +669,31 @@
 
 (core/defmacro assoc-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
-  (let [emit (-> &env :utils :emit)
-        emitted (emit x (assoc &env :context :expr))
-        tag (or (:tag emitted)
-                (:tag (meta x)))
-        x (with-meta (list 'js* (str emitted))
-            {:tag tag})]
-    (if (= 'object tag)
-      (with-meta
-        (list* 'js* (str "({...~{},"
-                         (str/join ","
-                                   (repeat (/ (count xs) 2) "~{}:~{}"))
-                         "})")
-               x xs)
-        {:tag 'object})
-      (let [[fn _ & tail] &form]
+  (if (and (= 'assoc (first &form))
+           (let [snd (second &form)]
+             (and (seq? snd)
+                  (= 'assoc (first snd)))))
+    (let [snd (second &form)]
+      `(assoc ~(second snd) ~@(rest (rest snd)) ~@xs))
+    (let [emit (-> &env :utils :emit)
+          emitted (emit x (assoc &env :context :expr))
+          tag (or (:tag emitted)
+                  (:tag (meta x)))
+          x (with-meta (list 'js* (str emitted))
+              {:tag tag})]
+      (if (= 'object tag)
         (with-meta
-          (list* fn x tail)
-          (assoc (meta &form)
-                 :squint.compiler/skip-macro true))))))
+          (list* 'js* (str "({...~{},"
+                           (str/join ","
+                                     (repeat (/ (count xs) 2) "~{}:~{}"))
+                           "})")
+                 x xs)
+          {:tag 'object})
+        (let [[fn _ & tail] &form]
+          (with-meta
+            (list* fn x tail)
+            (assoc (meta &form)
+                   :squint.compiler/skip-macro true)))))))
 
 (core/defmacro assoc!-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
