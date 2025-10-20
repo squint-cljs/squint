@@ -57,17 +57,23 @@
             s)
     s))
 
-(defrecord Code [js bool]
+(defrecord Code [js tag transient]
   Object
   (toString [_] js))
 
-(defn tagged-expr [js tag]
-  (map->Code {:js js
-              :tag tag}))
+(defn tagged-expr
+  ([js tag]
+   (map->Code {:js js
+               :tag tag}))
+  ([js tag transient]
+   (map->Code {:js js
+               :tag tag
+               :transient transient})))
 
 (defmethod emit-special 'js* [_ env [_js* template & args :as expr]]
   (let [mexpr (meta expr)
         tag (:tag mexpr)
+        transient (:transient mexpr)
         template (str template)]
     (cond->
         (-> (reduce (fn [template substitution]
@@ -76,7 +82,7 @@
                     template
                     args)
             (emit-return (merge env (meta expr))))
-      tag (tagged-expr tag))))
+      tag (tagged-expr tag transient))))
 
 (defn expr-env [env]
   (assoc env :context :expr :top-level false))

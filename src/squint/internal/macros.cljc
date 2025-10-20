@@ -683,16 +683,21 @@
           emitted (emit x (assoc &env :context :expr))
           tag (or (:tag emitted)
                   (:tag (meta x)))
+          transient (:transient emitted)
           x (with-meta (list 'js* (str emitted))
-              {:tag tag})]
+              {:tag tag
+               :transient transient})]
       (if (= 'object tag)
-        (with-meta
-          (list* 'js* (str "({...~{},"
-                           (str/join ","
-                                     (repeat (/ (count xs) 2) "~{}:~{}"))
-                           "})")
-                 x xs)
-          {:tag 'object})
+        (if transient
+          `(assoc! ~x ~@xs)
+          (with-meta
+            (list* 'js* (str "({...~{},"
+                             (str/join ","
+                                       (repeat (/ (count xs) 2) "~{}:~{}"))
+                             "})")
+                   x xs)
+            {:tag 'object
+             :transient true}))
         (let [[fn _ & tail] &form]
           (with-meta
             (list* fn x tail)
