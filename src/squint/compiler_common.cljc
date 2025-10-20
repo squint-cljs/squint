@@ -386,13 +386,14 @@
         lctx (if iife? :return ctx)
         res (emit l (assoc env :context lctx))
         tag (:tag res)
+        transient (:transient res)
         res (cond-> res
               (= :return ctx) (statement))
         s (cond-> (str exprs res)
             iife?
             (wrap-implicit-iife env))]
     (cond-> s
-      tag (tagged-expr tag))))
+      tag (tagged-expr tag transient))))
 
 (defmethod emit-special 'do [_type env [_ & exprs]]
   (emit-do env exprs))
@@ -432,7 +433,8 @@
                (emit-do (if iife?
                           (assoc enc-env :context :return)
                           enc-env) body))
-        tag (:tag body)]
+        tag (:tag body)
+        transient (:transient body)]
     (cond-> (str
              bindings
              (when loop?
@@ -447,7 +449,7 @@
       (wrap-implicit-iife env)
       iife?
       (emit-return enc-env)
-      tag (tagged-expr tag))))
+      tag (tagged-expr tag transient))))
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))

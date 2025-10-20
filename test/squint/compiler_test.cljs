@@ -2685,7 +2685,12 @@ new Foo();")
         (is (= 1 (count (re-seq #"\.\.\." s))))
         (is (not (str/includes? s "assoc")))
         (is (str/includes? s "[\"e\"] = \"f\""))
-        (is (eq {:a 1 :b 2 :c :d :e :f} (js/eval s)))))))
+        (is (eq {:a 1 :b 2 :c :d :e :f} (js/eval s))))
+      (let [s (jss! '(assoc (let [x 1] (assoc {} :x x)) :b 2))]
+        (is (= 1 (count (re-seq #"\.\.\." s))))
+        (is (not (str/includes? s "assoc")))
+        (is (str/includes? s "[\"b\"] = 2"))
+        (is (eq {:x 1 :b 2} (js/eval s)))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
