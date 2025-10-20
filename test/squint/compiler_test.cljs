@@ -2678,7 +2678,7 @@ new Foo();")
     (testing "nested assoc"
       (let [s (jss! '(-> (assoc {} :a :b)
                          (assoc :c :d)))]
-        (is (= 1 (re-seq #"..." s)))
+        (is (= 1 (count (re-seq #"\.\.\." s))))
         (is (not (str/includes? s "assoc")))
         (is (eq {:a :b :c :d} (js/eval s)))))))
 
