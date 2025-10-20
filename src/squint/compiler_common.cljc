@@ -193,7 +193,8 @@
   (-> (if (:jsx-attr env)
         (escape-jsx expr env)
         (str expr))
-      (emit-return env)))
+      (emit-return env)
+      (tagged-expr 'boolean)))
 
 #?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr _env]
           (str \/ expr \/)))

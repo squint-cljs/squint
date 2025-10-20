@@ -639,6 +639,7 @@
                    (str nil ::foo ~js/undefined true false 1 2 x# "multiline
 
 with `backticks`")))]
+    #_(println :s s)
     (testing "only variables cause ??'' checks"
       (is (= 1 (count (re-seq #"\?\?''" s)))))
     (is (eq "squint.compiler-test/footruefalse12toStringmultiline\n\nwith `backticks`"

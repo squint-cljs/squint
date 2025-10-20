@@ -645,16 +645,27 @@
    (list 'js* "(~{} && ~{})" `(cc/= ~x ~y) `(cc/= ~y ~@xs))))
 
 (core/defmacro stringify [& xs]
-  (let [args (keep (fn [expr]
-                    (cond (constant? expr)
-                          ["${~{}}"  expr]
-                          (nil? expr)
-                          nil
-                          ;; TODO: we can remove the wrapping parens once we address https://github.com/squint-cljs/squint/issues/727
-                          :else ["${(~{})??''}" expr])) xs)]
-    `(~'js*
-      ~(str "`" (str/join (map first args)) "`")
-      ~@(map second args))))
+  (let [emit (-> &env :utils :emit)
+        args (keep (fn [expr]
+                     (cond
+                       (nil? expr) nil
+                       (and (string? expr)
+                            (re-matches #"[A-Za-z0-9_-]*" expr)) expr
+                       :else
+                       (let [emitted (emit expr (assoc &env :context :expr))
+                             tag (or (:tag emitted)
+                                     (:tag (meta expr)))
+                             const? (constant? expr)]
+                         (if (primitive? tag)
+                           (if (or
+                                ;; escape literal strings that may contain backticks, newlines etc
+                                (and const? (= 'string tag))
+                                (not const?))
+                             (str "${" emitted "}")
+                             emitted)
+                           (str "${" emitted "??''}"))))) xs)]
+    (with-meta `(~'js* ~(str "`" (str/join args) "`"))
+      {:tag 'string})))
 
 (core/defmacro assoc-inline [x & xs]
   (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
