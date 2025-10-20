@@ -668,7 +668,9 @@
       {:tag 'string})))
 
 (core/defmacro assoc-inline [x & xs]
-  (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
+  (assert (and (even? (count xs))
+               (seq xs))
+          "assoc! must be called with and object and an even + positive amount of arguments")
   (if (and (= 'assoc (first &form))
            (let [snd (second &form)]
              (and (seq? snd)
@@ -705,7 +707,9 @@
                    :squint.compiler/skip-macro true)))))))
 
 (core/defmacro assoc!-inline [x & xs]
-  (assert (even? (count xs)) "assoc! must be called with and object and an even amount of arguments")
+  (assert (and (even? (count xs))
+               (seq xs))
+          "assoc! must be called with and object and an even + positive amount of arguments")
   (let [emit (-> &env :utils :emit)
         emitted (emit x (assoc &env :context :expr))
         tag (or (:tag emitted)

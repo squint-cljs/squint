@@ -420,7 +420,8 @@
                           (-> var->ident
                               (assoc var-name
                                      (cond-> renamed
-                                       tag (vary-meta assoc :tag tag))))]
+                                       tag
+                                       (vary-meta assoc :tag tag))))]
                       [(str acc expr) var->ident]))
                   ["" upper-var->ident]
                   partitioned))
