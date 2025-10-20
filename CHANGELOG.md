@@ -2,7 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## v0.9.171 (2025-10-19)
+## v0.9.173 (2025-10-19)
+
+- Optimize `str` even more
+
+## v0.9.172 (2025-10-19)
 
 Remove debug output from compilation
 
