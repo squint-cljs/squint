@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.9.174
 
 - Optimize nested `assoc` calls, e.g. produced with `->`
+- Avoid object spread when object isn't shared (`auto-transient`)
 
 ## v0.9.173 (2025-10-19)
 
