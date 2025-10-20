@@ -647,13 +647,15 @@
 (core/defmacro stringify [& xs]
   (let [emit (-> &env :utils :emit)
         args (keep (fn [expr]
-                     (if (nil? expr)
-                       nil
+                     (cond
+                       (nil? expr) nil
+                       (and (string? expr)
+                            (re-matches #"[\n\rA-Za-z0-9_-]*" expr)) expr
+                       :else
                        (let [emitted (emit expr (assoc &env :context :expr))
                              tag (or (:tag emitted)
                                      (:tag (meta expr)))
                              const? (constant? expr)]
-
                          (if (primitive? tag)
                            (if (or
                                 ;; escape literal strings that may contain backticks, newlines etc
