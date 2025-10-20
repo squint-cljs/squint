@@ -673,8 +673,12 @@
            (let [snd (second &form)]
              (and (seq? snd)
                   (= 'assoc (first snd)))))
+    ;; This optimizes the `(-> (assoc ..) (assoc ..))` pattern which is pretty common
+    ;; If we first did a full macroexpansion pass, we could even optimize this:
+    ;; (assoc (-> (assoc {} :a :b) (assoc :c (+ 1 2 3))) :a 1)
     (let [snd (second &form)]
-      `(assoc ~(second snd) ~@(rest (rest snd)) ~@xs))
+      (with-meta `(assoc ~(second snd) ~@(rest (rest snd)) ~@xs)
+        (meta &form)))
     (let [emit (-> &env :utils :emit)
           emitted (emit x (assoc &env :context :expr))
           tag (or (:tag emitted)
