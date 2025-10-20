@@ -651,11 +651,17 @@
                        nil
                        (let [emitted (emit expr (assoc &env :context :expr))
                              tag (or (:tag emitted)
-                                     (:tag (meta expr)))]
+                                     (:tag (meta expr)))
+                             const? (constant? expr)]
 
                          (if (primitive? tag)
-                           (str "${"  emitted "}")
-                           (str "${"  emitted "??''}"))))) xs)]
+                           (if (or
+                                ;; escape literal strings that may contain backticks, newlines etc
+                                (and const? (= 'string tag))
+                                (not const?))
+                             (str "${" emitted "}")
+                             emitted)
+                           (str "${" emitted "??''}"))))) xs)]
     (with-meta `(~'js* ~(str "`" (str/join args) "`"))
       {:tag 'string})))
 
