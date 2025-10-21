@@ -98,7 +98,6 @@
                              'simple-benchmark macros/simple-benchmark
                              'delay macros/delay
                              '= macros/equals
-                             'str macros/stringify
                              'assoc macros/assoc-inline
                              'assoc! macros/assoc!-inline
                              'get macros/get-inline

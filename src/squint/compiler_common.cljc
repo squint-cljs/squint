@@ -38,7 +38,8 @@
    'bit-shift-right-zero-fill macros/bit-shift-right-zero-fill
    'unsigned-bit-shift-right macros/unsigned-bit-shift-right
    'bit-set macros/bit-set
-   'undefined? macros/undefined?})
+   'undefined? macros/undefined?
+   'str macros/stringify})
 
 (defn wrap-parens [s]
   (str "(" s ")"))
