@@ -1,0 +1,4 @@
+.*.swp
+*.mjs
+node_modules
+dist

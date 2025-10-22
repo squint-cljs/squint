@@ -1,0 +1,17 @@
+{
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "squint-cljs": "latest",
+    "vite": "^7.1.7",
+    "vite-plugin-singlefile": "^2.3.0"
+  },
+  "scripts": {
+    "build": "squint compile && vite build",
+    "watch:squint": "squint watch",
+    "watch:vite": "vite --port 8000",
+    "watch": "concurrently 'npm run watch:squint' 'npm run watch:vite'"
+  },
+  "dependencies": {
+    "idiomorph": "^0.7.4"
+  }
+}
