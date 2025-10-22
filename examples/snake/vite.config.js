@@ -1,6 +1,7 @@
-import { env } from "process"
-import { defineConfig } from "vite"
-import { viteSingleFile } from "vite-plugin-singlefile"
+import { env } from "process";
+import { defineConfig } from "vite";
+import { viteSingleFile } from "vite-plugin-singlefile";
+import analyze from "rollup-plugin-analyzer";
 
 export default defineConfig({
   plugins: [viteSingleFile({ removeViteModuleLoader: true })],
@@ -11,7 +12,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         "index": env["SRC"] || "index.html"
-      }
+      },
+      plugins: [analyze()],
     }
   }
-})
+});

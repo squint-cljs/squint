@@ -1,6 +1,7 @@
 {
   "devDependencies": {
     "concurrently": "^9.2.1",
+    "rollup-plugin-analyzer": "^4.0.0",
     "squint-cljs": "latest",
     "vite": "^7.1.7",
     "vite-plugin-singlefile": "^2.3.0"
