@@ -10,8 +10,5 @@
     "watch:squint": "squint watch",
     "watch:vite": "vite --port 8000",
     "watch": "concurrently 'npm run watch:squint' 'npm run watch:vite'"
-  },
-  "dependencies": {
-    "idiomorph": "^0.7.4"
   }
 }

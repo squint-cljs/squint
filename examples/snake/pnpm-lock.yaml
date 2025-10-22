@@ -7,10 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      idiomorph:
-        specifier: ^0.7.4
-        version: 0.7.4
     devDependencies:
       concurrently:
         specifier: ^9.2.1
@@ -369,9 +365,6 @@ packages:
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
-
-  idiomorph@0.7.4:
-    resolution: {integrity: sha512-uCdSpLo3uMfqOmrwXTpR1k/sq4sSmKC7l4o/LdJOEU+MMMq+wkevRqOQYn3lP7vfz9Mv+USBEqPvi0XhdL9ENw==}
 
   is-fullwidth-code-point@3.0.0:
     resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
@@ -762,8 +755,6 @@ snapshots:
   get-caller-file@2.0.5: {}
 
   has-flag@4.0.0: {}
-
-  idiomorph@0.7.4: {}
 
   is-fullwidth-code-point@3.0.0: {}
 

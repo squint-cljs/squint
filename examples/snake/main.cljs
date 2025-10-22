@@ -1,5 +1,4 @@
-(ns main
-  (:require ["idiomorph" :refer [Idiomorph] :rename {Idiomorph I}]))
+(ns main)
 
 (def size 20) ;; grid size (20x20)
 (def cell 10) ;; each cell = 10px
@@ -78,8 +77,7 @@
          (game-board)])
 
 (defn morph []
-  (I/morph (js/document.querySelector "#app") (str (game))
-    {:morphStyle :innerHTML}))
+  (set! (js/document.querySelector "#app") -innerHTML (str (game))))
 
 (add-watch state :state (fn [_ _ _ _]
                           (morph)))
