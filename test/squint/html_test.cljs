@@ -46,12 +46,12 @@
 (deftest html-nil-test
   (t/async done
     (let [js (squint.compiler/compile-string
-              "(let [p nil] #html [:div p])"
+              "(let [p nil] #html [:div p js/undefined \"foo\"])"
               {:repl true :elide-exports true :context :return})
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
-           #(is (html= "<div>undefined</div>" %)))
+           #(is (html= "<div>foo</div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
 

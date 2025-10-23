@@ -60,7 +60,7 @@ function attr(v) {
 }
 
 function toHTML(v, unsafe) {
-  if (v == null) return;
+  if (v == null) return '';
   if (v instanceof Html) return v;
   if (typeof(v) === 'string') return unsafe ? v : safe(v);
   if (v[Symbol.iterator]) {

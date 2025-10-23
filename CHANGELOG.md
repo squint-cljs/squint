@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.9.176
+
+- Fix rendering of `null` and `undefined` in `#html`
+
 ## v0.9.175
 
 - [#747](https://github.com/squint-cljs/squint/issues/747): `#html` escape fix
