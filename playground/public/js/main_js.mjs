@@ -242,12 +242,57 @@ let boilerplateSrc;
 if (boilerplate) {
   boilerplateSrc = await fetch(boilerplate).then((p) => p.text());
 }
-let src = urlParams.get('src');
+
+function toBase64Utf8(str) {
+  const bytes = new TextEncoder().encode(str);
+  return btoa(String.fromCharCode(...bytes));
+}
+
+function fromBase64Utf8(b64) {
+  const binary = atob(b64);
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function base64ToBytes(b64) {
+  const bin = atob(b64);
+  return Uint8Array.from(bin, c => c.charCodeAt(0));
+}
+
+
+async function gzip(str) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const cs = new CompressionStream('gzip');
+  const compressedStream = new Response(data).body.pipeThrough(cs);
+  const compressedArrayBuffer = await new Response(compressedStream).arrayBuffer();
+  return new Uint8Array(compressedArrayBuffer);
+}
+
+// Gzip decompress Uint8Array → string
+async function gunzip(uint8arr) {
+  const ds = new DecompressionStream('gzip');
+  const decompressedStream = new Response(uint8arr).body.pipeThrough(ds);
+  const decompressedArrayBuffer = await new Response(decompressedStream).arrayBuffer();
+  return new TextDecoder().decode(decompressedArrayBuffer);
+}
+
+let src = urlParams.get('src'), isGzip = false;
+console.log('src', src);
 if (src) {
+  if (src.startsWith('gzip:')) {
+    isGzip = true;
+    src = src.substring(5);
+  }
   if (/http(s)?:\/\/.*/.test(src)) {
     src = await fetch(src).then((p) => p.text());
   } else {
-    src = atob(src);
+    if (isGzip) {
+      const bytes = base64ToBytes(src);
+      src = await gunzip(bytes);
+    } else {
+      src = fromBase64Utf8(src);
+    }
   }
   doc = src;
 } else {
@@ -279,21 +324,28 @@ window.compile = () => {
   code = (boilerplateSrc || '') + '\n\n' + code;
   evalCode(code);
 };
-window.share = () => {
-  let code = editor.state.doc.toString().trim();
-  code = btoa(code);
-  url.searchParams.set('src', code);
+
+async function zipCode(code) {
+  const zippedBytes = await gzip(code);
+  const base64 = toBase64Utf8(zippedBytes);
+  return 'gzip:' + base64;
+}
+
+window.share = async () => {
+  const code = editor.state.doc.toString().trim();
+  const src = await zipCode(code);
+  url.searchParams.set('src', src);
   window.location = url;
 };
-window.blankAOC = () => {
-  const code = btoa(aocDoc);
+window.blankAOC = async () => {
+  const code = await zipCode(aocDoc);
   const url = new URL(window.location);
   url.searchParams.set('src', code);
   url.searchParams.set('boilerplate', aocBoilerplateUrl);
   url.searchParams.set('repl', true);
 
   window.location = url;
-}
+};
 
 window.changeREPL = (target) => {
   document.getElementById('result').innerText = '';
