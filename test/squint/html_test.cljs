@@ -1,10 +1,10 @@
 (ns squint.html-test
   (:require
-   [clojure.test :as t :refer [deftest is]]
-   [squint.test-utils :refer [jss!]]
-   [squint.compiler :as squint]
    [clojure.string :as str]
-   [promesa.core :as p]))
+   [clojure.test :as t :refer [deftest is]]
+   [promesa.core :as p]
+   [squint.compiler :as squint]
+   [squint.test-utils :refer [jss!]]))
 
 (defn html= [x y]
   (= (str x) (str y)))
@@ -151,5 +151,18 @@
           (.then
            (fn [v]
              (is (= "<div><><><>{\"a\":6}</div>" v))))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))
+
+(deftest html-escape-test
+  (t/async done
+    (let [js (squint.compiler/compile-string
+              "(str #html [:button {:data-click (pr-str [:inc])}])"
+              {:repl true :elide-exports true :context :return})
+          js (str/replace "(async function() { %s } )()" "%s" js)]
+      (-> (js/eval js)
+          (.then
+           (fn [v]
+             (is (= "<button data-click=\"[&quot;inc&quot;]\"></button>" v))))
           (.catch #(is false "nooooo"))
           (.finally done)))))
