@@ -828,7 +828,7 @@
                  env)))
 
 (defmethod emit-special 'new [_type env [_new class & args]]
-  (emit-return (str "new " (emit class (expr-env env)) (comma-list (emit-args env args))) env))
+  (emit-return (wrap-parens (str "new " (emit class (expr-env env)) (comma-list (emit-args env args)))) env))
 
 (defmethod emit-special 'dec [_type env [_ var]]
   (emit-return (str "(" (emit var (assoc env :context :expr)) " - " 1 ")") env))

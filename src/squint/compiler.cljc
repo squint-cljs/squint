@@ -298,7 +298,7 @@
 
 (defn emit-set [expr env]
   (emit-return
-   (format "new Set([%s])"
+   (format "(new Set ([%s]))"
            (str/join ", " (emit-args (expr-env env) expr)))
    env))
 
