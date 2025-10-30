@@ -179,6 +179,7 @@
 
 (defmethod emit ::number [expr env]
   (-> (str expr)
+      (wrap-parens)
       (emit-return env)
       (escape-jsx env)
       (tagged-expr 'number)))
@@ -835,22 +836,6 @@
 
 (defmethod emit-special 'inc [_type env [_ var]]
   (emit-return (str "(" (emit var (assoc env :context :expr)) " + " 1 ")") env))
-
-#_(defmethod emit-special 'defined? [_type env [_ var]]
-    (str "typeof " (emit var env) " !== \"undefined\" && " (emit var env) " !== null"))
-
-#_(defmethod emit-special '? [_type env [_ test then else]]
-    (str (emit test env) " ? " (emit then env) " : " (emit else env)))
-
-#_#_(defmethod emit-special 'and [_type env [_ & more]]
-      (if (empty? more)
-        true
-        (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
-
-(defmethod emit-special 'or [_type env [_ & more]]
-  (if (empty? more)
-    nil
-    (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
   (str "while (" (emit test (expr-env env)) ") { \n"
