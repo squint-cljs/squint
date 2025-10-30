@@ -41,7 +41,8 @@
    'undefined? macros/undefined?
    'str macros/stringify
    '= macros/equals
-   'not= macros/not=})
+   'not= macros/core-not=
+   'identical? macros/core-identical?})
 
 (defn wrap-parens [s]
   (str "(" s ")"))
@@ -265,9 +266,10 @@
                                       'bit-and "&"
                                       'js-mod "%"
                                       'js-?? "??"}]
-                   (str/join (str " " (or (substitutions operator)
-                                          operator) " ")
-                             (map wrap-parens (emit-args env args))))))
+                   (-> (str/join (str " " (or (substitutions operator)
+                                              operator) " ")
+                                 (emit-args env args))
+                       wrap-parens))))
        (emit-return enc-env)
        (cond->
            bool? (tagged-expr 'boolean))))))
