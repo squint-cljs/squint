@@ -210,12 +210,12 @@
   (is (false? (jsv! "(zero? \"0\")"))))
 
 (deftest pos-int?-test
-  (is (true? (jsv! "(nat-int? 100)")))
-  (is (false? (jsv! "(nat-int? 0)")))
-  (is (false? (jsv! "(nat-int? -4)")))
-  (is (false? (jsv! "(nat-int? 0.3)")))
-  (is (false? (jsv! "(nat-int? :some-keyword)")))
-  (is (false? (jsv! "(nat-int? [4])"))))
+  (is (true? (jsv! "(pos-int? 100)")))
+  (is (false? (jsv! "(pos-int? 0)")))
+  (is (false? (jsv! "(pos-int? -4)")))
+  (is (false? (jsv! "(pos-int? 0.3)")))
+  (is (false? (jsv! "(pos-int? :some-keyword)")))
+  (is (false? (jsv! "(pos-int? [4])"))))
 
 (deftest nat-int?-test
   (is (true? (jsv! "(nat-int? 100)")))
@@ -226,12 +226,12 @@
   (is (false? (jsv! "(nat-int? [4])"))))
 
 (deftest neg-int?-test
-  (is (false? (jsv! "(nat-int? 100)")))
-  (is (false? (jsv! "(nat-int? 0)")))
-  (is (true? (jsv! "(nat-int? -4)")))
-  (is (false? (jsv! "(nat-int? 0.3)")))
-  (is (false? (jsv! "(nat-int? :some-keyword)")))
-  (is (false? (jsv! "(nat-int? [-4])"))))
+  (is (false? (jsv! "(neg-int? 100)")))
+  (is (false? (jsv! "(neg-int? 0)")))
+  (is (true? (jsv! "(neg-int? -4)")))
+  (is (false? (jsv! "(neg-int? 0.3)")))
+  (is (false? (jsv! "(neg-int? :some-keyword)")))
+  (is (false? (jsv! "(neg-int? [-4])"))))
 
 (deftest no-truth-check-test
   (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)"
