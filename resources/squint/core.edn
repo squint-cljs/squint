@@ -120,7 +120,9 @@
   min
   min_key
   mod
+  nat_int_QMARK_
   neg_QMARK_
+  neg_int_QMARK_
   next
   nil_QMARK_
   nnext
@@ -145,6 +147,7 @@
   persistent_BANG_
   pop
   pos_QMARK_
+  pos_int_QMARK_
   pr_str
   println
   prn
