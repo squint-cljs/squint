@@ -2,11 +2,12 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.9.177
 
+- Inline `identical?` calls
+- Clean up emissiong of paren wrapping
 - Add `nat-int?`, `neg-int?`, `pos-int?` ([@eNotchy](https://github.com/eNotchy))
 - Add `rand`
-
 
 ## v0.9.176
 
