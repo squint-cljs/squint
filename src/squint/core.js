@@ -2472,6 +2472,18 @@ export function int_QMARK_(x) {
 
 export const integer_QMARK_ = int_QMARK_;
 
+export function pos_int_QMARK_(x) {
+  return typeof x == 'number' && Number.isInteger(x) && x > 0;
+}
+
+export function nat_int_QMARK_(x) {
+  return typeof x == 'number' && Number.isInteger(x) && x > -1;
+}
+
+export function neg_int_QMARK_(x) {
+  return typeof x == 'number' && Number.isInteger(x) && x < 0;
+}
+
 const _metaSym = Symbol('meta');
 
 export function meta(x) {
