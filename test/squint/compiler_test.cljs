@@ -209,6 +209,30 @@
   (is (not (str/includes? (jss! "(if (zero? x) 1 2)") "truth_")))
   (is (false? (jsv! "(zero? \"0\")"))))
 
+(deftest pos-int?-test
+  (is (true? (jsv! "(nat-int? 100)")))
+  (is (false? (jsv! "(nat-int? 0)")))
+  (is (false? (jsv! "(nat-int? -4)")))
+  (is (false? (jsv! "(nat-int? 0.3)")))
+  (is (false? (jsv! "(nat-int? :some-keyword)")))
+  (is (false? (jsv! "(nat-int? [4])"))))
+
+(deftest nat-int?-test
+  (is (true? (jsv! "(nat-int? 100)")))
+  (is (true? (jsv! "(nat-int? 0)")))
+  (is (false? (jsv! "(nat-int? -4)")))
+  (is (false? (jsv! "(nat-int? 0.3)")))
+  (is (false? (jsv! "(nat-int? :some-keyword)")))
+  (is (false? (jsv! "(nat-int? [4])"))))
+
+(deftest neg-int?-test
+  (is (false? (jsv! "(nat-int? 100)")))
+  (is (false? (jsv! "(nat-int? 0)")))
+  (is (true? (jsv! "(nat-int? -4)")))
+  (is (false? (jsv! "(nat-int? 0.3)")))
+  (is (false? (jsv! "(nat-int? :some-keyword)")))
+  (is (false? (jsv! "(nat-int? [-4])"))))
+
 (deftest no-truth-check-test
   (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)"
                 #_"(when (= 1 1) 1)"
