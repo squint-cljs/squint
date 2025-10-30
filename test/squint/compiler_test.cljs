@@ -1672,6 +1672,10 @@ with `backticks`")))]
   (is (every? #(< % 10)
               (jsv! '(repeatedly 5 #(rand-int 10))))))
 
+(deftest rand-test
+  (is (< 0 (jsv! '(rand)) 1 ))
+  (is (< 0 (jsv! '(rand 5)) 5 )))
+
 (deftest group-by-test
   (is (eq [1 3] (jsv! '(get (group-by odd? [1 2 3 4]) true))))
   (is (eq [2 4] (jsv! '(get (group-by odd? [1 2 3 4]) false))))

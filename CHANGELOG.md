@@ -5,6 +5,8 @@
 ## Unreleased
 
 - Add `nat-int?`, `neg-int?`, `pos-int?` ([@eNotchy](https://github.com/eNotchy))
+- Add `rand`
+
 
 ## v0.9.176
 

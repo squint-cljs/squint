@@ -2029,6 +2029,13 @@ export function empty_QMARK_(coll) {
   return seq(coll) ? false : true;
 }
 
+export function rand(n) {
+  if (undefined === n) {
+    n = 1;
+  }
+  return Math.random() * n;
+}
+
 export function rand_int(n) {
   return Math.floor(Math.random() * n);
 }

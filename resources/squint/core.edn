@@ -152,6 +152,7 @@
   println
   prn
   quot
+  rand
   rand_int
   rand_nth
   random_uuid
