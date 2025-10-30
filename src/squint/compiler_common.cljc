@@ -41,7 +41,8 @@
    'undefined? macros/undefined?
    'str macros/stringify
    '= macros/equals
-   'not= macros/not=})
+   'not= macros/core-not=
+   'identical? macros/core-identical?})
 
 (defn wrap-parens [s]
   (str "(" s ")"))
@@ -267,7 +268,8 @@
                                       'js-?? "??"}]
                    (str/join (str " " (or (substitutions operator)
                                           operator) " ")
-                             (map wrap-parens (emit-args env args))))))
+                             (emit-args env args)))))
+       wrap-parens
        (emit-return enc-env)
        (cond->
            bool? (tagged-expr 'boolean))))))
@@ -773,7 +775,8 @@
 (defn emit-method [env obj method args]
   (let [eenv (expr-env env)
         method (munge** method)]
-    (emit-return (str (emit obj eenv) "."
+    (emit-return (str (cond-> (emit obj eenv)
+                        (number? obj) wrap-parens) "."
                       method
                       (comma-list (emit-args env args)))
                  env)))
@@ -784,7 +787,10 @@
                         [method args])
         method-str (str method)]
     (if (str/starts-with? method-str "-")
-      (emit (list 'js* (str "~{}." (symbol (munge** (subs method-str 1)))) obj) env)
+      (emit (list 'js* (str (if (number? obj)
+                              "(~{})."
+                              "~{}.")
+                            (symbol (munge** (subs method-str 1)))) obj) env)
       (emit-method env obj (symbol method-str) args))))
 
 (defn emit-aget [env var idxs]
@@ -826,29 +832,13 @@
                  env)))
 
 (defmethod emit-special 'new [_type env [_new class & args]]
-  (emit-return (str "new " (emit class (expr-env env)) (comma-list (emit-args env args))) env))
+  (emit-return (wrap-parens (str "new " (emit class (expr-env env)) (comma-list (emit-args env args)))) env))
 
 (defmethod emit-special 'dec [_type env [_ var]]
   (emit-return (str "(" (emit var (assoc env :context :expr)) " - " 1 ")") env))
 
 (defmethod emit-special 'inc [_type env [_ var]]
   (emit-return (str "(" (emit var (assoc env :context :expr)) " + " 1 ")") env))
-
-#_(defmethod emit-special 'defined? [_type env [_ var]]
-    (str "typeof " (emit var env) " !== \"undefined\" && " (emit var env) " !== null"))
-
-#_(defmethod emit-special '? [_type env [_ test then else]]
-    (str (emit test env) " ? " (emit then env) " : " (emit else env)))
-
-#_#_(defmethod emit-special 'and [_type env [_ & more]]
-      (if (empty? more)
-        true
-        (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
-
-(defmethod emit-special 'or [_type env [_ & more]]
-  (if (empty? more)
-    nil
-    (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
   (str "while (" (emit test (expr-env env)) ") { \n"

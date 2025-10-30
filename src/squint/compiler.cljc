@@ -122,7 +122,7 @@
 (defmethod emit-special 'not [_ env [_ form]]
   (let [js (emit form (expr-env env))]
     (if (= 'boolean (:tag js))
-      (emit-return (cc/tagged-expr (format "!(%s)" js) 'boolean) env)
+      (emit-return (cc/tagged-expr (format "!%s" js) 'boolean) env)
       (cc/tagged-expr
        (emit (list 'js* (format "~{}(%s)" js) 'clojure.core/not)
              env)
@@ -298,7 +298,7 @@
 
 (defn emit-set [expr env]
   (emit-return
-   (format "new Set([%s])"
+   (format "(new Set ([%s]))"
            (str/join ", " (emit-args (expr-env env) expr)))
    env))
 

@@ -2739,5 +2739,9 @@ new Foo();")
           (is (str/includes? s "[\"a\"] = 1"))
           (is (not (str/includes? s "[\"b\"] = 2"))))))))
 
+(deftest number-interop-test
+  (is (fn? (jsv! '(.-toString 1))))
+  (is (eq "1" (jsv! '(.toString 1)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
