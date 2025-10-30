@@ -179,7 +179,6 @@
 
 (defmethod emit ::number [expr env]
   (-> (str expr)
-      (wrap-parens)
       (emit-return env)
       (escape-jsx env)
       (tagged-expr 'number)))
@@ -776,7 +775,8 @@
 (defn emit-method [env obj method args]
   (let [eenv (expr-env env)
         method (munge** method)]
-    (emit-return (str (emit obj eenv) "."
+    (emit-return (str (cond-> (emit obj eenv)
+                        (number? obj) wrap-parens) "."
                       method
                       (comma-list (emit-args env args)))
                  env)))
@@ -787,7 +787,10 @@
                         [method args])
         method-str (str method)]
     (if (str/starts-with? method-str "-")
-      (emit (list 'js* (str "~{}." (symbol (munge** (subs method-str 1)))) obj) env)
+      (emit (list 'js* (str (if (number? obj)
+                              "(~{})."
+                              "~{}.")
+                            (symbol (munge** (subs method-str 1)))) obj) env)
       (emit-method env obj (symbol method-str) args))))
 
 (defn emit-aget [env var idxs]
