@@ -2477,7 +2477,9 @@ export function int_QMARK_(x) {
   return Number.isInteger(x);
 }
 
-export const integer_QMARK_ = int_QMARK_;
+export function integer_QMARK_(x) {
+  return typeof x == 'bigint' || int_QMARK_(x);
+}
 
 export function pos_int_QMARK_(x) {
   return int_QMARK_(x) && x > 0;
