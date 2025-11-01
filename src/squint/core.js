@@ -1130,9 +1130,11 @@ export function vector_QMARK_(x) {
 
 export function mapv(...args) {
   if (args.length === 2) {
-    const [f, coll] = args;
+    const [_f, coll] = args;
+    const f = toFn(_f);
     const iter = iterable(coll);
     if (Array.isArray(iter)) {
+      // explicit for loop was faster
       const ret = new Array(iter.length);
       for (var i = 0; i < iter.length; i++) {
         ret[i] = f(iter[i]);

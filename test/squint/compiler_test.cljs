@@ -1205,6 +1205,8 @@ with `backticks`")))]
   (is (= true (jsv! '(vector? (mapv inc [0 1 2 3 4])))))
   (is (eq ["A" "B" "C"]
           (jsv! '(mapv #(.toUpperCase %) "abc"))))
+  (is (eq ["A" "B" "C"]
+          (jsv! '(mapv :value [{:value "A"} {:value "B"} {:value "C"}]))))
   (testing "nil"
     (is (eq [] (jsv! '(mapv inc nil)))))
   (testing "multiple colls"
