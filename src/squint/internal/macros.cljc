@@ -240,25 +240,26 @@
   (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
         step (fn step [exprs]
                (if-not exprs
-                 (list 'js* "yield ~{}" body)
+                 (list 'js* "yield ~{};" body)
                  (let [k (first exprs)
                        v (second exprs)
                        subform (step (nnext exprs))]
                    (cond
-                     (= k :let) `(let ~v ~subform)
-                     (= k :while)
+                     (= :let k) `(let ~v ~subform)
+                     (= :while k)
                      ;; emit literal JS because `if` detects that
                      ;; it's an expr context and emits a ternary,
                      ;; but you can't break inside of a ternary
                      (list 'js*
                            "if (~{}) {\n~{}\n} else { break; }"
                            v subform)
-                     (= k :when) `(when ~v
+                     (= :when k) `(when ~v
                                     ~subform)
                      (keyword? k) (err "Invalid 'for' keyword" k)
-                     :else (list 'squint.impl/for-of [k v] subform)))))]
-    (list 'lazy (list 'js* "function* () {\n~{}\n}"
-                      (step (seq seq-exprs))))))
+                     :else (list 'squint.impl/for-of [k v] subform)))))
+        ret (list 'lazy (list (with-meta 'fn {:gen true}) []
+                              (step (seq seq-exprs))))]
+    ret))
 
 (defn core-doseq
   "Repeatedly executes body (presumably for side-effects) with
