@@ -139,15 +139,18 @@
         gensym (:gensym env)
         local (gensym)
         env (update env :var->ident assoc local local)]
-    (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" (str local))
-                     (list 'clojure.core/iterable v))
-               env)
-         " {\n"
-         (emit (list 'clojure.core/let [k local]
-                     body)
-               (assoc env :context :statement))
-         "\n}"
-         (emit-return nil enc-env))))
+    (cond-> (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" (str local))
+                         (list 'clojure.core/iterable v))
+                   env)
+             " {\n"
+             (emit (list 'clojure.core/let [k local]
+                         body)
+                   (assoc env :context :statement))
+             "\n}"
+             (when-let [return (emit-return nil enc-env)]
+               (str "\n" return)))
+      (= :expr (:context enc-env))
+      (cc/wrap-implicit-iife enc-env))))
 
 (defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
   (emit (list 'do #_(list 'js* (str "var " (munge name) ";\n"))

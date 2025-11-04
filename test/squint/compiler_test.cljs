@@ -338,7 +338,10 @@
                      (def a (atom []))
                      (doseq [_ {:a 1 :b 2}]
                        (swap! a conj _))
-                     @a))))))
+                     @a)))))
+  (testing "in expr position"
+    (is (true? (jsv! '(let [x (doseq [i [1 2 3]] i)]
+                        (nil? x)))))))
 
 ;; TODO:
 (deftest for-test
@@ -1279,8 +1282,8 @@ with `backticks`")))]
   (is (= "abc" (jsv! '((constantly "abc")))))
   (is (= 10 (jsv! '((constantly 10)))))
   (is (= true (jsv! '((constantly true)))))
-  (is (= nil (jsv! '((constantly nil)))))
-  (is (= nil (jsv! '((constantly nil) "with some" "args" 1 :a)))))
+  (is (nil? (jsv! '((constantly nil)))))
+  (is (nil? (jsv! '((constantly nil) "with some" "args" 1 :a)))))
 
 (deftest list?-test
   (is (= true (jsv! '(list? '(1 2 3 4)))))

@@ -5,6 +5,8 @@
 ## Unreleased
 
 - Support passing keyword to `mapv`
+- [#759](https://github.com/squint-cljs/squint/issues/759): `doseq` can't be used in expression context
+
 
 ## v0.9.177
 
