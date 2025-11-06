@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.9.178
 
 - Support passing keyword to `mapv`
 - [#759](https://github.com/squint-cljs/squint/issues/759): `doseq` can't be used in expression context
