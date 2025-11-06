@@ -62,11 +62,11 @@
   (let [i (first bindings)
         n (second bindings)
         n-sym (gensym "n")]
-    `(let [~(vary-meta i assoc :mutable true) 0
-           ~n-sym ~n]
-       (while (< ~i ~n-sym)
-         ~@body
-         (set! ~i (inc ~i))))))
+    `(let [~n-sym ~n]
+       ;; NOTE: we just re-use the i that was already in scope by a function argument or let
+       ;; This is possible since for introduces a new scope where you can shadow an existing const
+       ~(list 'js* "for (let ~{}=0;~{}<~{};~{}++) {\n~{}\n}" i i n-sym i (list* 'do body))
+       nil)))
 
 (defn core-if-not
   "if-not from clojure.core"

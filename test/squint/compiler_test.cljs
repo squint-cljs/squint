@@ -2748,5 +2748,21 @@ new Foo();")
   (is (fn? (jsv! '(.-toString 1))))
   (is (eq "1" (jsv! '(.toString 1)))))
 
+(deftest dotimes-test
+  (is (eq 10 (jsv! '(let [a (atom 0)]
+                      (dotimes [i 10]
+                        (swap! a inc))
+                      @a))))
+  (is (eq 10 (jsv! '((fn [i] (let [a (atom 0)]
+                               (dotimes [i i]
+                                 (swap! a inc))
+                               @a)) 10))))
+  (is (eq 55 (jsv! '(let [a (atom 0)
+                          i 10]
+                      (dotimes [i i]
+                        (let [i (inc i)]
+                          (swap! a + i)))
+                      @a)))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
