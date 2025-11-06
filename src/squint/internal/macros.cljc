@@ -60,12 +60,13 @@
   (assert (vector? bindings))
   (assert (= 2 (count bindings)))
   (let [i (first bindings)
-        n (second bindings)]
-    `(let [n# ~n]
-       (loop [~i 0]
-         (when (< ~i n#)
-           ~@body
-           (recur (inc ~i)))))))
+        n (second bindings)
+        n-sym (gensym "n")]
+    `(let [~(vary-meta i assoc :mutable true) 0
+           ~n-sym ~n]
+       (while (< ~i ~n-sym)
+         ~@body
+         (set! ~i (inc ~i))))))
 
 (defn core-if-not
   "if-not from clojure.core"
