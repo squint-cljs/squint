@@ -416,12 +416,13 @@
           (reduce (fn [[acc var->ident] [var-name rhs]]
                     (let [vm (meta var-name)
                           rename? (not (:squint.compiler/no-rename vm))
+                          mutable? (:mutable vm)
                           renamed (if rename? (munge (gensym var-name))
                                       (munge var-name))
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
                           tag (:tag rhs)
-                          expr (format "%s %s = %s;\n" (if loop? "let" "const")lhs rhs)
+                          expr (format "%s %s = %s;\n" (if (or loop? mutable?) "let" "const") lhs rhs)
                           var->ident
                           (-> var->ident
                               (assoc var-name
@@ -842,7 +843,7 @@
 
 (defmethod emit-special 'while [_type env [_while test & body]]
   (str "while (" (emit test (expr-env env)) ") { \n"
-       (emit-do env body)
+       (emit-do (assoc env :context :statement) body)
        "\n}"))
 
 (defn map-params [m]

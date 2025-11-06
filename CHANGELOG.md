@@ -6,7 +6,7 @@
 
 - Support passing keyword to `mapv`
 - [#759](https://github.com/squint-cljs/squint/issues/759): `doseq` can't be used in expression context
-
+- Fix [#753](https://github.com/squint-cljs/squint/issues/753): optimize output of dotimes
 
 ## v0.9.177
 
