@@ -99,7 +99,8 @@
                              'delay macros/delay
                              'assoc macros/assoc-inline
                              'assoc! macros/assoc!-inline
-                             'get macros/get-inline}
+                             'get macros/get-inline
+                             'vswap! macros/vswap!}
                             cc/common-macros))
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
