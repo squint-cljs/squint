@@ -450,7 +450,10 @@
   (let [s (jss! '(do (defn foo []
                        (case 1 1 2 3 4))
                      (foo)))]
-    (is (= 2 (js/eval s)))))
+    (is (= 2 (js/eval s))))
+  (is (eq :yes (jsv! '(do (defn foo [x y]
+                            (case [1 2] :yes))
+                           (foo 1 2))))))
 
 (deftest dot-test
   (let [s (jss! "(do (def x (.-x #js {:x 1})) x)")]
