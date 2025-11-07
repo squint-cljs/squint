@@ -2067,6 +2067,7 @@ export function repeatedly(n, f) {
 }
 
 export function update_BANG_(m, k, f, ...args) {
+  f = toFn(f);
   const v = get(m, k);
   return assoc_BANG_(m, k, f(v, ...args));
 }
