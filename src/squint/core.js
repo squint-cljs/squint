@@ -2627,6 +2627,7 @@ export function quot(n, d) {
 
 export function trampoline(f, ...args) {
   if (args.length == 0) {
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const ret = f();
       if (truth_(fn_QMARK_(ret))) {
