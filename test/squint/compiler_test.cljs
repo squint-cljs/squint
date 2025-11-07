@@ -657,7 +657,9 @@
   (is (eq "hello/world" (jsv! "(ns hello) ::world"))))
 
 (deftest pr-str-test
-  (is (eq (js/Set. #js ["a" "b" "c"]) (js/Set. (js/JSON.parse (jsv! '(pr-str #{:a :b :c})))))))
+  #_(is (eq (js/Set. #js ["a" "b" "c"]) (js/Set. (js/JSON.parse (jsv! '(pr-str #{:a :b :c}))))))
+  (doseq [coll [#{"a" "b" "c"} {:a 1 :b 2}]]
+    (is (eq (pr-str coll) (jsv! `(pr-str ~coll))))))
 
 (deftest str-test
   (is (eq "123" (jsv! '(str 1 2 3))))
@@ -2007,7 +2009,7 @@ globalThis.foo.fs = fs;")))))
       (fs/mkdirSync "test-output"))
     (fs/writeFileSync "test-output/foo.mjs" js)
     (is (str/includes? (process/execSync "node test-output/foo.mjs")
-                       "[[-1,-2,-3],true,-10]"))))
+                       "[[-1 -2 -3] true -10]"))))
 
 (deftest pre-post-test
   (testing "pre"
