@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#758](https://github.com/squint-cljs/squint/issues/758): `volatile!`, `vswap!`, `vreset!`
+
 ## v0.9.178
 
 - Support passing keyword to `mapv`

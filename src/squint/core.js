@@ -2975,3 +2975,20 @@ export function run_BANG_(proc, coll) {
 export function not_EQ_(...more) {
   return not(_EQ_(...more));
 }
+
+class Volatile {
+  constructor(v) {
+    this.v = v;
+  }
+  _deref() {
+    return this.v;
+  }
+}
+
+export function volatile_BANG_(x) {
+  return new Volatile(x);
+}
+
+export function vreset_BANG_(vol, v) {
+  vol.v = v;
+}

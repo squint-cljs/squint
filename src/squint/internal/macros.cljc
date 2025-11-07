@@ -14,11 +14,10 @@
                             bit-and-not bit-clear bit-flip bit-test
                             bit-shift-left bit-shift-right bit-shift-right-zero-fill
                             unsigned-bit-shift-right bit-set undefined?
-                            simple-benchmark delay not=? alength])
+                            simple-benchmark delay not=? alength vswap!])
   (:require [clojure.core :as cc]
             [clojure.string :as str]
             [squint.compiler-common :as-alias ana]
-            [squint.compiler.utils :as cu]
             #?(:clj [squint.internal.defmacro :as core]))
   #?(:cljs (:require-macros [squint.internal.defmacro :as core])))
 
@@ -802,3 +801,6 @@
 
 (core/defmacro alength [x]
   `(.-length ~x))
+
+(core/defmacro vswap! [v f & args]
+  `(vreset! ~v (~f @~v ~@args)))

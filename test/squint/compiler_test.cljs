@@ -2764,5 +2764,8 @@ new Foo();")
                           (swap! a + i)))
                       @a)))))
 
+(deftest volatile-test
+  (is (eq 2 (jsv! "(def x (volatile! 1)) (vswap! x inc) @x"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

@@ -226,6 +226,8 @@
   vec
   vector
   vector_QMARK_
+  volatile_BANG_
+  vreset_BANG_
   warn_on_lazy_reusage_BANG_
   with_meta
   zero_QMARK_
