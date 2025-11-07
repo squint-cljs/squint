@@ -21,6 +21,7 @@
   add_watch
   alength
   apply
+  array
   array_QMARK_
   aset
   assoc

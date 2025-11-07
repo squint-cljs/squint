@@ -1124,6 +1124,8 @@ export function vector(...args) {
   return args;
 }
 
+export const array = vector;
+
 export function vector_QMARK_(x) {
   return typeConst(x) === ARRAY_TYPE;
 }
