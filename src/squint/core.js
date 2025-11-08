@@ -980,33 +980,6 @@ export function nil_QMARK_(v) {
 
 export const PROTOCOL_SENTINEL = {};
 
-function pr_str_1(x) {
-  if (x === null) {
-    return 'null';
-  }
-  return JSON.stringify(x, (_key, value) => {
-    switch (typeConst(value)) {
-      case SET_TYPE:
-      case LAZY_ITERABLE_TYPE:
-        return [...value];
-      case MAP_TYPE:
-        return Object.fromEntries(value);
-      default: {
-        // console.log(value);
-        return value;
-      }
-    }
-  });
-}
-
-export function pr_str(...xs) {
-  return xs.map(pr_str_1).join(' ');
-}
-
-export function prn(...xs) {
-  println(pr_str(...xs));
-}
-
 export class Atom {
   constructor(init) {
     this.val = init;
@@ -2994,4 +2967,46 @@ export function volatile_BANG_(x) {
 
 export function vreset_BANG_(vol, v) {
   vol.v = v;
+}
+
+function toEDN(value, seen = new WeakSet()) {
+  if (value === null) return 'nil';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'bigint') return `${value}N`;
+
+  if (typeof value === 'object') {
+    if (seen.has(value)) return '#object[circular]';
+    seen.add(value);
+    const T = typeConst(value);
+    let keys;
+    switch (T) {
+      case ARRAY_TYPE:
+        return `[${value.map((v) => toEDN(v, seen)).join(' ')}]`;
+      case SET_TYPE:
+        return `#{${Array.from(value)
+          .map((v) => toEDN(v, seen))
+          .join(' ')}}`;
+      case MAP_TYPE:
+        return `#js/map {${Array.from(value.entries())
+          .map(([k, v]) => `${toEDN(k, seen)} ${toEDN(v, seen)}`)
+          .join(', ')}}`;
+      case LAZY_ITERABLE_TYPE:
+      case LIST_TYPE:
+        return `(${mapv((v) => `${toEDN(v, seen)}`, value).join(', ')})`;
+      default:
+        keys = Object.keys(value);
+        return `{${keys.map((k) => `:${k} ${toEDN(value[k], seen)}`).join(', ')}}`;
+    }
+  }
+
+  return `#object[${value.constructor.name}]`;
+}
+
+export function pr_str(...xs) {
+  return xs.map((v, _) => toEDN(v)).join(' ');
+}
+
+export function prn(...xs) {
+  return console.log(pr_str(...xs));
 }
