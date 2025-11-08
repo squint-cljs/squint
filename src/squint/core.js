@@ -2988,7 +2988,7 @@ function toEDN(value, seen = new WeakSet()) {
           .map((v) => toEDN(v, seen))
           .join(' ')}}`;
       case MAP_TYPE:
-        return `{${Array.from(value.entries())
+        return `#js/map {${Array.from(value.entries())
           .map(([k, v]) => `${toEDN(k, seen)} ${toEDN(v, seen)}`)
           .join(', ')}}`;
       case LAZY_ITERABLE_TYPE:

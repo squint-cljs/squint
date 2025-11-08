@@ -16,7 +16,7 @@
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
-                                          comma-list emit emit-args emit-infix emit-return escape-jsx
+                                          emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
@@ -44,9 +44,11 @@
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
                          'squint-compiler-html
+                         'squint-compiler-js-map
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
                          'squint.impl/for-of
-                         'squint.impl/defonce]))
+                         'squint.impl/defonce
+                         ]))
 
 (def built-in-macros (merge {'-> macros/core->
                              '->> macros/core->>
@@ -337,10 +339,16 @@
 (defn html [form]
   (list 'squint-compiler-html form))
 
+(defn js-map [form]
+  (list 'squint-compiler-js-map form))
+
 (defmethod emit-special 'squint-compiler-jsx [_ env [_ form]]
   (set! *jsx* true)
   (let [env (assoc env :jsx true)]
     (emit form env)))
+
+(defmethod emit-special 'squint-compiler-js-map [_ env [_ form]]
+  (emit (list 'new 'js/Map (mapv (fn [kv] kv) form)) env))
 
 (def squint-parse-opts
   (e/normalize-opts
@@ -349,7 +357,8 @@
     :location? seq?
     :readers {'js #(vary-meta % assoc ::js true)
               'jsx jsx
-              'html html}
+              'html html
+              'js/map js-map}
     :read-cond :allow
     :features #{:squint :cljs}}))
 

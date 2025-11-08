@@ -657,9 +657,9 @@
   (is (eq "hello/world" (jsv! "(ns hello) ::world"))))
 
 (deftest pr-str-test
-  #_(is (eq (js/Set. #js ["a" "b" "c"]) (js/Set. (js/JSON.parse (jsv! '(pr-str #{:a :b :c}))))))
   (doseq [coll [#{"a" "b" "c"} {:a 1 :b 2}]]
-    (is (eq (pr-str coll) (jsv! `(pr-str ~coll))))))
+    (is (eq (pr-str coll) (jsv! `(pr-str ~coll)))))
+  (is (eq "#js/map {\"a\" 1}" (jsv! "(pr-str #js/map {:a 1})"))))
 
 (deftest str-test
   (is (eq "123" (jsv! '(str 1 2 3))))
