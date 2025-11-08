@@ -358,7 +358,7 @@
     :readers {'js #(vary-meta % assoc ::js true)
               'jsx jsx
               'html html
-              'js/map js-map}
+              'js/Map js-map}
     :read-cond :allow
     :features #{:squint :cljs}}))
 
