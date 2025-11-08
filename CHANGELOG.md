@@ -5,6 +5,8 @@
 ## Unreleased
 
 - Fix [#758](https://github.com/squint-cljs/squint/issues/758): `volatile!`, `vswap!`, `vreset!`
+- `pr-str`, `prn` etc now print EDN (with the idea that you can paste it back into your program)
+- new `#js/map` reader that reads a JavaScript `Map` from a Clojure map (maps are printed like this with `pr-str` too)
 
 ## v0.9.178
 
