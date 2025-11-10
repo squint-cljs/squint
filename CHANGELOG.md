@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix `js-yield` and `js-yield*` in expression position
+
 ## v0.9.180
 
 - Fix [#758](https://github.com/squint-cljs/squint/issues/758): `volatile!`, `vswap!`, `vreset!`

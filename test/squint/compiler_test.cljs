@@ -2481,7 +2481,8 @@ new Foo();")
   (testing "multi-arirt + variadic"
     (is (eq [6 7 8 9] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x & xs] (js-yield x) (js-yield* xs))) (into [] cat [(foo) (foo 7 8 9)])"))))
   (is (eq [1 2] (jsv! "(vec ((^:gen fn [] (js-yield 1) (js-yield 2))))")))
-  (is (eq [1 2] (jsv! "(vec ((fn ^:gen foo [] (js-yield 1) (js-yield 2))))"))))
+  (is (eq [1 2] (jsv! "(vec ((fn ^:gen foo [] (js-yield 1) (js-yield 2))))")))
+  (is (eq [1 2] (jsv! "(vec ((fn ^:gen foo [] (+ (js-yield 1) (js-yield 2)))))"))))
 
 (deftest infix-return-test
   (is (true? (jsv! "(defn foo [x] (and (int? x) (< 10 x 18))) (foo 12)"))))
