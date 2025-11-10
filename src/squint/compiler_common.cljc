@@ -1087,10 +1087,10 @@ break;}" body)
                'boolean))
 
 (defmethod emit-special 'js-yield [_ env [_ key obj]]
-  (emit (list 'js* "yield ~{}" key obj) env))
+  (emit (list 'js* "(yield ~{})" key obj) env))
 
 (defmethod emit-special 'js-yield* [_ env [_ key obj]]
-  (emit (list 'js* "yield* ~{}" key obj) env))
+  (emit (list 'js* "(yield* ~{})" key obj) env))
 
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
   ;; RegExp case moved here:
