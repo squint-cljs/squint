@@ -43,7 +43,8 @@
    '= macros/equals
    'not= macros/core-not=
    'identical? macros/core-identical?
-   'alength macros/alength})
+   'alength macros/alength
+   'some? macros/core-some?})
 
 (defn wrap-parens [s]
   (str "(" s ")"))
