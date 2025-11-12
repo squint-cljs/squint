@@ -2773,5 +2773,12 @@ new Foo();")
 (deftest volatile-test
   (is (eq 2 (jsv! "(def x (volatile! 1)) (vswap! x inc) @x"))))
 
+(deftest some?-macro-test
+  (let [s (jss! "(defn foo [x] (let [y (some? x)] (when y (js/console.log y))))")]
+    (testing "inlind some? via macro"
+      (is (str/includes? s "!(x == null)")))
+    (testing "no truth check"
+      (is (str/includes? s "if (y1)")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))

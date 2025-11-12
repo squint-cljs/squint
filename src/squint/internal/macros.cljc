@@ -804,3 +804,6 @@
 
 (core/defmacro vswap! [v f & args]
   `(vreset! ~v (~f @~v ~@args)))
+
+(core/defmacro core-some? [x]
+  `(not (nil? ~x)))
