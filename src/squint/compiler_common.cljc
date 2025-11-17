@@ -406,7 +406,8 @@
   (emit-do env exprs))
 
 (defn emit-let [enc-env bindings body loop?]
-  (let [gensym (if (:top-level enc-env)
+  (let [top-level? (:top-level enc-env)
+        gensym (if (:top-level enc-env)
                  gensym
                  (:gensym enc-env))
         context (:context enc-env)
@@ -424,7 +425,7 @@
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
                           tag (:tag rhs)
-                          expr (format "%s %s = %s;\n" (if loop? "let" "const") lhs rhs)
+                          expr (format "%s %s = %s;\n" (if (or loop? top-level?) "let" "const") lhs rhs)
                           var->ident
                           (-> var->ident
                               (assoc var-name
