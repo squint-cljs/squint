@@ -406,12 +406,13 @@
   (emit-do env exprs))
 
 (defn emit-let [enc-env bindings body loop?]
-  (let [gensym (:gensym enc-env)
+  (let [gensym (if (:top-level enc-env)
+                 gensym
+                 (:gensym enc-env))
         context (:context enc-env)
         env (assoc enc-env :context :expr)
         partitioned (partition 2 bindings)
-        iife? (or (= :expr context)
-                  (:top-level env))
+        iife? (= :expr context)
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
         (let [env (dissoc env :top-level)]
