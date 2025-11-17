@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.9.182
+
+- Don't emit IIFE for top-level let so you can write let over defn to capture values.
+
 ## v0.9.181
 
 - Fix `js-yield` and `js-yield*` in expression position
