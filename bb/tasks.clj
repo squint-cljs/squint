@@ -92,7 +92,7 @@
       (fs/delete-tree squint-local)
       (fs/create-dirs squint-local)
       (run! #(fs/copy % squint-local) (fs/glob "." "*.{js,json}"))
-      (prn :lib (fs/absolutize "lib") :squint-local squint-local)
+      (prn :lib (fs/absolutize "lib") :squint-local (fs/absolutize (fs/path squint-local "lib")))
       (fs/copy-tree "lib" (fs/path squint-local "lib"))
       (fs/copy-tree "src" (fs/path squint-local "src"))
       (shell "node_modules/squint-cljs/node_cli.js" "compile")
