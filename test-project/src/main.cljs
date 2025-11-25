@@ -10,6 +10,8 @@
 (defn foo []
   (m/debug :foo (+ 1 2 3)))
 
+(m/read-config)
+
 (foo)
 (debug :foo (+ 1 2 3 4))
 

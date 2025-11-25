@@ -4,7 +4,8 @@
 
 ## v0.9.182
 
-- Don't emit IIFE for top-level let so you can write let over defn to capture values.
+- Allow macro namespaces to load `"node:fs", etc.` to read config files for conditional compilation
+- Don't emit IIFE for top-level let so you can write `let` over `defn` to capture values.
 
 ## v0.9.181
 
