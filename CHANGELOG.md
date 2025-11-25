@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.9.182
+
+- Allow macro namespaces to load `"node:fs", etc.` to read config files for conditional compilation
+
 ## v0.9.181
 
 - Fix `js-yield` and `js-yield*` in expression position
