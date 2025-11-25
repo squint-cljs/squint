@@ -56,7 +56,7 @@
       (assert (str/includes? output "macros2/debug 6"))
       (assert (str/includes? output "macros/debug 10",))
       (assert (str/includes? output "macros/debug 6"))
-      (assert (str/includes? output "my-other-src"))
+      (assert (str/includes? output "my-other-src 1 2"))
       (assert (str/includes? output "json!"))
       (assert (str/includes? output "{ a: 1 }"))
       (assert (str/includes? output "\"emit!\"")))
