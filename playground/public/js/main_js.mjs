@@ -346,6 +346,16 @@ window.blankAOC = async () => {
   window.location = url;
 };
 
+window.shareToAOC = () => {
+        const aocUrl = new URL('https://mateuszmazurczak.com/aoc');
+        let code = editor.state.doc.toString().trim();
+        code = btoa(code);
+        url.searchParams.set('src', code);
+        aocUrl.searchParams.set('playground-url', url);
+
+        window.open(aocUrl.toString(), '_blank');
+};
+
 window.changeREPL = (target) => {
   document.getElementById('result').innerText = '';
   if (target.checked) {

@@ -394,6 +394,16 @@
       window.location = url;
     }
 
+    window.shareToAOC = () => { 
+        const aocUrl = new URL('https://mateuszmazurczak.com/aoc');
+        let code = editor.state.doc.toString().trim();
+        code = btoa(code);
+        url.searchParams.set('src', code);
+        aocUrl.searchParams.set('playground-url', url);
+        
+        window.open(aocUrl.toString(), '_blank');
+    };
+
     window.changeREPL = (target) => {
       document.getElementById('result').innerText = '';
       if (target.checked) {
@@ -428,6 +438,10 @@
       <button onClick="share()"
         title="When sharing, the window URL will be updated to encode the code in the text editor. Copy it and share it with your friends!">
         Share!
+      </button>
+      <button onClick="shareToAOC()"
+        title="Share this code for everyone to see">
+        Share with community!
       </button>
       <button style="margin-bottom: 10px;" onClick="blankAOC()">
         Create blank AOC Playground!
