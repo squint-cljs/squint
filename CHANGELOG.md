@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.9.183
+
+- Add a button to Advent of Code playground to share solution with community at https://mateuszmazurczak.com/aoc?lang=en 
+
 ## v0.9.182
 
 - Allow macro namespaces to load `"node:fs", etc.` to read config files for conditional compilation
