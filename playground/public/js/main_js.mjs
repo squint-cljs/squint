@@ -235,7 +235,7 @@ const aocDoc = `
 
 (time (part-1))
 #_(time (part-2))`.trim();
-const aocBoilerplateUrl = 'https://gist.githubusercontent.com/borkdude/cf94b492d948f7f418aa81ba54f428ff/raw/a6e9992b079e20e21d753e8c75a7353c5908b225/aoc_ui.cljs';
+const aocBoilerplateUrl = 'https://gist.githubusercontent.com/borkdude/cf94b492d948f7f418aa81ba54f428ff/raw/3b58a80710fbbbda091966c8eb85323eef4652c1/aoc_ui.cljs';
 
 const boilerplate = urlParams.get('boilerplate');
 let boilerplateSrc;
