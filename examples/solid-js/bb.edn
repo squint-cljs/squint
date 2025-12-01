@@ -2,7 +2,7 @@
  {dev:squint (shell "bun squint watch")
   dev:vite (shell "bun vite --config vite.config.js public")
   -dev {:depends [dev:vite dev:squint]}
+  cp (shell "bash -c 'rm -rf ./public && mkdir public && cp -R ./src/* ./public'")
   dev {:doc "Run squint watch + bun"
-       :task (run '-dev {:parallel true})}
-  #_#_build (do (shell "npx vite build --base=/demos/squint/solidjs/")
-            (shell "bash -c 'cp -R dist/* ../../../squint-demos/squint/solidjs'"))}}
+       :task (run '-dev {:parallel true})
+       :depends [cp]}}}
