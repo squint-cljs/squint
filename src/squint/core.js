@@ -1027,6 +1027,29 @@ export function swap_BANG_(atm, f, ...args) {
   return v;
 }
 
+export function swap_vals_BANG_(atm, f, ...args) {
+  const oldv = deref(atm);
+  f = toFn(f);
+  const newv = f(oldv, ...args);
+  atm._reset_BANG_(newv);
+  return [oldv, newv];
+}
+
+export function reset_vals_BANG_(atm, newv) {
+  const oldv = deref(atm);
+  atm._reset_BANG_(newv);
+  return [oldv, newv];
+}
+
+export function compare_and_set_BANG_(atm, oldv, newv) {
+  if (deref(atm) === oldv) {
+    atm._reset_BANG_(newv);
+    return true;
+  } else {
+    return false;
+  }
+}
+
 export function range(begin, end, step) {
   return lazy(function* () {
     let b = begin,

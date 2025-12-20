@@ -38,6 +38,7 @@
   coll_QMARK_
   comp
   compare
+  compare_and_set_BANG_
   complement
   concat
   conj
@@ -175,6 +176,7 @@
   repeatedly
   replace
   reset_BANG_
+  reset_vals_BANG_
   rest
   reverse
   run_BANG_
@@ -202,6 +204,7 @@
   subseq
   subvec
   swap_BANG_
+  swap_vals_BANG_
   system_time
   t
   take

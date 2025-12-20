@@ -1964,7 +1964,11 @@ globalThis.foo.fs = fs;")))))
           (p/finally done)))))
 
 (deftest atom-test
-  (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y"))))
+  (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y")))
+  (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (reset-vals! x 2)] (+ old new))")))
+  (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (swap-vals! x inc)] (+ old new))")))
+  (is (= true  (jsv! "(def x (atom 1)) (compare-and-set! x 1 2)")))
+  (is (= false (jsv! "(def x (atom 1)) (compare-and-set! x 2 3)"))))
 
 (deftest override-core-var-test
   (is (= 1 (jsv! "(def count 1) (set! count (inc count)) (defn frequencies [x] (dec x)) (frequencies count)"))))
