@@ -200,7 +200,7 @@
                    x)")]
     (is (= 3 (js/eval s))))
   (is (eq #js {:a 1} (jsv! "{:a (or 1 (cond true (prn :yes)) 2)}")))
-  (is (let [v (jsv! "(let [x false] (if x 1 nil))")]
+  (is (let [v (jsv! "(let [x false] (if x 1 nil))" {:context :expr})]
         (and (nil? v)
              (not (undefined? v))))))
 
@@ -1717,8 +1717,8 @@ with `backticks`")))]
 
 (deftest map-literal-test
   (is (eq {} (jsv! '{})))
-  (is (eq {"1" true} (jsv! '(do (def x 1) {x true}))))
-  (is (eq {"0,1" true} (jsv! '{[0 1] true}))))
+  (is (eq {"1" true} (jsv! '(do (def x 1) {x true}) {:context :expr})))
+  (is (eq {"0,1" true} (jsv! '{[0 1] true} {:context :expr}))))
 
 (deftest split-with-test
   (is (eq [[1] [2 3]] (jsv! '(mapv vec (split-with odd? [1 2 3])))))
@@ -1964,7 +1964,11 @@ globalThis.foo.fs = fs;")))))
           (p/finally done)))))
 
 (deftest atom-test
-  (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y"))))
+  (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y")))
+  (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (reset-vals! x 2)] (+ old new))")))
+  (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (swap-vals! x inc)] (+ old new))")))
+  (is (= true  (jsv! "(def x (atom 1)) (compare-and-set! x 1 2)")))
+  (is (= false (jsv! "(def x (atom 1)) (compare-and-set! x 2 3)"))))
 
 (deftest override-core-var-test
   (is (= 1 (jsv! "(def count 1) (set! count (inc count)) (defn frequencies [x] (dec x)) (frequencies count)"))))

@@ -2,6 +2,15 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- [#779](https://github.com/squint-cljs/squint/pull/779): Added `compare-and-swap!`, `swap-vals!` and `reset-vals!`
+
+## v0.9.182
+
+- Allow macro namespaces to load `"node:fs", etc.` to read config files for conditional compilation
+- Don't emit IIFE for top-level let so you can write `let` over `defn` to capture values.
+
 ## v0.9.181
 
 - Fix `js-yield` and `js-yield*` in expression position
