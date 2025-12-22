@@ -581,6 +581,7 @@
         (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
         (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
         (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
+        (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
         alias)
       alias)))
 
