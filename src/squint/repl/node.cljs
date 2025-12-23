@@ -17,12 +17,15 @@
 
 (def last-ns (atom *cljs-ns*))
 
+(def rl-closed (atom false))
+
 (defn continue [rl socket]
   (reset! in-progress false)
-  (.setPrompt ^js rl (str @last-ns "=> "))
-  (.prompt rl)
-  (when-not (str/blank? @pending-input)
-    (eval-next socket rl)))
+  (when-not @rl-closed
+    (.setPrompt ^js rl (str @last-ns "=> "))
+    (.prompt rl)
+    (when-not (str/blank? @pending-input)
+      (eval-next socket rl))))
 
 (defn erase-processed [rdr]
   (let [line (e/get-line-number rdr)
@@ -41,18 +44,18 @@
   (let [{js-str :javascript
          cljs-ns :ns
          :as new-state} (binding [*cljs-ns* @last-ns]
-                        (compiler/compile-string* (binding [*print-meta* true]
-                                                    (pr-str the-val)) {:context :return
-                                                                       :elide-exports true
-                                                                       :repl true}
-                                                  @state))
+                          (compiler/compile-string* (binding [*print-meta* true]
+                                                      (pr-str the-val)) {:context :return
+                                                                         :elide-exports true
+                                                                         :repl true}
+                                                    @state))
         _ (reset! state new-state)
         js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
     #_(binding [*print-fn* *print-err-fn*]
-      (println "---")
-      (println js-str)
-      (println "---"))
+        (println "---")
+        (println js-str)
+        (println "---"))
     (->
      (js/Promise.resolve (js/eval js-str))
      (.then (fn [^js val]
@@ -109,7 +112,9 @@
              (create-rl))]
     (on-line rl socket)
     (.setPrompt rl (str @last-ns "=> "))
-    (.on rl "close" resolve)
+    (.on rl "close" (fn []
+                      (reset! rl-closed true)
+                      (resolve)))
     (.prompt rl)))
 
 (defn on-connect [socket]
