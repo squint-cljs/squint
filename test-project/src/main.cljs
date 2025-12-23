@@ -1,5 +1,6 @@
 (ns main
-  (:require-macros [macros :as m :refer [debug]])
+  (:require-macros [macros :as m :refer [debug]]
+                   [macros2 :refer [also]])
   (:require [other-ns]
             [my-other-src :as src]
             ["fs" :as fs]
@@ -13,7 +14,7 @@
 (m/read-config)
 
 (foo)
-(debug :foo (+ 1 2 3 4))
+(debug :foo (also (+ 1 2 3 4)))
 
 (src/debug :dude (+ 1 2 3))
 
