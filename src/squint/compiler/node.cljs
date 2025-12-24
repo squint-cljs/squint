@@ -42,9 +42,9 @@
                                                                 reload (concat [:reload])))
                                                    (let [publics (eval-form
                                                                   `(ns-publics '~macro-ns))
-                                                         ks (keys publics)
-                                                         vs (vals publics)
-                                                         vs (map deref vs)
+                                                         macro-vars (filter (fn [[_ v]] (:macro (meta v))) publics)
+                                                         ks (map first macro-vars)
+                                                         vs (map (comp deref second) macro-vars)
                                                          publics (zipmap ks vs)]
                                                      publics)))]
                                    (.then macros
