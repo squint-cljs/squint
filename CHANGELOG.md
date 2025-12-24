@@ -6,6 +6,7 @@
 - [#779](https://github.com/squint-cljs/squint/pull/779): Added `compare-and-swap!`, `swap-vals!` and `reset-vals!`
 - Multiple `:require-macros` with `:refer` now accumulate instead of overwriting
 - Fix qualified symbol resolution in macro expansions when namespace has different runtime alias
+- Transitively load macros from namespaces required by macro namespaces
 
 ## v0.9.182
 

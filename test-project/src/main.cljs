@@ -1,5 +1,6 @@
 (ns main
   (:require-macros [macros :as m :refer [debug with-add-100]]
+                   [macros-alias :refer [wrapper]]
                    [macros2 :refer [also]])
   (:require [macros :as mac]
             [other-ns]
@@ -31,3 +32,4 @@
 (js/console.log json)
 
 (println "qualified test:" (m/with-add-100 42))
+(wrapper :nested 444)
