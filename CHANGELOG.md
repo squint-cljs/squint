@@ -7,6 +7,7 @@
 - Multiple `:require-macros` with `:refer` now accumulate instead of overwriting
 - Fix qualified symbol resolution in macro expansions when namespace has different runtime alias
 - Transitively load macros from namespaces required by macro namespaces
+- Add `cherry-ns-mappings` and `resolve-macro-ns` for unified namespace and macro resolution in cherry
 
 ## v0.9.182
 

@@ -564,6 +564,21 @@
     (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
       *async* (wrap-await)))
 
+(def cherry-ns-mappings
+  {'clojure.string {:js "cherry-cljs/lib/clojure.string.js"}
+   'cljs.string    {:js "cherry-cljs/lib/clojure.string.js"}
+   'clojure.walk   {:js "cherry-cljs/lib/clojure.walk.js"}
+   'cljs.walk      {:js "cherry-cljs/lib/clojure.walk.js"}
+   'clojure.set    {:js "cherry-cljs/lib/clojure.set.js"}
+   'cljs.set       {:js "cherry-cljs/lib/clojure.set.js"}
+   'clojure.pprint {:js "cherry-cljs/lib/cljs.pprint.js"}
+   'cljs.pprint    {:js "cherry-cljs/lib/cljs.pprint.js"}
+   'clojure.test   {:js "cherry-cljs/lib/clojure.test.js" :macro-ns 'cherry.test}
+   'cljs.test      {:js "cherry-cljs/lib/clojure.test.js" :macro-ns 'cherry.test}})
+
+(defn resolve-macro-ns [alias]
+  (or (get-in cherry-ns-mappings [alias :macro-ns]) alias))
+
 (defn resolve-import-map [import-maps lib]
   (get import-maps lib lib))
 
@@ -581,13 +596,7 @@
             alias)
           (resolve-import-map import-maps alias)))
       :cherry
-      (case alias
-        (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
-        (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
-        (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
-        (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
-        (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
-        alias)
+      (or (get-in cherry-ns-mappings [alias :js]) alias)
       alias)))
 
 (defn unwrap [s]
