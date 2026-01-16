@@ -2759,8 +2759,12 @@ new Foo();")
   (is (eq "1" (jsv! '(.toString 1)))))
 
 (deftest dotimes-test
-  (is (eq 10 (jsv! '(let [a (atom 0)]
+  (is (eq 45 (jsv! '(let [a (atom 0)]
                       (dotimes [i 10]
+                        (swap! a + i))
+                      @a))))
+  (is (eq 10 (jsv! '(let [a (atom 0)]
+                      (dotimes [_ 10]
                         (swap! a inc))
                       @a))))
   (is (eq 10 (jsv! '((fn [i] (let [a (atom 0)]
