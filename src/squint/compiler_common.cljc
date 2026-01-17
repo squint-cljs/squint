@@ -331,6 +331,11 @@
                                 (str "globalThis." (munge *cljs-ns*) "."))
                               (alias-munge sym-ns) "."
                               (munged-name sn)))
+                           (when-let [alias (get (:libname->alias current-ns) (str sym-ns))]
+                             (str (when *repl*
+                                    (str "globalThis." (munge *cljs-ns*) "."))
+                                  (alias-munge alias) "."
+                                  (munged-name sn)))
                            (let [ns (namespace expr)
                                  munged (munge ns)
                                  nm (name expr)]
@@ -559,6 +564,21 @@
     (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
       *async* (wrap-await)))
 
+(def cherry-ns-mappings
+  {'clojure.string {:js "cherry-cljs/lib/clojure.string.js"}
+   'cljs.string    {:js "cherry-cljs/lib/clojure.string.js"}
+   'clojure.walk   {:js "cherry-cljs/lib/clojure.walk.js"}
+   'cljs.walk      {:js "cherry-cljs/lib/clojure.walk.js"}
+   'clojure.set    {:js "cherry-cljs/lib/clojure.set.js"}
+   'cljs.set       {:js "cherry-cljs/lib/clojure.set.js"}
+   'clojure.pprint {:js "cherry-cljs/lib/cljs.pprint.js"}
+   'cljs.pprint    {:js "cherry-cljs/lib/cljs.pprint.js"}
+   'clojure.test   {:js "cherry-cljs/lib/clojure.test.js" :macro-ns 'cherry.test}
+   'cljs.test      {:js "cherry-cljs/lib/clojure.test.js" :macro-ns 'cherry.test}})
+
+(defn resolve-macro-ns [alias]
+  (or (get-in cherry-ns-mappings [alias :macro-ns]) alias))
+
 (defn resolve-import-map [import-maps lib]
   (get import-maps lib lib))
 
@@ -576,13 +596,7 @@
             alias)
           (resolve-import-map import-maps alias)))
       :cherry
-      (case alias
-        (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
-        (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
-        (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
-        (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
-        (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
-        alias)
+      (or (get-in cherry-ns-mappings [alias :js]) alias)
       alias)))
 
 (defn unwrap [s]
@@ -592,6 +606,7 @@
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
     (let [env (expr-env env)
+          original-libname libname
           libname (resolve-ns env libname)
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           default? (= "default" suffix) ;; we only support a default suffix for now anyway
@@ -674,8 +689,11 @@
         (swap! (:ns-state env)
                (fn [ns-state]
                  (let [current (:current ns-state)]
-                   (update-in ns-state [current :aliases] (fn [aliases]
-                                                            ((fnil assoc {}) aliases as libname)))))))
+                   (-> ns-state
+                   (update-in [current :aliases] (fn [aliases]
+                                                   ((fnil assoc {}) aliases as libname)))
+                   (update-in [current :libname->alias] (fn [m]
+                                                          ((fnil assoc {}) m (str original-libname) as))))))))
       (when-not (:elide-imports env)
         expr)
       #_nil)))

@@ -42,9 +42,9 @@
                                                                 reload (concat [:reload])))
                                                    (let [publics (eval-form
                                                                   `(ns-publics '~macro-ns))
-                                                         ks (keys publics)
-                                                         vs (vals publics)
-                                                         vs (map deref vs)
+                                                         macro-vars (filter (fn [[_ v]] (:macro (meta v))) publics)
+                                                         ks (map first macro-vars)
+                                                         vs (map (comp deref second) macro-vars)
                                                          publics (zipmap ks vs)]
                                                      publics)))]
                                    (.then macros
@@ -53,6 +53,14 @@
                                                               (cond-> (assoc-in ns-state [:macros macro-ns] macros)
                                                                 as (assoc-in [the-ns-name :aliases as] macro-ns)
                                                                 refer (update-in [the-ns-name :refers] merge (zipmap refer (repeat macro-ns))))))
+                                            (let [deps (eval-form (list 'mapv 'ns-name (list 'vals (list 'ns-aliases (list 'quote macro-ns)))))]
+                                              (doseq [dep deps]
+                                                (when-not (get-in @ns-state [:macros dep])
+                                                  (let [dep-publics (eval-form (list 'ns-publics (list 'quote dep)))
+                                                        dep-macros (filter (fn [[_ v]] (:macro (meta v))) dep-publics)
+                                                        dep-map (zipmap (map first dep-macros)
+                                                                        (map (comp deref second) dep-macros))]
+                                                    (swap! ns-state assoc-in [:macros dep] dep-map)))))
                                             #_(set! compiler/built-in-macros
                                                   ;; hack
                                                     (assoc compiler/built-in-macros macro-ns macros))))))))
