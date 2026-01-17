@@ -3,10 +3,10 @@
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
 ## Unreleased
-
 - [#779](https://github.com/squint-cljs/squint/pull/779): Added `compare-and-swap!`, `swap-vals!` and `reset-vals!`
 - [#788](https://github.com/squint-cljs/squint/pull/788): Fixed compilation of `dotimes` with `_` binding
 - Multiple `:require-macros` with `:refer` now accumulate instead of overwriting
+- Fix qualified symbol resolution in macro expansions when namespace has different runtime alias
 
 ## v0.9.182
 

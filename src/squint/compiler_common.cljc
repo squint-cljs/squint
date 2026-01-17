@@ -331,6 +331,11 @@
                                 (str "globalThis." (munge *cljs-ns*) "."))
                               (alias-munge sym-ns) "."
                               (munged-name sn)))
+                           (when-let [alias (get (:libname->alias current-ns) (str sym-ns))]
+                             (str (when *repl*
+                                    (str "globalThis." (munge *cljs-ns*) "."))
+                                  (alias-munge alias) "."
+                                  (munged-name sn)))
                            (let [ns (namespace expr)
                                  munged (munge ns)
                                  nm (name expr)]
@@ -592,6 +597,7 @@
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
     (let [env (expr-env env)
+          original-libname libname
           libname (resolve-ns env libname)
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           default? (= "default" suffix) ;; we only support a default suffix for now anyway
@@ -674,8 +680,11 @@
         (swap! (:ns-state env)
                (fn [ns-state]
                  (let [current (:current ns-state)]
-                   (update-in ns-state [current :aliases] (fn [aliases]
-                                                            ((fnil assoc {}) aliases as libname)))))))
+                   (-> ns-state
+                   (update-in [current :aliases] (fn [aliases]
+                                                   ((fnil assoc {}) aliases as libname)))
+                   (update-in [current :libname->alias] (fn [m]
+                                                          ((fnil assoc {}) m (str original-libname) as))))))))
       (when-not (:elide-imports env)
         expr)
       #_nil)))
