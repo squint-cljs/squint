@@ -627,7 +627,7 @@
                                      (if with
                                        (str ", " (emit {:with with} env))
                                        "")))
-                  (statement (format "import * as %s from '%s'%s" original-libname libname
+                  (statement (format "import * as %s from '%s'%s" (alias-munge original-libname) libname
                                      (if with
                                        (str " with " (unwrap (emit with env)))
                                        ""))))
