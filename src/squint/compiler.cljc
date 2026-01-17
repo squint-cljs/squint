@@ -241,7 +241,7 @@
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
                          new-expr (apply macro expr (assoc env
                                                            ;; Added for CLJS compat
-                                                           :ns {:name cc/*cljs-ns*}
+                                                           :ns {:name *cljs-ns*}
                                                            :utils {:emit emit})
                                          (rest expr))]
                      (emit new-expr env))
