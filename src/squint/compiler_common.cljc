@@ -592,6 +592,7 @@
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
     (let [env (expr-env env)
+          original-libname libname
           libname (resolve-ns env libname)
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           default? (= "default" suffix) ;; we only support a default suffix for now anyway
@@ -610,17 +611,6 @@
                                        (if with
                                          (str " with " (unwrap (emit with env)))
                                          "")))))
-                (when (and (not as) (not refer))
-                  ;; import presumably for side effects
-                  (if *repl*
-                    (statement (format "await import('%s'%s)" libname
-                                       (if with
-                                         (str ", " (emit {:with with} env))
-                                         "")))
-                    (statement (format "import '%s'%s" libname
-                                       (if with
-                                         (str " with " (unwrap (emit with env)))
-                                         "")))))
                 (when (and as (not default?))
                   (swap! *imported-vars* update libname (fnil identity #{}))
                   (statement (if *repl*
@@ -629,6 +619,26 @@
                                          (str ", " (emit {:with with} env))
                                          ""))
                                (format "import * as %s from '%s'%s" (alias-munge as) libname
+                                       (if with
+                                         (str " with " (unwrap (emit with env)))
+                                         "")))))
+                (if *repl*
+                  (statement (format "await import('%s'%s)" libname
+                                     (if with
+                                       (str ", " (emit {:with with} env))
+                                       "")))
+                  (statement (format "import * as %s from '%s'%s" original-libname libname
+                                     (if with
+                                       (str " with " (unwrap (emit with env)))
+                                       ""))))
+                (when (and (not as) (not refer))
+                  ;; import presumably for side effects
+                  (if *repl*
+                    (statement (format "await import('%s'%s)" libname
+                                       (if with
+                                         (str ", " (emit {:with with} env))
+                                         "")))
+                    (statement (format "import '%s'%s" libname
                                        (if with
                                          (str " with " (unwrap (emit with env)))
                                          "")))))
