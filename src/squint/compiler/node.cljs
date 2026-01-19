@@ -42,20 +42,17 @@
                                                                 reload (concat [:reload])))
                                                    (let [publics (eval-form
                                                                   `(ns-publics '~macro-ns))
-                                                         ks (keys publics)
-                                                         vs (vals publics)
-                                                         vs (map deref vs)
-                                                         publics (zipmap ks vs)]
-                                                     publics)))]
+                                                         macros (keep (fn [[k v]]
+                                                                        (when (:macro (meta v))
+                                                                          [k (deref v)])) publics)
+                                                         macros (into {} macros)]
+                                                     macros)))]
                                    (.then macros
                                           (fn [macros]
                                             (swap! ns-state (fn [ns-state]
                                                               (cond-> (assoc-in ns-state [:macros macro-ns] macros)
                                                                 as (assoc-in [the-ns-name :aliases as] macro-ns)
-                                                                refer (update-in [the-ns-name :refers] merge (zipmap refer (repeat macro-ns))))))
-                                            #_(set! compiler/built-in-macros
-                                                  ;; hack
-                                                    (assoc compiler/built-in-macros macro-ns macros))))))))
+                                                                refer (update-in [the-ns-name :refers] merge (zipmap refer (repeat macro-ns))))))))))))
                       (js/Promise.resolve nil)
                       require-macros)))))))))
 
