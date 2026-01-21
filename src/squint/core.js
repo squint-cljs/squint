@@ -1988,7 +1988,7 @@ export function sort_by(keyfn, comp, coll) {
 
 export function shuffle(coll) {
   const result = [...coll];
-  let remaining = coll.length;
+  let remaining = result.length;
   while (remaining) {
     const i = Math.floor(Math.random() * remaining--);
     const tmp = result[remaining];

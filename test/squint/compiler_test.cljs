@@ -1653,7 +1653,8 @@ with `backticks`")))]
 (deftest shuffle-test
   (let [shuffled (jsv! '(shuffle [1 2 3 4]))]
     (doseq [i shuffled]
-      (is (contains? #{1 2 3 4} i)))))
+      (is (contains? #{1 2 3 4} i))))
+  (is (= false (jsv! '(= (vec (range 100)) (shuffle (range 100)))))))
 
 (deftest some-test
   (is (= 1 (jsv! '(some #(when (odd? %) %) [2 1 2 1])))))
