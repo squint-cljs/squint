@@ -425,7 +425,9 @@
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
                           tag (:tag rhs)
-                          expr (format "%s %s = %s;\n" (if (or loop? top-level?) "let" "const") lhs rhs)
+                          expr (format "%s %s = %s;\n" (if (or loop? top-level?
+                                                               (:mutable vm))
+                                                         "let" "const") lhs rhs)
                           var->ident
                           (-> var->ident
                               (assoc var-name

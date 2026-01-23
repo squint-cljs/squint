@@ -60,11 +60,11 @@
   (assert (= 2 (count bindings)))
   (let [i (first bindings)
         n (second bindings)
-        n-sym (gensym "n")
-        i-sym (gensym "i")]
-    `(let [~n-sym ~n]
-       ~(list 'js* "for (let ~{}=0;~{}<~{};~{}++) {\n~{}\n}" i-sym i-sym n-sym i-sym
-              (list* 'let [i i-sym] body))
+        n-sym (gensym "n")]
+    `(let [~n-sym ~n
+           ~(with-meta i {:mutable true}) 0]
+       ~(list 'js* "for (;~{}<~{};~{}++) {\n~{}\n}" i n-sym i
+              (list* 'do body))
        nil)))
 
 (defn core-if-not
