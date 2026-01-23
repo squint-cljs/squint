@@ -4,10 +4,10 @@
 
 ## v0.9.183
 
-- [#779](https://github.com/squint-cljs/squint/pull/779): Added `compare-and-swap!`, `swap-vals!` and `reset-vals!` (@tonsky)
-- [#788](https://github.com/squint-cljs/squint/pull/788): Fixed compilation of `dotimes` with `_` binding (@tonsky)
-- [#790](https://github.com/squint-cljs/squint/pull/790): Fixed `shuffle` not working on lazy sequences (@tonsky)
-- Multiple `:require-macros` with `:refer` now accumulate instead of overwriting (@willcohen)
+- [#779](https://github.com/squint-cljs/squint/pull/779): Added `compare-and-swap!`, `swap-vals!` and `reset-vals!` ([@tonsky](https://github.com/tonsky))
+- [#788](https://github.com/squint-cljs/squint/pull/788): Fixed compilation of `dotimes` with `_` binding ([@tonsky](https://github.com/tonsky))
+- [#790](https://github.com/squint-cljs/squint/pull/790): Fixed `shuffle` not working on lazy sequences ([@tonsky](https://github.com/tonsky))
+- Multiple `:require-macros` with `:refer` now accumulate instead of overwriting ([@willcohen](https://github.com/willcohen))
 
 ## v0.9.182
 
