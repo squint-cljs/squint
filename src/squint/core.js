@@ -2993,7 +2993,7 @@ export function vreset_BANG_(vol, v) {
 }
 
 function toEDN(value, seen = new WeakSet()) {
-  if (value === null) return 'nil';
+  if (value == null) return 'nil';
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   if (typeof value === 'string') return JSON.stringify(value);
   if (typeof value === 'bigint') return `${value}N`;

@@ -659,7 +659,8 @@
 (deftest pr-str-test
   (doseq [coll [#{"a" "b" "c"} {:a 1 :b 2}]]
     (is (eq (pr-str coll) (jsv! `(pr-str ~coll)))))
-  (is (eq "#js/Map {\"a\" 1}" (jsv! "(pr-str #js/Map {:a 1})"))))
+  (is (eq "#js/Map {\"a\" 1}" (jsv! "(pr-str #js/Map {:a 1})")))
+  (is (eq "nil" (jsv! "(pr-str js/undefined)"))))
 
 (deftest str-test
   (is (eq "123" (jsv! '(str 1 2 3))))
