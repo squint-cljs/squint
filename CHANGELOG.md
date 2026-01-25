@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## v0.9.184
 
 - Fix [#792](https://github.com/squint-cljs/squint/issues/792): `prn` `js/undefined` as `nil`
 - Fix [#793](https://github.com/squint-cljs/squint/issues/793): fix `yield*` IIFE (needs wrapping in parens)
