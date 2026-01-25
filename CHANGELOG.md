@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#792](https://github.com/squint-cljs/squint/issues/792): `prn` `js/undefined` as `nil`
+
 ## v0.9.183
 
 - [#779](https://github.com/squint-cljs/squint/pull/779): Added `compare-and-swap!`, `swap-vals!` and `reset-vals!` ([@tonsky](https://github.com/tonsky))
