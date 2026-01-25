@@ -417,8 +417,20 @@
                   {:repl true})]
       (is (str/includes? s "globalThis"))
       (is (eq [1 2 3] (js/eval s)))))
+  ;; TODO: this test doesn't belong to for-test?
   (testing "js* and code value as template"
-    (is (eq {:a 1} (jsv! '(let [x (or {:a 1} {})] x))))))
+    (is (eq {:a 1} (jsv! '(let [x (or {:a 1} {})] x)))))
+  (testing "yield* should be wrapped in parens"
+    (is (eq "((1))" (jsv! "(defn crash-me []
+  (for [_y (range 1)]
+    (for [_x (range 1)]
+      (let [alive? true
+            n 3]
+        (cond
+          (and alive? (or (= n 2) (= n 3))) 1
+          (and (not alive?) (= n 3)) 1
+          :else 0)))))
+     (pr-str (crash-me))")))))
 
 (deftest Math-test
   (let [expr '(Math/sqrt 3.14)]
