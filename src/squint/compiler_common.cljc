@@ -96,7 +96,7 @@
 (defn yield-iife
   [s env]
   (if (:gen env)
-    (format "yield* (%s)" s)
+    (format "(yield* %s)" s)
     s))
 
 (defn wrap-await
