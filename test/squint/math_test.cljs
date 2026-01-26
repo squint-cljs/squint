@@ -286,8 +286,8 @@
     (is (jsv! '(= ##Inf (squint-math/rint ##Inf))))
     (is (jsv! '(= ##-Inf (squint-math/rint ##-Inf))))
     (is (jsv! '(= 1.0 (squint-math/rint 1.2))))
-    (is (jsv! '(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
-                 (neg-zero? (squint-math/rint -0.01)))))))
+    (is (jsv! "(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
+                  (neg-zero? (squint-math/rint -0.01)))"))))
 
 (deftest test-atan2
   (testing "cljs"

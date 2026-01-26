@@ -180,7 +180,11 @@
       expr)))
 
 (defmethod emit ::number [expr env]
-  (-> (str expr)
+  (-> (if (and (zero? expr)
+               #?(:clj (neg? (Double/compare expr 0))
+                  :cljs (js/Object.is -0.0 expr)))
+        "-0"
+        (str expr))
       (emit-return env)
       (escape-jsx env)
       (tagged-expr 'number)))
