@@ -151,27 +151,21 @@ export function IEEE_fmod(x, y) {
         try {
           var ix = ilogb(hx__$1, lx);
           var iy = ilogb(hy__$1, ly);
-          var vec__50261 = setup_hl(ix, hx__$1, lx);
-          var hx__$2 = vec__50261[0];
-          var lx__$1 = vec__50261[1];
-          var vec__50264 = setup_hl(iy, hy__$1, ly);
-          var hy__$2 = vec__50264[0];
-          var ly__$1 = vec__50264[1];
-          var vec__50267 = function() {
+          const [hx__$2, lx__$1] = setup_hl(ix, hx__$1, lx);
+          const [hy__$2, ly__$1] = setup_hl(iy, hy__$1, ly);
+          const [hx__$3, lx__$2] = function() {
             var n2 = ix - iy;
             var hx__$32 = hx__$2;
             var lx__$22 = lx__$1;
             while (true) {
               if (n2 === 0) {
-                return new [hx__$32, lx__$22]();
+                return [hx__$32, lx__$22];
               } else {
                 var hz2 = u_LT_(lx__$22, ly__$1) ? hx__$32 - hy__$2 - 1 : hx__$32 - hy__$2;
                 var lz2 = lx__$22 - ly__$1;
-                var vec__50279 = hz2 < 0 ? [hx__$32 + hx__$32 + (lx__$22 >>> 31), lx__$22 + lx__$22] : (hz2 | lz2) === 0 ? function() {
+                const [hx__$42, lx__$32] = hz2 < 0 ? [hx__$32 + hx__$32 + (lx__$22 >>> 31), lx__$22 + lx__$22] : (hz2 | lz2) === 0 ? function() {
                   throw "Signed zero";
                 }() : [hz2 + hz2 + (lz2 >>> 31), lz2 + lz2];
-                var hx__$42 = vec__50279[0];
-                var lx__$32 = vec__50279[1];
                 var G__50303 = n2 - 1;
                 var G__50304 = 4294967295 & hx__$42;
                 var G__50305 = 4294967295 & lx__$32;
@@ -183,17 +177,13 @@ export function IEEE_fmod(x, y) {
               break;
             }
           }();
-          var hx__$3 = vec__50267[0];
-          var lx__$2 = vec__50267[1];
           var hz = u_LT_(lx__$2, ly__$1) ? hx__$3 - hy__$2 - 1 : hx__$3 - hy__$2;
           var lz = lx__$2 - ly__$1;
-          var vec__50270 = hz >= 0 ? [hz, lz] : [hx__$3, lx__$2];
-          var hx__$4 = vec__50270[0];
-          var lx__$3 = vec__50270[1];
+          const [hx__$4, lx__$3] = hz >= 0 ? [hz, lz] : [hx__$3, lx__$2];
           var ___$2 = (hx__$4 | lx__$3) === 0 ? function() {
             throw "Signed zero";
           }() : null;
-          var vec__50273 = function() {
+          const [hx__$5, lx__$4, iy__$1] = function() {
             var hx__$52 = hx__$4;
             var lx__$42 = lx__$3;
             var iy__$12 = iy;
@@ -212,9 +202,6 @@ export function IEEE_fmod(x, y) {
               break;
             }
           }();
-          var hx__$5 = vec__50273[0];
-          var lx__$4 = vec__50273[1];
-          var iy__$1 = vec__50273[2];
           if (iy__$1 >= -1022) {
             var hx__$6 = hx__$5 - 1048576 | iy__$1 + 1023 << 20;
             i[HI_x] = hx__$6 | sx;
@@ -222,9 +209,7 @@ export function IEEE_fmod(x, y) {
             return d[0];
           } else {
             var n = -1022 - iy__$1;
-            var vec__50282 = n <= 20 ? [hx__$5 >> n, lx__$4 >>> n | hx__$5 << 32 - n] : n <= 31 ? [sx, hx__$5 << 32 - n | lx__$4 >>> n] : [sx, hx__$5 >> n - 32];
-            var hx__$6 = vec__50282[0];
-            var lx__$5 = vec__50282[1];
+            const [hx__$6, lx__$5] = n <= 20 ? [hx__$5 >> n, lx__$4 >>> n | hx__$5 << 32 - n] : n <= 31 ? [sx, hx__$5 << 32 - n | lx__$4 >>> n] : [sx, hx__$5 >> n - 32];
             i[HI_x] = hx__$6 | sx;
             i[LO_x] = lx__$5;
             return d[0] * 1;
@@ -538,9 +523,7 @@ export function next_after(start, direction) {
       var _ = f[0] = start;
       var ht = i[HI];
       var lt = i[LO];
-      var vec__50286 = (ht & 2147483648) === 0 ? add64(ht, lt, 4294967295, 4294967295) : add64(ht, lt, 0, 1);
-      var hr = vec__50286[0];
-      var lr = vec__50286[1];
+      const [hr, lr] = (ht & 2147483648) === 0 ? add64(ht, lt, 4294967295, 4294967295) : add64(ht, lt, 0, 1);
       i[HI] = hr;
       i[LO] = lr;
       return f[0];
@@ -552,9 +535,7 @@ export function next_after(start, direction) {
       var _ = f[0] = start + 0;
       var ht = i[HI];
       var lt = i[LO];
-      var vec__50289 = (ht & 2147483648) === 0 ? add64(ht, lt, 0, 1) : add64(ht, lt, 4294967295, 4294967295);
-      var hr = vec__50289[0];
-      var lr = vec__50289[1];
+      const [hr, lr] = (ht & 2147483648) === 0 ? add64(ht, lt, 0, 1) : add64(ht, lt, 4294967295, 4294967295);
       i[HI] = hr;
       i[LO] = lr;
       return f[0];
@@ -575,9 +556,7 @@ export function next_up(d) {
     var _ = f[0] = d + 0;
     var ht = i[HI];
     var lt = i[LO];
-    var vec__50292 = (ht & 2147483648) === 0 ? add64(ht, lt, 0, 1) : add64(ht, lt, 4294967295, 4294967295);
-    var hr = vec__50292[0];
-    var lr = vec__50292[1];
+    const [hr, lr] = (ht & 2147483648) === 0 ? add64(ht, lt, 0, 1) : add64(ht, lt, 4294967295, 4294967295);
     i[HI] = hr;
     i[LO] = lr;
     return f[0];
@@ -598,9 +577,7 @@ export function next_down(d) {
       var _ = f[0] = d;
       var ht = i[HI];
       var lt = i[LO];
-      var vec__50295 = d > 0 ? add64(ht, lt, 4294967295, 4294967295) : add64(ht, lt, 0, 1);
-      var hr = vec__50295[0];
-      var lr = vec__50295[1];
+      const [hr, lr] = d > 0 ? add64(ht, lt, 4294967295, 4294967295) : add64(ht, lt, 0, 1);
       i[HI] = hr;
       i[LO] = lr;
       return f[0];
@@ -611,10 +588,7 @@ export const MAX_SCALE = EXP_MAX + 1022 + 21 + 32 + 1;
 export const two_to_the_double_scale_up = power_of_two(512);
 export const two_to_the_double_scale_down = power_of_two(-512);
 export function scalb(d, scaleFactor) {
-  var vec__50298 = scaleFactor < 0 ? [Math.max(scaleFactor, -MAX_SCALE), -512, two_to_the_double_scale_down] : [Math.min(scaleFactor, MAX_SCALE), 512, two_to_the_double_scale_up];
-  var scale_factor = vec__50298[0];
-  var scale_increment = vec__50298[1];
-  var exp_delta = vec__50298[2];
+  const [scale_factor, scale_increment, exp_delta] = scaleFactor < 0 ? [Math.max(scaleFactor, -MAX_SCALE), -512, two_to_the_double_scale_down] : [Math.min(scaleFactor, MAX_SCALE), 512, two_to_the_double_scale_up];
   var t = scale_factor >> 8 >>> 23;
   var exp_adjust = (scale_factor + t & 511) - t;
   var d__$1 = d * power_of_two(exp_adjust);
