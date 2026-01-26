@@ -315,7 +315,7 @@ var lz = (lx__$2 - ly__$1);
 var vec__50270 = (((hz >= (0)))?[hz,lz]:[hx__$3,lx__$2]);
 var hx__$4 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50270,(0),null);
 var lx__$3 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50270,(1),null);
-var ___$2 = ((((hx__$4 | lx__$3) === (0)))?(function(){throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("Signed zero",new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"zero","zero",-858964576),true], null))})():null);
+var ___$2 = ((((hx__$4 | lx__$3) === (0)))?(function(){throw "Signed zero"})():null);
 var vec__50273 = (function (){var hx__$5 = hx__$4;
 var lx__$4 = lx__$3;
 var iy__$1 = iy;
@@ -455,7 +455,7 @@ export const ceil = (function cljs$math$ceil(a){
 if((!((a == null)))){
 return Math.ceil(a);
 } else {
-throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("Unexpected Null passed to ceil",new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"fn","fn",-1175266204),"ceil"], null));
+throw "Unexpected Null passed to ceil";
 }
 });
 /**
@@ -470,7 +470,7 @@ export const floor = (function cljs$math$floor(a){
 if((!((a == null)))){
 return Math.floor(a);
 } else {
-throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("Unexpected Null passed to floor",new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"fn","fn",-1175266204),"floor"], null));
+throw "Unexpected Null passed to floor";
 }
 });
 /**
@@ -561,7 +561,7 @@ return Math.random();
 export const add_exact = (function cljs$math$add_exact(x,y){
 var r = (x + y);
 if((((r > Number.MAX_SAFE_INTEGER)) || ((r < Number.MIN_SAFE_INTEGER)))){
-throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("Integer overflow",new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"fn","fn",-1175266204),"add-exact"], null));
+throw "Integer overflow";
 } else {
 return r;
 }
@@ -572,7 +572,7 @@ return r;
 export const subtract_exact = (function cljs$math$subtract_exact(x,y){
 var r = (x - y);
 if((((r > Number.MAX_SAFE_INTEGER)) || ((r < Number.MIN_SAFE_INTEGER)))){
-throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("Integer overflow",new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"fn","fn",-1175266204),"subtract-exact"], null));
+throw "Integer overflow";
 } else {
 return r;
 }
@@ -583,7 +583,7 @@ return r;
 export const multiply_exact = (function cljs$math$multiply_exact(x,y){
 var r = (x * y);
 if((((r > Number.MAX_SAFE_INTEGER)) || ((r < Number.MIN_SAFE_INTEGER)))){
-throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("Integer overflow",new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"fn","fn",-1175266204),"multiply-exact"], null));
+throw "Integer overflow";
 } else {
 return r;
 }
@@ -593,7 +593,7 @@ return r;
  */
 export const increment_exact = (function cljs$math$increment_exact(a){
 if((((a >= Number.MAX_SAFE_INTEGER)) || ((a < Number.MIN_SAFE_INTEGER)))){
-throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("Integer overflow",new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"fn","fn",-1175266204),"increment-exact"], null));
+throw "Integer overflow";
 } else {
 return (a + (1));
 }
@@ -603,7 +603,7 @@ return (a + (1));
  */
 export const decrement_exact = (function cljs$math$decrement_exact(a){
 if((((a <= Number.MIN_SAFE_INTEGER)) || ((a > Number.MAX_SAFE_INTEGER)))){
-throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("Integer overflow",new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"fn","fn",-1175266204),"decrement-exact"], null));
+throw "Integer overflow";
 } else {
 return (a - (1));
 }
@@ -613,7 +613,7 @@ return (a - (1));
  */
 export const negate_exact = (function cljs$math$negate_exact(a){
 if((((a > Number.MAX_SAFE_INTEGER)) || ((a < Number.MIN_SAFE_INTEGER)))){
-throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("Integer overflow",new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"fn","fn",-1175266204),"negate-exact"], null));
+throw "Integer overflow";
 } else {
 return (- a);
 }
@@ -627,7 +627,7 @@ return ((((a) && ((!(b))))) || ((((!(a))) && (b))));
  */
 export const floor_div = (function cljs$math$floor_div(x,y){
 if((!(((Number.isSafeInteger(x)) && (Number.isSafeInteger(y)))))){
-throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("floor-div called with non-safe-integer arguments",new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null,"x-int?","x-int?",792269440),Number.isSafeInteger(x),new cljs.core.Keyword(null,"y-int?","y-int?",2045680479),Number.isSafeInteger(y)], null));
+throw "floor-div called with non-safe-integer arguments";
 } else {
 var r = cljs.core.long$((x / y));
 if(((xor((x < (0)),(y < (0)))) && ((!(((r * y) === x)))))){
@@ -644,7 +644,7 @@ return r;
  */
 export const floor_mod = (function cljs$math$floor_mod(x,y){
 if((!(((Number.isSafeInteger(x)) && (Number.isSafeInteger(y)))))){
-throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("floor-mod called with non-safe-integer arguments",new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null,"x-int?","x-int?",792269440),Number.isSafeInteger(x),new cljs.core.Keyword(null,"y-int?","y-int?",2045680479),Number.isSafeInteger(y)], null));
+throw "floor-mod called with non-safe-integer arguments";
 } else {
 var r = cljs.core.long$((x / y));
 if(((xor((x < (0)),(y < (0)))) && ((!(((r * y) === x)))))){
