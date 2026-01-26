@@ -344,31 +344,64 @@
                  (ulp= (/ (* -4.0 (squint-math/atan2 ##-Inf ##-Inf)) 3.0) squint-math/PI 2))))))
 
 (deftest test-pow
-  (is (= 1.0 (m/pow 4.0 0.0)))
-  (is (= 1.0 (m/pow 4.0 -0.0)))
-  (is (= 4.2 (m/pow 4.2 1.0)))
-  (is (NaN? (m/pow 4.2 ##NaN)))
-  (is (NaN? (m/pow ##NaN 2.0)))
-  (is (= ##Inf (m/pow 2.0 ##Inf)))
-  (is (= ##Inf (m/pow 0.5 ##-Inf)))
-  (is (= 0.0 (m/pow 2.0 ##-Inf)))
-  (is (= 0.0 (m/pow 0.5 ##Inf)))
-  (is (NaN? (m/pow 1.0 ##Inf)))
-  (is (pos-zero? (m/pow 0.0 1.5)))
-  (is (pos-zero? (m/pow ##Inf -2.0)))
-  (is (= ##Inf (m/pow 0.0 -2.0)))
-  (is (= ##Inf (m/pow ##Inf 2.0)))
-  (is (pos-zero? (m/pow -0.0 1.5)))
-  (is (pos-zero? (m/pow ##-Inf -1.5)))
-  (is (neg-zero? (m/pow -0.0 3.0)))
-  (is (neg-zero? (m/pow ##-Inf -3.0)))
-  (is (= ##Inf (m/pow -0.0 -1.5)))
-  (is (= ##Inf (m/pow ##-Inf 2.5)))
-  (is (= ##-Inf (m/pow -0.0 -3.0)))
-  (is (= ##-Inf (m/pow ##-Inf 3.0)))
-  (is (= 4.0 (m/pow -2.0 2.0)))
-  (is (= -8.0 (m/pow -2.0 3.0)))
-  (is (= 8.0 (m/pow 2.0 3.0))))
+  (testing "cljs"
+    (is (= 1.0 (m/pow 4.0 0.0)))
+    (is (= 1.0 (m/pow 4.0 -0.0)))
+    (is (= 4.2 (m/pow 4.2 1.0)))
+    (is (NaN? (m/pow 4.2 ##NaN)))
+    (is (NaN? (m/pow ##NaN 2.0)))
+    (is (= ##Inf (m/pow 2.0 ##Inf)))
+    (is (= ##Inf (m/pow 0.5 ##-Inf)))
+    (is (= 0.0 (m/pow 2.0 ##-Inf)))
+    (is (= 0.0 (m/pow 0.5 ##Inf)))
+    (is (NaN? (m/pow 1.0 ##Inf)))
+    (is (pos-zero? (m/pow 0.0 1.5)))
+    (is (pos-zero? (m/pow ##Inf -2.0)))
+    (is (= ##Inf (m/pow 0.0 -2.0)))
+    (is (= ##Inf (m/pow ##Inf 2.0)))
+    (is (pos-zero? (m/pow -0.0 1.5)))
+    (is (pos-zero? (m/pow ##-Inf -1.5)))
+    (is (neg-zero? (m/pow -0.0 3.0)))
+    (is (neg-zero? (m/pow ##-Inf -3.0)))
+    (is (= ##Inf (m/pow -0.0 -1.5)))
+    (is (= ##Inf (m/pow ##-Inf 2.5)))
+    (is (= ##-Inf (m/pow -0.0 -3.0)))
+    (is (= ##-Inf (m/pow ##-Inf 3.0)))
+    (is (= 4.0 (m/pow -2.0 2.0)))
+    (is (= -8.0 (m/pow -2.0 3.0)))
+    (is (= 8.0 (m/pow 2.0 3.0))))
+  (testing "squint"
+    (is (jsv! '(= 1.0 (squint-math/pow 4.0 0.0))))
+    (is (jsv! '(= 1.0 (squint-math/pow 4.0 -0.0))))
+    (is (jsv! '(= 4.2 (squint-math/pow 4.2 1.0))))
+    (is (jsv! '(NaN? (squint-math/pow 4.2 ##NaN))))
+    (is (jsv! '(NaN? (squint-math/pow ##NaN 2.0))))
+    (is (jsv! '(= ##Inf (squint-math/pow 2.0 ##Inf))))
+    (is (jsv! '(= ##Inf (squint-math/pow 0.5 ##-Inf))))
+    (is (jsv! '(= 0.0 (squint-math/pow 2.0 ##-Inf))))
+    (is (jsv! '(= 0.0 (squint-math/pow 0.5 ##Inf))))
+    (is (jsv! '(NaN? (squint-math/pow 1.0 ##Inf))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/pow 0.0 1.5)))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/pow ##Inf -2.0)))))
+    (is (jsv! '(= ##Inf (squint-math/pow 0.0 -2.0))))
+    (is (jsv! '(= ##Inf (squint-math/pow ##Inf 2.0))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/pow -0.0 1.5)))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/pow ##-Inf -1.5)))))
+    (is (jsv! '(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
+                 (neg-zero? (squint-math/pow -0.0 3.0)))))
+    (is (jsv! '(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
+                 (neg-zero? (squint-math/pow ##-Inf -3.0)))))
+    (is (jsv! '(= ##Inf (squint-math/pow -0.0 -1.5))))
+    (is (jsv! '(= ##Inf (squint-math/pow ##-Inf 2.5))))
+    (is (jsv! '(= ##-Inf (squint-math/pow -0.0 -3.0))))
+    (is (jsv! '(= ##-Inf (squint-math/pow ##-Inf 3.0))))
+    (is (jsv! '(= 4.0 (squint-math/pow -2.0 2.0))))
+    (is (jsv! '(= -8.0 (squint-math/pow -2.0 3.0))))
+    (is (jsv! '(= 8.0 (squint-math/pow 2.0 3.0))))))
 
 #_(deftest test-round
   (is (= 0 (m/round ##NaN)))
@@ -461,96 +494,198 @@
   (is (= -1 (m/floor-div -2 5))))
 
 (deftest test-floor-mod
-  (is (= 3 (m/floor-mod -2 5))))
+  (testing "cljs"
+    (is (= 3 (m/floor-mod -2 5))))
+  (testing "squint"
+    (is (jsv! '(= 3 (squint-math/floor-mod -2 5))))))
 
 (deftest test-ulp
-  (is (NaN? (m/ulp ##NaN)))
-  (is (= ##Inf (m/ulp ##Inf)))
-  (is (= ##Inf (m/ulp ##-Inf)))
-  (is (= js/Number.MIN_VALUE (m/ulp 0.0)))
-  (is (= (m/pow 2 971) (m/ulp js/Number.MAX_VALUE)))
-  (is (= (m/pow 2 971) (m/ulp (- js/Number.MAX_VALUE)))))
+  (testing "cljs"
+    (is (NaN? (m/ulp ##NaN)))
+    (is (= ##Inf (m/ulp ##Inf)))
+    (is (= ##Inf (m/ulp ##-Inf)))
+    (is (= js/Number.MIN_VALUE (m/ulp 0.0)))
+    (is (= (m/pow 2 971) (m/ulp js/Number.MAX_VALUE)))
+    (is (= (m/pow 2 971) (m/ulp (- js/Number.MAX_VALUE)))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/ulp ##NaN))))
+    (is (jsv! '(= ##Inf (squint-math/ulp ##Inf))))
+    (is (jsv! '(= ##Inf (squint-math/ulp ##-Inf))))
+    (is (jsv! '(= js/Number.MIN_VALUE (squint-math/ulp 0.0))))
+    (is (jsv! '(= (squint-math/pow 2 971) (squint-math/ulp js/Number.MAX_VALUE))))
+    (is (jsv! '(= (squint-math/pow 2 971) (squint-math/ulp (- js/Number.MAX_VALUE)))))))
 
 (deftest test-signum
-  (is (NaN? (m/signum ##NaN)))
-  (is (zero? (m/signum 0.0)))
-  (is (zero? (m/signum -0.0)))
-  (is (= 1.0 (m/signum 42.0)))
-  (is (= -1.0 (m/signum -42.0))))
+  (testing "cljs"
+    (is (NaN? (m/signum ##NaN)))
+    (is (zero? (m/signum 0.0)))
+    (is (zero? (m/signum -0.0)))
+    (is (= 1.0 (m/signum 42.0)))
+    (is (= -1.0 (m/signum -42.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/signum ##NaN))))
+    (is (jsv! '(zero? (squint-math/signum 0.0))))
+    (is (jsv! '(zero? (squint-math/signum -0.0))))
+    (is (jsv! '(= 1.0 (squint-math/signum 42.0))))
+    (is (jsv! '(= -1.0 (squint-math/signum -42.0))))))
 
 (deftest test-sinh
-  (is (NaN? (m/sinh ##NaN)))
-  (is (= ##Inf (m/sinh ##Inf)))
-  (is (= ##-Inf (m/sinh ##-Inf)))
-  (is (= 0.0 (m/sinh 0.0))))
+  (testing "cljs"
+    (is (NaN? (m/sinh ##NaN)))
+    (is (= ##Inf (m/sinh ##Inf)))
+    (is (= ##-Inf (m/sinh ##-Inf)))
+    (is (= 0.0 (m/sinh 0.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/sinh ##NaN))))
+    (is (jsv! '(= ##Inf (squint-math/sinh ##Inf))))
+    (is (jsv! '(= ##-Inf (squint-math/sinh ##-Inf))))
+    (is (jsv! '(= 0.0 (squint-math/sinh 0.0))))))
 
 (deftest test-cosh
-  (is (NaN? (m/cosh ##NaN)))
-  (is (= ##Inf (m/cosh ##Inf)))
-  (is (= ##Inf (m/cosh ##-Inf)))
-  (is (= 1.0 (m/cosh 0.0))))
+  (testing "cljs"
+    (is (NaN? (m/cosh ##NaN)))
+    (is (= ##Inf (m/cosh ##Inf)))
+    (is (= ##Inf (m/cosh ##-Inf)))
+    (is (= 1.0 (m/cosh 0.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/cosh ##NaN))))
+    (is (jsv! '(= ##Inf (squint-math/cosh ##Inf))))
+    (is (jsv! '(= ##Inf (squint-math/cosh ##-Inf))))
+    (is (jsv! '(= 1.0 (squint-math/cosh 0.0))))))
 
 (deftest test-tanh
-  (is (NaN? (m/tanh ##NaN)))
-  (is (= 1.0 (m/tanh ##Inf)))
-  (is (= -1.0 (m/tanh ##-Inf)))
-  (is (= 0.0 (m/tanh 0.0))))
+  (testing "cljs"
+    (is (NaN? (m/tanh ##NaN)))
+    (is (= 1.0 (m/tanh ##Inf)))
+    (is (= -1.0 (m/tanh ##-Inf)))
+    (is (= 0.0 (m/tanh 0.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/tanh ##NaN))))
+    (is (jsv! '(= 1.0 (squint-math/tanh ##Inf))))
+    (is (jsv! '(= -1.0 (squint-math/tanh ##-Inf))))
+    (is (jsv! '(= 0.0 (squint-math/tanh 0.0))))))
 
 (deftest test-hypot
-  (is (= ##Inf (m/hypot 1.0 ##Inf)))
-  (is (= ##Inf (m/hypot ##Inf 1.0)))
-  (is (NaN? (m/hypot ##NaN 1.0)))
-  (is (NaN? (m/hypot 1.0 ##NaN)))
-  (is (= 13.0 (m/hypot 5.0 12.0))))
+  (testing "cljs"
+    (is (= ##Inf (m/hypot 1.0 ##Inf)))
+    (is (= ##Inf (m/hypot ##Inf 1.0)))
+    (is (NaN? (m/hypot ##NaN 1.0)))
+    (is (NaN? (m/hypot 1.0 ##NaN)))
+    (is (= 13.0 (m/hypot 5.0 12.0))))
+  (testing "squint"
+    (is (jsv! '(= ##Inf (squint-math/hypot 1.0 ##Inf))))
+    (is (jsv! '(= ##Inf (squint-math/hypot ##Inf 1.0))))
+    (is (jsv! '(NaN? (squint-math/hypot ##NaN 1.0))))
+    (is (jsv! '(NaN? (squint-math/hypot 1.0 ##NaN))))
+    (is (jsv! '(= 13.0 (squint-math/hypot 5.0 12.0))))))
 
 (deftest test-expm1
-  (is (NaN? (m/expm1 ##NaN)))
-  (is (= ##Inf (m/expm1 ##Inf)))
-  (is (= -1.0 (m/expm1 ##-Inf)))
-  (is (= 0.0 (m/expm1 0.0))))
+  (testing "cljs"
+    (is (NaN? (m/expm1 ##NaN)))
+    (is (= ##Inf (m/expm1 ##Inf)))
+    (is (= -1.0 (m/expm1 ##-Inf)))
+    (is (= 0.0 (m/expm1 0.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/expm1 ##NaN))))
+    (is (jsv! '(= ##Inf (squint-math/expm1 ##Inf))))
+    (is (jsv! '(= -1.0 (squint-math/expm1 ##-Inf))))
+    (is (jsv! '(= 0.0 (squint-math/expm1 0.0))))))
 
 (deftest test-log1p
-  (is (NaN? (m/log1p ##NaN)))
-  (is (= ##Inf (m/log1p ##Inf)))
-  (is (= ##-Inf (m/log1p -1.0)))
-  (is (pos-zero? (m/log1p 0.0)))
-  (is (neg-zero? (m/log1p -0.0))))
+  (testing "cljs"
+    (is (NaN? (m/log1p ##NaN)))
+    (is (= ##Inf (m/log1p ##Inf)))
+    (is (= ##-Inf (m/log1p -1.0)))
+    (is (pos-zero? (m/log1p 0.0)))
+    (is (neg-zero? (m/log1p -0.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/log1p ##NaN))))
+    (is (jsv! '(= ##Inf (squint-math/log1p ##Inf))))
+    (is (jsv! '(= ##-Inf (squint-math/log1p -1.0))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/log1p 0.0)))))
+    (is (jsv! '(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
+                 (neg-zero? (squint-math/log1p -0.0)))))))
 
 (deftest test-copy-sign
-  (is (= 1.0 (m/copy-sign 1.0 42.0)))
-  (is (= -1.0 (m/copy-sign 1.0 -42.0)))
-  (is (= -1.0 (m/copy-sign 1.0 ##-Inf))))
+  (testing "cljs"
+    (is (= 1.0 (m/copy-sign 1.0 42.0)))
+    (is (= -1.0 (m/copy-sign 1.0 -42.0)))
+    (is (= -1.0 (m/copy-sign 1.0 ##-Inf))))
+  (testing "squint"
+    (is (jsv! '(= 1.0 (squint-math/copy-sign 1.0 42.0))))
+    (is (jsv! '(= -1.0 (squint-math/copy-sign 1.0 -42.0))))
+    (is (jsv! '(= -1.0 (squint-math/copy-sign 1.0 ##-Inf))))))
 
 (deftest test-get-exponent
-  (is (= 1024 (m/get-exponent ##NaN)))
-  (is (= 1024 (m/get-exponent ##Inf)))
-  (is (= 1024 (m/get-exponent ##-Inf)))
-  (is (= -1023 (m/get-exponent 0.0)))
-  (is (= 0 (m/get-exponent 1.0)))
-  (is (= 13 (m/get-exponent 12345.678))))
+  (testing "cljs"
+    (is (= 1024 (m/get-exponent ##NaN)))
+    (is (= 1024 (m/get-exponent ##Inf)))
+    (is (= 1024 (m/get-exponent ##-Inf)))
+    (is (= -1023 (m/get-exponent 0.0)))
+    (is (= 0 (m/get-exponent 1.0)))
+    (is (= 13 (m/get-exponent 12345.678))))
+  (testing "squint"
+    (is (jsv! '(= 1024 (squint-math/get-exponent ##NaN))))
+    (is (jsv! '(= 1024 (squint-math/get-exponent ##Inf))))
+    (is (jsv! '(= 1024 (squint-math/get-exponent ##-Inf))))
+    (is (jsv! '(= -1023 (squint-math/get-exponent 0.0))))
+    (is (jsv! '(= 0 (squint-math/get-exponent 1.0))))
+    (is (jsv! '(= 13 (squint-math/get-exponent 12345.678))))))
 
 (deftest test-next-after
-  (is (NaN? (m/next-after ##NaN 1)))
-  (is (NaN? (m/next-after 1 ##NaN)))
-  (is (pos-zero? (m/next-after 0.0 0.0)))
-  (is (neg-zero? (m/next-after -0.0 -0.0)))
-  (is (= js/Number.MAX_VALUE (m/next-after ##Inf 1.0)))
-  (is (pos-zero? (m/next-after js/Number.MIN_VALUE -1.0))))
+  (testing "cljs"
+    (is (NaN? (m/next-after ##NaN 1)))
+    (is (NaN? (m/next-after 1 ##NaN)))
+    (is (pos-zero? (m/next-after 0.0 0.0)))
+    (is (neg-zero? (m/next-after -0.0 -0.0)))
+    (is (= js/Number.MAX_VALUE (m/next-after ##Inf 1.0)))
+    (is (pos-zero? (m/next-after js/Number.MIN_VALUE -1.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/next-after ##NaN 1))))
+    (is (jsv! '(NaN? (squint-math/next-after 1 ##NaN))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/next-after 0.0 0.0)))))
+    (is (jsv! '(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
+                 (neg-zero? (squint-math/next-after -0.0 -0.0)))))
+    (is (jsv! '(= js/Number.MAX_VALUE (squint-math/next-after ##Inf 1.0))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/next-after js/Number.MIN_VALUE -1.0)))))))
 
 (deftest test-next-up
-  (is (NaN? (m/next-up ##NaN)))
-  (is (= ##Inf (m/next-up ##Inf)))
-  (is (= js/Number.MIN_VALUE (m/next-up 0.0))))
+  (testing "cljs"
+    (is (NaN? (m/next-up ##NaN)))
+    (is (= ##Inf (m/next-up ##Inf)))
+    (is (= js/Number.MIN_VALUE (m/next-up 0.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/next-up ##NaN))))
+    (is (jsv! '(= ##Inf (squint-math/next-up ##Inf))))
+    (is (jsv! '(= js/Number.MIN_VALUE (squint-math/next-up 0.0))))))
 
 (deftest test-next-down
-  (is (NaN? (m/next-down ##NaN)))
-  (is (= ##-Inf (m/next-down ##-Inf)))
-  (is (= (- js/Number.MIN_VALUE) (m/next-down 0.0))))
+  (testing "cljs"
+    (is (NaN? (m/next-down ##NaN)))
+    (is (= ##-Inf (m/next-down ##-Inf)))
+    (is (= (- js/Number.MIN_VALUE) (m/next-down 0.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/next-down ##NaN))))
+    (is (jsv! '(= ##-Inf (squint-math/next-down ##-Inf))))
+    (is (jsv! '(= (- js/Number.MIN_VALUE) (squint-math/next-down 0.0))))))
 
 (deftest test-scalb
-  (is (NaN? (m/scalb ##NaN 1)))
-  (is (= ##Inf (m/scalb ##Inf 1)))
-  (is (= ##-Inf (m/scalb ##-Inf 1)))
-  (is (pos-zero? (m/scalb 0.0 2)))
-  (is (neg-zero? (m/scalb -0.0 2)))
-  (is (= 32.0 (m/scalb 2.0 4))))
+  (testing "cljs"
+    (is (NaN? (m/scalb ##NaN 1)))
+    (is (= ##Inf (m/scalb ##Inf 1)))
+    (is (= ##-Inf (m/scalb ##-Inf 1)))
+    (is (pos-zero? (m/scalb 0.0 2)))
+    (is (neg-zero? (m/scalb -0.0 2)))
+    (is (= 32.0 (m/scalb 2.0 4))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/scalb ##NaN 1))))
+    (is (jsv! '(= ##Inf (squint-math/scalb ##Inf 1))))
+    (is (jsv! '(= ##-Inf (squint-math/scalb ##-Inf 1))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/scalb 0.0 2)))))
+    (is (jsv! '(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
+                 (neg-zero? (squint-math/scalb -0.0 2)))))
+    (is (jsv! '(= 32.0 (squint-math/scalb 2.0 4))))))
