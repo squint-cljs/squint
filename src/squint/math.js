@@ -308,11 +308,11 @@ continue;
 break;
 }
 })();
-var hx__$3 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50267,(0),null);
-var lx__$2 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50267,(1),null);
+var hx__$3 = vec__50267[0];
+var lx__$2 = vec__50267[1];
 var hz = ((u_LT_(lx__$2,ly__$1))?((hx__$3 - hy__$2) - (1)):(hx__$3 - hy__$2));
 var lz = (lx__$2 - ly__$1);
-var vec__50270 = (((hz >= (0)))?new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [hz,lz], null):new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [hx__$3,lx__$2], null));
+var vec__50270 = (((hz >= (0)))?[hz,lz]:[hx__$3,lx__$2]);
 var hx__$4 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50270,(0),null);
 var lx__$3 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50270,(1),null);
 var ___$2 = ((((hx__$4 | lx__$3) === (0)))?(function(){throw cljs.core.ex_info.cljs$core$IFn$_invoke$arity$2("Signed zero",new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"zero","zero",-858964576),true], null))})():null);
@@ -321,7 +321,7 @@ var lx__$4 = lx__$3;
 var iy__$1 = iy;
 while(true){
 if((!((hx__$5 < (1048576))))){
-return new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [hx__$5,lx__$4,iy__$1], null);
+return [hx__$5,lx__$4,iy__$1];
 } else {
 var G__50306 = ((hx__$5 + hx__$5) + (lx__$4 >>> (31)));
 var G__50307 = (lx__$4 + lx__$4);
@@ -346,7 +346,7 @@ var hx__$6 = ((hx__$5 - (1048576)) | ((iy__$1 + (1023)) << (20)));
 return (d[(0)]);
 } else {
 var n = ((-1022) - iy__$1);
-var vec__50282 = (((n <= (20)))?new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [(hx__$5 >> n),((lx__$4 >>> n) | (hx__$5 << ((32) - n)))], null):(((n <= (31)))?new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [sx,((hx__$5 << ((32) - n)) | (lx__$4 >>> n))], null):new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [sx,(hx__$5 >> (n - (32)))], null)
+var vec__50282 = (((n <= (20)))?[(hx__$5 >> n),((lx__$4 >>> n) | (hx__$5 << ((32) - n)))]:(((n <= (31)))?[sx,((hx__$5 << ((32) - n)) | (lx__$4 >>> n))]:[sx,(hx__$5 >> (n - (32)))]
 ));
 var hx__$6 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50282,(0),null);
 var lx__$5 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50282,(1),null);
@@ -834,7 +834,7 @@ var b31 = ((sx + sy) + c31);
 var lr__$1 = ((lr & (2147483647)) | (b31 << (31)));
 var c32 = (b31 >> (1));
 var hr = ((4294967295) & ((hx + hy) + c32));
-return new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, [hr,lr__$1], null);
+return [hr,lr__$1];
 });
 /**
  * Returns the adjacent floating point number to start in the direction of
@@ -964,7 +964,7 @@ export const two_to_the_double_scale_down = power_of_two((-512));
  *   See: https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html#nextDown-double-
  */
 export const scalb = (function cljs$math$scalb(d,scaleFactor){
-var vec__50298 = (((scaleFactor < (0)))?new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [Math.max(scaleFactor,(- MAX_SCALE)),(-512),two_to_the_double_scale_down], null):new cljs.core.PersistentVector(null, 3, 5, cljs.core.PersistentVector.EMPTY_NODE, [Math.min(scaleFactor,MAX_SCALE),(512),two_to_the_double_scale_up], null));
+var vec__50298 = (((scaleFactor < (0)))?[Math.max(scaleFactor,(- MAX_SCALE)),(-512),two_to_the_double_scale_down]:[Math.min(scaleFactor,MAX_SCALE),(512),two_to_the_double_scale_up]);
 var scale_factor = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50298,(0),null);
 var scale_increment = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50298,(1),null);
 var exp_delta = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50298,(2),null);
