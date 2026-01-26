@@ -4,6 +4,7 @@
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
+   [cljs.math]
    [squint.compiler.utils :as utils]
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
@@ -571,6 +572,7 @@
       (case alias
         (squint.string clojure.string) (resolve-import-map import-maps "squint-cljs/src/squint/string.js")
         (squint.set clojure.set) (resolve-import-map import-maps "squint-cljs/src/squint/set.js")
+        (squint.math clojure.math cljs.math) (resolve-import-map import-maps "squint-cljs/src/squint/math.js")
         (if (symbol? alias)
           (if-let [resolve-ns (:resolve-ns env)]
             (or (resolve-ns alias)
