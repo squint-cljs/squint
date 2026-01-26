@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
-          java-version: '11'
+          java-version: '25'
 
       - name: Install clojure tools
         uses: DeLaGuardo/setup-clojure@12.1
