@@ -92,22 +92,48 @@
                  (ulp= (- (squint-math/tan squint-math/PI)) (squint-math/tan (- squint-math/PI)) 1))))))
 
 (deftest test-asin
-  (is (NaN? (m/asin ##NaN)))
-  (is (NaN? (m/asin 2.0)))
-  (is (NaN? (m/asin -2.0)))
-  (is (zero? (m/asin -0.0))))
+  (testing "cljs"
+    (is (NaN? (m/asin ##NaN)))
+    (is (NaN? (m/asin 2.0)))
+    (is (NaN? (m/asin -2.0)))
+    (is (zero? (m/asin -0.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/asin ##NaN))))
+    (is (jsv! '(NaN? (squint-math/asin 2.0))))
+    (is (jsv! '(NaN? (squint-math/asin -2.0))))
+    (is (jsv! '(zero? (squint-math/asin -0.0))))))
 
 (deftest test-acos
-  (is (NaN? (m/acos ##NaN)))
-  (is (NaN? (m/acos -2.0)))
-  (is (NaN? (m/acos 2.0)))
-  (is (ulp= (* 2 (m/acos 0.0)) m/PI 1)))
+  (testing "cljs"
+    (is (NaN? (m/acos ##NaN)))
+    (is (NaN? (m/acos -2.0)))
+    (is (NaN? (m/acos 2.0)))
+    (is (ulp= (* 2 (m/acos 0.0)) m/PI 1)))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/acos ##NaN))))
+    (is (jsv! '(NaN? (squint-math/acos -2.0))))
+    (is (jsv! '(NaN? (squint-math/acos 2.0))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (* 2 (squint-math/acos 0.0)) squint-math/PI 1))))))
 
 (deftest test-atan
-  (is (NaN? (m/atan ##NaN)))
-  (is (pos-zero? (m/atan 0.0)))
-  (is (neg-zero? (m/atan -0.0)))
-  (is (ulp= (m/atan 1) 0.7853981633974483 1)))
+  (testing "cljs"
+    (is (NaN? (m/atan ##NaN)))
+    (is (pos-zero? (m/atan 0.0)))
+    (is (neg-zero? (m/atan -0.0)))
+    (is (ulp= (m/atan 1) 0.7853981633974483 1)))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/atan ##NaN))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/atan 0.0)))))
+    (is (jsv! '(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
+                 (neg-zero? (squint-math/atan -0.0)))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (squint-math/atan 1) 0.7853981633974483 1))))))
 
 (deftest test-radians-degrees-roundtrip
   (doseq [d (range 0.0 360.0 5.0)]
