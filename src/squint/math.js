@@ -313,8 +313,8 @@ var lx__$2 = vec__50267[1];
 var hz = ((u_LT_(lx__$2,ly__$1))?((hx__$3 - hy__$2) - (1)):(hx__$3 - hy__$2));
 var lz = (lx__$2 - ly__$1);
 var vec__50270 = (((hz >= (0)))?[hz,lz]:[hx__$3,lx__$2]);
-var hx__$4 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50270,(0),null);
-var lx__$3 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50270,(1),null);
+var hx__$4 = vec__50270[0];
+var lx__$3 = vec__50270[1];
 var ___$2 = ((((hx__$4 | lx__$3) === (0)))?(function(){throw "Signed zero"})():null);
 var vec__50273 = (function (){var hx__$5 = hx__$4;
 var lx__$4 = lx__$3;
@@ -334,9 +334,9 @@ continue;
 break;
 }
 })();
-var hx__$5 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50273,(0),null);
-var lx__$4 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50273,(1),null);
-var iy__$1 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50273,(2),null);
+var hx__$5 = vec__50273[0];
+var lx__$4 = vec__50273[1];
+var iy__$1 = vec__50273[2];
 if((iy__$1 >= (-1022))){
 var hx__$6 = ((hx__$5 - (1048576)) | ((iy__$1 + (1023)) << (20)));
 (i[HI_x] = (hx__$6 | sx));
@@ -348,8 +348,8 @@ return (d[(0)]);
 var n = ((-1022) - iy__$1);
 var vec__50282 = (((n <= (20)))?[(hx__$5 >> n),((lx__$4 >>> n) | (hx__$5 << ((32) - n)))]:(((n <= (31)))?[sx,((hx__$5 << ((32) - n)) | (lx__$4 >>> n))]:[sx,(hx__$5 >> (n - (32)))]
 ));
-var hx__$6 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50282,(0),null);
-var lx__$5 = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50282,(1),null);
+var hx__$6 = vec__50282[0];
+var lx__$5 = vec__50282[1];
 (i[HI_x] = (hx__$6 | sx));
 
 (i[LO_x] = lx__$5);
@@ -859,8 +859,8 @@ var _ = (f[(0)] = start);
 var ht = (i[HI]);
 var lt = (i[LO]);
 var vec__50286 = ((((ht & (2147483648)) === (0)))?add64(ht,lt,(4294967295),(4294967295)):add64(ht,lt,(0),(1)));
-var hr = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50286,(0),null);
-var lr = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50286,(1),null);
+var hr = vec__50286[0];
+var lr = vec__50286[1];
 (i[HI] = hr);
 
 (i[LO] = lr);
@@ -875,8 +875,8 @@ var _ = (f[(0)] = (start + 0.0));
 var ht = (i[HI]);
 var lt = (i[LO]);
 var vec__50289 = ((((ht & (2147483648)) === (0)))?add64(ht,lt,(0),(1)):add64(ht,lt,(4294967295),(4294967295)));
-var hr = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50289,(0),null);
-var lr = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50289,(1),null);
+var hr = vec__50289[0];
+var lr = vec__50289[1];
 (i[HI] = hr);
 
 (i[LO] = lr);
@@ -908,8 +908,8 @@ var _ = (f[(0)] = (d + 0.0));
 var ht = (i[HI]);
 var lt = (i[LO]);
 var vec__50292 = ((((ht & (2147483648)) === (0)))?add64(ht,lt,(0),(1)):add64(ht,lt,(4294967295),(4294967295)));
-var hr = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50292,(0),null);
-var lr = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50292,(1),null);
+var hr = vec__50292[0];
+var lr = vec__50292[1];
 (i[HI] = hr);
 
 (i[LO] = lr);
@@ -940,8 +940,8 @@ var _ = (f[(0)] = d);
 var ht = (i[HI]);
 var lt = (i[LO]);
 var vec__50295 = (((d > (0)))?add64(ht,lt,(4294967295),(4294967295)):add64(ht,lt,(0),(1)));
-var hr = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50295,(0),null);
-var lr = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50295,(1),null);
+var hr = vec__50295[0];
+var lr = vec__50295[1];
 (i[HI] = hr);
 
 (i[LO] = lr);
@@ -965,9 +965,9 @@ export const two_to_the_double_scale_down = power_of_two((-512));
  */
 export const scalb = (function cljs$math$scalb(d,scaleFactor){
 var vec__50298 = (((scaleFactor < (0)))?[Math.max(scaleFactor,(- MAX_SCALE)),(-512),two_to_the_double_scale_down]:[Math.min(scaleFactor,MAX_SCALE),(512),two_to_the_double_scale_up]);
-var scale_factor = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50298,(0),null);
-var scale_increment = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50298,(1),null);
-var exp_delta = cljs.core.nth.cljs$core$IFn$_invoke$arity$3(vec__50298,(2),null);
+var scale_factor = vec__50298[0];
+var scale_increment = vec__50298[1];
+var exp_delta = vec__50298[2];
 var t = ((scale_factor >> (8)) >>> (23));
 var exp_adjust = (((scale_factor + t) & (511)) - t);
 var d__$1 = (d * power_of_two(exp_adjust));
