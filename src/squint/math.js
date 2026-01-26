@@ -164,7 +164,7 @@ export function IEEE_fmod(x, y) {
                 var hz2 = u_LT_(lx__$22, ly__$1) ? hx__$32 - hy__$2 - 1 : hx__$32 - hy__$2;
                 var lz2 = lx__$22 - ly__$1;
                 const [hx__$42, lx__$32] = hz2 < 0 ? [hx__$32 + hx__$32 + (lx__$22 >>> 31), lx__$22 + lx__$22] : (hz2 | lz2) === 0 ? function() {
-                  throw "Signed zero";
+                  throw new Error("Signed zero");
                 }() : [hz2 + hz2 + (lz2 >>> 31), lz2 + lz2];
                 var G__50303 = n2 - 1;
                 var G__50304 = 4294967295 & hx__$42;
@@ -180,9 +180,9 @@ export function IEEE_fmod(x, y) {
           var hz = u_LT_(lx__$2, ly__$1) ? hx__$3 - hy__$2 - 1 : hx__$3 - hy__$2;
           var lz = lx__$2 - ly__$1;
           const [hx__$4, lx__$3] = hz >= 0 ? [hz, lz] : [hx__$3, lx__$2];
-          var ___$2 = (hx__$4 | lx__$3) === 0 ? function() {
-            throw "Signed zero";
-          }() : null;
+          if ((hx__$4 | lx__$3) === 0) {
+            throw new Error("Signed zero");
+          }
           const [hx__$5, lx__$4, iy__$1] = function() {
             var hx__$52 = hx__$4;
             var lx__$42 = lx__$3;
@@ -291,14 +291,14 @@ export function ceil(a) {
   if (!(a == null)) {
     return Math.ceil(a);
   } else {
-    throw "Unexpected Null passed to ceil";
+    throw new Error("Unexpected Null passed to ceil");
   }
 }
 export function floor(a) {
   if (!(a == null)) {
     return Math.floor(a);
   } else {
-    throw "Unexpected Null passed to floor";
+    throw new Error("Unexpected Null passed to floor");
   }
 }
 export function copy_sign(magnitude, sign) {
@@ -346,7 +346,7 @@ export function random() {
 export function add_exact(x, y) {
   var r = x + y;
   if (r > Number.MAX_SAFE_INTEGER || r < Number.MIN_SAFE_INTEGER) {
-    throw "Integer overflow";
+    throw new Error("Integer overflow");
   } else {
     return r;
   }
@@ -354,7 +354,7 @@ export function add_exact(x, y) {
 export function subtract_exact(x, y) {
   var r = x - y;
   if (r > Number.MAX_SAFE_INTEGER || r < Number.MIN_SAFE_INTEGER) {
-    throw "Integer overflow";
+    throw new Error("Integer overflow");
   } else {
     return r;
   }
@@ -362,28 +362,28 @@ export function subtract_exact(x, y) {
 export function multiply_exact(x, y) {
   var r = x * y;
   if (r > Number.MAX_SAFE_INTEGER || r < Number.MIN_SAFE_INTEGER) {
-    throw "Integer overflow";
+    throw new Error("Integer overflow");
   } else {
     return r;
   }
 }
 export function increment_exact(a) {
   if (a >= Number.MAX_SAFE_INTEGER || a < Number.MIN_SAFE_INTEGER) {
-    throw "Integer overflow";
+    throw new Error("Integer overflow");
   } else {
     return a + 1;
   }
 }
 export function decrement_exact(a) {
   if (a <= Number.MIN_SAFE_INTEGER || a > Number.MAX_SAFE_INTEGER) {
-    throw "Integer overflow";
+    throw new Error("Integer overflow");
   } else {
     return a - 1;
   }
 }
 export function negate_exact(a) {
   if (a > Number.MAX_SAFE_INTEGER || a < Number.MIN_SAFE_INTEGER) {
-    throw "Integer overflow";
+    throw new Error("Integer overflow");
   } else {
     return -a;
   }
