@@ -71,12 +71,25 @@
                  (ulp= (squint-math/cos squint-math/PI) (squint-math/cos (- squint-math/PI)) 1))))))
 
 (deftest test-tan
-  (is (NaN? (m/tan ##NaN)))
-  (is (NaN? (m/tan ##-Inf)))
-  (is (NaN? (m/tan ##Inf)))
-  (is (pos-zero? (m/tan 0.0)))
-  (is (neg-zero? (m/tan -0.0)))
-  (is (ulp= (- (m/tan m/PI)) (m/tan (- m/PI)) 1)))
+  (testing "cljs"
+    (is (NaN? (m/tan ##NaN)))
+    (is (NaN? (m/tan ##-Inf)))
+    (is (NaN? (m/tan ##Inf)))
+    (is (pos-zero? (m/tan 0.0)))
+    (is (neg-zero? (m/tan -0.0)))
+    (is (ulp= (- (m/tan m/PI)) (m/tan (- m/PI)) 1)))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/tan ##NaN))))
+    (is (jsv! '(NaN? (squint-math/tan ##-Inf))))
+    (is (jsv! '(NaN? (squint-math/tan ##Inf))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/tan 0.0)))))
+    (is (jsv! '(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
+                 (neg-zero? (squint-math/tan -0.0)))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (- (squint-math/tan squint-math/PI)) (squint-math/tan (- squint-math/PI)) 1))))))
 
 (deftest test-asin
   (is (NaN? (m/asin ##NaN)))
