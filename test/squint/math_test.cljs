@@ -290,18 +290,58 @@
                  (neg-zero? (squint-math/rint -0.01)))))))
 
 (deftest test-atan2
-  (is (NaN? (m/atan2 ##NaN 1.0)))
-  (is (NaN? (m/atan2 1.0 ##NaN)))
-  (is (pos-zero? (m/atan2 0.0 1.0)))
-  (is (neg-zero? (m/atan2 -0.0 1.0)))
-  (is (ulp= (m/atan2 0.0 -1.0) m/PI 2))
-  (is (ulp= (m/atan2 -0.0 -1.0) (- m/PI) 2))
-  (is (ulp= (* 2.0 (m/atan2 1.0 0.0)) m/PI 2))
-  (is (ulp= (* -2.0 (m/atan2 -1.0 0.0)) m/PI 2))
-  (is (ulp= (* 4.0 (m/atan2 ##Inf ##Inf)) m/PI 2))
-  (is (ulp= (/ (* 4.0 (m/atan2 ##Inf ##-Inf)) 3.0) m/PI 2))
-  (is (ulp= (* -4.0 (m/atan2 ##-Inf ##Inf)) m/PI 2))
-  (is (ulp= (/ (* -4.0 (m/atan2 ##-Inf ##-Inf)) 3.0) m/PI 2)))
+  (testing "cljs"
+    (is (NaN? (m/atan2 ##NaN 1.0)))
+    (is (NaN? (m/atan2 1.0 ##NaN)))
+    (is (pos-zero? (m/atan2 0.0 1.0)))
+    (is (neg-zero? (m/atan2 -0.0 1.0)))
+    (is (ulp= (m/atan2 0.0 -1.0) m/PI 2))
+    (is (ulp= (m/atan2 -0.0 -1.0) (- m/PI) 2))
+    (is (ulp= (* 2.0 (m/atan2 1.0 0.0)) m/PI 2))
+    (is (ulp= (* -2.0 (m/atan2 -1.0 0.0)) m/PI 2))
+    (is (ulp= (* 4.0 (m/atan2 ##Inf ##Inf)) m/PI 2))
+    (is (ulp= (/ (* 4.0 (m/atan2 ##Inf ##-Inf)) 3.0) m/PI 2))
+    (is (ulp= (* -4.0 (m/atan2 ##-Inf ##Inf)) m/PI 2))
+    (is (ulp= (/ (* -4.0 (m/atan2 ##-Inf ##-Inf)) 3.0) m/PI 2)))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/atan2 ##NaN 1.0))))
+    (is (jsv! '(NaN? (squint-math/atan2 1.0 ##NaN))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/atan2 0.0 1.0)))))
+    (is (jsv! '(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
+                 (neg-zero? (squint-math/atan2 -0.0 1.0)))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (squint-math/atan2 0.0 -1.0) squint-math/PI 2))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (squint-math/atan2 -0.0 -1.0) (- squint-math/PI) 2))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (* 2.0 (squint-math/atan2 1.0 0.0)) squint-math/PI 2))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (* -2.0 (squint-math/atan2 -1.0 0.0)) squint-math/PI 2))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (* 4.0 (squint-math/atan2 ##Inf ##Inf)) squint-math/PI 2))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (/ (* 4.0 (squint-math/atan2 ##Inf ##-Inf)) 3.0) squint-math/PI 2))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (* -4.0 (squint-math/atan2 ##-Inf ##Inf)) squint-math/PI 2))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (/ (* -4.0 (squint-math/atan2 ##-Inf ##-Inf)) 3.0) squint-math/PI 2))))))
 
 (deftest test-pow
   (is (= 1.0 (m/pow 4.0 0.0)))
