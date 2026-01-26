@@ -136,70 +136,158 @@
                  (ulp= (squint-math/atan 1) 0.7853981633974483 1))))))
 
 (deftest test-radians-degrees-roundtrip
-  (doseq [d (range 0.0 360.0 5.0)]
-    (is (ulp= (m/round d) (m/round (-> d m/to-radians m/to-degrees)) 1))))
+  (testing "cljs"
+    (doseq [d (range 0.0 360.0 5.0)]
+      (is (ulp= (m/round d) (m/round (-> d m/to-radians m/to-degrees)) 1))))
+  (testing "squint"
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (every? (fn [d]
+                           (ulp= (squint-math/round d)
+                                 (squint-math/round (-> d squint-math/to-radians squint-math/to-degrees))
+                                 1))
+                         (range 0.0 360.0 5.0)))))))
 
 (deftest test-exp
-  (is (NaN? (m/exp ##NaN)))
-  (is (= ##Inf (m/exp ##Inf)))
-  (is (pos-zero? (m/exp ##-Inf)))
-  (is (ulp= (m/exp 0.0) 1.0 1))
-  (is (ulp= (m/exp 1) m/E 1)))
+  (testing "cljs"
+    (is (NaN? (m/exp ##NaN)))
+    (is (= ##Inf (m/exp ##Inf)))
+    (is (pos-zero? (m/exp ##-Inf)))
+    (is (ulp= (m/exp 0.0) 1.0 1))
+    (is (ulp= (m/exp 1) m/E 1)))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/exp ##NaN))))
+    (is (jsv! '(= ##Inf (squint-math/exp ##Inf))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/exp ##-Inf)))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (squint-math/exp 0.0) 1.0 1))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (squint-math/exp 1) squint-math/E 1))))))
 
 (deftest test-log
-  (is (NaN? (m/log ##NaN)))
-  (is (NaN? (m/log -1.0)))
-  (is (= ##Inf (m/log ##Inf)))
-  (is (= ##-Inf (m/log 0.0)))
-  (is (ulp= (m/log m/E) 1.0 1)))
+  (testing "cljs"
+    (is (NaN? (m/log ##NaN)))
+    (is (NaN? (m/log -1.0)))
+    (is (= ##Inf (m/log ##Inf)))
+    (is (= ##-Inf (m/log 0.0)))
+    (is (ulp= (m/log m/E) 1.0 1)))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/log ##NaN))))
+    (is (jsv! '(NaN? (squint-math/log -1.0))))
+    (is (jsv! '(= ##Inf (squint-math/log ##Inf))))
+    (is (jsv! '(= ##-Inf (squint-math/log 0.0))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (squint-math/log squint-math/E) 1.0 1))))))
 
 (deftest test-log10
-  (is (NaN? (m/log10 ##NaN)))
-  (is (NaN? (m/log10 -1.0)))
-  (is (= ##Inf (m/log10 ##Inf)))
-  (is (= ##-Inf (m/log10 0.0)))
-  (is (ulp= (m/log10 10) 1.0 1)))
+  (testing "cljs"
+    (is (NaN? (m/log10 ##NaN)))
+    (is (NaN? (m/log10 -1.0)))
+    (is (= ##Inf (m/log10 ##Inf)))
+    (is (= ##-Inf (m/log10 0.0)))
+    (is (ulp= (m/log10 10) 1.0 1)))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/log10 ##NaN))))
+    (is (jsv! '(NaN? (squint-math/log10 -1.0))))
+    (is (jsv! '(= ##Inf (squint-math/log10 ##Inf))))
+    (is (jsv! '(= ##-Inf (squint-math/log10 0.0))))
+    (is (jsv! '(let [ulp= (fn [x y m]
+                            (let [mu (* (squint-math/ulp x) m)]
+                              (<= (- x mu) y (+ x mu))))]
+                 (ulp= (squint-math/log10 10) 1.0 1))))))
 
 (deftest test-sqrt
-  (is (NaN? (m/sqrt ##NaN)))
-  (is (NaN? (m/sqrt -1.0)))
-  (is (= ##Inf (m/sqrt ##Inf)))
-  (is (pos-zero? (m/sqrt 0)))
-  (is (= (m/sqrt 4.0) 2.0)))
+  (testing "cljs"
+    (is (NaN? (m/sqrt ##NaN)))
+    (is (NaN? (m/sqrt -1.0)))
+    (is (= ##Inf (m/sqrt ##Inf)))
+    (is (pos-zero? (m/sqrt 0)))
+    (is (= (m/sqrt 4.0) 2.0)))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/sqrt ##NaN))))
+    (is (jsv! '(NaN? (squint-math/sqrt -1.0))))
+    (is (jsv! '(= ##Inf (squint-math/sqrt ##Inf))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/sqrt 0)))))
+    (is (jsv! '(= (squint-math/sqrt 4.0) 2.0)))))
 
 (deftest test-cbrt
-  (is (NaN? (m/cbrt ##NaN)))
-  (is (= ##-Inf (m/cbrt ##-Inf)))
-  (is (= ##Inf (m/cbrt ##Inf)))
-  (is (pos-zero? (m/cbrt 0)))
-  (is (= 2.0 (m/cbrt 8.0))))
+  (testing "cljs"
+    (is (NaN? (m/cbrt ##NaN)))
+    (is (= ##-Inf (m/cbrt ##-Inf)))
+    (is (= ##Inf (m/cbrt ##Inf)))
+    (is (pos-zero? (m/cbrt 0)))
+    (is (= 2.0 (m/cbrt 8.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/cbrt ##NaN))))
+    (is (jsv! '(= ##-Inf (squint-math/cbrt ##-Inf))))
+    (is (jsv! '(= ##Inf (squint-math/cbrt ##Inf))))
+    (is (jsv! '(let [pos-zero? (fn [d] (js/Object.is d 0.0))]
+                 (pos-zero? (squint-math/cbrt 0)))))
+    (is (jsv! '(= 2.0 (squint-math/cbrt 8.0))))))
 
 (deftest test-IEEE-remainder
-  (is (NaN? (m/IEEE-remainder ##NaN 1.0)))
-  (is (NaN? (m/IEEE-remainder 1.0 ##NaN)))
-  (is (NaN? (m/IEEE-remainder ##Inf 2.0)))
-  (is (NaN? (m/IEEE-remainder ##-Inf 2.0)))
-  (is (NaN? (m/IEEE-remainder 2 0.0)))
-  (is (= 1.0 (m/IEEE-remainder 5.0 4.0))))
+  (testing "cljs"
+    (is (NaN? (m/IEEE-remainder ##NaN 1.0)))
+    (is (NaN? (m/IEEE-remainder 1.0 ##NaN)))
+    (is (NaN? (m/IEEE-remainder ##Inf 2.0)))
+    (is (NaN? (m/IEEE-remainder ##-Inf 2.0)))
+    (is (NaN? (m/IEEE-remainder 2 0.0)))
+    (is (= 1.0 (m/IEEE-remainder 5.0 4.0))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/IEEE-remainder ##NaN 1.0))))
+    (is (jsv! '(NaN? (squint-math/IEEE-remainder 1.0 ##NaN))))
+    (is (jsv! '(NaN? (squint-math/IEEE-remainder ##Inf 2.0))))
+    (is (jsv! '(NaN? (squint-math/IEEE-remainder ##-Inf 2.0))))
+    (is (jsv! '(NaN? (squint-math/IEEE-remainder 2 0.0))))
+    (is (jsv! '(= 1.0 (squint-math/IEEE-remainder 5.0 4.0))))))
 
 (deftest test-ceil
-  (is (NaN? (m/ceil ##NaN)))
-  (is (= ##Inf (m/ceil ##Inf)))
-  (is (= ##-Inf (m/ceil ##-Inf)))
-  (is (= 4.0 (m/ceil m/PI))))
+  (testing "cljs"
+    (is (NaN? (m/ceil ##NaN)))
+    (is (= ##Inf (m/ceil ##Inf)))
+    (is (= ##-Inf (m/ceil ##-Inf)))
+    (is (= 4.0 (m/ceil m/PI))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/ceil ##NaN))))
+    (is (jsv! '(= ##Inf (squint-math/ceil ##Inf))))
+    (is (jsv! '(= ##-Inf (squint-math/ceil ##-Inf))))
+    (is (jsv! '(= 4.0 (squint-math/ceil squint-math/PI))))))
 
 (deftest test-floor
-  (is (NaN? (m/floor ##NaN)))
-  (is (= ##Inf (m/floor ##Inf)))
-  (is (= ##-Inf (m/floor ##-Inf)))
-  (is (= 3.0 (m/floor m/PI))))
+  (testing "cljs"
+    (is (NaN? (m/floor ##NaN)))
+    (is (= ##Inf (m/floor ##Inf)))
+    (is (= ##-Inf (m/floor ##-Inf)))
+    (is (= 3.0 (m/floor m/PI))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/floor ##NaN))))
+    (is (jsv! '(= ##Inf (squint-math/floor ##Inf))))
+    (is (jsv! '(= ##-Inf (squint-math/floor ##-Inf))))
+    (is (jsv! '(= 3.0 (squint-math/floor squint-math/PI))))))
 
 (deftest test-rint
-  (is (NaN? (m/rint ##NaN)))
-  (is (= ##Inf (m/rint ##Inf)))
-  (is (= ##-Inf (m/rint ##-Inf)))
-  (is (= 1.0 (m/rint 1.2)))
-  (is (neg-zero? (m/rint -0.01))))
+  (testing "cljs"
+    (is (NaN? (m/rint ##NaN)))
+    (is (= ##Inf (m/rint ##Inf)))
+    (is (= ##-Inf (m/rint ##-Inf)))
+    (is (= 1.0 (m/rint 1.2)))
+    (is (neg-zero? (m/rint -0.01))))
+  (testing "squint"
+    (is (jsv! '(NaN? (squint-math/rint ##NaN))))
+    (is (jsv! '(= ##Inf (squint-math/rint ##Inf))))
+    (is (jsv! '(= ##-Inf (squint-math/rint ##-Inf))))
+    (is (jsv! '(= 1.0 (squint-math/rint 1.2))))
+    (is (jsv! '(let [neg-zero? (fn [d] (js/Object.is d -0.0))]
+                 (neg-zero? (squint-math/rint -0.01)))))))
 
 (deftest test-atan2
   (is (NaN? (m/atan2 ##NaN 1.0)))
