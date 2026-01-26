@@ -393,7 +393,7 @@ export function xor(a, b) {
 }
 export function floor_div(x, y) {
   if (!(Number.isSafeInteger(x) && Number.isSafeInteger(y))) {
-    throw "floor-div called with non-safe-integer arguments";
+    throw new Error("floor-div called with non-safe-integer arguments");
   } else {
     var r = core.long$(x / y);
     if (xor(x < 0, y < 0) && !(r * y === x)) {
@@ -405,7 +405,7 @@ export function floor_div(x, y) {
 }
 export function floor_mod(x, y) {
   if (!(Number.isSafeInteger(x) && Number.isSafeInteger(y))) {
-    throw "floor-mod called with non-safe-integer arguments";
+    throw new Error("floor-mod called with non-safe-integer arguments");
   } else {
     var r = core.long$(x / y);
     if (xor(x < 0, y < 0) && !(r * y === x)) {
