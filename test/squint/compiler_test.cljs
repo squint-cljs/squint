@@ -9,6 +9,7 @@
    [squint.compiler :as squint]
    [squint.html-test]
    [squint.jsx-test]
+   [squint.math-test]
    [squint.string-test]
    [squint.test-utils :refer [eq js! jss! jsv!]]))
 
@@ -2803,4 +2804,8 @@ new Foo();")
       (is (str/includes? s "if (y1)")))))
 
 (defn init []
-  (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
+  (t/run-tests 'squint.compiler-test
+               'squint.jsx-test
+               'squint.string-test
+               'squint.html-test
+               'squint.math-test))
