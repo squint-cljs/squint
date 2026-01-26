@@ -180,7 +180,11 @@
       expr)))
 
 (defmethod emit ::number [expr env]
-  (-> (str expr)
+  (-> (if (and (zero? expr)
+               #?(:clj (neg? (Double/compare expr 0))
+                  :cljs (js/Object.is -0.0 expr)))
+        "-0"
+        (str expr))
       (emit-return env)
       (escape-jsx env)
       (tagged-expr 'number)))
@@ -571,6 +575,7 @@
       (case alias
         (squint.string clojure.string) (resolve-import-map import-maps "squint-cljs/src/squint/string.js")
         (squint.set clojure.set) (resolve-import-map import-maps "squint-cljs/src/squint/set.js")
+        (squint.math clojure.math cljs.math) (resolve-import-map import-maps "squint-cljs/src/squint/math.js")
         (if (symbol? alias)
           (if-let [resolve-ns (:resolve-ns env)]
             (or (resolve-ns alias)
