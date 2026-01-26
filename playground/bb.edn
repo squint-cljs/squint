@@ -6,7 +6,7 @@
                   (fs/create-sym-link "public/js/squint-local" (fs/parent (fs/parent (fs/absolutize ".")))))
                 (let [squint-prod (fs/file "public" "public" "src" "squint")]
                   (fs/create-dirs squint-prod)
-                  (doseq [source-file ["core.js" "string.js" "set.js" "html.js"]]
+                  (doseq [source-file ["core.js" "string.js" "set.js" "html.js" "math.js"]]
                     (fs/copy (fs/file  ".." "src" "squint" source-file)
                              squint-prod
                              {:replace-existing true}))))}
