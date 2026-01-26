@@ -1,6 +1,8 @@
 // reference impl:
 // https://github.com/clojure/clojurescript/blob/master/src/main/cljs/cljs/math.cljs
 
+import * as core from "./core.js";
+
 /**
  * Constant for Euler's number e, the base for natural logarithms.
  *   See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/E
@@ -241,7 +243,7 @@ if((i >= (-1022))){
 } else {
 var n = ((-1022) - i);
 if((n <= (31))){
-  return [((h << n) | (l >>> ((32) - n))),(l << n)]
+  return [((h << n) | (l >>> ((32) - n))),(l << n)];
 } else {
   return [(l << (n - (32))),(0)];
 }
@@ -315,7 +317,7 @@ var lz = (lx__$2 - ly__$1);
 var vec__50270 = (((hz >= (0)))?[hz,lz]:[hx__$3,lx__$2]);
 var hx__$4 = vec__50270[0];
 var lx__$3 = vec__50270[1];
-var ___$2 = ((((hx__$4 | lx__$3) === (0)))?(function(){throw "Signed zero"})():null);
+var ___$2 = ((((hx__$4 | lx__$3) === (0)))?(function(){throw "Signed zero";})():null);
 var vec__50273 = (function (){var hx__$5 = hx__$4;
 var lx__$4 = lx__$3;
 var iy__$1 = iy;
@@ -629,7 +631,7 @@ export const floor_div = (function cljs$math$floor_div(x,y){
 if((!(((Number.isSafeInteger(x)) && (Number.isSafeInteger(y)))))){
 throw "floor-div called with non-safe-integer arguments";
 } else {
-var r = cljs.core.long$((x / y));
+var r = core.long$((x / y));
 if(((xor((x < (0)),(y < (0)))) && ((!(((r * y) === x)))))){
 return (r - (1));
 } else {
@@ -646,7 +648,7 @@ export const floor_mod = (function cljs$math$floor_mod(x,y){
 if((!(((Number.isSafeInteger(x)) && (Number.isSafeInteger(y)))))){
 throw "floor-mod called with non-safe-integer arguments";
 } else {
-var r = cljs.core.long$((x / y));
+var r = core.long$((x / y));
 if(((xor((x < (0)),(y < (0)))) && ((!(((r * y) === x)))))){
 return ((x - (y * r)) - (- y));
 } else {
