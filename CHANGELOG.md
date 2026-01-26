@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.9.185 (2026-01-26)
+
+- Fix emitting negative zero value (`-0.0`)
+- Add `squint.math`, also available as `clojure.math` namespace (a direct port of the original)
+
 ## v0.9.184
 
 - Fix [#792](https://github.com/squint-cljs/squint/issues/792): `prn` `js/undefined` as `nil`
