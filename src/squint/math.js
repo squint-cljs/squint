@@ -9,64 +9,64 @@ export const EXP_BIAS = 1023;
 export const EXP_BITMASK32 = 2146435072;
 export const EXP_MAX = 1023;
 export const EXP_MIN = -1022;
-export const get_little_endian = function cljs$math$get_little_endian() {
+export function get_little_endian() {
   var a = new ArrayBuffer(4);
   var i = new Uint32Array(a);
   var b = new Uint8Array(a);
   i[0] = 857870592;
   return b[0] === 0;
-};
+}
 export const little_endian_QMARK_ = get_little_endian();
 export const HI = little_endian_QMARK_ ? 1 : 0;
 export const LO = 1 - HI;
 export const INT32_MASK = 4294967295;
 export const INT32_NON_SIGN_BIT = 2147483648;
 export const INT32_NON_SIGN_BITS = 2147483647;
-export const u_LT_ = function cljs$math$u_LT_(a, b) {
+export function u_LT_(a, b) {
   var ab = a >>> 28;
   var bb = b >>> 28;
   return ab < bb || ab === bb && (a & 268435455) < (b & 268435455);
-};
-export const sin = function cljs$math$sin(a) {
+}
+export function sin(a) {
   return Math.sin(a);
-};
-export const cos = function cljs$math$cos(a) {
+}
+export function cos(a) {
   return Math.cos(a);
-};
-export const tan = function cljs$math$tan(a) {
+}
+export function tan(a) {
   return Math.tan(a);
-};
-export const asin = function cljs$math$asin(a) {
+}
+export function asin(a) {
   return Math.asin(a);
-};
-export const acos = function cljs$math$acos(a) {
+}
+export function acos(a) {
   return Math.acos(a);
-};
-export const atan = function cljs$math$atan(a) {
+}
+export function atan(a) {
   return Math.atan(a);
-};
-export const to_radians = function cljs$math$to_radians(deg) {
+}
+export function to_radians(deg) {
   return deg * 0.017453292519943295;
-};
-export const to_degrees = function cljs$math$to_degrees(r) {
+}
+export function to_degrees(r) {
   return r * 57.29577951308232;
-};
-export const exp = function cljs$math$exp(a) {
+}
+export function exp(a) {
   return Math.exp(a);
-};
-export const log = function cljs$math$log(a) {
+}
+export function log(a) {
   return Math.log(a);
-};
-export const log10 = function cljs$math$log10(a) {
+}
+export function log10(a) {
   return Math.log10(a);
-};
-export const sqrt = function cljs$math$sqrt(a) {
+}
+export function sqrt(a) {
   return Math.sqrt(a);
-};
-export const cbrt = function cljs$math$cbrt(a) {
+}
+export function cbrt(a) {
   return Math.cbrt(a);
-};
-export const fabs = function cljs$math$fabs(x) {
+}
+export function fabs(x) {
   var a = new ArrayBuffer(8);
   var d = new Float64Array(a);
   var i = new Uint32Array(a);
@@ -74,7 +74,7 @@ export const fabs = function cljs$math$fabs(x) {
   d[0] = x;
   i[hi] = i[hi] & 2147483647;
   return d[0];
-};
+}
 export const Zero = function() {
   var a = new ArrayBuffer(16);
   var d = new Float64Array(a);
@@ -90,7 +90,7 @@ export const HI_x = 2 * 0 + HI;
 export const LO_x = 2 * 0 + LO;
 export const HI_y = 2 * 1 + HI;
 export const LO_y = 2 * 1 + LO;
-export const ilogb = function cljs$math$ilogb(hx, lx) {
+export function ilogb(hx, lx) {
   if (hx < 1048576) {
     var hx_zero_QMARK_ = hx === 0;
     var start_ix = hx_zero_QMARK_ ? -1043 : -1022;
@@ -112,8 +112,8 @@ export const ilogb = function cljs$math$ilogb(hx, lx) {
   } else {
     return (hx >> 20) - 1023;
   }
-};
-export const setup_hl = function cljs$math$setup_hl(i, h, l) {
+}
+export function setup_hl(i, h, l) {
   if (i >= -1022) {
     return [1048576 | 1048575 & h, l];
   } else {
@@ -124,8 +124,8 @@ export const setup_hl = function cljs$math$setup_hl(i, h, l) {
       return [l << n - 32, 0];
     }
   }
-};
-export const IEEE_fmod = function cljs$math$IEEE_fmod(x, y) {
+}
+export function IEEE_fmod(x, y) {
   if (y === 0 || (isNaN(y) || !isFinite(x))) {
     return NaN;
   } else {
@@ -236,8 +236,8 @@ export const IEEE_fmod = function cljs$math$IEEE_fmod(x, y) {
       }
     }
   }
-};
-export const IEEE_remainder = function cljs$math$IEEE_remainder(dividend, divisor) {
+}
+export function IEEE_remainder(dividend, divisor) {
   if (divisor === 0) {
     return NaN;
   } else {
@@ -301,22 +301,22 @@ export const IEEE_remainder = function cljs$math$IEEE_remainder(dividend, diviso
       }
     }
   }
-};
-export const ceil = function cljs$math$ceil(a) {
+}
+export function ceil(a) {
   if (!(a == null)) {
     return Math.ceil(a);
   } else {
     throw "Unexpected Null passed to ceil";
   }
-};
-export const floor = function cljs$math$floor(a) {
+}
+export function floor(a) {
   if (!(a == null)) {
     return Math.floor(a);
   } else {
     throw "Unexpected Null passed to floor";
   }
-};
-export const copy_sign = function cljs$math$copy_sign(magnitude, sign) {
+}
+export function copy_sign(magnitude, sign) {
   var a = new ArrayBuffer(16);
   var d = new Float64Array(a);
   var b = new Uint8Array(a);
@@ -327,20 +327,20 @@ export const copy_sign = function cljs$math$copy_sign(magnitude, sign) {
   var mag_sbyte = 127 & b[sbyte];
   b[sbyte] = sign_sbyte | mag_sbyte;
   return d[0];
-};
-export const rint = function cljs$math$rint(a) {
+}
+export function rint(a) {
   var sign = copy_sign(1, a);
   var a__$1 = Math.abs(a);
   var a__$2 = a__$1 < 4503599627370496 ? 4503599627370496 + a__$1 - 4503599627370496 : a__$1;
   return sign * a__$2;
-};
-export const atan2 = function cljs$math$atan2(y, x) {
+}
+export function atan2(y, x) {
   return Math.atan2(y, x);
-};
-export const pow = function cljs$math$pow(a, b) {
+}
+export function pow(a, b) {
   return Math.pow(a, b);
-};
-export const round = function cljs$math$round(a) {
+}
+export function round(a) {
   if (isNaN(a)) {
     return 0;
   } else {
@@ -354,59 +354,59 @@ export const round = function cljs$math$round(a) {
       }
     }
   }
-};
-export const random = function cljs$math$random() {
+}
+export function random() {
   return Math.random();
-};
-export const add_exact = function cljs$math$add_exact(x, y) {
+}
+export function add_exact(x, y) {
   var r = x + y;
   if (r > Number.MAX_SAFE_INTEGER || r < Number.MIN_SAFE_INTEGER) {
     throw "Integer overflow";
   } else {
     return r;
   }
-};
-export const subtract_exact = function cljs$math$subtract_exact(x, y) {
+}
+export function subtract_exact(x, y) {
   var r = x - y;
   if (r > Number.MAX_SAFE_INTEGER || r < Number.MIN_SAFE_INTEGER) {
     throw "Integer overflow";
   } else {
     return r;
   }
-};
-export const multiply_exact = function cljs$math$multiply_exact(x, y) {
+}
+export function multiply_exact(x, y) {
   var r = x * y;
   if (r > Number.MAX_SAFE_INTEGER || r < Number.MIN_SAFE_INTEGER) {
     throw "Integer overflow";
   } else {
     return r;
   }
-};
-export const increment_exact = function cljs$math$increment_exact(a) {
+}
+export function increment_exact(a) {
   if (a >= Number.MAX_SAFE_INTEGER || a < Number.MIN_SAFE_INTEGER) {
     throw "Integer overflow";
   } else {
     return a + 1;
   }
-};
-export const decrement_exact = function cljs$math$decrement_exact(a) {
+}
+export function decrement_exact(a) {
   if (a <= Number.MIN_SAFE_INTEGER || a > Number.MAX_SAFE_INTEGER) {
     throw "Integer overflow";
   } else {
     return a - 1;
   }
-};
-export const negate_exact = function cljs$math$negate_exact(a) {
+}
+export function negate_exact(a) {
   if (a > Number.MAX_SAFE_INTEGER || a < Number.MIN_SAFE_INTEGER) {
     throw "Integer overflow";
   } else {
     return -a;
   }
-};
-export const xor = function cljs$math$xor(a, b) {
+}
+export function xor(a, b) {
   return a && !b || !a && b;
-};
-export const floor_div = function cljs$math$floor_div(x, y) {
+}
+export function floor_div(x, y) {
   if (!(Number.isSafeInteger(x) && Number.isSafeInteger(y))) {
     throw "floor-div called with non-safe-integer arguments";
   } else {
@@ -417,8 +417,8 @@ export const floor_div = function cljs$math$floor_div(x, y) {
       return r;
     }
   }
-};
-export const floor_mod = function cljs$math$floor_mod(x, y) {
+}
+export function floor_mod(x, y) {
   if (!(Number.isSafeInteger(x) && Number.isSafeInteger(y))) {
     throw "floor-mod called with non-safe-integer arguments";
   } else {
@@ -429,8 +429,8 @@ export const floor_mod = function cljs$math$floor_mod(x, y) {
       return x - y * r;
     }
   }
-};
-export const get_exponent = function cljs$math$get_exponent(d) {
+}
+export function get_exponent(d) {
   if (isNaN(d) || !isFinite(d)) {
     return EXP_MAX + 1;
   } else {
@@ -445,23 +445,23 @@ export const get_exponent = function cljs$math$get_exponent(d) {
       return ((i[hi] & 2146435072) >> 21 - 1) - 1023;
     }
   }
-};
-export const hi_lo__GT_double = function cljs$math$hi_lo__GT_double(h, l) {
+}
+export function hi_lo__GT_double(h, l) {
   var a = new ArrayBuffer(8);
   var f = new Float64Array(a);
   var i = new Uint32Array(a);
   i[LO] = l;
   i[HI] = h;
   return f[0];
-};
-export const power_of_two = function cljs$math$power_of_two(n) {
+}
+export function power_of_two(n) {
   if (n >= -1022 && n <= EXP_MAX) {
   } else {
     throw new Error("Assert failed: (and (>= n EXP-MIN) (<= n EXP-MAX))");
   }
   return hi_lo__GT_double(n + 1023 << 21 - 1 & 2146435072, 0);
-};
-export const ulp = function cljs$math$ulp(d) {
+}
+export function ulp(d) {
   if (isNaN(d)) {
     return d;
   } else {
@@ -492,33 +492,33 @@ export const ulp = function cljs$math$ulp(d) {
       return Infinity;
     }
   }
-};
-export const signum = function cljs$math$signum(d) {
+}
+export function signum(d) {
   if (d === 0 || isNaN(d)) {
     return d;
   } else {
     return copy_sign(1, d);
   }
-};
-export const sinh = function cljs$math$sinh(x) {
+}
+export function sinh(x) {
   return Math.sinh(x);
-};
-export const cosh = function cljs$math$cosh(x) {
+}
+export function cosh(x) {
   return Math.cosh(x);
-};
-export const tanh = function cljs$math$tanh(x) {
+}
+export function tanh(x) {
   return Math.tanh(x);
-};
-export const hypot = function cljs$math$hypot(x, y) {
+}
+export function hypot(x, y) {
   return Math.hypot(x, y);
-};
-export const expm1 = function cljs$math$expm1(x) {
+}
+export function expm1(x) {
   return Math.expm1(x);
-};
-export const log1p = function cljs$math$log1p(x) {
+}
+export function log1p(x) {
   return Math.log1p(x);
-};
-export const add64 = function cljs$math$add64(hx, lx, hy, ly) {
+}
+export function add64(hx, lx, hy, ly) {
   var sx = (lx & 2147483648) >>> 31;
   var sy = (ly & 2147483648) >>> 31;
   var lr = (2147483647 & lx) + (2147483647 & ly);
@@ -528,8 +528,8 @@ export const add64 = function cljs$math$add64(hx, lx, hy, ly) {
   var c32 = b31 >> 1;
   var hr = 4294967295 & hx + hy + c32;
   return [hr, lr__$1];
-};
-export const next_after = function cljs$math$next_after(start, direction) {
+}
+export function next_after(start, direction) {
   var a = new ArrayBuffer(8);
   var f = new Float64Array(a);
   var i = new Uint32Array(a);
@@ -566,8 +566,8 @@ export const next_after = function cljs$math$next_after(start, direction) {
       }
     }
   }
-};
-export const next_up = function cljs$math$next_up(d) {
+}
+export function next_up(d) {
   if (d < Number.POSITIVE_INFINITY) {
     var a = new ArrayBuffer(8);
     var f = new Float64Array(a);
@@ -584,8 +584,8 @@ export const next_up = function cljs$math$next_up(d) {
   } else {
     return d;
   }
-};
-export const next_down = function cljs$math$next_down(d) {
+}
+export function next_down(d) {
   if (isNaN(d) || -Infinity === d) {
     return d;
   } else {
@@ -606,11 +606,11 @@ export const next_down = function cljs$math$next_down(d) {
       return f[0];
     }
   }
-};
+}
 export const MAX_SCALE = EXP_MAX + 1022 + 21 + 32 + 1;
 export const two_to_the_double_scale_up = power_of_two(512);
 export const two_to_the_double_scale_down = power_of_two(-512);
-export const scalb = function cljs$math$scalb(d, scaleFactor) {
+export function scalb(d, scaleFactor) {
   var vec__50298 = scaleFactor < 0 ? [Math.max(scaleFactor, -MAX_SCALE), -512, two_to_the_double_scale_down] : [Math.min(scaleFactor, MAX_SCALE), 512, two_to_the_double_scale_up];
   var scale_factor = vec__50298[0];
   var scale_increment = vec__50298[1];
@@ -631,4 +631,4 @@ export const scalb = function cljs$math$scalb(d, scaleFactor) {
     }
     break;
   }
-};
+}
