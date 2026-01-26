@@ -32,7 +32,7 @@ jobs:
     - name: Setup Clojure
       uses: DeLaGuardo/setup-clojure@12.5
       with:
-        cli: 1.10.3.1040
+        cli: latest
         bb: latest
 
     - name: Setup Node
