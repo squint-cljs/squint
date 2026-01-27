@@ -403,12 +403,18 @@
     (is (jsv! '(= 8.0 (squint-math/pow 2.0 3.0))))))
 
 (deftest test-round
-  (is (= 0 (m/round ##NaN)))
-  (is (= js/Number.MIN_SAFE_INTEGER (m/round ##-Inf)))
-  #_(is (= js/Number.MIN_SAFE_INTEGER (m/round (- js/Number.MIN_SAFE_INTEGER 2.0))))
-  (is (= js/Number.MAX_SAFE_INTEGER (m/round ##Inf)))
-  #_(is (= js/Number.MAX_SAFE_INTEGER (m/round (+ js/Number.MAX_SAFE_INTEGER 2.0))))
-  (is (= 4 (m/round 3.5))))
+  (testing "cljs"
+    (is (= 0 (m/round ##NaN)))
+    (is (= js/Number.MIN_SAFE_INTEGER (m/round ##-Inf)))
+    #_(is (= js/Number.MIN_SAFE_INTEGER (m/round (- js/Number.MIN_SAFE_INTEGER 2.0))))
+    (is (= js/Number.MAX_SAFE_INTEGER (m/round ##Inf)))
+    #_(is (= js/Number.MAX_SAFE_INTEGER (m/round (+ js/Number.MAX_SAFE_INTEGER 2.0))))
+    (is (= 4 (m/round 3.5))))
+  (testing "squint"
+    (is (jsv! '(= 0 (squint-math/round ##NaN))))
+    (is (jsv! '(= js/Number.MIN_SAFE_INTEGER (squint-math/round ##-Inf))))
+    (is (jsv! '(= js/Number.MAX_SAFE_INTEGER (squint-math/round ##Inf))))
+    (is (jsv! '(= 4 (squint-math/round 3.5))))))
 
 (deftest test-add-exact
   (testing "cljs"
@@ -489,8 +495,11 @@
       (is true))))
 
 (deftest test-floor-div
-  #_(is (= js/Number.MIN_SAFE_INTEGER (m/floor-div js/Number.MIN_SAFE_INTEGER -1)))
-  (is (= -1 (m/floor-div -2 5))))
+  (testing "cljs"
+    #_(is (= js/Number.MIN_SAFE_INTEGER (m/floor-div js/Number.MIN_SAFE_INTEGER -1)))
+    (is (= -1 (m/floor-div -2 5))))
+  (testing "squint"
+    (is (jsv! '(= -1 (squint-math/floor-div -2 5))))))
 
 (deftest test-floor-mod
   (testing "cljs"
