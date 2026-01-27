@@ -404,7 +404,7 @@
 
 (deftest test-round
   (is (= 0 (m/round ##NaN)))
-  #_(is (= js/Number.MIN_SAFE_INTEGER (m/round ##-Inf)))
+  (is (= js/Number.MIN_SAFE_INTEGER (m/round ##-Inf)))
   #_(is (= js/Number.MIN_SAFE_INTEGER (m/round (- js/Number.MIN_SAFE_INTEGER 2.0))))
   (is (= js/Number.MAX_SAFE_INTEGER (m/round ##Inf)))
   #_(is (= js/Number.MAX_SAFE_INTEGER (m/round (+ js/Number.MAX_SAFE_INTEGER 2.0))))
