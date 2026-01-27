@@ -42,7 +42,6 @@
     (is (neg-zero? (m/sin -0.0)))
     (is (ulp= (m/sin m/PI) (- (m/sin (- m/PI))) 1)))
   (testing "squint"
-    (prn (jss! '(NaN? (squint_math/sin ##NaN))))
     (is (jsv! '(NaN? (squint_math/sin ##NaN))))
     (is (jsv! '(NaN? (squint_math/sin ##-Inf))))
     (is (jsv! '(NaN? (squint_math/sin ##Inf))))
@@ -403,12 +402,12 @@
     (is (jsv! '(= -8.0 (squint-math/pow -2.0 3.0))))
     (is (jsv! '(= 8.0 (squint-math/pow 2.0 3.0))))))
 
-#_(deftest test-round
+(deftest test-round
   (is (= 0 (m/round ##NaN)))
-  (is (= js/Number.MIN_SAFE_INTEGER (m/round ##-Inf)))
-  (is (= js/Number.MIN_SAFE_INTEGER (m/round (- js/Number.MIN_SAFE_INTEGER 2.0))))
+  #_(is (= js/Number.MIN_SAFE_INTEGER (m/round ##-Inf)))
+  #_(is (= js/Number.MIN_SAFE_INTEGER (m/round (- js/Number.MIN_SAFE_INTEGER 2.0))))
   (is (= js/Number.MAX_SAFE_INTEGER (m/round ##Inf)))
-  (is (= js/Number.MAX_SAFE_INTEGER (m/round (+ js/Number.MAX_SAFE_INTEGER 2.0))))
+  #_(is (= js/Number.MAX_SAFE_INTEGER (m/round (+ js/Number.MAX_SAFE_INTEGER 2.0))))
   (is (= 4 (m/round 3.5))))
 
 (deftest test-add-exact
@@ -489,8 +488,8 @@
     (catch :default _
       (is true))))
 
-#_(deftest test-floor-div
-  (is (= js/Number.MIN_SAFE_INTEGER (m/floor-div js/Number.MIN_SAFE_INTEGER -1)))
+(deftest test-floor-div
+  #_(is (= js/Number.MIN_SAFE_INTEGER (m/floor-div js/Number.MIN_SAFE_INTEGER -1)))
   (is (= -1 (m/floor-div -2 5))))
 
 (deftest test-floor-mod
