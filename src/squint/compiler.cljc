@@ -309,6 +309,40 @@
            (str/join ", " (emit-args (expr-env env) expr)))
    env))
 
+(defn- make-get-expander [env]
+  (when (:anf env)
+    (fn [op env]
+      (when (symbol? op)
+        (let [ns-state (some-> (:ns-state env) deref)
+              current (:current ns-state)
+              current-ns-state (get ns-state current)
+              excluded? (contains? current-ns-state op)
+              head (strip-core-symbol op)]
+          (when-not (or (:squint.compiler/skip-macro (meta op))
+                        excluded?)
+            (case head
+              let (fn [form env & args]
+                    (let [result (core-let env (first args) (rest args))]
+                      ;; core-let returns (cljs.core/let* ...), normalize
+                      (if (and (seq? result) (= 'cljs.core/let* (first result)))
+                        (cons 'let* (rest result))
+                        result)))
+              fn (fn [form _env & sigs]
+                   (apply core-fn form {} sigs))
+              (or (built-in-macros head)
+                  (let [ns (namespace head)
+                        nm (name head)
+                        nms (symbol nm)]
+                    (if ns
+                      (let [nss (symbol ns)]
+                        (or
+                         (some-> env :macros (get nss) (get nms))
+                         (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
+                           (get-in ns-state [:macros resolved-ns nms]))))
+                      (let [refers (:refers current-ns-state)]
+                        (when-let [macro-ns (get refers nms)]
+                          (get-in ns-state [:macros macro-ns nms])))))))))))))
+
 (defn transpile-form
   ([f] (transpile-form f nil))
   ([f env]
@@ -331,40 +365,7 @@
                              ::cc/keyword emit-keyword
                              ::cc/set emit-set
                              ::cc/special emit-special}
-                      ::anf/get-expander
-                      (fn [op env]
-                        (when (symbol? op)
-                          (let [ns-state (some-> (:ns-state env) deref)
-                                current (:current ns-state)
-                                current-ns-state (get ns-state current)
-                                excluded? (contains? current-ns-state op)
-                                head (strip-core-symbol op)]
-                            (when-not (or (:squint.compiler/skip-macro (meta op))
-                                          excluded?)
-                              (case head
-                                let (fn [form env & args]
-                                      (let [result (core-let env (first args) (rest args))]
-                                        ;; core-let returns (cljs.core/let* ...), normalize
-                                        (if (and (seq? result) (= 'cljs.core/let* (first result)))
-                                          (cons 'let* (rest result))
-                                          result)))
-                                fn (fn [form _env & sigs]
-                                     (apply core-fn form {} sigs))
-                                (or (built-in-macros head)
-                                    (let [ns (namespace head)
-                                          nm (name head)
-                                          nms (symbol nm)]
-                                      (if ns
-                                        (let [nss (symbol ns)]
-                                          (or
-                                           (some-> env :macros (get nss) (get nms))
-                                           (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
-                                             (get-in ns-state [:macros resolved-ns nms]))))
-                                        (let [refers (:refers current-ns-state)]
-                                          (when-let [macro-ns (get refers nms)]
-                                            (get-in ns-state [:macros macro-ns nms])))))))))))
-                      } env))))))
-
+                      ::anf/get-expander (make-get-expander env)} env))))))
 (def ^:dynamic *jsx* false)
 
 (defn jsx [form]

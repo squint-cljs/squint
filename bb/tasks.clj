@@ -121,5 +121,5 @@
 (defn libtests []
   #_(build-squint-npm-package)
   ;; temporarily disabled because of not= bug
-  #_(eucalypt-test)
+  (eucalypt-test)
   (clojure-mode-test))

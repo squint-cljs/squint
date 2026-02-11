@@ -128,7 +128,8 @@ Use squint <subcommand> --help to show more info.")))
 Options:
 
 --no-run: do not run compiled expression
---show:   print compiled expression")
+--show:   print compiled expression
+--anf:    enable ANF transformation (eliminates IIFEs)")
       (let [e e #_(if (:repl opts)
                 (str/replace "(do %s\n)" "%s" e)
                 e)
@@ -226,7 +227,8 @@ Options:
   (cli/dispatch table
                 (.slice js/process.argv 2)
                 {:aliases {:h :help}
-                 :coerce {:elide-exports :boolean
+                 :coerce {:anf            :boolean
+                          :elide-exports :boolean
                           :elide-imports :boolean
                           :output-dir    :string
                           :repl          :boolean

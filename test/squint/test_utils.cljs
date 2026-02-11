@@ -53,11 +53,13 @@
    (if (string? expr)
      (let [{:keys [pragmas body]}
            (squint/compile-string* expr (merge {:elide-imports true
-                                                :core-alias "squint_core"}
+                                                :core-alias "squint_core"
+                                                :anf true}
                                                opts))]
        (str pragmas body))
      (squint/transpile-form expr (merge {:elide-imports true
-                                         :core-alias "squint_core"}
+                                         :core-alias "squint_core"
+                                         :anf true}
                                         opts)))))
 
 (defn js!
