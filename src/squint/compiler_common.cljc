@@ -4,6 +4,7 @@
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
+   [squint.anf :as anf]
    [squint.compiler.utils :as utils]
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
@@ -902,8 +903,16 @@
   ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
   (let [arrow? (:arrow env)
-        single-expr-arrow? (and arrow? (= 1 (count body)))
-        [env sig] (->sig env sig)]
+        [env sig] (->sig env sig)
+        body (if (::anf/get-expander env)
+               (let [locals (set (keys (:var->ident env)))
+                     body-form (if (= 1 (count body)) (first body) (cons 'do body))
+                     transformed (anf/transform env locals body-form)]
+                 (if (and (seq? transformed) (= 'do (first transformed)))
+                   (rest transformed)
+                   [transformed]))
+               body)
+        single-expr-arrow? (and arrow? (= 1 (count body)))]
     (binding [*recur-targets* sig]
       (let [recur? (volatile! nil)
             env (assoc env :recur-callback

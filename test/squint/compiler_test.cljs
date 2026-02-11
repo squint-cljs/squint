@@ -7,6 +7,7 @@
    [clojure.test :as t :refer [async deftest is testing]]
    [promesa.core :as p]
    [squint.compiler :as squint]
+   [squint.anf-test]
    [squint.html-test]
    [squint.jsx-test]
    [squint.math-test]
@@ -2808,4 +2809,5 @@ new Foo();")
                'squint.jsx-test
                'squint.string-test
                'squint.html-test
-               'squint.math-test))
+               'squint.math-test
+               'squint.anf-test))
