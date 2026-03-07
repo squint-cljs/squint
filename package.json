@@ -10,6 +10,7 @@
     "src/squint/string.js",
     "src/squint/set.js",
     "src/squint/html.js",
+    "src/squint/math.js",
     "lib",
     "node_cli.js",
     "index.js",
