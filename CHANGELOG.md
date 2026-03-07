@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## v0.10.186 (2026-03-07)
+
+- Fix #799: forgot to add `squint.math` file to `package.json`
+
 ## v0.10.185 (2026-01-26)
 
 - Fix emitting negative zero value (`-0.0`)
