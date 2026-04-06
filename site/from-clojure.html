@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Squint from Clojure — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="rationale.html">Rationale</a>
+    <a href="js-primer.html">JS Primer</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="style.html">Style</a>
+    <a href="macros.html">Macros</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>Squint from Clojure</h1>
+
+    <p>If you already know Clojure or ClojureScript, this guide covers
+      everything that's different in Squint. If something isn't mentioned
+      here, it probably works the way you'd expect.</p>
+
+    <div class="toc">
+      <b>Contents</b>
+      <ul>
+        <li><a href="#same">What's the same</a></li>
+        <li><a href="#data">Data structures are mutable</a></li>
+        <li><a href="#equality">Equality</a></li>
+        <li><a href="#keywords">Keywords are strings</a></li>
+        <li><a href="#namespaces">Namespaces and requires</a></li>
+        <li><a href="#missing">What's missing</a></li>
+        <li><a href="#additions">What's added</a></li>
+        <li><a href="#gotchas">Gotchas</a></li>
+      </ul>
+    </div>
+
+    <h2 id="same">What's the same</h2>
+
+    <p>Most of the syntax you know works unchanged:</p>
+
+    <ul>
+      <li><code>defn</code>, <code>fn</code>, <code>def</code>,
+        <code>let</code>, <code>if</code>, <code>when</code>,
+        <code>cond</code>, <code>case</code>, <code>do</code></li>
+      <li>Destructuring — sequential <code>[a b c]</code> and associative
+        <code>{:keys [x y]}</code></li>
+      <li>Threading macros — <code>-></code>, <code>->></code>,
+        <code>some-></code>, <code>some->></code>, <code>as-></code>,
+        <code>cond-></code></li>
+      <li><code>loop</code>/<code>recur</code></li>
+      <li><code>doseq</code>, <code>dotimes</code>, <code>for</code>
+        (list comprehension)</li>
+      <li><code>atom</code>, <code>swap!</code>, <code>reset!</code>
+        (implemented as a wrapper object)</li>
+      <li>Most of the standard library: <code>map</code>, <code>filter</code>,
+        <code>reduce</code>, <code>str</code>, <code>get</code>,
+        <code>assoc</code>, <code>update</code>, <code>merge</code>,
+        <code>select-keys</code>, etc.</li>
+    </ul>
+
+    <h2 id="data">Data structures are JavaScript types</h2>
+
+    <p>This is the biggest difference. Squint maps are JavaScript objects
+      and vectors are JavaScript arrays — but the standard library preserves
+      Clojure-like semantics where possible.</p>
+
+    <p><b>Non-bang functions return shallow copies</b> (like Clojure):</p>
+
+    <pre class="code">(<span class="special">def</span> <span class="symbol">m</span> {<span class="keyword">:a</span> <span class="number">1</span>})
+(<span class="special">def</span> <span class="symbol">m2</span> (<span class="symbol">assoc</span> <span class="symbol">m</span> <span class="keyword">:b</span> <span class="number">2</span>))
+<span class="comment">;; m  => {:a 1}       (unchanged — shallow copy made)</span>
+<span class="comment">;; m2 => {:a 1 :b 2}  (new object)</span></pre>
+
+    <p><b>Bang functions mutate in place</b> (for performance):</p>
+
+    <pre class="code">(<span class="special">def</span> <span class="symbol">m</span> {<span class="keyword">:a</span> <span class="number">1</span>})
+(<span class="symbol">assoc!</span> <span class="symbol">m</span> <span class="keyword">:b</span> <span class="number">2</span>)
+<span class="comment">;; m => {:a 1 :b 2}  (mutated in place)</span></pre>
+
+    <p>This applies to <code>assoc</code>/<code>assoc!</code>,
+      <code>dissoc</code>/<code>dissoc!</code>,
+      <code>conj</code>/<code>conj!</code>, etc. Use the non-bang version
+      when you want Clojure-like copy semantics. Use the bang version when
+      you need performance and know mutation is safe.</p>
+
+    <p>The key difference from Clojure: shallow copies don't use structural
+      sharing, so copying large collections is more expensive than in Clojure.
+      Also, nested objects still share references:</p>
+
+    <pre class="code">(<span class="special">let</span> [<span class="symbol">m</span> {<span class="keyword">:a</span> {<span class="keyword">:b</span> <span class="number">1</span>}}
+      <span class="symbol">m2</span> (<span class="symbol">assoc</span> <span class="symbol">m</span> <span class="keyword">:c</span> <span class="number">2</span>)]
+  (<span class="symbol">identical?</span> (<span class="keyword">:a</span> <span class="symbol">m</span>) (<span class="keyword">:a</span> <span class="symbol">m2</span>)))
+<span class="comment">;; true — nested objects are shared, not deep-copied</span></pre>
+
+    <h2 id="equality">Equality</h2>
+
+    <p>Squint's <code>=</code> implements <b>deep equality</b>, matching
+      Clojure's semantics — it does not simply compile to JavaScript's
+      <code>===</code>:</p>
+
+    <pre class="code">(<span class="special">=</span> {<span class="keyword">:a</span> <span class="number">1</span>} {<span class="keyword">:a</span> <span class="number">1</span>})   <span class="comment">; true  — deep comparison</span>
+(<span class="special">=</span> [<span class="number">1</span> <span class="number">2</span>] [<span class="number">1</span> <span class="number">2</span>])     <span class="comment">; true  — element-wise comparison</span>
+(<span class="special">=</span> <span class="number">1</span> <span class="number">1</span>)             <span class="comment">; true  — primitives</span>
+(<span class="special">=</span> <span class="keyword">:a</span> <span class="string">"a"</span>)          <span class="comment">; true  — keywords ARE strings</span></pre>
+
+    <p>Use <code>identical?</code> if you need reference equality (JavaScript
+      <code>===</code>):</p>
+
+    <pre class="code">(<span class="special">def</span> <span class="symbol">m</span> {<span class="keyword">:a</span> <span class="number">1</span>})
+(<span class="symbol">identical?</span> <span class="symbol">m</span> <span class="symbol">m</span>)               <span class="comment">; true  — same object</span>
+(<span class="symbol">identical?</span> {<span class="keyword">:a</span> <span class="number">1</span>} {<span class="keyword">:a</span> <span class="number">1</span>})  <span class="comment">; false — different objects</span></pre>
+
+    <h2 id="keywords">Keywords are strings</h2>
+
+    <p>In Clojure, keywords are their own type. In Squint, <code>:foo</code>
+      compiles to the string <code>"foo"</code>. This means:</p>
+
+    <ul>
+      <li><code>:foo</code> and <code>"foo"</code> are the same value</li>
+      <li>Keywords as map keys just work with JS objects (property access)</li>
+      <li><code>keyword?</code> doesn't exist — it's just a string</li>
+      <li>Namespaced keywords like <code>::foo</code> or <code>:ns/foo</code>
+        compile to strings like <code>"foo"</code> or <code>"ns/foo"</code></li>
+    </ul>
+
+    <h2 id="namespaces">Namespaces and requires</h2>
+
+    <p>The <code>ns</code> form compiles to ES module imports. There are two
+      kinds of requires:</p>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">my-app</span>
+  (<span class="keyword">:require</span>
+    <span class="comment">;; String require → npm/Node package</span>
+    [<span class="string">"react"</span> <span class="keyword">:as</span> <span class="symbol">react</span>]
+    [<span class="string">"fs"</span> <span class="keyword">:refer</span> [<span class="symbol">readFileSync</span>]]
+
+    <span class="comment">;; Symbol require → other Squint namespace</span>
+    [<span class="symbol">my-app.utils</span> <span class="keyword">:as</span> <span class="symbol">utils</span>]))</pre>
+
+    <p>Unlike Clojure, there's no <code>:use</code> or <code>:import</code>.
+      Macros must be loaded via <code>:require-macros</code> with
+      <code>:refer</code> — using plain <code>:require</code> will import
+      them as regular functions instead of expanding at compile time.
+      See the <a href="macros.html#loading">Macro Guide</a> for details.</p>
+
+    <h2 id="missing">What's missing</h2>
+
+    <p>Features from Clojure/ClojureScript that are <b>not available</b>
+      in Squint:</p>
+
+    <ul>
+      <li><b>Protocols and records</b> — use <code>defclass</code> for JS
+        classes instead</li>
+      <li><b>Multimethods</b></li>
+      <li><b>Persistent data structures</b> — see
+        <a href="rationale.html#tradeoffs">Rationale</a></li>
+      <li><b>Vars</b> — <code>def</code> creates module-level <code>let</code>
+        or <code>const</code> bindings</li>
+      <li><b>Metadata on values</b> — except for <code>^:async</code>,
+        <code>^:gen</code>, <code>^:private</code> which are compiler
+        directives</li>
+      <li><b>core.async</b> — use <code>async</code>/<code>await</code>
+        instead</li>
+      <li><b>Spec</b></li>
+      <li><b>Transducers</b></li>
+      <li><b>Reader conditionals</b></li>
+    </ul>
+
+    <h2 id="additions">What's added</h2>
+
+    <p>Features in Squint that don't exist in standard Clojure:</p>
+
+    <ul>
+      <li><code>^:async</code> / <code>js-await</code> — native async/await</li>
+      <li><code>^:gen</code> / <code>js-yield</code> — generator functions</li>
+      <li><code>#jsx</code> — JSX support via reader tag</li>
+      <li><code>#html</code> — HTML generation via hiccup</li>
+      <li><code>defclass</code> — JavaScript class definitions with fields,
+        methods, getters, setters, static members, and inheritance</li>
+      <li><code>^:=></code> — emit arrow functions from <code>fn</code></li>
+      <li><code>js-template</code> — JavaScript template literals</li>
+      <li><code>volatile!</code> / <code>vreset!</code> / <code>vswap!</code>
+        — fast mutable references (faster than atoms)</li>
+      <li><code>assoc!</code> / <code>dissoc!</code> / <code>conj!</code>
+        — explicit in-place mutation variants</li>
+      <li><code>compare-and-swap!</code>, <code>swap-vals!</code>,
+        <code>reset-vals!</code> — extended atomic operations</li>
+      <li><code>warn-on-lazy-reusage!</code> — runtime detection of
+        uncached lazy sequence reuse</li>
+      <li>Direct npm package requires via string names</li>
+    </ul>
+
+    <p>Also note: <b>collections cannot be used as functions.</b> In Clojure
+      you can write <code>({:a 1} :a)</code> to look up a key. In Squint,
+      you must use <code>(get {:a 1} :a)</code> or <code>(:a {:a 1})</code>
+      (keywords as functions work).</p>
+
+    <p>Another difference: <b>map keys must be strings.</b> Since Squint maps
+      are JavaScript objects, only string keys are supported. Using a vector
+      or other non-string as a map key will silently stringify it.</p>
+
+    <h2 id="gotchas">Gotchas</h2>
+
+    <p>Surprises for experienced Clojure developers:</p>
+
+    <ul>
+      <li><b><code>seq</code> returns the collection itself</b> (or null),
+        not a lazy seq wrapper. Sequences are JavaScript iterators.</li>
+
+      <li><b>Shallow copy, not structural sharing.</b> Non-bang functions
+        like <code>assoc</code> return shallow copies, but nested objects
+        still share references. This is less efficient than Clojure's
+        persistent data structures for large collections.</li>
+
+      <li><b><code>println</code> uses <code>console.log</code></b>, not
+        <code>*out*</code>. There's no output stream redirection.</li>
+
+      <li><b>Truthiness matches Clojure, not JavaScript.</b> Only
+        <code>nil</code>, <code>undefined</code>, and <code>false</code>
+        are falsy. Unlike raw JavaScript, <code>0</code> and <code>""</code>
+        are truthy in Squint.</li>
+
+      <li><b>Lazy sequences are uncached.</b> Iterating over a lazy sequence
+        twice will compute it twice. Squint warns about this at runtime.</li>
+
+      <li><b><code>require</code> at the REPL</b> works differently than in
+        Clojure — you can't dynamically load namespaces at runtime in the
+        same way.</li>
+    </ul>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+</body>
+</html>

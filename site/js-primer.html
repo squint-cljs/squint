@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>JavaScript Primer — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="rationale.html">Rationale</a>
+    <a href="js-primer.html">JS Primer</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="style.html">Style</a>
+    <a href="macros.html">Macros</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>JavaScript Primer</h1>
+
+    <p>While Squint shields you from most JavaScript syntax, you'll encounter
+      JS concepts in error messages, library documentation, and interop code.
+      This primer covers what you need to know about the runtime your code
+      targets.</p>
+
+    <div class="toc">
+      <b>Contents</b>
+      <ul>
+        <li><a href="#types">Types and values</a></li>
+        <li><a href="#objects">Objects and arrays</a></li>
+        <li><a href="#functions">Functions</a></li>
+        <li><a href="#modules">Modules</a></li>
+        <li><a href="#promises">Promises and async</a></li>
+        <li><a href="#npm">npm and Node.js</a></li>
+        <li><a href="#dom">The browser and the DOM</a></li>
+        <li><a href="#gotchas">JavaScript gotchas</a></li>
+      </ul>
+    </div>
+
+    <h2 id="types">Types and values</h2>
+
+    <p>JavaScript has 7 primitive types and one complex type:</p>
+
+    <pre class="code"><span class="js-comment">// Primitives</span>
+<span class="js-number">42</span>              <span class="js-comment">// number (64-bit float, no int type)</span>
+<span class="js-string">"hello"</span>         <span class="js-comment">// string</span>
+<span class="js-keyword">true</span>            <span class="js-comment">// boolean</span>
+<span class="js-keyword">null</span>            <span class="js-comment">// null (Squint's nil)</span>
+undefined       <span class="js-comment">// undefined (absent value)</span>
+Symbol(<span class="js-string">"id"</span>)    <span class="js-comment">// symbol (unique identifier)</span>
+<span class="js-number">42n</span>             <span class="js-comment">// bigint (arbitrary precision integer)</span>
+
+<span class="js-comment">// Complex type</span>
+{ a: <span class="js-number">1</span> }        <span class="js-comment">// object (Squint's maps)</span></pre>
+
+    <p><b>Truthiness:</b> In raw JavaScript, <code>0</code>, <code>""</code>,
+      <code>null</code>, <code>undefined</code>, <code>NaN</code>, and
+      <code>false</code> are all falsy. However, <b>Squint follows
+      ClojureScript semantics</b>: only <code>nil</code> (<code>null</code>),
+      <code>undefined</code>, and <code>false</code> are falsy.
+      <code>0</code> and <code>""</code> are truthy in Squint. This means
+      <code>(when count ...)</code> <em>will</em> execute even when
+      <code>count</code> is <code>0</code>. Be aware of this difference
+      when reading JavaScript documentation.</p>
+
+    <p><b>Numbers:</b> JavaScript has only one number type: 64-bit floating
+      point. There's no integer type. This means <code>(/ 10 3)</code> gives
+      <code>3.3333...</code>, not <code>3</code>. Use
+      <code>js/Math.floor</code> for integer division.</p>
+
+    <h2 id="objects">Objects and arrays</h2>
+
+    <p>These are the data structures that Squint maps and vectors compile to.</p>
+
+    <pre class="code"><span class="js-comment">// Objects — Squint maps compile to these</span>
+<span class="js-keyword">const</span> person = { name: <span class="js-string">"Alice"</span>, age: <span class="js-number">30</span> };
+person.name;          <span class="js-comment">// "Alice"</span>
+person[<span class="js-string">"age"</span>];        <span class="js-comment">// 30</span>
+person.email = <span class="js-string">"a@b"</span>; <span class="js-comment">// mutation — adds a key</span>
+
+<span class="js-comment">// Arrays — Squint vectors compile to these</span>
+<span class="js-keyword">const</span> nums = [<span class="js-number">1</span>, <span class="js-number">2</span>, <span class="js-number">3</span>];
+nums[<span class="js-number">0</span>];              <span class="js-comment">// 1 (zero-indexed)</span>
+nums.length;          <span class="js-comment">// 3</span>
+nums.push(<span class="js-number">4</span>);         <span class="js-comment">// mutation — adds to end</span></pre>
+
+    <p>Objects are compared by <em>reference</em>, not by value:
+      <code>{ a: 1 } === { a: 1 }</code> is <code>false</code> because
+      they're two separate objects in memory.</p>
+
+    <h2 id="functions">Functions</h2>
+
+    <p>JavaScript has several function syntaxes. Squint's <code>defn</code>
+      compiles to function expressions assigned to variables, and
+      <code>fn</code> to function expressions (or arrow functions with
+      <code>^:=></code>):</p>
+
+    <pre class="code"><span class="js-comment">// function expression (from defn)</span>
+<span class="js-keyword">var</span> greet = <span class="js-keyword">function</span>(name) {
+  <span class="js-keyword">return</span> <span class="js-string">"Hello, "</span> + name;
+};
+
+<span class="js-comment">// function expression (from fn)</span>
+<span class="js-keyword">const</span> add = <span class="js-keyword">function</span>(a, b) { <span class="js-keyword">return</span> a + b; };
+
+<span class="js-comment">// arrow with body</span>
+<span class="js-keyword">const</span> process = (x) => {
+  <span class="js-keyword">const</span> y = x * <span class="js-number">2</span>;
+  <span class="js-keyword">return</span> y + <span class="js-number">1</span>;
+};</pre>
+
+    <p>Key differences from Clojure functions: JS functions can be called with
+      any number of arguments without error (extras are ignored, missing ones
+      are <code>undefined</code>). They also have a <code>this</code> context
+      which matters for method calls.</p>
+
+    <h2 id="modules">Modules</h2>
+
+    <p>Squint's <code>ns</code>/<code>:require</code> compiles to ES modules,
+      the modern JavaScript module system:</p>
+
+    <pre class="code"><span class="js-comment">// Named imports</span>
+<span class="js-keyword">import</span> { readFile, writeFile } <span class="js-keyword">from</span> <span class="js-string">"fs/promises"</span>;
+
+<span class="js-comment">// Namespace import</span>
+<span class="js-keyword">import</span> * <span class="js-keyword">as</span> path <span class="js-keyword">from</span> <span class="js-string">"path"</span>;
+
+<span class="js-comment">// Default import</span>
+<span class="js-keyword">import</span> React <span class="js-keyword">from</span> <span class="js-string">"react"</span>;
+
+<span class="js-comment">// Named exports (from defn)</span>
+<span class="js-keyword">export function</span> myFn() { ... }
+
+<span class="js-comment">// Default export</span>
+<span class="js-keyword">export default</span> { fetch: handler };</pre>
+
+    <p>ES modules are statically analyzable — imports and exports must be at
+      the top level, not inside conditionals. This is why Squint requires
+      all <code>:require</code> forms inside <code>ns</code>.</p>
+
+    <h2 id="promises">Promises and async</h2>
+
+    <p>Promises are JavaScript's mechanism for asynchronous computation.
+      When you use <code>^:async</code> and <code>js-await</code> in Squint,
+      you're working with promises.</p>
+
+    <pre class="code"><span class="js-comment">// A promise represents a future value</span>
+<span class="js-keyword">const</span> promise = fetch(<span class="js-string">"https://api.example.com/data"</span>);
+
+<span class="js-comment">// async/await — what Squint compiles to</span>
+<span class="js-keyword">async function</span> getData() {
+  <span class="js-keyword">const</span> response = <span class="js-keyword">await</span> fetch(<span class="js-string">"https://api.example.com/data"</span>);
+  <span class="js-keyword">const</span> json = <span class="js-keyword">await</span> response.json();
+  <span class="js-keyword">return</span> json;
+}
+
+<span class="js-comment">// An async function always returns a promise</span>
+getData().then(data => console.log(data));</pre>
+
+    <p>Key things to know:</p>
+    <ul>
+      <li>An <code>async</code> function always returns a Promise</li>
+      <li><code>await</code> can only be used inside <code>async</code>
+        functions (or at the top level of ES modules)</li>
+      <li>Unhandled promise rejections become errors — always handle them
+        with try/catch (which Squint provides via <code>try</code>)</li>
+    </ul>
+
+    <h2 id="npm">npm and Node.js</h2>
+
+    <p><b>npm</b> is the JavaScript package manager. When you run
+      <code>npm install some-package</code>, it downloads the package into a
+      <code>node_modules</code> directory and records the dependency in
+      <code>package.json</code>.</p>
+
+    <p><b>Node.js</b> is the most common server-side JavaScript runtime.
+      It provides built-in modules like <code>fs</code> (file system),
+      <code>path</code>, <code>http</code>, and <code>child_process</code>.
+      You can require these in Squint with string requires:</p>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">my-script</span>
+  (<span class="keyword">:require</span> [<span class="string">"fs"</span> <span class="keyword">:as</span> <span class="symbol">fs</span>]
+            [<span class="string">"path"</span> <span class="keyword">:as</span> <span class="symbol">path</span>]))</pre>
+
+    <p>Other runtimes like <b>Bun</b> and <b>Deno</b> are largely compatible
+      with Node.js APIs and npm packages.</p>
+
+    <h2 id="dom">The browser and the DOM</h2>
+
+    <p>In browsers, JavaScript can interact with the page via the DOM
+      (Document Object Model). You access it through global objects like
+      <code>document</code> and <code>window</code>:</p>
+
+    <pre class="code"><span class="comment">;; In Squint</span>
+(<span class="special">def</span> <span class="symbol">el</span> (<span class="macro">js/document.getElementById</span> <span class="string">"app"</span>))
+(<span class="special">set!</span> (<span class="special">.-</span><span class="symbol">textContent</span> <span class="symbol">el</span>) <span class="string">"Hello!"</span>)
+(<span class="special">.</span><span class="symbol">addEventListener</span> <span class="symbol">el</span> <span class="string">"click"</span>
+  (<span class="special">fn</span> [<span class="symbol">e</span>] (<span class="symbol">println</span> <span class="string">"Clicked!"</span>)))</pre>
+
+    <p>Most modern web development uses frameworks (React, Vue, Svelte) rather
+      than direct DOM manipulation. Squint's JSX support makes it a natural fit
+      for React-based development.</p>
+
+    <h2 id="gotchas">JavaScript gotchas</h2>
+
+    <ul>
+      <li><b><code>null</code> vs <code>undefined</code>:</b>
+        <code>null</code> means "explicitly no value" (Squint's <code>nil</code>).
+        <code>undefined</code> means "not set at all" (missing object keys,
+        uninitialized variables). Both are falsy.</li>
+
+      <li><b><code>===</code> vs <code>==</code>:</b> Squint's <code>=</code>
+        implements <em>deep equality</em> for compound types (objects,
+        arrays, Sets, Maps), not JavaScript's <code>===</code>. For
+        primitives it behaves like <code>===</code>. Use
+        <code>identical?</code> if you need reference equality.</li>
+
+      <li><b><code>typeof null === "object"</code>:</b> An ancient JS bug
+        that will never be fixed. Use <code>nil?</code> in Squint instead.</li>
+
+      <li><b>Array methods return new arrays:</b> Methods like
+        <code>.map()</code>, <code>.filter()</code>, <code>.slice()</code>
+        return new arrays. Methods like <code>.push()</code>,
+        <code>.sort()</code>, <code>.splice()</code> mutate in place.
+        Squint's standard library wraps these, but if you call JS methods
+        directly, be aware of which mutate.</li>
+
+      <li><b>String immutability:</b> Unlike objects and arrays, JavaScript
+        strings are immutable. All string operations return new strings.</li>
+    </ul>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+</body>
+</html>

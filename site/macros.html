@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Macro Guide — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="rationale.html">Rationale</a>
+    <a href="js-primer.html">JS Primer</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="style.html">Style</a>
+    <a href="macros.html">Macros</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>Macro Guide</h1>
+
+    <p>Macros are a defining feature of Lisp languages. They let you transform
+      code at compile time, extending the language with your own syntax.
+      Squint supports <code>defmacro</code> for compile-time code
+      generation.</p>
+
+    <div class="toc">
+      <b>Contents</b>
+      <ul>
+        <li><a href="#basics">Macro basics</a></li>
+        <li><a href="#quoting">Quoting and unquoting</a></li>
+        <li><a href="#patterns">Common patterns</a></li>
+        <li><a href="#loading">Loading macros</a></li>
+        <li><a href="#vs-functions">Macros vs. functions</a></li>
+        <li><a href="#debugging">Debugging macros</a></li>
+      </ul>
+    </div>
+
+    <h2 id="basics">Macro basics</h2>
+
+    <p>A macro is a function that runs at <em>compile time</em>. It receives
+      unevaluated code as data, transforms it, and returns new code that gets
+      compiled in its place.</p>
+
+    <pre class="code"><span class="comment">;; A simple macro that logs before executing</span>
+(<span class="special">defmacro</span> <span class="symbol">with-timing</span> [<span class="symbol">label</span> &amp; <span class="symbol">body</span>]
+  `(<span class="special">let</span> [<span class="symbol">start#</span> (<span class="macro">js/Date.now</span>)
+         <span class="symbol">result#</span> (<span class="special">do</span> ~@<span class="symbol">body</span>)
+         <span class="symbol">elapsed#</span> (<span class="special">-</span> (<span class="macro">js/Date.now</span>) <span class="symbol">start#</span>)]
+     (<span class="symbol">println</span> ~<span class="symbol">label</span> <span class="string">"took"</span> <span class="symbol">elapsed#</span> <span class="string">"ms"</span>)
+     <span class="symbol">result#</span>))
+
+<span class="comment">;; Usage</span>
+(<span class="symbol">with-timing</span> <span class="string">"fetch"</span>
+  (<span class="macro">js-await</span> (<span class="macro">js/fetch</span> <span class="symbol">url</span>)))</pre>
+
+    <p>When the compiler encounters <code>(with-timing ...)</code>, it calls
+      the macro function, which returns a <code>let</code> form that wraps
+      the body with timing code. The returned code is then compiled normally.</p>
+
+    <h2 id="quoting">Quoting and unquoting</h2>
+
+    <p>Syntax-quote (<code>`</code>) is the primary tool for building code
+      in macros:</p>
+
+    <pre class="code"><span class="comment">;; ` (syntax-quote) — returns code as data, with namespace resolution</span>
+`(<span class="special">+</span> <span class="number">1</span> <span class="number">2</span>)   <span class="comment">; => the list (+ 1 2)</span>
+
+<span class="comment">;; ~ (unquote) — evaluates within syntax-quote</span>
+(<span class="special">let</span> [<span class="symbol">x</span> <span class="number">42</span>]
+  `(<span class="special">+</span> ~<span class="symbol">x</span> <span class="number">1</span>))   <span class="comment">; => (+ 42 1)</span>
+
+<span class="comment">;; ~@ (unquote-splicing) — splices a list into the surrounding form</span>
+(<span class="special">let</span> [<span class="symbol">args</span> [<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>]]
+  `(<span class="special">+</span> ~@<span class="symbol">args</span>))   <span class="comment">; => (+ 1 2 3)</span>
+
+<span class="comment">;; # (auto-gensym) — generates unique symbol names</span>
+`(<span class="special">let</span> [<span class="symbol">x#</span> <span class="number">1</span>] <span class="symbol">x#</span>)   <span class="comment">; => (let [x__123 1] x__123)</span></pre>
+
+    <p>The auto-gensym (<code>#</code>) suffix is important — it prevents
+      your macro's internal variables from colliding with user code. Always
+      use it for temporary bindings in macros.</p>
+
+    <h2 id="patterns">Common patterns</h2>
+
+    <p><b>Wrapping patterns</b> — add behavior around existing code:</p>
+
+    <pre class="code">(<span class="special">defmacro</span> <span class="symbol">unless</span> [<span class="symbol">test</span> &amp; <span class="symbol">body</span>]
+  `(<span class="special">when</span> (<span class="special">not</span> ~<span class="symbol">test</span>) ~@<span class="symbol">body</span>))
+
+<span class="comment">;; Usage</span>
+(<span class="symbol">unless</span> (<span class="symbol">valid?</span> <span class="symbol">input</span>)
+  (<span class="symbol">println</span> <span class="string">"invalid input!"</span>))</pre>
+
+    <p><b>Note:</b> Macros that generate <code>try</code>/<code>catch</code>
+      forms using syntax-quote have a known compiler bug — the
+      <code>catch</code> clause may not compile correctly. Use
+      <code>try</code>/<code>catch</code> directly in your code instead
+      of inside macros.</p>
+
+    <p><b>Defining new binding forms:</b></p>
+
+    <pre class="code">(<span class="special">defmacro</span> <span class="symbol">if-let*</span> [<span class="symbol">bindings</span> <span class="symbol">then</span> <span class="symbol">else</span>]
+  (<span class="special">if</span> (<span class="symbol">empty?</span> <span class="symbol">bindings</span>)
+    <span class="symbol">then</span>
+    (<span class="special">let</span> [[<span class="symbol">sym</span> <span class="symbol">val</span> &amp; <span class="symbol">rest</span>] <span class="symbol">bindings</span>]
+      `(<span class="special">let</span> [<span class="symbol">temp#</span> ~<span class="symbol">val</span>]
+         (<span class="special">if</span> <span class="symbol">temp#</span>
+           (<span class="special">let</span> [~<span class="symbol">sym</span> <span class="symbol">temp#</span>]
+             (<span class="symbol">if-let*</span> ~(<span class="symbol">vec</span> <span class="symbol">rest</span>) ~<span class="symbol">then</span> ~<span class="symbol">else</span>))
+           ~<span class="symbol">else</span>)))))</pre>
+
+    <h2 id="loading">Loading macros</h2>
+
+    <p>Define macros in a separate file and load them with
+      <code>:require-macros</code>:</p>
+
+    <pre class="code"><span class="comment">;; src/my_app/macros.cljs</span>
+(<span class="special">ns</span> <span class="symbol">my-app.macros</span>)
+
+(<span class="special">defmacro</span> <span class="symbol">with-timing</span> [<span class="symbol">label</span> &amp; <span class="symbol">body</span>]
+  `(<span class="special">let</span> [<span class="symbol">start#</span> (<span class="macro">js/Date.now</span>)
+         <span class="symbol">result#</span> (<span class="special">do</span> ~@<span class="symbol">body</span>)
+         <span class="symbol">elapsed#</span> (<span class="special">-</span> (<span class="macro">js/Date.now</span>) <span class="symbol">start#</span>)]
+     (<span class="symbol">println</span> ~<span class="symbol">label</span> <span class="string">"took"</span> <span class="symbol">elapsed#</span> <span class="string">"ms"</span>)
+     <span class="symbol">result#</span>))
+
+<span class="comment">;; src/my_app/main.cljs — load via :require-macros</span>
+(<span class="special">ns</span> <span class="symbol">my-app.main</span>
+  (<span class="keyword">:require-macros</span> [<span class="symbol">my-app.macros</span> <span class="keyword">:refer</span> [<span class="symbol">with-timing</span>]]))</pre>
+
+    <p><b>Important:</b> Use <code>:require-macros</code>, not plain
+      <code>:require</code>. Plain <code>:require</code> will import the
+      macro file as a regular module instead of expanding macros at compile
+      time.</p>
+
+    <p>Macros can also be defined in the same file where they're used, but
+      note that the macro definition itself will be emitted into the compiled
+      output, which may cause runtime errors. Separate macro files are the
+      recommended approach.</p>
+
+    <p>Macros are resolved at compile time. The compiler uses
+      <a href="https://github.com/babashka/sci">SCI</a> (Small Clojure
+      Interpreter) to evaluate macro definitions, then uses them to expand
+      macro calls in the requiring file.</p>
+
+    <p><b>Note:</b> Cross-namespace macro resolution has some known
+      limitations — qualified macro calls and aliased namespaces may not
+      resolve correctly in all cases. Keep macros simple and test
+      thoroughly.</p>
+
+    <h2 id="vs-functions">Macros vs. functions</h2>
+
+    <p>Use functions by default. Only reach for macros when you need to:</p>
+
+    <ul>
+      <li><b>Control evaluation:</b> Functions evaluate all arguments before
+        the call. Macros receive unevaluated code, so they can decide what
+        gets evaluated and when (e.g., short-circuiting, conditional
+        execution).</li>
+      <li><b>Generate new bindings:</b> Only macros can introduce
+        <code>let</code>, <code>def</code>, or parameter bindings into the
+        calling code.</li>
+      <li><b>Transform syntax:</b> If you want to provide a different
+        syntactic interface (e.g., a DSL), macros are the tool.</li>
+      <li><b>Eliminate runtime overhead:</b> Macros expand at compile time,
+        so they can inline code that a function would need to dispatch
+        dynamically.</li>
+    </ul>
+
+    <p>If a function can do the job, prefer it. Functions are simpler to
+      understand, test, and compose. Macros add power but also cognitive
+      overhead.</p>
+
+    <h2 id="debugging">Debugging macros</h2>
+
+    <p>When a macro doesn't produce the expected output:</p>
+
+    <ol>
+      <li><b>Check the expansion.</b> Use <code>macroexpand</code> or
+        <code>macroexpand-1</code> to see what code your macro generates.</li>
+      <li><b>Print during compilation.</b> Adding <code>(println ...)</code>
+        inside <code>defmacro</code> (outside the syntax-quote) will print
+        at compile time.</li>
+      <li><b>Check for missing gensyms.</b> If you get "variable not found"
+        errors, you probably forgot a <code>#</code> suffix on a temporary
+        binding.</li>
+      <li><b>Check for missing unquotes.</b> If a variable name appears
+        literally in the output instead of its value, you forgot a
+        <code>~</code>.</li>
+    </ol>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+</body>
+</html>

@@ -1,4 +1,4 @@
-name: Playground
+name: Site
 on:
   push:
     branches:
@@ -34,10 +34,16 @@ jobs:
           cli: latest
           bb: latest
 
-      - name: Install and Build 🔧
+      - name: Build playground 🔧
         run: |
           bb build
           cd playground && bb build
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp site/*.html site/*.css site/*.svg site/*.cljs site/*.mjs _site/
+          cp -r playground/public/dist _site/squint
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
@@ -45,7 +51,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3.0.1
         with:
-          path: 'playground/public/dist'
+          path: '_site'
 
       - name: Deploy to GitHub Pages
         id: deployment

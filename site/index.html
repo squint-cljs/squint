@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Squint — Clojure syntax, JavaScript output</title>
+  <meta name="description" content="Squint compiles Clojure syntax to lean, readable JavaScript with tiny bundles and fast startup.">
+</head>
+<body>
+  <main>
+
+    <!-- ── Hero ──────────────────────────────────────── -->
+
+    <h1>
+      <svg class="logo" width="300" height="100" viewBox="0 0 600 200" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="squint">
+        <path d="M251.71 97.62H323.71V103.62H251.71V97.62Z" fill="white"/>
+        <path d="M240.93 103.62H165.556C165.485 102.565 165.45 101.486 165.45 100.384C165.45 99.4448 165.475 98.5235 165.527 97.62H240.93V103.62Z" fill="white"/>
+        <path d="M487.823 134.344C478.783 134.344 471.743 132.184 466.703 127.864C461.663 123.464 459.143 116.744 459.143 107.704V90.6243H450V71.1243H452.643C458 71.1243 460.143 69.1243 460.143 63.6243V53.7443L486.263 51.7443V71.1243H499.5V90.6243H486.263V107.464C486.263 109.464 486.783 111.024 487.823 112.144C488.943 113.264 490.303 113.824 491.903 113.824C494.223 113.824 496.263 113.224 498.023 112.024L504.503 130.864C502.423 132.064 499.903 132.944 496.943 133.504C494.063 134.064 491.023 134.344 487.823 134.344Z" fill="#EA701D"/>
+        <circle cx="201" cy="100.624" r="10" fill="black"/>
+        <circle cx="288" cy="100.624" r="10" fill="black"/>
+        <path d="M417.485 66.3043C422.525 66.3043 427.085 67.3443 431.165 69.4243C435.245 71.4243 438.445 74.5843 440.765 78.9043C443.165 83.2243 444.365 88.8243 444.365 95.7043V133.144H417.245V100.384C417.245 96.3043 416.525 93.4243 415.085 91.7443C413.645 89.9843 411.685 89.1043 409.205 89.1043C407.365 89.1043 405.645 89.5443 404.045 90.4243C402.525 91.2243 401.285 92.5843 400.325 94.5043C399.445 96.4243 399.005 99.0243 399.005 102.304V133.144H371.885V67.5043H397.685V86.7043L392.525 81.1843C395.085 76.2243 398.525 72.5043 402.845 70.0243C407.245 67.5443 412.125 66.3043 417.485 66.3043Z" fill="#EA701D"/>
+        <path d="M334.744 133.144V67.5043H361.864V133.144H334.744Z" fill="#EA701D"/>
+        <path d="M265.155 131.224C269.395 133.304 274.115 134.344 279.315 134.344C284.275 134.344 288.875 133.144 293.115 130.744C294.882 129.73 296.482 128.494 297.915 127.038V133.144H323.715V103.624H251.715C251.715 109.631 252.481 115.879 255.315 121.264C257.715 125.744 260.995 129.064 265.155 131.224Z" fill="#EA701D"/>
+        <path d="M251.715 97.6243V67.5043H323.715V97.6243H251.715Z" fill="#EA701D"/>
+        <path d="M125.76 134.344C120.16 134.344 114.64 133.744 109.2 132.544C103.76 131.344 99.36 129.784 96 127.864L103.44 109.984C106.56 111.824 110.16 113.264 114.24 114.304C118.4 115.344 122.44 115.864 126.36 115.864C129.64 115.864 131.84 115.584 132.96 115.024C134.16 114.464 134.76 113.704 134.76 112.744C134.76 111.784 134.08 111.104 132.72 110.704C131.36 110.224 129.56 109.864 127.32 109.624C125.08 109.384 122.6 109.104 119.88 108.784C117.24 108.384 114.56 107.824 111.84 107.104C109.12 106.384 106.64 105.304 104.4 103.864C102.16 102.424 100.36 100.504 99 98.1043C97.64 95.6243 96.96 92.5043 96.96 88.7443C96.96 84.5843 98.2 80.8243 100.68 77.4643C103.24 74.1043 107 71.4243 111.96 69.4243C117 67.3443 123.2 66.3043 130.56 66.3043C135.36 66.3043 140.16 66.7443 144.96 67.6243C149.76 68.5043 153.88 69.8643 157.32 71.7043L149.88 89.5843C146.52 87.7443 143.2 86.5043 139.92 85.8643C136.72 85.1443 133.72 84.7843 130.92 84.7843C127.48 84.7843 125.12 85.1043 123.84 85.7443C122.64 86.3843 122.04 87.1043 122.04 87.9043C122.04 88.8643 122.72 89.5843 124.08 90.0643C125.44 90.5443 127.24 90.9043 129.48 91.1443C131.72 91.3843 134.16 91.7043 136.8 92.1043C139.52 92.4243 142.2 92.9843 144.84 93.7843C147.56 94.5043 150.04 95.5843 152.28 97.0243C154.52 98.4643 156.32 100.424 157.68 102.904C159.04 105.304 159.72 108.384 159.72 112.144C159.72 116.064 158.48 119.744 156 123.184C153.52 126.544 149.76 129.264 144.72 131.344C139.68 133.344 133.36 134.344 125.76 134.344Z" fill="#EA701D"/>
+        <path d="M337.313 61.1777C340.687 63.2636 344.816 63.8759 349.7 63.0146C354.585 62.1533 358.255 60.1657 360.712 57.0518C363.155 53.8591 364.015 50.2144 363.293 46.1176C362.612 42.2572 360.599 39.3628 357.253 37.4345C353.907 35.5061 349.792 34.9726 344.908 35.8339C340.023 36.6952 336.352 38.6828 333.896 41.7967C331.439 44.9106 330.551 48.3977 331.232 52.2582C331.912 56.1186 333.94 59.0918 337.313 61.1777Z" fill="#EA701D"/>
+        <path d="M181.292 130.264C186.172 132.984 191.452 134.344 197.132 134.344C202.892 134.344 207.612 133.144 211.292 130.744C212.189 130.14 213.029 129.462 213.812 128.71V157.424L240.932 155.424V103.624H165.558C165.938 109.307 167.343 114.307 169.772 118.624C172.652 123.664 176.492 127.544 181.292 130.264Z" fill="#EA701D"/>
+        <path d="M165.528 97.6243C165.861 91.753 167.275 86.633 169.772 82.2643C172.652 77.1443 176.492 73.2243 181.292 70.5043C186.172 67.7043 191.452 66.3043 197.132 66.3043C203.212 66.3043 208.052 67.5043 211.652 69.9043C212.939 70.7438 214.099 71.7449 215.132 72.9074V67.5043H240.932V97.6243H165.528Z" fill="#EA701D"/>
+      </svg>
+    </h1>
+
+    <p>Squint is a light-weight dialect that brings together the
+      expressiveness of <a href="https://clojure.org/">Clojure</a> with
+      the reach of <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript">JavaScript</a>
+      — compiling Clojure syntax to lean, readable JS.</p>
+
+    <ul class="features">
+      <li><b>Native JS output:</b> Compiles to plain JavaScript objects,
+        arrays, and ES modules. No custom data structures, no runtime overhead.</li>
+      <li><b>Tiny bundles:</b> Because Squint uses built-in JS types,
+        compiled output is small and startup is fast. Ship production code
+        with minimal dependencies.</li>
+      <li><b>Clojure standard library:</b> A re-implemented subset of the
+        ClojureScript standard library, ported to work with mutable JS
+        data structures.</li>
+      <li><b>Modern JS features:</b> First-class support for async/await,
+        JSX, generators, ES modules, and lazy sequences backed by JS iterators.</li>
+    </ul>
+
+    <p>Anywhere you can run JavaScript, you can run Squint.</p>
+
+    <ul id="where">
+      <li><a href="https://workers.cloudflare.com/">Cloudflare Workers</a></li>
+      <li><a href="https://nodejs.org/">Node.js</a></li>
+      <li><a href="https://bun.sh/">Bun</a></li>
+      <li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript">browsers</a></li>
+      <li><a href="https://docs.github.com/en/actions">GitHub Actions</a></li>
+      <li><a href="https://deno.com/">Deno</a></li>
+    </ul>
+
+    <p><a href="#getting-started">Get started now!</a></p>
+
+    <!-- ── Code comparison ───────────────────────────── -->
+
+    <div class="code-compare">
+      <div class="code-pane">
+        <h3>Squint</h3>
+        <pre class="code">(<span class="special">ns</span> <span class="symbol">app</span>
+  (<span class="keyword">:require</span> [<span class="string">"fs/promises"</span> <span class="keyword">:as</span> <span class="symbol">fs</span>]))
+
+(<span class="special">defn</span> <span class="macro">^:async</span> <span class="symbol">read-config</span> [<span class="symbol">path</span>]
+  (<span class="special">let</span> [<span class="symbol">text</span> (<span class="macro">js-await</span> (<span class="symbol">fs/readFile</span> <span class="symbol">path</span> <span class="string">"utf-8"</span>))
+        {<span class="keyword">:keys</span> [<span class="symbol">host</span> <span class="symbol">port</span>]} (<span class="macro">js/JSON.parse</span> <span class="symbol">text</span>)]
+    {<span class="keyword">:host</span> <span class="symbol">host</span>
+     <span class="keyword">:port</span> (<span class="special">or</span> <span class="symbol">port</span> <span class="number">3000</span>)}))
+
+(<span class="special">defn</span> <span class="symbol">handler</span> [{<span class="keyword">:keys</span> [<span class="symbol">method</span> <span class="symbol">url</span>]}]
+  (<span class="symbol">println</span> <span class="symbol">method</span> <span class="symbol">url</span>)
+  (<span class="macro">js/Response.</span> <span class="string">"OK"</span> {<span class="keyword">:status</span> <span class="number">200</span>}))</pre>
+      </div>
+      <div class="code-pane">
+        <h3>JavaScript</h3>
+        <pre class="code"><span class="js-keyword">import</span> * <span class="js-keyword">as</span> fs <span class="js-keyword">from</span> <span class="js-string">"fs/promises"</span>;
+
+<span class="js-keyword">async function</span> readConfig(path) {
+  <span class="js-keyword">const</span> text = <span class="js-keyword">await</span> fs.readFile(path, <span class="js-string">"utf-8"</span>);
+  <span class="js-keyword">const</span> { host, port } = JSON.parse(text);
+  <span class="js-keyword">return</span> { host, port: port ?? <span class="js-number">3000</span> };
+}
+
+<span class="js-keyword">function</span> handler({ method, url }) {
+  console.log(method, url);
+  <span class="js-keyword">return new</span> Response(<span class="js-string">"OK"</span>, { status: <span class="js-number">200</span> });
+}</pre>
+      </div>
+    </div>
+
+    <p>The JavaScript shown is simplified for clarity — the actual
+      compiler output uses a small runtime for Clojure semantics
+      (deep equality, truthiness, etc.). See exact output in the
+      <a href="squint/">playground</a>.</p>
+
+    <!-- ── Live REPL ────────────────────────────────── -->
+
+    <h2 id="repl">Don't feel like installing it?</h2>
+
+    <p>Try Squint right here — type an expression and press Enter:</p>
+
+    <div class="outputs">
+      <div class="code code-flex">
+        <code id="repl-console"></code>
+        <noscript>The interactive REPL needs JavaScript enabled. You can
+          <a href="squint/">use the playground</a>
+          or install Squint locally instead.</noscript>
+        <div class="repl-input-container">
+          <label id="repl-prompt" for="repl-input">&gt; </label>
+          <textarea id="repl-input" spellcheck="false" rows="1"
+                    autocapitalize="off" placeholder="Type Squint code here..."></textarea>
+          <button id="toggle-compiled-code">Toggle JS</button>
+        </div>
+      </div>
+      <div class="code code-flex" id="js-pane">
+        <code id="compiled-js"></code>
+      </div>
+    </div>
+
+    <p>For a richer experience with syntax highlighting and sharing,
+      use the full <a href="squint/">playground</a>.</p>
+
+    <!-- ── Getting started ───────────────────────────── -->
+
+    <h2 id="getting-started">Getting started</h2>
+
+    <pre class="code shell">$ mkdir my-project && cd my-project
+$ npm init -y
+$ npm install squint-cljs@latest</pre>
+
+    <p>Create <code>hello.cljs</code>:</p>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">hello</span>)
+
+(<span class="symbol">println</span> <span class="string">"Hello from Squint!"</span>)
+
+(<span class="special">defn</span> <span class="symbol">greet</span> [<span class="symbol">name</span>]
+  (<span class="symbol">str</span> <span class="string">"Hello, "</span> <span class="symbol">name</span> <span class="string">"!"</span>))
+
+(<span class="symbol">println</span> (<span class="symbol">greet</span> <span class="string">"world"</span>))</pre>
+
+    <p>Run it:</p>
+
+    <pre class="code shell">$ npx squint run hello.cljs
+Hello from Squint!
+Hello, world!</pre>
+
+    <p>To compile to <code>.mjs</code> files and watch for changes:</p>
+
+    <pre class="code shell">$ npx squint watch</pre>
+
+    <p>Configure your project with a <code>squint.edn</code> file.
+      See the <a href="https://github.com/squint-cljs/squint#readme">README</a>
+      for full compiler options.</p>
+
+    <!-- ── Documentation ─────────────────────────────── -->
+
+    <h2 id="docs">Documentation</h2>
+
+    <ul>
+      <li>The <a href="tutorial.html">Tutorial</a> teaches you the basics of the language.</li>
+      <li>The <a href="rationale.html">Rationale</a> explains why Squint was created.</li>
+      <li>The <a href="js-primer.html">JavaScript Primer</a> will catch you up if you're new to JS.</li>
+      <li>The <a href="from-clojure.html">Squint from Clojure</a> guide helps if you have a Clojure background.</li>
+      <li>The <a href="porting.html">Porting from ClojureScript</a> walks through migrating an existing project.</li>
+      <li>The <a href="cookbook.html">Cookbook</a> has practical recipes for common tasks.</li>
+      <li>The <a href="style.html">Style Guide</a> advises on how to write clear, idiomatic code.</li>
+      <li>The <a href="macros.html">Macro Guide</a> explains compile-time metaprogramming.</li>
+      <li>The <a href="api.html">API Listing</a> documents the compiler API and configuration.</li>
+      <li>The <a href="editors.html">Editor &amp; nREPL Setup</a> covers editor integration.</li>
+      <li>The <a href="bundlers.html">Bundler Integration</a> explains how to use Squint with Vite, esbuild, etc.</li>
+      <li>The <a href="https://github.com/squint-cljs/squint/blob/main/CHANGELOG.md">Changelog</a>
+        describes how Squint has evolved.</li>
+    </ul>
+
+    <!-- ── Cherry ────────────────────────────────────── -->
+
+    <h2 id="cherry">Looking for full ClojureScript semantics?</h2>
+
+    <p>If you need persistent immutable data structures and the full
+      ClojureScript standard library, check out
+      <a href="https://github.com/squint-cljs/cherry">Cherry</a> —
+      Squint's sibling project. Cherry uses the same compiler infrastructure
+      but preserves ClojureScript's immutable semantics, trading bundle size
+      for richer data structure guarantees. Cherry is more experimental and
+      not yet recommended for production use.</p>
+
+    <!-- ── Community ─────────────────────────────────── -->
+
+    <h2 id="community">Community</h2>
+
+    <ul>
+      <li><a href="https://github.com/squint-cljs/squint">GitHub</a> —
+        source code, issues, and discussions.</li>
+      <li><a href="https://clojurians.slack.com/">Clojurians Slack</a> —
+        join the <code>#squint</code> channel for questions and discussion.</li>
+      <li><a href="https://github.com/sponsors/borkdude">Sponsor</a> —
+        support Squint's development via GitHub Sponsors.</li>
+    </ul>
+
+    <p>Squint is created by
+      <a href="https://github.com/borkdude">Michiel Borkent</a>,
+      also known for <a href="https://babashka.org/">Babashka</a>,
+      <a href="https://github.com/borkdude/clj-kondo">clj-kondo</a>,
+      and many other Clojure tools.</p>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+
+  <!-- ── REPL script ─────────────────────────────────── -->
+  <script type="module">
+    const output = document.getElementById('repl-console');
+    const input = document.getElementById('repl-input');
+    const jsPane = document.getElementById('js-pane');
+    const compiledJs = document.getElementById('compiled-js');
+    const toggleBtn = document.getElementById('toggle-compiled-code');
+
+    function appendOutput(text, cls) {
+      const pre = document.createElement('pre');
+      if (cls) pre.className = cls;
+      pre.textContent = text;
+      output.appendChild(pre);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function displayResult(val) {
+      if (val === undefined || val === null) return;
+      if (typeof val === 'function')
+        return appendOutput('#function[' + (val.name || 'anonymous') + ']', 'result');
+      try {
+        const s = JSON.stringify(val);
+        if (s !== undefined) return appendOutput(s, 'result');
+      } catch (_) {}
+      appendOutput(String(val), 'result');
+    }
+
+    let compileString = null;
+
+    // Load compiler and core library from CDN
+    try {
+      const [squint, core] = await Promise.all([
+        import('https://esm.sh/squint-cljs'),
+        import('https://esm.sh/squint-cljs/core.js'),
+      ]);
+      compileString = squint.compileString;
+      // Make core available globally so eval'd code can reference it
+      globalThis.squint_core = core;
+      appendOutput('Squint REPL ready — type an expression and press Enter.', 'info');
+    } catch (e) {
+      appendOutput('Could not load compiler. Use the playground instead:', 'error');
+      appendOutput('squint/', 'info');
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      jsPane.style.display = jsPane.style.display === 'none' || !jsPane.style.display
+        ? 'flex' : 'none';
+    });
+
+    input.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        const src = input.value.trim();
+        if (!src) return;
+
+        appendOutput('> ' + src, 'input');
+        input.value = '';
+        input.style.height = 'auto';
+
+        if (!compileString) {
+          appendOutput('Compiler not loaded.', 'error');
+          return;
+        }
+
+        try {
+          const js = compileString(src, {
+            repl: true,
+            context: 'statement',
+            'elide-imports': true,
+            'elide-exports': true,
+          });
+          const jsStr = typeof js === 'string' ? js : js.javascript || String(js);
+          compiledJs.textContent =
+            (compiledJs.textContent ? compiledJs.textContent + '\n' : '') + jsStr;
+
+          // Promote previously defined REPL vars to global scope
+          Object.assign(globalThis, globalThis.user || {});
+
+          const logs = [];
+          const origLog = console.log;
+          console.log = (...args) => logs.push(args.map(String).join(' '));
+
+          try {
+            const result = (0, eval)(jsStr);
+            console.log = origLog;
+            logs.forEach(l => appendOutput(l));
+            displayResult(result);
+          } catch (evalErr) {
+            console.log = origLog;
+            logs.forEach(l => appendOutput(l));
+            appendOutput('Runtime: ' + evalErr.message, 'error');
+          }
+        } catch (compileErr) {
+          appendOutput('Compile: ' + compileErr.message, 'error');
+        }
+      }
+    });
+
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = input.scrollHeight + 'px';
+    });
+  </script>
+</body>
+</html>
