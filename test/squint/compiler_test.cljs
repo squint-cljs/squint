@@ -1783,6 +1783,40 @@ with `backticks`")))]
        (str/trim (squint/compile-string "(ns foo (:require [\"some-js-lib\" :refer [atom]])) atom" {:repl true}))
        "foo.atom;")))
 
+(deftest symbol-require-without-alias-test
+  (let [s (squint/compile-string "(ns foo (:require [some-lib])) (some-lib/bar)")]
+    (is (str/includes? s "import * as some_lib from"))
+    (is (str/includes? s "some_lib.bar()")))
+  (let [s (squint/compile-string "(ns foo (:require [my-kebab-lib])) (my-kebab-lib/baz)")]
+    (is (str/includes? s "import * as my_kebab_lib from"))
+    (is (str/includes? s "my_kebab_lib.baz()")))
+  (let [s (squint/compile-string "(ns foo (:require [\"./styles.css\"]))")]
+    (is (str/includes? s "import './styles.css'"))
+    (is (not (str/includes? s "import * as styles")))))
+
+(deftest symbol-refer-without-alias-qualified-access-test
+  (let [s (squint/compile-string "(ns foo (:require [some-lib :refer [bar]])) (some-lib/baz)")]
+    (is (str/includes? s "import * as some_lib from")
+        "namespace import generated alongside named import")
+    (is (str/includes? s "import { bar } from"))
+    (is (str/includes? s "some_lib.baz()")))
+  (let [s (squint/compile-string "(ns foo (:require [my-lib :refer [greet]])) (my-lib/hello)")]
+    (is (str/includes? s "import * as my_lib from"))
+    (is (str/includes? s "my_lib.hello()"))))
+
+(deftest string-refer-no-namespace-import-test
+  (let [s (squint/compile-string "(ns foo (:require [\"some-js-lib\" :refer [widget]]))")]
+    (is (str/includes? s "import { widget } from"))
+    (is (not (str/includes? s "import * as some"))
+        "string require with :refer does not generate namespace import")))
+
+
+(deftest qualified-access-original-name-with-alias-test
+  (let [s (squint/compile-string "(ns foo (:require [some-ns :as s])) (some-ns/bar)")]
+    (is (str/includes? s "import * as s from"))
+    (is (str/includes? s "s.bar()")
+        "original ns name resolves through reverse alias lookup")))
+
 (deftest require-test
   (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
     (is (and
