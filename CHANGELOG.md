@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix [#783](https://github.com/squint-cljs/squint/issues/783): qualified symbol resolution in macro expansions
+- Fix [#784](https://github.com/squint-cljs/squint/issues/784): auto-import runtime deps from macro expansion
 
 ## v0.10.186 (2026-03-07)
 

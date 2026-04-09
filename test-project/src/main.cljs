@@ -1,5 +1,6 @@
 (ns main
   (:require-macros [macros :as m :refer [debug with-add-100]]
+                   [macros-transitive :refer [wrapper with-format with-deep-format]]
                    [macros2 :refer [also]])
   (:require [macros :as m]
             [other-ns]
@@ -33,3 +34,6 @@
 
 (println "qualified test:" (m/with-add-100 42))
 (println "no-alias qualified:" (helpers/greet "world"))
+(println "macro-dep:" (with-format "test" 999))
+(wrapper :nested 444)
+(println "deep-dep:" (with-deep-format "deep" 777))

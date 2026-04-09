@@ -52,7 +52,20 @@
                                             (swap! ns-state (fn [ns-state]
                                                               (cond-> (assoc-in ns-state [:macros macro-ns] macros)
                                                                 as (assoc-in [the-ns-name :aliases as] macro-ns)
-                                                                refer (update-in [the-ns-name :refers] merge (zipmap refer (repeat macro-ns))))))))))))
+                                                                refer (update-in [the-ns-name :refers] merge (zipmap refer (repeat macro-ns))))))
+                                            (loop [queue [macro-ns]]
+                                              (when (seq queue)
+                                                (let [ns-sym (first queue)
+                                                      deps (eval-form (list 'mapv 'ns-name (list 'vals (list 'ns-aliases (list 'quote ns-sym)))))
+                                                      new-deps (filterv #(not (get-in @ns-state [:macros %])) deps)]
+                                                  (doseq [dep new-deps]
+                                                    (let [dep-publics (eval-form (list 'ns-publics (list 'quote dep)))
+                                                          dep-macros (keep (fn [[k v]]
+                                                                             (when (:macro (meta v))
+                                                                               [k (deref v)])) dep-publics)
+                                                          dep-map (into {} dep-macros)]
+                                                      (swap! ns-state assoc-in [:macros dep] dep-map)))
+                                                  (recur (into (subvec queue 1) new-deps)))))))))))
                       (js/Promise.resolve nil)
                       require-macros)))))))))
 

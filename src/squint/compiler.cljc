@@ -18,6 +18,7 @@
                                           *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
+   [clojure.walk :as walk]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]
@@ -26,6 +27,57 @@
    [squint.internal.macros :as macros]
    [squint.internal.protocols :as protocols])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
+
+(defn- qualified-syms
+  "Extract qualified symbols from a form."
+  [form]
+  (let [acc (volatile! #{})]
+    (walk/postwalk (fn [x]
+                     (when (and (symbol? x) (namespace x))
+                       (vswap! acc conj x))
+                     x)
+                   form)
+    @acc))
+
+(defn- ensure-macro-imports
+  "After macro expansion, check for qualified symbols whose namespace
+  has no runtime import. Auto-add imports for any that are missing."
+  [form env]
+  (let [ns-state @(:ns-state env)
+        current (:current ns-state)
+        current-ns-state (get ns-state current)
+        aliases (:aliases current-ns-state)
+        libname->alias (:libname->alias current-ns-state)
+        known #{"Math" "js" "cljs.core" "clojure.core" "squint.core"}
+        syms (qualified-syms form)]
+    (doseq [sym syms]
+      (let [sym-ns (str (munge (namespace sym)))
+            sym-ns-raw (namespace sym)]
+        (when (and (not (contains? known sym-ns))
+                   (not (contains? known sym-ns-raw))
+                   (not (contains? aliases (symbol sym-ns)))
+                   (not (contains? libname->alias sym-ns-raw))
+                   (not (contains? libname->alias sym-ns))
+                   (or (contains? (:macros ns-state) (symbol sym-ns-raw))
+                       (contains? (:macros ns-state) (symbol sym-ns))))
+          (let [munged-alias (cc/alias-munge sym-ns-raw)
+                resolved (cc/resolve-ns env (symbol sym-ns-raw))
+                libname (if (= (symbol sym-ns-raw) resolved)
+                          (str "./" (cc/alias-munge sym-ns-raw) ".mjs")
+                          (str resolved))]
+            (when-let [imports (:imports env)]
+              (swap! imports str
+                     (if cc/*repl*
+                       (format "var %s = await import('%s');\n" munged-alias libname)
+                       (format "import * as %s from '%s';\n" munged-alias libname))))
+            (swap! (:ns-state env)
+                   (fn [ns-state]
+                     (let [current (:current ns-state)]
+                       (-> ns-state
+                           (update-in [current :aliases]
+                                      (fn [a] ((fnil assoc {}) a (symbol (munge sym-ns-raw)) (symbol sym-ns-raw))))
+                           (update-in [current :libname->alias]
+                                      (fn [m] ((fnil assoc {}) m sym-ns-raw (symbol (munge sym-ns-raw)))))))))))))))
 
 
 (defn emit-keyword [expr env]
@@ -244,6 +296,7 @@
                                                            :ns {:name cc/*cljs-ns*}
                                                            :utils {:emit emit})
                                          (rest expr))]
+                     (ensure-macro-imports new-expr env)
                      (emit new-expr env))
                    (cond
                      (and (= \. (.charAt head-str 0))
