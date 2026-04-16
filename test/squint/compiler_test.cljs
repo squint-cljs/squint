@@ -1783,6 +1783,30 @@ with `backticks`")))]
        (str/trim (squint/compile-string "(ns foo (:require [\"some-js-lib\" :refer [atom]])) atom" {:repl true}))
        "foo.atom;")))
 
+(deftest symbol-require-generates-namespace-import-test
+  (testing "bare symbol require generates namespace import"
+    (let [s (squint/compile-string "(ns foo (:require [some-lib])) (some-lib/bar)")]
+      (is (str/includes? s "import * as some_lib from"))
+      (is (str/includes? s "some_lib.bar()"))))
+  (testing "symbol require with :as also generates original-name import"
+    (let [s (squint/compile-string "(ns foo (:require [some-ns :as s])) (some-ns/bar)")]
+      (is (str/includes? s "import * as s from"))
+      (is (str/includes? s "import * as some_ns from"))
+      (is (str/includes? s "some_ns.bar()"))))
+  (testing "symbol require with :refer generates namespace import"
+    (let [s (squint/compile-string "(ns foo (:require [some-lib :refer [bar]])) (some-lib/baz)")]
+      (is (str/includes? s "import * as some_lib from"))
+      (is (str/includes? s "import { bar } from"))
+      (is (str/includes? s "some_lib.baz()"))))
+  (testing "string require does not generate namespace import"
+    (let [s (squint/compile-string "(ns foo (:require [\"./styles.css\"]))")]
+      (is (str/includes? s "import './styles.css'"))
+      (is (not (str/includes? s "import * as styles")))))
+  (testing "string require with :refer does not generate namespace import"
+    (let [s (squint/compile-string "(ns foo (:require [\"some-js-lib\" :refer [widget]]))")]
+      (is (str/includes? s "import { widget } from"))
+      (is (not (str/includes? s "import * as some"))))))
+
 (deftest require-test
   (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
     (is (and

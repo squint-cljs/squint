@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#783](https://github.com/squint-cljs/squint/issues/783): auto-load macros from `.cljc` files via `:require` (no need for `:require-macros`)
+- Fix [#783](https://github.com/squint-cljs/squint/issues/783): resolve qualified symbols from macro expansions through reverse alias lookup
+
 ## v0.10.186 (2026-03-07)
 
 - Fix #799: forgot to add `squint.math` file to `package.json`

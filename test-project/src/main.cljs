@@ -1,7 +1,7 @@
 (ns main
-  (:require-macros [macros :as m :refer [debug]]
-                   [macros2 :refer [also]])
-  (:require [other-ns]
+  (:require [macros :as m :refer [debug with-add-100]]
+            [macros2 :refer [also with-add-200]]
+            [other-ns]
             [my-other-src :as src]
             ["fs" :as fs]
             ["path" :as path]
@@ -28,3 +28,6 @@
     println)
 
 (js/console.log json)
+
+(println "qualified test:" (with-add-100 42))
+(println "refer-only qualified:" (with-add-200 42))

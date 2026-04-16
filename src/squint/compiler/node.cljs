@@ -2,13 +2,11 @@
   (:require
    ["fs" :as fs]
    ["path" :as path]
-   #_[sci.core :as sci]
    [clojure.string :as str]
    [edamame.core :as e]
    [shadow.esm :as esm]
-   [squint.internal.node.utils :as utils]
    [squint.compiler :as compiler]
-   [squint.compiler-common :as cc]))
+   [squint.internal.node.utils :as utils]))
 
 (def sci (atom nil))
 
@@ -17,6 +15,13 @@
 
 (defn spit [f s]
   (fs/writeFileSync f s "utf-8"))
+
+(defn- cljc-require?
+  "Check if a require clause refers to a .cljc file (which may contain macros)."
+  [[libname & _]]
+  (when (symbol? libname)
+    (some-> (utils/resolve-file libname)
+            (str/ends-with? ".cljc"))))
 
 (defn scan-macros [s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
@@ -27,8 +32,16 @@
                                             (when (and (seq? clause)
                                                        (= :require-macros (first clause)))
                                               [(rest clause) reload]))
-                                          (partition-all 2 1 clauses))]
-        (when require-macros
+                                          (partition-all 2 1 clauses))
+            ;; also scan :require clauses for .cljc files that may contain macros
+            require-cljc (some->> clauses
+                                  (some (fn [clause]
+                                          (when (and (seq? clause)
+                                                     (= :require (first clause)))
+                                            (rest clause))))
+                                  (filter cljc-require?))
+            all-macro-requires (concat require-macros require-cljc)]
+        (when (seq all-macro-requires)
           (.then (esm/dynamic-import "./compiler.sci.js")
                  (fn [_]
                    (let [eval-form (:eval-form @sci)]
@@ -54,7 +67,7 @@
                                                                 as (assoc-in [the-ns-name :aliases as] macro-ns)
                                                                 refer (update-in [the-ns-name :refers] merge (zipmap refer (repeat macro-ns))))))))))))
                       (js/Promise.resolve nil)
-                      require-macros)))))))))
+                      all-macro-requires)))))))))
 
 (defn default-ns-state []
   (atom {:current 'user}))
