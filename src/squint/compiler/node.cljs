@@ -16,12 +16,13 @@
 (defn spit [f s]
   (fs/writeFileSync f s "utf-8"))
 
-(defn- cljc-require?
-  "Check if a require clause refers to a .cljc file (which may contain macros)."
+(defn- cljc-with-macros?
+  "Check if a require clause refers to a .cljc file that contains defmacro."
   [[libname & _]]
   (when (symbol? libname)
-    (some-> (utils/resolve-file libname)
-            (str/ends-with? ".cljc"))))
+    (when-let [path (utils/resolve-file libname)]
+      (and (str/ends-with? path ".cljc")
+           (str/includes? (slurp path) "defmacro")))))
 
 (defn scan-macros [s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
@@ -39,7 +40,7 @@
                                           (when (and (seq? clause)
                                                      (= :require (first clause)))
                                             (rest clause))))
-                                  (filter cljc-require?))
+                                  (filter cljc-with-macros?))
             all-macro-requires (concat require-macros require-cljc)]
         (when (seq all-macro-requires)
           (.then (esm/dynamic-import "./compiler.sci.js")
