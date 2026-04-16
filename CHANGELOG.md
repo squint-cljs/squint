@@ -2,6 +2,13 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#783](https://github.com/squint-cljs/squint/issues/783): auto-load macros from `.cljc` files via `:require` (no need for `:require-macros`)
+- Fix [#783](https://github.com/squint-cljs/squint/issues/783): resolve qualified symbols from macro expansions
+- Fix [#784](https://github.com/squint-cljs/squint/issues/784): resolve transitive macro deps and auto-import runtime deps from macro expansion
+- Fix [#786](https://github.com/squint-cljs/squint/issues/786): `resolve-macro-ns` for cherry namespace resolution
+
 ## v0.10.186 (2026-03-07)
 
 - Fix #799: forgot to add `squint.math` file to `package.json`

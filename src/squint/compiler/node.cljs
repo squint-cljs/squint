@@ -2,13 +2,11 @@
   (:require
    ["fs" :as fs]
    ["path" :as path]
-   #_[sci.core :as sci]
    [clojure.string :as str]
    [edamame.core :as e]
    [shadow.esm :as esm]
-   [squint.internal.node.utils :as utils]
    [squint.compiler :as compiler]
-   [squint.compiler-common :as cc]))
+   [squint.internal.node.utils :as utils]))
 
 (def sci (atom nil))
 
@@ -17,6 +15,14 @@
 
 (defn spit [f s]
   (fs/writeFileSync f s "utf-8"))
+
+(defn- cljc-with-macros?
+  "Check if a require clause refers to a .cljc file that contains defmacro."
+  [[libname & _]]
+  (when (symbol? libname)
+    (when-let [path (utils/resolve-file libname)]
+      (and (str/ends-with? path ".cljc")
+           (str/includes? (slurp path) "defmacro")))))
 
 (defn scan-macros [s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
@@ -27,34 +33,52 @@
                                             (when (and (seq? clause)
                                                        (= :require-macros (first clause)))
                                               [(rest clause) reload]))
-                                          (partition-all 2 1 clauses))]
-        (when require-macros
+                                          (partition-all 2 1 clauses))
+            ;; also scan :require clauses for .cljc files that may contain macros
+            require-cljc (some->> clauses
+                                  (some (fn [clause]
+                                          (when (and (seq? clause)
+                                                     (= :require (first clause)))
+                                            (rest clause))))
+                                  (filter cljc-with-macros?))
+            all-macro-requires (concat require-macros require-cljc)]
+        (when (seq all-macro-requires)
           (.then (esm/dynamic-import "./compiler.sci.js")
                  (fn [_]
                    (let [eval-form (:eval-form @sci)]
-                     (reduce
-                      (fn [prev require-macros]
-                        (.then prev
-                               (fn [_]
-                                 (let [[macro-ns & {:keys [refer as]}] require-macros
-                                       macros (js/Promise.resolve
-                                               (do (eval-form (cond-> (list 'require (list 'quote macro-ns))
-                                                                reload (concat [:reload])))
-                                                   (let [publics (eval-form
-                                                                  `(ns-publics '~macro-ns))
-                                                         macros (keep (fn [[k v]]
-                                                                        (when (:macro (meta v))
-                                                                          [k (deref v)])) publics)
-                                                         macros (into {} macros)]
-                                                     macros)))]
-                                   (.then macros
-                                          (fn [macros]
-                                            (swap! ns-state (fn [ns-state]
-                                                              (cond-> (assoc-in ns-state [:macros macro-ns] macros)
-                                                                as (assoc-in [the-ns-name :aliases as] macro-ns)
-                                                                refer (update-in [the-ns-name :refers] merge (zipmap refer (repeat macro-ns))))))))))))
-                      (js/Promise.resolve nil)
-                      require-macros)))))))))
+                     (.then
+                      (reduce
+                       (fn [prev require-macros]
+                         (.then prev
+                                (fn [_]
+                                  (let [[macro-ns & {:keys [refer as]}] require-macros
+                                        macros (js/Promise.resolve
+                                                (do (eval-form (cond-> (list 'require (list 'quote macro-ns))
+                                                                 reload (concat [:reload])))
+                                                    (let [publics (eval-form
+                                                                   `(ns-publics '~macro-ns))
+                                                          macros (keep (fn [[k v]]
+                                                                         (when (:macro (meta v))
+                                                                           [k (deref v)])) publics)
+                                                          macros (into {} macros)]
+                                                      macros)))]
+                                    (.then macros
+                                           (fn [macros]
+                                             (swap! ns-state (fn [ns-state]
+                                                               (cond-> (assoc-in ns-state [:macros macro-ns] macros)
+                                                                 as (assoc-in [the-ns-name :aliases as] macro-ns)
+                                                                 refer (update-in [the-ns-name :refers] merge (zipmap refer (repeat macro-ns))))))))))))
+                       (js/Promise.resolve nil)
+                       all-macro-requires)
+                      (fn [_]
+                        ;; register lazy macro resolver for transitive deps
+                        (swap! ns-state assoc :resolve-macro
+                               (fn [ns-sym name-sym]
+                                 (let [fqn (symbol (str ns-sym) (str name-sym))]
+                                   (eval-form
+                                    (list 'when-let ['v (list 'resolve (list 'quote fqn))]
+                                          (list 'when (list ':macro (list 'meta 'v))
+                                                (list 'deref 'v)))))))))))))))))
 
 (defn default-ns-state []
   (atom {:current 'user}))
