@@ -226,24 +226,27 @@
                                        current-ns (:current ns-state)
                                        nms (symbol nm)
                                        current-ns-state (get ns-state current-ns)]
-                                   (if ns
-                                     (let [nss (symbol ns)]
-                                       (or
-                                        ;; used by cherry embed:
-                                        (some-> env :macros (get nss) (get nms))
-                                        (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
-                                          (or (get-in ns-state [:macros resolved-ns nms])
-                                              (get-in ns-state [:macros nss nms])
-                                              ;; alias may resolve to JS path; find original ns
-                                              ;; by matching libname against other aliases
-                                              (when (string? resolved-ns)
-                                                (some (fn [[alias-sym alias-lib]]
-                                                        (when (= (str alias-lib) resolved-ns)
-                                                          (get-in ns-state [:macros alias-sym nms])))
-                                                      (:aliases current-ns-state)))))))
-                                     (let [refers (:refers current-ns-state)]
-                                       (when-let [macro-ns (get refers nms)]
-                                         (get-in ns-state [:macros macro-ns nms])))))))]
+                                   (or (if ns
+                                         (let [nss (symbol ns)]
+                                           (or
+                                            ;; used by cherry embed:
+                                            (some-> env :macros (get nss) (get nms))
+                                            (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
+                                              (or (get-in ns-state [:macros resolved-ns nms])
+                                                  (get-in ns-state [:macros nss nms])
+                                                  ;; alias may resolve to JS path; find original ns
+                                                  ;; by matching libname against other aliases
+                                                  (when (string? resolved-ns)
+                                                    (some (fn [[alias-sym alias-lib]]
+                                                            (when (= (str alias-lib) resolved-ns)
+                                                              (get-in ns-state [:macros alias-sym nms])))
+                                                          (:aliases current-ns-state)))))))
+                                         (let [refers (:refers current-ns-state)]
+                                           (when-let [macro-ns (get refers nms)]
+                                             (get-in ns-state [:macros macro-ns nms]))))
+                                       ;; lazy resolve: ask SCI for transitive macro deps
+                                       (when-let [resolve-macro (:resolve-macro ns-state)]
+                                         (resolve-macro (or (some-> ns symbol) nms) nms))))))]
                  (if macro
                    (let [;; fix for calling macro with more than 20 args
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])

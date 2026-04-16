@@ -344,13 +344,33 @@
                               (munged-name sn)))
                            (let [ns (namespace expr)
                                  munged (munge ns)
-                                 nm (name expr)]
-                             (if (and *repl* (not= "Math" munged))
-                               (let [ns-state (some-> env :ns-state deref)]
-                                 (if (get-in ns-state [(symbol ns) (symbol nm)])
-                                   (str (munge ns) "." (munge nm))
-                                   (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))))
-                               (str munged "." (munge (name expr)))))))
+                                 nm (name expr)
+                                 ;; auto-import: if ns resolves to a file, generate import on the fly
+                                 auto-alias (alias-munge ns)
+                                 resolved (when-let [resolve-ns (:resolve-ns env)]
+                                            (resolve-ns (symbol ns)))
+                                 _ (when (and resolved (not (contains? aliases (symbol auto-alias))))
+                                     (when-let [imports (:imports env)]
+                                       (swap! imports str
+                                              (if *repl*
+                                                (statement (format "var %s = await import('%s')" auto-alias resolved))
+                                                (statement (format "import * as %s from '%s'" auto-alias resolved)))))
+                                     (swap! *imported-vars* update (str resolved) (fnil identity #{}))
+                                     (swap! (:ns-state env)
+                                            (fn [ns-state]
+                                              (let [current (:current ns-state)]
+                                                (update-in ns-state [current :aliases]
+                                                           (fn [a] ((fnil assoc {}) a (symbol auto-alias) (str resolved))))))))]
+                             (if (and resolved (not (and *repl* (= "Math" munged))))
+                               (str (when *repl*
+                                      (str "globalThis." (munge *cljs-ns*) "."))
+                                    auto-alias "." (munged-name (symbol nm)))
+                               (if (and *repl* (not= "Math" munged))
+                                 (let [ns-state (some-> env :ns-state deref)]
+                                   (if (get-in ns-state [(symbol ns) (symbol nm)])
+                                     (str (munge ns) "." (munge nm))
+                                     (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))))
+                                 (str munged "." (munge (name expr))))))))
                      (if-let [renamed (get (:var->ident env) expr)]
                        (let [tag (:tag (meta renamed))]
                          (cond-> (munge** (str renamed))
