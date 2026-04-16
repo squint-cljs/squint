@@ -231,8 +231,10 @@
                                            (or
                                             ;; used by cherry embed:
                                             (some-> env :macros (get nss) (get nms))
-                                            (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)]
-                                              (or (get-in ns-state [:macros resolved-ns nms])
+                                            (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)
+                                                  macro-ns (cc/resolve-macro-ns resolved-ns)]
+                                              (or (get-in ns-state [:macros macro-ns nms])
+                                                  (get-in ns-state [:macros resolved-ns nms])
                                                   (get-in ns-state [:macros nss nms])
                                                   ;; alias may resolve to JS path; find original ns
                                                   ;; by matching libname against other aliases

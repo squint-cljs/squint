@@ -595,6 +595,13 @@
 (defn resolve-import-map [import-maps lib]
   (get import-maps lib lib))
 
+(defn resolve-macro-ns
+  "For cherry: map a runtime namespace to its macro namespace."
+  [alias]
+  (case alias
+    (clojure.test cljs.test) 'cherry.test
+    alias))
+
 (defn resolve-ns [env alias]
   (let [import-maps (:import-maps env)]
     (case *target*
