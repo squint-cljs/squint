@@ -28,7 +28,7 @@
   "Pre-compile the cljs.test runtime from its .cljs source so it ships in
   the npm package and is available to local tests."
   []
-  (shell "node" "node_cli.js" "compile" "src/squint/test.cljs"))
+  (shell "node" "node_cli.js" "compile" "--extension" "js" "src/squint/test.cljs"))
 
 (defn build-squint-npm-package []
   (fs/create-dirs ".work")

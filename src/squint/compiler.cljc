@@ -114,7 +114,7 @@
     {'squint.test m
      'cljs.test m
      'clojure.test m
-     "squint-cljs/src/squint/test.mjs" m}))
+     "squint-cljs/src/squint/test.js" m}))
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 

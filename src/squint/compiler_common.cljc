@@ -334,7 +334,7 @@
         (squint.string clojure.string) (resolve-import-map import-maps "squint-cljs/src/squint/string.js")
         (squint.set clojure.set) (resolve-import-map import-maps "squint-cljs/src/squint/set.js")
         (squint.math clojure.math cljs.math) (resolve-import-map import-maps "squint-cljs/src/squint/math.js")
-        (squint.test cljs.test clojure.test) (resolve-import-map import-maps "squint-cljs/src/squint/test.mjs")
+        (squint.test cljs.test clojure.test) (resolve-import-map import-maps "squint-cljs/src/squint/test.js")
         (if (symbol? alias)
           (if-let [resolve-ns (:resolve-ns env)]
             (or (resolve-ns alias)
