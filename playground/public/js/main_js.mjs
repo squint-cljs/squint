@@ -108,10 +108,13 @@ let evalCode = async (code) => {
     }
     JSEditor(js);
     if (!repl) {
-      const encodedJs = encodeURIComponent(js);
-      const dataUri =
-        'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
-      let result = await import(/* @vite-ignore */dataUri);
+      const blob = new Blob([js], { type: 'text/javascript' });
+      const blobUrl = URL.createObjectURL(blob);
+      try {
+        let result = await import(/* @vite-ignore */blobUrl);
+      } finally {
+        URL.revokeObjectURL(blobUrl);
+      }
     } else {
       let result = await eval(`(async function() { ${js} })()`);
       if (result && result?.constructor?.name === 'LazyIterable') {
