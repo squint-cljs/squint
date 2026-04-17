@@ -84,6 +84,21 @@
       (is (= 2 (:pass inner-result))
           "returned summary reflects only the inner run's passes"))))
 
+(deftest report-only-counts-pass-fail-error-test
+  (testing "non-result :type values don't bump :report-counters"
+    (let [saved-env (t/get-current-env)]
+      (t/set-env! (t/empty-env))
+      (t/report {:type :summary})
+      (t/report {:type :begin-test-ns :ns "x"})
+      (t/report {:type :end-test-ns :ns "x"})
+      (let [counters (:report-counters (t/get-current-env))]
+        (t/set-env! saved-env)
+        (is (zero? (:test counters)) ":test stays 0")
+        (is (zero? (:pass counters)) ":pass stays 0")
+        (is (nil? (:summary counters)) "no bogus :summary key added")
+        (is (nil? (:begin-test-ns counters))
+            "no bogus :begin-test-ns key added")))))
+
 (defn ^:async -main []
   (t/set-env! (t/empty-env))
   (t/test-var math-test)
@@ -93,6 +108,7 @@
   (t/test-var per-ns-each-fixtures-test)
   (t/test-var per-ns-once-fixtures-test)
   (t/test-var run-tests-counter-isolation-test)
+  (t/test-var report-only-counts-pass-fail-error-test)
   (t/report {:type :summary}))
 
 (-main)

@@ -48,7 +48,8 @@
       :else "test")))
 
 (defn report [{:keys [type message expected actual line column file] :as m}]
-  (inc-report-counter! type)
+  (when (contains? #{:pass :fail :error} type)
+    (inc-report-counter! type))
   (let [location (when (or line column file)
                    (str (when file (str file ":"))
                         (when line line)
