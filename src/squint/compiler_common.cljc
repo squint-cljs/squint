@@ -315,16 +315,20 @@
        (clojure.test cljs.test) 'cherry.test
        alias))))
 
-(def ^:private builtin-test-macro-names
-  '#{deftest deftest- is testing are use-fixtures})
+(def ^:private builtin-macro-names-by-ns
+  '{cljs.test #{deftest deftest- is testing are use-fixtures}
+    clojure.test #{deftest deftest- is testing are use-fixtures}
+    cherry.test #{deftest deftest- is testing are use-fixtures}
+    squint.test #{deftest deftest- is testing are use-fixtures}
+    clojure.test.check.clojure-test #{defspec}
+    clojure.test.check.properties #{for-all}})
 
 (defn builtin-refer-is-macro?
   "Returns true when a `:refer`'d symbol is known to be a compiler built-in
   macro and must not be emitted as a runtime import."
   [original-libname refer-sym]
   (and (symbol? original-libname)
-       (contains? '#{cljs.test clojure.test cherry.test squint.test} original-libname)
-       (contains? builtin-test-macro-names refer-sym)))
+       (contains? (get builtin-macro-names-by-ns original-libname) refer-sym)))
 
 (defn resolve-ns [env alias]
   (let [import-maps (:import-maps env)]
@@ -348,6 +352,10 @@
         (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
         (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
         (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
+        (clojure.test.check
+         clojure.test.check.generators
+         clojure.test.check.properties
+         clojure.test.check.clojure-test) "cherry-cljs/lib/clojure.test.check.js"
         alias)
       alias)))
 
