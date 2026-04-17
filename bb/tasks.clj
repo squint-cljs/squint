@@ -24,13 +24,20 @@
                                         ((requiring-resolve 'clojure.pprint/pprint)
                                          parsed)))))
 
+(defn compile-test-runtime
+  "Pre-compile the cljs.test runtime from its .cljs source so it ships in
+  the npm package and is available to local tests."
+  []
+  (shell "node" "node_cli.js" "compile" "src/squint/test.cljs"))
+
 (defn build-squint-npm-package []
   (fs/create-dirs ".work")
   (fs/delete-tree "lib")
   (fs/delete-tree ".shadow-cljs")
   (bump-core-vars)
   (spit ".work/config-merge.edn" "{}")
-  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release squint"))
+  (shell "npx shadow-cljs --config-merge .work/config-merge.edn release squint")
+  (compile-test-runtime))
 
 (defn publish []
   (build-squint-npm-package)
@@ -74,15 +81,26 @@
         out (:out (shell {:dir dir :out :string} (fs/which "npx") "squint" "run" "script.cljs"))]
     (assert (str/includes? out "dude"))))
 
+(defn test-cljs-test [_]
+  (let [src "test-resources/cljs_test_smoke.cljs"
+        out-file "test-resources/cljs_test_smoke.mjs"]
+    (shell "node" "node_cli.js" "compile" src)
+    (let [out (:out (shell {:out :string} "node" out-file))]
+      (fs/delete out-file)
+      (assert (str/includes? out "Ran 8 tests containing 17 assertions") out)
+      (assert (str/includes? out "1 failures, 0 errors") out))))
+
 (defn test-squint []
   (fs/create-dirs ".work")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
   (bump-core-vars)
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn compile squint")
+  (compile-test-runtime)
   (shell "node lib/squint_tests.js")
   (node-repl-tests/run-tests {})
   (test-project {})
-  (test-run {}))
+  (test-run {})
+  (test-cljs-test {}))
 
 (defn clojure-mode-test []
   (let [dir "libtests"]

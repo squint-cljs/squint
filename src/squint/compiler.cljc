@@ -24,7 +24,8 @@
    [squint.internal.fn :refer [core-defmacro core-defn core-defn- core-fn]]
    [squint.internal.loop :as loop]
    [squint.internal.macros :as macros]
-   [squint.internal.protocols :as protocols])
+   [squint.internal.protocols :as protocols]
+   [squint.internal.test :as test])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
 
 
@@ -104,6 +105,16 @@
                              'get macros/get-inline
                              'vswap! macros/vswap!}
                             cc/common-macros))
+
+(def built-in-macro-nss
+  ;; Keyed by every plausible form of the macro namespace so lookups can
+  ;; succeed whether the compiler sees the original symbol, the post-
+  ;; resolve-ns libname string, or the macro-ns returned by resolve-macro-ns.
+  (let [m test/core-test-macros]
+    {'squint.test m
+     'cljs.test m
+     'clojure.test m
+     "squint-cljs/src/squint/test.mjs" m}))
 
 (def core-config {:vars (edn-resource "squint/core.edn")})
 
@@ -242,10 +253,24 @@
                                                     (some (fn [[alias-sym alias-lib]]
                                                             (when (= (str alias-lib) resolved-ns)
                                                               (get-in ns-state [:macros alias-sym nms])))
-                                                          (:aliases current-ns-state)))))))
+                                                          (:aliases current-ns-state)))
+                                                  ;; Built-in fallback. Only consult if the user actually
+                                                  ;; required this ns — otherwise (cljs.test/foo) with no
+                                                  ;; require would silently work. Cheaper to first see if
+                                                  ;; there's even a built-in candidate.
+                                                  (when-let [m (or (get-in built-in-macro-nss [macro-ns nms])
+                                                                   (get-in built-in-macro-nss [resolved-ns nms]))]
+                                                    (when (or (contains? (:aliases current-ns-state) nss)
+                                                              (contains? (:aliases current-ns-state)
+                                                                         (symbol (cc/alias-munge (str nss)))))
+                                                      m))))))
                                          (let [refers (:refers current-ns-state)]
                                            (when-let [macro-ns (get refers nms)]
-                                             (get-in ns-state [:macros macro-ns nms]))))
+                                             (or (get-in ns-state [:macros macro-ns nms])
+                                                 (let [resolved (cc/resolve-macro-ns macro-ns)]
+                                                   (or (get-in ns-state [:macros resolved nms])
+                                                       (get-in built-in-macro-nss [macro-ns nms])
+                                                       (get-in built-in-macro-nss [resolved nms])))))))
                                        ;; lazy resolve: ask SCI for transitive macro deps
                                        (when-let [resolve-macro (:resolve-macro ns-state)]
                                          (resolve-macro (or (some-> ns symbol) nms) nms))))))]

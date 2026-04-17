@@ -104,14 +104,22 @@ let evalCode = async (code) => {
     let js = globalThis.compilerState.javascript;
     if (dev) {
       console.log("Loading local squint libs");
-      js = js.replaceAll("'squint-cljs/", "'./squint-local/");
+      // Rewrite to absolute URLs: Blob URLs used for non-REPL eval have an
+      // opaque origin that can't resolve relative specifiers. Anchor on the
+      // page origin — import.meta.url can point to an unexpected bundle path
+      // under Vite.
+      const localBase = `${window.location.origin}/js/squint-local/`;
+      js = js.replaceAll("'squint-cljs/", `'${localBase}`);
     }
     JSEditor(js);
     if (!repl) {
-      const encodedJs = encodeURIComponent(js);
-      const dataUri =
-        'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
-      let result = await import(/* @vite-ignore */dataUri);
+      const blob = new Blob([js], { type: 'text/javascript' });
+      const blobUrl = URL.createObjectURL(blob);
+      try {
+        let result = await import(/* @vite-ignore */blobUrl);
+      } finally {
+        URL.revokeObjectURL(blobUrl);
+      }
     } else {
       let result = await eval(`(async function() { ${js} })()`);
       if (result && result?.constructor?.name === 'LazyIterable') {

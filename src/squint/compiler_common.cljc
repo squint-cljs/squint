@@ -297,6 +297,60 @@
 (defn alias-munge [s]
   (-> s str munge (str/replace #"\." "_DOT_") ))
 
+(defn resolve-import-map [import-maps lib]
+  (get import-maps lib lib))
+
+(defn resolve-macro-ns
+  "Map a runtime namespace to its macro namespace (per target).
+  The single-arg form reads *target*; pass it explicitly when the call
+  site lives inside a Promise chain where the dynamic binding has
+  already been unwound."
+  ([alias] (resolve-macro-ns alias *target*))
+  ([alias target]
+   (case target
+     :squint (case alias
+               (clojure.test cljs.test) 'squint.test
+               alias)
+     (case alias
+       (clojure.test cljs.test) 'cherry.test
+       alias))))
+
+(def ^:private builtin-test-macro-names
+  '#{deftest deftest- is testing are use-fixtures})
+
+(defn builtin-refer-is-macro?
+  "Returns true when a `:refer`'d symbol is known to be a compiler built-in
+  macro and must not be emitted as a runtime import."
+  [original-libname refer-sym]
+  (and (symbol? original-libname)
+       (contains? '#{cljs.test clojure.test cherry.test squint.test} original-libname)
+       (contains? builtin-test-macro-names refer-sym)))
+
+(defn resolve-ns [env alias]
+  (let [import-maps (:import-maps env)]
+    (case *target*
+      :squint
+      (case alias
+        (squint.string clojure.string) (resolve-import-map import-maps "squint-cljs/src/squint/string.js")
+        (squint.set clojure.set) (resolve-import-map import-maps "squint-cljs/src/squint/set.js")
+        (squint.math clojure.math cljs.math) (resolve-import-map import-maps "squint-cljs/src/squint/math.js")
+        (squint.test cljs.test clojure.test) (resolve-import-map import-maps "squint-cljs/src/squint/test.mjs")
+        (if (symbol? alias)
+          (if-let [resolve-ns (:resolve-ns env)]
+            (or (resolve-ns alias)
+                alias)
+            alias)
+          (resolve-import-map import-maps alias)))
+      :cherry
+      (case alias
+        (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
+        (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
+        (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
+        (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
+        (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
+        alias)
+      alias)))
+
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
     (emit-return (escape-jsx (emit (list 'cljs.core/symbol
@@ -347,13 +401,25 @@
                                  nm (name expr)
                                  ;; auto-import: if ns resolves to a file, generate import on the fly
                                  auto-alias (alias-munge ns)
-                                 resolved (when-let [resolve-ns (:resolve-ns env)]
-                                            (resolve-ns (symbol ns)))
+                                 resolved (or (when-let [rns (:resolve-ns env)]
+                                                (rns (symbol ns)))
+                                              ;; fall back to the built-in ns->libname mapping
+                                              ;; so macro-generated qualified refs to e.g. cljs.test
+                                              ;; get an auto-import in squint output.
+                                              (let [r (resolve-ns env (symbol ns))]
+                                                (when (and (string? r)
+                                                           (not= r (str (symbol ns))))
+                                                  r)))
                                  _ (when (and resolved (not (contains? aliases (symbol auto-alias))))
                                      (when-let [imports (:imports env)]
                                        (swap! imports str
                                               (if *repl*
-                                                (statement (format "var %s = await import('%s')" auto-alias resolved))
+                                                (let [mns (munge *cljs-ns*)]
+                                                  (str (statement (format "var %s = await import('%s')" auto-alias resolved))
+                                                       ;; ensure the ns object exists before assigning onto it — the ns
+                                                       ;; form also emits this guard, but our auto-import may land first.
+                                                       (statement (format "globalThis.%s = globalThis.%s || {}" mns mns))
+                                                       (statement (format "globalThis.%s.%s = %s" mns auto-alias auto-alias))))
                                                 (statement (format "import * as %s from '%s'" auto-alias resolved)))))
                                      (swap! *imported-vars* update (str resolved) (fnil identity #{}))
                                      (swap! (:ns-state env)
@@ -592,40 +658,6 @@
     (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
       *async* (wrap-await)))
 
-(defn resolve-import-map [import-maps lib]
-  (get import-maps lib lib))
-
-(defn resolve-macro-ns
-  "For cherry: map a runtime namespace to its macro namespace."
-  [alias]
-  (case alias
-    (clojure.test cljs.test) 'cherry.test
-    alias))
-
-(defn resolve-ns [env alias]
-  (let [import-maps (:import-maps env)]
-    (case *target*
-      :squint
-      (case alias
-        (squint.string clojure.string) (resolve-import-map import-maps "squint-cljs/src/squint/string.js")
-        (squint.set clojure.set) (resolve-import-map import-maps "squint-cljs/src/squint/set.js")
-        (squint.math clojure.math cljs.math) (resolve-import-map import-maps "squint-cljs/src/squint/math.js")
-        (if (symbol? alias)
-          (if-let [resolve-ns (:resolve-ns env)]
-            (or (resolve-ns alias)
-                alias)
-            alias)
-          (resolve-import-map import-maps alias)))
-      :cherry
-      (case alias
-        (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
-        (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
-        (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
-        (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
-        (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
-        alias)
-      alias)))
-
 (defn unwrap [s]
   (str/replace (str s) #"^\(|\)$" ""))
 
@@ -711,51 +743,53 @@
                                                                        (get rename refer refer)) refer)
                                                                (repeat (if (symbol? original-libname)
                                                                          original-libname libname)))))))))
-                  (str
-                    (let [referred+renamed (str/join ", "
-                                                     (map (fn [refer]
-                                                            (str (munge refer)
-                                                                 (when-let [renamed (get rename refer)]
-                                                                   (str " as " (munge renamed)))))
-                                                          refer))]
-                      (if *repl*
-                        (str (statement (format "var { %s } = (await import ('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
-                                                (if with
-                                                  (str ", " (emit {:with with} env))
-                                                  "")
-                                                (if suffix
-                                                  (str "." suffix)
-                                                  "")))
-                             (str/join (map (fn [sym]
-                                              (let [sym (munge sym)]
-                                                (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym))))
-                                            (map (fn [refer]
-                                                   (get rename refer refer))
-                                                 refer))))
+                  (let [runtime-refer (remove #(builtin-refer-is-macro? original-libname %) refer)]
+                    (str
+                      (when (seq runtime-refer)
+                        (let [referred+renamed (str/join ", "
+                                                         (map (fn [refer]
+                                                                (str (munge refer)
+                                                                     (when-let [renamed (get rename refer)]
+                                                                       (str " as " (munge renamed)))))
+                                                              runtime-refer))]
+                          (if *repl*
+                            (str (statement (format "var { %s } = (await import ('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
+                                                    (if with
+                                                      (str ", " (emit {:with with} env))
+                                                      "")
+                                                    (if suffix
+                                                      (str "." suffix)
+                                                      "")))
+                                 (str/join (map (fn [sym]
+                                                  (let [sym (munge sym)]
+                                                    (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym))))
+                                                (map (fn [refer]
+                                                       (get rename refer refer))
+                                                     runtime-refer))))
 
-                        (if default?
-                          (let [libname* ((:gensym env) "default")]
-                            (str (statement (format "import %s from '%s'%s" libname* libname (if with
-                                                                                               (str " with " (unwrap (emit with env)))
-                                                                                               "")))
-                                 (statement (format "const { %s } = %s" referred+renamed libname*))))
-                          (statement (format "import { %s } from '%s'%s" referred+renamed libname (if with
-                                                                                                    (str " with " (unwrap (emit with env)))
-                                                                                                    ""))))))
-                    ;; for symbol requires with :refer but no :as, also generate namespace import
-                    ;; so qualified refs from macro expansions resolve
-                    (when (and (not as) (symbol? original-libname))
-                      (let [auto-alias (alias-munge (str original-libname))]
-                        (swap! *imported-vars* update libname (fnil identity #{}))
-                        (if *repl*
-                          (statement (format "var %s = await import('%s'%s)" auto-alias libname
-                                             (if with
-                                               (str ", " (emit {:with with} env))
-                                               "")))
-                          (statement (format "import * as %s from '%s'%s" auto-alias libname
-                                             (if with
-                                               (str " with " (unwrap (emit with env)))
-                                               "")))))))))]
+                            (if default?
+                              (let [libname* ((:gensym env) "default")]
+                                (str (statement (format "import %s from '%s'%s" libname* libname (if with
+                                                                                                   (str " with " (unwrap (emit with env)))
+                                                                                                   "")))
+                                     (statement (format "const { %s } = %s" referred+renamed libname*))))
+                              (statement (format "import { %s } from '%s'%s" referred+renamed libname (if with
+                                                                                                        (str " with " (unwrap (emit with env)))
+                                                                                                        "")))))))
+                      ;; for symbol requires with :refer but no :as, also generate namespace import
+                      ;; so qualified refs from macro expansions resolve
+                      (when (and (not as) (symbol? original-libname))
+                        (let [auto-alias (alias-munge (str original-libname))]
+                          (swap! *imported-vars* update libname (fnil identity #{}))
+                          (if *repl*
+                            (statement (format "var %s = await import('%s'%s)" auto-alias libname
+                                               (if with
+                                                 (str ", " (emit {:with with} env))
+                                                 "")))
+                            (statement (format "import * as %s from '%s'%s" auto-alias libname
+                                               (if with
+                                                 (str " with " (unwrap (emit with env)))
+                                                 ""))))))))))]
       (when (or as (symbol? original-libname))
         (swap! (:ns-state env)
                (fn [ns-state]

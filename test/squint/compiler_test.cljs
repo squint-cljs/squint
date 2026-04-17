@@ -2827,6 +2827,25 @@ new Foo();")
     (testing "no truth check"
       (is (str/includes? s "if (y1)")))))
 
+(deftest with-meta-on-fn-test
+  (testing "with-meta on a fn returns a callable carrying meta"
+    (is (true? (jsv! '(let [f (fn [] :ok)
+                            g (with-meta f {:name "foo"})]
+                        (fn? g))))
+        "fn? stays true")
+    (is (= "foo" (jsv! '(let [f (fn [] :ok)
+                              g (with-meta f {:name "foo"})]
+                          (:name (meta g)))))
+        ":name round-trips through (meta ...)")
+    (is (= 42 (jsv! '(let [f (fn [x] (* x 2))
+                           g (with-meta f {:tag :doubler})]
+                       (g 21))))
+        "the wrapped fn forwards args to the original"))
+  (testing "the original fn is not mutated"
+    (is (nil? (jsv! '(let [f (fn [] :ok)
+                           _ (with-meta f {:name "foo"})]
+                       (meta f)))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test

@@ -2501,6 +2501,14 @@ export function meta(x) {
 }
 
 export function with_meta(x, m) {
+  // For functions, wrap in a new callable that forwards to the original
+  // so fn? stays true and the original isn't mutated. copy() can't handle
+  // functions — a {...x} spread loses the call signature.
+  if (typeof x === 'function') {
+    const wrapped = function (...args) { return x.apply(this, args); };
+    wrapped[_metaSym] = m;
+    return wrapped;
+  }
   const ret = copy(x);
   ret[_metaSym] = m;
   return ret;
