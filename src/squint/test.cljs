@@ -179,6 +179,8 @@
       ((join-fixtures once-fixtures) run-all)
       (run-all))))
 
+(def ^:private fresh-counters {:test 0 :pass 0 :fail 0 :error 0})
+
 (defn run-tests
   "Runs tests and reports a summary. Accepts any of:
    - no args: run every registered test across all namespaces.
@@ -186,8 +188,15 @@
    - explicit test fns: run those fns directly.
    Initializes the env if none is set. Tests are grouped by their ns
    (from deftest's metadata) so each ns's once-fixtures wrap that ns's
-   tests, matching cljs.test. Returns (or resolves to, for async tests)
-   the :report-counters summary map."
+   tests, matching cljs.test.
+
+   Counters are scoped to this call: the caller's :report-counters are
+   saved on entry and restored before return, so an inner run-tests
+   doesn't pollute an outer run's totals (matches clojure.test, where
+   *report-counters* is rebound per test-ns).
+
+   Returns (or resolves to, for async tests) the :report-counters
+   summary map for this run."
   [& args]
   (let [test-vars (cond
                     (empty? args)
@@ -197,6 +206,8 @@
                     :else
                     args)
         _ (when (nil? *current-env*) (set-env! (empty-env)))
+        saved-counters (:report-counters (get-current-env))
+        _ (update-current-env! [:report-counters] (constantly fresh-counters))
         ;; preserve insertion order while grouping by ns
         groups (reduce (fn [acc v]
                          (let [k (:ns (meta v))]
@@ -210,7 +221,9 @@
                              nil groups))
         finish (fn [_]
                  (report {:type :summary})
-                 (:report-counters (get-current-env)))
+                 (let [counters (:report-counters (get-current-env))]
+                   (update-current-env! [:report-counters] (constantly saved-counters))
+                   counters))
         chain (run-groups)]
     (if (async? chain)
       (.then chain finish)

@@ -87,7 +87,7 @@
     (shell "node" "node_cli.js" "compile" src)
     (let [out (:out (shell {:out :string} "node" out-file))]
       (fs/delete out-file)
-      (assert (str/includes? out "Ran 6 tests containing 10 assertions") out)
+      (assert (str/includes? out "Ran 7 tests containing 13 assertions") out)
       (assert (str/includes? out "1 failures, 0 errors") out))))
 
 (defn test-squint []
