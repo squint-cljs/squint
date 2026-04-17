@@ -254,8 +254,16 @@
                                                             (when (= (str alias-lib) resolved-ns)
                                                               (get-in ns-state [:macros alias-sym nms])))
                                                           (:aliases current-ns-state)))
-                                                  (get-in built-in-macro-nss [macro-ns nms])
-                                                  (get-in built-in-macro-nss [resolved-ns nms])))))
+                                                  ;; Built-in fallback. Only consult if the user actually
+                                                  ;; required this ns — otherwise (cljs.test/foo) with no
+                                                  ;; require would silently work. Cheaper to first see if
+                                                  ;; there's even a built-in candidate.
+                                                  (when-let [m (or (get-in built-in-macro-nss [macro-ns nms])
+                                                                   (get-in built-in-macro-nss [resolved-ns nms]))]
+                                                    (when (or (contains? (:aliases current-ns-state) nss)
+                                                              (contains? (:aliases current-ns-state)
+                                                                         (symbol (cc/alias-munge (str nss)))))
+                                                      m))))))
                                          (let [refers (:refers current-ns-state)]
                                            (when-let [macro-ns (get refers nms)]
                                              (or (get-in ns-state [:macros macro-ns nms])
