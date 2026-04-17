@@ -7,28 +7,29 @@ extensibility gaps, then polish.
 
 ## Correctness — likely to bite real users
 
-### 1. Fixtures are global, not per-namespace
-`set-each-fixtures!` / `set-once-fixtures!` write into the single global
+### 1. Fixtures are global, not per-namespace ✅ DONE
+~~`set-each-fixtures!` / `set-once-fixtures!` write into the single global
 env. Real `clojure.test` keys fixtures by namespace (`(alter-meta! ns ...)`).
 Today, two test namespaces each calling `(use-fixtures :each ...)` will
-clobber each other; whichever loaded last wins for *every* test.
+clobber each other; whichever loaded last wins for *every* test.~~
 
-**Fix sketch:** key `:each-fixtures` / `:once-fixtures` by ns string in the
-env; `core-use-fixtures` macro captures `(&env :ns :name str)` and
-includes it in the `set-*-fixtures!` call; `test-var` looks the test fn's
-ns up via the same metadata `register-test!` already attaches, then
-fetches the right fixture vector.
+Fixed: `:each-fixtures` and `:once-fixtures` are now `{ns-str → vec}`
+maps; `core-deftest` stashes `:ns` in the test fn's meta; `test-var`
+and `run-tests` look fixtures up by that ns. The 1-arg legacy setters
+target a `nil`-keyed bucket for back-compat. Regression tests in both
+the squint smoke suite and cherry's `cross_platform_test`.
 
-### 2. run-tests doesn't reset counters per call
-`(run-tests)` auto-inits the env only when `*current-env*` is `nil`. A
+### 2. run-tests doesn't reset counters per call ✅ DONE
+~~`(run-tests)` auto-inits the env only when `*current-env*` is `nil`. A
 second `(run-tests)` in the same module reuses (and inflates) the
 existing counters. Tests that themselves invoke `run-tests` (squint and
 cherry's own runtime tests do this) emit summaries showing cumulative
-counts, not per-run counts.
+counts, not per-run counts.~~
 
-**Fix sketch:** snapshot counters at start, restore (or delta) before
-emitting summary. Or always init a fresh env at the top of `run-tests`
-unless the caller opts out.
+Fixed: `run-tests` saves the caller's `:report-counters`, runs against
+fresh ones, restores on return. The returned summary map reflects only
+that run. Inner `run-tests` calls now show their own per-call summary
+instead of polluted cumulative totals. Regression tests in both repos.
 
 ### 3. Quoted-symbol emission breaks `is` reporting
 The shared macro `(:name '~name)` would expand to `cljs.core.symbol(...)`
@@ -90,25 +91,21 @@ won't be picked up.
 **Note:** unclear this is fixable without a var registry — probably
 accept the divergence and document.
 
-### 10. `successful?` reads global counters
-`(successful? results)` is meant to take the *return value* of
-`run-tests` (a counters map) and tell you if it passed. Today many of
-our internal call sites pass `(:report-counters (get-current-env))`
-which is global state. After our run-tests rewrite returns counters
-properly this is mostly fine, but the helper still reads the env when
-called with no/incompatible args.
+### 10. ~~`successful?` reads global counters~~ — non-issue
+On re-read: `successful?` takes a counters map and reads `:fail`/`:error`
+from it. No global state involved. Removed.
 
 ## Polish — cosmetic but worth fixing
 
-### 11. Inner `run-tests` calls produce double summary output
-Two of cherry's `cross_platform_test` cases call `run-tests` inside test
+### 11. Inner `run-tests` calls produce double summary output ✅ DONE
+~~Two of cherry's `cross_platform_test` cases call `run-tests` inside test
 bodies (testing the runtime itself). Each emits its own `:summary` line,
-on top of the outer test run's summary. Visual noise; not a correctness
-issue.
+on top of the outer test run's summary.~~
 
-**Fix sketch:** add a `{:summary? false}` opts arg to `run-tests`, or
-drop the auto-summary and require an explicit `(report {:type :summary})`
-at the call site (matching the very first version we had).
+Side-effect of #2: each inner `run-tests` now reports its own per-call
+summary with accurate counts (instead of cumulative pollution). Still
+multiple summary lines, but the lines are correct and informative —
+not noise. Closing.
 
 ### 12. `:report-counters :summary` increments needlessly
 `report` calls `(inc-report-counter! :type)` unconditionally, including
