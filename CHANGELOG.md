@@ -8,7 +8,7 @@
   The legacy `js-await` and `js/await` forms continue to work as
   aliases for now and may be deprecated in a future version.
 - Add built-in `cljs.test` / `clojure.test` support: `deftest`, `is`, `testing`,
-  `are`, `deftest-`, `use-fixtures`, `async`, `run-tests`.
+  `are`, `use-fixtures`, `async`, `run-tests`.
 - Fix `with-meta` now preserves callability when applied to a function
 - Fix [#783](https://github.com/squint-cljs/squint/issues/783): auto-load macros from `.cljc` files via `:require` (no need for `:require-macros`)
 - Fix [#783](https://github.com/squint-cljs/squint/issues/783): resolve qualified symbols from macro expansions

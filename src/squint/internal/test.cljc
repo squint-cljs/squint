@@ -80,9 +80,6 @@
        (finally
          (clojure.test/update-current-env! [:testing-contexts] rest)))))
 
-(defn core-deftest- [&form &env name & body]
-  (apply core-deftest &form &env (vary-meta name assoc :private true) body))
-
 (defn core-are [_&form _&env bindings expr & args]
   (assert (pos? (count bindings)) "are requires at least one binding")
   (assert (seq args) "are requires at least one test case")
@@ -127,7 +124,6 @@
 
 (def core-test-macros
   {'deftest core-deftest
-   'deftest- core-deftest-
    'is core-is
    'testing core-testing
    'are core-are
