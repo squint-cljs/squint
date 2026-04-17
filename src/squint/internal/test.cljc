@@ -57,7 +57,7 @@
   (let [fn-meta (select-keys (meta name) [:async])
         ns-name (some-> &env :ns :name str)
         fn-form (with-meta `(fn [] ~@body) fn-meta)
-        wrapped `(with-meta ~fn-form {:name ~(str name)})]
+        wrapped `(with-meta ~fn-form {:name ~(str name) :ns ~ns-name})]
     `(def ~(vary-meta name assoc :test true)
        ~(if ns-name
           `(clojure.test/register-test! ~ns-name ~wrapped)
@@ -92,10 +92,11 @@
     `(do ~@(for [arg-group (partition binding-count args)]
              `(clojure.test/is (let [~@(interleave bindings arg-group)] ~expr))))))
 
-(defn core-use-fixtures [_&form _&env type & fns]
-  (case type
-    :once `(clojure.test/set-once-fixtures! [~@fns])
-    :each `(clojure.test/set-each-fixtures! [~@fns])))
+(defn core-use-fixtures [_&form &env type & fns]
+  (let [ns-name (some-> &env :ns :name str)]
+    (case type
+      :once `(clojure.test/set-once-fixtures! ~ns-name [~@fns])
+      :each `(clojure.test/set-each-fixtures! ~ns-name [~@fns]))))
 
 (defn core-run-tests [_&form &env & args]
   ;; Match cljs.test: with no args, default to the compile-time current ns.

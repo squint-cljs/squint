@@ -7,8 +7,8 @@
   {:report-counters {:test 0 :pass 0 :fail 0 :error 0}
    :testing-vars ()
    :testing-contexts ()
-   :once-fixtures []
-   :each-fixtures []})
+   :once-fixtures {}
+   :each-fixtures {}})
 
 (defn get-current-env []
   (or *current-env* (empty-env)))
@@ -100,22 +100,35 @@
 (defn join-fixtures [fixtures]
   (reduce compose-fixtures (fn [f] (f)) fixtures))
 
-(defn get-each-fixtures []
-  (get-in (get-current-env) [:each-fixtures] []))
+(defn get-each-fixtures
+  "Returns the each-fixture vector for ns-str, or [] if none. The 1-arg
+  variant defaults to the nil-keyed bucket, used for direct calls that
+  predate per-ns fixtures."
+  ([] (get-each-fixtures nil))
+  ([ns-str] (get-in (get-current-env) [:each-fixtures ns-str] [])))
 
-(defn set-each-fixtures! [fixtures]
-  (update-current-env! [:each-fixtures] (constantly fixtures)))
+(defn set-each-fixtures!
+  ([fixtures] (set-each-fixtures! nil fixtures))
+  ([ns-str fixtures]
+   (update-current-env! [:each-fixtures ns-str] (constantly fixtures))))
 
-(defn get-once-fixtures []
-  (get-in (get-current-env) [:once-fixtures] []))
+(defn get-once-fixtures
+  ([] (get-once-fixtures nil))
+  ([ns-str] (get-in (get-current-env) [:once-fixtures ns-str] [])))
 
-(defn set-once-fixtures! [fixtures]
-  (update-current-env! [:once-fixtures] (constantly fixtures)))
+(defn set-once-fixtures!
+  ([fixtures] (set-once-fixtures! nil fixtures))
+  ([ns-str fixtures]
+   (update-current-env! [:once-fixtures ns-str] (constantly fixtures))))
 
 (defn test-var [v]
   (when (fn? v)
     (let [test-name (or (:name (meta v)) "anonymous")
-          each-fixtures (get-each-fixtures)
+          ns-str (:ns (meta v))
+          ;; Per-ns each-fixtures, falling back to the nil-keyed bucket
+          ;; for fixtures set via the 1-arg legacy form.
+          each-fixtures (let [per-ns (get-each-fixtures ns-str)]
+                          (if (seq per-ns) per-ns (get-each-fixtures)))
           wrapped-test (if (seq each-fixtures)
                          (fn [] ((join-fixtures each-fixtures) v))
                          v)
@@ -151,13 +164,30 @@
   ([] (vec (mapcat vals (vals @test-registry))))
   ([ns-str] (vec (vals (get @test-registry ns-str)))))
 
+(defn- run-vars-with-once-fixtures [ns-str vars]
+  (let [per-ns (get-once-fixtures ns-str)
+        once-fixtures (if (seq per-ns) per-ns (get-once-fixtures))
+        run-all (fn []
+                  (reduce
+                   (fn [chain v]
+                     (if (async? chain)
+                       (.then chain (fn [_] (test-var v)))
+                       (test-var v)))
+                   nil
+                   vars))]
+    (if (seq once-fixtures)
+      ((join-fixtures once-fixtures) run-all)
+      (run-all))))
+
 (defn run-tests
   "Runs tests and reports a summary. Accepts any of:
    - no args: run every registered test across all namespaces.
    - namespace name strings: run tests registered under each given ns.
    - explicit test fns: run those fns directly.
-   Initializes the env if none is set. Returns (or resolves to, for async
-   tests) the :report-counters summary map."
+   Initializes the env if none is set. Tests are grouped by their ns
+   (from deftest's metadata) so each ns's once-fixtures wrap that ns's
+   tests, matching cljs.test. Returns (or resolves to, for async tests)
+   the :report-counters summary map."
   [& args]
   (let [test-vars (cond
                     (empty? args)
@@ -167,21 +197,21 @@
                     :else
                     args)
         _ (when (nil? *current-env*) (set-env! (empty-env)))
-        once-fixtures (get-once-fixtures)
-        run-all (fn []
-                  (reduce
-                   (fn [chain v]
-                     (if (async? chain)
-                       (.then chain (fn [_] (test-var v)))
-                       (test-var v)))
-                   nil
-                   test-vars))
+        ;; preserve insertion order while grouping by ns
+        groups (reduce (fn [acc v]
+                         (let [k (:ns (meta v))]
+                           (update acc k (fnil conj []) v)))
+                       {} test-vars)
+        run-groups (fn []
+                     (reduce (fn [chain [ns-str vars]]
+                               (if (async? chain)
+                                 (.then chain (fn [_] (run-vars-with-once-fixtures ns-str vars)))
+                                 (run-vars-with-once-fixtures ns-str vars)))
+                             nil groups))
         finish (fn [_]
                  (report {:type :summary})
                  (:report-counters (get-current-env)))
-        chain (if (seq once-fixtures)
-                ((join-fixtures once-fixtures) run-all)
-                (run-all))]
+        chain (run-groups)]
     (if (async? chain)
       (.then chain finish)
       (finish nil))))
