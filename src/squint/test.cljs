@@ -135,10 +135,39 @@
           (pop-test-name!)
           (report {:type :error :message (.-message e) :expected nil :actual e}))))))
 
+(def ^:private test-registry (atom {}))
+
+(defn register-test!
+  "Registers a deftest fn under its namespace for later discovery by run-tests.
+  Idempotent: re-registration replaces the previous fn with the same name."
+  [ns-str test-fn]
+  (let [test-name (.-_squintTestName test-fn)]
+    (swap! test-registry assoc-in [ns-str test-name] test-fn))
+  test-fn)
+
+(defn registered-tests
+  "Returns a vector of test fns registered for the given namespace name.
+  With no argument, returns all registered tests across every namespace."
+  ([] (vec (mapcat vals (vals @test-registry))))
+  ([ns-str] (vec (vals (get @test-registry ns-str)))))
+
 (defn run-tests
-  "Runs test-vars with once-fixtures. Returns Promise if any test is async."
-  [& test-vars]
-  (let [once-fixtures (get-once-fixtures)
+  "Runs tests and reports a summary. Accepts any of:
+   - no args: run every registered test across all namespaces.
+   - namespace name strings: run tests registered under each given ns.
+   - explicit test fns: run those fns directly.
+   Initializes the env if none is set. Returns (or resolves to, for async
+   tests) the :report-counters summary map."
+  [& args]
+  (let [test-vars (cond
+                    (empty? args)
+                    (registered-tests)
+                    (string? (first args))
+                    (vec (mapcat registered-tests args))
+                    :else
+                    args)
+        _ (when (nil? *current-env*) (set-env! (empty-env)))
+        once-fixtures (get-once-fixtures)
         run-all (fn []
                   (reduce
                    (fn [chain v]
@@ -146,7 +175,13 @@
                        (.then chain (fn [_] (test-var v)))
                        (test-var v)))
                    nil
-                   test-vars))]
-    (if (seq once-fixtures)
-      ((join-fixtures once-fixtures) run-all)
-      (run-all))))
+                   test-vars))
+        finish (fn [_]
+                 (report {:type :summary})
+                 (:report-counters (get-current-env)))
+        chain (if (seq once-fixtures)
+                ((join-fixtures once-fixtures) run-all)
+                (run-all))]
+    (if (async? chain)
+      (.then chain finish)
+      (finish nil))))

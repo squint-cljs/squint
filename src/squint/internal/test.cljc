@@ -53,12 +53,15 @@
                                 ~(report :fail (pr-str form) e-sym false)))))
       default)))
 
-(defn core-deftest [_&form _&env name & body]
+(defn core-deftest [_&form &env name & body]
   (let [fn-meta (select-keys (meta name) [:async])
-        fsym (gensym "fn")]
+        fsym (gensym "fn")
+        ns-name (some-> &env :ns :name str)]
     `(def ~(vary-meta name assoc :test true)
        (let [~fsym ~(with-meta `(fn [] ~@body) fn-meta)]
          (set! (.-_squintTestName ~fsym) ~(str name))
+         ~@(when ns-name
+             [`(clojure.test/register-test! ~ns-name ~fsym)])
          ~fsym))))
 
 (defn core-is
@@ -95,10 +98,22 @@
     :once `(clojure.test/set-once-fixtures! [~@fns])
     :each `(clojure.test/set-each-fixtures! [~@fns])))
 
+(defn core-run-tests [_&form &env & args]
+  ;; Match cljs.test: with no args, default to the compile-time current ns.
+  ;; The :squint.compiler/skip-macro meta stops the emission from landing back
+  ;; in this macro's lookup (which shares the name with the runtime fn).
+  (let [ns-name (some-> &env :ns :name str)
+        args' (if (and ns-name (empty? args))
+                [ns-name]
+                args)]
+    (with-meta `(clojure.test/run-tests ~@args')
+               {:squint.compiler/skip-macro true})))
+
 (def core-test-macros
   {'deftest core-deftest
    'deftest- core-deftest-
    'is core-is
    'testing core-testing
    'are core-are
-   'use-fixtures core-use-fixtures})
+   'use-fixtures core-use-fixtures
+   'run-tests core-run-tests})
