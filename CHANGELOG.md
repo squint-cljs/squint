@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+- Add built-in `cljs.test` / `clojure.test` support: `deftest`, `is`, `testing`,
+  `are`, `deftest-`, `use-fixtures`, `async`, `run-tests` (no-args defaults to
+  current ns; also accepts quoted ns symbols, e.g. `(run-tests 'my.ns)`).
+  Per-namespace fixtures, counter isolation per `run-tests` call, `^:async`
+  test support, and `(async done body)` form for tests that resolve when
+  `done` is called. Runtime ships at `squint-cljs/src/squint/test.mjs`.
+- `with-meta` now preserves callability when applied to a function (returns a
+  forwarding wrapper instead of a plain object via `copy()`).
 - Fix [#783](https://github.com/squint-cljs/squint/issues/783): auto-load macros from `.cljc` files via `:require` (no need for `:require-macros`)
 - Fix [#783](https://github.com/squint-cljs/squint/issues/783): resolve qualified symbols from macro expansions
 - Fix [#784](https://github.com/squint-cljs/squint/issues/784): resolve transitive macro deps and auto-import runtime deps from macro expansion

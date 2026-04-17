@@ -316,7 +316,7 @@
        alias))))
 
 (def ^:private builtin-test-macro-names
-  '#{deftest deftest- is testing are use-fixtures})
+  '#{deftest deftest- is testing are async use-fixtures})
 
 (defn builtin-refer-is-macro?
   "Returns true when a `:refer`'d symbol is known to be a compiler built-in

@@ -175,10 +175,23 @@
                        (.then chain (fn [_] (test-var v)))
                        (test-var v)))
                    nil
-                   vars))]
-    (if (seq once-fixtures)
-      ((join-fixtures once-fixtures) run-all)
-      (run-all))))
+                   vars))
+        run-with-fixtures (fn []
+                            (if (seq once-fixtures)
+                              ((join-fixtures once-fixtures) run-all)
+                              (run-all)))]
+    ;; Match cljs.test: bracket each ns's run with :begin/:end-test-ns
+    ;; events so reporters can group output. Anonymous (nil-ns) groups
+    ;; — explicit fns without :ns meta — are skipped so we don't print
+    ;; "Testing " with no name.
+    (when ns-str (report {:type :begin-test-ns :ns ns-str}))
+    (let [chain (run-with-fixtures)
+          finish (fn [r]
+                   (when ns-str (report {:type :end-test-ns :ns ns-str}))
+                   r)]
+      (if (async? chain)
+        (.then chain finish)
+        (finish chain)))))
 
 (def ^:private fresh-counters {:test 0 :pass 0 :fail 0 :error 0})
 

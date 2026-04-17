@@ -70,16 +70,26 @@ everyone uses, but it's overridable). Same idea as `report`.
 
 ## Coverage gaps — features that exist but are partial
 
-### 7. `:begin-test-ns` / `:end-test-ns` are never emitted
-We support the report types in `report`'s `case`, but `run-tests` never
+### 7. `:begin-test-ns` / `:end-test-ns` are never emitted ✅ DONE
+~~We support the report types in `report`'s `case`, but `run-tests` never
 fires them. Real `clojure.test` brackets each ns it processes with these
-events; reporters use them to group output.
+events; reporters use them to group output.~~
 
-### 8. No `(t/async done body)` form
-Real `cljs.test` async tests use `(async done (do ... (done)))`. We use
+Fixed: `run-vars-with-once-fixtures` now brackets each ns's tests with
+`:begin-test-ns` / `:end-test-ns` reports, so `(t/run-tests 'my.ns)`
+prints `Testing my.ns` like cljs.test. Anonymous (nil-ns) groups are
+skipped. Smoke tests assert the lines appear.
+
+### 8. No `(t/async done body)` form ✅ DONE
+~~Real `cljs.test` async tests use `(async done (do ... (done)))`. We use
 `^:async` on the deftest plus a Promise-returning body. Functionally
 equivalent but different surface — code copied from a CLJS project
-won't run.
+won't run.~~
+
+Added: `core-async` macro expands `(async done body)` to
+`(js/Promise. (fn [done] body))`. `test-var` already awaits any
+Promise-returning test fn, so no additional plumbing was needed —
+the `^:async` form keeps working too. Regression tests in both repos.
 
 ### 9. Test discovery is registration-based, not metadata-based
 `clojure.test/run-tests` walks `ns-publics` and filters by

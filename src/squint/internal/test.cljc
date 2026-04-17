@@ -98,14 +98,30 @@
       :once `(clojure.test/set-once-fixtures! ~ns-name [~@fns])
       :each `(clojure.test/set-each-fixtures! ~ns-name [~@fns]))))
 
+(defn core-async [_&form _&env done & body]
+  ;; (async done body...) — common cljs.test idiom for async tests.
+  ;; Expands to a Promise constructor whose `resolve` is bound to `done`
+  ;; in the body's scope. The deftest body returns this Promise and
+  ;; test-var awaits it; no ^:async marker needed on the outer fn.
+  (assert (symbol? done) "first argument to async must be a symbol")
+  `(js/Promise. (fn [~done] ~@body)))
+
 (defn core-run-tests [_&form &env & args]
   ;; Match cljs.test: with no args, default to the compile-time current ns.
-  ;; The :squint.compiler/skip-macro meta stops the emission from landing back
-  ;; in this macro's lookup (which shares the name with the runtime fn).
-  (let [ns-name (some-> &env :ns :name str)
-        args' (if (and ns-name (empty? args))
-                [ns-name]
-                args)]
+  ;; Quoted namespace symbols `'my.ns` get converted to plain strings at
+  ;; macro-expansion time so the emission doesn't depend on quoted-symbol
+  ;; runtime support (which squint doesn't have). Anything else passes
+  ;; through to the runtime fn unchanged. The :squint.compiler/skip-macro
+  ;; meta stops the emission from re-entering this macro's lookup.
+  (let [args' (if (empty? args)
+                [(some-> &env :ns :name str)]
+                (mapv (fn [arg]
+                        (if (and (seq? arg)
+                                 (= 'quote (first arg))
+                                 (symbol? (second arg)))
+                          (str (second arg))
+                          arg))
+                      args))]
     (with-meta `(clojure.test/run-tests ~@args')
                {:squint.compiler/skip-macro true})))
 
@@ -115,5 +131,6 @@
    'is core-is
    'testing core-testing
    'are core-are
+   'async core-async
    'use-fixtures core-use-fixtures
    'run-tests core-run-tests})
