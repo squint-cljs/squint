@@ -55,14 +55,13 @@
 
 (defn core-deftest [_&form &env name & body]
   (let [fn-meta (select-keys (meta name) [:async])
-        fsym (gensym "fn")
-        ns-name (some-> &env :ns :name str)]
+        ns-name (some-> &env :ns :name str)
+        fn-form (with-meta `(fn [] ~@body) fn-meta)
+        wrapped `(with-meta ~fn-form {:name ~(str name)})]
     `(def ~(vary-meta name assoc :test true)
-       (let [~fsym ~(with-meta `(fn [] ~@body) fn-meta)]
-         (set! (.-_squintTestName ~fsym) ~(str name))
-         ~@(when ns-name
-             [`(clojure.test/register-test! ~ns-name ~fsym)])
-         ~fsym))))
+       ~(if ns-name
+          `(clojure.test/register-test! ~ns-name ~wrapped)
+          wrapped))))
 
 (defn core-is
   ([&form &env form] (core-is &form &env form nil))

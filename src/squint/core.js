@@ -2500,7 +2500,20 @@ export function meta(x) {
   } else return null;
 }
 
+export const IWithMeta__withMeta = Symbol('IWithMeta__withMeta');
+
 export function with_meta(x, m) {
+  // Symbol-keyed protocol dispatch, following the IApply__apply pattern:
+  // any object can opt in by implementing this symbol method.
+  const impl = x && x[IWithMeta__withMeta];
+  if (impl) return impl.call(x, m);
+  // Default for functions: wrap in a new callable that forwards to the
+  // original, so fn? stays true and the original isn't mutated.
+  if (typeof x === 'function') {
+    const wrapped = function (...args) { return x.apply(this, args); };
+    wrapped[_metaSym] = m;
+    return wrapped;
+  }
   const ret = copy(x);
   ret[_metaSym] = m;
   return ret;

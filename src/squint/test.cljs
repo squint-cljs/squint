@@ -114,7 +114,7 @@
 
 (defn test-var [v]
   (when (fn? v)
-    (let [test-name (or (.-_squintTestName v) (:name (meta v)) "anonymous")
+    (let [test-name (or (:name (meta v)) "anonymous")
           each-fixtures (get-each-fixtures)
           wrapped-test (if (seq each-fixtures)
                          (fn [] ((join-fixtures each-fixtures) v))
@@ -141,7 +141,7 @@
   "Registers a deftest fn under its namespace for later discovery by run-tests.
   Idempotent: re-registration replaces the previous fn with the same name."
   [ns-str test-fn]
-  (let [test-name (.-_squintTestName test-fn)]
+  (let [test-name (:name (meta test-fn))]
     (swap! test-registry assoc-in [ns-str test-name] test-fn))
   test-fn)
 
