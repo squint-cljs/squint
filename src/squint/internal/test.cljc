@@ -98,6 +98,14 @@
       :once `(clojure.test/set-once-fixtures! ~ns-name [~@fns])
       :each `(clojure.test/set-each-fixtures! ~ns-name [~@fns]))))
 
+(defn core-async [_&form _&env done & body]
+  ;; (async done body...) — common cljs.test idiom for async tests.
+  ;; Expands to a Promise constructor whose `resolve` is bound to `done`
+  ;; in the body's scope. The deftest body returns this Promise and
+  ;; test-var awaits it; no ^:async marker needed on the outer fn.
+  (assert (symbol? done) "first argument to async must be a symbol")
+  `(js/Promise. (fn [~done] ~@body)))
+
 (defn core-run-tests [_&form &env & args]
   ;; Match cljs.test: with no args, default to the compile-time current ns.
   ;; Quoted namespace symbols `'my.ns` get converted to plain strings at
@@ -123,5 +131,6 @@
    'is core-is
    'testing core-testing
    'are core-are
+   'async core-async
    'use-fixtures core-use-fixtures
    'run-tests core-run-tests})

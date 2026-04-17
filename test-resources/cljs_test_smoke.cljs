@@ -1,5 +1,5 @@
 (ns cljs-test-smoke
-  (:require [cljs.test :as t :refer [deftest is testing are]]))
+  (:require [cljs.test :as t :refer [deftest is testing are async]]))
 
 (deftest math-test
   (testing "basic math"
@@ -99,6 +99,16 @@
         (is (nil? (:begin-test-ns counters))
             "no bogus :begin-test-ns key added")))))
 
+(deftest async-done-form-test
+  ;; (async done ...) is the cljs.test idiom — body runs, done resolves
+  ;; the wrapping promise, test-var awaits it.
+  (async done
+    (js/setTimeout
+     (fn []
+       (is (= 42 (* 6 7)))
+       (done))
+     5)))
+
 (deftest run-tests-quoted-symbol-test
   (testing "(run-tests 'my.ns) macro converts quoted symbol to a string"
     (let [saved-env (t/get-current-env)]
@@ -119,6 +129,7 @@
   (t/test-var thrown-test)
   (t/test-var expected-failure-test)
   (js-await (t/test-var async-test))
+  (js-await (t/test-var async-done-form-test))
   (t/test-var per-ns-each-fixtures-test)
   (t/test-var per-ns-once-fixtures-test)
   (t/test-var run-tests-counter-isolation-test)
