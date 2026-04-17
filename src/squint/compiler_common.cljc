@@ -610,15 +610,19 @@
   (get import-maps lib lib))
 
 (defn resolve-macro-ns
-  "Map a runtime namespace to its macro namespace (per target)."
-  [alias]
-  (case *target*
-    :squint (case alias
-              (clojure.test cljs.test) 'squint.test
-              alias)
-    (case alias
-      (clojure.test cljs.test) 'cherry.test
-      alias)))
+  "Map a runtime namespace to its macro namespace (per target).
+  The single-arg form reads *target*; pass it explicitly when the call
+  site lives inside a Promise chain where the dynamic binding has
+  already been unwound."
+  ([alias] (resolve-macro-ns alias *target*))
+  ([alias target]
+   (case target
+     :squint (case alias
+               (clojure.test cljs.test) 'squint.test
+               alias)
+     (case alias
+       (clojure.test cljs.test) 'cherry.test
+       alias))))
 
 (def ^:private builtin-test-macro-names
   '#{deftest deftest- is testing are use-fixtures})
