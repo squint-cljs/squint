@@ -104,7 +104,10 @@ let evalCode = async (code) => {
     let js = globalThis.compilerState.javascript;
     if (dev) {
       console.log("Loading local squint libs");
-      js = js.replaceAll("'squint-cljs/", "'./squint-local/");
+      // Rewrite to absolute URLs: Blob URLs used for non-REPL eval have an
+      // opaque origin that can't resolve relative specifiers.
+      const localBase = new URL('./squint-local/', import.meta.url).href;
+      js = js.replaceAll("'squint-cljs/", `'${localBase}`);
     }
     JSEditor(js);
     if (!repl) {
