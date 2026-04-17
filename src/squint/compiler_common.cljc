@@ -801,6 +801,9 @@
                      as
                      (update-in [current :aliases] (fn [aliases]
                                                      ((fnil assoc {}) aliases as libname)))
+                     (and as (symbol? original-libname))
+                     (update-in [current :macro-aliases]
+                                (fn [aliases] (merge {as original-libname} aliases)))
                      (symbol? original-libname)
                      (update-in [current :aliases] (fn [aliases]
                                                      ((fnil assoc {}) aliases
