@@ -362,11 +362,12 @@
                                      (when-let [imports (:imports env)]
                                        (swap! imports str
                                               (if *repl*
-                                                (str (statement (format "var %s = await import('%s')" auto-alias resolved))
-                                                     ;; match the ns form's pattern: expose the import on the ns object
-                                                     ;; so later globalThis.<ns>.<auto-alias> refs resolve.
-                                                     (statement (format "globalThis.%s.%s = %s"
-                                                                        (munge *cljs-ns*) auto-alias auto-alias)))
+                                                (let [mns (munge *cljs-ns*)]
+                                                  (str (statement (format "var %s = await import('%s')" auto-alias resolved))
+                                                       ;; ensure the ns object exists before assigning onto it — the ns
+                                                       ;; form also emits this guard, but our auto-import may land first.
+                                                       (statement (format "globalThis.%s = globalThis.%s || {}" mns mns))
+                                                       (statement (format "globalThis.%s.%s = %s" mns auto-alias auto-alias))))
                                                 (statement (format "import * as %s from '%s'" auto-alias resolved)))))
                                      (swap! *imported-vars* update (str resolved) (fnil identity #{}))
                                      (swap! (:ns-state env)
