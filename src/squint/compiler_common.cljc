@@ -297,7 +297,59 @@
 (defn alias-munge [s]
   (-> s str munge (str/replace #"\." "_DOT_") ))
 
-(declare resolve-ns)
+(defn resolve-import-map [import-maps lib]
+  (get import-maps lib lib))
+
+(defn resolve-macro-ns
+  "Map a runtime namespace to its macro namespace (per target).
+  The single-arg form reads *target*; pass it explicitly when the call
+  site lives inside a Promise chain where the dynamic binding has
+  already been unwound."
+  ([alias] (resolve-macro-ns alias *target*))
+  ([alias target]
+   (case target
+     :squint (case alias
+               (clojure.test cljs.test) 'squint.test
+               alias)
+     (case alias
+       (clojure.test cljs.test) 'cherry.test
+       alias))))
+
+(def ^:private builtin-test-macro-names
+  '#{deftest deftest- is testing are use-fixtures})
+
+(defn builtin-refer-is-macro?
+  "Returns true when a `:refer`'d symbol is known to be a compiler built-in
+  macro and must not be emitted as a runtime import."
+  [original-libname refer-sym]
+  (and (symbol? original-libname)
+       (contains? '#{cljs.test clojure.test cherry.test squint.test} original-libname)
+       (contains? builtin-test-macro-names refer-sym)))
+
+(defn resolve-ns [env alias]
+  (let [import-maps (:import-maps env)]
+    (case *target*
+      :squint
+      (case alias
+        (squint.string clojure.string) (resolve-import-map import-maps "squint-cljs/src/squint/string.js")
+        (squint.set clojure.set) (resolve-import-map import-maps "squint-cljs/src/squint/set.js")
+        (squint.math clojure.math cljs.math) (resolve-import-map import-maps "squint-cljs/src/squint/math.js")
+        (squint.test cljs.test clojure.test) (resolve-import-map import-maps "squint-cljs/src/squint/test.mjs")
+        (if (symbol? alias)
+          (if-let [resolve-ns (:resolve-ns env)]
+            (or (resolve-ns alias)
+                alias)
+            alias)
+          (resolve-import-map import-maps alias)))
+      :cherry
+      (case alias
+        (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
+        (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
+        (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
+        (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
+        (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
+        alias)
+      alias)))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
@@ -605,60 +657,6 @@
 #_(defn wrap-iife [s]
     (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
       *async* (wrap-await)))
-
-(defn resolve-import-map [import-maps lib]
-  (get import-maps lib lib))
-
-(defn resolve-macro-ns
-  "Map a runtime namespace to its macro namespace (per target).
-  The single-arg form reads *target*; pass it explicitly when the call
-  site lives inside a Promise chain where the dynamic binding has
-  already been unwound."
-  ([alias] (resolve-macro-ns alias *target*))
-  ([alias target]
-   (case target
-     :squint (case alias
-               (clojure.test cljs.test) 'squint.test
-               alias)
-     (case alias
-       (clojure.test cljs.test) 'cherry.test
-       alias))))
-
-(def ^:private builtin-test-macro-names
-  '#{deftest deftest- is testing are use-fixtures})
-
-(defn builtin-refer-is-macro?
-  "Returns true when a `:refer`'d symbol is known to be a compiler built-in
-  macro and must not be emitted as a runtime import."
-  [original-libname refer-sym]
-  (and (symbol? original-libname)
-       (contains? '#{cljs.test clojure.test cherry.test squint.test} original-libname)
-       (contains? builtin-test-macro-names refer-sym)))
-
-(defn resolve-ns [env alias]
-  (let [import-maps (:import-maps env)]
-    (case *target*
-      :squint
-      (case alias
-        (squint.string clojure.string) (resolve-import-map import-maps "squint-cljs/src/squint/string.js")
-        (squint.set clojure.set) (resolve-import-map import-maps "squint-cljs/src/squint/set.js")
-        (squint.math clojure.math cljs.math) (resolve-import-map import-maps "squint-cljs/src/squint/math.js")
-        (squint.test cljs.test clojure.test) (resolve-import-map import-maps "squint-cljs/src/squint/test.mjs")
-        (if (symbol? alias)
-          (if-let [resolve-ns (:resolve-ns env)]
-            (or (resolve-ns alias)
-                alias)
-            alias)
-          (resolve-import-map import-maps alias)))
-      :cherry
-      (case alias
-        (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
-        (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
-        (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
-        (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
-        (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
-        alias)
-      alias)))
 
 (defn unwrap [s]
   (str/replace (str s) #"^\(|\)$" ""))
