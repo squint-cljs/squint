@@ -105,8 +105,10 @@ let evalCode = async (code) => {
     if (dev) {
       console.log("Loading local squint libs");
       // Rewrite to absolute URLs: Blob URLs used for non-REPL eval have an
-      // opaque origin that can't resolve relative specifiers.
-      const localBase = new URL('./squint-local/', import.meta.url).href;
+      // opaque origin that can't resolve relative specifiers. Anchor on the
+      // page origin — import.meta.url can point to an unexpected bundle path
+      // under Vite.
+      const localBase = `${window.location.origin}/js/squint-local/`;
       js = js.replaceAll("'squint-cljs/", `'${localBase}`);
     }
     JSEditor(js);
