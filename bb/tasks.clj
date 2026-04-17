@@ -87,8 +87,13 @@
     (shell "node" "node_cli.js" "compile" src)
     (let [out (:out (shell {:out :string} "node" out-file))]
       (fs/delete out-file)
-      (assert (str/includes? out "Ran 8 tests containing 17 assertions") out)
-      (assert (str/includes? out "1 failures, 0 errors") out))))
+      (assert (str/includes? out "Ran 9 tests containing 19 assertions") out)
+      (assert (str/includes? out "1 failures, 0 errors") out)
+      ;; :begin-test-ns must fire for each ns visited by run-tests
+      (assert (str/includes? out "Testing ns.a") out)
+      (assert (str/includes? out "Testing ns.b") out)
+      ;; (run-tests 'synthetic.ns) macro must compile to a string lookup
+      (assert (str/includes? out "Testing synthetic.ns") out))))
 
 (defn test-squint []
   (fs/create-dirs ".work")

@@ -100,12 +100,20 @@
 
 (defn core-run-tests [_&form &env & args]
   ;; Match cljs.test: with no args, default to the compile-time current ns.
-  ;; The :squint.compiler/skip-macro meta stops the emission from landing back
-  ;; in this macro's lookup (which shares the name with the runtime fn).
-  (let [ns-name (some-> &env :ns :name str)
-        args' (if (and ns-name (empty? args))
-                [ns-name]
-                args)]
+  ;; Quoted namespace symbols `'my.ns` get converted to plain strings at
+  ;; macro-expansion time so the emission doesn't depend on quoted-symbol
+  ;; runtime support (which squint doesn't have). Anything else passes
+  ;; through to the runtime fn unchanged. The :squint.compiler/skip-macro
+  ;; meta stops the emission from re-entering this macro's lookup.
+  (let [args' (if (empty? args)
+                [(some-> &env :ns :name str)]
+                (mapv (fn [arg]
+                        (if (and (seq? arg)
+                                 (= 'quote (first arg))
+                                 (symbol? (second arg)))
+                          (str (second arg))
+                          arg))
+                      args))]
     (with-meta `(clojure.test/run-tests ~@args')
                {:squint.compiler/skip-macro true})))
 
