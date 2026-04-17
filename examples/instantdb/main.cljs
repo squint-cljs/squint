@@ -1,5 +1,5 @@
 (ns main
-  {:clj-kondo/config '{:linters {:unresolved-symbol {:exclude [js-await]}}}}
+  {:clj-kondo/config '{:linters {:unresolved-symbol {:exclude [await js-await]}}}}
   (:require ["@instantdb/react" :refer [init tx id]]
             ["react-dom/client" :as rdom]
             #_:clj-kondo/ignore

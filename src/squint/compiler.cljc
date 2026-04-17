@@ -41,7 +41,7 @@
                          'const 'let 'let* 'ns 'def 'loop*
                          'recur 'js* 'case* 'deftype* 'letfn*
                          ;; js
-                         'js/await 'js-await 'js/typeof
+                         'js/await 'js-await 'await 'js/typeof
                          ;; prefixed to avoid conflicts
                          'squint-compiler-jsx
                          'squint-compiler-html

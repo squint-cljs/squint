@@ -1,5 +1,5 @@
 (ns gespensterfelder
-  {:clj-kondo/config '{:linters {:unresolved-symbol {:exclude [js-await]}}}}
+  {:clj-kondo/config '{:linters {:unresolved-symbol {:exclude [await js-await]}}}}
   (:require ["squint-cljs/core.js" :as squint]
             ["three" :as three]
             ["three/addons/postprocessing/EffectComposer.js" :refer [EffectComposer]]

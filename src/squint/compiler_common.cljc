@@ -654,6 +654,9 @@
 (defmethod emit-special 'js-await [_ env [_await more]]
   (js-await env more))
 
+(defmethod emit-special 'await [_ env [_await more]]
+  (js-await env more))
+
 #_(defn wrap-iife [s]
     (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
       *async* (wrap-await)))

@@ -601,10 +601,10 @@
   (async done
     (->
      (.then (jsv! '(do (defn ^:async foo []
-                         (js-await (js/Promise.resolve :hello)))
+                         (await (js/Promise.resolve :hello)))
 
                        (defn ^:async bar []
-                         (let [x (js-await (foo))]
+                         (let [x (await (foo))]
                            x))
 
                        (bar)))
@@ -615,18 +615,23 @@
      (.finally #(done)))))
 
 (deftest top-level-await-test
-  (is (str/includes? (jss! "(js-await 1)") "await")))
+  (is (str/includes? (jss! "(await 1)") "await")))
+
+(deftest legacy-await-spellings-test
+  (testing "js-await and js/await are kept as aliases for await"
+    (is (str/includes? (jss! "(js-await 1)") "await"))
+    (is (str/includes? (jss! "(js/await 1)") "await"))))
 
 (deftest await-variadic-test
   (async done
     (->
-     (.then (jsv! '(do (defn ^:async foo [& xs] (js-await 10))
-                       (defn ^:async bar [x & xs] (js-await 20))
+     (.then (jsv! '(do (defn ^:async foo [& xs] (await 10))
+                       (defn ^:async bar [x & xs] (await 20))
                        (defn ^:async baz
                          ([x] (baz x 1 2 3))
                          ([x & xs]
-                          (let [x (js/await (foo x))
-                                y (js/await (apply bar xs))]
+                          (let [x (await (foo x))
+                                y (await (apply bar xs))]
                             (+ x y))))
 
                        (baz 1)))
@@ -637,8 +642,8 @@
      (.finally #(done)))))
 
 (deftest async-await-anon-fn-test
-  (is (instance? js/Promise (jsv! "((fn ^:async foo [] (js-await {})))")))
-  (is (instance? js/Promise (jsv! "((^:async fn [] (js-await {})))"))))
+  (is (instance? js/Promise (jsv! "((fn ^:async foo [] (await {})))")))
+  (is (instance? js/Promise (jsv! "((^:async fn [] (await {})))"))))
 
 (deftest native-js-array-test
   (let [s (jss! "(let [x 2

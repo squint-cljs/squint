@@ -78,8 +78,9 @@ need the extra performance, startup time and/or small bundle size.
   it's recommended to realize the lazy value using `vec` on function
   boundaries. You can detect re-usage of lazy values by calling
   [warn-on-lazy-reusage!](#warn-on-lazy-reusage).
-- Supports async/await:`(def x (js-await y))`. Async functions must be marked
-  with `^:async`: `(defn ^:async foo [])`.
+- Supports async/await: `(def x (await y))`. Async functions must be marked
+  with `^:async`: `(defn ^:async foo [])`. The legacy spellings `js-await`
+  and `js/await` are still accepted.
 - `assoc!`, `dissoc!`, `conj!`, etc. perform in place mutation on objects
 - `assoc`, `dissoc`, `conj`, etc. return a new shallow copy of objects
 - `println` is a synonym for `console.log`
@@ -327,7 +328,7 @@ Squint supports `async/await`:
 ``` clojure
 (defn ^:async foo [] (js/Promise.resolve 10))
 
-(def x (js-await (foo)))
+(def x (await (foo)))
 
 (println x) ;;=> 10
 ```
@@ -335,7 +336,7 @@ Squint supports `async/await`:
 Anonymous functions must have `^:async` on the `fn` symbol or the function's name:
 
 ``` clojure
-(^:async fn [] (js-await {}) 3)
+(^:async fn [] (await {}) 3)
 ```
 
 ## Generator functions

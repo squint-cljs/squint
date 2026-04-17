@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+- Accept plain `await` as a special form, in anticipation of CLJS next.
+  The legacy `js-await` and `js/await` spellings continue to work as
+  aliases for now and may be deprecated in a future version.
 - Add built-in `cljs.test` / `clojure.test` support: `deftest`, `is`, `testing`,
   `are`, `deftest-`, `use-fixtures`, `async`, `run-tests` (no-args defaults to
   current ns; also accepts quoted ns symbols, e.g. `(run-tests 'my.ns)`).
