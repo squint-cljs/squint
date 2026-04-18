@@ -2,6 +2,9 @@
   (:require [clojure.string]))
 
 (def ^:dynamic *current-env* nil)
+(def ^:dynamic *current-reporter* :cljs.test/default)
+
+(defn current-reporter [] (or *current-reporter* :cljs.test/default))
 
 (defn empty-env []
   {:report-counters {:test 0 :pass 0 :fail 0 :error 0}
@@ -47,35 +50,51 @@
       ctx ctx
       :else "test")))
 
-(defn report [{:keys [type message expected actual line column file] :as m}]
-  (when (contains? #{:pass :fail :error} type)
-    (inc-report-counter! type))
-  (let [location (when (or line column file)
-                   (str (when file (str file ":"))
-                        (when line line)
-                        (when column (str ":" column))))]
-    (case type
-      :pass nil
-      :fail (do
-              (js/console.error (str "FAIL in " (current-test-str)
-                                     (when location (str " (" location ")"))))
-              (when message (js/console.error "  " message))
-              (js/console.error "  expected:" (pr-str expected))
-              (js/console.error "    actual:" (pr-str actual)))
-      :error (do
-               (js/console.error (str "ERROR in " (current-test-str)
-                                      (when location (str " (" location ")"))))
-               (when message (js/console.error "  " message))
-               (when expected (js/console.error "  expected:" (pr-str expected)))
-               (js/console.error "    actual:" (pr-str actual)))
-      :begin-test-ns (js/console.log "\nTesting" (str (:ns m)))
-      :end-test-ns nil
-      :begin-test-var nil
-      :end-test-var nil
-      :summary (let [{:keys [test pass fail error]} (:report-counters (get-current-env))]
-                 (js/console.log "\nRan" test "tests containing" (+ pass fail error) "assertions.")
-                 (js/console.log (str fail) "failures," (str error) "errors."))
-      (js/console.log "Unknown report type:" type m))))
+(defn- report-loc [{:keys [line column file]}]
+  (when (or line column file)
+    (str (when file (str file ":"))
+         (when line line)
+         (when column (str ":" column)))))
+
+(defmulti report
+  "Reports a test event. Dispatch is on [*current-reporter* (:type m)].
+  Users extend by adding methods keyed on their own reporter, e.g.
+  (defmethod report [:cljs.test/default :begin-test-var] [m] ...).
+  Unknown dispatch values fall through to a no-op default."
+  (fn [m] [(current-reporter) (:type m)]))
+
+(defmethod report :default [_m] nil)
+
+(defmethod report [:cljs.test/default :pass] [_]
+  (inc-report-counter! :pass))
+
+(defmethod report [:cljs.test/default :fail] [m]
+  (inc-report-counter! :fail)
+  (js/console.error (str "FAIL in " (current-test-str)
+                         (when-let [l (report-loc m)] (str " (" l ")"))))
+  (when (:message m) (js/console.error "  " (:message m)))
+  (js/console.error "  expected:" (pr-str (:expected m)))
+  (js/console.error "    actual:" (pr-str (:actual m))))
+
+(defmethod report [:cljs.test/default :error] [m]
+  (inc-report-counter! :error)
+  (js/console.error (str "ERROR in " (current-test-str)
+                         (when-let [l (report-loc m)] (str " (" l ")"))))
+  (when (:message m) (js/console.error "  " (:message m)))
+  (when (:expected m) (js/console.error "  expected:" (pr-str (:expected m))))
+  (js/console.error "    actual:" (pr-str (:actual m))))
+
+(defmethod report [:cljs.test/default :begin-test-ns] [m]
+  (js/console.log "\nTesting" (str (:ns m))))
+
+(defmethod report [:cljs.test/default :end-test-ns] [_])
+(defmethod report [:cljs.test/default :begin-test-var] [_])
+(defmethod report [:cljs.test/default :end-test-var] [_])
+
+(defmethod report [:cljs.test/default :summary] [_]
+  (let [{:keys [test pass fail error]} (:report-counters (get-current-env))]
+    (js/console.log "\nRan" test "tests containing" (+ pass fail error) "assertions.")
+    (js/console.log (str fail) "failures," (str error) "errors.")))
 
 (defn successful? [results]
   (and (zero? (:fail results 0))
@@ -133,21 +152,24 @@
           wrapped-test (if (seq each-fixtures)
                          (fn [] ((join-fixtures each-fixtures) v))
                          v)
-          pop-test-name! #(update-current-env! [:testing-vars] rest)]
+          end! (fn []
+                 (report {:type :end-test-var :name test-name :ns ns-str :var v})
+                 (update-current-env! [:testing-vars] rest))]
       (update-current-env! [:testing-vars] conj test-name)
       (inc-report-counter! :test)
+      (report {:type :begin-test-var :name test-name :ns ns-str :var v})
       (try
         (let [result (wrapped-test)]
           (if (async? result)
             (-> result
-                (.then (fn [r] (pop-test-name!) r))
+                (.then (fn [r] (end!) r))
                 (.catch (fn [e]
                           (report {:type :error :message (.-message e) :expected nil :actual e})
-                          (pop-test-name!))))
-            (do (pop-test-name!) result)))
+                          (end!))))
+            (do (end!) result)))
         (catch :default e
-          (pop-test-name!)
-          (report {:type :error :message (.-message e) :expected nil :actual e}))))))
+          (report {:type :error :message (.-message e) :expected nil :actual e})
+          (end!))))))
 
 (def ^:private test-registry (atom {}))
 
