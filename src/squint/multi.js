@@ -222,19 +222,26 @@ class MultiFn {
   }
   getMethod(val) {
     if (this.cachedHierarchy !== this.hierarchy.deref()) this.resetCache();
+    // Two-path cache read: primitives hit Map.get in O(1); non-primitive
+    // dispatch values (typically vectors) scan the cache with _EQ_ so
+    // freshly-allocated structurally-equal vectors hit prior entries.
+    // Previously non-primitives skipped the cache entirely — every
+    // dispatch redid findBest, which scans methodTable × _isa cost.
     if (isPrimitive(val)) {
       const cached = this.methodCache.get(val);
       if (cached !== undefined) return cached;
+    } else {
+      for (const [k, fn] of this.methodCache) if (_EQ_(k, val)) return fn;
     }
     const exactKey = findKeyByEquiv(this.methodTable, val);
     if (exactKey !== undefined) {
       const fn = this.methodTable.get(exactKey);
-      if (isPrimitive(val)) this.methodCache.set(val, fn);
+      this.methodCache.set(val, fn);
       return fn;
     }
     const best = this.findBest(val);
     if (best) {
-      if (isPrimitive(val)) this.methodCache.set(val, best[1]);
+      this.methodCache.set(val, best[1]);
       return best[1];
     }
     const defKey = findKeyByEquiv(this.methodTable, this.defaultDispatchVal);
