@@ -123,6 +123,19 @@
                      "2nd call must re-resolve and hit the ambiguity, not return cached :a-fn")))
         (.finally done))))
 
+(deftest defmulti-accepts-plain-hierarchy-test
+  ;; Regression for PR feedback #5: passing the raw result of
+  ;; (make-hierarchy) as :hierarchy used to crash on first dispatch
+  ;; because MultiFn called .deref() on a plain object. Now wrapped.
+  (t/async done
+    (-> (eval-repl "
+(let [h (derive (make-hierarchy) :x :a)]
+  (defmulti mm identity :hierarchy h)
+  (defmethod mm :a [_] :a-fn)
+  (mm :x))")
+        (.then (fn [v] (is (= "a-fn" v))))
+        (.finally done))))
+
 (deftest no-matching-method-test
   (t/async done
     (-> (eval-repl "

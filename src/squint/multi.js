@@ -19,10 +19,16 @@ export function make_hierarchy() {
   };
 }
 
-let _globalHierarchy = null;
+// Store the global hierarchy on globalThis under a Symbol.for key so all
+// instances of this module (e.g. if the bundle ends up loaded twice
+// under different URLs — see the playground dual-module episode) share
+// one hierarchy. Without this, a `derive` through one instance would be
+// invisible to `isa?` queries issued through the other.
+const GH_KEY = Symbol.for('squint.multi.hierarchy');
 function gh() {
-  return _globalHierarchy ?? (_globalHierarchy = make_hierarchy());
+  return globalThis[GH_KEY] ?? (globalThis[GH_KEY] = make_hierarchy());
 }
+function setGlobalHierarchy(h) { globalThis[GH_KEY] = h; }
 
 function _isa(h, child, parent) {
   if (_EQ_(child, parent)) return true;
@@ -83,8 +89,9 @@ export function derive(a, b, c) {
     // invalidate, so in-place mutation would leave stale cached
     // resolutions in place (e.g. a subsequent derive can introduce
     // ambiguity that the cache would otherwise hide).
-    _globalHierarchy = cloneHierarchy(gh());
-    _deriveInto(_globalHierarchy, a, b);
+    const next = cloneHierarchy(gh());
+    _deriveInto(next, a, b);
+    setGlobalHierarchy(next);
     return null;
   }
   const next = cloneHierarchy(a);
@@ -115,7 +122,7 @@ export function underive(a, b, c) {
     }
   }
   if (c === undefined) {
-    _globalHierarchy = rebuildFromPairs(pairs);
+    setGlobalHierarchy(rebuildFromPairs(pairs));
     return null;
   }
   return rebuildFromPairs(pairs);
@@ -238,7 +245,16 @@ class MultiFn {
 export function defmulti(name, dispatchFn, opts) {
   opts = opts || {};
   const defaultVal = 'default' in opts ? opts.default : 'default';
-  const hierarchy = opts.hierarchy || { deref: gh };
+  // Accept three shapes for :hierarchy —
+  //   (a) omitted     → defer to the global hierarchy
+  //   (b) a deref-able ref (atom/var-like) → use as-is
+  //   (c) a plain hierarchy (the result of make-hierarchy) → wrap so
+  //       MultiFn can call .deref() on it uniformly. The wrapped form
+  //       is a frozen snapshot of that hierarchy at defmulti time.
+  let hierarchy;
+  if (opts.hierarchy == null) hierarchy = { deref: gh };
+  else if (typeof opts.hierarchy.deref === 'function') hierarchy = opts.hierarchy;
+  else { const h = opts.hierarchy; hierarchy = { deref: () => h }; }
   const mf = new MultiFn(name, dispatchFn, defaultVal, hierarchy);
   const call = function (...args) { return mf.invoke(args); };
   call.multiFn = mf;
