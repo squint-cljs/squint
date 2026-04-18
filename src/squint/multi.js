@@ -5,10 +5,33 @@
 import { _EQ_ } from 'squint-cljs/core.js';
 import { toFn } from './internal.js';
 
+function isPrimitive(x) {
+  const t = typeof x;
+  return x == null || t === 'string' || t === 'number' || t === 'boolean' || t === 'bigint' || t === 'symbol';
+}
+
+function findKeyByEquiv(m, v) {
+  if (isPrimitive(v) && m.has(v)) return v;
+  for (const k of m.keys()) if (_EQ_(k, v)) return k;
+  return undefined;
+}
+
+function setHasEquiv(s, v) {
+  if (isPrimitive(v)) return s.has(v);
+  for (const x of s) if (_EQ_(x, v)) return true;
+  return false;
+}
+
+// Map<any, Set<any>> insert with value equality on both keys and
+// members — so a preference/ancestry relation expressed with freshly
+// allocated vectors like [:km :m] reads back the same as the original.
+// Without this, everything that keys on dispatch values (prefer tables,
+// hierarchy maps) silently loses entries for compound keys.
 function addRel(m, k, v) {
-  let s = m.get(k);
-  if (!s) { s = new Set(); m.set(k, s); }
-  s.add(v);
+  const key = findKeyByEquiv(m, k) ?? k;
+  let s = m.get(key);
+  if (!s) { s = new Set(); m.set(key, s); }
+  if (!setHasEquiv(s, v)) s.add(v);
 }
 
 export function make_hierarchy() {
@@ -29,8 +52,8 @@ function _isa(h, child, parent) {
   if (typeof child === 'function' && typeof parent === 'function') {
     return child === parent || child.prototype instanceof parent;
   }
-  const anc = h.ancestors.get(child);
-  if (anc && anc.has(parent)) return true;
+  const ancKey = findKeyByEquiv(h.ancestors, child);
+  if (ancKey !== undefined && setHasEquiv(h.ancestors.get(ancKey), parent)) return true;
   if (Array.isArray(child) && Array.isArray(parent) && child.length === parent.length) {
     for (let i = 0; i < child.length; i++) {
       if (!_isa(h, child[i], parent[i])) return false;
@@ -47,8 +70,9 @@ export function isa_QMARK_(a, b, c) {
 
 function _deriveInto(h, tag, parent) {
   if (_EQ_(tag, parent)) throw new Error(`${String(tag)} can't derive itself`);
-  const tagAnc = h.ancestors.get(tag);
-  if (tagAnc && tagAnc.has(parent)) return;
+  const tagAncKey = findKeyByEquiv(h.ancestors, tag);
+  const tagAnc = tagAncKey !== undefined ? h.ancestors.get(tagAncKey) : undefined;
+  if (tagAnc && setHasEquiv(tagAnc, parent)) return;
   if (_isa(h, parent, tag)) {
     throw new Error(`Cyclic derivation: ${String(parent)} has ${String(tag)} as ancestor`);
   }
@@ -60,7 +84,8 @@ function _deriveInto(h, tag, parent) {
   // existing ancestors also isa parent.
   const withSelf = (m, t) => {
     const acc = new Set([t]);
-    const s = m.get(t);
+    const key = findKeyByEquiv(m, t);
+    const s = key !== undefined ? m.get(key) : undefined;
     if (s) for (const v of s) acc.add(v);
     return acc;
   };
@@ -134,9 +159,11 @@ export function ancestors(a, b)   { return hAnd(a, b, 'ancestors'); }
 export function descendants(a, b) { return hAnd(a, b, 'descendants'); }
 
 function _prefers(prefer, a, b) {
-  const s = prefer.get(a);
-  if (s && s.has(b)) return true;
-  if (s) for (const x of s) if (_prefers(prefer, x, b)) return true;
+  const key = findKeyByEquiv(prefer, a);
+  if (key === undefined) return false;
+  const s = prefer.get(key);
+  if (setHasEquiv(s, b)) return true;
+  for (const x of s) if (_prefers(prefer, x, b)) return true;
   return false;
 }
 
@@ -144,16 +171,6 @@ function dominates(h, prefer, a, b) {
   if (_prefers(prefer, a, b)) return true;
   if (!_EQ_(a, b) && _isa(h, a, b)) return true;
   return false;
-}
-
-function isPrimitive(x) {
-  const t = typeof x;
-  return x == null || t === 'string' || t === 'number' || t === 'boolean' || t === 'bigint' || t === 'symbol';
-}
-function findKeyByEquiv(m, v) {
-  if (isPrimitive(v) && m.has(v)) return v;
-  for (const k of m.keys()) if (_EQ_(k, v)) return k;
-  return undefined;
 }
 
 class MultiFn {

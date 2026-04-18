@@ -57,6 +57,27 @@
         (.then (fn [v] (is (= "pet" v))))
         (.finally done))))
 
+(deftest prefer-method-vector-dispatch-equiv-test
+  ;; Regression: prefer-method used reference equality on preferTable
+  ;; keys/values, so two prefer-method calls with freshly-allocated
+  ;; vectors [:a :x] wouldn't see each other — the cycle check never
+  ;; fired, and dispatch preference didn't take effect.
+  (t/async done
+    (-> (eval-repl "
+(defmulti conv identity)
+(defmethod conv [:pref/a] [_] :a)
+(defmethod conv [:pref/b] [_] :b)
+(prefer-method conv [:pref/a] [:pref/b])
+;; second call with a FRESH vector pair that forms a cycle — must throw
+(let [cycle (try (prefer-method conv [:pref/b] [:pref/a]) :allowed
+                 (catch :default _ :threw))
+      ;; and the preference must be readable back via a fresh vector
+      pref-map (prefers conv)
+      seen? (boolean (some (fn [[k _]] (= k [:pref/a])) pref-map))]
+  [cycle seen?])")
+        (.then (fn [v] (is (= ["threw" true] (vec v)))))
+        (.finally done))))
+
 (deftest vector-dispatch-and-remove-test
   (t/async done
     (-> (eval-repl "
