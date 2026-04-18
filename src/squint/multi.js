@@ -121,21 +121,17 @@ export function underive(a, b, c) {
   return rebuildFromPairs(pairs);
 }
 
-export function parents(x, h) {
-  h = h ?? gh();
-  const s = h.parents.get(x);
+// Clojure's canonical signature is (parents tag) / (parents h tag):
+// the hierarchy, when given, comes FIRST. Mirror that here so
+// (parents h :foo) in user code dispatches correctly.
+function hAnd(a, b, field) {
+  const [h, tag] = b === undefined ? [gh(), a] : [a, b];
+  const s = h[field].get(tag);
   return s && s.size ? new Set(s) : null;
 }
-export function ancestors(x, h) {
-  h = h ?? gh();
-  const s = h.ancestors.get(x);
-  return s && s.size ? new Set(s) : null;
-}
-export function descendants(x, h) {
-  h = h ?? gh();
-  const s = h.descendants.get(x);
-  return s && s.size ? new Set(s) : null;
-}
+export function parents(a, b)     { return hAnd(a, b, 'parents'); }
+export function ancestors(a, b)   { return hAnd(a, b, 'ancestors'); }
+export function descendants(a, b) { return hAnd(a, b, 'descendants'); }
 
 function _prefers(prefer, a, b) {
   const s = prefer.get(a);

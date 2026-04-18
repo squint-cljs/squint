@@ -71,6 +71,26 @@
         (.then (fn [v] (is (= [5000 2 1] (vec v)))))
         (.finally done))))
 
+(deftest hierarchy-accessors-follow-clojure-signature-test
+  ;; Regression: parents / ancestors / descendants had reversed args
+  ;; (tag first, hierarchy second). Clojure's canonical signature is
+  ;; (f tag) or (f h tag) — hierarchy FIRST when given. The previous
+  ;; tests wrote (ancestors tag h) and matched the buggy impl.
+  (t/async done
+    (-> (eval-repl "
+(let [h (-> (make-hierarchy) (derive :sig/child :sig/parent))]
+  [;; 2-arg form: hierarchy first
+   (contains? (or (ancestors h :sig/child) #{}) :sig/parent)
+   (contains? (or (descendants h :sig/parent) #{}) :sig/child)
+   (contains? (or (parents h :sig/child) #{}) :sig/parent)
+   ;; 1-arg form: uses global hierarchy
+   (do (derive :sig/g-child :sig/g-parent) true)
+   (contains? (or (ancestors :sig/g-child) #{}) :sig/g-parent)
+   (contains? (or (descendants :sig/g-parent) #{}) :sig/g-child)])")
+        (.then (fn [v]
+                 (is (= [true true true true true true] (vec v)))))
+        (.finally done))))
+
 (deftest derive-with-hierarchy-is-immutable-test
   (t/async done
     (-> (eval-repl "
@@ -79,11 +99,11 @@
       h2 (derive h1 :c :b)]
   ;; mutating into h1 must not surface in h0, and h2 must not share
   ;; the parent-set of h1
-  [(contains? (or (ancestors :a h0) #{}) :b)
-   (contains? (or (ancestors :a h1) #{}) :b)
-   (contains? (or (descendants :b h0) #{}) :c)
-   (contains? (or (descendants :b h1) #{}) :c)
-   (contains? (or (descendants :b h2) #{}) :c)])")
+  [(contains? (or (ancestors h0 :a) #{}) :b)
+   (contains? (or (ancestors h1 :a) #{}) :b)
+   (contains? (or (descendants h0 :b) #{}) :c)
+   (contains? (or (descendants h1 :b) #{}) :c)
+   (contains? (or (descendants h2 :b) #{}) :c)])")
         (.then (fn [v]
                  (is (= [false true false false true] (vec v))
                      "3-arg derive must produce a fresh hierarchy")))
