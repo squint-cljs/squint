@@ -2,15 +2,8 @@
 // defmethod (or related ops) appear in user code. Keeping this out of
 // core.js means programs that don't use multimethods pay zero bundle cost.
 
-import { _EQ_, get } from 'squint-cljs/core.js';
-
-function toFn(x) {
-  if (x == null || typeof x === 'function') return x;
-  const t = typeof x;
-  if (t === 'string') return (coll, d) => get(coll, x, d);
-  if (t === 'object') return (k, d) => get(x, k, d);
-  return x;
-}
+import { _EQ_ } from 'squint-cljs/core.js';
+import { toFn } from 'squint-cljs/src/squint/internal.js';
 
 function addRel(m, k, v) {
   let s = m.get(k);

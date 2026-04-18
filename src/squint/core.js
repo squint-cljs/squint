@@ -1,23 +1,6 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
-function toFn(x) {
-  if (x == null) return x;
-  if (x instanceof Function) {
-    return x;
-  }
-  const t = typeof x;
-  if (t === 'string') {
-    return (coll, d) => {
-      return get(coll, x, d);
-    };
-  }
-  if (t === 'object') {
-    return (k, d) => {
-      return get(x, k, d);
-    };
-  }
-  return x;
-}
+import { toFn } from 'squint-cljs/src/squint/internal.js';
 
 // inlined and modified version of https://github.com/lukeed/dequal
 var has = Object.prototype.hasOwnProperty;
