@@ -94,11 +94,16 @@
   ;; so (derive :x :a) followed by (derive :x :b) incorrectly made :a
   ;; isa :b. Clojure's derive propagates the new relation to tag's
   ;; DESCENDANTS, not its ancestors.
+  ;;
+  ;; Unique tags per test: the global hierarchy is shared across tests
+  ;; in this ns, so reusing keywords would cross-pollute and break CI
+  ;; in whatever order shadow-cljs happens to emit.
   (t/async done
     (-> (eval-repl "
-(derive :x :a)
-(derive :x :b)
-[(isa? :a :b) (isa? :b :a) (isa? :x :a) (isa? :x :b)]")
+(derive :leak/x :leak/a)
+(derive :leak/x :leak/b)
+[(isa? :leak/a :leak/b) (isa? :leak/b :leak/a)
+ (isa? :leak/x :leak/a) (isa? :leak/x :leak/b)]")
         (.then (fn [v] (is (= [false false true true] (vec v)))))
         (.finally done))))
 
@@ -110,13 +115,13 @@
   ;; derive introduces ambiguity.
   (t/async done
     (-> (eval-repl "
-(defmulti k identity)
-(defmethod k :a [_] :a-fn)
-(defmethod k :b [_] :b-fn)
-(derive :x :a)
-(let [first-call (k :x)
-      _ (derive :x :b)  ;; now :x isa both :a and :b → ambiguous
-      second-call (try (k :x) (catch :default e :threw))]
+(defmulti k-cache identity)
+(defmethod k-cache :cache/a [_] :a-fn)
+(defmethod k-cache :cache/b [_] :b-fn)
+(derive :cache/x :cache/a)
+(let [first-call (k-cache :cache/x)
+      _ (derive :cache/x :cache/b)  ;; now :cache/x isa both → ambiguous
+      second-call (try (k-cache :cache/x) (catch :default e :threw))]
   [first-call second-call])")
         (.then (fn [v]
                  (is (= ["a-fn" "threw"] (vec v))
