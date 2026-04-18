@@ -19,16 +19,10 @@ export function make_hierarchy() {
   };
 }
 
-// Store the global hierarchy on globalThis under a Symbol.for key so all
-// instances of this module (e.g. if the bundle ends up loaded twice
-// under different URLs — see the playground dual-module episode) share
-// one hierarchy. Without this, a `derive` through one instance would be
-// invisible to `isa?` queries issued through the other.
-const GH_KEY = Symbol.for('squint.multi.hierarchy');
+let _globalHierarchy = null;
 function gh() {
-  return globalThis[GH_KEY] ?? (globalThis[GH_KEY] = make_hierarchy());
+  return _globalHierarchy ?? (_globalHierarchy = make_hierarchy());
 }
-function setGlobalHierarchy(h) { globalThis[GH_KEY] = h; }
 
 function _isa(h, child, parent) {
   if (_EQ_(child, parent)) return true;
@@ -89,9 +83,8 @@ export function derive(a, b, c) {
     // invalidate, so in-place mutation would leave stale cached
     // resolutions in place (e.g. a subsequent derive can introduce
     // ambiguity that the cache would otherwise hide).
-    const next = cloneHierarchy(gh());
-    _deriveInto(next, a, b);
-    setGlobalHierarchy(next);
+    _globalHierarchy = cloneHierarchy(gh());
+    _deriveInto(_globalHierarchy, a, b);
     return null;
   }
   const next = cloneHierarchy(a);
@@ -122,7 +115,7 @@ export function underive(a, b, c) {
     }
   }
   if (c === undefined) {
-    setGlobalHierarchy(rebuildFromPairs(pairs));
+    _globalHierarchy = rebuildFromPairs(pairs);
     return null;
   }
   return rebuildFromPairs(pairs);

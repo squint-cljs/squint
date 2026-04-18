@@ -14,10 +14,17 @@ Captured from PR feedback on the `multimethods` branch.
   change as potentially breaking and explains the migration.
 - **#5** `defmulti` now auto-wraps a plain `(make-hierarchy)` passed as
   `:hierarchy` so `.deref()` dispatch doesn't crash. Regression test.
-- **#6** `_globalHierarchy` moved onto
-  `globalThis[Symbol.for('squint.multi.hierarchy')]` so dual module
-  loads (e.g. npm + CDN, symlink quirks) share one hierarchy. No
-  user-facing test — observable only by reaching into internals.
+## Wontfix
+
+- **#6** `_globalHierarchy` dual-module trap. The playground fix for
+  the `_metaSym` analogue unified URLs rather than hoisting state, and
+  normal ESM semantics (one instance per realm per URL) is the
+  correct behavior — `cljs.core`'s `*global-hierarchy*` is
+  module-scoped for the same reason. A user who ends up with two
+  instances of `multi.js` under different URLs has a bundler/config
+  problem (likely two versions of squint in the graph); sharing state
+  across versions via `globalThis` would hide real version-mismatch
+  bugs instead of surfacing them. Module-local state stays.
 
 ## Defer (file as follow-up issue)
 
