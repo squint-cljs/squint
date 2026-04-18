@@ -1,6 +1,15 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
-import { toFn } from './internal.js';
+// __toFn is not public API — the leading underscores mark it as an
+// implementation helper shared with other squint runtime modules
+// (e.g. multi.js). Signature and semantics may change without notice.
+export function __toFn(x) {
+  if (x == null || typeof x === 'function') return x;
+  const t = typeof x;
+  if (t === 'string') return (coll, d) => get(coll, x, d);
+  if (t === 'object') return (k, d) => get(x, k, d);
+  return x;
+}
 
 // inlined and modified version of https://github.com/lukeed/dequal
 var has = Object.prototype.hasOwnProperty;
@@ -304,7 +313,7 @@ export function assoc_in_BANG_(o, keys, value) {
 }
 
 export function comp(...fs) {
-  fs = fs.map(toFn);
+  fs = fs.map(__toFn);
   if (fs.length === 0) {
     return identity;
   } else if (fs.length === 1) {
@@ -665,7 +674,7 @@ export function reduced_QMARK_(x) {
 }
 
 export function reduce(f, arg1, arg2) {
-  f = toFn(f);
+  f = __toFn(f);
   let coll, val;
   if (arguments.length === 2) {
     // (reduce f coll)
@@ -721,7 +730,7 @@ function* _reductions3(f, init, coll) {
 }
 
 export function reductions(f, arg1, arg2) {
-  f = toFn(f);
+  f = __toFn(f);
   if (arguments.length === 2) {
     return lazy(function* () {
       yield* _reductions2(f, iterable(arg1)[Symbol.iterator]());
@@ -784,7 +793,7 @@ export function map(f, ...colls) {
   // if (! (f instanceof Function)) {
   //   throw new Error(`Argument f must be a function but is ${typeof(f)}`);
   // }
-  f = toFn(f);
+  f = __toFn(f);
   switch (colls.length) {
     case 0:
       return (rf) => {
@@ -853,7 +862,7 @@ export function filter(pred, coll) {
   if (arguments.length === 1) {
     return filter1(pred);
   }
-  pred = toFn(pred);
+  pred = __toFn(pred);
   return lazy(function* () {
     for (const x of iterable(coll)) {
       if (truth_(pred(x))) {
@@ -891,7 +900,7 @@ function map_indexed1(f) {
 }
 
 export function map_indexed(f, coll) {
-  f = toFn(f);
+  f = __toFn(f);
   if (arguments.length === 1) {
     return map_indexed1(f);
   }
@@ -905,7 +914,7 @@ export function map_indexed(f, coll) {
 }
 
 function keep_indexed2(f, coll) {
-  f = toFn(f);
+  f = __toFn(f);
   return lazy(function* () {
     let idx = 0;
     for (const i of iterable(coll)) {
@@ -1004,7 +1013,7 @@ export function reset_BANG_(atm, v) {
 }
 
 export function swap_BANG_(atm, f, ...args) {
-  f = toFn(f);
+  f = __toFn(f);
   const v = f(deref(atm), ...args);
   reset_BANG_(atm, v);
   return v;
@@ -1012,7 +1021,7 @@ export function swap_BANG_(atm, f, ...args) {
 
 export function swap_vals_BANG_(atm, f, ...args) {
   const oldv = deref(atm);
-  f = toFn(f);
+  f = __toFn(f);
   const newv = f(oldv, ...args);
   atm._reset_BANG_(newv);
   return [oldv, newv];
@@ -1112,7 +1121,7 @@ export function vector_QMARK_(x) {
 export function mapv(...args) {
   if (args.length === 2) {
     const [_f, coll] = args;
-    const f = toFn(_f);
+    const f = __toFn(_f);
     const iter = iterable(coll);
     if (Array.isArray(iter)) {
       // explicit for loop was faster
@@ -1151,7 +1160,7 @@ export function set_QMARK_(x) {
 const IApply__apply = Symbol('IApply__apply');
 
 export function apply(f, ...args) {
-  f = toFn(f);
+  f = __toFn(f);
   const xs = args.slice(0, args.length - 1);
   const coll = iterable(args[args.length - 1]);
   const af = f[IApply__apply];
@@ -1170,7 +1179,7 @@ export function odd_QMARK_(x) {
 }
 
 export function complement(f) {
-  f = toFn(f);
+  f = __toFn(f);
   return (...args) => not(f(...args));
 }
 
@@ -1431,7 +1440,7 @@ function partition_by1(f) {
 }
 
 export function partition_by(f, coll) {
-  f = toFn(f);
+  f = __toFn(f);
   if (arguments.length === 1) {
     return partition_by1(f);
   }
@@ -1496,7 +1505,7 @@ export function val(entry) {
 }
 
 export function merge_with(f, ...maps) {
-  f = toFn(f);
+  f = __toFn(f);
   var hasMap = false;
   for (const m of maps) {
     if (m != null) {
@@ -1674,7 +1683,7 @@ function take_while1(pred) {
 }
 
 export function take_while(pred, coll) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   if (arguments.length === 1) {
     return take_while1(pred);
   }
@@ -1724,7 +1733,7 @@ export function take_nth(n, coll) {
 }
 
 export function partial(f, ...xs) {
-  f = toFn(f);
+  f = __toFn(f);
   return function (...args) {
     return f(...xs, ...args);
   };
@@ -1798,7 +1807,7 @@ function drop_while1(pred) {
 }
 
 export function drop_while(pred, xs) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   if (arguments.length === 1) return drop_while1(pred);
   return lazy(function* () {
     const iter = _iterator(iterable(xs));
@@ -1848,7 +1857,7 @@ export function distinct(coll) {
 }
 
 export function update(coll, k, f, ...args) {
-  f = toFn(f);
+  f = __toFn(f);
   return assoc(coll, k, f(get(coll, k), ...args));
 }
 
@@ -1862,12 +1871,12 @@ export function get_in(coll, path, orElse) {
 }
 
 export function update_in(coll, path, f, ...args) {
-  f = toFn(f);
+  f = __toFn(f);
   return assoc_in(coll, path, f(get_in(coll, path), ...args));
 }
 
 export function fnil(f, x, ...xs) {
-  f = toFn(f);
+  f = __toFn(f);
   return function (a, ...args) {
     if (!a) {
       return f(x, ...xs, ...args);
@@ -1878,7 +1887,7 @@ export function fnil(f, x, ...xs) {
 }
 
 export function every_QMARK_(pred, coll) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   for (const x of iterable(coll)) {
     if (!pred(x)) return false;
   }
@@ -1907,7 +1916,7 @@ function keep1(pred) {
 }
 
 export function keep(pred, coll) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   if (arguments.length === 1) return keep1(pred);
   return lazy(function* () {
     for (const o of iterable(coll)) {
@@ -1927,7 +1936,7 @@ export function sort(f, coll) {
     coll = f;
     f = undefined;
   }
-  f = toFn(f);
+  f = __toFn(f);
   coll = iterable(coll);
   // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
   const clone = [...coll];
@@ -1959,8 +1968,8 @@ export function sort_by(keyfn, comp, coll) {
     coll = comp;
     comp = compare;
   }
-  keyfn = toFn(keyfn);
-  comp = toFn(comp);
+  keyfn = __toFn(keyfn);
+  comp = __toFn(comp);
   return sort((x, y) => {
     const f = fnToComparator(comp);
     const kx = keyfn(x);
@@ -1983,7 +1992,7 @@ export function shuffle(coll) {
 }
 
 export function some(pred, coll) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   for (const o of iterable(coll)) {
     const res = pred(o);
     if (truth_(res)) return res;
@@ -1992,7 +2001,7 @@ export function some(pred, coll) {
 }
 
 export function not_any_QMARK_(pred, coll) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   return !some(pred, coll);
 }
 
@@ -2048,13 +2057,13 @@ export function repeatedly(n, f) {
 }
 
 export function update_BANG_(m, k, f, ...args) {
-  f = toFn(f);
+  f = __toFn(f);
   const v = get(m, k);
   return assoc_BANG_(m, k, f(v, ...args));
 }
 
 export function group_by(f, coll) {
-  f = toFn(f);
+  f = __toFn(f);
   const res = {};
   for (const o of iterable(coll)) {
     const key = f(o);
@@ -2282,7 +2291,7 @@ export function iterate(f, x) {
 }
 
 export function juxt(...fs) {
-  fs = fs.map(toFn);
+  fs = fs.map(__toFn);
   return (...args) => {
     const ret = [];
     for (const f of fs) {

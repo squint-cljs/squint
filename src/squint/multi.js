@@ -2,8 +2,7 @@
 // defmethod (or related ops) appear in user code. Keeping this out of
 // core.js means programs that don't use multimethods pay zero bundle cost.
 
-import { _EQ_ } from 'squint-cljs/core.js';
-import { toFn } from './internal.js';
+import { _EQ_, __toFn } from 'squint-cljs/core.js';
 
 function isPrimitive(x) {
   const t = typeof x;
@@ -176,7 +175,7 @@ function dominates(h, prefer, a, b) {
 class MultiFn {
   constructor(name, dispatchFn, defaultVal, hierarchy) {
     this.name = name;
-    this.dispatchFn = toFn(dispatchFn);
+    this.dispatchFn = __toFn(dispatchFn);
     this.defaultDispatchVal = defaultVal;
     this.hierarchy = hierarchy;
     this.methodTable = new Map();
