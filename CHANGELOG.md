@@ -5,22 +5,14 @@
 ## 0.11.187
 
 - Add multimethod support: `defmulti`, `defmethod`, `get-method`, `methods`,
-  `remove-method`, `remove-all-methods`, `prefer-method`, `prefers`, plus
+  `remove-method`, `remove-all-methods`, `prefer-method`, `prefers`, and
   hierarchy ops `isa?`, `derive`, `underive`, `make-hierarchy`, `parents`,
-  `ancestors`, `descendants`. The runtime lives in a separate
-  `squint-cljs/src/squint/multi.js` module imported only when one of these
-  forms — or a module that itself uses them (see below) — appears in the
-  import graph. Programs that use neither multimethods nor `cljs.test`
-  pay no bundle cost.
-- **Potentially breaking:** `cljs.test/report` is now a multimethod keyed
-  on `[*current-reporter* (:type m)]`. Users can extend reporting the
-  same way as in `cljs.test`, e.g.
-  `(defmethod report [:cljs.test/default :begin-test-var] [m] ...)`.
-  `test-var` now also fires `:begin-test-var` / `:end-test-var` events
-  (previously declared but never emitted). Callers that previously
-  replaced `report` wholesale must migrate to `defmethod`; there is no
-  plain-fn override path. As a side effect, every `cljs.test` user
-  transitively pulls in `squint-cljs/src/squint/multi.js`.
+  `ancestors`, `descendants`.
+- `cljs.test/report` is now a multimethod, extensible via `defmethod`:
+  ```
+  (defmethod report [:cljs.test/default :begin-test-var] [m] ...)
+  ```
+  `test-var` now fires `:begin-test-var` / `:end-test-var` events.
 - Accept plain `await` in async functions, in anticipation of CLJS next.
   The legacy `js-await` and `js/await` forms continue to work as
   aliases for now and may be deprecated in a future version.
