@@ -10,6 +10,7 @@
   hierarchy ops `isa?`, `derive`, `underive`, `make-hierarchy`, `parents`,
   `ancestors`, `descendants`.
 - `cljs.test/report` is now a multimethod, extensible via `defmethod`:
+
   ```
   (defmethod report [:cljs.test/default :begin-test-var] [m] ...)
   ```
