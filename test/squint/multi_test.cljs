@@ -89,6 +89,27 @@
                      "3-arg derive must produce a fresh hierarchy")))
         (.finally done))))
 
+(deftest two-arg-derive-busts-cache-test
+  ;; Regression for PR feedback #1: 2-arg derive mutates
+  ;; *global-hierarchy* in place, so the identity-based cache check in
+  ;; MultiFn.getMethod doesn't fire. A value cached while only one isa
+  ;; match existed keeps resolving to the stale fn after a subsequent
+  ;; derive introduces ambiguity.
+  (t/async done
+    (-> (eval-repl "
+(defmulti k identity)
+(defmethod k :a [_] :a-fn)
+(defmethod k :b [_] :b-fn)
+(derive :x :a)
+(let [first-call (k :x)
+      _ (derive :x :b)  ;; now :x isa both :a and :b → ambiguous
+      second-call (try (k :x) (catch :default e :threw))]
+  [first-call second-call])")
+        (.then (fn [v]
+                 (is (= ["a-fn" "threw"] (vec v))
+                     "2nd call must re-resolve and hit the ambiguity, not return cached :a-fn")))
+        (.finally done))))
+
 (deftest no-matching-method-test
   (t/async done
     (-> (eval-repl "
