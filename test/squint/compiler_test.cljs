@@ -10,6 +10,7 @@
    [squint.html-test]
    [squint.jsx-test]
    [squint.math-test]
+   [squint.multi-test]
    [squint.string-test]
    [squint.test-utils :refer [eq js! jss! jsv!]]))
 
@@ -2856,4 +2857,5 @@ new Foo();")
                'squint.jsx-test
                'squint.string-test
                'squint.html-test
-               'squint.math-test))
+               'squint.math-test
+               'squint.multi-test))

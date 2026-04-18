@@ -11,6 +11,7 @@
     "src/squint/set.js",
     "src/squint/html.js",
     "src/squint/math.js",
+    "src/squint/multi.js",
     "src/squint/test.js",
     "lib",
     "node_cli.js",
@@ -61,6 +62,7 @@
     "./src/squint/string.js": "./src/squint/string.js",
     "./node-api.js": "./node-api.js",
     "./src/squint/html.js": "./src/squint/html.js",
+    "./src/squint/multi.js": "./src/squint/multi.js",
     "./src/squint/test.js": "./src/squint/test.js"
   }
 }
