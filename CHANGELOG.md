@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## 0.11.187
+## 0.11.188
 
-- Add multimethod support: `defmulti`, `defmethod`, `get-method`, `methods`,
+- Add multimethod support ([#806](https://github.com/squint-cljs/squint/issues/806)):
+  `defmulti`, `defmethod`, `get-method`, `methods`,
   `remove-method`, `remove-all-methods`, `prefer-method`, `prefers`, and
   hierarchy ops `isa?`, `derive`, `underive`, `make-hierarchy`, `parents`,
   `ancestors`, `descendants`.
@@ -13,6 +14,9 @@
   (defmethod report [:cljs.test/default :begin-test-var] [m] ...)
   ```
   `test-var` now fires `:begin-test-var` / `:end-test-var` events.
+
+## 0.11.187
+
 - Accept plain `await` in async functions, in anticipation of CLJS next.
   The legacy `js-await` and `js/await` forms continue to work as
   aliases for now and may be deprecated in a future version.
