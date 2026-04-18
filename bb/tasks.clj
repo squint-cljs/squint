@@ -32,9 +32,19 @@
 
 (defn compile-test-runtime
   "Pre-compile the cljs.test runtime from its .cljs source so it ships in
-  the npm package and is available to local tests."
+  the npm package and is available to local tests. Skips the compile
+  when test.js is already newer than its inputs — avoids reshuffling
+  gensym-numbered locals on unchanged sources, which would otherwise
+  produce a noisy diff on every build. Delete test.js (or touch a
+  listed source) to force a rebuild."
   []
-  (shell "node" "node_cli.js" "compile" "--extension" "js" "src/squint/test.cljs"))
+  (let [target  "src/squint/test.js"
+        sources ["src/squint/test.cljs"
+                 "src/squint/internal/test.cljc"]]
+    (if (or (not (fs/exists? target))
+            (seq (fs/modified-since target sources)))
+      (shell "node" "node_cli.js" "compile" "--extension" "js" "src/squint/test.cljs")
+      (println "[bb] test.js up to date — skipping recompile"))))
 
 (defn build-squint-npm-package []
   (fs/create-dirs ".work")
