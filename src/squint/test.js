@@ -4,9 +4,9 @@ import * as clojure_DOT_string from 'squint-cljs/src/squint/string.js';
 var _STAR_current_env_STAR_ = null;
 var _STAR_current_reporter_STAR_ = "cljs.test/default";
 var current_reporter = function () {
-const or__28351__auto__1 = _STAR_current_reporter_STAR_;
-if (squint_core.truth_(or__28351__auto__1)) {
-return or__28351__auto__1} else {
+const or__23476__auto__1 = _STAR_current_reporter_STAR_;
+if (squint_core.truth_(or__23476__auto__1)) {
+return or__23476__auto__1} else {
 return "cljs.test/default"};
 
 };
@@ -15,9 +15,9 @@ return ({"report-counters": ({"test": 0, "pass": 0, "fail": 0, "error": 0}), "te
 
 };
 var get_current_env = function () {
-const or__28351__auto__1 = _STAR_current_env_STAR_;
-if (squint_core.truth_(or__28351__auto__1)) {
-return or__28351__auto__1} else {
+const or__23476__auto__1 = _STAR_current_env_STAR_;
+if (squint_core.truth_(or__23476__auto__1)) {
+return or__23476__auto__1} else {
 return empty_env()};
 
 };
@@ -34,10 +34,10 @@ return null;
 var update_current_env_BANG_ = (() => {
 const f1 = (function (var_args) {
 const args21 = [];
-const len__27315__auto__2 = arguments.length;
+const len__23403__auto__2 = arguments.length;
 let i33 = 0;
 while(true){
-if ((i33 < len__27315__auto__2)) {
+if ((i33 < len__23403__auto__2)) {
 args21.push((arguments[i33]));
 let G__4 = (i33 + 1);
 i33 = G__4;
@@ -45,8 +45,8 @@ continue;
 };break;
 }
 ;
-const argseq__27755__auto__5 = (((2 < args21.length)) ? (args21.slice(2)) : (null));
-return f1.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), (arguments[1]), argseq__27755__auto__5);
+const argseq__23572__auto__5 = (((2 < args21.length)) ? (args21.slice(2)) : (null));
+return f1.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), (arguments[1]), argseq__23572__auto__5);
 
 });
 f1.cljs$core$IFn$_invoke$arity$variadic = (function (ks, f, args) {
@@ -60,17 +60,17 @@ return f1;
 
 })();
 var testing_contexts_str = function () {
-const temp__27795__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-contexts"));
-if (squint_core.truth_(temp__27795__auto__1)) {
-const contexts2 = temp__27795__auto__1;
+const temp__23113__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-contexts"));
+if (squint_core.truth_(temp__23113__auto__1)) {
+const contexts2 = temp__23113__auto__1;
 return clojure_DOT_string.join(" ", squint_core.reverse(contexts2));
 };
 
 };
 var testing_vars_str = function () {
-const temp__27795__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-vars"));
-if (squint_core.truth_(temp__27795__auto__1)) {
-const vars2 = temp__27795__auto__1;
+const temp__23113__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-vars"));
+if (squint_core.truth_(temp__23113__auto__1)) {
+const vars2 = temp__23113__auto__1;
 return clojure_DOT_string.join(" ", squint_core.map(squint_core.str, vars2));
 };
 
@@ -85,10 +85,10 @@ var current_test_str = function () {
 const vars1 = testing_vars_str();
 const ctx2 = testing_contexts_str();
 if (squint_core.truth_((() => {
-const and__28377__auto__3 = vars1;
-if (squint_core.truth_(and__28377__auto__3)) {
+const and__23514__auto__3 = vars1;
+if (squint_core.truth_(and__23514__auto__3)) {
 return ctx2} else {
-return and__28377__auto__3};
+return and__23514__auto__3};
 
 })())) {
 return `${vars1??''}${" "}${ctx2??''}`} else {
@@ -107,12 +107,12 @@ const line3 = squint_core.get(map__12, "line");
 const column4 = squint_core.get(map__12, "column");
 const file5 = squint_core.get(map__12, "file");
 if (squint_core.truth_((() => {
-const or__28351__auto__6 = line3;
-if (squint_core.truth_(or__28351__auto__6)) {
-return or__28351__auto__6} else {
-const or__28351__auto__7 = column4;
-if (squint_core.truth_(or__28351__auto__7)) {
-return or__28351__auto__7} else {
+const or__23476__auto__6 = line3;
+if (squint_core.truth_(or__23476__auto__6)) {
+return or__23476__auto__6} else {
+const or__23476__auto__7 = column4;
+if (squint_core.truth_(or__23476__auto__7)) {
+return or__23476__auto__7} else {
 return file5};
 };
 
@@ -136,9 +136,9 @@ return inc_report_counter_BANG_("pass");
 squint_multi.defmethod(report, ["cljs.test/default", "fail"], (function (m) {
 inc_report_counter_BANG_("fail");
 console.error(`${"FAIL in "}${current_test_str()??''}${(() => {
-const temp__27795__auto__1 = report_loc(m);
-if (squint_core.truth_(temp__27795__auto__1)) {
-const l2 = temp__27795__auto__1;
+const temp__23113__auto__1 = report_loc(m);
+if (squint_core.truth_(temp__23113__auto__1)) {
+const l2 = temp__23113__auto__1;
 return `${" ("}${l2??''}${")"}`;
 };
 
@@ -152,9 +152,9 @@ return console.error("    actual:", squint_core.pr_str(squint_core.get(m, "actua
 squint_multi.defmethod(report, ["cljs.test/default", "error"], (function (m) {
 inc_report_counter_BANG_("error");
 console.error(`${"ERROR in "}${current_test_str()??''}${(() => {
-const temp__27795__auto__1 = report_loc(m);
-if (squint_core.truth_(temp__27795__auto__1)) {
-const l2 = temp__27795__auto__1;
+const temp__23113__auto__1 = report_loc(m);
+if (squint_core.truth_(temp__23113__auto__1)) {
+const l2 = temp__23113__auto__1;
 return `${" ("}${l2??''}${")"}`;
 };
 
@@ -197,10 +197,10 @@ return ((squint_core.get(results, "fail", 0) === 0) && (squint_core.get(results,
 
 };
 var async_QMARK_ = function (x) {
-const c__28311__auto__1 = Promise;
-const x__28312__auto__2 = x;
-const ret__28313__auto__3 = (x__28312__auto__2 instanceof c__28311__auto__1);
-return ret__28313__auto__3;
+const c__23442__auto__1 = Promise;
+const x__23443__auto__2 = x;
+const ret__23444__auto__3 = (x__23443__auto__2 instanceof c__23442__auto__1);
+return ret__23444__auto__3;
 
 };
 var wrap_async = function (setup, teardown) {
@@ -344,9 +344,9 @@ return f20;
 var test_var = function (v) {
 if (squint_core.truth_(squint_core.fn_QMARK_(v))) {
 const test_name1 = (() => {
-const or__28351__auto__2 = squint_core.get(squint_core.meta(v), "name");
-if (squint_core.truth_(or__28351__auto__2)) {
-return or__28351__auto__2} else {
+const or__23476__auto__2 = squint_core.get(squint_core.meta(v), "name");
+if (squint_core.truth_(or__23476__auto__2)) {
+return or__23476__auto__2} else {
 return "anonymous"};
 
 })();
@@ -469,10 +469,10 @@ var fresh_counters = ({"test": 0, "pass": 0, "fail": 0, "error": 0});
 var run_tests = (() => {
 const f26 = (function (var_args) {
 const args271 = [];
-const len__27315__auto__2 = arguments.length;
+const len__23403__auto__2 = arguments.length;
 let i283 = 0;
 while(true){
-if ((i283 < len__27315__auto__2)) {
+if ((i283 < len__23403__auto__2)) {
 args271.push((arguments[i283]));
 let G__4 = (i283 + 1);
 i283 = G__4;
@@ -480,8 +480,8 @@ continue;
 };break;
 }
 ;
-const argseq__27755__auto__5 = (((0 < args271.length)) ? (args271.slice(0)) : (null));
-return f26.cljs$core$IFn$_invoke$arity$variadic(argseq__27755__auto__5);
+const argseq__23572__auto__5 = (((0 < args271.length)) ? (args271.slice(0)) : (null));
+return f26.cljs$core$IFn$_invoke$arity$variadic(argseq__23572__auto__5);
 
 });
 f26.cljs$core$IFn$_invoke$arity$variadic = (function (args) {
