@@ -89,6 +89,19 @@
                      "3-arg derive must produce a fresh hierarchy")))
         (.finally done))))
 
+(deftest derive-does-not-leak-to-tag-ancestors-test
+  ;; Regression: _deriveInto's tagChain used to walk tag's ancestors,
+  ;; so (derive :x :a) followed by (derive :x :b) incorrectly made :a
+  ;; isa :b. Clojure's derive propagates the new relation to tag's
+  ;; DESCENDANTS, not its ancestors.
+  (t/async done
+    (-> (eval-repl "
+(derive :x :a)
+(derive :x :b)
+[(isa? :a :b) (isa? :b :a) (isa? :x :a) (isa? :x :b)]")
+        (.then (fn [v] (is (= [false false true true] (vec v)))))
+        (.finally done))))
+
 (deftest two-arg-derive-busts-cache-test
   ;; Regression for PR feedback #1: 2-arg derive mutates
   ;; *global-hierarchy* in place, so the identity-based cache check in

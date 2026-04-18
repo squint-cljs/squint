@@ -53,14 +53,19 @@ function _deriveInto(h, tag, parent) {
     throw new Error(`Cyclic derivation: ${String(parent)} has ${String(tag)} as ancestor`);
   }
   addRel(h.parents, tag, parent);
-  const collectAncestors = (t) => {
+  // Matches Clojure's derive: new ancestor relations flow to
+  // { tag and everything under tag } × { parent and everything above parent }.
+  // Crucially, the left side is the DESCENDANTS of tag (plus tag), not
+  // its ancestors — deriving 'tag isa parent' must not make tag's
+  // existing ancestors also isa parent.
+  const withSelf = (m, t) => {
     const acc = new Set([t]);
-    const ta = h.ancestors.get(t);
-    if (ta) for (const a of ta) acc.add(a);
+    const s = m.get(t);
+    if (s) for (const v of s) acc.add(v);
     return acc;
   };
-  const parentChain = collectAncestors(parent);
-  const tagChain = collectAncestors(tag);
+  const parentChain = withSelf(h.ancestors, parent);
+  const tagChain = withSelf(h.descendants, tag);
   for (const d of tagChain) {
     for (const a of parentChain) {
       if (!_EQ_(d, a)) {
@@ -72,7 +77,16 @@ function _deriveInto(h, tag, parent) {
 }
 
 export function derive(a, b, c) {
-  if (c === undefined) { _deriveInto(gh(), a, b); return null; }
+  if (c === undefined) {
+    // Rebuild-and-swap the global hierarchy so its identity changes;
+    // MultiFn's cache compares hierarchy identity to decide when to
+    // invalidate, so in-place mutation would leave stale cached
+    // resolutions in place (e.g. a subsequent derive can introduce
+    // ambiguity that the cache would otherwise hide).
+    _globalHierarchy = cloneHierarchy(gh());
+    _deriveInto(_globalHierarchy, a, b);
+    return null;
+  }
   const next = cloneHierarchy(a);
   _deriveInto(next, b, c);
   return next;
