@@ -1,6 +1,6 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
-import { toFn } from 'squint-cljs/src/squint/internal.js';
+import { toFn } from './internal.js';
 
 // inlined and modified version of https://github.com/lukeed/dequal
 var has = Object.prototype.hasOwnProperty;

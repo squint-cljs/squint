@@ -2,7 +2,7 @@
 // shape and semantics may change without notice. Consumers outside the
 // squint npm package should not depend on this file.
 
-import { get } from 'squint-cljs/core.js';
+import { get } from './core.js';
 
 export function toFn(x) {
   if (x == null) return x;

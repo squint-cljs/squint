@@ -3,7 +3,7 @@
 // core.js means programs that don't use multimethods pay zero bundle cost.
 
 import { _EQ_ } from 'squint-cljs/core.js';
-import { toFn } from 'squint-cljs/src/squint/internal.js';
+import { toFn } from './internal.js';
 
 function addRel(m, k, v) {
   let s = m.get(k);
