@@ -57,6 +57,28 @@
         (.then (fn [v] (is (= "pet" v))))
         (.finally done))))
 
+(deftest hierarchy-accessors-equiv-on-vector-tags-test
+  ;; Regression for the uneven value-equality fix: addRel / isa? /
+  ;; derive all got the findKeyByEquiv treatment, but the hAnd reader
+  ;; behind parents / ancestors / descendants was still doing raw
+  ;; h[field].get(tag). So (derive h [:km :m] :length) + (parents h
+  ;; [:km :m]) returned nil even though isa? saw the relation.
+  ;;
+  ;; Using `some #{target}` / explicit `=` instead of `contains?`
+  ;; because squint Sets are reference-equal for non-primitives —
+  ;; orthogonal issue from the accessor bug we're pinning here.
+  (t/async done
+    (-> (eval-repl "
+(let [h (-> (make-hierarchy) (derive [:vec/km :vec/m] :vec/length))]
+  [(isa? h [:vec/km :vec/m] :vec/length)
+   ;; fresh-identity vector — must still hit the stored entry
+   (boolean (some #{:vec/length} (parents h [:vec/km :vec/m])))
+   (boolean (some #{:vec/length} (ancestors h [:vec/km :vec/m])))
+   (boolean (some (fn [d] (= d [:vec/km :vec/m]))
+                  (descendants h :vec/length)))])")
+        (.then (fn [v] (is (= [true true true true] (vec v)))))
+        (.finally done))))
+
 (deftest prefer-method-vector-dispatch-equiv-test
   ;; Regression: prefer-method used reference equality on preferTable
   ;; keys/values, so two prefer-method calls with freshly-allocated

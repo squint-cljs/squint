@@ -148,9 +148,16 @@ export function underive(a, b, c) {
 // Clojure's canonical signature is (parents tag) / (parents h tag):
 // the hierarchy, when given, comes FIRST. Mirror that here so
 // (parents h :foo) in user code dispatches correctly.
+//
+// Route the key lookup through findKeyByEquiv so that a freshly
+// allocated vector like [:km :m] reads back the entry that was
+// stored under a structurally-equal vector. Without this, the Map
+// internally holds the entry but .get misses on reference equality.
 function hAnd(a, b, field) {
   const [h, tag] = b === undefined ? [gh(), a] : [a, b];
-  const s = h[field].get(tag);
+  const key = findKeyByEquiv(h[field], tag);
+  if (key === undefined) return null;
+  const s = h[field].get(key);
   return s && s.size ? new Set(s) : null;
 }
 export function parents(a, b)     { return hAnd(a, b, 'parents'); }
