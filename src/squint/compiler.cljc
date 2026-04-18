@@ -24,6 +24,7 @@
    [squint.internal.fn :refer [core-defmacro core-defn core-defn- core-fn]]
    [squint.internal.loop :as loop]
    [squint.internal.macros :as macros]
+   [squint.internal.multi :as multi]
    [squint.internal.protocols :as protocols]
    [squint.internal.test :as test])
   #?(:cljs (:require-macros [squint.resource :refer [edn-resource]])))
@@ -103,7 +104,22 @@
                              'assoc macros/assoc-inline
                              'assoc! macros/assoc!-inline
                              'get macros/get-inline
-                             'vswap! macros/vswap!}
+                             'vswap! macros/vswap!
+                             'defmulti multi/core-defmulti
+                             'defmethod multi/core-defmethod
+                             'get-method multi/core-get-method
+                             'methods multi/core-methods
+                             'remove-method multi/core-remove-method
+                             'remove-all-methods multi/core-remove-all-methods
+                             'prefer-method multi/core-prefer-method
+                             'prefers multi/core-prefers
+                             'isa? multi/core-isa?
+                             'derive multi/core-derive
+                             'underive multi/core-underive
+                             'make-hierarchy multi/core-make-hierarchy
+                             'parents multi/core-parents
+                             'ancestors multi/core-ancestors
+                             'descendants multi/core-descendants}
                             cc/common-macros))
 
 (def built-in-macro-nss
@@ -452,6 +468,7 @@
                cc/*repl* (:repl opts cc/*repl*)]
        (let [core-package (get import-maps cc/*core-package* cc/*core-package*)
              need-html-import (atom false)
+             need-multi-import (atom false)
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
              imported-vars (atom {})
@@ -478,7 +495,8 @@
                                                         :imports imports
                                                         :jsx false
                                                         :pragmas pragmas
-                                                        :need-html-import need-html-import))
+                                                        :need-html-import need-html-import
+                                                        :need-multi-import need-multi-import))
                  jsx *jsx*
                  _ (when (and jsx jsx-runtime)
                      (swap! imports str
@@ -500,6 +518,13 @@
                                 (if cc/*repl*
                                   (format "var squint_html = await import('%s');\n" html-pkg)
                                   (format "import * as squint_html from '%s';\n" html-pkg)))))
+                 _ (when @need-multi-import
+                     (swap! imports str
+                            (let [multi-pkg "squint-cljs/src/squint/multi.js"
+                                  multi-pkg (get import-maps multi-pkg multi-pkg)]
+                                (if cc/*repl*
+                                  (format "var squint_multi = await import('%s');\n" multi-pkg)
+                                  (format "import * as squint_multi from '%s';\n" multi-pkg)))))
                  pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
                  exports (when-not elide-exports

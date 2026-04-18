@@ -56,13 +56,18 @@ extension point.
 `{op-sym (fn [msg form] ...)}`) that the macro consults. Squint can ship
 the existing four cases as default methods.
 
-### 5. `report` is hardcoded too
-`clojure.test/report` is a multimethod keyed on `:type`; users add
+### 5. `report` is hardcoded too ✅ DONE
+~~`clojure.test/report` is a multimethod keyed on `:type`; users add
 methods to extend reporting (e.g. cljs-test-display). Ours is a single
-`case` defn.
+`case` defn.~~
 
-**Fix sketch:** convert to a multimethod (works in squint's runtime; we
-already use `(use-fixtures ...)` etc.).
+Fixed: `report` is now a `defmulti` dispatching on
+`[*current-reporter* (:type m)]`, matching cljs.test. The built-in
+reporter lives under `:cljs.test/default`; unknown combinations fall
+through to a no-op `:default` method. `test-var` now also emits
+`:begin-test-var` / `:end-test-var` so reporters can bracket per-var
+output. Smoke test `report-is-multimethod-test` covers user-defined
+extensions.
 
 ### 6. `test-var` is a plain fn
 `clojure.test/test-var` is a multimethod (`:default` impl is what

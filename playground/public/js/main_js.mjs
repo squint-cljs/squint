@@ -108,8 +108,18 @@ let evalCode = async (code) => {
       // opaque origin that can't resolve relative specifiers. Anchor on the
       // page origin — import.meta.url can point to an unexpected bundle path
       // under Vite.
-      const localBase = `${window.location.origin}/js/squint-local/`;
-      js = js.replaceAll("'squint-cljs/", `'${localBase}`);
+      //
+      // Route everything through /src/squint/ (matching the importmap) so
+      // user-compiled code and the runtime modules (test.js, multi.js) end
+      // up importing the SAME URL for core.js. Previously user code went
+      // via /js/squint-local/core.js → Vite-transformed shim →
+      // /@fs/.../src/squint/core.js, while the runtime's bare specifier
+      // resolved via the importmap to /src/squint/core.js — two URLs,
+      // two ES-module instances, two _metaSym symbols, and with-meta
+      // written through one was invisible to meta in the other.
+      const base = `${window.location.origin}/src/squint/`;
+      js = js.replaceAll("'squint-cljs/src/squint/", `'${base}`);
+      js = js.replaceAll("'squint-cljs/", `'${base}`);
     }
     JSEditor(js);
     if (!repl) {

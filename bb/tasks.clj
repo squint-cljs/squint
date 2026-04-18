@@ -19,7 +19,13 @@
 (defn bump-core-vars []
   (let [core-vars (:out (shell {:out :string}
                                "node --input-type=module -e 'import * as squint from \"squint-cljs/core.js\";console.log(JSON.stringify(Object.keys(squint)))'"))
-        parsed (apply sorted-set (map symbol (json/parse-string core-vars)))]
+        ;; Drop names starting with "__" — convention for
+        ;; exported-but-private helpers (e.g. __toFn) that other runtime
+        ;; modules import but user CLJS shouldn't resolve as a core var.
+        parsed (into (sorted-set)
+                     (comp (remove #(str/starts-with? % "__"))
+                           (map symbol))
+                     (json/parse-string core-vars))]
     (spit "resources/squint/core.edn" (with-out-str
                                         ((requiring-resolve 'clojure.pprint/pprint)
                                          parsed)))))
@@ -87,7 +93,7 @@
     (shell "node" "node_cli.js" "compile" src)
     (let [out (:out (shell {:out :string} "node" out-file))]
       (fs/delete out-file)
-      (assert (str/includes? out "Ran 10 tests containing 20 assertions") out)
+      (assert (str/includes? out "Ran 11 tests containing 21 assertions") out)
       (assert (str/includes? out "1 failures, 0 errors") out)
       ;; :begin-test-ns must fire for each ns visited by run-tests
       (assert (str/includes? out "Testing ns.a") out)

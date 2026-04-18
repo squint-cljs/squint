@@ -4,6 +4,15 @@
 
 ## 0.11.187
 
+- Add multimethod support: `defmulti`, `defmethod`, `get-method`, `methods`,
+  `remove-method`, `remove-all-methods`, `prefer-method`, `prefers`, and
+  hierarchy ops `isa?`, `derive`, `underive`, `make-hierarchy`, `parents`,
+  `ancestors`, `descendants`.
+- `cljs.test/report` is now a multimethod, extensible via `defmethod`:
+  ```
+  (defmethod report [:cljs.test/default :begin-test-var] [m] ...)
+  ```
+  `test-var` now fires `:begin-test-var` / `:end-test-var` events.
 - Accept plain `await` in async functions, in anticipation of CLJS next.
   The legacy `js-await` and `js/await` forms continue to work as
   aliases for now and may be deprecated in a future version.

@@ -123,6 +123,24 @@
         (is (= 1 (:pass result))
             "the inner test ran and its assertion passed")))))
 
+(deftest report-is-multimethod-test
+  (testing "users can defmethod cljs.test/report to hook reporting events"
+    (let [saved-env (t/get-current-env)
+          events (atom [])]
+      (t/set-env! (t/empty-env))
+      (defmethod t/report [:cljs.test/default :begin-test-var] [m]
+        (swap! events conj [:begin (:name m)]))
+      (defmethod t/report [:cljs.test/default :end-test-var] [m]
+        (swap! events conj [:end (:name m)]))
+      (t/test-var (with-meta (fn [] (is true))
+                    {:name "inner" :ns "smoke"}))
+      ;; restore defaults so later tests aren't polluted
+      (defmethod t/report [:cljs.test/default :begin-test-var] [_])
+      (defmethod t/report [:cljs.test/default :end-test-var] [_])
+      (t/set-env! saved-env)
+      (is (= [[:begin "inner"] [:end "inner"]] @events)
+          "begin/end-test-var events fire and carry the var name"))))
+
 (defn ^:async -main []
   (t/set-env! (t/empty-env))
   (t/test-var math-test)
@@ -135,6 +153,7 @@
   (t/test-var run-tests-counter-isolation-test)
   (t/test-var report-only-counts-pass-fail-error-test)
   (t/test-var run-tests-quoted-symbol-test)
+  (t/test-var report-is-multimethod-test)
   (t/report {:type :summary}))
 
 (-main)
