@@ -182,10 +182,17 @@ class MultiFn {
     this.preferTable = new Map();
     this.methodCache = new Map();
     this.cachedHierarchy = hierarchy.deref();
+    this.defaultFn = null;
   }
   resetCache() {
     this.methodCache = new Map();
     this.cachedHierarchy = this.hierarchy.deref();
+    // defaultDispatchVal is immutable after construction, so the
+    // resolved default fn only changes when methodTable changes —
+    // which always routes through resetCache. Memoize here so
+    // getMethod's no-match branch is O(1).
+    const defKey = findKeyByEquiv(this.methodTable, this.defaultDispatchVal);
+    this.defaultFn = defKey !== undefined ? this.methodTable.get(defKey) : null;
   }
   addMethod(dispatchVal, fn) {
     const existing = findKeyByEquiv(this.methodTable, dispatchVal);
@@ -243,8 +250,7 @@ class MultiFn {
       this.methodCache.set(val, best[1]);
       return best[1];
     }
-    const defKey = findKeyByEquiv(this.methodTable, this.defaultDispatchVal);
-    return defKey !== undefined ? this.methodTable.get(defKey) : null;
+    return this.defaultFn;
   }
   invoke(args) {
     const val = this.dispatchFn.apply(null, args);
