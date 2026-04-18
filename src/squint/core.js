@@ -552,7 +552,7 @@ export function get(coll, key, otherwise = undefined) {
     default:
       // we choose .get as the default implementation, e.g. fetch Headers are not Maps, but do implement a .get method
       g = coll['get'];
-      if (g instanceof Function) {
+      if (typeof g === 'function') {
         try {
           v = coll.get(key);
           break;
