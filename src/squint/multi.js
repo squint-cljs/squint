@@ -73,11 +73,7 @@ function _deriveInto(h, tag, parent) {
 
 export function derive(a, b, c) {
   if (c === undefined) { _deriveInto(gh(), a, b); return null; }
-  const next = {
-    parents: new Map(a.parents),
-    ancestors: new Map(a.ancestors),
-    descendants: new Map(a.descendants),
-  };
+  const next = cloneHierarchy(a);
   _deriveInto(next, b, c);
   return next;
 }
@@ -86,6 +82,14 @@ function rebuildFromPairs(pairs) {
   const h = make_hierarchy();
   for (const [c, p] of pairs) _deriveInto(h, c, p);
   return h;
+}
+
+function cloneHierarchy(h) {
+  const out = make_hierarchy();
+  for (const f of ['parents', 'ancestors', 'descendants']) {
+    for (const [k, s] of h[f]) out[f].set(k, new Set(s));
+  }
+  return out;
 }
 
 export function underive(a, b, c) {

@@ -71,6 +71,24 @@
         (.then (fn [v] (is (= [5000 2 1] (vec v)))))
         (.finally done))))
 
+(deftest derive-with-hierarchy-is-immutable-test
+  (t/async done
+    (-> (eval-repl "
+(let [h0 (make-hierarchy)
+      h1 (derive h0 :a :b)
+      h2 (derive h1 :c :b)]
+  ;; mutating into h1 must not surface in h0, and h2 must not share
+  ;; the parent-set of h1
+  [(contains? (or (ancestors :a h0) #{}) :b)
+   (contains? (or (ancestors :a h1) #{}) :b)
+   (contains? (or (descendants :b h0) #{}) :c)
+   (contains? (or (descendants :b h1) #{}) :c)
+   (contains? (or (descendants :b h2) #{}) :c)])")
+        (.then (fn [v]
+                 (is (= [false true false false true] (vec v))
+                     "3-arg derive must produce a fresh hierarchy")))
+        (.finally done))))
+
 (deftest no-matching-method-test
   (t/async done
     (-> (eval-repl "
