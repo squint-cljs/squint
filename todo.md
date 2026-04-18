@@ -45,3 +45,16 @@ A fix would need either:
 Friction is acceptable for v1 — squint has similar gaps elsewhere
 (`defonce`-style protection is not pervasive). File as a follow-up so
 users who hit it have somewhere to thumbs-up.
+
+## Known perf cliffs (fine for now, document for later)
+
+- Non-primitive `methodTable` / `preferTable` / hierarchy lookups do
+  an O(map-size) `findKeyByEquiv` scan on miss. Bounded by relation
+  count (typically tiny), not per-call growth. If hotspots emerge,
+  canonicalize structural keys via a trie or a stable hash instead of
+  linear `_EQ_` scans. Same fix applies uniformly to all three maps.
+- Squint `#{…}` / `contains?` are reference-equal for non-primitives,
+  so `(contains? (ancestors h [:km :m]) :length)` with a vector in
+  the set would miss even though the multimethod runtime now stores
+  the relation correctly. Orthogonal to this PR — squint-core
+  Set/contains? semantics would need to go through `_EQ_`.
