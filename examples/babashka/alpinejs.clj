@@ -10,7 +10,7 @@
 
 (def state (atom nil))
 (defn ->js [form]
-  (let [res (squint.compiler/compile-string* (str form) {:core-alias "$squint_core"})]
+  (let [res (squint.compiler/compile* (str form) {:core-alias "$squint_core"})]
     (reset! state res)
     (h/raw (:body res))))
 

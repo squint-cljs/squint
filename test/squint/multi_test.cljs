@@ -11,11 +11,11 @@
     (js/eval js)))
 
 (deftest no-import-when-unused
-  (let [{:keys [imports]} (squint/compile-string* "(+ 1 2) (defn f [x] (inc x))")]
+  (let [{:keys [imports]} (squint/compile* "(+ 1 2) (defn f [x] (inc x))")]
     (is (not (str/includes? imports "squint/multi.js")))))
 
 (deftest import-when-defmulti-used
-  (let [{:keys [imports body]} (squint/compile-string* "(defmulti area :shape)")]
+  (let [{:keys [imports body]} (squint/compile* "(defmulti area :shape)")]
     (is (str/includes? imports "import * as squint_multi from 'squint-cljs/src/squint/multi.js'"))
     (is (str/includes? body "squint_multi.defmulti(\"area\""))))
 

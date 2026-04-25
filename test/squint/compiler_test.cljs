@@ -1980,30 +1980,30 @@ globalThis.foo.fs = fs;")))))
     #_(println (jss! (str (fs/readFileSync "test-resources/defclass_test.cljs"))))
     (is (str/includes? (squint/compile-string "(defclass Foo-bar (constructor [this]))")
                        "export { Foo_bar }"))
-    (is (str/includes? (:javascript (squint/compile-string* "(defclass Foo (constructor [this]))" {:repl true
+    (is (str/includes? (:javascript (squint/compile* "(defclass Foo (constructor [this]))" {:repl           true
                                                                                                    :context :return}))
                        "return Foo"))
-    (is (not (str/includes? (:javascript (squint/compile-string* "(defclass WithoutConstructor Object (toString [_] \"bar\"))"))
+    (is (not (str/includes? (:javascript (squint/compile* "(defclass WithoutConstructor Object (toString [_] \"bar\"))"))
                             "constructor")))
     (let [source (str (fs/readFileSync "test-resources/defclass_test.cljs"))]
       (-> (p/let [v (jsv! source)
                   _ (is (= "<<<<1-3-3>>>>,1-3-3,true,false,42,4,6,1,2,foo,bar,3" (str v)))
                   state {}
                   {:keys [javascript] :as state}
-                  (squint/compile-string*  "
+                  (squint/compile* "
 (defclass Foo (constructor [this]) Object (toString [_] \"foo\"))
 (defclass WithoutConstructor Object (toString [_] \"bar\"))"
-                                           {:repl true
+                                   {:repl true
                                             :context :return
                                             :elide-exports true}
-                                           state)
+                                   state)
                   _ (js/eval (wrap-async javascript))
                   {:keys [_state javascript]}
-                  (squint/compile-string* "[(str (new Foo)) (str (new WithoutConstructor))]"
-                                          {:repl true
+                  (squint/compile* "[(str (new Foo)) (str (new WithoutConstructor))]"
+                                   {:repl true
                                            :context :return
                                            :elide-exports true}
-                                          state)
+                                   state)
                   v (js/eval (wrap-async javascript))
                   _ (is (eq ["foo" "bar"] v))])
           (p/finally done)))))
@@ -2053,7 +2053,7 @@ globalThis.foo.fs = fs;")))))
 
 (deftest alias-conflict-test
   (let [expr (fs/readFileSync "test-resources/alias_conflict_test.cljs" "UTF-8")
-        js (:javascript (squint/compile-string* expr {:core-alias "squint_core"}))]
+        js (:javascript (squint/compile* expr {:core-alias "squint_core"}))]
     (when (not (fs/existsSync "test-output"))
       (fs/mkdirSync "test-output"))
     (fs/writeFileSync "test-output/foo.mjs" js)
@@ -2490,7 +2490,7 @@ new Foo();")
     (doseq [code [code (str/replace "(do %s)" "%s" code)]
             repl? [true false]
             return? [true false]]
-      (let [{:keys [pragmas javascript]} (squint/compile-string* code {:repl repl?
+      (let [{:keys [pragmas javascript]} (squint/compile* code {:repl           repl?
                                                                        :context (if return?
                                                                                   :return
                                                                                   :statement)})]
@@ -2537,7 +2537,7 @@ new Foo();")
   (is (true? (jsv! "(defn foo [x] (and (int? x) (< 10 x 18))) (foo 12)"))))
 
 (deftest no-private-export-test
-  (let [exports (:exports (squint/compile-string* "(defn- foo []) (defn bar [])"))]
+  (let [exports (:exports (squint/compile* "(defn- foo []) (defn bar [])"))]
     (is (not (str/includes? exports "foo")))
     (is (str/includes? exports "bar"))))
 
