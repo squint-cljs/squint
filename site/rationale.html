@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Rationale — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="rationale.html">Rationale</a>
+    <a href="js-primer.html">JS Primer</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="style.html">Style</a>
+    <a href="macros.html">Macros</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>Rationale</h1>
+
+    <p>Why does Squint exist? ClojureScript already compiles Clojure to
+      JavaScript. What problem does Squint solve differently?</p>
+
+    <div class="toc">
+      <b>Contents</b>
+      <ul>
+        <li><a href="#problem">The problem</a></li>
+        <li><a href="#approach">Squint's approach</a></li>
+        <li><a href="#tradeoffs">The trade-offs</a></li>
+        <li><a href="#when">When to use Squint</a></li>
+        <li><a href="#when-not">When not to use Squint</a></li>
+        <li><a href="#cherry">What about Cherry?</a></li>
+      </ul>
+    </div>
+
+    <h2 id="problem">The problem</h2>
+
+    <p>ClojureScript is a remarkable achievement — a full Clojure implementation
+      targeting JavaScript. But its design priorities create friction in certain
+      environments:</p>
+
+    <ul>
+      <li><b>Bundle size.</b> ClojureScript ships its own implementations of
+        persistent data structures, protocols, multimethods, and much of the
+        Clojure standard library. Even a minimal "hello world" produces a
+        non-trivial bundle. For edge computing (Cloudflare Workers), serverless
+        functions, or CLI tools, this overhead matters.</li>
+
+      <li><b>Startup time.</b> Loading and initializing the ClojureScript runtime
+        takes time. In environments like Cloudflare Workers or AWS Lambda where
+        cold starts affect user experience, this is a real cost.</li>
+
+      <li><b>Build complexity.</b> ClojureScript relies on Google Closure Compiler
+        for optimization and dead-code elimination. This is powerful but adds
+        build complexity and can be challenging to integrate with modern JS
+        tooling (Vite, esbuild, etc.).</li>
+
+      <li><b>Interop friction.</b> ClojureScript's persistent data structures
+        require conversion when crossing the JS boundary. You constantly reach
+        for <code>clj->js</code> and <code>js->clj</code>, or carefully manage
+        which data you keep as JS objects vs. CLJS maps.</li>
+    </ul>
+
+    <h2 id="approach">Squint's approach</h2>
+
+    <p>Squint takes a different path: <b>use only native JavaScript data
+      structures</b>. This single decision cascades through the entire design:</p>
+
+    <ul>
+      <li>Maps are JavaScript objects. Vectors are JavaScript arrays.
+        Sets are JavaScript <code>Set</code> objects.</li>
+      <li>No runtime library for data structures — the output is plain JS.</li>
+      <li>No <code>clj->js</code> / <code>js->clj</code> — there's nothing
+        to convert because it's all JS already.</li>
+      <li>Standard library functions like <code>map</code>, <code>filter</code>,
+        <code>assoc</code>, and <code>get</code> are re-implemented to work
+        with native JS types.</li>
+      <li>Output is clean, readable ES modules that work with any JS toolchain.</li>
+    </ul>
+
+    <p>The result: Squint gives you Clojure's expressive syntax — its
+      destructuring, its threading macros, its <code>let</code> bindings,
+      its namespaces — on top of JavaScript's data model.</p>
+
+    <h2 id="tradeoffs">The trade-offs</h2>
+
+    <p>This is not a free lunch. By choosing native JS data structures, Squint
+      gives up some of Clojure's core guarantees:</p>
+
+    <ul>
+      <li><b>Shallow copies, not structural sharing.</b> Non-bang functions
+        like <code>assoc</code> and <code>conj</code> return shallow copies
+        (preserving Clojure's copy semantics), but without structural sharing
+        this is less efficient for large collections than Clojure's persistent
+        data structures. Bang variants (<code>assoc!</code>,
+        <code>conj!</code>) mutate in place for performance-critical code.</li>
+
+      <li><b>Mutable underlying types.</b> Since maps are JavaScript objects
+        and vectors are arrays, they <em>can</em> be mutated by JS code that
+        doesn't go through Squint's standard library. Direct JS interop
+        can bypass the copy semantics.</li>
+
+      <li><b>String-only map keys.</b> JavaScript objects only support string
+        keys. Non-string keys (vectors, numbers) get silently stringified.</li>
+
+      <li><b>Subset of ClojureScript.</b> Not all ClojureScript features are
+        available. Protocols, multimethods, and some advanced macro features
+        are absent or limited.</li>
+    </ul>
+
+    <p>These are real trade-offs. Whether they matter depends entirely on your
+      use case.</p>
+
+    <h2 id="when">When to use Squint</h2>
+
+    <ul>
+      <li><b>Edge/serverless computing.</b> Cloudflare Workers, AWS Lambda,
+        Deno Deploy — environments where bundle size and cold-start time
+        directly impact cost and user experience.</li>
+      <li><b>Scripts and CLI tools.</b> Node.js scripts, build tools, GitHub
+        Actions — where you want Clojure's expressiveness but don't need a
+        full application runtime.</li>
+      <li><b>JS-heavy projects.</b> When you're already deep in the JS
+        ecosystem and want a better syntax without switching data models.</li>
+      <li><b>Small to medium applications.</b> Where the simplicity of
+        "it's just JavaScript" outweighs the guarantees of persistent
+        data structures.</li>
+    </ul>
+
+    <h2 id="when-not">When not to use Squint</h2>
+
+    <ul>
+      <li><b>Large applications relying on immutability.</b> If your architecture
+        depends on persistent data structures for correctness (e.g., undo/redo,
+        time-travel debugging, concurrent updates), use ClojureScript or
+        <a href="#cherry">Cherry</a>.</li>
+      <li><b>When you need the full Clojure ecosystem.</b> If you need protocols,
+        multimethods, spec, core.async, or the full ClojureScript standard
+        library, Squint is not the right tool.</li>
+      <li><b>When you can afford the bundle size.</b> For traditional web
+        applications served from a CDN, ClojureScript's bundle size is rarely
+        the bottleneck. Use the tool that gives you the strongest
+        guarantees.</li>
+    </ul>
+
+    <h2 id="cherry">What about Cherry?</h2>
+
+    <p><a href="https://github.com/squint-cljs/cherry">Cherry</a> is Squint's
+      sibling project, built on the same compiler infrastructure. Where Squint
+      chooses native JS types, Cherry preserves ClojureScript's immutable
+      persistent data structures.</p>
+
+    <p>Think of them as two points on a spectrum:</p>
+
+    <ul>
+      <li><b>ClojureScript</b> — full language, Google Closure, largest bundles,
+        strongest guarantees</li>
+      <li><b>Cherry</b> — ES module output, persistent data structures, medium
+        bundles, strong guarantees (experimental)</li>
+      <li><b>Squint</b> — ES module output, native JS types, smallest bundles,
+        pragmatic trade-offs</li>
+    </ul>
+
+    <p>Cherry is currently experimental and not recommended for production use.
+      If you need immutable data and are willing to accept a larger bundle,
+      keep an eye on its development.</p>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+</body>
+</html>
