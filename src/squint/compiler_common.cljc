@@ -751,7 +751,10 @@
                                                                        (get rename refer refer)) refer)
                                                                (repeat (if (symbol? original-libname)
                                                                          original-libname libname)))))))))
-                  (let [runtime-refer (remove #(builtin-refer-is-macro? original-libname %) refer)]
+                  (let [runtime-refer (remove (fn [refer-sym]
+                                                (or (builtin-refer-is-macro? original-libname refer-sym)
+                                                    (contains? (get (:built-in-macro-nss env) original-libname) refer-sym)))
+                                              refer)]
                     (str
                       (when (seq runtime-refer)
                         (let [referred+renamed (str/join ", "
