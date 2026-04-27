@@ -1435,11 +1435,12 @@ break;}" body)
        (.substring tag (unchecked-inc-int class-index)))]))
 
 (defn- merge-attrs [attrs short-attrs]
-  (let [attrs (if-let [c (:class attrs)]
-                (if-let [sc (:class short-attrs)]
-                  (assoc attrs :class (str sc " " c))
-                  attrs)
-                attrs)
+  (let [attrs (let [c (:class attrs)
+                    sc (:class short-attrs)]
+                (cond
+                  (and c sc) (assoc attrs :class (str sc " " c))
+                  sc (assoc attrs :class sc)
+                  :else attrs))
         attrs (if-let [id (:id short-attrs (:id attrs))]
                 (assoc attrs :id id)
                 attrs)]
