@@ -6,6 +6,7 @@
    [babashka.cli :as cli]
    [shadow.esm :as esm]
    [squint.compiler :as cc]
+   [squint.compiler-common :as cc-common]
    [squint.compiler.node :as compiler]
    [squint.repl.node :as repl]
    #_[squint.repl.nrepl-server :as nrepl]
@@ -130,14 +131,14 @@ Options:
 --no-run: do not run compiled expression
 --show:   print compiled expression")
       (let [e e #_(if (:repl opts)
-                (str/replace "(do %s\n)" "%s" e)
+                (cc-common/replace-first* "(do %s\n)" "%s" e)
                 e)
             res (cc/compile-string e (assoc opts :repl (:repl opts) :ns-state (atom {:current 'user})
                                             :context (if (:repl opts) :return :statement)
                                             :elide-exports (and (:repl opts)
                                                                 (not (false? (:elide-exports opts))))))
             res (if (:repl opts)
-                  (str/replace "(async function() { %s })()" "%s" res)
+                  (cc-common/replace-first* "(async function() { %s })()" "%s" res)
                   res)
             dir (fs/mkdtempSync ".tmp")
             f (str dir "/squint.mjs")]

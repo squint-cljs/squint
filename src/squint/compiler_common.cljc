@@ -76,6 +76,17 @@
                :tag tag
                :transient transient})))
 
+(defn replace-first*
+  "Like clojure.string/replace-first with a string match, but treats
+  the replacement as a literal string. Avoids the cljs gotcha where
+  String.prototype.replace interprets `$` in the replacement."
+  [s match replacement]
+  (let [s (str s)
+        match (str match)]
+    (if-let [idx (str/index-of s match)]
+      (str (subs s 0 idx) replacement (subs s (+ idx (count match))))
+      s)))
+
 (defmethod emit-special 'js* [_ env [_js* template & args :as expr]]
   (let [mexpr (meta expr)
         tag (:tag mexpr)
@@ -83,8 +94,8 @@
         template (str template)]
     (cond->
         (-> (reduce (fn [template substitution]
-                      (str/replace-first template "~{}"
-                                         (emit substitution (merge (assoc env :context :expr)))))
+                      (replace-first* template "~{}"
+                                      (emit substitution (merge (assoc env :context :expr)))))
                     template
                     args)
             (emit-return (merge env (meta expr))))

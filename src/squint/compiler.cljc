@@ -169,7 +169,7 @@
         gensym (:gensym env)
         local (gensym)
         env (update env :var->ident assoc local local)]
-    (cond-> (str (emit (list 'js* (str/replace "for (let %s of ~{})" "%s" (str local))
+    (cond-> (str (emit (list 'js* (cc/replace-first* "for (let %s of ~{})" "%s" (str local))
                          (list 'clojure.core/iterable v))
                    env)
              " {\n"
