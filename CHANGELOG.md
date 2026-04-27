@@ -5,6 +5,7 @@
 ## Unreleased
 
 - [#809](https://github.com/squint-cljs/squint/issues/809): add `squint.compiler/compile*` and `squint.compiler/transpile*` which accept either a string or a sequence of pre-parsed forms, skipping the `forms -> string -> forms` roundtrip for SSR use cases. The previous names `compile-string*` / `transpile-string*` are retained as deprecated aliases.
+- Fix [#810](https://github.com/squint-cljs/squint/issues/810): shorthand classes in `#html` / `#jsx` were erased when an attrs map was present without a `:class` key (e.g. `[:div.myclass {}]`).
 
 ## 0.11.188
 

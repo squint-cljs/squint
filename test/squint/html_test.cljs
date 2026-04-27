@@ -130,13 +130,17 @@
   (t/async done
     (let [js (squint.compiler/compile-string
               "[(str #html [:div.container])
-                (str #html [:a#foo.bar.baz {:class \"quux\"}])]"
+                (str #html [:a#foo.bar.baz {:class \"quux\"}])
+                (str #html [:div.myclass {}])
+                (str #html [:div.myclass {:data-foo \"x\"}])]"
               {:repl true :elide-exports true :context :return})
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
            #(doseq [[k v] (map vector ["<div class=\"container\"></div>"
-                                       "<a class=\"bar baz quux\" id=\"foo\"></a>"] %)]
+                                       "<a class=\"bar baz quux\" id=\"foo\"></a>"
+                                       "<div class=\"myclass\"></div>"
+                                       "<div data-foo=\"x\" class=\"myclass\"></div>"] %)]
               (is (html= k v))))
           (.catch #(is false "nooooo"))
           (.finally done)))))

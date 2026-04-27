@@ -81,6 +81,10 @@
     (is (= "<div class=\"container\"></div>" (test-jsx "#jsx [:div.container]"))))
   (testing "id and classes shorthand"
     (is (= "<div class=\"foo bar\" id=\"my-id\"></div>" (test-jsx "#jsx [:div#my-id.foo.bar]"))))
+  (testing "class shorthand with empty props (#810)"
+    (is (= "<div class=\"myclass\"></div>" (test-jsx "#jsx [:div.myclass {}]"))))
+  (testing "class shorthand with non-class props (#810)"
+    (is (= "<div data-foo=\"x\" class=\"myclass\"></div>" (test-jsx "#jsx [:div.myclass {:data-foo \"x\"}]"))))
   (testing "return position"
     (is (= 1 (count (re-seq #"return" (jss! "(defn foo [] #jsx [:button \"dude\"])"
                                             {:jsx-runtime true})))))))
