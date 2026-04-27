@@ -2541,6 +2541,20 @@ new Foo();")
     (is (not (str/includes? exports "foo")))
     (is (str/includes? exports "bar"))))
 
+(deftest compile-forms-test
+  (testing "compile* accepts pre-parsed forms"
+    (let [str-js (:body (squint/compile* "(+ 1 2) (defn f [x] (inc x))"
+                                         {:elide-imports true}))
+          forms-js (:body (squint/compile* '[(+ 1 2) (defn f [x] (inc x))]
+                                           {:elide-imports true}))]
+      (is (= str-js forms-js))))
+  (testing "transpile* accepts pre-parsed forms"
+    (is (= (squint/transpile* "(+ 1 2)")
+           (squint/transpile* '[(+ 1 2)]))))
+  (testing "deprecated *-string* aliases still work"
+    (is (= (:javascript (squint/compile-string* "(+ 1 2)"))
+           (:javascript (squint/compile* "(+ 1 2)"))))))
+
 (deftest use-existing-alias-test
   (testing "single-word alias"
     (let [s (squint/compile-string "(require '[my.foo-bar :as foo]) (foo/some-fn)")]
