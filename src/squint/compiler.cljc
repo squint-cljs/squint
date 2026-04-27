@@ -421,12 +421,12 @@
                                :auto-resolve-ns true
                                :auto-resolve @*aliases*)))
 
-(defn transpile-string*
-  ([s] (transpile-string* s {}))
+(defn transpile*
+  ([s] (transpile* s {}))
   ([s env]
    (let [env (merge {:ns-state (atom {})
                      :context :statement} env)
-         forms (read-forms s)
+         forms (if (string? s) (read-forms s) s)
          max-form-idx (dec (count forms))
          return? (= :return (:context env))
          env (if return? (assoc env :context :statement) env)]
@@ -452,9 +452,9 @@
                     (rest forms)
                     (inc form-idx)))))))))
 
-(defn compile-string*
-  ([s] (compile-string* s nil))
-  ([s opts] (compile-string* s opts nil))
+(defn compile*
+  ([s] (compile* s nil))
+  ([s opts] (compile* s opts nil))
   ([s {:keys [elide-exports
               elide-imports
               core-alias
@@ -490,7 +490,7 @@
                    *cljs-ns* (:ns opts *cljs-ns*)
                    cc/*target* :squint
                    cc/*async* (:async opts)]
-           (let [transpiled (transpile-string* s (assoc opts
+           (let [transpiled (transpile* s (assoc opts
                                                         :core-alias core-alias
                                                         :imports imports
                                                         :jsx false
@@ -561,7 +561,7 @@
 
 #?(:cljs
    (defn compileStringEx [s opts state]
-     (let [res (compile-string* s (clj-ize-opts opts) (clj-ize-opts state))]
+     (let [res (compile* s (clj-ize-opts opts) (clj-ize-opts state))]
        (clj->js res))))
 
 (defn compile-string
@@ -572,5 +572,13 @@
                          opts)
                  :default opts)
          {:keys [javascript]}
-         (compile-string* s opts)]
+         (compile* s opts)]
      javascript)))
+
+(def ^{:deprecated "0.11.189"
+       :doc "Deprecated alias for `transpile*`."}
+  transpile-string* transpile*)
+
+(def ^{:deprecated "0.11.189"
+       :doc "Deprecated alias for `compile*`."}
+  compile-string* compile*)
