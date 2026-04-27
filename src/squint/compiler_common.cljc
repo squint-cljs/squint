@@ -359,7 +359,12 @@
         (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
         (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
         (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
-        alias)
+        (if (symbol? alias)
+          (if-let [resolve-ns (:resolve-ns env)]
+            (or (resolve-ns alias)
+                alias)
+            alias)
+          (resolve-import-map import-maps alias)))
       alias)))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
@@ -757,7 +762,10 @@
                                                                        (get rename refer refer)) refer)
                                                                (repeat (if (symbol? original-libname)
                                                                          original-libname libname)))))))))
-                  (let [runtime-refer (remove #(builtin-refer-is-macro? original-libname %) refer)]
+                  (let [runtime-refer (remove (fn [refer-sym]
+                                                (or (builtin-refer-is-macro? original-libname refer-sym)
+                                                    (contains? (get (:built-in-macro-nss env) original-libname) refer-sym)))
+                                              refer)]
                     (str
                       (when (seq runtime-refer)
                         (let [referred+renamed (str/join ", "
@@ -812,6 +820,9 @@
                      as
                      (update-in [current :aliases] (fn [aliases]
                                                      ((fnil assoc {}) aliases as libname)))
+                     (and as (symbol? original-libname))
+                     (update-in [current :macro-aliases]
+                                (fn [aliases] (merge {as original-libname} aliases)))
                      (symbol? original-libname)
                      (update-in [current :aliases] (fn [aliases]
                                                      ((fnil assoc {}) aliases
