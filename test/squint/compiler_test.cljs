@@ -2552,8 +2552,8 @@ new Foo();")
     (is (= (squint/transpile* "(+ 1 2)")
            (squint/transpile* '[(+ 1 2)]))))
   (testing "deprecated *-string* aliases still work"
-    (is (= (squint/compile-string* "(+ 1 2)")
-           (squint/compile* "(+ 1 2)")))))
+    (is (= (:javascript (squint/compile-string* "(+ 1 2)"))
+           (:javascript (squint/compile* "(+ 1 2)"))))))
 
 (deftest use-existing-alias-test
   (testing "single-word alias"
