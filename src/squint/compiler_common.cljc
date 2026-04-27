@@ -348,7 +348,12 @@
         (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
         (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
         (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
-        alias)
+        (if (symbol? alias)
+          (if-let [resolve-ns (:resolve-ns env)]
+            (or (resolve-ns alias)
+                alias)
+            alias)
+          (resolve-import-map import-maps alias)))
       alias)))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
