@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#813](https://github.com/squint-cljs/squint/issues/813): ship `clj-kondo.exports` config so downstream consumers no longer get false `Unresolved symbol` warnings on `js-await` and `await`.
+
 ## 0.11.189
 
 - [#809](https://github.com/squint-cljs/squint/issues/809): add `squint.compiler/compile*` and `squint.compiler/transpile*` which accept either a string or a sequence of pre-parsed forms, skipping the `forms -> string -> forms` roundtrip for SSR use cases. The previous names `compile-string*` / `transpile-string*` are retained as deprecated aliases.
