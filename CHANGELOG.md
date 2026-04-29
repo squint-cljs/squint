@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`.
+
 ## 0.11.189
 
 - [#809](https://github.com/squint-cljs/squint/issues/809): add `squint.compiler/compile*` and `squint.compiler/transpile*` which accept either a string or a sequence of pre-parsed forms, skipping the `forms -> string -> forms` roundtrip for SSR use cases. The previous names `compile-string*` / `transpile-string*` are retained as deprecated aliases.

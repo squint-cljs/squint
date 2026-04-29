@@ -306,6 +306,9 @@
 (defn- bool-expr [e]
   (vary-meta e assoc :tag 'boolean))
 
+(defn- num-expr [e]
+  (vary-meta e assoc :tag 'number))
+
 (defn core-exists?
   "Return true if argument exists, analogous to usage of typeof operator
    in JavaScript."
@@ -543,7 +546,7 @@
   (core/list 'js* "(~ ~{})" x))
 
 (core/defmacro ^::ana/numeric bit-and
-  ([x y] (core/list 'js* "(~{} & ~{})" x y))
+  ([x y] (num-expr (core/list 'js* "(~{} & ~{})" x y)))
   ([x y & more] `(cc/bit-and (cc/bit-and ~x ~y) ~@more)))
 
 ;; internal do not use
@@ -552,7 +555,7 @@
   ([x y & more] `(cc/unsafe-bit-and (cc/unsafe-bit-and ~x ~y) ~@more)))
 
 (core/defmacro ^::ana/numeric bit-or
-  ([x y] (core/list 'js* "(~{} | ~{})" x y))
+  ([x y] (num-expr (core/list 'js* "(~{} | ~{})" x y)))
   ([x y & more] `(cc/bit-or (cc/bit-or ~x ~y) ~@more)))
 
 (core/defmacro ^::ana/numeric int [x]
