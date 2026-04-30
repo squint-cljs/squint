@@ -2884,6 +2884,21 @@ new Foo();")
         (is (= "cherry-cljs/lib/clojure.test.js" (cc/resolve-ns env 'cljs.test))
             "cljs.test must resolve to its hardcoded cherry mapping")))))
 
+(deftest built-in-macro-nss-filters-refers-test
+  (testing "symbols listed in (:built-in-macro-nss env) for a libname must
+            be filtered out of the runtime JS import; non-listed symbols
+            must still appear"
+    (let [src "(ns my.app (:require [some.lib :refer [my-macro my-fn]]))"
+          opts {:built-in-macro-nss {'some.lib #{'my-macro}}
+                :elide-imports false}
+          s (jss! src opts)]
+      (is (not (re-find #"\bmy_macro\b" s))
+          (str "my-macro listed in :built-in-macro-nss must NOT appear in JS import\n"
+               "compiled output:\n" s))
+      (is (re-find #"\bmy_fn\b" s)
+          (str "my-fn (not listed) must still appear in JS import\n"
+               "compiled output:\n" s)))))
+
 (deftest require-as-populates-macro-aliases-test
   (testing ":require :as must populate :macro-aliases (read by cherry's
             sci ctx to expand alias-prefixed macros). Squint emits no
