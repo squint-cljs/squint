@@ -5,6 +5,16 @@
 ## Unreleased
 
 - Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`.
+- Populate `:macro-aliases` from `:require :as` so downstream macro
+  resolvers (e.g. cherry's sci ctx) can find built-in macros under
+  the alias.
+- `:cherry` target of `resolve-ns` now honors the `:resolve-ns` env
+  hook for non-builtin symbol libnames, matching the existing
+  `:squint` target behavior.
+- Filter `:refer`'d macros via env-supplied `:built-in-macro-nss`
+  map (`{libname-sym #{macro-syms}}`), so hosts (e.g. cherry) can
+  register additional macro namespaces beyond the hardcoded
+  `cljs.test`/`clojure.test`/etc set without patching squint.
 
 ## 0.11.189
 

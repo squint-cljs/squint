@@ -12,6 +12,7 @@
    [squint.math-test]
    [squint.multi-test]
    [squint.string-test]
+   [squint.compiler-common :as cc]
    [squint.test-utils :refer [eq js! jss! jsv!]]))
 
 (deftest return-test
@@ -2888,6 +2889,55 @@ new Foo();")
     (is (nil? (jsv! '(let [f (fn [] :ok)
                            _ (with-meta f {:name "foo"})]
                        (meta f)))))))
+
+(deftest resolve-ns-hook-target-symmetry-test
+  (let [env {:resolve-ns (fn [alias] (str "./resolved/" alias ".mjs"))}]
+    (testing "the :resolve-ns env hook must be honored equally by both
+              :target :squint and :target :cherry for non-builtin symbol
+              libnames"
+      (binding [cc/*target* :squint]
+        (is (= "./resolved/some.lib.mjs" (cc/resolve-ns env 'some.lib))
+            ":target :squint must honor :resolve-ns hook"))
+      (binding [cc/*target* :cherry]
+        (is (= "./resolved/some.lib.mjs" (cc/resolve-ns env 'some.lib))
+            ":target :cherry must honor :resolve-ns hook")))
+    (testing ":cherry built-in libname mappings must still take precedence
+              over the :resolve-ns hook"
+      (binding [cc/*target* :cherry]
+        (is (= "cherry-cljs/lib/clojure.test.js" (cc/resolve-ns env 'cljs.test))
+            "cljs.test must resolve to its hardcoded cherry mapping")))))
+
+(deftest built-in-macro-nss-filters-refers-test
+  (testing "symbols listed in (:built-in-macro-nss env) for a libname must
+            be filtered out of the runtime JS import; non-listed symbols
+            must still appear"
+    (let [src "(ns my.app (:require [some.lib :refer [my-macro my-fn]]))"
+          opts {:built-in-macro-nss {'some.lib #{'my-macro}}
+                :elide-imports false}
+          s (jss! src opts)]
+      (is (not (re-find #"\bmy_macro\b" s))
+          (str "my-macro listed in :built-in-macro-nss must NOT appear in JS import\n"
+               "compiled output:\n" s))
+      (is (re-find #"\bmy_fn\b" s)
+          (str "my-fn (not listed) must still appear in JS import\n"
+               "compiled output:\n" s)))))
+
+(deftest require-as-populates-macro-aliases-test
+  (testing ":require :as must populate :macro-aliases (read by cherry's
+            sci ctx to expand alias-prefixed macros). Squint emits no
+            visible behavior change for this field; the contract is the
+            state mutation itself."
+    (let [state (atom {})]
+      (jss! "(ns my.app (:require [some.lib :as lib]))"
+            {:ns-state state})
+      (let [s @state
+            current (:current s)]
+        (is (= 'some.lib (get-in s [current :macro-aliases 'lib]))
+            (str ":macro-aliases must map alias->libname for :require :as\n"
+                 "ns-state:\n" (pr-str s)))
+        (is (= "some.lib" (get-in s [current :aliases 'lib]))
+            (str ":aliases must map alias->libname-string for :require :as\n"
+                 "ns-state:\n" (pr-str s)))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test
