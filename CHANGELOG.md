@@ -2,6 +2,12 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Populate `:macro-aliases` from `:require :as` so downstream macro
+  resolvers (e.g. cherry's sci ctx) can find built-in macros under
+  the alias.
+
 ## 0.11.189
 
 - [#809](https://github.com/squint-cljs/squint/issues/809): add `squint.compiler/compile*` and `squint.compiler/transpile*` which accept either a string or a sequence of pre-parsed forms, skipping the `forms -> string -> forms` roundtrip for SSR use cases. The previous names `compile-string*` / `transpile-string*` are retained as deprecated aliases.
