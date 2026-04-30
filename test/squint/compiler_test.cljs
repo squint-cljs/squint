@@ -2866,6 +2866,23 @@ new Foo();")
                            _ (with-meta f {:name "foo"})]
                        (meta f)))))))
 
+(deftest require-as-populates-macro-aliases-test
+  (testing ":require :as must populate :macro-aliases (read by cherry's
+            sci ctx to expand alias-prefixed macros). Squint emits no
+            visible behavior change for this field; the contract is the
+            state mutation itself."
+    (let [state (atom {})]
+      (jss! "(ns my.app (:require [some.lib :as lib]))"
+            {:ns-state state})
+      (let [s @state
+            current (:current s)]
+        (is (= 'some.lib (get-in s [current :macro-aliases 'lib]))
+            (str ":macro-aliases must map alias->libname for :require :as\n"
+                 "ns-state:\n" (pr-str s)))
+        (is (= "some.lib" (get-in s [current :aliases 'lib]))
+            (str ":aliases must map alias->libname-string for :require :as\n"
+                 "ns-state:\n" (pr-str s)))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test
