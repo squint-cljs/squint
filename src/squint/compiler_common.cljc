@@ -242,6 +242,10 @@
 (def boolean-infix-operators
   #{"==" "===" "<" ">" "<=" ">=" "!=" "instanceof"})
 
+(def numeric-infix-operators
+  #{"+" "+=" "-" "-=" "/" "*" "%" "<<" ">>" "<<<" ">>>" "&" "|"
+    "bit-or" "bit-and" "js-mod"})
+
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and" "js-??"})
 
 (defn infix-operator? [env expr]
@@ -263,7 +267,8 @@
   (let [env (assoc enc-env :context :expr :top-level false)
         acount (count args)
         op-name (name operator)
-        bool? (contains? boolean-infix-operators op-name)]
+        bool? (contains? boolean-infix-operators op-name)
+        numeric? (contains? numeric-infix-operators op-name)]
     (if (and (not (chainable-infix-operators op-name)) (> acount 2))
       (emit (list 'cljs.core/&&
                   (list operator (first args) (second args))
@@ -289,7 +294,8 @@
        wrap-parens
        (emit-return enc-env)
        (cond->
-           bool? (tagged-expr 'boolean))))))
+           bool? (tagged-expr 'boolean)
+           numeric? (tagged-expr 'number))))))
 
 (def core-vars (atom #{}))
 
@@ -991,10 +997,12 @@
   (emit-return (wrap-parens (str "new " (emit class (expr-env env)) (comma-list (emit-args env args)))) env))
 
 (defmethod emit-special 'dec [_type env [_ var]]
-  (emit-return (str "(" (emit var (assoc env :context :expr)) " - " 1 ")") env))
+  (-> (emit-return (str "(" (emit var (assoc env :context :expr)) " - " 1 ")") env)
+      (tagged-expr 'number)))
 
 (defmethod emit-special 'inc [_type env [_ var]]
-  (emit-return (str "(" (emit var (assoc env :context :expr)) " + " 1 ")") env))
+  (-> (emit-return (str "(" (emit var (assoc env :context :expr)) " + " 1 ")") env)
+      (tagged-expr 'number)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
   (str "while (" (emit test (expr-env env)) ") { \n"

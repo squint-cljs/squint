@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`.
 - Populate `:macro-aliases` from `:require :as` so downstream macro
   resolvers (e.g. cherry's sci ctx) can find built-in macros under
   the alias.

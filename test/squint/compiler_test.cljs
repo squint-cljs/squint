@@ -699,6 +699,29 @@ with `backticks`")))]
             (js/eval s)))
     #_(js/process.exit)))
 
+(deftest str-numeric-infix-no-nullish-test
+  (testing "str must not wrap known-numeric infix expressions in ??''
+            (esbuild flags this as suspicious-nullish-coalescing) and
+            must still produce the number's string representation"
+    (doseq [[form expected] [['(let [n 5] (str "max=" (dec n))) "max=4"]
+                             ['(let [n 5] (str (inc n))) "6"]
+                             ['(let [a 5 b 6] (str (+ a b))) "11"]
+                             ['(let [a 5 b 6] (str (- a b))) "-1"]
+                             ['(let [a 5 b 6] (str (* a b))) "30"]
+                             ['(let [a 5 b 6] (str (/ a b))) "0.8333333333333334"]
+                             ['(let [a 5 b 6] (str (bit-and a b))) "4"]
+                             ['(let [a 5 b 6] (str (bit-or a b))) "7"]
+                             ['(let [n 5] (str "five " (dec n) " three")) "five 4 three"]]]
+      (let [s (jss! form)]
+        (is (zero? (count (re-seq #"\?\?''" s)))
+            (str "expected no ??'' in compiled output for " (pr-str form)
+                 "\n--- compiled ---\n" s)))
+      (let [v (jsv! form)]
+        (is (string? v)
+            (str "expected string result for " (pr-str form) ", got " (pr-str v)))
+        (is (= expected v)
+            (str "wrong runtime value for " (pr-str form)))))))
+
 (deftest comp-test
   (is (eq "0" (jsv! '((comp) "0")))
       "0-arity is identity")
