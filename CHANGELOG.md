@@ -7,6 +7,9 @@
 - Populate `:macro-aliases` from `:require :as` so downstream macro
   resolvers (e.g. cherry's sci ctx) can find built-in macros under
   the alias.
+- `:cherry` target of `resolve-ns` now honors the `:resolve-ns` env
+  hook for non-builtin symbol libnames, matching the existing
+  `:squint` target behavior.
 
 ## 0.11.189
 
