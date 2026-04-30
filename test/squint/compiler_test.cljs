@@ -12,6 +12,7 @@
    [squint.math-test]
    [squint.multi-test]
    [squint.string-test]
+   [squint.compiler-common :as cc]
    [squint.test-utils :refer [eq js! jss! jsv!]]))
 
 (deftest return-test
@@ -2865,6 +2866,23 @@ new Foo();")
     (is (nil? (jsv! '(let [f (fn [] :ok)
                            _ (with-meta f {:name "foo"})]
                        (meta f)))))))
+
+(deftest resolve-ns-hook-target-symmetry-test
+  (let [env {:resolve-ns (fn [alias] (str "./resolved/" alias ".mjs"))}]
+    (testing "the :resolve-ns env hook must be honored equally by both
+              :target :squint and :target :cherry for non-builtin symbol
+              libnames"
+      (binding [cc/*target* :squint]
+        (is (= "./resolved/some.lib.mjs" (cc/resolve-ns env 'some.lib))
+            ":target :squint must honor :resolve-ns hook"))
+      (binding [cc/*target* :cherry]
+        (is (= "./resolved/some.lib.mjs" (cc/resolve-ns env 'some.lib))
+            ":target :cherry must honor :resolve-ns hook")))
+    (testing ":cherry built-in libname mappings must still take precedence
+              over the :resolve-ns hook"
+      (binding [cc/*target* :cherry]
+        (is (= "cherry-cljs/lib/clojure.test.js" (cc/resolve-ns env 'cljs.test))
+            "cljs.test must resolve to its hardcoded cherry mapping")))))
 
 (deftest require-as-populates-macro-aliases-test
   (testing ":require :as must populate :macro-aliases (read by cherry's
