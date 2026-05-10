@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`.
+- [#817](https://github.com/squint-cljs/squint/issues/817): add minimal `reify`
 
 ## 0.11.189
 
