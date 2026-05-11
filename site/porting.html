@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Porting from ClojureScript — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="porting.html">Porting</a>
+    <a href="cookbook.html">Cookbook</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>Porting from ClojureScript</h1>
+
+    <p>This guide walks through migrating an existing ClojureScript project
+      to Squint. It's based on real-world porting experiences and covers
+      the common issues you'll encounter.</p>
+
+    <div class="toc">
+      <b>Contents</b>
+      <ul>
+        <li><a href="#assess">Assess your project</a></li>
+        <li><a href="#setup">Project setup</a></li>
+        <li><a href="#namespaces">Convert namespaces</a></li>
+        <li><a href="#data">Data structure changes</a></li>
+        <li><a href="#interop">Simplify interop</a></li>
+        <li><a href="#libraries">Replace libraries</a></li>
+        <li><a href="#testing">Test the port</a></li>
+        <li><a href="#checklist">Porting checklist</a></li>
+      </ul>
+    </div>
+
+    <h2 id="assess">Assess your project</h2>
+
+    <p>Not every ClojureScript project is a good candidate for porting.
+      Squint works best when:</p>
+
+    <ul>
+      <li>Your project has <b>heavy JS interop</b> — this is where Squint
+        shines, since there's no clj→js conversion overhead.</li>
+      <li>You care about <b>bundle size and startup time</b> — serverless,
+        edge computing, CLI tools.</li>
+      <li>You don't rely on <b>persistent data structures</b> for correctness
+        (undo/redo, time-travel debugging).</li>
+      <li>You don't use <b>protocols, multimethods, or spec</b>.</li>
+    </ul>
+
+    <p>Projects that are <em>poor</em> candidates: large apps using Reagent/
+      Re-frame (use <a href="https://github.com/borkdude/reagami">Reagami</a>
+      instead), anything relying on core.async, or code-sharing with
+      Clojure JVM via <code>.cljc</code>.</p>
+
+    <h2 id="setup">Project setup</h2>
+
+    <p>Create a fresh npm project alongside your existing CLJS project:</p>
+
+    <pre class="code shell">$ mkdir squint-port && cd squint-port
+$ npm init -y
+$ npm install squint-cljs@latest</pre>
+
+    <p>Create a <code>squint.edn</code>:</p>
+
+    <pre class="code">{<span class="keyword">:paths</span> [<span class="string">"src"</span>]
+ <span class="keyword">:output-dir</span> <span class="string">"out"</span>}</pre>
+
+    <p>Copy your <code>.cljs</code> source files into <code>src/</code>.
+      Then start the watch loop and fix errors iteratively:</p>
+
+    <pre class="code shell">$ npx squint watch</pre>
+
+    <h2 id="namespaces">Convert namespaces</h2>
+
+    <p>The <code>ns</code> form needs adjustments for JS packages:</p>
+
+    <pre class="code"><span class="comment">;; Before (ClojureScript)</span>
+(<span class="special">ns</span> <span class="symbol">my-app.core</span>
+  (<span class="keyword">:require</span> [<span class="symbol">reagent.core</span> <span class="keyword">:as</span> <span class="symbol">r</span>]
+            [<span class="symbol">clojure.string</span> <span class="keyword">:as</span> <span class="symbol">str</span>]
+            [<span class="symbol">my-app.utils</span> <span class="keyword">:as</span> <span class="symbol">utils</span>])
+  (<span class="keyword">:import</span> [<span class="symbol">goog.string</span> <span class="symbol">format</span>]))
+
+<span class="comment">;; After (Squint)</span>
+(<span class="special">ns</span> <span class="symbol">my-app.core</span>
+  (<span class="keyword">:require</span> [<span class="string">"react"</span> <span class="keyword">:as</span> <span class="symbol">react</span>]          <span class="comment">; npm package</span>
+            [<span class="symbol">clojure.string</span> <span class="keyword">:as</span> <span class="symbol">str</span>]  <span class="comment">; built-in</span>
+            [<span class="symbol">my-app.utils</span> <span class="keyword">:as</span> <span class="symbol">utils</span>])) <span class="comment">; Squint ns</span></pre>
+
+    <p>Key changes:</p>
+    <ul>
+      <li>Remove <code>:import</code> — use <code>:require</code> with
+        string names for all JS packages</li>
+      <li>Keep <code>:require-macros</code> for macro imports — this is
+        required in Squint (plain <code>:require</code> won't expand
+        macros at compile time)</li>
+      <li>Replace Google Closure library usage with npm packages or
+        native JS</li>
+    </ul>
+
+    <h2 id="data">Data structure changes</h2>
+
+    <p>Most code works without changes because Squint's non-bang functions
+      (<code>assoc</code>, <code>conj</code>, etc.) return shallow copies,
+      approximating Clojure's value semantics. Note: unlike Clojure's
+      structurally-shared persistent data structures, Squint uses shallow
+      cloning — nested objects share references. Watch for these cases:</p>
+
+    <pre class="code"><span class="comment">;; Remove clj->js / js->clj — not needed, everything is JS</span>
+<span class="comment">;; Before:</span>
+(<span class="macro">clj->js</span> {<span class="keyword">:a</span> <span class="number">1</span>})
+<span class="comment">;; After:</span>
+{<span class="keyword">:a</span> <span class="number">1</span>}  <span class="comment">; already a JS object</span>
+
+<span class="comment">;; Collections as functions — must use get</span>
+<span class="comment">;; Before:</span>
+(<span class="symbol">my-map</span> <span class="keyword">:key</span>)
+<span class="comment">;; After:</span>
+(<span class="keyword">:key</span> <span class="symbol">my-map</span>)    <span class="comment">; keyword-as-function works</span>
+(<span class="symbol">get</span> <span class="symbol">my-map</span> <span class="keyword">:key</span>)  <span class="comment">; or explicit get</span>
+
+<span class="comment">;; Non-string map keys — won't work</span>
+<span class="comment">;; Before:</span>
+{[<span class="number">1</span> <span class="number">2</span>] <span class="string">"value"</span>}    <span class="comment">; CLJS supports this</span>
+<span class="comment">;; After: restructure to use string keys, or use js/Map</span>
+<span class="comment">;; (but note: Squint's get/assoc don't work on js/Map —</span>
+<span class="comment">;; use .get/.set methods directly)</span></pre>
+
+    <h2 id="interop">Simplify interop</h2>
+
+    <p>One of the biggest wins of porting: all the <code>clj->js</code>,
+      <code>js->clj</code>, and <code>#js</code> ceremony disappears:</p>
+
+    <pre class="code"><span class="comment">;; Before (ClojureScript)</span>
+(<span class="special">let</span> [<span class="symbol">opts</span> (clj->js {<span class="keyword">:method</span> <span class="string">"POST"</span>
+                      <span class="keyword">:headers</span> {<span class="keyword">:Content-Type</span> <span class="string">"application/json"</span>}
+                      <span class="keyword">:body</span> (<span class="special">.</span><span class="symbol">stringify</span> <span class="symbol">js/JSON</span> (clj->js <span class="symbol">data</span>))})]
+  (<span class="special">.</span><span class="symbol">then</span> (<span class="macro">js/fetch</span> <span class="symbol">url</span> <span class="symbol">opts</span>) ...))
+
+<span class="comment">;; After (Squint) — much cleaner</span>
+(<span class="special">defn</span> <span class="macro">^:async</span> <span class="symbol">post-data</span> [<span class="symbol">url</span> <span class="symbol">data</span>]
+  (<span class="special">let</span> [<span class="symbol">res</span> (<span class="macro">js-await</span>
+              (<span class="macro">js/fetch</span> <span class="symbol">url</span>
+                {<span class="keyword">:method</span> <span class="string">"POST"</span>
+                 <span class="keyword">:headers</span> {<span class="keyword">:Content-Type</span> <span class="string">"application/json"</span>}
+                 <span class="keyword">:body</span> (<span class="macro">js/JSON.stringify</span> <span class="symbol">data</span>)}))]
+    (<span class="macro">js-await</span> (<span class="special">.</span><span class="symbol">json</span> <span class="symbol">res</span>))))</pre>
+
+    <h2 id="libraries">Replace libraries</h2>
+
+    <p>ClojureScript libraries won't work in Squint. Common replacements:</p>
+
+    <ul>
+      <li><b>Reagent / Re-frame</b> → React directly (with <code>#jsx</code>),
+        or <a href="https://github.com/borkdude/reagami">Reagami</a></li>
+      <li><b>cljs-ajax</b> → <code>js/fetch</code> with async/await</li>
+      <li><b>core.async</b> → async/await</li>
+      <li><b>Google Closure</b> → npm packages or native JS APIs</li>
+      <li><b>clojure.spec</b> → runtime validation with plain functions,
+        or a JS schema library (Zod, etc.)</li>
+      <li><b>clojure.test</b> → Node's <code>node:test</code> or Vitest</li>
+    </ul>
+
+    <p>Check the <a href="https://github.com/squint-cljs/squint-macros">squint-macros</a>
+      project for compatibility macros that ease the transition.</p>
+
+    <h2 id="testing">Test the port</h2>
+
+    <p>After converting, test incrementally:</p>
+
+    <pre class="code shell"><span class="comment"># Compile everything</span>
+$ npx squint compile src/**/*.cljs
+
+<span class="comment"># Run your entry point</span>
+$ node out/my_app/core.mjs
+
+<span class="comment"># Or use squint run for quick iteration</span>
+$ npx squint run src/my_app/core.cljs</pre>
+
+    <p>Common issues at this stage:</p>
+    <ul>
+      <li><b>Import errors</b> — check that npm packages are installed
+        and string requires are correct.</li>
+      <li><b>Missing functions</b> — some CLJS stdlib functions may not
+        exist. Check the <a href="api.html#stdlib">standard library</a>
+        listing.</li>
+      <li><b>Lazy sequence reuse</b> — if you iterate a lazy seq multiple
+        times, call <code>(vec ...)</code> to materialize it first.</li>
+    </ul>
+
+    <h2 id="checklist">Porting checklist</h2>
+
+    <ul>
+      <li>Remove <code>:import</code> from ns forms (keep
+        <code>:require-macros</code> — it's needed for macro expansion)</li>
+      <li>Replace CLJS library requires with npm packages</li>
+      <li>Remove all <code>clj->js</code> / <code>js->clj</code> calls</li>
+      <li>Replace <code>.then</code> chains with <code>^:async</code> /
+        <code>js-await</code></li>
+      <li>Change <code>(my-map :key)</code> to <code>(:key my-map)</code>
+        or <code>(get my-map :key)</code></li>
+      <li>Check for non-string map keys</li>
+      <li>Materialize lazy sequences that are consumed multiple times</li>
+      <li>Replace protocols with <code>defclass</code> or plain functions</li>
+      <li>Set <code>"type": "module"</code> in package.json</li>
+      <li>Add <code>squint.edn</code> configuration</li>
+    </ul>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+</body>
+</html>

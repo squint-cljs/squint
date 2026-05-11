@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Bundler Integration — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="bundlers.html">Bundlers</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>Bundler Integration</h1>
+
+    <p>Squint compiles to standard ES modules, so it works with any
+      JavaScript bundler. This guide covers the most common setups.</p>
+
+    <div class="toc">
+      <b>Contents</b>
+      <ul>
+        <li><a href="#workflow">General workflow</a></li>
+        <li><a href="#vite">Vite</a></li>
+        <li><a href="#esbuild">esbuild</a></li>
+        <li><a href="#node">Node.js (no bundler)</a></li>
+        <li><a href="#package-json">package.json setup</a></li>
+        <li><a href="#publishing">Publishing to npm</a></li>
+      </ul>
+    </div>
+
+    <h2 id="workflow">General workflow</h2>
+
+    <p>The typical development flow is:</p>
+
+    <ol>
+      <li>Write <code>.cljs</code> files in <code>src/</code></li>
+      <li>Run <code>npx squint watch</code> to compile to <code>.mjs</code>
+        in <code>out/</code></li>
+      <li>Point your bundler at the compiled <code>.mjs</code> files</li>
+      <li>The bundler handles bundling, minification, and dev server</li>
+    </ol>
+
+    <p>Squint's output is plain ES modules — no special loader or plugin
+      is needed. The bundler sees standard JavaScript.</p>
+
+    <p><b>Namespace to path mapping:</b> Squint converts namespace names
+      to file paths — hyphens become underscores and dots become directory
+      separators. For example, namespace <code>my-app.core</code> compiles
+      to <code>my_app/core.mjs</code>.</p>
+
+    <p>Configure source and output directories in <code>squint.edn</code>:</p>
+
+    <pre class="code">{<span class="keyword">:paths</span> [<span class="string">"src"</span>]
+ <span class="keyword">:output-dir</span> <span class="string">"out"</span>
+ <span class="keyword">:extension</span> <span class="string">"mjs"</span>
+ <span class="keyword">:copy-resources</span> [<span class="string">".css"</span> <span class="string">".html"</span> <span class="string">".svg"</span>]}</pre>
+
+    <h2 id="vite">Vite</h2>
+
+    <p>Vite is the recommended bundler for Squint web projects. It's fast,
+      requires minimal configuration, and handles ES modules natively.</p>
+
+    <pre class="code shell">$ npm install vite --save-dev</pre>
+
+    <p>Create a minimal <code>vite.config.js</code>:</p>
+
+    <pre class="code"><span class="js-keyword">export default</span> {
+  root: <span class="js-string">"out"</span>,       <span class="js-comment">// point at Squint's output directory</span>
+  build: {
+    outDir: <span class="js-string">"../dist"</span>  <span class="js-comment">// final build output</span>
+  }
+};</pre>
+
+    <p>Create <code>out/index.html</code> that loads your entry point:</p>
+
+    <pre class="code">&lt;script type=<span class="js-string">"module"</span> src=<span class="js-string">"./my_app/core.mjs"</span>&gt;&lt;/script&gt;</pre>
+
+    <p>Run both watchers in parallel:</p>
+
+    <pre class="code shell"><span class="comment"># Terminal 1: compile Squint</span>
+$ npx squint watch
+
+<span class="comment"># Terminal 2: Vite dev server</span>
+$ npx vite out</pre>
+
+    <p>Vite's HMR (Hot Module Replacement) will pick up changes as
+      Squint recompiles your files.</p>
+
+    <h2 id="esbuild">esbuild</h2>
+
+    <p>esbuild is the fastest bundler and ideal for production builds:</p>
+
+    <pre class="code shell">$ npm install esbuild --save-dev</pre>
+
+    <pre class="code shell"><span class="comment"># Bundle for the browser</span>
+$ npx esbuild out/my_app/core.mjs \
+    --bundle --minify --outfile=dist/app.js
+
+<span class="comment"># Bundle for Node.js</span>
+$ npx esbuild out/my_app/core.mjs \
+    --bundle --platform=node --outfile=dist/app.cjs</pre>
+
+    <p>esbuild produces extremely small bundles. Combined with Squint's
+      already-small output, this gives you the best possible bundle sizes.</p>
+
+    <h2 id="node">Node.js (no bundler)</h2>
+
+    <p>For scripts, CLI tools, and servers, no bundler is needed. Run
+      the compiled output directly:</p>
+
+    <pre class="code shell"><span class="comment"># Compile and run directly</span>
+$ npx squint run src/my_app/core.cljs
+
+<span class="comment"># Or compile separately and run with Node</span>
+$ npx squint compile src/my_app/core.cljs
+$ node out/my_app/core.mjs</pre>
+
+    <p>Make sure your <code>package.json</code> has
+      <code>"type": "module"</code> (see below).</p>
+
+    <h2 id="package-json">package.json setup</h2>
+
+    <p>The most important setting for Squint projects:</p>
+
+    <pre class="code">{
+  <span class="js-string">"type"</span>: <span class="js-string">"module"</span>
+}</pre>
+
+    <p>Squint outputs <code>.mjs</code> files by default, which Node.js
+      treats as ES modules regardless of this setting. But if you
+      configure Squint to output <code>.js</code> files (via
+      <code>:extension "js"</code> in <code>squint.edn</code>), or if
+      other tooling expects it, <code>"type": "module"</code> is
+      required. It's good practice to always include it.</p>
+
+    <p>A complete <code>package.json</code> for a Squint project:</p>
+
+    <pre class="code">{
+  <span class="js-string">"name"</span>: <span class="js-string">"my-squint-project"</span>,
+  <span class="js-string">"type"</span>: <span class="js-string">"module"</span>,
+  <span class="js-string">"scripts"</span>: {
+    <span class="js-string">"dev"</span>: <span class="js-string">"squint watch"</span>,
+    <span class="js-string">"build"</span>: <span class="js-string">"squint compile src/**/*.cljs"</span>,
+    <span class="js-string">"start"</span>: <span class="js-string">"node out/my_app/core.mjs"</span>
+  },
+  <span class="js-string">"dependencies"</span>: {
+    <span class="js-string">"squint-cljs"</span>: <span class="js-string">"latest"</span>
+  }
+}</pre>
+
+    <h2 id="publishing">Publishing to npm</h2>
+
+    <p>Squint libraries can be published to npm as standard ES modules.
+      JavaScript consumers don't need to know the code was written in
+      Squint:</p>
+
+    <pre class="code">{
+  <span class="js-string">"name"</span>: <span class="js-string">"my-library"</span>,
+  <span class="js-string">"type"</span>: <span class="js-string">"module"</span>,
+  <span class="js-string">"exports"</span>: {
+    <span class="js-string">"."</span>: <span class="js-string">"./out/my_library/core.mjs"</span>
+  },
+  <span class="js-string">"files"</span>: [<span class="js-string">"out"</span>]
+}</pre>
+
+    <p>Compile before publishing:</p>
+
+    <pre class="code shell">$ npx squint compile src/**/*.cljs
+$ npm publish</pre>
+
+    <p>Consumers install and use it like any npm package — the compiled
+      output is clean, readable JavaScript with minimal overhead.</p>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>API Listing — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="rationale.html">Rationale</a>
+    <a href="js-primer.html">JS Primer</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="style.html">Style</a>
+    <a href="macros.html">Macros</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>API Listing</h1>
+
+    <p>This page documents Squint's special forms, compiler API, and
+      configuration options.</p>
+
+    <div class="toc">
+      <b>Contents</b>
+      <ul>
+        <li><a href="#special-forms">Special forms</a></li>
+        <li><a href="#definitions">Definitions</a></li>
+        <li><a href="#js-interop">JavaScript interop</a></li>
+        <li><a href="#async-gen">Async and generators</a></li>
+        <li><a href="#jsx-html">JSX and HTML</a></li>
+        <li><a href="#stdlib">Standard library highlights</a></li>
+        <li><a href="#compiler-api">Compiler API</a></li>
+        <li><a href="#config">Configuration (squint.edn)</a></li>
+        <li><a href="#cli">CLI commands</a></li>
+      </ul>
+    </div>
+
+    <!-- ── Special forms ─────────────────────────────── -->
+
+    <h2 id="special-forms">Special forms</h2>
+
+    <p>These are built into the compiler and cannot be overridden.</p>
+
+    <h3><code>if</code></h3>
+    <pre class="code">(<span class="special">if</span> <span class="symbol">test</span> <span class="symbol">then</span> <span class="symbol">else</span>)</pre>
+    <p>Evaluates <code>test</code>. If truthy, evaluates and returns
+      <code>then</code>, otherwise <code>else</code>. Both branches are
+      optional (missing <code>else</code> returns <code>nil</code>).
+      Note: Squint follows ClojureScript truthiness — only <code>nil</code>,
+      <code>undefined</code>, and <code>false</code> are falsy.
+      <code>0</code> and <code>""</code> are truthy.</p>
+
+    <h3><code>let</code></h3>
+    <pre class="code">(<span class="special">let</span> [<span class="symbol">name</span> <span class="symbol">value</span> ...] <span class="symbol">body</span>)</pre>
+    <p>Creates local bindings. Bindings are sequential — later bindings
+      can reference earlier ones. Supports destructuring. Compiles to
+      <code>const</code> declarations. Destructuring uses
+      <code>squint_core.get()</code> rather than JS native destructuring.</p>
+
+    <h3><code>do</code></h3>
+    <pre class="code">(<span class="special">do</span> <span class="symbol">expr1</span> <span class="symbol">expr2</span> ...)</pre>
+    <p>Evaluates expressions in order, returns the last. Used to group
+      multiple expressions where only one is expected.</p>
+
+    <h3><code>loop</code> / <code>recur</code></h3>
+    <pre class="code">(<span class="special">loop</span> [<span class="symbol">i</span> <span class="number">0</span>]
+  (<span class="special">when</span> (<span class="special">&lt;</span> <span class="symbol">i</span> <span class="number">10</span>)
+    (<span class="symbol">println</span> <span class="symbol">i</span>)
+    (<span class="special">recur</span> (<span class="special">inc</span> <span class="symbol">i</span>))))</pre>
+    <p>Compiles to a <code>while(true)</code> loop with variable reassignment.
+      <code>recur</code> can only appear in tail position. Also works with
+      <code>defn</code> for self-recursion.</p>
+
+    <h3><code>when</code></h3>
+    <pre class="code">(<span class="special">when</span> <span class="symbol">test</span> <span class="symbol">body...</span>)</pre>
+    <p>If <code>test</code> is truthy, evaluates all body expressions.
+      Returns <code>nil</code> if test is falsy. No else branch.</p>
+
+    <h3><code>cond</code></h3>
+    <pre class="code">(<span class="special">cond</span>
+  <span class="symbol">test1</span> <span class="symbol">expr1</span>
+  <span class="symbol">test2</span> <span class="symbol">expr2</span>
+  <span class="keyword">:else</span> <span class="symbol">default</span>)</pre>
+    <p>Multi-branch conditional. Tests are evaluated in order; the first
+      truthy test's expression is returned.</p>
+
+    <h3><code>case</code></h3>
+    <pre class="code">(<span class="special">case</span> <span class="symbol">expr</span>
+  <span class="symbol">value1</span> <span class="symbol">result1</span>
+  <span class="symbol">value2</span> <span class="symbol">result2</span>
+  <span class="symbol">default-result</span>)</pre>
+    <p>Constant-time dispatch. Compiles to a JavaScript <code>switch</code>
+      statement. The last form without a matching value is the default.</p>
+
+    <h3><code>try</code> / <code>catch</code> / <code>finally</code></h3>
+    <pre class="code">(<span class="special">try</span>
+  (<span class="symbol">risky-operation</span>)
+  (<span class="special">catch</span> <span class="symbol">e</span>
+    (<span class="symbol">println</span> <span class="string">"Error:"</span> (<span class="special">.-</span><span class="symbol">message</span> <span class="symbol">e</span>)))
+  (<span class="special">finally</span>
+    (<span class="symbol">cleanup</span>)))</pre>
+
+    <h3><code>throw</code></h3>
+    <pre class="code">(<span class="special">throw</span> (<span class="macro">js/Error.</span> <span class="string">"Something went wrong"</span>))</pre>
+
+    <h3><code>quote</code> / <code>'</code></h3>
+    <pre class="code">'(<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>)  <span class="comment">; returns the list as data</span></pre>
+
+    <!-- ── Definitions ───────────────────────────────── -->
+
+    <h2 id="definitions">Definitions</h2>
+
+    <h3><code>def</code></h3>
+    <pre class="code">(<span class="special">def</span> <span class="symbol">name</span> <span class="symbol">value</span>)</pre>
+    <p>Defines a module-level binding. Exported from the module by default.
+      Use <code>^:private</code> metadata to prevent export.</p>
+
+    <h3><code>defn</code></h3>
+    <pre class="code">(<span class="special">defn</span> <span class="symbol">name</span> [<span class="symbol">params...</span>] <span class="symbol">body</span>)
+(<span class="special">defn</span> <span class="symbol">name</span> <span class="string">"docstring"</span> [<span class="symbol">params...</span>] <span class="symbol">body</span>)
+(<span class="special">defn</span> <span class="symbol">name</span>
+  ([<span class="symbol">x</span>] ...)
+  ([<span class="symbol">x</span> <span class="symbol">y</span>] ...))</pre>
+    <p>Defines a named function. Supports docstrings, multiple arities,
+      destructuring, variadic args (<code>&amp;</code>), and metadata
+      (<code>^:async</code>, <code>^:private</code>, <code>^:gen</code>).</p>
+
+    <h3><code>fn</code></h3>
+    <pre class="code">(<span class="special">fn</span> [<span class="symbol">x</span>] (<span class="special">+</span> <span class="symbol">x</span> <span class="number">1</span>))
+(<span class="special">fn</span> <span class="symbol">my-fn</span> [<span class="symbol">x</span>] (<span class="special">+</span> <span class="symbol">x</span> <span class="number">1</span>))</pre>
+    <p>Anonymous function. Compiles to a function expression. Use
+      <code>^:=></code> metadata for arrow function output.</p>
+
+    <h3><code>defmacro</code></h3>
+    <pre class="code">(<span class="special">defmacro</span> <span class="symbol">name</span> [<span class="symbol">params...</span>] <span class="symbol">body</span>)</pre>
+    <p>Defines a compile-time macro. See the <a href="macros.html">Macro
+      Guide</a> for details.</p>
+
+    <h3><code>defclass</code></h3>
+    <pre class="code">(<span class="special">defclass</span> <span class="symbol">MyClass</span>
+  (<span class="symbol">extends</span> <span class="symbol">ParentClass</span>)
+
+  <span class="comment">;; Instance fields</span>
+  (<span class="symbol">field</span> <span class="symbol">-x</span>)
+  (<span class="symbol">field</span> <span class="symbol">-y</span> <span class="keyword">:default</span>)
+
+  <span class="comment">;; Static field</span>
+  (<span class="macro">^:static</span> <span class="symbol">field</span> <span class="symbol">-count</span> <span class="number">0</span>)
+
+  <span class="comment">;; Constructor</span>
+  (<span class="symbol">constructor</span> [<span class="symbol">this</span> <span class="symbol">x</span> <span class="symbol">y</span>]
+    (<span class="symbol">super</span> <span class="symbol">x</span>)
+    (<span class="special">set!</span> <span class="symbol">-x</span> <span class="symbol">x</span>)
+    (<span class="special">set!</span> <span class="symbol">-y</span> <span class="symbol">y</span>))
+
+  <span class="comment">;; Instance methods</span>
+  Object
+  (<span class="symbol">toString</span> [<span class="symbol">this</span>]
+    (<span class="symbol">str</span> <span class="string">"MyClass("</span> <span class="symbol">-x</span> <span class="string">")"</span>))
+
+  <span class="comment">;; Static method</span>
+  (<span class="macro">^:static</span> <span class="symbol">create</span> [<span class="symbol">_</span> <span class="symbol">x</span>]
+    (<span class="macro">js/MyClass.</span> <span class="symbol">x</span> <span class="keyword">nil</span>))
+
+  <span class="comment">;; Async method</span>
+  (<span class="macro">^:async</span> <span class="symbol">fetch</span> [<span class="symbol">this</span> <span class="symbol">url</span>]
+    (<span class="macro">js-await</span> (<span class="macro">js/fetch</span> <span class="symbol">url</span>))))</pre>
+    <p>Defines a JavaScript class. Supports:</p>
+    <ul>
+      <li><code>(field -name)</code> — instance fields with optional defaults</li>
+      <li><code>(^:static field -name)</code> — static fields</li>
+      <li><code>(constructor [this ...] body)</code> — constructor with <code>super</code></li>
+      <li><code>(extends Parent)</code> — inheritance</li>
+      <li><code>(^:static method [_] body)</code> — static methods</li>
+      <li><code>(^:async method [this] body)</code> — async methods</li>
+    </ul>
+    <p>See the <a href="https://github.com/squint-cljs/squint/blob/main/doc/defclass.md">defclass
+      documentation</a> for full details.</p>
+
+    <!-- ── JavaScript interop ────────────────────────── -->
+
+    <h2 id="js-interop">JavaScript interop</h2>
+
+    <h3><code>js/</code> — global access</h3>
+    <pre class="code">(<span class="macro">js/console.log</span> <span class="string">"hello"</span>)
+(<span class="special">def</span> <span class="symbol">now</span> (<span class="macro">js/Date.now</span>))
+(<span class="special">def</span> <span class="symbol">obj</span> (<span class="macro">js/URL.</span> <span class="string">"https://example.com"</span>))</pre>
+    <p>Access global JavaScript objects. Trailing <code>.</code> means
+      constructor call (<code>new</code>).</p>
+
+    <h3><code>.</code> — method call</h3>
+    <pre class="code">(<span class="special">.</span><span class="symbol">toUpperCase</span> <span class="string">"hello"</span>)    <span class="comment">; "HELLO"</span>
+(<span class="special">.</span><span class="symbol">slice</span> <span class="symbol">arr</span> <span class="number">1</span> <span class="number">3</span>)           <span class="comment">; subarray</span></pre>
+
+    <h3><code>.-</code> — property access</h3>
+    <pre class="code">(<span class="special">.-</span><span class="symbol">length</span> <span class="string">"hello"</span>)        <span class="comment">; 5</span>
+(<span class="special">.-</span><span class="symbol">protocol</span> <span class="symbol">location</span>)    <span class="comment">; "https:"</span></pre>
+
+    <h3><code>set!</code> — property assignment</h3>
+    <pre class="code">(<span class="special">set!</span> (<span class="special">.-</span><span class="symbol">title</span> <span class="macro">js/document</span>) <span class="string">"My App"</span>)</pre>
+
+    <h3><code>#js</code> — JS literal</h3>
+    <pre class="code">#js {<span class="keyword">:a</span> <span class="number">1</span> <span class="keyword">:b</span> <span class="number">2</span>}   <span class="comment">; JS object literal</span>
+#js [<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>]       <span class="comment">; JS array literal</span></pre>
+
+    <!-- ── Async and generators ──────────────────────── -->
+
+    <h2 id="async-gen">Async and generators</h2>
+
+    <h3><code>^:async</code> / <code>js-await</code></h3>
+    <pre class="code">(<span class="special">defn</span> <span class="macro">^:async</span> <span class="symbol">fetch-data</span> [<span class="symbol">url</span>]
+  (<span class="special">let</span> [<span class="symbol">res</span> (<span class="macro">js-await</span> (<span class="macro">js/fetch</span> <span class="symbol">url</span>))]
+    (<span class="macro">js-await</span> (<span class="special">.</span><span class="symbol">json</span> <span class="symbol">res</span>))))</pre>
+    <p>Compiles to <code>async function</code> / <code>await</code>.
+      The <code>^:async</code> metadata can be applied to <code>defn</code>
+      or <code>fn</code>.</p>
+
+    <h3><code>^:gen</code> / <code>js-yield</code></h3>
+    <pre class="code">(<span class="special">defn</span> <span class="macro">^:gen</span> <span class="symbol">range-gen</span> [<span class="symbol">start</span> <span class="symbol">end</span>]
+  (<span class="special">loop</span> [<span class="symbol">i</span> <span class="symbol">start</span>]
+    (<span class="special">when</span> (<span class="special">&lt;</span> <span class="symbol">i</span> <span class="symbol">end</span>)
+      (<span class="macro">js-yield</span> <span class="symbol">i</span>)
+      (<span class="special">recur</span> (<span class="special">inc</span> <span class="symbol">i</span>)))))</pre>
+    <p>Compiles to a generator function (<code>function*</code>) with
+      <code>yield</code>. Use <code>js-yield*</code> to delegate to another
+      iterable (like <code>yield*</code> in JS):</p>
+
+    <pre class="code">(<span class="special">defn</span> <span class="macro">^:gen</span> <span class="symbol">all-items</span> []
+  (<span class="macro">js-yield</span> <span class="number">0</span>)
+  (<span class="macro">js-yield*</span> [<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>])
+  (<span class="macro">js-yield</span> <span class="number">4</span>))</pre>
+
+    <h3><code>^:=></code> — arrow functions</h3>
+    <pre class="code">(<span class="special">fn</span> <span class="macro">^:=></span> [<span class="symbol">x</span>] (<span class="special">+</span> <span class="symbol">x</span> <span class="number">1</span>))</pre>
+    <p>Emits a JavaScript arrow function instead of a regular function
+      expression. Useful for callbacks where you need lexical <code>this</code>.</p>
+
+    <!-- ── JSX and HTML ──────────────────────────────── -->
+
+    <h2 id="jsx-html">JSX and HTML</h2>
+
+    <h3><code>#jsx</code></h3>
+    <pre class="code"><span class="macro">#jsx</span> [<span class="keyword">:div</span> {<span class="keyword">:className</span> <span class="string">"app"</span>}
+  [<span class="keyword">:h1</span> <span class="string">"Hello"</span>]
+  [<span class="keyword">:p</span> <span class="string">"World"</span>]]</pre>
+    <p>Converts hiccup-style vectors to JSX. Works with React and any
+      JSX-consuming library.</p>
+
+    <h3><code>#html</code></h3>
+    <pre class="code"><span class="macro">#html</span> [<span class="keyword">:div</span>
+  [<span class="keyword">:h1</span> <span class="string">"Hello"</span>]
+  [<span class="keyword">:p</span> <span class="string">"World"</span>]]
+
+<span class="comment">;; Hiccup shorthand for id and class</span>
+<span class="macro">#html</span> [<span class="keyword">:div.container#main</span>
+  [<span class="keyword">:p.intro</span> <span class="string">"Welcome"</span>]]
+
+<span class="comment">;; Raw unescaped output via :$</span>
+<span class="macro">#html</span> [<span class="keyword">:$</span> <span class="string">"&lt;!DOCTYPE html&gt;"</span>]</pre>
+    <p>Generates HTML strings from hiccup syntax. Content is escaped by
+      default. Use <code>[:$ ...]</code> for raw unescaped output. Supports
+      hiccup shorthand for id (<code>#</code>) and class (<code>.</code>)
+      attributes. Useful for server-side rendering or static site
+      generation.</p>
+
+    <!-- ── Standard library ──────────────────────────── -->
+
+    <h2 id="stdlib">Standard library highlights</h2>
+
+    <p>Squint re-implements a subset of Clojure's standard library for
+      JavaScript data structures. Here are the most commonly used
+      functions:</p>
+
+    <h3>Collections</h3>
+    <pre class="code"><span class="symbol">map</span> <span class="symbol">filter</span> <span class="symbol">reduce</span> <span class="symbol">remove</span> <span class="symbol">keep</span>
+<span class="symbol">first</span> <span class="symbol">rest</span> <span class="symbol">next</span> <span class="symbol">last</span> <span class="symbol">butlast</span>
+<span class="symbol">nth</span> <span class="symbol">count</span> <span class="symbol">empty?</span> <span class="symbol">seq</span>
+<span class="symbol">conj</span> <span class="symbol">cons</span> <span class="symbol">into</span> <span class="symbol">concat</span>
+<span class="symbol">take</span> <span class="symbol">drop</span> <span class="symbol">take-while</span> <span class="symbol">drop-while</span>
+<span class="symbol">partition</span> <span class="symbol">partition-by</span> <span class="symbol">group-by</span>
+<span class="symbol">sort</span> <span class="symbol">sort-by</span> <span class="symbol">reverse</span>
+<span class="symbol">distinct</span> <span class="symbol">dedupe</span> <span class="symbol">frequencies</span>
+<span class="symbol">interleave</span> <span class="symbol">interpose</span> <span class="symbol">flatten</span>
+<span class="symbol">some</span> <span class="symbol">every?</span> <span class="symbol">not-every?</span> <span class="symbol">not-any?</span></pre>
+
+    <h3>Maps (objects)</h3>
+    <pre class="code"><span class="symbol">get</span> <span class="symbol">get-in</span> <span class="symbol">assoc</span> <span class="symbol">assoc-in</span> <span class="symbol">dissoc</span>
+<span class="symbol">update</span> <span class="symbol">update-in</span> <span class="symbol">merge</span>
+<span class="symbol">select-keys</span> <span class="symbol">rename-keys</span>
+<span class="symbol">keys</span> <span class="symbol">vals</span>
+<span class="symbol">contains?</span> <span class="symbol">find</span></pre>
+
+    <h3>Strings</h3>
+    <pre class="code"><span class="symbol">str</span> <span class="symbol">subs</span> <span class="symbol">name</span> <span class="symbol">namespace</span>
+<span class="symbol">clojure.string/join</span>
+<span class="symbol">clojure.string/split</span>
+<span class="symbol">clojure.string/replace</span>
+<span class="symbol">clojure.string/trim</span>
+<span class="symbol">clojure.string/upper-case</span>
+<span class="symbol">clojure.string/lower-case</span>
+<span class="symbol">clojure.string/starts-with?</span>
+<span class="symbol">clojure.string/ends-with?</span>
+<span class="symbol">clojure.string/includes?</span>
+<span class="symbol">clojure.string/blank?</span></pre>
+
+    <h3>Math and comparison</h3>
+    <pre class="code"><span class="special">+</span> <span class="special">-</span> <span class="special">*</span> <span class="special">/</span> <span class="symbol">mod</span> <span class="symbol">rem</span> <span class="symbol">quot</span>
+<span class="special">inc</span> <span class="symbol">dec</span> <span class="symbol">max</span> <span class="symbol">min</span> <span class="symbol">abs</span>
+<span class="special">=</span> <span class="symbol">not=</span> <span class="special">&lt;</span> <span class="special">&gt;</span> <span class="special">&lt;=</span> <span class="special">&gt;=</span>
+<span class="symbol">zero?</span> <span class="symbol">pos?</span> <span class="symbol">neg?</span> <span class="symbol">even?</span> <span class="symbol">odd?</span>
+<span class="symbol">number?</span> <span class="symbol">string?</span> <span class="symbol">fn?</span> <span class="symbol">nil?</span> <span class="symbol">boolean?</span></pre>
+
+    <h3>State</h3>
+    <pre class="code"><span class="comment">;; Atoms</span>
+<span class="symbol">atom</span> <span class="symbol">deref</span> <span class="symbol">swap!</span> <span class="symbol">reset!</span> <span class="symbol">add-watch</span> <span class="symbol">remove-watch</span>
+<span class="symbol">compare-and-swap!</span> <span class="symbol">swap-vals!</span> <span class="symbol">reset-vals!</span>
+
+<span class="comment">;; Volatiles (faster than atoms, no watches)</span>
+<span class="symbol">volatile!</span> <span class="symbol">vreset!</span> <span class="symbol">vswap!</span></pre>
+
+    <h3>Functions</h3>
+    <pre class="code"><span class="symbol">apply</span> <span class="symbol">comp</span> <span class="symbol">partial</span> <span class="symbol">complement</span> <span class="symbol">juxt</span>
+<span class="symbol">identity</span> <span class="symbol">constantly</span> <span class="symbol">fnil</span>
+<span class="symbol">memoize</span></pre>
+
+    <p>For the complete list, see the
+      <a href="https://github.com/squint-cljs/squint#readme">Squint README</a>
+      on GitHub.</p>
+
+    <!-- ── Compiler API ──────────────────────────────── -->
+
+    <h2 id="compiler-api">Compiler API</h2>
+
+    <p>You can use Squint's compiler programmatically from JavaScript:</p>
+
+    <pre class="code"><span class="js-keyword">import</span> { compileString } <span class="js-keyword">from</span> <span class="js-string">"squint-cljs"</span>;
+
+<span class="js-keyword">const</span> result = compileString(<span class="js-string">'(defn greet [x] (str "Hi " x))'</span>);
+console.log(result);
+<span class="js-comment">// function greet(x) { return "Hi " + x; }</span></pre>
+
+    <p><code>compileString</code> accepts options:</p>
+
+    <ul>
+      <li><code>{ repl: true }</code> — REPL mode, allows top-level
+        expressions</li>
+      <li><code>{ context: "return" }</code> — wraps output in a return
+        statement</li>
+      <li><code>{ elide-imports: true }</code> — omit import statements
+        from output</li>
+    </ul>
+
+    <!-- ── Configuration ─────────────────────────────── -->
+
+    <h2 id="config">Configuration (squint.edn)</h2>
+
+    <p>Project-level configuration is stored in <code>squint.edn</code> at
+      the project root:</p>
+
+    <pre class="code">{<span class="keyword">:paths</span> [<span class="string">"src"</span>]
+ <span class="keyword">:output-dir</span> <span class="string">"out"</span>
+ <span class="keyword">:extension</span> <span class="string">"mjs"</span>
+ <span class="keyword">:copy-resources</span> [<span class="string">".json"</span> <span class="string">".svg"</span>]
+ <span class="keyword">:import-maps</span> {<span class="string">"react"</span> <span class="string">"https://esm.sh/react"</span>}}</pre>
+
+    <p>Key options:</p>
+
+    <ul>
+      <li><code>:paths</code> — directories containing <code>.cljs</code>
+        source files</li>
+      <li><code>:output-dir</code> — where compiled <code>.mjs</code> files
+        are written</li>
+      <li><code>:extension</code> — file extension for output
+        (<code>"mjs"</code> or <code>"js"</code>)</li>
+      <li><code>:copy-resources</code> — file extensions or patterns to copy
+        unchanged to the output directory</li>
+      <li><code>:import-maps</code> — bare specifier remapping for imports</li>
+    </ul>
+
+    <!-- ── CLI ───────────────────────────────────────── -->
+
+    <h2 id="cli">CLI commands</h2>
+
+    <pre class="code shell">$ npx squint run file.cljs              <span class="comment"># Compile and run</span>
+$ npx squint compile file.cljs          <span class="comment"># Compile to .mjs</span>
+$ npx squint watch                      <span class="comment"># Watch and recompile on changes</span>
+$ npx squint repl                       <span class="comment"># Start interactive REPL</span>
+$ npx squint nrepl-server :port 3333    <span class="comment"># Start nREPL server</span></pre>
+
+    <p>All commands respect the <code>squint.edn</code> configuration file
+      if present.</p>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+</body>
+</html>
