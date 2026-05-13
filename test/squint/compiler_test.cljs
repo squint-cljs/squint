@@ -2742,6 +2742,24 @@ new Foo();")
                           :elide-exports true
                           :top-level false}))))))
 
+(deftest compile-string-macros-js-test
+  (let [compiler-macros #js {:custom
+                             #js {:expr-and (fn [_ _ & args]
+                                              (let [js (str/join " && " (repeat (count args) "(~{})"))]
+                                                (vary-meta
+                                                 (concat (list 'js* js) args)
+                                                 assoc :tag 'boolean)))}}
+        result (squint/compileStringEx
+                "(let [value 1]
+       (custom/expr-and (= value 1) (= 2 2)))"
+                #js {:context "expr"
+                     :macros compiler-macros
+                     :elide-imports true
+                     :elide-exports true
+                     :top-level false}
+                nil)]
+    (is (true? (js/eval (.-javascript result))))))
+
 (deftest issue-704-test
   (is (eq 10 (jsv! "(let [a (atom 1)] (while (< @a 10) (swap! a inc)) @a)"))))
 
