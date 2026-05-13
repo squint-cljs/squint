@@ -590,7 +590,20 @@
           (jsv! '(do (defprotocol IFoo (-foo [_]))
                      (let [xs [10 20 30]]
                        (mapv (fn [x] (-foo (reify IFoo (-foo [_] x))))
-                             xs)))))))
+                             xs))))))
+  (is (true? (jsv! '(do (defprotocol P
+                          (a? [h])
+                          (b? [h])
+                          (c [h]))
+                        (defn mk-p [v]
+                          (reify P
+                            (a? [_] true)
+                            (b? [_] false)
+                            (c [_] v)))
+                        (let [h (mk-p :foo)]
+                          (and (a? h)
+                               (not (b? h))
+                               (= :foo (c h)))))))))
 
 (deftest set-test
   (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))
