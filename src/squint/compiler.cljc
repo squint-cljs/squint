@@ -552,13 +552,26 @@
                     :ns-state (:ns-state opts)))))))))
 
 #?(:cljs
+   (defn- macros-opt->symbol-keys
+     [macros-map]
+     (into {}
+           (map (fn [[ns-k inner]]
+                  [(symbol (name ns-k))
+                   (into {}
+                         (map (fn [[macro-k macro-fn]]
+                                [(symbol (name macro-k)) macro-fn])
+                              inner))]))
+           macros-map)))
+
+#?(:cljs
    (defn clj-ize-opts [opts]
      (let [opts (js->clj opts :keywordize-keys true)]
        (cond-> opts
          (:context opts) (update :context keyword)
          (:ns opts) (update :ns symbol)
          (:elide_imports opts) (assoc :elide-imports (:elide_imports opts))
-         (:elide_exports opts) (assoc :elide-exports (:elide_exports opts))))))
+         (:elide_exports opts) (assoc :elide-exports (:elide_exports opts))
+         (:macros opts) (update :macros macros-opt->symbol-keys)))))
 
 #?(:cljs
    (defn compileStringEx [s opts state]
