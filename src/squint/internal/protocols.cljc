@@ -156,3 +156,11 @@
         (bar [x y] ...)))"
   [_ _ p & specs]
   (emit-extend-protocol p specs))
+
+(core/defn core-reify
+  [_ _ & impls]
+  (core/let [t (gensym "t_reify_")]
+    `(do
+       (deftype ~t []
+         ~@impls)
+       (new ~t))))

@@ -558,11 +558,11 @@
                      (bar (->Foo) 1 2))))))
 
 (deftest satisfies?-test
-  #_#_(is (jsv! '(do (defprotocol IFoo)
-                     (satisfies? (reify IFoo)))))
+  (is (jsv! '(do (defprotocol IFoo)
+                 (satisfies? IFoo (reify IFoo)))))
   (is (jsv! '(do (defprotocol IFoo (-foo [_]))
-                 (satisfies? (reify IFoo
-                               (-foo [_] "bar"))))))
+                 (satisfies? IFoo (reify IFoo
+                                    (-foo [_] "bar"))))))
   (is (jsv! '(do (defprotocol IFoo)
                  (deftype Foo [] IFoo)
                  (satisfies? IFoo (->Foo)))))
@@ -575,6 +575,35 @@
   (is (jsv! '(do (defprotocol IFoo)
                  (extend-type string IFoo)
                  (satisfies? IFoo "bar")))))
+
+(deftest reify-test
+  (is (jsv! '(do (defprotocol IFoo (-foo [_]))
+                 (defprotocol IBar (-bar [_]))
+                 (let [r (reify IFoo (-foo [_] :foo)
+                                IBar (-bar [_] :bar))]
+                   (and (satisfies? IFoo r) (satisfies? IBar r))))))
+  (is (= "b" (jsv! '(do (defprotocol IFoo (-foo [_]) (-bar [_]))
+                        (-foo (reify IFoo
+                                (-foo [this] (-bar this))
+                                (-bar [_] "b")))))))
+  (is (eq #js [10 20 30]
+          (jsv! '(do (defprotocol IFoo (-foo [_]))
+                     (let [xs [10 20 30]]
+                       (mapv (fn [x] (-foo (reify IFoo (-foo [_] x))))
+                             xs))))))
+  (is (true? (jsv! '(do (defprotocol P
+                          (a? [h])
+                          (b? [h])
+                          (c [h]))
+                        (defn mk-p [v]
+                          (reify P
+                            (a? [_] true)
+                            (b? [_] false)
+                            (c [_] v)))
+                        (let [h (mk-p :foo)]
+                          (and (a? h)
+                               (not (b? h))
+                               (= :foo (c h)))))))))
 
 (deftest set-test
   (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))
