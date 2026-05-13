@@ -453,6 +453,24 @@
 (deftest quote-test
   (is (eq '{x 1} (jsv! (list 'quote '{x 1})))))
 
+(deftest syntax-quote-test
+  (is (eq '(foo 1) (jsv! "`(foo ~1)"))))
+
+(deftest symbol-runtime-test
+  (testing "symbol? distinguishes symbols from strings"
+    (is (true?  (jsv! "(symbol? 'foo)")))
+    (is (false? (jsv! "(symbol? \"foo\")"))))
+  (testing "name and namespace decompose a Symbol"
+    (is (eq "foo" (jsv! "(name 'ns/foo)")))
+    (is (eq "ns"  (jsv! "(namespace 'ns/foo)")))
+    (is (nil?     (jsv! "(namespace 'foo)"))))
+  (testing "(symbol ns name) matches Clojure (namespace-first 2-arg)"
+    (is (eq "ns/foo" (jsv! "(str (symbol \"ns\" \"foo\"))"))))
+  (testing "= between symbols is structural, not string-based"
+    (is (true?  (jsv! "(= 'foo 'foo)")))
+    (is (false? (jsv! "(= 'foo 'bar)")))
+    (is (false? (jsv! "(= 'foo \"foo\")")))))
+
 (deftest case-test
   (is (= 2 (jsv! '(case 1 1 2 3 4))))
   (is (= 5 (jsv! '(case 6 1 2 3 4 (inc 4)))))

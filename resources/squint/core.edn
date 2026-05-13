@@ -6,6 +6,7 @@
   LazySeq
   NaN_QMARK_
   PROTOCOL_SENTINEL
+  Sym
   _
   _EQ_
   _GT_
@@ -121,6 +122,8 @@
   min
   min_key
   mod
+  name
+  namespace
   nat_int_QMARK_
   neg_QMARK_
   neg_int_QMARK_
@@ -185,6 +188,7 @@
   seq
   seq_QMARK_
   seqable_QMARK_
+  sequence
   sequential_QMARK_
   set
   set_QMARK_
@@ -204,6 +208,8 @@
   subvec
   swap_BANG_
   swap_vals_BANG_
+  symbol
+  symbol_QMARK_
   system_time
   t
   take

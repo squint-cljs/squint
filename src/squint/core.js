@@ -616,6 +616,55 @@ export function seq(x) {
   return iter;
 }
 
+export function sequence(coll) {
+  const s = seq(coll);
+  return s == null ? list() : list(...iterable(s));
+}
+
+// Internal name Sym to avoid clashing with the global Symbol used elsewhere
+// in this file (Symbol.iterator etc.).
+class Sym extends String {
+  constructor(ns, name) {
+    super(ns != null ? `${ns}/${name}` : name);
+    this.name = name;
+    this.namespace = ns ?? null;
+  }
+}
+export { Sym };
+
+export function symbol(ns_or_name, name_) {
+  if (name_ === undefined) {
+    if (ns_or_name instanceof Sym) return ns_or_name;
+    const s = String(ns_or_name);
+    const slash = s.indexOf("/");
+    if (slash > 0 && slash < s.length - 1) {
+      return new Sym(s.substring(0, slash), s.substring(slash + 1));
+    }
+    return new Sym(null, s);
+  }
+  return new Sym(ns_or_name, name_);
+}
+
+export function symbol_QMARK_(x) {
+  return x instanceof Sym;
+}
+
+export function name(x) {
+  if (x == null) return null;
+  if (x instanceof Sym) return x.name;
+  const s = String(x);
+  const slash = s.indexOf("/");
+  return slash > 0 && slash < s.length - 1 ? s.substring(slash + 1) : s;
+}
+
+export function namespace(x) {
+  if (x == null) return null;
+  if (x instanceof Sym) return x.namespace;
+  const s = String(x);
+  const slash = s.indexOf("/");
+  return slash > 0 && slash < s.length - 1 ? s.substring(0, slash) : null;
+}
+
 export function first(coll) {
   // destructuring uses iterable protocol
   const [first] = iterable(coll);
