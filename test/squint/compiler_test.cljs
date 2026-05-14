@@ -2760,6 +2760,36 @@ new Foo();")
                 nil)]
     (is (true? (js/eval (.-javascript result))))))
 
+(deftest macro-return-plain-object-test
+  (testing "a :macros macro returning a plain JS object emits an object literal, not [object Object]"
+    (let [macro-fn (fn [_f _e] #js {:a 1})
+          js (.-javascript
+              (squint/compileStringEx
+               "(c/m)"
+               #js {:macros #js {:c #js {:m macro-fn}}
+                    :context "statement"
+                    :elide-imports true
+                    :elide-exports true
+                    :top-level false}
+               nil))]
+      (is (not (str/includes? js "[object Object]")))
+      (is (str/includes? js "\"a\""))
+      (is (str/includes? js "1")))))
+
+(deftest macro-return-plain-array-test
+  (testing "a :macros macro returning a plain JS array emits an array literal, not a comma-flat toString"
+    (let [macro-fn (fn [_f _e] #js [10 20 30])
+          js (.-javascript
+              (squint/compileStringEx
+               "(c/m)"
+               #js {:macros #js {:c #js {:m macro-fn}}
+                    :context "statement"
+                    :elide-imports true
+                    :elide-exports true
+                    :top-level false}
+               nil))]
+      (is (not (re-find #"\b10,20,30\b" js))))))
+
 (deftest issue-704-test
   (is (eq 10 (jsv! "(let [a (atom 1)] (while (< @a 10) (swap! a inc)) @a)"))))
 

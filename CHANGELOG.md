@@ -6,6 +6,7 @@
 
 - Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`.
 - Fix [#820](https://github.com/squint-cljs/squint/issues/820): `:macros` option silently ignored when passed to `compileString` / `compileStringEx` from JavaScript callers (string keys were keyword-ized by `clj-ize-opts` and no longer matched the symbol-keyed macro lookups in `compile*`).
+- Fix [#824](https://github.com/squint-cljs/squint/issues/824): macro-return walker handles compound JS values (plain objects, arrays, Array subclasses) instead of stringifying them as `[object Object]` or comma-joined output.
 
 ## 0.11.189
 

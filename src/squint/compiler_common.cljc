@@ -229,7 +229,20 @@
 (defmethod emit :default [expr env]
   ;; RegExp case moved here:
   ;; References to the global RegExp object prevents optimization of regular expressions.
-  (emit-return (str expr) env))
+  #?(:clj (emit-return (str expr) env)
+     :cljs
+     (cond
+       (js/Array.isArray expr)
+       (emit (if (identical? (.-constructor expr) js/Array)
+               (vec expr)
+               (apply list expr))
+             env)
+
+       (and (object? expr) (identical? js/Object (.-constructor expr)))
+       (emit (zipmap (js/Object.keys expr) (js/Object.values expr)) env)
+
+       :else
+       (emit-return (str expr) env))))
 
 (def prefix-unary-operators '#{!})
 
