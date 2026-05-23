@@ -10,7 +10,6 @@
    [squint.repl.node :as repl]
    #_[squint.repl.nrepl-server :as nrepl]
    [squint.internal.node.utils :as utils]
-   [clojure.set :as cset]
    [clojure.string :as str])
   (:require-macros [squint.resource :refer [version]]))
 
@@ -440,23 +439,6 @@ Use squint <subcommand> --help to show more info."))))
   (let [{:keys [cmd]} (parse-cmd-opts-args cli-args)]
     (cmd-def-from-cmd cmd-table cmd)))
 
-(defn spec-opt-key [spec op spec-key]
-  (let [defer-spec-key (keyword (str "deferred-" (name spec-key)))]
-    (reduce-kv (fn [m k v]
-                 (assoc m k (cset/rename-keys v (case op
-                                                  :defer {spec-key defer-spec-key}
-                                                  :enable {defer-spec-key spec-key}))))
-               {}
-               spec)))
-
-(defn apply-opt-defaults [spec opts]
-  (reduce-kv (fn [opts spec-key {:keys [default]}]
-               (if (and default (nil? (spec-key opts)))
-                 (assoc opts spec-key default)
-                 opts))
-             opts
-             spec))
-
 (defn init []
   (let [cli-args (.slice js/process.argv 2)]
     (if-let [help (cmds-help-requested cli-args)]
@@ -464,9 +446,7 @@ Use squint <subcommand> --help to show more info."))))
       (let [cmd-table (mapv (fn [{:keys [spec] :as d}]
                               (let [usage-help (cmd-usage-help d)]
                                 (assoc d
-                                       :spec (-> spec
-                                                 (spec-opt-key :defer :default)
-                                                 (assoc :help {:alias :h}))
+                                       :spec (assoc spec :help {:alias :h})
                                        :usage-help usage-help
                                        :error-fn (make-error-fn usage-help)
                                        :restrict true)))
@@ -477,18 +457,15 @@ Use squint <subcommand> --help to show more info."))))
         (if-let [help (cmd-help-requested cmd-table cli-args)]
           (println help)
           (let [cmd-def (cmd-def-from-cli-args cmd-table cli-args)
-                cmd-opts-args (parse-cmd-opts-args cli-args cmd-def)
-                squint-edn? (:squint-edn? cmd-def)
-                merged-cmd-opts-args (if-not squint-edn?
-                                       cmd-opts-args
-                                       (assoc cmd-opts-args
-                                              :opts (utils/process-opts! (:opts cmd-opts-args))))
-                ;; we separate options defaults from parsing because options can come
-                ;; from 2 sources: command-line and squint.edn
-                cmd-def (update cmd-def :spec #(spec-opt-key % :enable :default))
-                merged-cmd-opts-args (assoc cmd-opts-args
-                                            :opts (apply-opt-defaults (:spec cmd-def)
-                                                                      (:opts merged-cmd-opts-args)))]
+                ;; squint.edn is passed as :exec-args so bb cli precedence is:
+                ;; CLI > squint.edn > spec :default
+                cmd-def (cond-> cmd-def
+                          (:squint-edn? cmd-def)
+                          (assoc :exec-args (utils/get-cfg)))
+                cmd-opts-args (parse-cmd-opts-args cli-args cmd-def)]
+            (when (:squint-edn? cmd-def)
+              ;; sync cfg atom with fully merged opts for downstream consumers
+              (utils/set-cfg! (:opts cmd-opts-args)))
             (when (:arg-count cmd-def)
-              (args-validate (merge cmd-def merged-cmd-opts-args)))
-            ((:fn cmd-def) merged-cmd-opts-args)))))))
+              (args-validate (merge cmd-def cmd-opts-args)))
+            ((:fn cmd-def) cmd-opts-args)))))))
