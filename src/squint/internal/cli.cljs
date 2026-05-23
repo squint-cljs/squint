@@ -280,13 +280,13 @@
     (str "\u001B[31m" text "\u001B[0m")))
 
 (defn make-error-fn [cmd-usage-help]
-  (fn [{:keys [type cause msg option value] :as data}]
+  (fn [{:keys [type cause msg option implicit-true] :as data}]
     (if-let [error-msg (case type
                          :org.babashka/cli (cond
                                              (= :require cause)
                                              (str "Missing required option: " (kw-opt->cli-opt option))
-                                             ;; Override default of: Coerce failure: "cannot transform (implicit) true to string"
-                                             (and (= :coerce cause) (= "true" value))
+                                             ;; Override default of: Coerce failure: "cannot transform (implicit) true to ..."
+                                             (and (= :coerce cause) implicit-true)
                                              (str "Option specified without value: " (kw-opt->cli-opt option))
                                              ;; Override default: Report unknown option in cmdline syntax, not as keyword
                                              (= :restrict cause)
