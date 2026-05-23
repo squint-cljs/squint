@@ -1,7 +1,7 @@
 {:paths ["src" "resources" "compiler-common"]
  :deps {borkdude/edamame {:mvn/version "1.4.30"}
         babashka/process {:mvn/version "0.1.7"}
-        io.github.babashka/cli {:git/sha "e7900f66f0a0bb9a5e1c41e345d4f06e732b3e03"}
+        org.babashka/cli {:mvn/version "0.9.68"}
         org.babashka/sci {:mvn/version "0.10.49"}}
  :aliases
  {:dev {}

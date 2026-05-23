@@ -379,10 +379,23 @@
       :args (rest args)
       :opts opts})))
 
+(defn peek-cli-args
+  "Raw peek at cli-args for command/option detection. Uses parse-opts*
+  so option values stay as strings (no auto-coerce) - presence checks
+  like `(:e opts)` stay reliable for inputs like `-e false`."
+  ([cli-args] (peek-cli-args cli-args {}))
+  ([cli-args opts]
+   (let [parsed (cli/parse-opts* cli-args opts)
+         cli-meta (-> parsed meta :org.babashka/cli)
+         args (:args cli-meta [])]
+     {:cmd (first args)
+      :args (rest args)
+      :opts (dissoc parsed :org.babashka/cli)})))
+
 (defn support-implicit-compile
   "historically squint has supported the ommission of the compile command"
   [cmd-table cli-args]
-  (let [{:keys [cmd opts]} (parse-cmd-opts-args cli-args)]
+  (let [{:keys [cmd opts]} (peek-cli-args cli-args)]
     (if (and (not (:e opts)) (not (is-valid-cmd cmd-table cmd)))
       (into ["compile"] cli-args)
       cli-args)))
@@ -390,13 +403,13 @@
 (defn treat-eval-opt-as-command
   "squint expresses eval as option -e but we are otherwise command driven"
   [cmd-table cli-args]
-  (let [{:keys [cmd opts]} (parse-cmd-opts-args cli-args)]
+  (let [{:keys [cmd opts]} (peek-cli-args cli-args)]
     (if (and (:e opts) (not (is-any-cmd cmd-table cmd)))
       (into ["eval"] cli-args)
       cli-args)))
 
 (defn cmds-help-requested [cli-args]
-  (let [{:keys [cmd opts]} (parse-cmd-opts-args cli-args {:aliases {:h :help}})]
+  (let [{:keys [cmd opts]} (peek-cli-args cli-args {:aliases {:h :help}})]
     (when (or (not (seq cli-args))
               (and (not (seq opts)) (= "help" cmd))
               (and (not cmd) (= {:help true} opts)))
@@ -420,7 +433,7 @@ Use squint <subcommand> --help to show more info."))))
   (some #(when (= cmd (:cmd %)) %) cmd-table))
 
 (defn cmd-help-requested [cmd-table cli-args]
-  (let [{:keys [cmd opts]} (parse-cmd-opts-args cli-args {:aliases {:h :help}})]
+  (let [{:keys [cmd opts]} (peek-cli-args cli-args {:aliases {:h :help}})]
     (when (and (is-any-cmd cmd-table cmd) (:help opts))
       (:usage-help (cmd-def-from-cmd cmd-table cmd)))))
 
@@ -437,7 +450,7 @@ Use squint <subcommand> --help to show more info."))))
     (str/join "\n\n" help)))
 
 (defn cmd-def-from-cli-args [cmd-table cli-args]
-  (let [{:keys [cmd]} (parse-cmd-opts-args cli-args)]
+  (let [{:keys [cmd]} (peek-cli-args cli-args)]
     (cmd-def-from-cmd cmd-table cmd)))
 
 (defn init []
