@@ -458,10 +458,12 @@ Use squint <subcommand> --help to show more info."))))
           (println help)
           (let [cmd-def (cmd-def-from-cli-args cmd-table cli-args)
                 ;; squint.edn is passed as :exec-args so bb cli precedence is:
-                ;; CLI > squint.edn > spec :default
+                ;; CLI > squint.edn > spec :default. Filter to spec keys so
+                ;; stray keys in squint.edn don't trip :restrict.
                 cmd-def (cond-> cmd-def
                           (:squint-edn? cmd-def)
-                          (assoc :exec-args (utils/get-cfg)))
+                          (assoc :exec-args (select-keys (utils/get-cfg)
+                                                         (keys (:spec cmd-def)))))
                 cmd-opts-args (parse-cmd-opts-args cli-args cmd-def)]
             (when (:squint-edn? cmd-def)
               ;; sync cfg atom with fully merged opts for downstream consumers
