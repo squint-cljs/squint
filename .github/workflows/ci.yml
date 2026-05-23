@@ -2,6 +2,9 @@ name: Tests
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     strategy:
@@ -32,12 +35,9 @@ jobs:
     - name: Setup Clojure
       uses: DeLaGuardo/setup-clojure@13.4
       with:
-        # pin versions to avoid GH API calls ("latest" resolution)
-        # which hit "Bad credentials" or rate limits in CI right now
-        # see https://github.com/DeLaGuardo/setup-clojure/issues/87
         cli: 1.12.4.1618
         bb: 1.12.218
-        github-token: ''
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Node
       uses: actions/setup-node@v4
