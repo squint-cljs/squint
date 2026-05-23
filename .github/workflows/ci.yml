@@ -30,10 +30,13 @@ jobs:
         restore-keys: "${{ runner.os }}-deps-"
 
     - name: Setup Clojure
-      uses: DeLaGuardo/setup-clojure@13.4
+      uses: DeLaGuardo/setup-clojure@12.5
       with:
-        cli: latest
+        cli: 1.10.3.1040
         bb: latest
+        # https://github.com/DeLaGuardo/setup-clojure/issues/87
+        # empty token skips Authorization header; avoids "Bad credentials"
+        github-token: ''
 
     - name: Setup Node
       uses: actions/setup-node@v4
