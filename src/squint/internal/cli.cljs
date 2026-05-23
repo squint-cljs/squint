@@ -412,7 +412,8 @@
   (let [{:keys [cmd opts]} (peek-cli-args cli-args {:aliases {:h :help}})]
     (when (or (not (seq cli-args))
               (and (not (seq opts)) (= "help" cmd))
-              (and (not cmd) (= {:help true} opts)))
+              ;; only --help/-h with no other opts and no cmd
+              (and (not cmd) (:help opts) (= 1 (count opts))))
       (str "Squint v" (version) "
 
 Usage: squint <subcommand> [options...]
