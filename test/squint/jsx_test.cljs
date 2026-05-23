@@ -58,15 +58,15 @@
     (is (str/includes? s "</Text><Text>"))
     (is (str/includes? s "<Text>World! </Text>")))
   (testing "conditional"
-    (let [cljs "(defn App []
-      (let [picked-emoji true]
+    (let [cljs "(defn App [picked-emoji]
+      (let []
         #jsx [:div {}
               (if picked-emoji
                 #jsx [:div \"Picker\"]
                 #jsx [:div \"Not picked\"])]))
-      (App)"
+      (App true)"
           s (jss! cljs)]
-      (is (str/includes? s "<div>{((squint_core.truth_(picked_emoji1))"))
+      (is (str/includes? s "<div>{((squint_core.truth_(picked_emoji"))
       (is (= "<div><div>Picker</div></div>" (test-jsx cljs)))))
   (testing "less than, greater than"
     (is (= "<div>&lt;&gt;</div>" (test-jsx "#jsx [:div \"<>\"]"))))
@@ -81,6 +81,10 @@
     (is (= "<div class=\"container\"></div>" (test-jsx "#jsx [:div.container]"))))
   (testing "id and classes shorthand"
     (is (= "<div class=\"foo bar\" id=\"my-id\"></div>" (test-jsx "#jsx [:div#my-id.foo.bar]"))))
+  (testing "class shorthand with empty props (#810)"
+    (is (= "<div class=\"myclass\"></div>" (test-jsx "#jsx [:div.myclass {}]"))))
+  (testing "class shorthand with non-class props (#810)"
+    (is (= "<div data-foo=\"x\" class=\"myclass\"></div>" (test-jsx "#jsx [:div.myclass {:data-foo \"x\"}]"))))
   (testing "return position"
     (is (= 1 (count (re-seq #"return" (jss! "(defn foo [] #jsx [:button \"dude\"])"
                                             {:jsx-runtime true})))))))

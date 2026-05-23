@@ -1,23 +1,83 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
-function toFn(x) {
-  if (x == null) return x;
-  if (x instanceof Function) {
-    return x;
-  }
+// __toFn is not public API — the leading underscores mark it as an
+// implementation helper shared with other squint runtime modules
+// (e.g. multi.js). Signature and semantics may change without notice.
+export function __toFn(x) {
+  if (x == null || typeof x === 'function') return x;
   const t = typeof x;
-  if (t === 'string') {
-    return (coll, d) => {
-      return get(coll, x, d);
-    };
-  }
-  if (t === 'object') {
-    return (k, d) => {
-      return get(x, k, d);
-    };
-  }
+  if (t === 'string') return (coll, d) => get(coll, x, d);
+  if (t === 'object') return (k, d) => get(x, k, d);
   return x;
 }
+
+// inlined and modified version of https://github.com/lukeed/dequal
+var has = Object.prototype.hasOwnProperty;
+
+function findKey(iter, tar, key) {
+  for (key of iter.keys()) {
+    if (dequal(key, tar)) return key;
+  }
+}
+
+function dequal(foo, bar) {
+  // supports primitives, Array, Set, Map and plain objects
+  // like CLJS: does not support NaN
+  if (foo === bar) return true;
+  var ctor, len, tmp;
+
+  if (foo && bar && (ctor = foo.constructor) === bar.constructor) {
+    if (ctor === Array) {
+      if ((len = foo.length) === bar.length) {
+        while (len-- && dequal(foo[len], bar[len]));
+      }
+      return len === -1;
+    }
+
+    if (ctor === Set) {
+      if (foo.size !== bar.size) {
+        return false;
+      }
+      for (const elt of foo) {
+        tmp = elt;
+        if (tmp && typeof tmp === 'object') {
+          tmp = findKey(bar, tmp);
+          if (!tmp) return false;
+        }
+        if (!bar.has(tmp)) return false;
+      }
+      return true;
+    }
+
+    if (ctor === Map) {
+      if (foo.size !== bar.size) {
+        return false;
+      }
+      for (const kv of foo) {
+        tmp = kv[0];
+        if (tmp && typeof tmp === 'object') {
+          tmp = findKey(bar, tmp);
+          if (!tmp) return false;
+        }
+        if (!dequal(kv[1], bar.get(tmp))) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    if (!ctor || typeof foo === 'object') {
+      len = 0;
+      for (const k in foo) {
+        if (has.call(foo, k) && ++len && !has.call(bar, k)) return false;
+        if (!(k in bar) || !dequal(foo[k], bar[k])) return false;
+      }
+      return Object.keys(bar).length === len;
+    }
+  }
+  return false;
+}
+// end inlined version of dequals
 
 function walkArray(arr, comp) {
   return arr.every(function (x, i) {
@@ -26,7 +86,7 @@ function walkArray(arr, comp) {
 }
 
 export function _EQ_(...xs) {
-  return walkArray(xs, (x, y) => x === y);
+  return walkArray(xs, (x, y) => dequal(x, y));
 }
 
 export function _GT_(...xs) {
@@ -201,6 +261,7 @@ function typeConst(obj) {
 
 function assoc_in_with(f, fname, o, keys, value) {
   keys = vec(keys);
+  o = o || {}; // default nil behavior is JS object
   const baseType = typeConst(o);
   if (baseType !== MAP_TYPE && baseType !== ARRAY_TYPE && baseType !== OBJECT_TYPE)
     throw new Error(
@@ -252,7 +313,7 @@ export function assoc_in_BANG_(o, keys, value) {
 }
 
 export function comp(...fs) {
-  fs = fs.map(toFn);
+  fs = fs.map(__toFn);
   if (fs.length === 0) {
     return identity;
   } else if (fs.length === 1) {
@@ -411,6 +472,7 @@ export function dissoc_BANG_(m, ...ks) {
 }
 
 export function dissoc(m, ...ks) {
+  if (!m) return;
   if (ks.length === 0) return m;
   const m2 = copy(m);
   switch (typeConst(m)) {
@@ -490,7 +552,7 @@ export function get(coll, key, otherwise = undefined) {
     default:
       // we choose .get as the default implementation, e.g. fetch Headers are not Maps, but do implement a .get method
       g = coll['get'];
-      if (g instanceof Function) {
+      if (typeof g === 'function') {
         try {
           v = coll.get(key);
           break;
@@ -612,7 +674,7 @@ export function reduced_QMARK_(x) {
 }
 
 export function reduce(f, arg1, arg2) {
-  f = toFn(f);
+  f = __toFn(f);
   let coll, val;
   if (arguments.length === 2) {
     // (reduce f coll)
@@ -668,7 +730,7 @@ function* _reductions3(f, init, coll) {
 }
 
 export function reductions(f, arg1, arg2) {
-  f = toFn(f);
+  f = __toFn(f);
   if (arguments.length === 2) {
     return lazy(function* () {
       yield* _reductions2(f, iterable(arg1)[Symbol.iterator]());
@@ -731,7 +793,7 @@ export function map(f, ...colls) {
   // if (! (f instanceof Function)) {
   //   throw new Error(`Argument f must be a function but is ${typeof(f)}`);
   // }
-  f = toFn(f);
+  f = __toFn(f);
   switch (colls.length) {
     case 0:
       return (rf) => {
@@ -800,7 +862,7 @@ export function filter(pred, coll) {
   if (arguments.length === 1) {
     return filter1(pred);
   }
-  pred = toFn(pred);
+  pred = __toFn(pred);
   return lazy(function* () {
     for (const x of iterable(coll)) {
       if (truth_(pred(x))) {
@@ -838,31 +900,29 @@ function map_indexed1(f) {
 }
 
 export function map_indexed(f, coll) {
-  f = toFn(f);
+  f = __toFn(f);
   if (arguments.length === 1) {
     return map_indexed1(f);
   }
-  const ret = [];
-  let i = 0;
-  for (const x of iterable(coll)) {
-    ret.push(f(i, x));
-    i++;
-  }
-  return ret;
+  return lazy(function* () {
+    let idx = 0;
+    for (const i of iterable(coll)) {
+      yield f(idx, i);
+      idx++;
+    }
+  });
 }
 
 function keep_indexed2(f, coll) {
-  f = toFn(f);
-  const ret = [];
-  let i = 0;
-  for (const x of iterable(coll)) {
-    const fret = f(i, x);
-    if (truth_(fret)) {
-      ret.push(fret);
+  f = __toFn(f);
+  return lazy(function* () {
+    let idx = 0;
+    for (const i of iterable(coll)) {
+      const v = f(idx, i);
+      if (truth_(v)) yield v;
+      idx++;
     }
-    i++;
-  }
-  return ret;
+  });
 }
 
 function keep_indexed1(f) {
@@ -912,33 +972,6 @@ export function nil_QMARK_(v) {
 
 export const PROTOCOL_SENTINEL = {};
 
-function pr_str_1(x) {
-  if (x === null) {
-    return 'null';
-  }
-  return JSON.stringify(x, (_key, value) => {
-    switch (typeConst(value)) {
-      case SET_TYPE:
-      case LAZY_ITERABLE_TYPE:
-        return [...value];
-      case MAP_TYPE:
-        return Object.fromEntries(value);
-      default: {
-        // console.log(value);
-        return value;
-      }
-    }
-  });
-}
-
-export function pr_str(...xs) {
-  return xs.map(pr_str_1).join(' ');
-}
-
-export function prn(...xs) {
-  println(pr_str(...xs));
-}
-
 export class Atom {
   constructor(init) {
     this.val = init;
@@ -980,10 +1013,33 @@ export function reset_BANG_(atm, v) {
 }
 
 export function swap_BANG_(atm, f, ...args) {
-  f = toFn(f);
+  f = __toFn(f);
   const v = f(deref(atm), ...args);
   reset_BANG_(atm, v);
   return v;
+}
+
+export function swap_vals_BANG_(atm, f, ...args) {
+  const oldv = deref(atm);
+  f = __toFn(f);
+  const newv = f(oldv, ...args);
+  atm._reset_BANG_(newv);
+  return [oldv, newv];
+}
+
+export function reset_vals_BANG_(atm, newv) {
+  const oldv = deref(atm);
+  atm._reset_BANG_(newv);
+  return [oldv, newv];
+}
+
+export function compare_and_set_BANG_(atm, oldv, newv) {
+  if (deref(atm) === oldv) {
+    atm._reset_BANG_(newv);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 export function range(begin, end, step) {
@@ -1056,22 +1112,25 @@ export function vector(...args) {
   return args;
 }
 
+export const array = vector;
+
 export function vector_QMARK_(x) {
   return typeConst(x) === ARRAY_TYPE;
 }
 
 export function mapv(...args) {
   if (args.length === 2) {
-    const [f, coll] = args;
+    const [_f, coll] = args;
+    const f = __toFn(_f);
     const iter = iterable(coll);
     if (Array.isArray(iter)) {
+      // explicit for loop was faster
       const ret = new Array(iter.length);
       for (var i = 0; i < iter.length; i++) {
         ret[i] = f(iter[i]);
       }
       return ret;
-    }
-    else {
+    } else {
       var ret = [];
       for (const x of iter) {
         ret.push(f(x));
@@ -1101,7 +1160,7 @@ export function set_QMARK_(x) {
 const IApply__apply = Symbol('IApply__apply');
 
 export function apply(f, ...args) {
-  f = toFn(f);
+  f = __toFn(f);
   const xs = args.slice(0, args.length - 1);
   const coll = iterable(args[args.length - 1]);
   const af = f[IApply__apply];
@@ -1120,7 +1179,7 @@ export function odd_QMARK_(x) {
 }
 
 export function complement(f) {
-  f = toFn(f);
+  f = __toFn(f);
   return (...args) => not(f(...args));
 }
 
@@ -1381,7 +1440,7 @@ function partition_by1(f) {
 }
 
 export function partition_by(f, coll) {
-  f = toFn(f);
+  f = __toFn(f);
   if (arguments.length === 1) {
     return partition_by1(f);
   }
@@ -1446,7 +1505,7 @@ export function val(entry) {
 }
 
 export function merge_with(f, ...maps) {
-  f = toFn(f);
+  f = __toFn(f);
   var hasMap = false;
   for (const m of maps) {
     if (m != null) {
@@ -1583,20 +1642,20 @@ export function take(n, coll) {
 }
 
 export function take_last(n, coll) {
-  if (n == 0) {
+  if (n <= 0) {
     return null;
   }
   if (Array.isArray(coll)) {
-    return seq(coll.slice(-Math.abs(n)))
+    return seq(coll.slice(-n));
   } else {
-    let lastN = new Array(n);
+    const lastN = new Array(n);
     let i = 0;
     for (const x of iterable(coll)) {
       lastN[i % n] = x;
       i++;
     }
     if (i % n !== 0 && i >= n) {
-      return lastN.slice(i%n).concat(lastN.slice(0, i%n));
+      return lastN.slice(i % n).concat(lastN.slice(0, i % n));
     } else {
       lastN.length = Math.min(i, n);
       return lastN;
@@ -1624,7 +1683,7 @@ function take_while1(pred) {
 }
 
 export function take_while(pred, coll) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   if (arguments.length === 1) {
     return take_while1(pred);
   }
@@ -1674,7 +1733,7 @@ export function take_nth(n, coll) {
 }
 
 export function partial(f, ...xs) {
-  f = toFn(f);
+  f = __toFn(f);
   return function (...args) {
     return f(...xs, ...args);
   };
@@ -1748,7 +1807,7 @@ function drop_while1(pred) {
 }
 
 export function drop_while(pred, xs) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   if (arguments.length === 1) return drop_while1(pred);
   return lazy(function* () {
     const iter = _iterator(iterable(xs));
@@ -1798,7 +1857,7 @@ export function distinct(coll) {
 }
 
 export function update(coll, k, f, ...args) {
-  f = toFn(f);
+  f = __toFn(f);
   return assoc(coll, k, f(get(coll, k), ...args));
 }
 
@@ -1812,12 +1871,12 @@ export function get_in(coll, path, orElse) {
 }
 
 export function update_in(coll, path, f, ...args) {
-  f = toFn(f);
+  f = __toFn(f);
   return assoc_in(coll, path, f(get_in(coll, path), ...args));
 }
 
 export function fnil(f, x, ...xs) {
-  f = toFn(f);
+  f = __toFn(f);
   return function (a, ...args) {
     if (!a) {
       return f(x, ...xs, ...args);
@@ -1828,7 +1887,7 @@ export function fnil(f, x, ...xs) {
 }
 
 export function every_QMARK_(pred, coll) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   for (const x of iterable(coll)) {
     if (!pred(x)) return false;
   }
@@ -1857,7 +1916,7 @@ function keep1(pred) {
 }
 
 export function keep(pred, coll) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   if (arguments.length === 1) return keep1(pred);
   return lazy(function* () {
     for (const o of iterable(coll)) {
@@ -1877,7 +1936,7 @@ export function sort(f, coll) {
     coll = f;
     f = undefined;
   }
-  f = toFn(f);
+  f = __toFn(f);
   coll = iterable(coll);
   // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
   const clone = [...coll];
@@ -1909,8 +1968,8 @@ export function sort_by(keyfn, comp, coll) {
     coll = comp;
     comp = compare;
   }
-  keyfn = toFn(keyfn);
-  comp = toFn(comp);
+  keyfn = __toFn(keyfn);
+  comp = __toFn(comp);
   return sort((x, y) => {
     const f = fnToComparator(comp);
     const kx = keyfn(x);
@@ -1921,7 +1980,7 @@ export function sort_by(keyfn, comp, coll) {
 
 export function shuffle(coll) {
   const result = [...coll];
-  let remaining = coll.length;
+  let remaining = result.length;
   while (remaining) {
     const i = Math.floor(Math.random() * remaining--);
     const tmp = result[remaining];
@@ -1933,7 +1992,7 @@ export function shuffle(coll) {
 }
 
 export function some(pred, coll) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   for (const o of iterable(coll)) {
     const res = pred(o);
     if (truth_(res)) return res;
@@ -1942,7 +2001,7 @@ export function some(pred, coll) {
 }
 
 export function not_any_QMARK_(pred, coll) {
-  pred = toFn(pred);
+  pred = __toFn(pred);
   return !some(pred, coll);
 }
 
@@ -1960,6 +2019,13 @@ export function replace(smap, coll) {
 
 export function empty_QMARK_(coll) {
   return seq(coll) ? false : true;
+}
+
+export function rand(n) {
+  if (undefined === n) {
+    n = 1;
+  }
+  return Math.random() * n;
 }
 
 export function rand_int(n) {
@@ -1991,12 +2057,13 @@ export function repeatedly(n, f) {
 }
 
 export function update_BANG_(m, k, f, ...args) {
+  f = __toFn(f);
   const v = get(m, k);
   return assoc_BANG_(m, k, f(v, ...args));
 }
 
 export function group_by(f, coll) {
-  f = toFn(f);
+  f = __toFn(f);
   const res = {};
   for (const o of iterable(coll)) {
     const key = f(o);
@@ -2224,7 +2291,7 @@ export function iterate(f, x) {
 }
 
 export function juxt(...fs) {
-  fs = fs.map(toFn);
+  fs = fs.map(__toFn);
   return (...args) => {
     const ret = [];
     for (const f of fs) {
@@ -2279,14 +2346,13 @@ export function compare(x, y) {
         return 1;
       } else {
         for (let i = 0; i < x.length; i++) {
-          let c = compare(x[i], y[i]);
+          const c = compare(x[i], y[i]);
           if (c != 0) {
             return c;
           }
         }
         return 0;
       }
-      
     } else {
       throw new Error(`comparing ${tx} to ${ty}`);
     }
@@ -2336,10 +2402,13 @@ export function number_QMARK_(x) {
 }
 
 export function keys(obj) {
-  if (obj) {
-    return Object.keys(obj);
-  } else {
-    return null;
+  if (obj == null) return;
+  const t = typeConst(obj);
+  switch (t) {
+    case OBJECT_TYPE:
+      return Object.keys(obj);
+    case MAP_TYPE:
+      return Array.from(obj.keys());
   }
 }
 
@@ -2348,10 +2417,13 @@ export function js_keys(obj) {
 }
 
 export function vals(obj) {
-  if (obj) {
-    return Object.values(obj);
-  } else {
-    return null;
+  if (obj == null) return;
+  const t = typeConst(obj);
+  switch (t) {
+    case OBJECT_TYPE:
+      return Object.values(obj);
+    case MAP_TYPE:
+      return Array.from(obj.values());
   }
 }
 
@@ -2400,6 +2472,18 @@ export function int_QMARK_(x) {
 
 export const integer_QMARK_ = int_QMARK_;
 
+export function pos_int_QMARK_(x) {
+  return int_QMARK_(x) && x > 0;
+}
+
+export function nat_int_QMARK_(x) {
+  return int_QMARK_(x) && x > -1;
+}
+
+export function neg_int_QMARK_(x) {
+  return int_QMARK_(x) && x < 0;
+}
+
 const _metaSym = Symbol('meta');
 
 export function meta(x) {
@@ -2409,6 +2493,14 @@ export function meta(x) {
 }
 
 export function with_meta(x, m) {
+  // For functions, wrap in a new callable that forwards to the original
+  // so fn? stays true and the original isn't mutated. copy() can't handle
+  // functions — a {...x} spread loses the call signature.
+  if (typeof x === 'function') {
+    const wrapped = function (...args) { return x.apply(this, args); };
+    wrapped[_metaSym] = m;
+    return wrapped;
+  }
   const ret = copy(x);
   ret[_metaSym] = m;
   return ret;
@@ -2486,17 +2578,35 @@ function parsing_err(x) {
   throw new Error(`Expected string, got: ${typeof x}`);
 }
 
-export function parse_long(x) {
-  if (string_QMARK_(x)) {
-    if (/^[+-]?\d+$/.test(x)) {
-      const i = parseInt(x);
+export function parse_long(s) {
+  if (string_QMARK_(s)) {
+    if (/^[+-]?\d+$/.test(s)) {
+      const i = parseInt(s);
       if (Number.MIN_SAFE_INTEGER <= i <= Number.MAX_SAFE_INTEGER) {
         return i;
       }
     }
     return null;
   }
-  return parsing_err(x);
+  return parsing_err(s);
+}
+
+export function parse_double(s) {
+  if (string_QMARK_(s)) {
+    if (/^[\\x00-\\x20]*[+-]?NaN[\\x00-\\x20]*$/.test(s)) {
+      return NaN;
+    } else if (
+      /^[\\x00-\\x20]*[+-]?(Infinity|((\d+\.?\d*|\.\d+)([eE][+-]?\d+)?)[dDfF]?)[\\x00-\\x20]*$/.test(
+        s
+      )
+    ) {
+      return parseFloat(s);
+    } else {
+      return null;
+    }
+  } else {
+    throw new parsing_err(s);
+  }
 }
 
 function fix(q) {
@@ -2513,6 +2623,7 @@ export function quot(n, d) {
 
 export function trampoline(f, ...args) {
   if (args.length == 0) {
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const ret = f();
       if (truth_(fn_QMARK_(ret))) {
@@ -2523,7 +2634,7 @@ export function trampoline(f, ...args) {
       }
     }
   } else {
-    return trampoline(function() {
+    return trampoline(function () {
       return apply(f, args);
     });
   }
@@ -2818,7 +2929,7 @@ export function update_vals(m, f) {
   return m2;
 }
 
-export function random_uuid () {
+export function random_uuid() {
   return crypto.randomUUID();
 }
 
@@ -2857,14 +2968,68 @@ export function clj__GT_js(x) {
 }
 
 export function run_BANG_(proc, coll) {
-  reduce((_,x) => proc(x), null, coll);
+  reduce((_, x) => proc(x), null, coll);
 }
 
-export function not_EQ_(x, y, ...more) {
-  if (y === undefined) return false;
-  if (x === y) return false;
-  for (const e of more) {
-    if (x === e) return false;
+export function not_EQ_(...more) {
+  return not(_EQ_(...more));
+}
+
+class Volatile {
+  constructor(v) {
+    this.v = v;
   }
-  return true;
+  _deref() {
+    return this.v;
+  }
+}
+
+export function volatile_BANG_(x) {
+  return new Volatile(x);
+}
+
+export function vreset_BANG_(vol, v) {
+  vol.v = v;
+}
+
+function toEDN(value, seen = new WeakSet()) {
+  if (value == null) return 'nil';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'bigint') return `${value}N`;
+
+  if (typeof value === 'object') {
+    if (seen.has(value)) return '#object[circular]';
+    seen.add(value);
+    const T = typeConst(value);
+    let keys;
+    switch (T) {
+      case ARRAY_TYPE:
+        return `[${value.map((v) => toEDN(v, seen)).join(' ')}]`;
+      case SET_TYPE:
+        return `#{${Array.from(value)
+          .map((v) => toEDN(v, seen))
+          .join(' ')}}`;
+      case MAP_TYPE:
+        return `#js/Map {${Array.from(value.entries())
+          .map(([k, v]) => `${toEDN(k, seen)} ${toEDN(v, seen)}`)
+          .join(', ')}}`;
+      case LAZY_ITERABLE_TYPE:
+      case LIST_TYPE:
+        return `(${mapv((v) => `${toEDN(v, seen)}`, value).join(', ')})`;
+      default:
+        keys = Object.keys(value);
+        return `{${keys.map((k) => `:${k} ${toEDN(value[k], seen)}`).join(', ')}}`;
+    }
+  }
+
+  return `#object[${value.constructor.name}]`;
+}
+
+export function pr_str(...xs) {
+  return xs.map((v, _) => toEDN(v)).join(' ');
+}
+
+export function prn(...xs) {
+  return console.log(pr_str(...xs));
 }

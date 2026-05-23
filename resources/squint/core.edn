@@ -14,13 +14,13 @@
   _LT__EQ_
   _PLUS_
   _STAR_
-  __protocol_satisfies
   _iterator
   abs
   aclone
   add_watch
   alength
   apply
+  array
   array_QMARK_
   aset
   assoc
@@ -37,6 +37,7 @@
   coll_QMARK_
   comp
   compare
+  compare_and_set_BANG_
   complement
   concat
   conj
@@ -120,7 +121,9 @@
   min
   min_key
   mod
+  nat_int_QMARK_
   neg_QMARK_
+  neg_int_QMARK_
   next
   nil_QMARK_
   nnext
@@ -133,6 +136,7 @@
   number_QMARK_
   object_QMARK_
   odd_QMARK_
+  parse_double
   parse_long
   partial
   partition
@@ -144,10 +148,12 @@
   persistent_BANG_
   pop
   pos_QMARK_
+  pos_int_QMARK_
   pr_str
   println
   prn
   quot
+  rand
   rand_int
   rand_nth
   random_uuid
@@ -169,6 +175,7 @@
   repeatedly
   replace
   reset_BANG_
+  reset_vals_BANG_
   rest
   reverse
   run_BANG_
@@ -196,6 +203,7 @@
   subseq
   subvec
   swap_BANG_
+  swap_vals_BANG_
   system_time
   t
   take
@@ -221,6 +229,8 @@
   vec
   vector
   vector_QMARK_
+  volatile_BANG_
+  vreset_BANG_
   warn_on_lazy_reusage_BANG_
   with_meta
   zero_QMARK_

@@ -1,10 +1,10 @@
 (ns squint.html-test
   (:require
-   [clojure.test :as t :refer [deftest is]]
-   [squint.test-utils :refer [jss!]]
-   [squint.compiler :as squint]
    [clojure.string :as str]
-   [promesa.core :as p]))
+   [clojure.test :as t :refer [deftest is]]
+   [promesa.core :as p]
+   [squint.compiler :as squint]
+   [squint.test-utils :refer [jss!]]))
 
 (defn html= [x y]
   (= (str x) (str y)))
@@ -46,12 +46,12 @@
 (deftest html-nil-test
   (t/async done
     (let [js (squint.compiler/compile-string
-              "(let [p nil] #html [:div p])"
+              "(let [p nil] #html [:div p js/undefined \"foo\"])"
               {:repl true :elide-exports true :context :return})
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
-           #(is (html= "<div>undefined</div>" %)))
+           #(is (html= "<div>foo</div>" %)))
           (.catch #(is false "nooooo"))
           (.finally done)))))
 
@@ -130,13 +130,17 @@
   (t/async done
     (let [js (squint.compiler/compile-string
               "[(str #html [:div.container])
-                (str #html [:a#foo.bar.baz {:class \"quux\"}])]"
+                (str #html [:a#foo.bar.baz {:class \"quux\"}])
+                (str #html [:div.myclass {}])
+                (str #html [:div.myclass {:data-foo \"x\"}])]"
               {:repl true :elide-exports true :context :return})
           js (str/replace "(async function() { %s } )()" "%s" js)]
       (-> (js/eval js)
           (.then
            #(doseq [[k v] (map vector ["<div class=\"container\"></div>"
-                                       "<a class=\"bar baz quux\" id=\"foo\"></a>"] %)]
+                                       "<a class=\"bar baz quux\" id=\"foo\"></a>"
+                                       "<div class=\"myclass\"></div>"
+                                       "<div data-foo=\"x\" class=\"myclass\"></div>"] %)]
               (is (html= k v))))
           (.catch #(is false "nooooo"))
           (.finally done)))))
@@ -151,5 +155,18 @@
           (.then
            (fn [v]
              (is (= "<div><><><>{\"a\":6}</div>" v))))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))
+
+(deftest html-escape-test
+  (t/async done
+    (let [js (squint.compiler/compile-string
+              "(str #html [:button {:data-click (pr-str [:inc])}])"
+              {:repl true :elide-exports true :context :return})
+          js (str/replace "(async function() { %s } )()" "%s" js)]
+      (-> (js/eval js)
+          (.then
+           (fn [v]
+             (is (= "<button data-click=\"[&quot;inc&quot;]\"></button>" v))))
           (.catch #(is false "nooooo"))
           (.finally done)))))

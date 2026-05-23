@@ -106,7 +106,7 @@
                                                            :async true}
                                                   @state)
         _ (reset! state new-state)
-        js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
+        js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
     js-str))
 
