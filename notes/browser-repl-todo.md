@@ -25,13 +25,19 @@ Files: `examples/browser-repl/vite-plugin-squint-repl.js`, `examples/browser-rep
 - [x] True HMR: recompile hot-swaps modules, no full page reload, state survives.
 - [x] Dropped the standalone WebSocketServer, the misnamed port env, the duplicate watcher, and the separate nrepl-server process.
 
-## Next: dependency resolution (current focus)
+## Dependency resolution (punted, see browser-repl-dep-resolution.md)
 
-- [ ] eval'd code does `await import('joi')` / `import('squint-cljs/core.js')` at runtime. Bare specifiers can't load in the browser without help. Today: client regex-rewrites `import('x')` -> `import('/@resolve-deps/x')`, and a vite middleware 302-redirects to `/@fs/...`.
-- [ ] Decide the real mechanism: keep the `/@resolve-deps` middleware, precompute an import map, or use vite's own resolver more directly.
-- [ ] Test: require a new npm dep at the REPL that the app didn't already import; require another cljs ns; relative imports.
+Decision 2026-05-25: a page reload when a brand-new dep is first required at the
+REPL is acceptable for now. Use `optimizeDeps.include` for known deps (no reload
+for those). Revisit shadow-style on-demand bundling later.
 
-## Then: real nREPL relay (replace HTTP trigger)
+- [x] Reproduced + root-caused the reload (vite re-optimizes new deps).
+- [x] `optimizeDeps.include` proven to avoid reload for listed deps; REPL state survives.
+- [ ] Maybe: auto-derive `optimizeDeps.include` from source `:require`s (cljam-style scan).
+- [ ] Later: shadow-style on-demand esbuild bundling for zero-reload arbitrary deps.
+- [ ] CJS interop nuance: CJS deps land under `.default` (`(.-default ld)`); also `optimizeDeps.needsInterop`.
+
+## Next: real nREPL relay (replace HTTP trigger)
 
 - [ ] Speak bencode nREPL over TCP so editors (Calva/CIDER) connect; bridge to `server.ws`. Reuse squint's bencode/ops or write a thin relay in the plugin.
 - [ ] Write `.nrepl-port` for editor auto-discovery.

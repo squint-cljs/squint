@@ -4,6 +4,13 @@ Design notes for how REPL-eval'd code should resolve its npm/cljs dependencies
 in the browser, without forcing a page reload. Companion to
 `browser-repl-todo.md`.
 
+## Decision (2026-05-25): punt
+
+A page reload when a brand-new dep is first required at the REPL is acceptable
+for now. Use `optimizeDeps.include` for deps known up front (no reload for
+those). Revisit the shadow-style on-demand bundling (option 3) later if the
+reload becomes annoying. Rationale below.
+
 ## The problem
 
 squint's REPL eval compiles a form to JS that does runtime `await import('pkg')`
@@ -88,15 +95,34 @@ a registry.
    - Matches squint's existing eval + globalThis-registry model.
    - Most work, but the principled end-state.
 
+## Does vite offer JIT without reload?
+
+vite's optimizer IS just-in-time (it bundled lodash/nanoid on demand), and it
+has a no-reload commit path. The reload is conditional
+(`vite/dist/node/chunks/dep-*.js`, `needsReload`):
+
+```js
+const needsReload =
+  needsInteropMismatch.length > 0 ||           // a CJS interop assumption changed
+  metadata.hash !== newData.hash ||            // overall optimize hash changed
+  Object.keys(metadata.optimized).some(dep =>  // an already-loaded dep's bundle changed
+    metadata.optimized[dep].fileHash !== newData.optimized[dep].fileHash);
+```
+
+So vite reloads when: the new dep is CJS (interop mismatch), re-bundling changes
+the metadata hash (adding the first new dep does), or an already-loaded dep's
+fileHash changes. A genuinely-new mid-session dep usually changes the hash, and
+CJS always trips interop, so reload is largely unavoidable for new deps. The
+no-reload path mainly holds when the dep was already optimized (i.e.
+pre-bundled). `optimizeDeps.needsInterop` can pre-declare CJS deps to kill the
+interop-mismatch reload, but the hash-change reload remains. True zero-reload
+for arbitrary new deps means bypassing vite's optimizer (option 3).
+
 ## Current lean
 
 (3) is the principled end-state and most squint-native (we already have the
 eval + registry half, and esbuild). (1) is a fine interim that we have proven
 works. (2) buys less than (3) for similar rework.
 
-Open questions to decide:
-
-- Do we require brand-new deps at the REPL to "just work" (rules out 2)?
-- Is one reload on a never-seen dep acceptable (then 1 is enough for a while)?
-- For (3): where does the on-demand bundle get built and served, and how does
-  eval'd code reference the registry instead of emitting `import()`?
+Decided to punt (see top): accept the reload on a never-seen dep, lean on
+`optimizeDeps.include` for known deps. Revisit (3) later.
