@@ -25,6 +25,9 @@ const ResolveDepsPlugin = {
 
 export default defineConfig(() => {
   return {
+    // Pre-bundle deps we may require at the REPL so vite doesn't discover
+    // them mid-session (which would re-optimize and reload the page).
+    optimizeDeps: { include: ['joi', 'lodash', 'nanoid'] },
     // squintRepl owns the cljs -> js compile (dev watch + build), the REPL
     // transport, and injecting the browser eval listener.
     plugins: [ResolveDepsPlugin, squintRepl()],

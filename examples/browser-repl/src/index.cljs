@@ -3,7 +3,7 @@
             ["joi" :as joi]))
 
 (defn hello []
-  #html [:pre "Hello"])
+  #html [:pre "Hellox"])
 
 (set! (.-innerHTML
        (js/window.document.querySelector "#app")) (hello))

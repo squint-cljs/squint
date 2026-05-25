@@ -6,7 +6,7 @@ var joi = await import('joi');
 globalThis.index.squint_core = squint_core;
 globalThis.index.joi = joi;
 var hello = function () {
-return squint_html.html`<pre>Hello</pre>`;
+return squint_html.html`<pre>Hellox</pre>`;
 
 };
 globalThis.index.hello = hello;
