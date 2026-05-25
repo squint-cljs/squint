@@ -18,7 +18,7 @@
 import { compileStringEx } from 'squint-cljs';
 import { compileFile } from 'squint-cljs/node-api.js';
 import { randomUUID } from 'node:crypto';
-import { readdirSync } from 'node:fs';
+import { readdirSync, existsSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 
 const VIRTUAL_CLIENT = 'virtual:squint-repl-client';
@@ -160,6 +160,33 @@ export default function squintRepl(options = {}) {
       server.watcher.add(srcAbs());
       server.watcher.on('change', onChange);
       server.watcher.on('add', onChange);
+
+      // Resolve bare specifiers used in REPL-eval'd dynamic import()s. npm/path
+      // specifiers go through vite's resolver; a bare ns name (e.g. `index`,
+      // which squint emits for a local cljs require) that vite can't resolve
+      // falls back to its compiled output under outDir (e.g. /js/index.js).
+      server.middlewares.use('/@resolve-deps', async (req, res) => {
+        const spec = decodeURIComponent(req.url.slice(1));
+        let resolved = null;
+        try {
+          resolved = await server.moduleGraph.resolveId(spec);
+        } catch {
+          resolved = null;
+        }
+        if (resolved && resolved.id) {
+          res.writeHead(302, { location: `/@fs${resolved.id}` });
+          res.end();
+          return;
+        }
+        const rel = outDir + '/' + spec.replace(/\./g, '/') + '.' + extension;
+        if (existsSync(join(root, rel))) {
+          res.writeHead(302, { location: '/' + rel });
+          res.end();
+          return;
+        }
+        res.writeHead(404);
+        res.end();
+      });
 
       // REPL eval transport over vite's HMR WS.
       server.ws.on('squint:eval-result', (data) => {

@@ -1,9 +1,11 @@
 (ns index
-  (:require ["squint-cljs/core.js" :as squint_core]
-            ["joi" :as joi]))
+  (:require ["joi" :as joi]
+            [myapp :as m]))
+
+(prn (m/foobar))
 
 (defn hello []
-  #html [:pre "Hellox"])
+  #html [:pre "Dude"])
 
 (set! (.-innerHTML
        (js/window.document.querySelector "#app")) (hello))
