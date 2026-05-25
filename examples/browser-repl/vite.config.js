@@ -1,6 +1,7 @@
 // vite.config.js
 import { defineConfig, fetchModule } from 'vite';
 import { spawn } from 'node:child_process';
+import squintRepl from './vite-plugin-squint-repl.js';
 
 function cmd(...command) {
   const p = spawn(command[0], command.slice(1), { stdio: 'inherit' });
@@ -41,13 +42,13 @@ export default defineConfig( ({mode}) => {
   return {
     plugins: [
       ResolveDepsPlugin,
+      squintRepl(),
     {
       name: 'prebuild-commands',
       buildStart: async () => {
-        if ( 'development' === mode ) {
-          cmd('squint', 'watch', '--repl');
-        }
-        else await cmd('squint', 'compile'); },
+        // In dev, run `squint watch --repl` yourself (see the dev script).
+        // Only compile once for production builds.
+        if ( 'development' !== mode ) await cmd('squint', 'compile'); },
     },
     ],
   };
