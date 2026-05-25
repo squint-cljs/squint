@@ -3,7 +3,10 @@
  {:squint
   {:js-options {;; don't bundle any npm libs
                 :js-provider :import}
-   :compiler-options {:infer-externs :auto}
+   :compiler-options {:infer-externs :auto
+                      ;; we keep the deprecated *-string* aliases and their
+                      ;; tests around on purpose, so silence the warning
+                      :warnings {:fn-deprecated false}}
    :target :esm
    :runtime :browser
    :devtools {:enabled false}
