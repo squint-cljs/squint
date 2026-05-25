@@ -1,55 +1,32 @@
 // vite.config.js
-import { defineConfig, fetchModule } from 'vite';
-import { spawn } from 'node:child_process';
+import { defineConfig } from 'vite';
 import squintRepl from './vite-plugin-squint-repl.js';
 
-function cmd(...command) {
-  const p = spawn(command[0], command.slice(1), { stdio: 'inherit' });
-  return new Promise((resolveFunc) => {
-    p.on("exit", (code) => {
-      resolveFunc(code);
-    });
-  });
-}
-
+// Resolves bare specifiers used inside REPL-eval'd dynamic import()s
+// (e.g. import('squint-cljs/core.js')) to vite-served file URLs.
 const ResolveDepsPlugin = {
   name: 'resolve-deps',
   async configureServer(server) {
-    server.middlewares.use('/@resolve-deps', async (req, res, next) => {
+    server.middlewares.use('/@resolve-deps', async (req, res) => {
       const url = req.url.substring(1);
-      var file;
+      let file;
       try {
         file = await server.moduleGraph.resolveId(url);
-      }
-      catch (e) {
+      } catch (e) {
         res.writeHead(404);
         res.end();
         return;
       }
-      console.log('url', url, 'file', file);
-      const newUrl = `/@fs${file.id}`;
-        res.writeHead(302, {
-          location: newUrl,
-        });
-        res.end();
-        return;
+      res.writeHead(302, { location: `/@fs${file.id}` });
+      res.end();
     });
-  }
+  },
 };
 
-export default defineConfig( ({mode}) => {
-  console.log('mode', mode);
+export default defineConfig(() => {
   return {
-    plugins: [
-      ResolveDepsPlugin,
-      squintRepl(),
-    {
-      name: 'prebuild-commands',
-      buildStart: async () => {
-        // In dev, run `squint watch --repl` yourself (see the dev script).
-        // Only compile once for production builds.
-        if ( 'development' !== mode ) await cmd('squint', 'compile'); },
-    },
-    ],
+    // squintRepl owns the cljs -> js compile (dev watch + build), the REPL
+    // transport, and injecting the browser eval listener.
+    plugins: [ResolveDepsPlugin, squintRepl()],
   };
 });
