@@ -1,42 +1,62 @@
-# Browser nREPL: production TODO
+# Browser REPL: production TODO
 
-Tracking work to make the browser REPL (branch `browser-repl-on-main`) production grade.
+Two approaches explored:
 
-## How it works today
+- **standalone-WS** (`browser-repl-on-main`): squint runs its own WebSocketServer; browser opens a separate WS. Decoupled from vite, but two channels (vite HMR + REPL WS) drift, and we own reconnect/routing.
+- **vite-HMR** (`browser-repl-vite`): REPL eval rides vite's own dev-server WS (`import.meta.hot`). vite owns the socket, reconnect, and the module graph, so REPL and hot reload stay consistent. **Chosen direction.**
 
-- `squint watch --repl` compiles cljs -> js, binds top-level defs to `globalThis.<ns>.<name>`.
-- `vite dev` serves the browser app.
-- `squint nrepl-server --target browser --port 13333` runs the nREPL TCP server (editor) plus a second WebSocketServer (browser).
-- Browser loads `js/nrepl.js` -> opens `ws://host:<port>/_nrepl`.
-- Editor eval -> TCP -> server compiles cljs -> JS pushed over WS -> browser evals -> result back over WS -> server -> editor.
+This file tracks the vite-HMR branch. Standalone-WS issues kept at the bottom for reference.
 
-Files: `src/squint/repl/nrepl_server.cljs`, `src/squint/nrepl.js` (browser client), `examples/browser-repl/`.
+## How it works now (vite-HMR)
 
-## Phase 1: make it work end-to-end
+- `vite dev` is the only command. `vite-plugin-squint-repl.js` owns everything:
+  - compiles cljs -> js in-process via squint's `compileFile` API (compile all on startup, recompile changed files via vite's file watcher; one-shot compile in `buildStart` for builds).
+  - injects `import.meta.hot.accept()` into served compiled modules (dev) so a recompile hot-swaps the module, no page reload. `globalThis.<ns>` state and REPL defs survive.
+  - injects a virtual-module browser listener (`import.meta.hot.on('squint:eval')`).
+  - eval transport: compiles a REPL form with `compileStringEx` (state threaded), pushes JS over `server.ws`, awaits `squint:eval-result`.
+- Eval is triggered over a dev-only HTTP endpoint (`POST /__repl_eval`) for now, so it can be driven with curl before a real nREPL relay exists.
 
-- [ ] `nrepl.js`: `ex: ex.toString` is missing the call, sends the function not the message. Fix to `ex.toString()` (or `ex.message`).
-- [ ] Result value uses `res?.toString()`. Print properly (pr-str), handle nil/undefined/objects.
-- [ ] Port model: two ports today (nREPL TCP, WS). WS port is hardcoded 1340; `VITE_SQUINT_NREPL_PORT` is misnamed and matches only by luck. Make the WS port explicit/derived and document it.
-- [ ] Remove debug noise: `prn ::data`, `println "About to eval"`, `console.log` in client.
-- [ ] Example: duplicate watcher. `vite.config.js` buildStart spawns `squint watch --repl` and the `dev` script also runs it via concurrently. Pick one.
-- [ ] Confirm `:port`/`:target` coercion in `cli.cljs` (port likely arrives as string).
+Files: `examples/browser-repl/vite-plugin-squint-repl.js`, `examples/browser-repl/vite.config.js`.
 
-## Phase 2: robustness
+## Done (vite-HMR branch)
 
-- [ ] WS auto-reconnect on close/error (tab reload, server restart).
-- [ ] Error/stacktrace formatting: send `err` + ex-message, not just `ex`.
+- [x] Eval round-trip over vite's HMR WS (`(+ 1 2)` -> 3, state threads).
+- [x] Plugin owns the compile pipeline via squint API (no subprocess, no `squint` on PATH).
+- [x] True HMR: recompile hot-swaps modules, no full page reload, state survives.
+- [x] Dropped the standalone WebSocketServer, the misnamed port env, the duplicate watcher, and the separate nrepl-server process.
+
+## Next: dependency resolution (current focus)
+
+- [ ] eval'd code does `await import('joi')` / `import('squint-cljs/core.js')` at runtime. Bare specifiers can't load in the browser without help. Today: client regex-rewrites `import('x')` -> `import('/@resolve-deps/x')`, and a vite middleware 302-redirects to `/@fs/...`.
+- [ ] Decide the real mechanism: keep the `/@resolve-deps` middleware, precompute an import map, or use vite's own resolver more directly.
+- [ ] Test: require a new npm dep at the REPL that the app didn't already import; require another cljs ns; relative imports.
+
+## Then: real nREPL relay (replace HTTP trigger)
+
+- [ ] Speak bencode nREPL over TCP so editors (Calva/CIDER) connect; bridge to `server.ws`. Reuse squint's bencode/ops or write a thin relay in the plugin.
+- [ ] Write `.nrepl-port` for editor auto-discovery.
+
+## REPL semantics (helps both branches)
+
+- [ ] Cross-ns refs: `index/hello` compiles to bare `index.hello`, not `globalThis.index.hello`, so referencing another ns from the REPL fails.
+- [ ] Result printing: use pr-str, handle nil/undefined/objects (currently `String(value)`).
+
+## Robustness
+
+- [ ] Error/stacktrace formatting: send `err` + ex-message.
 - [ ] Stream stdout/print from browser to editor (`out` messages).
-- [ ] Graceful handling when no browser is connected (error to client, not just a server-side println).
-
-## Phase 3: full production grade
-
-- [ ] Multi-session routing: map nREPL session -> ws connection. Today `!ws-conn`/`!response-handler` are single global atoms; multiple tabs/editors clobber.
-- [ ] Per-session ns/state instead of global `last-ns`/`state` atoms.
-- [ ] Interrupt and load-file ops over WS.
-- [ ] Tests (repo has playwright; drive a browser + nREPL client end-to-end).
+- [ ] Multiple browser tabs / multiple editor sessions: today the plugin broadcasts to all ws clients and matches results by id. Decide session model.
 
 ## DX / cleanup
 
-- [ ] `.nrepl-port` is committed in the example; gitignore it.
-- [ ] WS port should not require the vite env var; provide a fallback.
+- [ ] Remove unused `concurrently` dep and the now-dead standalone client files (`src/nrepl.cljs`, `js/nrepl.js`, `src/squint/nrepl.js`) on this branch.
+- [ ] `.nrepl-port` committed in the example; gitignore it.
 - [ ] README for `examples/browser-repl` (how to start, how to connect an editor).
+- [ ] Self-accept re-runs module side effects (fine for the demo's re-render; document for apps with listeners).
+
+## Standalone-WS leftover issues (reference only)
+
+- [ ] `nrepl.js`: `ex: ex.toString` missing the call.
+- [ ] WS port hardcoded 1340; `VITE_SQUINT_NREPL_PORT` misnamed.
+- [ ] `prn ::data` / `println "About to eval"` debug noise.
+- [ ] Single global `!ws-conn`/`!response-handler`/`last-ns`/`state` atoms.
