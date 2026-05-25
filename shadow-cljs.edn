@@ -26,7 +26,9 @@
     :cljs.pprint {:entries [cljs.pprint]
                   :depends-on #{:compiler}}
     :node.nrepl_server {:depends-on #{:compiler.node :cljs.pprint :node}
-                        :exports {startServer squint.repl.nrepl-server/start-server}}
+                        :exports {startServer squint.repl.nrepl-server/start-server
+                                  handleBrowserMessage squint.repl.nrepl-server/handle-browser-message
+                                  evalString squint.repl.nrepl-server/evaluate-string}}
     :cli {:depends-on #{:compiler :compiler.node :node}
           :init-fn squint.internal.cli/init}}
    :build-hooks [(shadow.cljs.build-report/hook

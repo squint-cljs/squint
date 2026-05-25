@@ -4,10 +4,9 @@
    [cljs.pprint :as pp]
    ["fs" :as fs]
    ["net" :as node-net]
-   [squint.compiler-common :as cc]
+   [squint.compiler-common :as cc :refer [*cljs-ns*]]
    [squint.compiler :as compiler]
-   [squint.repl.nrepl.bencode :refer [decode-all encode]]
-   ["ws" :refer [WebSocketServer]]))
+   [squint.repl.nrepl.bencode :refer [decode-all encode]]))
 
 (defn debug [& strs]
   (.debug js/console (str/join " " strs)))
@@ -40,7 +39,9 @@
     (handler request response)))
 
 (defn eval-ctx-mw [handler _]
-  handler)
+  (fn [request send-fn]
+    (handler request
+             send-fn)))
 
 (declare ops)
 
@@ -96,6 +97,27 @@
 (def in-progress (atom false))
 (def state (atom nil))
 
+;; Transport seam. By default the server evaluates compiled JS locally (node).
+;; A host (e.g. a vite plugin) can inject a browser transport via start-server's
+;; :browser-transport opt: compiled JS is sent to the browser and the result is
+;; awaited, correlated by request id.
+(def !browser-send (atom nil)) ;; (fn [#js {:op :code :id :session}] -> void)
+(def !pending (atom {}))       ;; request id -> #js {:resolve _ :reject _}
+
+(defn handle-browser-message
+  "Feed a browser eval reply back into the server, resolving the awaiting eval.
+  `msg` is a JS object (or JSON string) {op, value, ex, id, session}. Exposed so
+  a transport can deliver browser replies."
+  [msg]
+  (let [msg (if (string? msg) (js/JSON.parse msg) msg)
+        id (.-id ^js msg)
+        p (get @!pending id)]
+    (when p
+      (swap! !pending dissoc id)
+      (if-some [ex (.-ex ^js msg)]
+        ((.-reject ^js p) (js/Error. (str ex)))
+        ((.-resolve ^js p) (.-value ^js msg))))))
+
 (defn compile [the-val]
   (let [{js-str :javascript
          cljs-ns :ns
@@ -109,45 +131,62 @@
     (reset! last-ns cljs-ns)
     js-str))
 
-(def !ws-conn (atom nil))
-(def !target (atom nil))
-(def !response-handler (atom nil))
+(defn node-eval
+  "Default evaluator: eval compiled JS locally and format the value."
+  [js-str request]
+  (-> (js/Promise.resolve (js/eval js-str))
+      (.then (fn [val]
+               (format-value (:nrepl.middleware.print/print request)
+                             (:nrepl.middleware.print/options request)
+                             val)))))
+
+(defn browser-eval
+  "Evaluator that delegates to a browser over the injected transport, awaiting
+  the result correlated by request id."
+  [js-str request]
+  (js/Promise.
+   (fn [resolve reject]
+     (let [id (:id request)]
+       (swap! !pending assoc id #js {:resolve resolve :reject reject})
+       (if-let [send @!browser-send]
+         (send #js {:op "eval"
+                    :code js-str
+                    :id id
+                    :session (:session request)})
+         (do (swap! !pending dissoc id)
+             (reject (js/Error. "No browser transport connected"))))))))
+
+(def !eval-fn (atom node-eval))
+
+(defn evaluate
+  "Compile `code` (cljs) and evaluate it via the active evaluator. Returns a
+  Promise of the value (a printed string). Shared by the nREPL eval op and the
+  JS entrypoint below."
+  [code request]
+  (-> (js/Promise.resolve code)
+      (.then compile)
+      (.then (fn [js-str] (@!eval-fn js-str request)))))
+
+(defn evaluate-string
+  "JS entrypoint for evaluating a single code string (e.g. a dev HTTP trigger).
+  Returns Promise<#js {:value :ns}>; rejects on error."
+  [code]
+  (-> (evaluate code {:id (str (random-uuid)) :session "http"})
+      (.then (fn [value] #js {:value value :ns (str @last-ns)}))))
 
 (defn do-handle-eval [{:keys [ns code file
                               _load-file? _line] :as request} send-fn]
-  (let [browser? (= :browser @!target)
-        error? (atom nil)]
-    (->
-     (js/Promise.resolve code)
-     (.then compile)
-     (.then (fn [v]
-              (println "About to eval:")
-              (println v)
-              (if browser?
-                (if-let [conn @!ws-conn]
-                  (.send conn (js/JSON.stringify
-                               #js {:op "eval"
-                                    :code v
-                                    :id (:id request)
-                                    :session (:session request)}))
-                  (println "No websocket connection to send result to")
-                  ;; TODO: here comes the websocket code
-                  )
-                (js/eval v))))
-     (.then (fn [val]
-              (when-not browser?
-                (send-fn request {"ns" (str @last-ns)
-                                  "value" (format-value (:nrepl.middleware.print/print request)
-                                                        (:nrepl.middleware.print/options request)
-                                                        val)}))))
-     (.catch (fn [e]
-               (js/console.error e)
-               (reset! error? e)
-               (handle-error send-fn request e)))
-     (.finally (fn []
-                 (when (or (not browser?) @error?)
-                   (send-fn request {"ns" (str @last-ns)
-                                     "status" ["done"]})))))))
+  (->
+   (evaluate code request)
+   (.then (fn [value]
+            (send-fn request {"ns" (str @last-ns)
+                              "value" value})))
+   (.catch (fn [e]
+             (js/console.error e)
+             (handle-error send-fn request e)))
+   (.finally (fn []
+               (send-fn request {"ns" (str @last-ns)
+                                 "status" ["done"]})))))
 
 (defn handle-eval [{:keys [ns] :as request} send-fn]
   (prn :ns ns)
@@ -274,7 +313,6 @@
   (.setNoDelay ^node-net/Socket socket true)
   (let [handler (make-request-handler opts)
         response-handler (make-reponse-handler socket)
-        _ (reset! !response-handler response-handler)
         pending (atom nil)]
     (.on ^node-net/Socket socket "data"
          (fn [data]
@@ -296,63 +334,32 @@
 
 (def !server (atom nil))
 
-(defn ws-message-handler [data]
-  (let [data (js/JSON.parse data)
-        data (js->clj data)]
-    (prn ::data data)
-    (when-let [id (get data "id")]
-      (let [op (get data "op")
-            session (get data "session")
-            value (get data "value")
-            ex (get data "ex")]
-        (case op
-          "eval"
-          (do (when value
-                (@!response-handler
-                 {:id id
-                  :session session}
-                 {"value" value}))
-              (@!response-handler
-               {:id id
-                :session session}
-               (cond-> {"status" ["done"]}
-                 ex (assoc "ex" ex))
-               ))
-          (println "Unhandled op reply:" op))
-        ))))
-
 (defn start-server
   "Start nRepl server. Accepts options either as JS object or Clojure map."
   [opts]
   (-> (js/Promise.resolve nil)
       (.then
        (fn []
-         (let [port (or (:port opts)
+         (let [port (or (if (object? opts) (.-port ^js opts) (:port opts))
                         0)
-               host (or (:host opts)
+               host (or (if (object? opts) (.-host ^js opts) (:host opts))
                         "127.0.0.1" ;; default
                         )
-               target (or (some-> (:target opts)
-                                  keyword)
-                          :node)
                _log_level (or (if (object? opts)
-                                (.-log_level ^Object opts)
+                                (.-log_level ^js opts)
                                 (:log_level opts))
                               "info")
+               browser-transport (or (:browser-transport opts)
+                                     (when (object? opts)
+                                       (.-browserTransport ^js opts)))
                server (node-net/createServer
                        (partial on-connect {}))]
-           (reset! !target target)
-           ;; Expose "app" key under js/app in the repl
-           (when (= :browser target)
-             (let [wss (new WebSocketServer #js {:port 1340})]
-               (println "Websocket server running on port 1340")
-               (.on wss "connection" (fn [conn]
-                                       (reset! !ws-conn conn)
-                                       (.on conn "message"
-                                              (fn [data]
-                                                (ws-message-handler data)))
-                                       #_(.send conn "something")))
-               #_(reset! !ws-server wss)))
+           ;; Pick the evaluator: delegate to a browser when a transport was
+           ;; injected, otherwise eval locally (node).
+           (if browser-transport
+             (do (reset! !browser-send (.-send ^js browser-transport))
+                 (reset! !eval-fn browser-eval))
+             (reset! !eval-fn node-eval))
            (.listen server
                     port
                     host

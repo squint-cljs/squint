@@ -65,6 +65,7 @@
     "./src/squint/html.js": "./src/squint/html.js",
     "./src/squint/multi.js": "./src/squint/multi.js",
     "./src/squint/test.js": "./src/squint/test.js",
-    "./src/squint/nrepl.js": "./src/squint/nrepl.js"
+    "./src/squint/nrepl.js": "./src/squint/nrepl.js",
+    "./lib/node.nrepl_server.js": "./lib/node.nrepl_server.js"
   }
 }
