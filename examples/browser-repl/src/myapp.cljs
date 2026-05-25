@@ -1,4 +1,6 @@
 (ns myapp)
 
 (defn foobar []
-  5)
+  6)
+
+(foobar)

@@ -1,23 +1,29 @@
-// squint browser REPL over vite's HMR WebSocket, with the squint
-// compile pipeline owned by this plugin via squint's JS API.
+// squint browser REPL over vite's HMR WebSocket.
 //
 // Design (compare with the standalone-WebSocketServer approach on the
-// browser-repl-on-main branch): there is no second WebSocket server. REPL
-// eval rides vite's own dev-server WS (import.meta.hot), so reconnection and
-// the module graph are owned by vite and stay consistent with hot reload.
+// browser-repl-on-main branch): there is no second WebSocket server. REPL eval
+// rides vite's own dev-server WS (import.meta.hot), so reconnection and the
+// module graph are owned by vite and stay consistent with hot reload.
 //
-// The plugin compiles cljs -> js in-process with squint's compileFile API
-// (no subprocess, no `squint` on PATH). In dev it compiles once on startup
-// and recompiles changed files via vite's own file watcher; for a production
-// build it compiles everything in buildStart. So `vite dev` / `vite build`
-// is the only command you need.
+// The plugin:
+// - compiles cljs -> js in-process via squint's compileFile API (compile all
+//   on startup, recompile changed files via vite's watcher; one-shot for build),
+// - runs squint's own nREPL server (squint-cljs/lib/node.nrepl_server.js) and
+//   injects a browser transport, so editors connect over bencode TCP and eval
+//   is delegated to the browser over vite's WS. Same nREPL impl as `squint
+//   nrepl-server`; no second copy of bencode/ops.
+// - injects a browser-side eval listener (import.meta.hot) speaking the nREPL
+//   server's eval message format.
 //
-// For now eval is triggered over a dev-only HTTP endpoint (POST /__repl_eval)
-// so we can drive it with curl before wiring a real nREPL/editor relay.
+// A dev-only HTTP endpoint (POST /__repl_eval) drives the same eval path with
+// curl, handy for testing without an editor.
 
-import { compileStringEx } from 'squint-cljs';
 import { compileFile } from 'squint-cljs/node-api.js';
-import { randomUUID } from 'node:crypto';
+import {
+  startServer,
+  handleBrowserMessage,
+  evalString,
+} from 'squint-cljs/lib/node.nrepl_server.js';
 import { readdirSync, existsSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 
@@ -25,27 +31,31 @@ const VIRTUAL_CLIENT = 'virtual:squint-repl-client';
 const RESOLVED_CLIENT = '\0' + VIRTUAL_CLIENT;
 const CLJS_RE = /\.clj[sc]$/;
 
-// Browser-side listener, served as a virtual module so the page imports it
-// and gets a real import.meta.hot context.
+// Browser-side listener, served as a virtual module so the page imports it and
+// gets a real import.meta.hot context. Speaks the nREPL server's eval format:
+// receives {op:"eval", code, id, session}, replies {op:"eval", value/ex, id, session}.
 function clientCode() {
   return `
 if (import.meta.hot) {
-  import.meta.hot.on('squint:eval', async ({ id, code }) => {
+  import.meta.hot.on('squint:nrepl', async ({ op, code, id, session }) => {
+    if (op !== 'eval') return;
     // bare dynamic imports in eval'd code go through vite's resolver
     const rewritten = code.replace(/import\\('(.+?)'\\)/g, "import('/@resolve-deps/$1')");
-    let value, err;
+    let value, ex;
     try {
       value = await eval(rewritten);
     } catch (e) {
-      err = e && e.message ? e.message : String(e);
+      ex = e && e.message ? e.message : String(e);
     }
-    import.meta.hot.send('squint:eval-result', {
+    import.meta.hot.send('squint:nrepl-reply', {
+      op: 'eval',
       id,
+      session,
       value: value === undefined ? 'nil' : String(value),
-      err,
+      ...(ex ? { ex } : {}),
     });
   });
-  console.info('[squint-repl] eval listener ready');
+  console.info('[squint-repl] nrepl listener ready');
 }
 `;
 }
@@ -55,10 +65,8 @@ export default function squintRepl(options = {}) {
   const srcDir = options.srcDir ?? 'src';
   const outDir = options.outDir ?? 'js';
   const extension = options.extension ?? 'js';
+  const nreplPort = options.nreplPort ?? 1339;
 
-  // REPL compiler state, threaded across evals so ns/defs accumulate.
-  let state = {};
-  const pending = new Map();
   let root;
   let isBuild = false;
   let logger = console;
@@ -188,15 +196,16 @@ export default function squintRepl(options = {}) {
         res.end();
       });
 
-      // REPL eval transport over vite's HMR WS.
-      server.ws.on('squint:eval-result', (data) => {
-        const resolveFn = pending.get(data.id);
-        if (resolveFn) {
-          pending.delete(data.id);
-          resolveFn(data);
-        }
+      // Start squint's nREPL server, delegating eval to the browser over vite's
+      // WS. Browser replies come back on 'squint:nrepl-reply'.
+      server.ws.on('squint:nrepl-reply', (data) => handleBrowserMessage(data));
+      await startServer({
+        port: nreplPort,
+        browserTransport: { send: (msg) => server.ws.send('squint:nrepl', msg) },
       });
+      logger.info('[squint-repl] nREPL server on port ' + nreplPort);
 
+      // Dev HTTP trigger: drive the same eval path with curl (no editor needed).
       server.middlewares.use('/__repl_eval', async (req, res) => {
         if (req.method !== 'POST') {
           res.writeHead(405);
@@ -205,43 +214,13 @@ export default function squintRepl(options = {}) {
         }
         let body = '';
         for await (const chunk of req) body += chunk;
-
-        let js;
-        try {
-          const out = compileStringEx(
-            body,
-            { repl: true, context: 'return', elide_exports: true, async: true },
-            state,
-          );
-          state = out;
-          js = `(async function () {\n${out.javascript}\n})()`;
-        } catch (e) {
-          res.writeHead(400, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ err: 'compile error: ' + (e.message || String(e)) }));
-          return;
-        }
-
-        if (server.ws.clients.size === 0) {
-          res.writeHead(503, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ err: 'no browser connected' }));
-          return;
-        }
-
-        const id = randomUUID();
-        const result = new Promise((resolveFn) => {
-          pending.set(id, resolveFn);
-          setTimeout(() => {
-            if (pending.has(id)) {
-              pending.delete(id);
-              resolveFn({ id, err: 'timeout: no response from browser (10s)' });
-            }
-          }, 10000);
-        });
-
-        server.ws.send('squint:eval', { id, code: js });
-        const out = await result;
         res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(JSON.stringify({ value: out.value, err: out.err, ns: state.ns }));
+        try {
+          const out = await evalString(body);
+          res.end(JSON.stringify({ value: out.value, ns: out.ns }));
+        } catch (e) {
+          res.end(JSON.stringify({ err: e && e.message ? e.message : String(e) }));
+        }
       });
     },
   };

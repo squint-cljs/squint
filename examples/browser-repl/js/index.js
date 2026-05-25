@@ -1,13 +1,17 @@
-import * as squint_core from 'squint-cljs/core.js';
-import * as squint_html from 'squint-cljs/src/squint/html.js';
-import * as joi from 'joi';
-import * as m from './myapp.js';
-import * as myapp from './myapp.js';
-squint_core.prn(m.foobar());
+var squint_core = await import('squint-cljs/core.js');
+var squint_html = await import('squint-cljs/src/squint/html.js');
+globalThis.index = globalThis.index || {};
+var joi = await import('joi');
+var m = await import('./myapp.js');
+var myapp = await import('./myapp.js');
+globalThis.index.joi = joi;
+globalThis.index.m = m;
+squint_core.prn(globalThis.index.m.foobar());
 var hello = function () {
-return squint_html.html`<pre>Dude</pre>`;
+return squint_html.html`<pre>xDude</pre>`;
 
 };
-window.document.querySelector("#app").innerHTML = hello();
+globalThis.index.hello = hello;
+window.document.querySelector("#app").innerHTML = globalThis.index.hello();
 
 export { hello }
