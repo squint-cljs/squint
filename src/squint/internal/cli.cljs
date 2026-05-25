@@ -14,28 +14,6 @@
    [clojure.string :as str])
   (:require-macros [squint.resource :refer [version]]))
 
-(defn file-in-output-dir [file paths output-dir]
-  (if output-dir
-    (path/resolve output-dir
-                  (compiler/adjust-file-for-paths file paths))
-    file))
-
-(defn resolve-ns [opts in-file x]
-  (let [output-dir (:output-dir opts)
-        paths (:paths opts)
-        in-file-in-output-dir (file-in-output-dir in-file paths output-dir)]
-    (when-let [resolved
-               (some-> (utils/resolve-file x)
-                       (file-in-output-dir paths output-dir)
-                       (some->> (path/relative (path/dirname (str in-file-in-output-dir)))))]
-      (let [ext (:extension opts ".mjs")
-            ext (if (str/starts-with? ext ".")
-                  ext
-                  (str "." ext))
-            ext' (path/extname resolved)
-            file (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext))]
-        file))))
-
 (defn files-from-path [path]
   (let [files (fs/readdirSync path)]
     (vec (mapcat (fn [f]
@@ -94,10 +72,9 @@
                      #(do
                         (if (contains? #{".cljc" ".cljs"} (path/extname f))
                           (do (println "[squint] Compiling CLJS file:" f)
-                              (compiler/compile-file (assoc opts
-                                                            :in-file f
-                                                            :resolve-ns (fn [x]
-                                                                          (resolve-ns opts f x)))))
+                              ;; compile-file auto-wires :resolve-ns from opts
+                              ;; (:paths/:output-dir/:extension)
+                              (compiler/compile-file (assoc opts :in-file f)))
                           (copy-file copy-resources f output-dir paths))))
                     (.then (fn [{:keys [out-file]}]
                              (when out-file (println "[squint] Wrote file:" out-file))
@@ -169,8 +146,7 @@ Options:
     (if help
       nil
       (do (println "[squint] Running" file)
-          (.then (compiler/compile-file (assoc opts :in-file file :resolve-ns (fn [x]
-                                                                                (resolve-ns opts file x))))
+          (.then (compiler/compile-file (assoc opts :in-file file))
                   (fn [{:keys [out-file]}]
                     (let [path (if (path/isAbsolute out-file) out-file
                                    (path/resolve (js/process.cwd) out-file))

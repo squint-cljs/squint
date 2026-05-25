@@ -112,11 +112,39 @@
                          paths)]
     out-file))
 
+(defn file-in-output-dir [file paths output-dir]
+  (if output-dir
+    (path/resolve output-dir
+                  (adjust-file-for-paths file paths))
+    file))
+
+(defn resolve-ns
+  "Resolve a required libname/ns `x` to a relative path to its compiled output,
+  relative to `in-file`'s output location, using the caller-supplied
+  `:paths`/`:output-dir`/`:extension`. Returns nil when `x` is not a local
+  source ns (e.g. an npm package), leaving it as a bare import."
+  [{:keys [output-dir paths extension]} in-file x]
+  (let [in-file-in-output-dir (file-in-output-dir in-file paths output-dir)]
+    (when-let [resolved (some-> (utils/resolve-file x paths)
+                                (file-in-output-dir paths output-dir)
+                                (some->> (path/relative (path/dirname (str in-file-in-output-dir)))))]
+      (let [ext (or extension ".mjs")
+            ext (if (str/starts-with? ext ".") ext (str "." ext))
+            ext' (path/extname resolved)]
+        (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext))))))
+
 (defn compile-file [{:keys [in-file in-str out-file extension output-dir]
                      :or {output-dir ""}
                      :as opts}]
   (let [contents (or in-str (slurp in-file))
-        opts (->opts opts)]
+        opts (->opts opts)
+        ;; When the caller didn't supply :resolve-ns, wire squint's own
+        ;; squint.edn-style resolution so local cross-ns requires compile to a
+        ;; relative path (./foo.js) instead of a bare 'foo' a bundler can't
+        ;; resolve. Driven by the caller-passed :paths/:output-dir/:extension.
+        opts (cond-> opts
+               (and in-file (not (:resolve-ns opts)))
+               (assoc :resolve-ns (fn [x] (resolve-ns opts in-file x))))]
     (-> (compile-string contents (assoc opts :ns nil))
         (.then (fn [{:keys [javascript jsx] :as opts}]
                  (let [opts (utils/process-opts! opts)

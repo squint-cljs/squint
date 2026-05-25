@@ -34,8 +34,10 @@
     cfg))
 
 (defn resolve-file
-  [macro-ns]
-  (let [path (-> macro-ns str (str/replace "-" "_") (str/replace "." "/"))]
-    (some (fn [dir]
-            (resolve-file* dir path))
-          (:paths (get-cfg) ["." "src"]))))
+  ([macro-ns]
+   (resolve-file macro-ns (:paths (get-cfg) ["." "src"])))
+  ([macro-ns paths]
+   (let [path (-> macro-ns str (str/replace "-" "_") (str/replace "." "/"))]
+     (some (fn [dir]
+             (resolve-file* dir path))
+           (or paths ["." "src"])))))
