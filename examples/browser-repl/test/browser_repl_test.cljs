@@ -233,15 +233,16 @@
               session (some (fn [m] (aget m "new-session")) (js/Array.from clone))
               ev (fn [code] (with-timeout 20000 (str "eval " (pr-str code))
                                           (nrepl-eval client session code)))]
-          ;; define a var in `another`, read it from `index` via the alias
+          ;; define a var in `another`, read it from `index` via the alias.
+          ;; Values come back pr-str'd (a string prints with quotes).
           (await (ev "(ns another) (def s \"v1\")"))
           (check "cross-ns read"
-                 "v1"
+                 "\"v1\""
                  (await (ev "(ns index (:require [another :as a])) a/s")))
           ;; redefine it in `another`, the cross-ns ref must see the new value
           (await (ev "(ns another) (def s \"v2\")"))
           (check "cross-ns redef visible"
-                 "v2"
+                 "\"v2\""
                  (await (ev "(ns index (:require [another :as a])) a/s")))
           ;; #jsx eval'd at the REPL must compile to jsx() calls (not raw <tags>,
           ;; which the browser can't eval) and render into the live page

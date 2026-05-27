@@ -41,6 +41,7 @@ const ENABLE_HTTP_EVAL = false;
 // receives {op:"eval", code, id, session}, replies {op:"eval", value/ex, id, session}.
 function clientCode() {
   return `
+import { pr_str } from 'squint-cljs/core.js';
 if (import.meta.hot) {
   import.meta.hot.on('squint:nrepl', async ({ op, code, id, session }) => {
     if (op !== 'eval') return;
@@ -49,7 +50,8 @@ if (import.meta.hot) {
     const rewritten = code.replace(/import\\s*\\(\\s*'(.+?)'\\s*\\)/g, "import('/@resolve-deps/$1')");
     let value, ex;
     try {
-      value = await eval(rewritten);
+      // print with squint's pr-str (pr_str(undefined) is "nil")
+      value = pr_str(await eval(rewritten));
     } catch (e) {
       ex = e && e.message ? e.message : String(e);
     }
@@ -57,7 +59,7 @@ if (import.meta.hot) {
       op: 'eval',
       id,
       session,
-      value: value === undefined ? 'nil' : String(value),
+      value,
       ...(ex ? { ex } : {}),
     });
   });
