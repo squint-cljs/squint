@@ -499,18 +499,20 @@
                                                         :need-multi-import need-multi-import))
                  jsx *jsx*
                  _ (when (and jsx jsx-runtime)
-                     (swap! imports str
-                            (format
-                             "var {jsx%s: _jsx, jsx%s%s: _jsxs, Fragment: _Fragment } = await import('%s');\n"
-                             (if jsx-dev "DEV" "")
-                             (if jsx-dev "" "s")
-                             (if jsx-dev "DEV" "")
-                             (let [jsx-package (str (:import-source jsx-runtime
-                                                                    "react")
-                                                    (if jsx-dev
-                                                      "/jsx-dev-runtime"
-                                                      "/jsx-runtime"))]
-                               (get import-maps jsx-package jsx-package)))))
+                     (let [jsx-name (str "jsx" (if jsx-dev "DEV" ""))
+                           jsxs-name (str "jsx" (if jsx-dev "" "s") (if jsx-dev "DEV" ""))
+                           jsx-package (let [pkg (str (:import-source jsx-runtime "react")
+                                                      (if jsx-dev "/jsx-dev-runtime" "/jsx-runtime"))]
+                                         (get import-maps pkg pkg))]
+                       (swap! imports str
+                              ;; REPL evaluates plain JS, so dynamic await-import;
+                              ;; otherwise a static import (no top-level await, which
+                              ;; bundlers' default targets reject).
+                              (if cc/*repl*
+                                (format "var {%s: _jsx, %s: _jsxs, Fragment: _Fragment } = await import('%s');\n"
+                                        jsx-name jsxs-name jsx-package)
+                                (format "import {%s as _jsx, %s as _jsxs, Fragment as _Fragment } from '%s';\n"
+                                        jsx-name jsxs-name jsx-package)))))
                  _ (when @need-html-import
                      (swap! imports str
                             (let [html-pkg "squint-cljs/src/squint/html.js"

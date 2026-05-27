@@ -149,10 +149,15 @@
         (.then (fn [{:keys [javascript jsx] :as opts}]
                  (let [opts (utils/process-opts! opts)
                        paths (:paths opts ["." "src"])
+                       ;; Raw JSX tags need a .jsx extension so a downstream
+                       ;; transform (e.g. @vitejs/plugin-react) picks them up.
+                       ;; With :jsx-runtime the output is plain JS (jsx() calls),
+                       ;; so honor the configured extension instead.
+                       jsx-tags? (and jsx (not (:jsx-runtime opts)))
                        out-file (path/resolve output-dir
                                               (or out-file
                                                   (str/replace (adjust-file-for-paths in-file paths) #".clj(s|c)$"
-                                                               (if jsx
+                                                               (if jsx-tags?
                                                                  ".jsx"
                                                                  (or (when-let [ext extension]
                                                                        (str "." (str/replace ext #"^\." "")))
