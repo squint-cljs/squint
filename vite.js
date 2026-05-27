@@ -45,7 +45,8 @@ if (import.meta.hot) {
   import.meta.hot.on('squint:nrepl', async ({ op, code, id, session }) => {
     if (op !== 'eval') return;
     // bare dynamic imports in eval'd code go through vite's resolver
-    const rewritten = code.replace(/import\\('(.+?)'\\)/g, "import('/@resolve-deps/$1')");
+    // (\\s* tolerates squint emitting e.g. \`import ('preact')\` for :refer)
+    const rewritten = code.replace(/import\\s*\\(\\s*'(.+?)'\\s*\\)/g, "import('/@resolve-deps/$1')");
     let value, ex;
     try {
       value = await eval(rewritten);

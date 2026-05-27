@@ -6,6 +6,7 @@
    ["net" :as node-net]
    [squint.compiler-common :as cc :refer [*cljs-ns*]]
    [squint.compiler :as compiler]
+   [squint.internal.node.utils :as utils]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]))
 
 (defn debug [& strs]
@@ -121,12 +122,18 @@
         ((.-resolve ^js p) (.-value ^js msg))))))
 
 (defn compile [the-val]
-  (let [{js-str :javascript
+  (let [;; Apply squint.edn's :jsx-runtime so #jsx eval'd at the REPL emits
+        ;; jsx() calls (not raw <tags>, which the browser can't eval). The REPL
+        ;; is always dev, so use the jsx-dev-runtime.
+        jsx-runtime (some-> (utils/get-cfg) :jsx-runtime (assoc :development true))
+        {js-str :javascript
          cljs-ns :ns
-         :as new-state} (compiler/compile-string* the-val {:context :return
+         :as new-state} (compiler/compile-string* the-val
+                                                  (cond-> {:context :return
                                                            :elide-exports true
                                                            :repl true
                                                            :async true}
+                                                    jsx-runtime (assoc :jsx-runtime jsx-runtime))
                                                   @state)
         _ (reset! state new-state)
         js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]

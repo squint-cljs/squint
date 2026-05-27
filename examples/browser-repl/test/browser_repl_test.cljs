@@ -234,7 +234,14 @@
           (await (ev "(ns another) (def s \"v2\")"))
           (check "cross-ns redef visible"
                  "v2"
-                 (await (ev "(ns index (:require [another :as a])) a/s")))))
+                 (await (ev "(ns index (:require [another :as a])) a/s")))
+          ;; #jsx eval'd at the REPL must compile to jsx() calls (not raw <tags>,
+          ;; which the browser can't eval) and render into the live page
+          (await (ev (str "(ns repljsx (:require [\"preact\" :refer [render]]))"
+                          " (render #jsx [:div \"jsx-repl-ok\"] (js/document.querySelector \"#preact\"))")))
+          (check "REPL #jsx renders"
+                 "jsx-repl-ok"
+                 (await (.textContent page "#preact")))))
       (catch :default e
         (swap! failures inc)
         (println "ERROR:" (.-message e))
