@@ -1,15 +1,14 @@
 // vite.config.js
 import { defineConfig } from 'vite';
-import squintRepl from 'squint-cljs/vite';
+import squint from 'squint-cljs/vite';
 
 export default defineConfig(() => {
   return {
-    // Pre-bundle deps we may require at the REPL so vite doesn't discover
-    // them mid-session (which would re-optimize and reload the page).
+    // Pre-bundle deps we may require at the REPL so vite doesn't discover them
+    // mid-session (which would re-optimize and reload the page).
     optimizeDeps: { include: ['joi', 'lodash', 'nanoid'] },
-    // squintRepl owns the cljs -> js compile (dev watch + build), dep
-    // resolution for REPL imports, the REPL transport, and injecting the
-    // browser eval listener.
-    plugins: [squintRepl()],
+    // The squint vite plugin: compiles cljs -> js (dev watch + build), resolves
+    // REPL imports, and runs the browser REPL (nREPL server + eval over the HMR WS).
+    plugins: [squint()],
   };
 });

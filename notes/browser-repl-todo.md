@@ -39,6 +39,16 @@ for those). Revisit shadow-style on-demand bundling later.
 - [ ] Later: shadow-style on-demand esbuild bundling for zero-reload arbitrary deps.
 - [ ] CJS interop nuance: CJS deps land under `.default` (`(.-default ld)`); also `optimizeDeps.needsInterop`.
 
+## Newcomer friction (UX) - what's counterintuitive today
+
+Ranked by how hard a first-time user trips on it:
+
+- [ ] **Plugin ignores `squint.edn`.** It takes `srcDir`/`outDir`/`extension` options with hardcoded defaults and never reads `squint.edn`, so the two can silently diverge. Fixable: read `squint.edn` (single source of truth); options override. Top priority.
+- [ ] **`index.html` loads the compiled `js/index.js`, not the source/entry ns.** Leaks the ns->file mapping + output layout into HTML, must stay in sync with `:output-dir`/`:extension`. Consider: plugin injects the entry script, or accept an entry ns.
+- [ ] **Eval needs an open browser tab.** Eval runs in the page; with no tab loaded the editor eval just times out. Fixable: nREPL returns a clear "no browser connected" instead of hanging/timeout; README warns up front.
+- [ ] **Must pre-declare REPL deps in `optimizeDeps.include`** or a new dep reloads the page + wipes state. Inherent vite behavior; document loudly (already in README).
+- [ ] **CJS deps come back under `.default`** (`(.. lodash -default (add 1 2))`). Document.
+
 ## nREPL (done): transport-agnostic seam in squint's own server
 
 Chose to reuse squint's `nrepl_server` rather than write a second nREPL impl in
@@ -60,7 +70,7 @@ Remaining nREPL polish:
 
 ## REPL semantics (helps both branches)
 
-- [ ] Cross-ns refs: `index/hello` compiles to bare `index.hello`, not `globalThis.index.hello`, so referencing another ns from the REPL fails.
+- [x] Cross-ns refs: a local-ns alias now binds to the live `globalThis.<ns>` object, so redefs/HMR are visible across ns. Covered by the e2e test (`bb test:browser-repl`).
 - [ ] Result printing: use pr-str, handle nil/undefined/objects (currently `String(value)`).
 
 ## Robustness
@@ -71,9 +81,9 @@ Remaining nREPL polish:
 
 ## DX / cleanup
 
-- [ ] Remove unused `concurrently` dep and the now-dead standalone client files (`src/nrepl.cljs`, `js/nrepl.js`, `src/squint/nrepl.js`) on this branch.
+- [x] Removed unused `concurrently` dep and the dead standalone client files (`src/nrepl.cljs`, `js/nrepl.js`, `src/squint/nrepl.js`).
 - [ ] `.nrepl-port` committed in the example; gitignore it.
-- [ ] README for `examples/browser-repl` (how to start, how to connect an editor).
+- [x] README for `examples/browser-repl` (setup, editor connection, options).
 - [ ] Self-accept re-runs module side effects (fine for the demo's re-render; document for apps with listeners).
 
 ## Standalone-WS leftover issues (reference only)

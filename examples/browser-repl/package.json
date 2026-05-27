@@ -1,8 +1,9 @@
 {
   "type": "module",
   "dependencies": {
-    "concurrently": "^9.0.1",
     "joi": "^17.13.3",
+    "lodash": "^4.17.21",
+    "nanoid": "^5.0.0",
     "squint-cljs": "file:../../squint",
     "vite": "^5.4.8"
   },

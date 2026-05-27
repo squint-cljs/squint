@@ -60,7 +60,15 @@ if (import.meta.hot) {
 `;
 }
 
-export default function squintRepl(options = {}) {
+export default function squint(options = {}) {
+  // Where the REPL runtime lives. Only :browser today; the option leaves room
+  // for a node/SSR target (vite is used for node dev too) without a rename.
+  const target = options.target ?? 'browser';
+  if (target !== 'browser') {
+    throw new Error(
+      `squint vite plugin: target ${JSON.stringify(target)} not supported yet (only 'browser')`,
+    );
+  }
   // Defaults mirror squint.edn (:paths, :output-dir, :extension).
   const srcDir = options.srcDir ?? 'src';
   const outDir = options.outDir ?? 'js';
