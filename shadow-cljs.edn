@@ -22,7 +22,8 @@
     :compiler.node {:depends-on #{:compiler :node}
                     :exports
                     {compileFile squint.compiler.node/compile-file-js
-                     compileString squint.compiler.node/compile-string-js}}
+                     compileString squint.compiler.node/compile-string-js
+                     readConfig squint.compiler.node/read-config-js}}
     :cljs.pprint {:entries [cljs.pprint]
                   :depends-on #{:compiler}}
     :node.nrepl_server {:depends-on #{:compiler.node :cljs.pprint :node}

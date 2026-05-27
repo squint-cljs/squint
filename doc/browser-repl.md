@@ -90,12 +90,15 @@ export default defineConfig({
 
 ## Plugin options
 
+All optional. The source layout is read from `squint.edn`
+(`:paths`/`:output-dir`/`:extension`); these options override it.
+
 ```js
 squint({
   target: 'browser', // default; where the REPL runtime lives (only :browser for now)
-  srcDir: 'src',     // default; matches squint.edn :paths (single dir)
-  outDir: 'js',      // default; matches squint.edn :output-dir
-  extension: 'js',   // default; matches squint.edn :extension
+  paths: ['src'],    // overrides squint.edn :paths
+  outDir: 'js',      // overrides squint.edn :output-dir
+  extension: 'js',   // overrides squint.edn :extension
   nreplPort: 1339,   // default; or set SQUINT_NREPL_PORT
 })
 ```

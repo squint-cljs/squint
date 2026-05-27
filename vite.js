@@ -18,7 +18,7 @@
 // A dev-only HTTP endpoint (POST /__repl_eval) drives the same eval path with
 // curl, handy for testing without an editor.
 
-import { compileFile } from './node-api.js';
+import { compileFile, readConfig } from './node-api.js';
 import {
   startServer,
   handleBrowserMessage,
@@ -69,10 +69,6 @@ export default function squint(options = {}) {
       `squint vite plugin: target ${JSON.stringify(target)} not supported yet (only 'browser')`,
     );
   }
-  // Defaults mirror squint.edn (:paths, :output-dir, :extension).
-  const srcDir = options.srcDir ?? 'src';
-  const outDir = options.outDir ?? 'js';
-  const extension = options.extension ?? 'js';
   const nreplPort =
     options.nreplPort ??
     (process.env.SQUINT_NREPL_PORT ? Number(process.env.SQUINT_NREPL_PORT) : 1339);
@@ -80,36 +76,38 @@ export default function squint(options = {}) {
   let root;
   let isBuild = false;
   let logger = console;
-
-  function srcAbs() {
-    return join(root, srcDir);
-  }
+  // Resolved in configResolved from squint.edn (plugin options override it).
+  // `paths` are absolute source dirs.
+  let paths = [];
+  let outDir = 'js';
+  let extension = 'js';
 
   function compileCljs(file) {
     return compileFile({
       'in-file': file,
       'output-dir': join(root, outDir),
-      paths: [srcAbs()],
+      paths,
       extension,
       repl: true,
     });
   }
 
   async function compileAll() {
-    const dir = srcAbs();
-    let entries;
-    try {
-      entries = readdirSync(dir, { recursive: true, withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const e of entries) {
-      if (e.isFile() && CLJS_RE.test(e.name)) {
-        const file = join(e.parentPath ?? e.path, e.name);
-        try {
-          await compileCljs(file);
-        } catch (err) {
-          logger.error('[squint-repl] compile error in ' + file + ': ' + (err.message || err));
+    for (const dir of paths) {
+      let entries;
+      try {
+        entries = readdirSync(dir, { recursive: true, withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const e of entries) {
+        if (e.isFile() && CLJS_RE.test(e.name)) {
+          const file = join(e.parentPath ?? e.path, e.name);
+          try {
+            await compileCljs(file);
+          } catch (err) {
+            logger.error('[squint-repl] compile error in ' + file + ': ' + (err.message || err));
+          }
         }
       }
     }
@@ -122,6 +120,11 @@ export default function squint(options = {}) {
       root = config.root;
       isBuild = config.command === 'build';
       logger = config.logger ?? console;
+      // squint.edn is the source of truth; plugin options override it.
+      const cfg = readConfig(root) || {};
+      paths = (options.paths ?? cfg.paths ?? ['src']).map((p) => resolve(root, p));
+      outDir = options.outDir ?? cfg['output-dir'] ?? 'js';
+      extension = options.extension ?? cfg.extension ?? 'js';
     },
 
     // Production build: compile everything before vite bundles.
@@ -164,10 +167,9 @@ export default function squint(options = {}) {
       // Compile once on startup, then recompile changed cljs via vite's watcher.
       await compileAll();
 
-      const base = srcAbs() + sep;
       const onChange = async (file) => {
         const abs = resolve(file);
-        if (!CLJS_RE.test(abs) || !abs.startsWith(base)) return;
+        if (!CLJS_RE.test(abs) || !paths.some((p) => abs.startsWith(p + sep))) return;
         try {
           await compileCljs(abs);
           logger.info('[squint-repl] compiled ' + abs);
@@ -175,7 +177,7 @@ export default function squint(options = {}) {
           logger.error('[squint-repl] compile error in ' + abs + ': ' + (err.message || err));
         }
       };
-      server.watcher.add(srcAbs());
+      for (const p of paths) server.watcher.add(p);
       server.watcher.on('change', onChange);
       server.watcher.on('add', onChange);
 

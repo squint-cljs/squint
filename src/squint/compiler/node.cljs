@@ -185,3 +185,7 @@
 #_{:clj-kondo/ignore [:unused-private-var]}
 (def ^:private compile-file-js
   (jsify compile-file))
+
+#_{:clj-kondo/ignore [:unused-private-var]}
+(def ^:private read-config-js
+  (jsify utils/read-config))
