@@ -128,11 +128,15 @@
         ((.-reject ^js p) (js/Error. (str ex)))
         ((.-resolve ^js p) (.-value ^js msg))))))
 
-(defn compile [the-val]
+(defn compile [the-val ns]
   (let [;; Apply squint.edn's :jsx-runtime so #jsx eval'd at the REPL emits
         ;; jsx() calls (not raw <tags>, which the browser can't eval). The REPL
         ;; is always dev, so use the jsx-dev-runtime.
         jsx-runtime (some-> (utils/get-cfg) :jsx-runtime (assoc :development true))
+        ;; evaluate in the ns the editor asked for (e.g. the buffer's ns), so a
+        ;; form like (defn render ...) lands in that ns - not whatever was last
+        ;; evaluated. A form's own (ns ...) still switches from there.
+        ns (when ns (symbol ns))
         {js-str :javascript
          cljs-ns :ns
          :as new-state} (compiler/compile-string* the-val
@@ -143,7 +147,8 @@
                                                     jsx-runtime (assoc :jsx-runtime jsx-runtime)
                                                     ;; share the host's ns-state so file-defined
                                                     ;; vars/aliases are visible to the REPL
-                                                    @!ns-state (assoc :ns-state @!ns-state))
+                                                    @!ns-state (assoc :ns-state @!ns-state)
+                                                    ns (assoc :ns ns))
                                                   @state)
         _ (reset! state new-state)
         js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]
@@ -197,7 +202,7 @@
   JS entrypoint below."
   [code request]
   (-> (js/Promise.resolve code)
-      (.then compile)
+      (.then (fn [c] (compile c (:ns request))))
       (.then (fn [js-str] (@!eval-fn js-str request)))))
 
 (defn evaluate-string
@@ -222,8 +227,9 @@
                                  "status" ["done"]})))))
 
 (defn handle-eval [{:keys [ns] :as request} send-fn]
-  (prn :ns ns)
-  (do-handle-eval (assoc request :ns @last-ns)
+  ;; evaluate in the ns the editor sent (the buffer's ns); fall back to the last
+  ;; ns for clients that don't send one.
+  (do-handle-eval (assoc request :ns (or ns @last-ns))
                   send-fn))
 
 (defn handle-clone [request send-fn]

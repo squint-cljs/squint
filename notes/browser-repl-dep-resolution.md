@@ -147,3 +147,9 @@ cross-ns live redefs. Still open:
 - Doc: CJS deps come back under `.default` (`(.. canvas-confetti -default)`).
 - Doc: HMR self-accept re-runs module side effects (fine for re-render; matters
   for apps with listeners).
+- Compiler: get rid of the compiler's dynamic vars (`*cljs-ns*`, `*aliases*`,
+  `*public-vars*`, ...) and keep that state in `ns-state` instead. They drift
+  from `ns-state` and caused REPL resolution bugs: vars/aliases live in
+  `ns-state` but the current ns came from `*cljs-ns*`, so `(:current ns-state)`
+  and `*cljs-ns*` desynced (fixed for now by syncing `:current` to `*cljs-ns*`
+  at compile start). Threading one `ns-state` is the direction; fold the rest in.

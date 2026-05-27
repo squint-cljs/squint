@@ -113,10 +113,13 @@
                       (resolve msgs))))))
        (.write (.-sock client) (bencode op))))))
 
-(defn nrepl-eval [client session code]
-  (-> (nrepl-request client #js {:op "eval" :session session :code code})
-      (.then (fn [msgs]
-               (some (fn [m] (aget m "value")) (js/Array.from msgs))))))
+(defn nrepl-eval
+  ([client session code] (nrepl-eval client session code nil))
+  ([client session code ns]
+   (-> (nrepl-request client (cond-> #js {:op "eval" :session session :code code}
+                               ns (doto (aset "ns" ns))))
+       (.then (fn [msgs]
+                (some (fn [m] (aget m "value")) (js/Array.from msgs)))))))
 
 ;; --------------------------------------------------------------- helpers ----
 
@@ -244,13 +247,15 @@
           (check "cross-ns redef visible"
                  "\"v2\""
                  (await (ev "(ns repltest (:require [ui :as u])) u/xns")))
-          ;; shared ns-state: `state` is defined in reagami_app.cljs (compiled at
-          ;; page load, never redefined this session). The REPL still resolves it
-          ;; to globalThis.reagami_app.state via the host-shared ns-state (was
-          ;; "state is not defined").
+          ;; ns honored + shared ns-state: eval in reagami-app (via the request
+          ;; :ns, no (ns ...) form) referencing `state`, which is defined in
+          ;; reagami_app.cljs (compiled at page load, never redefined this
+          ;; session). Resolves to globalThis.reagami_app.state (was "state is
+          ;; not defined", and the eval used to run in `user`).
           (check "file-defined var visible at REPL"
                  "true"
-                 (await (ev "(ns reagami-app) (map? @state)")))
+                 (await (with-timeout 20000 "eval in reagami-app"
+                                      (nrepl-eval client session "(map? @state)" "reagami-app"))))
           ;; #jsx eval'd at the REPL must compile to jsx() calls (not raw <tags>,
           ;; which the browser can't eval) and render into the live page
           (await (ev (str "(ns repljsx (:require [\"preact\" :refer [render]]))"
