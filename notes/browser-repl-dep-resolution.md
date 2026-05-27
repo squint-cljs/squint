@@ -1,8 +1,8 @@
 # Browser REPL: dependency resolution design
 
 Design notes for how REPL-eval'd code should resolve its npm/cljs dependencies
-in the browser, without forcing a page reload. Companion to
-`browser-repl-todo.md`.
+in the browser, without forcing a page reload. Remaining browser-repl TODOs
+(beyond dep resolution) are at the bottom.
 
 ## Decision (2026-05-25): punt
 
@@ -126,3 +126,24 @@ works. (2) buys less than (3) for similar rework.
 
 Decided to punt (see top): accept the reload on a never-seen dep, lean on
 `optimizeDeps.include` for known deps. Revisit (3) later.
+
+## Remaining browser-repl TODOs (beyond dep resolution)
+
+The vite-HMR browser REPL shipped: `npm run dev` only, plugin (`vite.js`, as
+`squint-cljs/vite`) owns compile + HMR + nREPL-over-WS, `:main` injects entries,
+pr-str printing across console/nREPL/browser, JSX (`:jsx-runtime`) + reagami,
+cross-ns live redefs. Still open:
+
+- Promise printing as `#<Promise ...>` (needs boxing around the eval async-IIFE
+  so a top-level promise isn't flattened by `await`).
+- stdout streaming (`out`) + error/stacktrace formatting (`err` + ex-message)
+  from the browser to the editor.
+- interrupt / load-file over the browser transport.
+- Multi-session: `!browser-send`/`!pending`/`last-ns`/`state` in the nREPL
+  server are global (one editor/tab). Route by session; decide the multi-tab
+  model.
+- Dep follow-ups: auto-derive `optimizeDeps.include` from source `:require`s,
+  or shadow-style on-demand bundling (options 1/3 above).
+- Doc: CJS deps come back under `.default` (`(.. canvas-confetti -default)`).
+- Doc: HMR self-accept re-runs module side effects (fine for re-render; matters
+  for apps with listeners).
