@@ -18,12 +18,12 @@
 // A dev-only HTTP endpoint (POST /__repl_eval) drives the same eval path with
 // curl, handy for testing without an editor.
 
-import { compileFile } from 'squint-cljs/node-api.js';
+import { compileFile } from './node-api.js';
 import {
   startServer,
   handleBrowserMessage,
   evalString,
-} from 'squint-cljs/lib/node.nrepl_server.js';
+} from './lib/node.nrepl_server.js';
 import { readdirSync, existsSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 

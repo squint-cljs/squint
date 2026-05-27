@@ -16,7 +16,8 @@
     "lib",
     "node_cli.js",
     "index.js",
-    "node-api.js"
+    "node-api.js",
+    "vite.js"
   ],
   "bin": {
     "squint": "node_cli.js"
@@ -61,6 +62,8 @@
     "./src/squint/math.js": "./src/squint/math.js",
     "./src/squint/string.js": "./src/squint/string.js",
     "./node-api.js": "./node-api.js",
+    "./vite": "./vite.js",
+    "./vite.js": "./vite.js",
     "./src/squint/html.js": "./src/squint/html.js",
     "./src/squint/multi.js": "./src/squint/multi.js",
     "./src/squint/test.js": "./src/squint/test.js",

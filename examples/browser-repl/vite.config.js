@@ -1,6 +1,6 @@
 // vite.config.js
 import { defineConfig } from 'vite';
-import squintRepl from './vite-plugin-squint-repl.js';
+import squintRepl from 'squint-cljs/vite';
 
 export default defineConfig(() => {
   return {
