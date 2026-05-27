@@ -343,30 +343,51 @@
        (contains? '#{cljs.test clojure.test cherry.test squint.test} original-libname)
        (contains? builtin-test-macro-names refer-sym)))
 
+;; Namespaces that map to a squint/cherry library module (per target), instead
+;; of a local source ns. Single source of truth for both resolve-ns and
+;; library-ns?: their vars are exported by the module, so a repl `:as` alias
+;; binds to the imported module object - not globalThis.<ns>, which only local,
+;; repl-compiled nses self-register.
+(def ^:private library-imports
+  '{:squint {squint.string "squint-cljs/src/squint/string.js"
+             clojure.string "squint-cljs/src/squint/string.js"
+             squint.set "squint-cljs/src/squint/set.js"
+             clojure.set "squint-cljs/src/squint/set.js"
+             squint.math "squint-cljs/src/squint/math.js"
+             clojure.math "squint-cljs/src/squint/math.js"
+             cljs.math "squint-cljs/src/squint/math.js"
+             squint.test "squint-cljs/src/squint/test.js"
+             cljs.test "squint-cljs/src/squint/test.js"
+             clojure.test "squint-cljs/src/squint/test.js"}
+    :cherry {cljs.string "cherry-cljs/lib/clojure.string.js"
+             clojure.string "cherry-cljs/lib/clojure.string.js"
+             cljs.walk "cherry-cljs/lib/clojure.walk.js"
+             clojure.walk "cherry-cljs/lib/clojure.walk.js"
+             cljs.set "cherry-cljs/lib/clojure.set.js"
+             clojure.set "cherry-cljs/lib/clojure.set.js"
+             cljs.pprint "cherry-cljs/lib/cljs.pprint.js"
+             clojure.pprint "cherry-cljs/lib/cljs.pprint.js"
+             cljs.test "cherry-cljs/lib/clojure.test.js"
+             clojure.test "cherry-cljs/lib/clojure.test.js"}})
+
+(defn library-ns?
+  "True when `alias` resolves to a library module (see `library-imports`) rather
+  than a local source ns."
+  [alias]
+  (contains? (get library-imports *target*) alias))
+
 (defn resolve-ns [env alias]
   (let [import-maps (:import-maps env)]
-    (case *target*
-      :squint
-      (case alias
-        (squint.string clojure.string) (resolve-import-map import-maps "squint-cljs/src/squint/string.js")
-        (squint.set clojure.set) (resolve-import-map import-maps "squint-cljs/src/squint/set.js")
-        (squint.math clojure.math cljs.math) (resolve-import-map import-maps "squint-cljs/src/squint/math.js")
-        (squint.test cljs.test clojure.test) (resolve-import-map import-maps "squint-cljs/src/squint/test.js")
-        (if (symbol? alias)
-          (if-let [resolve-ns (:resolve-ns env)]
-            (or (resolve-ns alias)
-                alias)
-            alias)
-          (resolve-import-map import-maps alias)))
-      :cherry
-      (case alias
-        (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
-        (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
-        (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
-        (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
-        (cljs.test clojure.test) "cherry-cljs/lib/clojure.test.js"
-        alias)
-      alias)))
+    (if-let [lib (get-in library-imports [*target* alias])]
+      (resolve-import-map import-maps lib)
+      (case *target*
+        :squint (if (symbol? alias)
+                  (if-let [resolve-ns (:resolve-ns env)]
+                    (or (resolve-ns alias)
+                        alias)
+                    alias)
+                  (resolve-import-map import-maps alias))
+        alias))))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
@@ -681,6 +702,20 @@
 (defn unwrap [s]
   (str/replace (str s) #"^\(|\)$" ""))
 
+(defn normalize-libspec
+  "A bare `[some.ns]` (or `some.ns`) require aliases the ns to itself, like
+  `[some.ns :as some.ns]`, so its vars resolve consistently (including the repl
+  globalThis.<ns>.<alias> registration). String requires and ones that already
+  carry :as/:refer/:rename/etc. are left untouched."
+  [libspec]
+  (cond
+    (symbol? libspec) [libspec :as libspec]
+    (and (vector? libspec)
+         (= 1 (count libspec))
+         (symbol? (first libspec)))
+    [(first libspec) :as (first libspec)]
+    :else libspec))
+
 (defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as with]}]]
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
@@ -736,8 +771,11 @@
                                  ;; side effects (populates globalThis.<ns>) and
                                  ;; bind the alias to that live ns object, so
                                  ;; cross-ns refs deref the live cell and see
-                                 ;; redefs / HMR updates
-                                 (and *repl* (symbol? original-libname))
+                                 ;; redefs / HMR updates. Library nses (e.g.
+                                 ;; clojure.string) export their vars instead, so
+                                 ;; bind to the module object.
+                                 (and *repl* (symbol? original-libname)
+                                      (not (library-ns? original-libname)))
                                  (format "await import('%s'%s); var %s = globalThis.%s"
                                          libname
                                          (if with (str ", " (emit {:with with} env)) "")
@@ -753,8 +791,14 @@
                     (when (and (symbol? original-libname)
                                (not= (str as) (alias-munge (str original-libname))))
                       (let [auto-alias (alias-munge (str original-libname))]
-                        (statement (if *repl*
+                        (statement (cond
+                                     ;; local ns: live globalThis cell
+                                     (and *repl* (not (library-ns? original-libname)))
                                      (format "var %s = globalThis.%s" auto-alias (munge original-libname))
+                                     ;; library ns: reuse the module-bound alias
+                                     *repl*
+                                     (format "var %s = %s" auto-alias (alias-munge as))
+                                     :else
                                      (format "import * as %s from '%s'%s" auto-alias libname
                                              (if with (str " with " (unwrap (emit with env))) ""))))))))
                 (when refer
@@ -853,6 +897,7 @@
                  (some
                   (fn [[k & exprs]]
                     (when (= :require k) exprs)))
+                 (map normalize-libspec)
                  (reduce
                   (fn [aliases [full as alias]]
                     (let [full (resolve-ns env full)]
@@ -869,7 +914,7 @@
      (reduce (fn [acc [k & exprs]]
                (cond
                  (= :require k)
-                 (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
+                 (str acc (str/join "" (map #(process-require-clause env name (normalize-libspec %)) exprs)))
                  (= :refer-clojure k)
                  (let [{:keys [exclude]} exprs]
                    (swap! *excluded-core-vars* into exclude)
@@ -888,7 +933,7 @@
                    @*aliases*))))))
 
 (defmethod emit-special 'require [_ env [_ & clauses]]
-  (let [clauses (map second clauses)]
+  (let [clauses (map (comp normalize-libspec second) clauses)]
     (reset! *aliases*
             (->> clauses
                  (reduce

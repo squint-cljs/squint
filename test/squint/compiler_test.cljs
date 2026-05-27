@@ -1860,6 +1860,19 @@ var { existsSync } = (await import('node:fs'));
 globalThis.foo.existsSync = existsSync;
 globalThis.foo.fs = fs;")))))
 
+(deftest repl-require-test
+  (testing "a library ns :as binds to the module's exports, not globalThis.<ns>"
+    (let [s (squint/compile-string "(ns foo (:require [clojure.string :as str])) (str/join \",\" [1 2])"
+                                   {:repl true})]
+      (is (str/includes? s "var str = await import('squint-cljs/src/squint/string.js')"))
+      (is (not (str/includes? s "globalThis.clojure.string")))))
+  (testing "a bare [ns] require behaves like [ns :as ns]"
+    (let [bare (squint/compile-string "(ns foo (:require [bar])) (bar/baz)" {:repl true})
+          expl (squint/compile-string "(ns foo (:require [bar :as bar])) (bar/baz)" {:repl true})]
+      (is (= bare expl))
+      (is (str/includes? bare "globalThis.foo.bar = bar"))
+      (is (str/includes? bare "globalThis.foo.bar.baz()")))))
+
 (deftest import-attributes-test
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})
                      "with {\"type\": \"json\"}"))
