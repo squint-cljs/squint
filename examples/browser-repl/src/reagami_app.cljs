@@ -1,5 +1,5 @@
-(ns reagami
-  (:require ["reagami" :as r]
+(ns reagami-app
+  (:require ["reagami" :as reagami]
             [ui]))
 
 ;; Reagami is a zero-dep, Reagent-like hiccup renderer (no React/Preact). It
@@ -16,7 +16,7 @@
     "Click me!"]])
 
 (defn render []
-  (r/render (js/document.querySelector "#reagami") [counter]))
+  (reagami/render (js/document.querySelector "#reagami") [counter]))
 
 (add-watch state ::render (fn [_ _ _ _] (render)))
 (render)

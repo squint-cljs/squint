@@ -15,7 +15,7 @@ export default defineConfig(() => {
         'preact/hooks',
         'preact/jsx-runtime',
         'preact/jsx-dev-runtime',
-        // reagami: zero-dep hiccup renderer (src/reagami.cljs)
+        // reagami: zero-dep hiccup renderer (src/reagami_app.cljs)
         'reagami',
       ],
     },

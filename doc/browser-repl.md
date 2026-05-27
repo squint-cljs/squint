@@ -61,7 +61,7 @@ transform step.
 {:paths ["src"]
  :output-dir "js"
  :extension "js"
- :main [plain preact reagami]
+ :main [plain preact reagami-app]
  :jsx-runtime {:import-source "preact"}} ; or "react"
 ```
 
@@ -77,7 +77,7 @@ See `examples/browser-repl/src/preact.cljs` for a working component.
 hiccup renderer. It renders plain hiccup vectors (`[:div ...]`), so no
 `:jsx-runtime` and no `#jsx` - it works at the REPL out of the box. State is a
 plain atom with `add-watch` + `render`. See
-`examples/browser-repl/src/reagami.cljs`.
+`examples/browser-repl/src/reagami_app.cljs`.
 
 ## Options
 
