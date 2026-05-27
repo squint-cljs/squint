@@ -50,16 +50,6 @@ export default defineConfig({ plugins: [squint()] });
 `npm run build` produces a normal optimized bundle with regular (non-REPL) squint
 output, with the dev-only REPL/HMR stripped.
 
-## Npm deps at the REPL
-
-`optimizeDeps` is optional. Npm dependencies work without it. The first time you
-require a dep vite hasn't seen, vite pre-bundles it and reloads the page, which
-loses REPL state. Listing the deps you expect to use avoids that one reload:
-
-```js
-defineConfig({ optimizeDeps: { include: ['canvas-confetti', 'nanoid'] }, plugins: [squint()] })
-```
-
 ## React / Preact (JSX)
 
 Set `:jsx-runtime` so squint emits `jsx()`/`jsxs()` calls (importing the
@@ -75,14 +65,9 @@ transform step.
  :jsx-runtime {:import-source "preact"}} ; or "react"
 ```
 
-The plugin uses the dev runtime (`<import-source>/jsx-dev-runtime`) under `vite dev`
-and the production runtime (`<import-source>/jsx-runtime`) for `vite build`. Optionally
-pre-bundle the runtime (same reason as above) so the first REPL render doesn't
-reload the page:
-
-```js
-optimizeDeps: { include: ['preact', 'preact/hooks', 'preact/jsx-runtime', 'preact/jsx-dev-runtime'] }
-```
+The plugin uses the dev runtime (`<import-source>/jsx-dev-runtime`) under
+`vite dev` and the production runtime (`<import-source>/jsx-runtime`) for
+`vite build`.
 
 See `examples/browser-repl/src/preact.cljs` for a working component.
 
@@ -105,3 +90,22 @@ plain atom with `add-watch` + `render`. See
 | `:nrepl-port` | nREPL port (default `1339`) |
 | `:target` | runtime target (only `browser`) |
 | `:jsx-runtime` | `{:import-source "react"\|"preact"}` to emit jsx-runtime calls for JSX (see above) |
+
+## Optional: pre-bundle deps for a smoother REPL
+
+Everything above works as-is. One optional tweak: the first time you require a
+dep vite hasn't seen, vite pre-bundles it and reloads the page, which loses REPL
+state. To skip that one reload, list the deps you reach for at the REPL in
+vite's `optimizeDeps.include`:
+
+```js
+export default defineConfig({
+  optimizeDeps: {
+    include: ['preact', 'preact/hooks', 'preact/jsx-runtime', 'preact/jsx-dev-runtime'],
+  },
+  plugins: [squint()],
+});
+```
+
+It only saves that first reload. The plugin may pre-bundle on demand later, so
+you wouldn't list deps by hand.
