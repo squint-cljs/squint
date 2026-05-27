@@ -43,9 +43,9 @@ for those). Revisit shadow-style on-demand bundling later.
 
 Ranked by how hard a first-time user trips on it:
 
-- [ ] **Plugin ignores `squint.edn`.** It takes `srcDir`/`outDir`/`extension` options with hardcoded defaults and never reads `squint.edn`, so the two can silently diverge. Fixable: read `squint.edn` (single source of truth); options override. Top priority.
+- [x] **Plugin ignores `squint.edn`.** Now reads `squint.edn` for `:paths`/`:output-dir`/`:extension` (multi-path aware); plugin options override. Via a new `readConfig` JS export.
 - [ ] **`index.html` loads the compiled `js/index.js`, not the source/entry ns.** Leaks the ns->file mapping + output layout into HTML, must stay in sync with `:output-dir`/`:extension`. Consider: plugin injects the entry script, or accept an entry ns.
-- [ ] **Eval needs an open browser tab.** Eval runs in the page; with no tab loaded the editor eval just times out. Fixable: nREPL returns a clear "no browser connected" instead of hanging/timeout; README warns up front.
+- [x] **Eval needs an open browser tab.** `browser-eval` now rejects after 8s with an actionable message instead of hanging; the guide warns up front.
 - [ ] **Must pre-declare REPL deps in `optimizeDeps.include`** or a new dep reloads the page + wipes state. Inherent vite behavior; document loudly (already in README).
 - [ ] **CJS deps come back under `.default`** (`(.. lodash -default (add 1 2))`). Document.
 
