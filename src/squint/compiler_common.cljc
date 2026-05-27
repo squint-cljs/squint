@@ -731,28 +731,32 @@
                 (when (and as (not default?))
                   (swap! *imported-vars* update libname (fnil identity #{}))
                   (str
-                    (statement (if *repl*
+                    (statement (cond
+                                 ;; local cljs ns in the REPL: run the module for
+                                 ;; side effects (populates globalThis.<ns>) and
+                                 ;; bind the alias to that live ns object, so
+                                 ;; cross-ns refs deref the live cell and see
+                                 ;; redefs / HMR updates
+                                 (and *repl* (symbol? original-libname))
+                                 (format "await import('%s'%s); var %s = globalThis.%s"
+                                         libname
+                                         (if with (str ", " (emit {:with with} env)) "")
+                                         (alias-munge as)
+                                         (munge original-libname))
+                                 *repl*
                                  (format "var %s = await import('%s'%s)" (alias-munge as) libname
-                                         (if with
-                                           (str ", " (emit {:with with} env))
-                                           ""))
+                                         (if with (str ", " (emit {:with with} env)) ""))
+                                 :else
                                  (format "import * as %s from '%s'%s" (alias-munge as) libname
-                                         (if with
-                                           (str " with " (unwrap (emit with env)))
-                                           ""))))
-                    ;; also generate import under original ns name for macro expansion refs
+                                         (if with (str " with " (unwrap (emit with env))) ""))))
+                    ;; also bind the full ns name (for macro-expansion / full-name refs)
                     (when (and (symbol? original-libname)
                                (not= (str as) (alias-munge (str original-libname))))
                       (let [auto-alias (alias-munge (str original-libname))]
-                        (if *repl*
-                          (statement (format "var %s = await import('%s'%s)" auto-alias libname
-                                             (if with
-                                               (str ", " (emit {:with with} env))
-                                               "")))
-                          (statement (format "import * as %s from '%s'%s" auto-alias libname
-                                             (if with
-                                               (str " with " (unwrap (emit with env)))
-                                               ""))))))))
+                        (statement (if *repl*
+                                     (format "var %s = globalThis.%s" auto-alias (munge original-libname))
+                                     (format "import * as %s from '%s'%s" auto-alias libname
+                                             (if with (str " with " (unwrap (emit with env))) ""))))))))
                 (when refer
                   (swap! (:ns-state env)
                          (fn [ns-state]
