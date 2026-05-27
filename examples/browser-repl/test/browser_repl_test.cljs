@@ -119,6 +119,18 @@
 
 ;; --------------------------------------------------------------- helpers ----
 
+(defn with-timeout
+  "Reject with a labeled error if `p` doesn't settle within `ms`. Keeps the test
+  from hanging forever (e.g. in CI) when something never becomes ready."
+  [ms label p]
+  (js/Promise.race
+   #js [p
+        (js/Promise.
+         (fn [_ reject]
+           (js/setTimeout
+            (fn [] (reject (js/Error. (str "timeout after " ms "ms waiting for: " label))))
+            ms)))]))
+
 (defn wait-output [stream substr]
   (js/Promise.
    (fn [resolve _]
@@ -141,41 +153,60 @@
 
 ;; ------------------------------------------------------------------ run ----
 
+;; Hard safety net: never let the process hang past 2 min (unref'd so a fast
+;; success can still exit immediately).
+(.unref (js/setTimeout
+         (fn [] (println "HARD TIMEOUT: test exceeded 120s") (js/process.exit 1))
+         120000))
+
 (defn ^:async run []
   (let [vite (.spawn cp "node_modules/.bin/vite" #js ["dev" "--port" (str PORT)]
                      #js {:cwd EXDIR
                           :env (js/Object.assign #js {} js/process.env
                                                  #js {"SQUINT_NREPL_PORT" (str NREPL-PORT)})})
-        browser (atom nil)]
+        browser (atom nil)
+        ;; capture everything for diagnostics on failure (CI has no live view)
+        vlog (atom "")
+        log! (fn [& xs] (swap! vlog str (apply str xs) "\n"))]
+    (.on (.-stdout vite) "data" (fn [d] (swap! vlog str d)))
+    (.on (.-stderr vite) "data" (fn [d] (swap! vlog str d)))
+    (.on vite "error" (fn [e] (log! "[vite spawn error] " (.-message e))))
+    (.on vite "exit" (fn [code] (log! "[vite exited] code " code)))
     (try
-      (await (wait-output (.-stdout vite) "Local:"))
-      (reset! browser (await (.launch (.-chromium pw) #js {:headless true})))
+      (await (with-timeout 45000 "vite \"Local:\"" (wait-output (.-stdout vite) "Local:")))
+      (reset! browser (await (with-timeout 30000 "chromium launch"
+                                           (.launch (.-chromium pw) #js {:headless true}))))
       (let [page (await (.newPage @browser))
+            _ (.on page "pageerror" (fn [e] (log! "[pageerror] " (.-message e))))
+            _ (.on page "console" (fn [m] (when (= "error" (.type m)) (log! "[browser console.error] " (.text m)))))
             ready (wait-console page "nrepl listener ready")]
         (await (.goto page URL))
-        (await ready)
-        (let [client (await (make-client NREPL-PORT))
-              clone (await (nrepl-request client #js {:op "clone"}))
-              session (some (fn [m] (aget m "new-session")) (js/Array.from clone))]
+        (await (with-timeout 30000 "browser nrepl listener ready" ready))
+        (let [client (await (with-timeout 10000 "nrepl connect" (make-client NREPL-PORT)))
+              clone (await (with-timeout 10000 "nrepl clone" (nrepl-request client #js {:op "clone"})))
+              session (some (fn [m] (aget m "new-session")) (js/Array.from clone))
+              ev (fn [code] (with-timeout 20000 (str "eval " (pr-str code))
+                                          (nrepl-eval client session code)))]
           ;; define a var in `another`, read it from `index` via the alias
-          (await (nrepl-eval client session "(ns another) (def s \"v1\")"))
+          (await (ev "(ns another) (def s \"v1\")"))
           (check "cross-ns read"
                  "v1"
-                 (await (nrepl-eval client session
-                                    "(ns index (:require [another :as a])) a/s")))
+                 (await (ev "(ns index (:require [another :as a])) a/s")))
           ;; redefine it in `another`, the cross-ns ref must see the new value
-          (await (nrepl-eval client session "(ns another) (def s \"v2\")"))
+          (await (ev "(ns another) (def s \"v2\")"))
           (check "cross-ns redef visible"
                  "v2"
-                 (await (nrepl-eval client session
-                                    "(ns index (:require [another :as a])) a/s")))))
+                 (await (ev "(ns index (:require [another :as a])) a/s")))))
+      (catch :default e
+        (swap! failures inc)
+        (println "ERROR:" (.-message e))
+        (println "----- vite / browser output -----")
+        (println @vlog)
+        (println "---------------------------------"))
       (finally
-        (when @browser (await (.close @browser)))
+        (when @browser (try (await (.close @browser)) (catch :default _ nil)))
         (.kill vite)))
-    (println (if (zero? @failures) "\nAll checks passed." (str "\n" @failures " check(s) FAILED.")))
+    (println (if (zero? @failures) "\nAll checks passed." (str "\n" @failures " failure(s).")))
     (js/process.exit (if (zero? @failures) 0 1))))
 
-(-> (run)
-    (.catch (fn [e]
-              (js/console.error e)
-              (js/process.exit 1))))
+(run)
