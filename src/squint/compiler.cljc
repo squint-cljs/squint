@@ -490,6 +490,14 @@
                    *cljs-ns* (:ns opts *cljs-ns*)
                    cc/*target* :squint
                    cc/*async* (:async opts)]
+           ;; Sync the ns-state's :current to the ns we're compiling. `def`
+           ;; stores vars under (:current ns-state) and resolution reads from it,
+           ;; so :current must track *cljs-ns* - otherwise a threaded ns-state
+           ;; leaves :current at whatever was compiled last and vars resolve
+           ;; against the wrong ns (e.g. a REPL eval in ns X, or the next form in
+           ;; a session). A leading (ns ..) form still updates it from here.
+           (when *cljs-ns*
+             (swap! (:ns-state opts) assoc :current *cljs-ns*))
            (let [transpiled (transpile* s (assoc opts
                                                         :core-alias core-alias
                                                         :imports imports

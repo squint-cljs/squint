@@ -98,6 +98,13 @@
 (def in-progress (atom false))
 (def state (atom nil))
 
+;; Shared compiler ns-state. A host (e.g. the vite plugin) can inject the same
+;; ns-state atom it threads through its file compiles, so the REPL knows the
+;; vars/aliases those files defined (e.g. a `def` that ran at page load). cljs
+;; atoms survive the js->clj/clj->js round-trip as opaque objects, so this can
+;; be passed across the JS boundary. nil -> the REPL keeps its own ns-state.
+(def !ns-state (atom nil))
+
 ;; Transport seam. By default the server evaluates compiled JS locally (node).
 ;; A host (e.g. a vite plugin) can inject a browser transport via start-server's
 ;; :browser-transport opt: compiled JS is sent to the browser and the result is
@@ -121,11 +128,15 @@
         ((.-reject ^js p) (js/Error. (str ex)))
         ((.-resolve ^js p) (.-value ^js msg))))))
 
-(defn compile [the-val]
+(defn compile [the-val ns]
   (let [;; Apply squint.edn's :jsx-runtime so #jsx eval'd at the REPL emits
         ;; jsx() calls (not raw <tags>, which the browser can't eval). The REPL
         ;; is always dev, so use the jsx-dev-runtime.
         jsx-runtime (some-> (utils/get-cfg) :jsx-runtime (assoc :development true))
+        ;; evaluate in the ns the editor asked for (e.g. the buffer's ns), so a
+        ;; form like (defn render ...) lands in that ns - not whatever was last
+        ;; evaluated. A form's own (ns ...) still switches from there.
+        ns (when ns (symbol ns))
         {js-str :javascript
          cljs-ns :ns
          :as new-state} (compiler/compile-string* the-val
@@ -133,7 +144,11 @@
                                                            :elide-exports true
                                                            :repl true
                                                            :async true}
-                                                    jsx-runtime (assoc :jsx-runtime jsx-runtime))
+                                                    jsx-runtime (assoc :jsx-runtime jsx-runtime)
+                                                    ;; share the host's ns-state so file-defined
+                                                    ;; vars/aliases are visible to the REPL
+                                                    @!ns-state (assoc :ns-state @!ns-state)
+                                                    ns (assoc :ns ns))
                                                   @state)
         _ (reset! state new-state)
         js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]
@@ -187,7 +202,7 @@
   JS entrypoint below."
   [code request]
   (-> (js/Promise.resolve code)
-      (.then compile)
+      (.then (fn [c] (compile c (:ns request))))
       (.then (fn [js-str] (@!eval-fn js-str request)))))
 
 (defn evaluate-string
@@ -212,8 +227,9 @@
                                  "status" ["done"]})))))
 
 (defn handle-eval [{:keys [ns] :as request} send-fn]
-  (prn :ns ns)
-  (do-handle-eval (assoc request :ns @last-ns)
+  ;; evaluate in the ns the editor sent (the buffer's ns); fall back to the last
+  ;; ns for clients that don't send one.
+  (do-handle-eval (assoc request :ns (or ns @last-ns))
                   send-fn))
 
 (defn handle-clone [request send-fn]
@@ -375,8 +391,12 @@
                browser-transport (or (:browser-transport opts)
                                      (when (object? opts)
                                        (.-browserTransport ^js opts)))
+               ns-state (or (:ns-state opts)
+                            (when (object? opts) (.-nsState ^js opts)))
                server (node-net/createServer
                        (partial on-connect {}))]
+           ;; share the host's compiler ns-state (file compiles + REPL eval)
+           (when ns-state (reset! !ns-state ns-state))
            ;; Pick the evaluator: delegate to a browser when a transport was
            ;; injected, otherwise eval locally (node).
            (if browser-transport
