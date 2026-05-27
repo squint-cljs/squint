@@ -702,20 +702,6 @@
 (defn unwrap [s]
   (str/replace (str s) #"^\(|\)$" ""))
 
-(defn normalize-libspec
-  "A bare `[some.ns]` (or `some.ns`) require aliases the ns to itself, like
-  `[some.ns :as some.ns]`, so its vars resolve consistently (including the repl
-  globalThis.<ns>.<alias> registration). String requires and ones that already
-  carry :as/:refer/:rename/etc. are left untouched."
-  [libspec]
-  (cond
-    (symbol? libspec) [libspec :as libspec]
-    (and (vector? libspec)
-         (= 1 (count libspec))
-         (symbol? (first libspec)))
-    [(first libspec) :as (first libspec)]
-    :else libspec))
-
 (defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as with]}]]
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
@@ -741,14 +727,22 @@
                                          "")))))
                 (when (and (not as) (not refer))
                   (if (symbol? original-libname)
-                    ;; symbol require without :as or :refer — generate namespace import
+                    ;; symbol require without :as or :refer — generate namespace
+                    ;; import. A bare [some.ns] aliases the ns to itself, so in
+                    ;; the repl bind + register globalThis.<cur-ns>.<alias> (like
+                    ;; an explicit :as) so its vars resolve.
                     (let [auto-alias (alias-munge (str original-libname))]
                       (swap! *imported-vars* update libname (fnil identity #{}))
                       (if *repl*
-                        (statement (format "var %s = await import('%s'%s)" auto-alias libname
-                                           (if with
-                                             (str ", " (emit {:with with} env))
-                                             "")))
+                        (str
+                          (if (library-ns? original-libname)
+                            (statement (format "var %s = await import('%s'%s)" auto-alias libname
+                                               (if with (str ", " (emit {:with with} env)) "")))
+                            (statement (format "await import('%s'%s); var %s = globalThis.%s" libname
+                                               (if with (str ", " (emit {:with with} env)) "")
+                                               auto-alias (munge original-libname))))
+                          (statement (format "globalThis.%s.%s = %s"
+                                             (munge current-ns-name) auto-alias auto-alias)))
                         (statement (format "import * as %s from '%s'%s" auto-alias libname
                                            (if with
                                              (str " with " (unwrap (emit with env)))
@@ -897,7 +891,6 @@
                  (some
                   (fn [[k & exprs]]
                     (when (= :require k) exprs)))
-                 (map normalize-libspec)
                  (reduce
                   (fn [aliases [full as alias]]
                     (let [full (resolve-ns env full)]
@@ -914,7 +907,7 @@
      (reduce (fn [acc [k & exprs]]
                (cond
                  (= :require k)
-                 (str acc (str/join "" (map #(process-require-clause env name (normalize-libspec %)) exprs)))
+                 (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
                  (= :refer-clojure k)
                  (let [{:keys [exclude]} exprs]
                    (swap! *excluded-core-vars* into exclude)
@@ -933,7 +926,7 @@
                    @*aliases*))))))
 
 (defmethod emit-special 'require [_ env [_ & clauses]]
-  (let [clauses (map (comp normalize-libspec second) clauses)]
+  (let [clauses (map second clauses)]
     (reset! *aliases*
             (->> clauses
                  (reduce

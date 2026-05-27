@@ -1866,12 +1866,15 @@ globalThis.foo.fs = fs;")))))
                                    {:repl true})]
       (is (str/includes? s "var str = await import('squint-cljs/src/squint/string.js')"))
       (is (not (str/includes? s "globalThis.clojure.string")))))
-  (testing "a bare [ns] require behaves like [ns :as ns]"
-    (let [bare (squint/compile-string "(ns foo (:require [bar])) (bar/baz)" {:repl true})
-          expl (squint/compile-string "(ns foo (:require [bar :as bar])) (bar/baz)" {:repl true})]
-      (is (= bare expl))
+  (testing "a bare [ns] require resolves like [ns :as ns] (registers the alias)"
+    (let [bare (squint/compile-string "(ns foo (:require [bar])) (bar/baz)" {:repl true})]
+      (is (str/includes? bare "var bar = globalThis.bar"))
       (is (str/includes? bare "globalThis.foo.bar = bar"))
-      (is (str/includes? bare "globalThis.foo.bar.baz()")))))
+      (is (str/includes? bare "globalThis.foo.bar.baz()"))))
+  (testing "a bare dotted [some.ns] require imports once (no duplicate)"
+    (let [s (squint/compile-string "(ns foo (:require [some.ns]))")
+          n (count (re-seq #"import \* as some_DOT_ns " s))]
+      (is (= 1 n)))))
 
 (deftest import-attributes-test
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})
