@@ -62,3 +62,10 @@ jobs:
       run: |
         npm install --global yarn
         bb test:libs
+
+    - name: Run browser REPL test
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        npm --prefix examples/browser-repl install
+        npx playwright install --with-deps chromium
+        bb test:browser-repl
