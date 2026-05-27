@@ -2,7 +2,6 @@
   (:require
    ["node:net" :as net]
    ["node:readline" :as readline]
-   ["node:util" :as util]
    ["squint-cljs/core.js" :as squint]
    [clojure.string :as str]
    [edamame.core :as e]
@@ -59,9 +58,12 @@
     (->
      (js/Promise.resolve (js/eval js-str))
      (.then (fn [^js val]
-              (if socket
-                (.write socket (util/inspect val) "\n")
-                (js/console.log val))
+              ;; print with squint's pr-str (consistent with the nREPL server
+              ;; and the browser REPL)
+              (let [s (squint/pr-str val)]
+                (if socket
+                  (.write socket s "\n")
+                  (js/console.log s)))
               (eval-next socket rl)))
      (.catch (fn [err]
                (squint/println err)
