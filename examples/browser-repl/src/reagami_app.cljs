@@ -9,11 +9,11 @@
 
 (defn counter []
   [:div {:style ui/card}
-   [:div {:style (assoc ui/label :color "#d2691e")} "reagami · hiccup"]
+   [:div {:style (assoc ui/label :color "#d2691e")} "reagami - hiccup"]
    [:div {:style ui/counted} "Counted: " (:counter @state)]
    [:button {:style ui/btn
              :on-click #(swap! state update :counter inc)}
-    "Click me!"]])
+    "Click me!!"]])
 
 (defn render []
   (reagami/render (js/document.querySelector "#reagami") [counter]))

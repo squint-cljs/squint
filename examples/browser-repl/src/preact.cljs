@@ -11,7 +11,7 @@
 (defn App []
   (let [[n set-n] (useState 0)]
     #jsx [:div {:style ui/card}
-          [:div {:style (assoc ui/label :color "#673ab8")} "preact · #jsx"]
+          [:div {:style (assoc ui/label :color "#673ab8")} "preact - #jsx"]
           [:div {:style ui/counted} "Counted: " n]
           [:button {:style ui/btn :onClick #(set-n (inc n))} "Click me!"]]))
 
