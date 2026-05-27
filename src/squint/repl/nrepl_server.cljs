@@ -98,6 +98,13 @@
 (def in-progress (atom false))
 (def state (atom nil))
 
+;; Shared compiler ns-state. A host (e.g. the vite plugin) can inject the same
+;; ns-state atom it threads through its file compiles, so the REPL knows the
+;; vars/aliases those files defined (e.g. a `def` that ran at page load). cljs
+;; atoms survive the js->clj/clj->js round-trip as opaque objects, so this can
+;; be passed across the JS boundary. nil -> the REPL keeps its own ns-state.
+(def !ns-state (atom nil))
+
 ;; Transport seam. By default the server evaluates compiled JS locally (node).
 ;; A host (e.g. a vite plugin) can inject a browser transport via start-server's
 ;; :browser-transport opt: compiled JS is sent to the browser and the result is
@@ -133,7 +140,10 @@
                                                            :elide-exports true
                                                            :repl true
                                                            :async true}
-                                                    jsx-runtime (assoc :jsx-runtime jsx-runtime))
+                                                    jsx-runtime (assoc :jsx-runtime jsx-runtime)
+                                                    ;; share the host's ns-state so file-defined
+                                                    ;; vars/aliases are visible to the REPL
+                                                    @!ns-state (assoc :ns-state @!ns-state))
                                                   @state)
         _ (reset! state new-state)
         js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]
@@ -375,8 +385,12 @@
                browser-transport (or (:browser-transport opts)
                                      (when (object? opts)
                                        (.-browserTransport ^js opts)))
+               ns-state (or (:ns-state opts)
+                            (when (object? opts) (.-nsState ^js opts)))
                server (node-net/createServer
                        (partial on-connect {}))]
+           ;; share the host's compiler ns-state (file compiles + REPL eval)
+           (when ns-state (reset! !ns-state ns-state))
            ;; Pick the evaluator: delegate to a browser when a transport was
            ;; injected, otherwise eval locally (node).
            (if browser-transport

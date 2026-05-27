@@ -244,6 +244,13 @@
           (check "cross-ns redef visible"
                  "\"v2\""
                  (await (ev "(ns repltest (:require [ui :as u])) u/xns")))
+          ;; shared ns-state: `state` is defined in reagami_app.cljs (compiled at
+          ;; page load, never redefined this session). The REPL still resolves it
+          ;; to globalThis.reagami_app.state via the host-shared ns-state (was
+          ;; "state is not defined").
+          (check "file-defined var visible at REPL"
+                 "true"
+                 (await (ev "(ns reagami-app) (map? @state)")))
           ;; #jsx eval'd at the REPL must compile to jsx() calls (not raw <tags>,
           ;; which the browser can't eval) and render into the live page
           (await (ev (str "(ns repljsx (:require [\"preact\" :refer [render]]))"

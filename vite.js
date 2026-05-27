@@ -85,9 +85,13 @@ export default function squint(options = {}) {
   // calls + imports the runtime, instead of raw <tags> a bundler would have to
   // transform. We flip :development per mode (dev -> jsx-dev-runtime).
   let jsxRuntime; // JS object from squint.edn :jsx-runtime, or undefined
+  // Shared compiler ns-state, threaded through every file compile and handed to
+  // the nREPL server, so the REPL knows the vars/aliases the files defined (a
+  // cljs atom; survives the JS boundary as an opaque object). Dev only.
+  let nsState;
 
-  function compileCljs(file) {
-    return compileFile({
+  async function compileCljs(file) {
+    const res = await compileFile({
       'in-file': file,
       'output-dir': join(root, outDir),
       paths,
@@ -98,7 +102,11 @@ export default function squint(options = {}) {
       // Dev uses the jsx-dev-runtime (better errors/source info); build uses
       // the production jsx-runtime.
       ...(jsxRuntime ? { 'jsx-runtime': { ...jsxRuntime, development: !isBuild } } : {}),
+      // thread the shared ns-state (dev only; the build doesn't need a REPL)
+      ...(isBuild ? {} : { 'ns-state': nsState }),
     });
+    if (!isBuild) nsState = res['ns-state']; // capture/refresh the shared atom
+    return res;
   }
 
   async function compileAll() {
@@ -260,6 +268,9 @@ export default function squint(options = {}) {
           // resolved lazily: vite only knows its URL once it's listening
           url: () => server.resolvedUrls?.local?.[0] ?? server.resolvedUrls?.network?.[0],
         },
+        // share the ns-state accumulated by the file compiles above, so the
+        // REPL knows their vars/aliases (e.g. a def that ran at page load)
+        nsState,
       });
       logger.info('[squint-repl] nREPL server on port ' + nreplPort);
 
