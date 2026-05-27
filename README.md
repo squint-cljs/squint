@@ -414,6 +414,12 @@ REPL. REPL away!
 
 <img src="https://pbs.twimg.com/media/F6Pry0eWwAEwsRD?format=jpg">
 
+## Browser REPL
+
+Edit ClojureScript, hot-reload it in the browser, and connect your editor's
+nREPL to evaluate forms in the live page. It's a single vite plugin
+(`squint-cljs/vite`). See [doc/browser-repl.md](doc/browser-repl.md).
+
 ## Truthiness
 
 Squint respect CLJS truth semantics: only `null`, `undefined` and `false` are non-truthy, `0` and `""` are truthy.
