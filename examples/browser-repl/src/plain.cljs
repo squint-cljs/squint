@@ -9,10 +9,10 @@
 (defn render! []
   (let [el (js/document.querySelector "#plain")]
     (set! (.-innerHTML el)
-          #html [:div {:style (ui/css ui/card)}
-                 [:div {:style (ui/css (assoc ui/label :color "#0a7d5a"))} "plain squint · #html"]
-                 [:div {:style (ui/css ui/counted)} "Counted: " @state]
-                 [:button {:id "plain-btn" :style (ui/css ui/btn)} "Click me!"]])
+          #html [:div {:style ui/card}
+                 [:div {:style (assoc ui/label :color "#0a7d5a")} "plain squint · #html"]
+                 [:div {:style ui/counted} "Counted: " @state]
+                 [:button {:id "plain-btn" :style ui/btn} "Click me!"]])
     (.addEventListener (.querySelector el "#plain-btn") "click"
                        (fn [_] (swap! state inc)))))
 

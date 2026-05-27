@@ -8,10 +8,10 @@
 (defonce state (atom {:counter 0}))
 
 (defn counter []
-  [:div {:style (ui/css ui/card)}
-   [:div {:style (ui/css (assoc ui/label :color "#d2691e"))} "reagami · hiccup"]
-   [:div {:style (ui/css ui/counted)} "Counted: " (:counter @state)]
-   [:button {:style (ui/css ui/btn)
+  [:div {:style ui/card}
+   [:div {:style (assoc ui/label :color "#d2691e")} "reagami · hiccup"]
+   [:div {:style ui/counted} "Counted: " (:counter @state)]
+   [:button {:style ui/btn
              :on-click #(swap! state update :counter inc)}
     "Click me!"]])
 

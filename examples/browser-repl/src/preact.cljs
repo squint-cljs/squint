@@ -10,9 +10,9 @@
 ;; the framework owns reactivity (no manual watch).
 (defn App []
   (let [[n set-n] (useState 0)]
-    #jsx [:div {:style (ui/css ui/card)}
-          [:div {:style (ui/css (assoc ui/label :color "#673ab8"))} "preact · #jsx"]
-          [:div {:style (ui/css ui/counted)} "Counted: " n]
-          [:button {:style (ui/css ui/btn) :onClick #(set-n (inc n))} "Click me!"]]))
+    #jsx [:div {:style ui/card}
+          [:div {:style (assoc ui/label :color "#673ab8")} "preact · #jsx"]
+          [:div {:style ui/counted} "Counted: " n]
+          [:button {:style ui/btn :onClick #(set-n (inc n))} "Click me!"]]))
 
 (render #jsx [App] (js/document.querySelector "#preact"))

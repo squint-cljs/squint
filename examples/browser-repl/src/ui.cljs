@@ -1,15 +1,8 @@
-(ns ui
-  (:require [clojure.string :as str]))
+(ns ui)
 
-;; Styles as Clojure maps: reusable and composable (merge / assoc per widget).
-;; `css` renders a map to an inline-style string, which all three renderers
-;; accept (preact via cssText, #html as the attr, reagami as a style string) -
-;; a plain style map otherwise means three different formats.
-;; (str/join exercises clojure.string at the REPL/in the browser.) Map keys are
-;; strings once compiled, so no `name` needed.
-(defn css [m]
-  (str/join ";" (map (fn [[k v]] (str k ":" v)) m)))
-
+;; Shared styles as Clojure maps: reusable and composable (assoc / merge per
+;; widget). Each renderer takes a style map directly - #html and reagami
+;; stringify it, preact sets it as a style object - so no conversion helper.
 (def card
   {:font-family "system-ui, sans-serif"
    :border "1px solid #e2e2e2"
