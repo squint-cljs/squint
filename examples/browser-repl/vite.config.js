@@ -10,8 +10,9 @@ export default defineConfig(() => {
       include: [
         'canvas-confetti',
         'nanoid',
-        // preact + its jsx runtimes, used by the :jsx-runtime demo (src/app.cljs)
+        // preact + its jsx runtimes + hooks, used by the :jsx-runtime demo (src/app.cljs)
         'preact',
+        'preact/hooks',
         'preact/jsx-runtime',
         'preact/jsx-dev-runtime',
         // reagami: zero-dep hiccup renderer (src/reagami_app.cljs)

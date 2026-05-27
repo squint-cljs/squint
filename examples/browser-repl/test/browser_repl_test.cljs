@@ -163,6 +163,19 @@
 (defn run-to-exit [proc]
   (js/Promise. (fn [resolve _] (.on proc "exit" (fn [code] (resolve code))))))
 
+(defn ^:async check-counter
+  "Assert the counter widget at `sel` renders 'Counted: 0', then clicking its
+  button increments to 'Counted: 1'. Same behaviour, three rendering models."
+  [page name sel]
+  (let [text #(.textContent page sel)]
+    (await (with-timeout 15000 (str name " render")
+                         (.waitForFunction page (str "document.querySelector('" sel "') && document.querySelector('" sel "').textContent.includes('Counted: 0')"))))
+    (check (str name " rendered") true (str/includes? (await (text)) "Counted: 0"))
+    (await (.click page (str sel " button")))
+    (await (with-timeout 10000 (str name " click")
+                         (.waitForFunction page (str "document.querySelector('" sel "').textContent.includes('Counted: 1')"))))
+    (check (str name " click increments") true (str/includes? (await (text)) "Counted: 1"))))
+
 (defn ^:async check-build []
   ;; `vite build` should emit a regular, optimizable bundle (no REPL/HMR output).
   (let [code (await (run-to-exit (.spawn cp "node_modules/.bin/vite" #js ["build"]
@@ -209,30 +222,12 @@
             ready (wait-console page "nrepl listener ready")]
         (await (.goto page URL))
         (await (with-timeout 30000 "browser nrepl listener ready" ready))
-        ;; the entry ns was injected via squint({:main 'index}); wait for it to
-        ;; render (it does async imports) then check
-        ;; bare expression (an arrow-fn string would eval to a truthy fn and resolve at once)
-        (await (with-timeout 15000 "entry render"
-                             (.waitForFunction page "document.querySelector('#app') && document.querySelector('#app').textContent.length > 0")))
-        (check "entry (:main) rendered" true
-               (str/includes? (await (.textContent page "#app")) "another/s = v1"))
-        ;; the `app` entry renders a preact component via squint's :jsx-runtime
-        ;; (#jsx -> jsx()/jsxs() + jsx-dev-runtime import); confirms JSX works.
-        (await (with-timeout 15000 "preact render"
-                             (.waitForFunction page "document.querySelector('#preact') && document.querySelector('#preact').textContent.length > 0")))
-        (check "preact (:jsx-runtime) rendered" true
-               (str/includes? (await (.textContent page "#preact")) "preact: ok"))
-        ;; the `reagami-app` entry renders a zero-dep hiccup component; clicking
-        ;; the button mutates an atom and re-renders (add-watch + render).
-        (await (with-timeout 15000 "reagami render"
-                             (.waitForFunction page "document.querySelector('#reagami') && document.querySelector('#reagami').textContent.includes('Counted: 0')")))
-        (check "reagami rendered" true
-               (str/includes? (await (.textContent page "#reagami")) "Counted: 0"))
-        (await (.click page "#reagami button"))
-        (await (with-timeout 10000 "reagami click update"
-                             (.waitForFunction page "document.querySelector('#reagami').textContent.includes('Counted: 1')")))
-        (check "reagami click re-renders" true
-               (str/includes? (await (.textContent page "#reagami")) "Counted: 1"))
+        ;; The three :main entries each render a counter (Counted: 0 + button)
+        ;; via a different model: plain squint #html, preact #jsx (useState),
+        ;; reagami hiccup. Each must render and increment on click.
+        (await (check-counter page "plain (#html)" "#app"))
+        (await (check-counter page "preact (#jsx)" "#preact"))
+        (await (check-counter page "reagami (hiccup)" "#reagami"))
         (let [client (await (with-timeout 10000 "nrepl connect" (make-client NREPL-PORT)))
               clone (await (with-timeout 10000 "nrepl clone" (nrepl-request client #js {:op "clone"})))
               session (some (fn [m] (aget m "new-session")) (js/Array.from clone))
