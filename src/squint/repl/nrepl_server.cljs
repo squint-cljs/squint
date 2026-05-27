@@ -103,6 +103,7 @@
 ;; awaited, correlated by request id.
 (def !browser-send (atom nil)) ;; (fn [#js {:op :code :id :session}] -> void)
 (def !pending (atom {}))       ;; request id -> #js {:resolve _ :reject _}
+(def browser-eval-timeout-ms 8000)
 
 (defn handle-browser-message
   "Feed a browser eval reply back into the server, resolving the awaiting eval.
@@ -148,6 +149,17 @@
    (fn [resolve reject]
      (let [id (:id request)]
        (swap! !pending assoc id #js {:resolve resolve :reject reject})
+       ;; Don't hang forever if no browser is connected (or it never replies):
+       ;; the eval runs *in the page*, so without an open tab there's nothing to
+       ;; run it. Reject with an actionable message.
+       (js/setTimeout
+        (fn []
+          (when (get @!pending id)
+            (swap! !pending dissoc id)
+            (reject (js/Error. (str "No response from the browser within "
+                                    browser-eval-timeout-ms
+                                    "ms. Open a tab at the dev server URL - the REPL evaluates in the page.")))))
+        browser-eval-timeout-ms)
        (if-let [send @!browser-send]
          (send #js {:op "eval"
                     :code js-str
