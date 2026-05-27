@@ -252,7 +252,11 @@ export default function squint(options = {}) {
       server.ws.on('squint:nrepl-reply', (data) => handleBrowserMessage(data));
       await startServer({
         port: nreplPort,
-        browserTransport: { send: (msg) => server.ws.send('squint:nrepl', msg) },
+        browserTransport: {
+          send: (msg) => server.ws.send('squint:nrepl', msg),
+          // resolved lazily: vite only knows its URL once it's listening
+          url: () => server.resolvedUrls?.local?.[0] ?? server.resolvedUrls?.network?.[0],
+        },
       });
       logger.info('[squint-repl] nREPL server on port ' + nreplPort);
 

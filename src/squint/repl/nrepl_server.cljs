@@ -102,6 +102,7 @@
 ;; :browser-transport opt: compiled JS is sent to the browser and the result is
 ;; awaited, correlated by request id.
 (def !browser-send (atom nil)) ;; (fn [#js {:op :code :id :session}] -> void)
+(def !browser-url (atom nil))  ;; (fn [] -> dev server URL string), for the timeout hint
 (def !pending (atom {}))       ;; request id -> #js {:resolve _ :reject _}
 (def browser-eval-timeout-ms 8000)
 
@@ -156,9 +157,12 @@
         (fn []
           (when (get @!pending id)
             (swap! !pending dissoc id)
-            (reject (js/Error. (str "No response from the browser within "
-                                    browser-eval-timeout-ms
-                                    "ms. Open a tab at the dev server URL - the REPL evaluates in the page.")))))
+            (let [url (when-let [f @!browser-url] (f))
+                  where (if url (str "Open " url " in a browser tab.")
+                            "Open the dev server URL in a browser tab.")]
+              (reject (js/Error. (str "No response from the browser within "
+                                      browser-eval-timeout-ms "ms. "
+                                      where " The REPL evaluates in the page."))))))
         browser-eval-timeout-ms)
        (if-let [send @!browser-send]
          (send #js {:op "eval"
@@ -370,6 +374,8 @@
            ;; injected, otherwise eval locally (node).
            (if browser-transport
              (do (reset! !browser-send (.-send ^js browser-transport))
+                 ;; optional: a fn returning the dev server URL, for the timeout hint
+                 (reset! !browser-url (.-url ^js browser-transport))
                  (reset! !eval-fn browser-eval))
              (reset! !eval-fn node-eval))
            (.listen server
