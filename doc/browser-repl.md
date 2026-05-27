@@ -21,22 +21,23 @@ you run. A complete working setup lives in
    npm install squint-cljs vite
    ```
 
-2. **`squint.edn`** - your source layout:
+2. **`squint.edn`** - source layout + your entry ns:
 
    ```edn
    {:paths ["src"]
     :output-dir "js"
-    :extension "js"}
+    :extension "js"
+    :main index}
    ```
 
-3. **`vite.config.js`** - add the plugin and name your entry ns:
+3. **`vite.config.js`** - add the plugin:
 
    ```js
    import { defineConfig } from 'vite';
    import squint from 'squint-cljs/vite';
 
    export default defineConfig({
-     plugins: [squint({ main: 'index' })],
+     plugins: [squint()],
    });
    ```
 
@@ -87,18 +88,25 @@ export default defineConfig({
 
 (CommonJS deps land under `.default`, e.g. `(.. lodash -default (add 1 2))`.)
 
-## Plugin options
+## Options
 
-All optional. The source layout is read from `squint.edn`
-(`:paths`/`:output-dir`/`:extension`); these options override it.
+Every option can live in `squint.edn` (kebab-case) - that's the recommended
+place. Plugin options override `squint.edn`; for the nREPL port, `SQUINT_NREPL_PORT`
+overrides both.
+
+| squint.edn | plugin option | meaning |
+|---|---|---|
+| `:main` | `main` | entry ns(s) to inject into index.html; symbol/string or vector |
+| `:paths` | `paths` | source dirs (default `["src"]`) |
+| `:output-dir` | `outDir` | compiled-js dir (default `"js"`) |
+| `:extension` | `extension` | output extension (default `"js"`) |
+| `:nrepl-port` | `nreplPort` | nREPL TCP port (default `1339`) |
+| `:target` | `target` | REPL runtime target (only `browser` for now) |
 
 ```js
-squint({
-  main: 'index',     // entry ns(s) to inject into index.html; string or array
-  target: 'browser', // default; where the REPL runtime lives (only :browser for now)
-  paths: ['src'],    // overrides squint.edn :paths
-  outDir: 'js',      // overrides squint.edn :output-dir
-  extension: 'js',   // overrides squint.edn :extension
-  nreplPort: 1339,   // default; or set SQUINT_NREPL_PORT
-})
+// everything in squint.edn -> just:
+squint()
+
+// or override from JS:
+squint({ main: 'index', nreplPort: 1340 })
 ```

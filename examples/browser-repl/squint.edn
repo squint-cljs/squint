@@ -1,3 +1,4 @@
 {:paths ["src"]
  :output-dir "js"
- :extension "js"}
+ :extension "js"
+ :main index}

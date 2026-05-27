@@ -61,26 +61,18 @@ if (import.meta.hot) {
 }
 
 export default function squint(options = {}) {
-  // Where the REPL runtime lives. Only :browser today; the option leaves room
-  // for a node/SSR target (vite is used for node dev too) without a rename.
-  const target = options.target ?? 'browser';
-  if (target !== 'browser') {
-    throw new Error(
-      `squint vite plugin: target ${JSON.stringify(target)} not supported yet (only 'browser')`,
-    );
-  }
-  const nreplPort =
-    options.nreplPort ??
-    (process.env.SQUINT_NREPL_PORT ? Number(process.env.SQUINT_NREPL_PORT) : 1339);
-
   let root;
   let isBuild = false;
   let logger = console;
-  // Resolved in configResolved from squint.edn (plugin options override it).
+  // All settings come from squint.edn (plugin options override, then env for
+  // the nREPL port). Resolved in configResolved (needs `root`).
   // `paths` are absolute source dirs.
   let paths = [];
   let outDir = 'js';
   let extension = 'js';
+  let main; // entry ns(s): string or array, injected into index.html
+  let target = 'browser';
+  let nreplPort = 1339;
 
   function compileCljs(file) {
     return compileFile({
@@ -125,6 +117,19 @@ export default function squint(options = {}) {
       paths = (options.paths ?? cfg.paths ?? ['src']).map((p) => resolve(root, p));
       outDir = options.outDir ?? cfg['output-dir'] ?? 'js';
       extension = options.extension ?? cfg.extension ?? 'js';
+      main = options.main ?? cfg.main;
+      target = options.target ?? cfg.target ?? 'browser';
+      // env wins over squint.edn (a runtime override, e.g. for tests/CI)
+      nreplPort =
+        options.nreplPort ??
+        (process.env.SQUINT_NREPL_PORT ? Number(process.env.SQUINT_NREPL_PORT) : undefined) ??
+        cfg['nrepl-port'] ??
+        1339;
+      if (target !== 'browser') {
+        throw new Error(
+          `squint vite plugin: target ${JSON.stringify(target)} not supported yet (only 'browser')`,
+        );
+      }
     },
 
     // Production build: compile everything before vite bundles.
@@ -163,7 +168,7 @@ export default function squint(options = {}) {
       ];
       // Inject the entry namespace's compiled module, so index.html doesn't
       // hardcode the output path. ns -> file uses squint's munging.
-      for (const ns of [].concat(options.main ?? [])) {
+      for (const ns of [].concat(main ?? [])) {
         const file = String(ns).replace(/-/g, '_').replace(/\./g, '/');
         tags.push({
           tag: 'script',
