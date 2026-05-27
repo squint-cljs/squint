@@ -69,13 +69,14 @@
   (shell "npx shadow-cljs --aliases :dev --config-merge .work/config-merge.edn watch squint"))
 
 (defn browser-repl-test []
-  ;; Compile the squint-written e2e test, then run it. The test spawns its own
-  ;; `vite dev` (isolated ports) + headless playwright browser + nREPL client.
+  ;; squint's own e2e test for the browser REPL (not example code). Lives in
+  ;; e2e/; spawns its own `vite dev` against examples/browser-repl (isolated
+  ;; ports) + headless playwright browser + nREPL client.
   (shell "node" "node_cli.js" "compile"
-         "--paths" "examples/browser-repl/test"
-         "--output-dir" "examples/browser-repl/test"
+         "--paths" "e2e"
+         "--output-dir" "e2e"
          "--extension" "mjs")
-  (shell "node" "examples/browser-repl/test/browser_repl_test.mjs"))
+  (shell "node" "e2e/browser_repl_test.mjs"))
 
 (defn test-project [_]
   (let [dir "test-project"]
