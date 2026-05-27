@@ -71,7 +71,7 @@ transform step.
 {:paths ["src"]
  :output-dir "js"
  :extension "js"
- :main [plain preact]
+ :main [plain preact reagami]
  :jsx-runtime {:import-source "preact"}} ; or "react"
 ```
 
