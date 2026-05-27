@@ -416,9 +416,10 @@ REPL. REPL away!
 
 ## Browser REPL
 
-Edit ClojureScript, hot-reload it in the browser, and connect your editor's
-nREPL to evaluate forms in the live page. It's a single vite plugin
-(`squint-cljs/vite`). See [doc/browser-repl.md](doc/browser-repl.md).
+The `squint-cljs/vite` plugin provides a browser REPL: it hot-reloads compiled
+squint in the page and runs an nREPL server that your editor connects to,
+evaluating forms in the live page. See
+[doc/browser-repl.md](doc/browser-repl.md).
 
 ## Truthiness
 
