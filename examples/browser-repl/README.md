@@ -6,7 +6,7 @@ editor to.
 
 ```
 npm install
-npx vite dev
+npm run dev
 ```
 
 Then connect your editor to `.nrepl-port` (or `localhost:1339`) and eval in the

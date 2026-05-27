@@ -1,14 +1,15 @@
 {
   "type": "module",
-  "dependencies": {
-    "joi": "^17.13.3",
-    "lodash": "^4.17.21",
-    "nanoid": "^5.0.0",
-    "squint-cljs": "file:../../squint",
-    "vite": "^5.4.8"
-  },
   "scripts": {
     "dev": "vite dev",
     "build": "vite build"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.3",
+    "nanoid": "^5.0.0",
+    "squint-cljs": "file:../../squint"
+  },
+  "devDependencies": {
+    "vite": "^5.4.8"
   }
 }
