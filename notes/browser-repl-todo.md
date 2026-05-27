@@ -9,14 +9,14 @@ This file tracks the vite-HMR branch. Standalone-WS issues kept at the bottom fo
 
 ## How it works now (vite-HMR)
 
-- `vite dev` is the only command. `vite-plugin-squint-repl.js` owns everything:
+- `npm run dev` (`vite dev`) is the only command. The plugin (`vite.js`, shipped as `squint-cljs/vite`) owns everything:
   - compiles cljs -> js in-process via squint's `compileFile` API (compile all on startup, recompile changed files via vite's file watcher; one-shot compile in `buildStart` for builds).
   - injects `import.meta.hot.accept()` into served compiled modules (dev) so a recompile hot-swaps the module, no page reload. `globalThis.<ns>` state and REPL defs survive.
   - runs squint's own nREPL server (`squint-cljs/lib/node.nrepl_server.js`) with an injected browser transport. Editors connect over bencode TCP (port 1339, `.nrepl-port` written); the server compiles eval and pushes JS to the browser over `server.ws` (`squint:nrepl`); the browser evals and replies (`squint:nrepl-reply`), routed back by request id.
   - injects a virtual-module browser listener speaking that eval format.
-- A dev-only HTTP endpoint (`POST /__repl_eval`) drives the same eval path with curl (no editor needed); shares the server's `evalString`, so one eval implementation.
+- An optional dev-only HTTP endpoint (`POST /__repl_eval`, off by default via `ENABLE_HTTP_EVAL`) drives the same eval path with curl (no editor needed); shares the server's `evalString`, so one eval implementation.
 
-Files: `examples/browser-repl/vite-plugin-squint-repl.js`, `examples/browser-repl/vite.config.js`.
+Files: `vite.js` (shipped as `squint-cljs/vite`), `examples/browser-repl/vite.config.js`.
 
 ## Done (vite-HMR branch)
 
@@ -26,6 +26,8 @@ Files: `examples/browser-repl/vite-plugin-squint-repl.js`, `examples/browser-rep
 - [x] Dropped the standalone WebSocketServer, the misnamed port env, the duplicate watcher, and the separate nrepl-server process.
 - [x] Cross-ns requires resolve (node API auto-wires `:resolve-ns`; emits `./foo.js`).
 - [x] Real nREPL: editors connect over bencode TCP and eval in the browser, reusing squint's own nREPL server via a transport seam (no second nREPL impl).
+- [x] React/Preact via `:jsx-runtime` (squint emits `jsx()`/`jsxs()`; dev uses jsx-dev-runtime, build jsx-runtime, static import so no top-level await). Reagami (zero-dep hiccup) too. Example shows three rendering styles (plain `#html`, preact `#jsx`, reagami) as counters.
+- [x] Result printing via pr-str across all three REPLs (console, nREPL server, browser); nil/undefined -> `nil`.
 
 ## Dependency resolution (punted, see browser-repl-dep-resolution.md)
 
@@ -51,10 +53,10 @@ for those). Revisit shadow-style on-demand bundling later.
 Ranked by how hard a first-time user trips on it:
 
 - [x] **Plugin ignores `squint.edn`.** Now reads `squint.edn` for `:paths`/`:output-dir`/`:extension` (multi-path aware); plugin options override. Via a new `readConfig` JS export.
-- [x] **`index.html` loaded the compiled `js/index.js`.** Now `squint({ main: 'index' })` injects the entry ns's compiled module; index.html is just `<div id="app">`. e2e test asserts it renders.
-- [x] **Eval needs an open browser tab.** `browser-eval` now rejects after 8s with an actionable message instead of hanging; the guide warns up front.
-- [ ] **Must pre-declare REPL deps in `optimizeDeps.include`** or a new dep reloads the page + wipes state. Inherent vite behavior; document loudly (already in README).
-- [ ] **CJS deps come back under `.default`** (`(.. lodash -default (add 1 2))`). Document.
+- [x] **`index.html` loaded the compiled `js/index.js`.** Now `:main` (in squint.edn, symbol or vector) injects the entry ns(s)' compiled modules; index.html is just mount `<div>`s. e2e test asserts they render.
+- [x] **Eval needs an open browser tab.** `browser-eval` now rejects after 8s with an actionable message (incl. the dev URL) instead of hanging; the guide warns up front.
+- [ ] **Must pre-declare REPL deps in `optimizeDeps.include`** or a new dep reloads the page + wipes state. Inherent vite behavior; documented in `doc/browser-repl.md` as optional (only saves the first-use reload). Auto-derive is the open part below.
+- [ ] **CJS deps come back under `.default`** (`(.. canvas-confetti -default)`). Document.
 
 ## nREPL (done): transport-agnostic seam in squint's own server
 
@@ -72,13 +74,15 @@ the runtime:
 
 Remaining nREPL polish:
 - [ ] Multi-session: `!browser-send`/`!pending`/`last-ns`/`state` are global (single editor/tab). Route by session.
-- [ ] Richer value printing (pr-str) + stdout streaming (`out`), error/stacktrace formatting from the browser.
+- [x] Value printing via pr-str (done).
+- [ ] Promise printing as `#<Promise ...>` (needs boxing around the async-IIFE so a top-level promise isn't flattened by `await`).
+- [ ] stdout streaming (`out`) + error/stacktrace formatting from the browser.
 - [ ] interrupt / load-file over the browser transport.
 
 ## REPL semantics (helps both branches)
 
-- [x] Cross-ns refs: a local-ns alias now binds to the live `globalThis.<ns>` object, so redefs/HMR are visible across ns. Covered by the e2e test (`bb test:browser-repl`).
-- [ ] Result printing: use pr-str, handle nil/undefined/objects (currently `String(value)`).
+- [x] Cross-ns refs: a local-ns alias now binds to the live `globalThis.<ns>` object, so redefs/HMR are visible across ns. Covered by the e2e test (`bb test:browser-repl`). Bare `[ns]` requires alias to themselves; library nses (clojure.string etc.) bind to the module, not globalThis.
+- [x] Result printing via pr-str (nil/undefined -> `nil`). Promise `#<Promise ...>` still TODO (see nREPL polish).
 
 ## Robustness
 
