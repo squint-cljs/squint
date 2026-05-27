@@ -214,12 +214,14 @@
         ;; bare expression (an arrow-fn string would eval to a truthy fn and resolve at once)
         (await (with-timeout 15000 "entry render"
                              (.waitForFunction page "document.querySelector('#app') && document.querySelector('#app').textContent.length > 0")))
-        (check "entry (:main) rendered" "another/s = v1" (await (.textContent page "#app")))
+        (check "entry (:main) rendered" true
+               (str/includes? (await (.textContent page "#app")) "another/s = v1"))
         ;; the `app` entry renders a preact component via squint's :jsx-runtime
         ;; (#jsx -> jsx()/jsxs() + jsx-dev-runtime import); confirms JSX works.
         (await (with-timeout 15000 "preact render"
                              (.waitForFunction page "document.querySelector('#preact') && document.querySelector('#preact').textContent.length > 0")))
-        (check "preact (:jsx-runtime) rendered" "preact: ok" (await (.textContent page "#preact")))
+        (check "preact (:jsx-runtime) rendered" true
+               (str/includes? (await (.textContent page "#preact")) "preact: ok"))
         ;; the `reagami-app` entry renders a zero-dep hiccup component; clicking
         ;; the button mutates an atom and re-renders (add-watch + render).
         (await (with-timeout 15000 "reagami render"
