@@ -220,6 +220,17 @@
         (await (with-timeout 15000 "preact render"
                              (.waitForFunction page "document.querySelector('#preact') && document.querySelector('#preact').textContent.length > 0")))
         (check "preact (:jsx-runtime) rendered" "preact: ok" (await (.textContent page "#preact")))
+        ;; the `reagami-app` entry renders a zero-dep hiccup component; clicking
+        ;; the button mutates an atom and re-renders (add-watch + render).
+        (await (with-timeout 15000 "reagami render"
+                             (.waitForFunction page "document.querySelector('#reagami') && document.querySelector('#reagami').textContent.includes('Counted: 0')")))
+        (check "reagami rendered" true
+               (str/includes? (await (.textContent page "#reagami")) "Counted: 0"))
+        (await (.click page "#reagami button"))
+        (await (with-timeout 10000 "reagami click update"
+                             (.waitForFunction page "document.querySelector('#reagami').textContent.includes('Counted: 1')")))
+        (check "reagami click re-renders" true
+               (str/includes? (await (.textContent page "#reagami")) "Counted: 1"))
         (let [client (await (with-timeout 10000 "nrepl connect" (make-client NREPL-PORT)))
               clone (await (with-timeout 10000 "nrepl clone" (nrepl-request client #js {:op "clone"})))
               session (some (fn [m] (aget m "new-session")) (js/Array.from clone))

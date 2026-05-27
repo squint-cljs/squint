@@ -14,6 +14,8 @@ export default defineConfig(() => {
         'preact',
         'preact/jsx-runtime',
         'preact/jsx-dev-runtime',
+        // reagami: zero-dep hiccup renderer (src/reagami_app.cljs)
+        'reagami',
       ],
     },
     // The squint vite plugin: compiles cljs -> js (dev watch + build), resolves

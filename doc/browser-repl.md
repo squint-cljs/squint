@@ -85,6 +85,14 @@ optimizeDeps: { include: ['preact', 'preact/jsx-runtime', 'preact/jsx-dev-runtim
 
 See `examples/browser-repl/src/app.cljs` for a working component.
 
+## Reagami (no JSX)
+
+[Reagami](https://github.com/borkdude/reagami) is a zero-dep, Reagent-like
+hiccup renderer. It renders plain hiccup vectors (`[:div ...]`), so no
+`:jsx-runtime` and no `#jsx` - it works at the REPL out of the box. State is a
+plain atom with `add-watch` + `render`. See
+`examples/browser-repl/src/reagami_app.cljs`.
+
 ## Options
 
 | key | meaning |

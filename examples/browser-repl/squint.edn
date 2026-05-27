@@ -1,5 +1,5 @@
 {:paths ["src"]
  :output-dir "js"
  :extension "js"
- :main [index app]
+ :main [index app reagami-app]
  :jsx-runtime {:import-source "preact"}}

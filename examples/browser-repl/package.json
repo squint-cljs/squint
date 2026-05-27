@@ -8,6 +8,7 @@
     "canvas-confetti": "^1.9.3",
     "nanoid": "^5.0.0",
     "preact": "^10.24.0",
+    "reagami": "^0.0.36",
     "squint-cljs": "file:../../squint"
   },
   "devDependencies": {
