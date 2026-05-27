@@ -62,3 +62,18 @@ jobs:
       run: |
         npm install --global yarn
         bb test:libs
+
+    - name: Cache Playwright browsers
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
+        restore-keys: ${{ runner.os }}-playwright-
+
+    - name: Run browser REPL test
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        npm --prefix examples/browser-repl install
+        npx playwright install --with-deps chromium
+        bb test:browser-repl

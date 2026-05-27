@@ -27,6 +27,15 @@
 (defn set-cfg! [cfg]
   (reset! !cfg cfg))
 
+(defn read-config
+  "Read and parse squint.edn from `dir` (defaults to cwd). Returns the config
+  map, or nil when there is no squint.edn."
+  ([] (read-config "."))
+  ([dir]
+   (let [f (path/resolve dir "squint.edn")]
+     (when (fs/existsSync f)
+       (edn/read-string (slurp f))))))
+
 (defn process-opts! [opts]
   (let [file-cfg (get-cfg)
         cfg (merge file-cfg opts)]
@@ -34,8 +43,10 @@
     cfg))
 
 (defn resolve-file
-  [macro-ns]
-  (let [path (-> macro-ns str (str/replace "-" "_") (str/replace "." "/"))]
-    (some (fn [dir]
-            (resolve-file* dir path))
-          (:paths (get-cfg) ["." "src"]))))
+  ([macro-ns]
+   (resolve-file macro-ns (:paths (get-cfg) ["." "src"])))
+  ([macro-ns paths]
+   (let [path (-> macro-ns str (str/replace "-" "_") (str/replace "." "/"))]
+     (some (fn [dir]
+             (resolve-file* dir path))
+           (or paths ["." "src"])))))

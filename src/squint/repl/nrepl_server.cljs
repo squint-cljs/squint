@@ -6,6 +6,7 @@
    ["net" :as node-net]
    [squint.compiler-common :as cc :refer [*cljs-ns*]]
    [squint.compiler :as compiler]
+   [squint.internal.node.utils :as utils]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]))
 
 (defn debug [& strs]
@@ -97,33 +98,112 @@
 (def in-progress (atom false))
 (def state (atom nil))
 
+;; Transport seam. By default the server evaluates compiled JS locally (node).
+;; A host (e.g. a vite plugin) can inject a browser transport via start-server's
+;; :browser-transport opt: compiled JS is sent to the browser and the result is
+;; awaited, correlated by request id.
+(def !browser-send (atom nil)) ;; (fn [#js {:op :code :id :session}] -> void)
+(def !browser-url (atom nil))  ;; (fn [] -> dev server URL string), for the timeout hint
+(def !pending (atom {}))       ;; request id -> #js {:resolve _ :reject _}
+(def browser-eval-timeout-ms 8000)
+
+(defn handle-browser-message
+  "Feed a browser eval reply back into the server, resolving the awaiting eval.
+  `msg` is a JS object (or JSON string) {op, value, ex, id, session}. Exposed so
+  a transport can deliver browser replies."
+  [msg]
+  (let [msg (if (string? msg) (js/JSON.parse msg) msg)
+        id (.-id ^js msg)
+        p (get @!pending id)]
+    (when p
+      (swap! !pending dissoc id)
+      (if-some [ex (.-ex ^js msg)]
+        ((.-reject ^js p) (js/Error. (str ex)))
+        ((.-resolve ^js p) (.-value ^js msg))))))
+
 (defn compile [the-val]
-  (let [{js-str :javascript
+  (let [;; Apply squint.edn's :jsx-runtime so #jsx eval'd at the REPL emits
+        ;; jsx() calls (not raw <tags>, which the browser can't eval). The REPL
+        ;; is always dev, so use the jsx-dev-runtime.
+        jsx-runtime (some-> (utils/get-cfg) :jsx-runtime (assoc :development true))
+        {js-str :javascript
          cljs-ns :ns
-         :as new-state} (compiler/compile-string* the-val {:context :return
+         :as new-state} (compiler/compile-string* the-val
+                                                  (cond-> {:context :return
                                                            :elide-exports true
                                                            :repl true
                                                            :async true}
+                                                    jsx-runtime (assoc :jsx-runtime jsx-runtime))
                                                   @state)
         _ (reset! state new-state)
         js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
     js-str))
 
+(defn node-eval
+  "Default evaluator: eval compiled JS locally and format the value."
+  [js-str request]
+  (-> (js/Promise.resolve (js/eval js-str))
+      (.then (fn [val]
+               (format-value (:nrepl.middleware.print/print request)
+                             (:nrepl.middleware.print/options request)
+                             val)))))
+
+(defn browser-eval
+  "Evaluator that delegates to a browser over the injected transport, awaiting
+  the result correlated by request id."
+  [js-str request]
+  (js/Promise.
+   (fn [resolve reject]
+     (let [id (:id request)]
+       (swap! !pending assoc id #js {:resolve resolve :reject reject})
+       ;; Don't hang forever if no browser is connected (or it never replies):
+       ;; the eval runs *in the page*, so without an open tab there's nothing to
+       ;; run it. Reject with an actionable message.
+       (js/setTimeout
+        (fn []
+          (when (get @!pending id)
+            (swap! !pending dissoc id)
+            (let [url (when-let [f @!browser-url] (f))
+                  where (if url (str "Open " url " in a browser tab.")
+                            "Open the dev server URL in a browser tab.")]
+              (reject (js/Error. (str "No response from the browser within "
+                                      browser-eval-timeout-ms "ms. "
+                                      where " The REPL evaluates in the page."))))))
+        browser-eval-timeout-ms)
+       (if-let [send @!browser-send]
+         (send #js {:op "eval"
+                    :code js-str
+                    :id id
+                    :session (:session request)})
+         (do (swap! !pending dissoc id)
+             (reject (js/Error. "No browser transport connected"))))))))
+
+(def !eval-fn (atom node-eval))
+
+(defn evaluate
+  "Compile `code` (cljs) and evaluate it via the active evaluator. Returns a
+  Promise of the value (a printed string). Shared by the nREPL eval op and the
+  JS entrypoint below."
+  [code request]
+  (-> (js/Promise.resolve code)
+      (.then compile)
+      (.then (fn [js-str] (@!eval-fn js-str request)))))
+
+(defn evaluate-string
+  "JS entrypoint for evaluating a single code string (e.g. a dev HTTP trigger).
+  Returns Promise<#js {:value :ns}>; rejects on error."
+  [code]
+  (-> (evaluate code {:id (str (random-uuid)) :session "http"})
+      (.then (fn [value] #js {:value value :ns (str @last-ns)}))))
+
 (defn do-handle-eval [{:keys [ns code file
                               _load-file? _line] :as request} send-fn]
   (->
-   (js/Promise.resolve code)
-   (.then compile)
-   (.then (fn [v]
-            (println "About to eval:")
-            (println v)
-            (js/eval v)))
-   (.then (fn [val]
+   (evaluate code request)
+   (.then (fn [value]
             (send-fn request {"ns" (str @last-ns)
-                              "value" (format-value (:nrepl.middleware.print/print request)
-                                                    (:nrepl.middleware.print/options request)
-                                                    val)})))
+                              "value" value})))
    (.catch (fn [e]
              (js/console.error e)
              (handle-error send-fn request e)))
@@ -283,18 +363,28 @@
   (-> (js/Promise.resolve nil)
       (.then
        (fn []
-         (let [port (or (:port opts)
+         (let [port (or (if (object? opts) (.-port ^js opts) (:port opts))
                         0)
-               host (or (:host opts)
+               host (or (if (object? opts) (.-host ^js opts) (:host opts))
                         "127.0.0.1" ;; default
                         )
                _log_level (or (if (object? opts)
-                                (.-log_level ^Object opts)
+                                (.-log_level ^js opts)
                                 (:log_level opts))
                               "info")
+               browser-transport (or (:browser-transport opts)
+                                     (when (object? opts)
+                                       (.-browserTransport ^js opts)))
                server (node-net/createServer
                        (partial on-connect {}))]
-           ;; Expose "app" key under js/app in the repl
+           ;; Pick the evaluator: delegate to a browser when a transport was
+           ;; injected, otherwise eval locally (node).
+           (if browser-transport
+             (do (reset! !browser-send (.-send ^js browser-transport))
+                 ;; optional: a fn returning the dev server URL, for the timeout hint
+                 (reset! !browser-url (.-url ^js browser-transport))
+                 (reset! !eval-fn browser-eval))
+             (reset! !eval-fn node-eval))
            (.listen server
                     port
                     host

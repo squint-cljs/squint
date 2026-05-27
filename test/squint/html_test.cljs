@@ -79,6 +79,23 @@
           (.catch #(is false "nooooo"))
           (.finally done)))))
 
+(deftest html-style-var-test
+  ;; a runtime :style value (map or string) — not a literal map — is stringified
+  ;; at runtime via squint_html.attr (map -> css, string passes through)
+  (t/async done
+    (let [js (squint.compiler/compile-string
+              "[(str (let [m {:color :green :border-radius \"10px\"}] #html [:div {:style m}]))
+                (str (let [s \"color:red\"] #html [:div {:style s}]))]"
+              {:repl true :elide-exports true :context :return})
+          js (str/replace "(async function() { %s } )()" "%s" js)]
+      (-> (js/eval js)
+          (.then
+           (fn [v]
+             (is (html= "<div style=\"color:green; border-radius:10px;\"></div>" (aget v 0)))
+             (is (html= "<div style=\"color:red\"></div>" (aget v 1)))))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))
+
 (deftest html-fragment-test
   (t/async done
     (let [js (squint.compiler/compile-string
