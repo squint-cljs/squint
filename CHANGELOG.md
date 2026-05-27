@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.12.190
 
 - Browser nREPL support. See [docs](https://github.com/squint-cljs/squint/blob/main/doc/browser-repl.md)
 - Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`. ([@willcohen](https://github.com/willcohen))
