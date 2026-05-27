@@ -131,11 +131,19 @@
             (fn [] (reject (js/Error. (str "timeout after " ms "ms waiting for: " label))))
             ms)))]))
 
-(defn wait-output [stream substr]
+(defn wait-output
+  "Resolve when `substr` appears in the stream's accumulated output. Accumulates
+  (so a match split across chunks still works) and matches a raw substring (so
+  ANSI color codes vite emits in CI don't break it - we match the port number,
+  which stays contiguous between color codes)."
+  [stream substr]
   (js/Promise.
    (fn [resolve _]
-     (.on stream "data"
-          (fn [d] (when (str/includes? (str d) substr) (resolve true)))))))
+     (let [acc (atom "")]
+       (.on stream "data"
+            (fn [d]
+              (swap! acc str d)
+              (when (str/includes? @acc substr) (resolve true))))))))
 
 (defn wait-console [page substr]
   (js/Promise.
@@ -173,7 +181,8 @@
     (.on vite "error" (fn [e] (log! "[vite spawn error] " (.-message e))))
     (.on vite "exit" (fn [code] (log! "[vite exited] code " code)))
     (try
-      (await (with-timeout 45000 "vite \"Local:\"" (wait-output (.-stdout vite) "Local:")))
+      ;; match the port (contiguous between vite's ANSI color codes), not "Local:"
+      (await (with-timeout 45000 "vite ready" (wait-output (.-stdout vite) (str PORT))))
       (reset! browser (await (with-timeout 30000 "chromium launch"
                                            (.launch (.-chromium pw) #js {:headless true}))))
       (let [page (await (.newPage @browser))
