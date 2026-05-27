@@ -1441,6 +1441,16 @@ break;}" body)
                                      (cond
                                        (and html? (map? v))
                                        (emit-css v env)
+                                       ;; dynamic :style (a runtime map or string,
+                                       ;; not a literal map): stringify at runtime
+                                       ;; via squint_html.attr (map -> css, string
+                                       ;; passes through).
+                                       (and html? (= "style" (name k)) (not (string? v)))
+                                       (do (when-let [dyn (:has-dynamic-expr env)]
+                                             (reset! dyn true))
+                                           (-> (format "${squint_html.attr(%s)}"
+                                                       (emit v (assoc env :jsx false :js true)))
+                                               (wrap-double-quotes)))
                                        #_#_(and html? (vector? v))
                                        (-> (str/join " " (map #(emit % env) v))
                                            (wrap-double-quotes))
