@@ -34,6 +34,9 @@ export default defineConfig({ plugins: [squint()] });
 `npx vite dev` compiles `:paths`, serves the app, and starts the nREPL server
 (port `1339`, written to `.nrepl-port`).
 
+`vite build` produces a normal optimized bundle - regular (non-REPL) squint
+output, with the dev-only REPL/HMR stripped.
+
 ## Connect
 
 Connect your editor to `.nrepl-port` (Calva/CIDER/Conjure auto-discover it) or

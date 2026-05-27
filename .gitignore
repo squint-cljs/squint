@@ -44,3 +44,5 @@ out
 App.jsx
 scratch
 examples/browser-repl/test/*.mjs
+examples/browser-repl/js/
+examples/browser-repl/dist/

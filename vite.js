@@ -80,7 +80,9 @@ export default function squint(options = {}) {
       'output-dir': join(root, outDir),
       paths,
       extension,
-      repl: true,
+      // REPL output (globalThis bindings, dynamic imports) in dev; regular,
+      // optimizable ESM for production builds.
+      repl: !isBuild,
     });
   }
 
@@ -156,27 +158,35 @@ export default function squint(options = {}) {
         return code + '\nif (import.meta.hot) { import.meta.hot.accept(); }\n';
       }
     },
-    transformIndexHtml() {
-      const tags = [
-        {
+    transformIndexHtml: {
+      // 'pre' so the injected entry script is collected as a build input
+      // (vite's build-html scans scripts during its own transform).
+      order: 'pre',
+      handler() {
+      const tags = [];
+      // The REPL eval listener is dev-only (uses import.meta.hot); don't ship it.
+      if (!isBuild) {
+        tags.push({
           tag: 'script',
           // vite serves virtual modules under /@id/, encoding the leading
           // null byte of the resolved id as __x00__
           attrs: { type: 'module', src: '/@id/__x00__' + VIRTUAL_CLIENT },
           injectTo: 'head',
-        },
-      ];
+        });
+      }
       // Inject the entry namespace's compiled module, so index.html doesn't
-      // hardcode the output path. ns -> file uses squint's munging.
+      // hardcode the output path. ns -> file uses squint's munging. Relative src
+      // so `vite build` treats it as a bundle input (absolute = public asset).
       for (const ns of [].concat(main ?? [])) {
         const file = String(ns).replace(/-/g, '_').replace(/\./g, '/');
         tags.push({
           tag: 'script',
-          attrs: { type: 'module', src: `/${outDir}/${file}.${extension}` },
+          attrs: { type: 'module', src: `${outDir}/${file}.${extension}` },
           injectTo: 'body',
         });
       }
       return tags;
+      },
     },
 
     async configureServer(server) {

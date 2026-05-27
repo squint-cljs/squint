@@ -39,6 +39,13 @@ for those). Revisit shadow-style on-demand bundling later.
 - [ ] Later: shadow-style on-demand esbuild bundling for zero-reload arbitrary deps.
 - [ ] CJS interop nuance: CJS deps land under `.default` (`(.-default ld)`); also `optimizeDeps.needsInterop`.
 
+## Production build
+
+- [x] `vite build` produces a regular optimizable bundle (plugin compiles
+  `repl: false` for build, injects the entry via `:main` as a real build input
+  with transformIndexHtml `order: 'pre'`, strips the dev-only REPL/HMR). Covered
+  by the e2e harness (build smoke-test).
+
 ## Newcomer friction (UX) - what's counterintuitive today
 
 Ranked by how hard a first-time user trips on it:

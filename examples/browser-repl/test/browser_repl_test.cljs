@@ -8,6 +8,7 @@
   cross-ns redef visibility (the live-global alias binding)."
   (:require ["node:net" :as net]
             ["node:child_process" :as cp]
+            ["node:fs" :as fs]
             ["node:path" :as path]
             ["playwright$default" :as pw]
             [clojure.string :as str]))
@@ -159,6 +160,22 @@
     (do (swap! failures inc)
         (println "FAIL:" label "- expected" (pr-str expected) "got" (pr-str actual)))))
 
+(defn run-to-exit [proc]
+  (js/Promise. (fn [resolve _] (.on proc "exit" (fn [code] (resolve code))))))
+
+(defn ^:async check-build []
+  ;; `vite build` should emit a regular, optimizable bundle (no REPL/HMR output).
+  (let [code (await (run-to-exit (.spawn cp "node_modules/.bin/vite" #js ["build"]
+                                         #js {:cwd EXDIR :stdio "ignore"})))]
+    (check "vite build exit 0" 0 code)
+    (let [adir (path/join EXDIR "dist" "assets")
+          files (try (.readdirSync fs adir) (catch :default _ #js []))
+          js (some (fn [f] (when (str/ends-with? f ".js") f)) (js/Array.from files))]
+      (check "build emitted a JS bundle" true (some? js))
+      (when js
+        (let [content (.readFileSync fs (path/join adir js) "utf8")]
+          (check "bundle has no HMR" false (str/includes? content "import.meta.hot")))))))
+
 ;; ------------------------------------------------------------------ run ----
 
 ;; Hard safety net: never let the process hang past 2 min (unref'd so a fast
@@ -168,6 +185,7 @@
          120000))
 
 (defn ^:async run []
+  (await (check-build))
   (let [vite (.spawn cp "node_modules/.bin/vite" #js ["dev" "--port" (str PORT)]
                      #js {:cwd EXDIR
                           :env (js/Object.assign #js {} js/process.env
