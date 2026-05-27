@@ -15,8 +15,8 @@
 // - injects a browser-side eval listener (import.meta.hot) speaking the nREPL
 //   server's eval message format.
 //
-// A dev-only HTTP endpoint (POST /__repl_eval) drives the same eval path with
-// curl, handy for testing without an editor.
+// An optional dev-only HTTP endpoint (POST /__repl_eval, off by default, see
+// ENABLE_HTTP_EVAL) drives the same eval path with curl, handy without an editor.
 
 import { compileFile, readConfig } from './node-api.js';
 import {
@@ -30,6 +30,11 @@ import { join, resolve, sep } from 'node:path';
 const VIRTUAL_CLIENT = 'virtual:squint-repl-client';
 const RESOLVED_CLIENT = '\0' + VIRTUAL_CLIENT;
 const CLJS_RE = /\.clj[sc]$/;
+
+// Dev-only HTTP eval endpoint (POST /__repl_eval), handy for driving eval with
+// curl when there's no editor. Off by default (an open dev server would expose
+// arbitrary in-page eval); flip to true in-source when you need it.
+const ENABLE_HTTP_EVAL = false;
 
 // Browser-side listener, served as a virtual module so the page imports it and
 // gets a real import.meta.hot context. Speaks the nREPL server's eval format:
@@ -244,22 +249,25 @@ export default function squint(options = {}) {
       logger.info('[squint-repl] nREPL server on port ' + nreplPort);
 
       // Dev HTTP trigger: drive the same eval path with curl (no editor needed).
-      server.middlewares.use('/__repl_eval', async (req, res) => {
-        if (req.method !== 'POST') {
-          res.writeHead(405);
-          res.end();
-          return;
-        }
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        res.writeHead(200, { 'content-type': 'application/json' });
-        try {
-          const out = await evalString(body);
-          res.end(JSON.stringify({ value: out.value, ns: out.ns }));
-        } catch (e) {
-          res.end(JSON.stringify({ err: e && e.message ? e.message : String(e) }));
-        }
-      });
+      // Gated off by default; see ENABLE_HTTP_EVAL.
+      if (ENABLE_HTTP_EVAL) {
+        server.middlewares.use('/__repl_eval', async (req, res) => {
+          if (req.method !== 'POST') {
+            res.writeHead(405);
+            res.end();
+            return;
+          }
+          let body = '';
+          for await (const chunk of req) body += chunk;
+          res.writeHead(200, { 'content-type': 'application/json' });
+          try {
+            const out = await evalString(body);
+            res.end(JSON.stringify({ value: out.value, ns: out.ns }));
+          } catch (e) {
+            res.end(JSON.stringify({ err: e && e.message ? e.message : String(e) }));
+          }
+        });
+      }
     },
   };
 }
