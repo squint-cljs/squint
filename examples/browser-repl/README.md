@@ -13,8 +13,8 @@ Then connect your editor to `.nrepl-port` (or `localhost:1339`) and eval in the
 running page.
 
 It shows the same counter rendered three ways: plain squint (`#html` + manual
-re-render, `src/index.cljs`), preact via `:jsx-runtime` (`#jsx` + `useState`,
-`src/app.cljs`), and [reagami](https://github.com/borkdude/reagami) hiccup (atom
-+ `add-watch`, `src/reagami_app.cljs`).
+re-render, `src/plain.cljs`), preact via `:jsx-runtime` (`#jsx` + `useState`,
+`src/preact.cljs`), and [reagami](https://github.com/borkdude/reagami) hiccup
+(atom + `add-watch`, `src/reagami.cljs`).
 
 Full guide: [`doc/browser-repl.md`](../../doc/browser-repl.md).

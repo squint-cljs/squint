@@ -225,7 +225,7 @@
         ;; The three :main entries each render a counter (Counted: 0 + button)
         ;; via a different model: plain squint #html, preact #jsx (useState),
         ;; reagami hiccup. Each must render and increment on click.
-        (await (check-counter page "plain (#html)" "#app"))
+        (await (check-counter page "plain (#html)" "#plain"))
         (await (check-counter page "preact (#jsx)" "#preact"))
         (await (check-counter page "reagami (hiccup)" "#reagami"))
         (let [client (await (with-timeout 10000 "nrepl connect" (make-client NREPL-PORT)))

@@ -1,4 +1,4 @@
-(ns app
+(ns preact
   (:require ["preact" :refer [render]]
             ["preact/hooks" :refer [useState]]
             [ui]))
