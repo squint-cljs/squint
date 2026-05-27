@@ -9,6 +9,6 @@ export default defineConfig(() => {
     optimizeDeps: { include: ['joi', 'lodash', 'nanoid'] },
     // The squint vite plugin: compiles cljs -> js (dev watch + build), resolves
     // REPL imports, and runs the browser REPL (nREPL server + eval over the HMR WS).
-    plugins: [squint()],
+    plugins: [squint({ main: 'index' })],
   };
 });

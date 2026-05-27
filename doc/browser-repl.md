@@ -29,22 +29,21 @@ you run. A complete working setup lives in
     :extension "js"}
    ```
 
-3. **`vite.config.js`** - add the plugin:
+3. **`vite.config.js`** - add the plugin and name your entry ns:
 
    ```js
    import { defineConfig } from 'vite';
    import squint from 'squint-cljs/vite';
 
    export default defineConfig({
-     plugins: [squint()],
+     plugins: [squint({ main: 'index' })],
    });
    ```
 
-4. **`index.html`** - load your compiled entry namespace:
+4. **`index.html`** - just a mount point; the plugin injects the entry ns:
 
    ```html
    <div id="app"></div>
-   <script src="js/index.js" type="module"></script>
    ```
 
 5. **Run it:**
@@ -95,6 +94,7 @@ All optional. The source layout is read from `squint.edn`
 
 ```js
 squint({
+  main: 'index',     // entry ns(s) to inject into index.html; string or array
   target: 'browser', // default; where the REPL runtime lives (only :browser for now)
   paths: ['src'],    // overrides squint.edn :paths
   outDir: 'js',      // overrides squint.edn :output-dir
@@ -102,13 +102,3 @@ squint({
   nreplPort: 1339,   // default; or set SQUINT_NREPL_PORT
 })
 ```
-
-## How it works
-
-`vite dev` -> plugin compiles `.cljs` -> `.js` via squint's API and serves it.
-The nREPL server (the same one as `squint nrepl-server`) runs in the vite
-process with a browser transport: your editor connects over bencode TCP, the
-server compiles each eval and pushes the JS to the browser over vite's HMR
-WebSocket, the browser evaluates it and sends the result back. No second
-WebSocket server; vite owns the connection, so the REPL and hot reload stay
-consistent.

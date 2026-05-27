@@ -191,6 +191,12 @@
             ready (wait-console page "nrepl listener ready")]
         (await (.goto page URL))
         (await (with-timeout 30000 "browser nrepl listener ready" ready))
+        ;; the entry ns was injected via squint({:main 'index}); wait for it to
+        ;; render (it does async imports) then check
+        ;; bare expression (an arrow-fn string would eval to a truthy fn and resolve at once)
+        (await (with-timeout 15000 "entry render"
+                             (.waitForFunction page "document.querySelector('#app') && document.querySelector('#app').textContent.length > 0")))
+        (check "entry (:main) rendered" "another/s = v1" (await (.textContent page "#app")))
         (let [client (await (with-timeout 10000 "nrepl connect" (make-client NREPL-PORT)))
               clone (await (with-timeout 10000 "nrepl clone" (nrepl-request client #js {:op "clone"})))
               session (some (fn [m] (aget m "new-session")) (js/Array.from clone))

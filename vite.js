@@ -152,7 +152,7 @@ export default function squint(options = {}) {
       }
     },
     transformIndexHtml() {
-      return [
+      const tags = [
         {
           tag: 'script',
           // vite serves virtual modules under /@id/, encoding the leading
@@ -161,6 +161,17 @@ export default function squint(options = {}) {
           injectTo: 'head',
         },
       ];
+      // Inject the entry namespace's compiled module, so index.html doesn't
+      // hardcode the output path. ns -> file uses squint's munging.
+      for (const ns of [].concat(options.main ?? [])) {
+        const file = String(ns).replace(/-/g, '_').replace(/\./g, '/');
+        tags.push({
+          tag: 'script',
+          attrs: { type: 'module', src: `/${outDir}/${file}.${extension}` },
+          injectTo: 'body',
+        });
+      }
+      return tags;
     },
 
     async configureServer(server) {
