@@ -65,7 +65,9 @@ export default function squintRepl(options = {}) {
   const srcDir = options.srcDir ?? 'src';
   const outDir = options.outDir ?? 'js';
   const extension = options.extension ?? 'js';
-  const nreplPort = options.nreplPort ?? 1339;
+  const nreplPort =
+    options.nreplPort ??
+    (process.env.SQUINT_NREPL_PORT ? Number(process.env.SQUINT_NREPL_PORT) : 1339);
 
   let root;
   let isBuild = false;

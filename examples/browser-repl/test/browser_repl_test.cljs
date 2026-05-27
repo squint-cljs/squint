@@ -1,0 +1,181 @@
+(ns browser-repl-test
+  "End-to-end test of the squint browser REPL, written in squint.
+
+  Spawns `vite dev` (which starts the nREPL server + serves the app), loads the
+  page with a headless browser via playwright, connects an nREPL client over
+  bencode TCP, and evaluates forms. Exercises the whole stack: compiler REPL
+  output, /@resolve-deps ns fallback, nREPL bencode, vite-WS browser eval, and
+  cross-ns redef visibility (the live-global alias binding)."
+  (:require ["node:net" :as net]
+            ["node:child_process" :as cp]
+            ["node:path" :as path]
+            ["playwright$default" :as pw]
+            [clojure.string :as str]))
+
+(def PORT 5199)        ;; vite dev (isolated from the :5188 dev server)
+(def NREPL-PORT 1340)  ;; nREPL TCP (isolated from :1339)
+(def URL (str "http://localhost:" PORT "/"))
+(def EXDIR (path/resolve "examples/browser-repl"))
+
+;; ---------------------------------------------------------------- bencode ----
+
+(defn- bbuf [s] (js/Buffer.from s "utf8"))
+
+(defn bencode [x]
+  (cond
+    (number? x) (bbuf (str "i" x "e"))
+    (string? x) (let [b (js/Buffer.from x "utf8")]
+                  (js/Buffer.concat #js [(bbuf (str (.-length b) ":")) b]))
+    (array? x) (js/Buffer.concat (js/Array.from
+                                  (concat [(bbuf "l")] (map bencode x) [(bbuf "e")])))
+    :else ;; plain JS object -> dict with sorted keys
+    (let [ks (.sort (js/Object.keys x))
+          parts (mapcat (fn [k] [(bencode k) (bencode (aget x k))]) ks)]
+      (js/Buffer.concat (js/Array.from (concat [(bbuf "d")] parts [(bbuf "e")]))))))
+
+(declare bdecode)
+
+(defn- bdecode-coll [b i close-fn]
+  (loop [j (inc i) items #js []]
+    (cond
+      (>= j (.-length b)) nil
+      (= (aget b j) 0x65) (close-fn items (inc j))
+      :else (when-let [r (bdecode b j)]
+              (.push items (aget r 0))
+              (recur (aget r 1) items)))))
+
+(defn bdecode
+  "Decode one value at index `i` of buffer `b`. Returns #js [value end] or nil
+  when the buffer doesn't yet hold a complete value."
+  [b i]
+  (when (< i (.-length b))
+    (let [c (aget b i)]
+      (cond
+        (= c 0x69) ;; i<int>e
+        (let [e (.indexOf b 0x65 i)]
+          (when (>= e 0)
+            #js [(js/parseInt (.toString b "ascii" (inc i) e) 10) (inc e)]))
+        (= c 0x6c) ;; l..e
+        (bdecode-coll b i (fn [items end] #js [items end]))
+        (= c 0x64) ;; d..e
+        (bdecode-coll b i (fn [items end]
+                            (let [o #js {}]
+                              (loop [k 0]
+                                (when (< k (.-length items))
+                                  (aset o (aget items k) (aget items (inc k)))
+                                  (recur (+ k 2))))
+                              #js [o end])))
+        :else ;; <len>:<bytes>
+        (let [colon (.indexOf b 0x3a i)]
+          (when (>= colon 0)
+            (let [len (js/parseInt (.toString b "ascii" i colon) 10)
+                  s (inc colon)
+                  e (+ s len)]
+              (when (<= e (.-length b))
+                #js [(.toString b "utf8" s e) e]))))))))
+
+;; ------------------------------------------------------------ nREPL client ----
+
+(defn make-client [port]
+  (js/Promise.
+   (fn [resolve reject]
+     (let [sock (.connect net port "127.0.0.1")
+           buf (atom (js/Buffer.alloc 0))
+           handlers (atom [])]
+       (.on sock "error" reject)
+       (.on sock "data"
+            (fn [data]
+              (reset! buf (js/Buffer.concat #js [@buf data]))
+              (loop []
+                (when-let [r (bdecode @buf 0)]
+                  (reset! buf (.subarray @buf (aget r 1)))
+                  (doseq [h @handlers] (h (aget r 0)))
+                  (recur)))))
+       (.on sock "connect"
+            (fn [] (resolve #js {:sock sock :handlers handlers})))))))
+
+(defn nrepl-request
+  "Send an nREPL op, resolve with the vector of response messages once a `done`
+  status arrives for this id."
+  [client op]
+  (js/Promise.
+   (fn [resolve _reject]
+     (let [id (str (js/Math.random))
+           msgs #js []]
+       (aset op "id" id)
+       (swap! (.-handlers client) conj
+              (fn [msg]
+                (when (= (aget msg "id") id)
+                  (.push msgs msg)
+                  (when-let [st (aget msg "status")]
+                    (when (.includes st "done")
+                      (resolve msgs))))))
+       (.write (.-sock client) (bencode op))))))
+
+(defn nrepl-eval [client session code]
+  (-> (nrepl-request client #js {:op "eval" :session session :code code})
+      (.then (fn [msgs]
+               (some (fn [m] (aget m "value")) (js/Array.from msgs))))))
+
+;; --------------------------------------------------------------- helpers ----
+
+(defn wait-output [stream substr]
+  (js/Promise.
+   (fn [resolve _]
+     (.on stream "data"
+          (fn [d] (when (str/includes? (str d) substr) (resolve true)))))))
+
+(defn wait-console [page substr]
+  (js/Promise.
+   (fn [resolve _]
+     (.on page "console"
+          (fn [msg] (when (str/includes? (.text msg) substr) (resolve true)))))))
+
+(def failures (atom 0))
+
+(defn check [label expected actual]
+  (if (= expected actual)
+    (println "PASS:" label)
+    (do (swap! failures inc)
+        (println "FAIL:" label "- expected" (pr-str expected) "got" (pr-str actual)))))
+
+;; ------------------------------------------------------------------ run ----
+
+(defn ^:async run []
+  (let [vite (.spawn cp "node_modules/.bin/vite" #js ["dev" "--port" (str PORT)]
+                     #js {:cwd EXDIR
+                          :env (js/Object.assign #js {} js/process.env
+                                                 #js {"SQUINT_NREPL_PORT" (str NREPL-PORT)})})
+        browser (atom nil)]
+    (try
+      (await (wait-output (.-stdout vite) "Local:"))
+      (reset! browser (await (.launch (.-chromium pw) #js {:headless true})))
+      (let [page (await (.newPage @browser))
+            ready (wait-console page "nrepl listener ready")]
+        (await (.goto page URL))
+        (await ready)
+        (let [client (await (make-client NREPL-PORT))
+              clone (await (nrepl-request client #js {:op "clone"}))
+              session (some (fn [m] (aget m "new-session")) (js/Array.from clone))]
+          ;; define a var in `another`, read it from `index` via the alias
+          (await (nrepl-eval client session "(ns another) (def s \"v1\")"))
+          (check "cross-ns read"
+                 "v1"
+                 (await (nrepl-eval client session
+                                    "(ns index (:require [another :as a])) a/s")))
+          ;; redefine it in `another`, the cross-ns ref must see the new value
+          (await (nrepl-eval client session "(ns another) (def s \"v2\")"))
+          (check "cross-ns redef visible"
+                 "v2"
+                 (await (nrepl-eval client session
+                                    "(ns index (:require [another :as a])) a/s")))))
+      (finally
+        (when @browser (await (.close @browser)))
+        (.kill vite)))
+    (println (if (zero? @failures) "\nAll checks passed." (str "\n" @failures " check(s) FAILED.")))
+    (js/process.exit (if (zero? @failures) 0 1))))
+
+(-> (run)
+    (.catch (fn [e]
+              (js/console.error e)
+              (js/process.exit 1))))

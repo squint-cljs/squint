@@ -43,3 +43,4 @@ out
 .env
 App.jsx
 scratch
+examples/browser-repl/test/*.mjs

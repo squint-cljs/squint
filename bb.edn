@@ -24,5 +24,7 @@
          test:clj {:doc "Run tests in Clojure"
                    :task (clojure "-X:test")}
          test:libs {:doc "Run external library tests"
-                    :task (t/libtests)}}
+                    :task (t/libtests)}
+         test:browser-repl {:doc "Browser REPL e2e test (vite + playwright + nREPL). Needs `npx playwright install chromium`."
+                            :task (t/browser-repl-test)}}
  }
