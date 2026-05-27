@@ -1856,7 +1856,7 @@ with `backticks`")))]
     (let [s (squint/compile-string "(ns foo (:require [\"node:fs\" :as fs :refer [existsSync]]))"
                                    {:repl true})]
       (is (str/includes? s "var fs = await import('node:fs');
-var { existsSync } = (await import ('node:fs'));
+var { existsSync } = (await import('node:fs'));
 globalThis.foo.existsSync = existsSync;
 globalThis.foo.fs = fs;")))))
 
@@ -1892,7 +1892,7 @@ globalThis.foo.fs = fs;")))))
     (is (str/includes? js "import default$1 from 'some-js-lib'"))
     (is (str/includes? js "const { atom } = default$1;")))
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom" {:repl true})]
-    (is (str/includes? js "var { atom } = (await import ('some-js-lib')).default;"))))
+    (is (str/includes? js "var { atom } = (await import('some-js-lib')).default;"))))
 
 (deftest ns-test-async
   (t/async done

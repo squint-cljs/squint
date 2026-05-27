@@ -777,7 +777,7 @@
                                                                        (str " as " (munge renamed)))))
                                                               runtime-refer))]
                           (if *repl*
-                            (str (statement (format "var { %s } = (await import ('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
+                            (str (statement (format "var { %s } = (await import('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
                                                     (if with
                                                       (str ", " (emit {:with with} env))
                                                       "")
