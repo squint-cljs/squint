@@ -4,8 +4,9 @@
 
 ## Unreleased
 
-- Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`.
-- Fix [#820](https://github.com/squint-cljs/squint/issues/820): `:macros` option silently ignored when passed to `compileString` / `compileStringEx` from JavaScript callers (string keys were keyword-ized by `clj-ize-opts` and no longer matched the symbol-keyed macro lookups in `compile*`).
+- Browser nREPL support. See [docs](https://github.com/squint-cljs/squint/blob/main/doc/browser-repl.md)
+- Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`. ([@willcohen](https://github.com/willcohen))
+- Fix [#820](https://github.com/squint-cljs/squint/issues/820): `:macros` option silently ignored when passed to `compileString` / `compileStringEx` from JavaScript callers (string keys were keyword-ized by `clj-ize-opts` and no longer matched the symbol-keyed macro lookups in `compile*`). ([@willcohen](https://github.com/willcohen))
 
 ## 0.11.189
 
