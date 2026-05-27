@@ -40,8 +40,7 @@
     "react-dom": "^18.3.1",
     "shadow-cljs": "^2.28.23",
     "squint-cljs": "./",
-    "typescript": "^5.9.3",
-    "ws": "^8.18.0"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "chokidar": "^4.0.3"
@@ -65,7 +64,6 @@
     "./src/squint/html.js": "./src/squint/html.js",
     "./src/squint/multi.js": "./src/squint/multi.js",
     "./src/squint/test.js": "./src/squint/test.js",
-    "./src/squint/nrepl.js": "./src/squint/nrepl.js",
     "./lib/node.nrepl_server.js": "./lib/node.nrepl_server.js"
   }
 }
