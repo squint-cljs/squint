@@ -14,7 +14,7 @@ For a working setup, see [`examples/browser-repl`](../examples/browser-repl).
 {:paths ["src"]
  :output-dir "js"
  :extension "js"
- :main index}
+ :main plain}
 ```
 
 `vite.config.js`:
@@ -29,7 +29,7 @@ export default defineConfig({ plugins: [squint()] });
 `index.html` (the plugin injects the `:main` entry ns):
 
 ```html
-<div id="app"></div>
+<div id="plain"></div>
 ```
 
 `package.json`:
@@ -80,7 +80,7 @@ and the production runtime (`<source>/jsx-runtime`) for `vite build`. Pre-bundle
 the runtime so the first REPL render doesn't reload the page:
 
 ```js
-optimizeDeps: { include: ['preact', 'preact/jsx-runtime', 'preact/jsx-dev-runtime'] }
+optimizeDeps: { include: ['preact', 'preact/hooks', 'preact/jsx-runtime', 'preact/jsx-dev-runtime'] }
 ```
 
 See `examples/browser-repl/src/preact.cljs` for a working component.
