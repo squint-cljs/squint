@@ -215,6 +215,11 @@
         (await (with-timeout 15000 "entry render"
                              (.waitForFunction page "document.querySelector('#app') && document.querySelector('#app').textContent.length > 0")))
         (check "entry (:main) rendered" "another/s = v1" (await (.textContent page "#app")))
+        ;; the `app` entry renders a preact component via squint's :jsx-runtime
+        ;; (#jsx -> jsx()/jsxs() + jsx-dev-runtime import); confirms JSX works.
+        (await (with-timeout 15000 "preact render"
+                             (.waitForFunction page "document.querySelector('#preact') && document.querySelector('#preact').textContent.length > 0")))
+        (check "preact (:jsx-runtime) rendered" "preact: ok" (await (.textContent page "#preact")))
         (let [client (await (with-timeout 10000 "nrepl connect" (make-client NREPL-PORT)))
               clone (await (with-timeout 10000 "nrepl clone" (nrepl-request client #js {:op "clone"})))
               session (some (fn [m] (aget m "new-session")) (js/Array.from clone))

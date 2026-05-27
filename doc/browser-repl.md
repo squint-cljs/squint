@@ -60,6 +60,31 @@ pre-bundle the deps you expect to use:
 defineConfig({ optimizeDeps: { include: ['canvas-confetti', 'nanoid'] }, plugins: [squint()] })
 ```
 
+## React / Preact (JSX)
+
+Set `:jsx-runtime` so squint emits `jsx()`/`jsxs()` calls (importing the
+framework's runtime) instead of raw `<tags>`. This is what makes `#jsx` work at
+the REPL and in the browser - the output is plain JS, with no separate JSX
+transform step.
+
+```edn
+{:paths ["src"]
+ :output-dir "js"
+ :extension "js"
+ :main [index app]
+ :jsx-runtime {:import-source "preact"}} ; or "react"
+```
+
+The plugin uses the dev runtime (`<source>/jsx-dev-runtime`) under `vite dev`
+and the production runtime (`<source>/jsx-runtime`) for `vite build`. Pre-bundle
+the runtime so the first REPL render doesn't reload the page:
+
+```js
+optimizeDeps: { include: ['preact', 'preact/jsx-runtime', 'preact/jsx-dev-runtime'] }
+```
+
+See `examples/browser-repl/src/app.cljs` for a working component.
+
 ## Options
 
 | key | meaning |
@@ -70,3 +95,4 @@ defineConfig({ optimizeDeps: { include: ['canvas-confetti', 'nanoid'] }, plugins
 | `:extension` | output extension (default `"js"`) |
 | `:nrepl-port` | nREPL port (default `1339`) |
 | `:target` | runtime target (only `browser`) |
+| `:jsx-runtime` | `{:import-source "react"\|"preact"}` to emit jsx-runtime calls for JSX (see above) |

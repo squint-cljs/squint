@@ -78,6 +78,10 @@ export default function squint(options = {}) {
   let main; // entry ns(s): string or array, injected into index.html
   let target = 'browser';
   let nreplPort = 1339;
+  // {import-source} when set (e.g. for React/Preact): squint emits jsx()/jsxs()
+  // calls + imports the runtime, instead of raw <tags> a bundler would have to
+  // transform. We flip :development per mode (dev -> jsx-dev-runtime).
+  let jsxRuntime; // JS object from squint.edn :jsx-runtime, or undefined
 
   function compileCljs(file) {
     return compileFile({
@@ -88,6 +92,9 @@ export default function squint(options = {}) {
       // REPL output (globalThis bindings, dynamic imports) in dev; regular,
       // optimizable ESM for production builds.
       repl: !isBuild,
+      // Dev uses the jsx-dev-runtime (better errors/source info); build uses
+      // the production jsx-runtime.
+      ...(jsxRuntime ? { 'jsx-runtime': { ...jsxRuntime, development: !isBuild } } : {}),
     });
   }
 
@@ -126,6 +133,7 @@ export default function squint(options = {}) {
       extension = options.extension ?? cfg.extension ?? 'js';
       main = options.main ?? cfg.main;
       target = options.target ?? cfg.target ?? 'browser';
+      jsxRuntime = options.jsxRuntime ?? cfg['jsx-runtime'];
       // env wins over squint.edn (a runtime override, e.g. for tests/CI)
       nreplPort =
         options.nreplPort ??
