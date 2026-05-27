@@ -52,9 +52,9 @@ output, with the dev-only REPL/HMR stripped.
 
 ## Npm deps at the REPL
 
-Npm dependencies work out of the box. But the first time you require one in developmental, vite
-pre-bundles it and reloads the page, which means you'll lose your REPL state. To avoid that you can
-pre-bundle the deps you expect to use:
+`optimizeDeps` is optional. Npm dependencies work without it. The first time you
+require a dep vite hasn't seen, vite pre-bundles it and reloads the page, which
+loses REPL state. Listing the deps you expect to use avoids that one reload:
 
 ```js
 defineConfig({ optimizeDeps: { include: ['canvas-confetti', 'nanoid'] }, plugins: [squint()] })
@@ -75,9 +75,10 @@ transform step.
  :jsx-runtime {:import-source "preact"}} ; or "react"
 ```
 
-The plugin uses the dev runtime (`<source>/jsx-dev-runtime`) under `vite dev`
-and the production runtime (`<source>/jsx-runtime`) for `vite build`. Pre-bundle
-the runtime so the first REPL render doesn't reload the page:
+The plugin uses the dev runtime (`<import-source>/jsx-dev-runtime`) under `vite dev`
+and the production runtime (`<import-source>/jsx-runtime`) for `vite build`. Optionally
+pre-bundle the runtime (same reason as above) so the first REPL render doesn't
+reload the page:
 
 ```js
 optimizeDeps: { include: ['preact', 'preact/hooks', 'preact/jsx-runtime', 'preact/jsx-dev-runtime'] }
