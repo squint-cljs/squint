@@ -450,6 +450,13 @@
 (deftest new-test
   (is (eq "hello" (jsv! '(str (js/String. "hello"))))))
 
+(deftest name-test
+  (is (= "foo" (jsv! '(name :foo))))
+  (is (= "foo" (jsv! '(name "foo"))))
+  (is (= "foo/bar" (jsv! '(name :foo/bar))))
+  (is (thrown? js/Error (jsv! '(name 42))))
+  (is (thrown? js/Error (jsv! '(name nil)))))
+
 (deftest quote-test
   (is (eq '{x 1} (jsv! (list 'quote '{x 1})))))
 

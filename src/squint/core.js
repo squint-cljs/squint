@@ -962,6 +962,11 @@ export function str(...xs) {
   return xs.join('');
 }
 
+export function name(x) {
+  if (typeof x === 'string') return x;
+  throw new Error("Doesn't support name: " + typeof x);
+}
+
 export function not(expr) {
   return !truth_(expr);
 }
