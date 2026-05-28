@@ -32,8 +32,8 @@ var piece_cells = function (piece) {
 const vec__14 = squint_core.get(piece, "pos");
 const px5 = squint_core.nth(vec__14, 0, null);
 const py6 = squint_core.nth(vec__14, 1, null);
-return squint_core.map((function (p__17) {
-const vec__710 = p__17;
+return squint_core.map((function (p__28) {
+const vec__710 = p__28;
 const dx11 = squint_core.nth(vec__710, 0, null);
 const dy12 = squint_core.nth(vec__710, 1, null);
 return [(px5 + dx11), (py6 + dy12)];
@@ -42,8 +42,8 @@ return [(px5 + dx11), (py6 + dy12)];
 
 };
 globalThis.tetris.piece_cells = piece_cells;
-var in_bounds_QMARK_ = function (p__18) {
-const vec__14 = p__18;
+var in_bounds_QMARK_ = function (p__29) {
+const vec__14 = p__29;
 const x5 = squint_core.nth(vec__14, 0, null);
 const y6 = squint_core.nth(vec__14, 1, null);
 return ((0 <= x5) && ((x5 < globalThis.tetris.COLS) && (y6 < globalThis.tetris.ROWS)));
@@ -51,8 +51,8 @@ return ((0 <= x5) && ((x5 < globalThis.tetris.COLS) && (y6 < globalThis.tetris.R
 };
 globalThis.tetris.in_bounds_QMARK_ = in_bounds_QMARK_;
 var collides_QMARK_ = function (board, piece) {
-return squint_core.some((function (p__19) {
-const vec__14 = p__19;
+return squint_core.some((function (p__30) {
+const vec__14 = p__30;
 const x5 = squint_core.nth(vec__14, 0, null);
 const y6 = squint_core.nth(vec__14, 1, null);
 const or__29813__auto__7 = (x5 < 0);
@@ -73,8 +73,8 @@ return ((y6 >= 0) && squint_core.get_in(board, [y6, x5]))};
 };
 globalThis.tetris.collides_QMARK_ = collides_QMARK_;
 var rotate_cells = function (cells) {
-return squint_core.mapv((function (p__20) {
-const vec__14 = p__20;
+return squint_core.mapv((function (p__31) {
+const vec__14 = p__31;
 const x5 = squint_core.nth(vec__14, 0, null);
 const y6 = squint_core.nth(vec__14, 1, null);
 return [(-y6), x5];
@@ -84,8 +84,8 @@ return [(-y6), x5];
 };
 globalThis.tetris.rotate_cells = rotate_cells;
 var lock_piece = function (board, piece) {
-return squint_core.reduce((function (b, p__21) {
-const vec__14 = p__21;
+return squint_core.reduce((function (b, p__32) {
+const vec__14 = p__32;
 const x5 = squint_core.nth(vec__14, 0, null);
 const y6 = squint_core.nth(vec__14, 1, null);
 if (squint_core.truth_(((y6 >= 0) && globalThis.tetris.in_bounds_QMARK_([x5, y6])))) {
@@ -108,19 +108,19 @@ return [squint_core.into(pad3, kept1), cleared2];
 };
 globalThis.tetris.clear_lines = clear_lines;
 var SCORES = (() => {
-const G__221 = ({});
-(G__221[0] = 0);
-(G__221[1] = 100);
-(G__221[2] = 300);
-(G__221[3] = 500);
-(G__221[4] = 800);
-return G__221;
+const G__331 = ({});
+(G__331[0] = 0);
+(G__331[1] = 100);
+(G__331[2] = 300);
+(G__331[3] = 500);
+(G__331[4] = 800);
+return G__331;
 
 })();
 globalThis.tetris.SCORES = SCORES;
 var try_move = function (s, dx, dy) {
-const p_SINGLEQUOTE_1 = squint_core.update(squint_core.get(s, "piece"), "pos", (function (p__23) {
-const vec__25 = p__23;
+const p_SINGLEQUOTE_1 = squint_core.update(squint_core.get(s, "piece"), "pos", (function (p__34) {
+const vec__25 = p__34;
 const x6 = squint_core.nth(vec__25, 0, null);
 const y7 = squint_core.nth(vec__25, 1, null);
 return [(x6 + dx), (y7 + dy)];
@@ -143,8 +143,8 @@ return squint_core.assoc(s, "piece", p_SINGLEQUOTE_2)};
 globalThis.tetris.try_rotate = try_rotate;
 var step_down = function (s) {
 const p1 = squint_core.get(s, "piece");
-const p_SINGLEQUOTE_2 = squint_core.update(p1, "pos", (function (p__24) {
-const vec__36 = p__24;
+const p_SINGLEQUOTE_2 = squint_core.update(p1, "pos", (function (p__35) {
+const vec__36 = p__35;
 const x7 = squint_core.nth(vec__36, 0, null);
 const y8 = squint_core.nth(vec__36, 1, null);
 return [x7, (y8 + 1)];
@@ -167,8 +167,8 @@ var hard_drop = function (s) {
 let s1 = s;
 while(true){
 const p2 = squint_core.get(s1, "piece");
-const p_SINGLEQUOTE_3 = squint_core.update(p2, "pos", (function (p__25) {
-const vec__47 = p__25;
+const p_SINGLEQUOTE_3 = squint_core.update(p2, "pos", (function (p__36) {
+const vec__47 = p__36;
 const x8 = squint_core.nth(vec__47, 0, null);
 const y9 = squint_core.nth(vec__47, 1, null);
 return [x8, (y9 + 1)];
@@ -224,7 +224,7 @@ return null;
 };
 globalThis.tetris.render_board = render_board;
 var panel = function (s) {
-return ["div", ({"style": ({"font": "14px system-ui", "color": "#e5e7eb", "margin-left": "16px", "min-width": "160px"})}), ["div", ({"style": ({"font": "600 11px system-ui", "letter-spacing": ".08em", "text-transform": "uppercase", "color": "#fb7185", "margin-bottom": "8px"})}), "tetris - reagami"], ["div", "Score: ", squint_core.get(s, "score")], ["div", "Lines: ", squint_core.get(s, "lines")], ((squint_core.truth_(squint_core.get(s, "over?"))) ? (["div", ({"style": ({"margin-top": "10px", "color": "#fca5a5"})}), "GAME OVER"]) : (null)), ((squint_core.truth_(squint_core.get(s, "paused?"))) ? (["div", ({"style": ({"margin-top": "10px", "color": "#fcd34d"})}), "PAUSED"]) : (null)), ["div", ({"style": ({"margin-top": "12px", "font-size": "12px", "color": "#9ca3af", "line-height": "1.6"})}), "<- -> move", ["br"], "up rotate", ["br"], "down soft drop", ["br"], "space hard drop", ["br"], "p pause, r reset"]];
+return ["div", ({"style": ({"font": "14px system-ui", "color": "#e5e7eb", "margin-left": "16px", "min-width": "160px"})}), ["div", ({"style": ({"font": "600 11px system-ui", "letter-spacing": ".08em", "text-transform": "uppercase", "color": "#fb7185", "margin-bottom": "8px"})}), "tetris - reagami"], ["div", "Score: ", squint_core.get(s, "score")], ["div", "Lines: ", squint_core.get(s, "lines")], ((squint_core.truth_(squint_core.get(s, "over?"))) ? (["div", ({"style": ({"margin-top": "10px", "color": "#fca5a5"})}), "GAME OVER"]) : (null)), ((squint_core.truth_(squint_core.get(s, "paused?"))) ? (["div", ({"style": ({"margin-top": "10px", "color": "#fcd34d"})}), "PAUSED"]) : (null)), ["div", ({"style": ({"margin-top": "12px", "font-size": "12px", "color": "#9ca3af", "line-height": "1.6"})}), "<- -> move", ["br"], "up rotate", ["br"], "down soft drop", ["br"], "space hard drop", ["br"], "p pause, r reset"], ["a", ({"href": "https://github.com/squint-cljs/squint/tree/main/examples/tetris", "target": "_blank", "rel": "noopener", "style": ({"display": "inline-block", "margin-top": "14px", "font-size": "12px", "color": "#93c5fd", "text-decoration": "none", "border-bottom": "1px dotted #93c5fd"})}), "view source on github"]];
 
 };
 globalThis.tetris.panel = panel;
@@ -284,8 +284,8 @@ const k1 = e.key;
 const s2 = squint_core.deref(globalThis.tetris.state);
 if (squint_core.truth_(squint_core.get(s2, "over?"))) {
 } else {
-const G__263 = k1;
-switch (G__263) {case "ArrowLeft":
+const G__373 = k1;
+switch (G__373) {case "ArrowLeft":
 e.preventDefault();
 squint_core.swap_BANG_(globalThis.tetris.state, globalThis.tetris.try_move, -1, 0);
 

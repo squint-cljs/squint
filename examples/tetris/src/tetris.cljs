@@ -178,7 +178,17 @@
     "up rotate" [:br]
     "down soft drop" [:br]
     "space hard drop" [:br]
-    "p pause, r reset"]])
+    "p pause, r reset"]
+   [:a {:href "https://github.com/squint-cljs/squint/tree/main/examples/tetris"
+        :target "_blank"
+        :rel "noopener"
+        :style {:display "inline-block"
+                :margin-top "14px"
+                :font-size "12px"
+                :color "#93c5fd"
+                :text-decoration "none"
+                :border-bottom "1px dotted #93c5fd"}}
+    "view source on github"]])
 
 (defn root []
   (let [s @state]
