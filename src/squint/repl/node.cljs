@@ -6,7 +6,8 @@
    [clojure.string :as str]
    [edamame.core :as e]
    [squint.compiler :as compiler]
-   [squint.compiler-common :as cc :refer [*async* *cljs-ns* *repl*]]))
+   [squint.compiler-common :as cc :refer [*async* *cljs-ns* *repl*]]
+   [squint.repl.print :as rp]))
 
 (def pending-input (atom ""))
 
@@ -44,11 +45,19 @@
          cljs-ns :ns
          :as new-state} (binding [*cljs-ns* @last-ns]
                           (compiler/compile-string* (binding [*print-meta* true]
-                                                      (pr-str the-val)) {:context :return
-                                                                         :elide-exports true
-                                                                         :repl true}
+                                                      (pr-str the-val))
+                                                    ;; :repl-return wraps the top-level value in [v] so a
+                                                    ;; Promise the user returned survives the async IIFE
+                                                    ;; (the eval handler unboxes); same shape as the nREPL
+                                                    ;; server uses.
+                                                    {:context :repl-return
+                                                     :elide-exports true
+                                                     :repl true
+                                                     :async true}
                                                     @state))
         _ (reset! state new-state)
+        ;; ensure there's always a box to unwrap (lone `(ns ..)` emits no return)
+        js-str (str js-str "\n;return [undefined];")
         js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
     #_(binding [*print-fn* *print-err-fn*]
@@ -57,14 +66,14 @@
         (println "---"))
     (->
      (js/Promise.resolve (js/eval js-str))
-     (.then (fn [^js val]
-              ;; print with squint's pr-str (consistent with the nREPL server
-              ;; and the browser REPL)
-              (let [s (squint/pr-str val)]
-                (if socket
-                  (.write socket s "\n")
-                  (js/console.log s)))
-              (eval-next socket rl)))
+     (.then (fn [^js boxed]
+              (let [val (aget boxed 0)]
+                (-> (rp/pr-str-repl val)
+                    (.then (fn [s]
+                             (if socket
+                               (.write socket s "\n")
+                               (js/console.log s))
+                             (eval-next socket rl)))))))
      (.catch (fn [err]
                (squint/println err)
                (continue rl socket))))))

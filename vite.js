@@ -42,6 +42,22 @@ const ENABLE_HTTP_EVAL = false;
 function clientCode() {
   return `
 import { pr_str } from 'squint-cljs/core.js';
+// Render a top-level Promise as #<Promise <value>> by racing it against a
+// short timeout; pending/rejected get their own readable forms. Mirrors
+// pr-str-repl in squint.repl.nrepl-server so node and browser eval print the
+// same thing.
+const PROMISE_PRINT_TIMEOUT_MS = 1000;
+async function pr_str_repl(v) {
+  if (!(v instanceof Promise)) return pr_str(v);
+  const settled = v.then(r => ({ tag: 'resolved', val: r }),
+                         e => ({ tag: 'rejected', val: e }));
+  const timer = new Promise(resolve =>
+    setTimeout(() => resolve({ tag: 'pending' }), PROMISE_PRINT_TIMEOUT_MS));
+  const r = await Promise.race([settled, timer]);
+  if (r.tag === 'pending') return '#<Promise pending>';
+  if (r.tag === 'rejected') return '#<Promise rejected ' + pr_str(r.val) + '>';
+  return '#<Promise ' + pr_str(r.val) + '>';
+}
 if (import.meta.hot) {
   import.meta.hot.on('squint:nrepl', async ({ op, code, id, session }) => {
     if (op !== 'eval') return;
@@ -50,8 +66,10 @@ if (import.meta.hot) {
     const rewritten = code.replace(/import\\s*\\(\\s*'(.+?)'\\s*\\)/g, "import('/@resolve-deps/$1')");
     let value, ex;
     try {
-      // print with squint's pr-str (pr_str(undefined) is "nil")
-      value = pr_str(await eval(rewritten));
+      // compile wraps the user's top-level value in [v] so a Promise survives
+      // the async IIFE without being auto-unwrapped; unbox before printing.
+      const boxed = await eval(rewritten);
+      value = await pr_str_repl(boxed[0]);
     } catch (e) {
       ex = e && e.message ? e.message : String(e);
     }

@@ -3018,6 +3018,13 @@ function toEDN(value, seen = new WeakSet()) {
       case LIST_TYPE:
         return `(${mapv((v) => `${toEDN(v, seen)}`, value).join(', ')})`;
       default:
+        // Non-plain objects (Promise, Error, Date, class instances, ...) have a
+        // constructor other than Object. Print them as #<Name> rather than {}
+        // (which is what Object.keys would yield for opaque values like a
+        // Promise).
+        if (value.constructor && value.constructor !== Object) {
+          return `#<${value.constructor.name}>`;
+        }
         keys = Object.keys(value);
         return `{${keys.map((k) => `:${k} ${toEDN(value[k], seen)}`).join(', ')}}`;
     }

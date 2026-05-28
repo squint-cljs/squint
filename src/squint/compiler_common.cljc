@@ -58,9 +58,13 @@
 (defmulti emit-special (fn [disp _env & _args] disp))
 
 (defn emit-return [s env]
-  (if (= :return (:context env))
-    (format "return %s"
-            s)
+  (case (:context env)
+    ;; :repl-return is set only at the outermost top-level REPL form; box the
+    ;; value so a Promise the user produced isn't auto-unwrapped by the async
+    ;; eval IIFE. Sub-emits that enter a new fn scope assoc :context :return,
+    ;; which naturally degrades to a plain (unwrapped) return.
+    :repl-return (format "return [%s]" s)
+    :return (format "return %s" s)
     s))
 
 (defrecord Code [js tag transient]

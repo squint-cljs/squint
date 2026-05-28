@@ -428,7 +428,8 @@
                      :context :statement} env)
          forms (if (string? s) (read-forms s) s)
          max-form-idx (dec (count forms))
-         return? (= :return (:context env))
+         orig-ctx (:context env)
+         return? (contains? #{:return :repl-return} orig-ctx)
          env (if return? (assoc env :context :statement) env)]
      (loop [transpiled (if (and cc/*repl* *cljs-ns*)
                          (let [ns (munge *cljs-ns*)]
@@ -440,7 +441,7 @@
                          (first forms) ::e/eof)
              last? (= form-idx max-form-idx)
              env (if (and return? last?)
-                   (assoc env :context :return)
+                   (assoc env :context orig-ctx)
                    env)]
          (if (= ::e/eof next-form)
            transpiled

@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- REPL: print promises as `#<Promise 1>` / `#<Promise rejected ..>` / `#<Promise pending>` instead of silently unwrapping them.
+
 ## 0.12.190
 
 - Browser nREPL support. See [docs](https://github.com/squint-cljs/squint/blob/main/doc/browser-repl.md)

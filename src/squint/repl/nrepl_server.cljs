@@ -7,7 +7,8 @@
    [squint.compiler-common :as cc :refer [*cljs-ns*]]
    [squint.compiler :as compiler]
    [squint.internal.node.utils :as utils]
-   [squint.repl.nrepl.bencode :refer [decode-all encode]]))
+   [squint.repl.nrepl.bencode :refer [decode-all encode]]
+   [squint.repl.print :as rp]))
 
 (defn debug [& strs]
   (.debug js/console (str/join " " strs)))
@@ -72,11 +73,13 @@
         (binding [*print-length* length
                   *print-level* level
                   pp/*print-right-margin* right-margin]
-          (with-out-str (pprint-fn value))))
+          (js/Promise.resolve (with-out-str (pprint-fn value)))))
       (do
         (debug "Pretty-Printing is only supported for cider.nrepl.pprint/pprint")
-        (pr-str value)))
-    (pr-str value)))
+        (rp/pr-str-repl value)))
+    ;; rp/pr-str-repl: squint's pr-str + Promise-aware rendering so an
+    ;; unresolved Promise prints as `#<Promise ..>` instead of `{}`.
+    (rp/pr-str-repl value)))
 
 (defn send-value [request send-fn v]
   (let [[v opts] v
@@ -140,7 +143,11 @@
         {js-str :javascript
          cljs-ns :ns
          :as new-state} (compiler/compile-string* the-val
-                                                  (cond-> {:context :return
+                                                  (cond-> {;; :repl-return wraps the top-level value in [v]; the
+                                                           ;; eval handler unboxes. This keeps a Promise the user
+                                                           ;; returned from being auto-unwrapped by the async IIFE
+                                                           ;; (so e.g. `(js/Promise.resolve 1)` prints as a Promise).
+                                                           :context :repl-return
                                                            :elide-exports true
                                                            :repl true
                                                            :async true}
@@ -151,6 +158,10 @@
                                                     ns (assoc :ns ns))
                                                   @state)
         _ (reset! state new-state)
+        ;; ensure there's always a box to unwrap, even for forms with no
+        ;; top-level return (e.g. a lone `(ns ...)`). The user's return-with-box,
+        ;; when emitted, runs first and the appended line is unreachable.
+        js-str (str js-str "\n;return [undefined];")
         js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
     js-str))
@@ -159,10 +170,13 @@
   "Default evaluator: eval compiled JS locally and format the value."
   [js-str request]
   (-> (js/Promise.resolve (js/eval js-str))
-      (.then (fn [val]
-               (format-value (:nrepl.middleware.print/print request)
-                             (:nrepl.middleware.print/options request)
-                             val)))))
+      (.then (fn [^js boxed]
+               ;; compile wraps the user's top-level value in [v] so a Promise
+               ;; survives the async IIFE without being auto-unwrapped
+               (let [val (aget boxed 0)]
+                 (format-value (:nrepl.middleware.print/print request)
+                               (:nrepl.middleware.print/options request)
+                               val))))))
 
 (defn browser-eval
   "Evaluator that delegates to a browser over the injected transport, awaiting
