@@ -97,7 +97,11 @@ let reactRoot = ReactDOM.createRoot(document.querySelector("#result"));
 let evalCode = async (code) => {
   try {
     let importSource = url.searchParams.get('jsx.import-source') || 'react';
-    let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement',
+    // In REPL mode, :repl-return wraps the top-level value in [v] so a Promise
+    // the user returned isn't auto-unwrapped by the async eval IIFE; we unbox
+    // below before rendering, so e.g. `(js/Promise.resolve 1)` shows as
+    // Promise(1) rather than just 1.
+    let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'repl-return' : 'statement',
                  "jsx-runtime": { "import-source": importSource, development: true }
                };
     globalThis.compilerState = compileStringEx(`${code}`, opts, globalThis.compilerState);
@@ -131,7 +135,21 @@ let evalCode = async (code) => {
         URL.revokeObjectURL(blobUrl);
       }
     } else {
-      let result = await eval(`(async function() { ${js} })()`);
+      // unbox the [v] wrapper added by :repl-return
+      let result = (await eval(`(async function() { ${js} })()`))[0];
+      // If the user returned a Promise, race it against a short timeout so the
+      // playground can still drill into the resolved value via Inspector while
+      // surfacing that it came wrapped in a Promise. Pending falls back to a
+      // plain text marker.
+      let promiseTag = null;
+      if (result instanceof Promise) {
+        const settled = result.then(v => ({tag: 'resolved', val: v}),
+                                    e => ({tag: 'rejected', val: e}));
+        const timer = new Promise(r => setTimeout(() => r({tag: 'pending'}), 1000));
+        const r = await Promise.race([settled, timer]);
+        promiseTag = r.tag;
+        result = r.val; // undefined for pending; fine, not rendered via Inspector
+      }
       if (result && result?.constructor?.name === 'LazyIterable') {
         let stdlib = (await import("squint-cljs/core.js"));
         let take_fn = stdlib.take;
@@ -143,7 +161,16 @@ let evalCode = async (code) => {
         else result.pop();
         result = new LazyIterable(result);
       }
-      reactRoot.render(React.createElement(Inspector, { data: result }));
+      // Use Inspector's root `name` to label a Promise wrapper: renders as one
+      // expandable line ("Promise: <value>") instead of stitching text spans
+      // around a separate tree, which looked broken on multi-line values.
+      const inspectorProps = promiseTag === 'rejected' ? { name: 'Promise rejected', data: result }
+                           : promiseTag === 'resolved' ? { name: 'Promise', data: result }
+                           : { data: result };
+      reactRoot.render(
+        promiseTag === 'pending'
+          ? React.createElement('span', null, '#<Promise pending>')
+          : React.createElement(Inspector, inspectorProps));
       if (docChanged) {
         url.searchParams.delete('src');
         window.history.replaceState(null, null, url);
