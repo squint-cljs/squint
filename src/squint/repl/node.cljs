@@ -6,7 +6,7 @@
    [clojure.string :as str]
    [edamame.core :as e]
    [squint.compiler :as compiler]
-   [squint.compiler-common :as cc :refer [*cljs-ns*]]
+   [squint.compiler-common :as cc]
    [squint.repl.print :as rp]))
 
 (def pending-input (atom ""))
@@ -15,7 +15,7 @@
 
 (def in-progress (atom false))
 
-(def last-ns (atom *cljs-ns*))
+(def last-ns (atom 'user))
 
 (def rl-closed (atom false))
 
@@ -43,18 +43,18 @@
 (defn compile [the-val rl socket]
   (let [{js-str :javascript
          cljs-ns :ns
-         :as new-state} (binding [*cljs-ns* @last-ns]
-                          (compiler/compile-string* (binding [*print-meta* true]
-                                                      (pr-str the-val))
-                                                    ;; :repl-return wraps the top-level value in [v] so a
-                                                    ;; Promise the user returned survives the async IIFE
-                                                    ;; (the eval handler unboxes); same shape as the nREPL
-                                                    ;; server uses.
-                                                    {:context :repl-return
-                                                     :elide-exports true
-                                                     :repl true
-                                                     :async true}
-                                                    @state))
+         :as new-state} (compiler/compile-string* (binding [*print-meta* true]
+                                                    (pr-str the-val))
+                                                  ;; :repl-return wraps the top-level value in [v] so a
+                                                  ;; Promise the user returned survives the async IIFE
+                                                  ;; (the eval handler unboxes); same shape as the nREPL
+                                                  ;; server uses.
+                                                  {:context :repl-return
+                                                   :elide-exports true
+                                                   :repl true
+                                                   :async true
+                                                   :ns @last-ns}
+                                                  @state)
         _ (reset! state new-state)
         ;; ensure there's always a box to unwrap (lone `(ns ..)` emits no return)
         js-str (str js-str "\n;return [undefined];")
@@ -139,7 +139,7 @@
 (defn socket-repl
   ([] (socket-repl nil))
   ([opts]
-   (set! *cljs-ns* 'user)
+   (reset! last-ns 'user)
    (let [port (or (:port opts)
                   0)
          srv (net/createServer
@@ -155,7 +155,7 @@
 (defn repl
   ([] (repl nil))
   ([_opts]
-   (set! *cljs-ns* 'user)
+   (reset! last-ns 'user)
    (when tty (.setRawMode js/process.stdin true))
    (.then (js/Promise.resolve (js/eval "globalThis.user = globalThis.user || {};"))
           (fn [_]

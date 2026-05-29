@@ -4,7 +4,7 @@
    [cljs.pprint :as pp]
    ["fs" :as fs]
    ["net" :as node-net]
-   [squint.compiler-common :as cc :refer [*cljs-ns*]]
+   [squint.compiler-common :as cc]
    [squint.compiler :as compiler]
    [squint.internal.node.utils :as utils]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]
@@ -61,7 +61,7 @@
             "status" ["done"]}))
 
 ;; TODO: this should not be global
-(def last-ns (atom cc/*cljs-ns*))
+(def last-ns (atom 'user))
 
 (def pretty-print-fns-map
   {"cider.nrepl.pprint/pprint" pp/write})
@@ -96,7 +96,7 @@
     (when-let [message (or (:message data) (.-message e))]
       (send-fn request {"err" (str message "\n")}))
     (send-fn request {"ex" (str e)
-                      "ns" (str cc/*cljs-ns*)})))
+                      "ns" (str @last-ns)})))
 
 (def in-progress (atom false))
 (def state (atom nil))

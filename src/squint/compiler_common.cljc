@@ -7,7 +7,12 @@
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
 
-(def ^:dynamic *cljs-ns* 'user)
+(defn current-ns
+  "The namespace currently being compiled, tracked in ns-state under :current.
+  Defaults to 'user (matching the historical *cljs-ns* root) when unset, e.g.
+  the transpile-internal entry that does not seed :current."
+  [env]
+  (or (:current @(:ns-state env)) 'user))
 
 (def common-macros
   {'coercive-boolean macros/coercive-boolean
@@ -423,7 +428,7 @@
                                              am)))]
                              (str
                               (when (:repl env)
-                                (str "globalThis." (munge *cljs-ns*) "."))
+                                (str "globalThis." (munge current) "."))
                               (alias-munge resolved-alias) "."
                               (munged-name sn)))
                            (let [ns (namespace expr)
@@ -444,7 +449,7 @@
                                      (when-let [imports (:imports env)]
                                        (swap! imports str
                                               (if (:repl env)
-                                                (let [mns (munge *cljs-ns*)]
+                                                (let [mns (munge current)]
                                                   (str (statement (format "var %s = await import('%s')" auto-alias resolved))
                                                        ;; ensure the ns object exists before assigning onto it — the ns
                                                        ;; form also emits this guard, but our auto-import may land first.
@@ -458,13 +463,13 @@
                                                            (fn [a] ((fnil assoc {}) a (symbol auto-alias) (str resolved))))))))]
                              (if (and resolved (not (and (:repl env) (= "Math" munged))))
                                (str (when (:repl env)
-                                      (str "globalThis." (munge *cljs-ns*) "."))
+                                      (str "globalThis." (munge current) "."))
                                     auto-alias "." (munged-name (symbol nm)))
                                (if (and (:repl env) (not= "Math" munged))
                                  (let [ns-state (some-> env :ns-state deref)]
                                    (if (get-in ns-state [(symbol ns) (symbol nm)])
                                      (str (munge ns) "." (munge nm))
-                                     (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))))
+                                     (str "globalThis." (munge current) "." munged "." (munge nm))))
                                  (str munged "." (munge (name expr))))))))
                      (if-let [renamed (get (:var->ident env) expr)]
                        (let [tag (:tag (meta renamed))]
@@ -474,15 +479,15 @@
                          (or
                           (when (contains? current-ns expr)
                             (str (when (:repl env)
-                                   (str "globalThis." (munge *cljs-ns*) ".")) (munged-name expr)))
+                                   (str "globalThis." (munge current) ".")) (munged-name expr)))
                           (when (contains? (:refers current-ns) expr)
                             (str (when (:repl env)
-                                   (str "globalThis." (munge *cljs-ns*) "."))
+                                   (str "globalThis." (munge current) "."))
                                  (munged-name expr)))
                           (some-> (maybe-core-var expr env) munge)
                           (when alias
                             (str (when (:repl env)
-                                   (str "globalThis." (munge *cljs-ns*) "."))
+                                   (str "globalThis." (munge current) "."))
                                  (alias-munge expr)))
                           (let [m (munged-name expr)]
                             m)))))]
@@ -655,8 +660,8 @@
          (emit expr (expr-env env*)) ";\n"
          (when (:repl env)
            (emit-return (str "globalThis."
-                            (when *cljs-ns*
-                              (str (munge *cljs-ns*) "."))
+                            (when (current-ns env)
+                              (str (munge (current-ns env)) "."))
                             (munge name) " = " (munge name)
                             (when (= :statement (:context env)) ";\n"))
                         env)))))
@@ -871,8 +876,6 @@
   (let [mname (munge name)
         ensure-obj (ensure-global mname)
         ns-obj (str "globalThis." mname)]
-    ;; TODO: deprecate *cljs-ns*
-    (set! *cljs-ns* name)
     (swap! (:ns-state env) assoc :current name)
     (str
      (when (:repl env)
@@ -903,9 +906,9 @@
 
 (defmethod emit-special 'require [_ env [_ & clauses]]
   (let [clauses (map second clauses)]
-    (str (str/join "" (map #(process-require-clause env *cljs-ns* %) clauses))
+    (str (str/join "" (map #(process-require-clause env (current-ns env) %) clauses))
          (when (:repl env)
-           (let [mname (munge *cljs-ns*)
+           (let [mname (munge (current-ns env))
                  split-name (str/split (str mname) #"\.")
                  ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
                                           (let [nk (str (when nk
@@ -926,7 +929,7 @@
                                     ns-obj "." #_".aliases." k " = " k ";\n"))
                              acc))
                          ""
-                         (get-in @(:ns-state env) [*cljs-ns* :aliases]))))))))
+                         (get-in @(:ns-state env) [(current-ns env) :aliases]))))))))
 
 (defmethod emit-special 'str [_type env [_str & args]]
   (apply clojure.core/str (interpose " + " (emit-args env args))))

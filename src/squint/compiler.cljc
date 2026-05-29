@@ -15,7 +15,6 @@
    [edamame.core :as e]
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
-                                          *cljs-ns*
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
@@ -185,7 +184,7 @@
 (defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
   (emit (list 'do #_(list 'js* (str "var " (munge name) ";\n"))
               (if (:repl env)
-                `(when-not (exists? ~(symbol *cljs-ns* name))
+                `(when-not (exists? ~(symbol (cc/current-ns env) name))
                    ~(vary-meta `(def ~name ~init)
                                assoc :squint.compiler/skip-var true))
                 (vary-meta `(def ~name ~init)
@@ -294,7 +293,7 @@
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
                          new-expr (apply macro expr (assoc env
                                                            ;; Added for CLJS compat
-                                                           :ns {:name cc/*cljs-ns*}
+                                                           :ns {:name (cc/current-ns env)}
                                                            :utils {:emit emit})
                                          (rest expr))]
                      (emit new-expr env))
@@ -435,8 +434,8 @@
          orig-ctx (:context env)
          return? (contains? #{:return :repl-return} orig-ctx)
          env (if return? (assoc env :context :statement) env)]
-     (loop [transpiled (if (and (:repl env) *cljs-ns*)
-                         (let [ns (munge *cljs-ns*)]
+     (loop [transpiled (if (and (:repl env) (cc/current-ns env))
+                         (let [ns (munge (cc/current-ns env))]
                            (cc/ensure-global ns))
                          "")
             forms forms
@@ -482,16 +481,12 @@
                              (format "import * as %s from '%s';\n"
                                      core-alias core-package)))
              pragmas (atom {:js ""})]
-         (binding [*jsx* false
-                   *cljs-ns* (:ns opts *cljs-ns*)]
-           ;; Sync the ns-state's :current to the ns we're compiling. `def`
-           ;; stores vars under (:current ns-state) and resolution reads from it,
-           ;; so :current must track *cljs-ns* - otherwise a threaded ns-state
-           ;; leaves :current at whatever was compiled last and vars resolve
-           ;; against the wrong ns (e.g. a REPL eval in ns X, or the next form in
-           ;; a session). A leading (ns ..) form still updates it from here.
-           (when *cljs-ns*
-             (swap! (:ns-state opts) assoc :current *cljs-ns*))
+         (binding [*jsx* false]
+           ;; Seed ns-state's :current with the ns we're compiling. `def` stores
+           ;; vars under (:current ns-state) and resolution reads from it, so
+           ;; :current must be set before the first form (e.g. a REPL eval in ns
+           ;; X, or the next form in a session). A leading (ns ..) form updates it.
+           (swap! (:ns-state opts) assoc :current (:ns opts 'user))
            (let [transpiled (transpile* s (assoc opts
                                                         :core-alias core-alias
                                                         :imports imports
@@ -552,7 +547,7 @@
                     :body transpiled
                     :javascript (str pragmas imports transpiled exports)
                     :jsx jsx
-                    :ns *cljs-ns*
+                    :ns (cc/current-ns opts)
                     :ns-state (:ns-state opts)))))))))
 
 #?(:cljs
