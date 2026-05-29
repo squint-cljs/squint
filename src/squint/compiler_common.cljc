@@ -300,13 +300,12 @@
 
 (def core-vars (atom #{}))
 
-(def ^:dynamic *core-package* "squint-cljs/core.js")
 
 (defn maybe-core-var [sym env]
   (let [m (munge sym)]
     (when (and (contains? (:core-vars env) m)
                (not (contains? @*excluded-core-vars* m)))
-      (swap! *imported-vars* update *core-package* (fnil conj #{}) m)
+      (swap! *imported-vars* update (:core-package env) (fnil conj #{}) m)
       (str
        (when-let [core-alias (:core-alias env)]
          (str core-alias "."))
@@ -898,7 +897,7 @@
                         #_:else
                         aliases)))
                   {:current name
-                   (:core-alias env) *core-package*})))
+                   (:core-alias env) (:core-package env)})))
     (str
      (when *repl*
        ensure-obj)

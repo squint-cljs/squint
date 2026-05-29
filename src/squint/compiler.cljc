@@ -370,6 +370,7 @@
       (emit f (merge {:ns-state (atom {})
                       :context :statement
                       :target :squint
+                      :core-package "squint-cljs/core.js"
                       :top-level true
                       :core-vars core-vars
                       :gensym (let [ctr (volatile! 0)]
@@ -464,17 +465,16 @@
        :or {core-alias "squint_core"}
        :as opts} state]
    (let [opts (merge state opts)]
-     (binding [cc/*core-package* "squint-cljs/core.js"
-               *jsx* false
+     (binding [*jsx* false
                cc/*repl* (:repl opts cc/*repl*)]
-       (let [core-package (get import-maps cc/*core-package* cc/*core-package*)
+       (let [core-package (get import-maps "squint-cljs/core.js" "squint-cljs/core.js")
              need-html-import (atom false)
              need-multi-import (atom false)
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
              imported-vars (atom {})
              public-vars (atom #{})
-             aliases (atom {core-alias cc/*core-package*})
+             aliases (atom {core-alias "squint-cljs/core.js"})
              jsx-runtime (:jsx-runtime opts)
              jsx-dev (:development jsx-runtime)
              imports (atom (if cc/*repl*
