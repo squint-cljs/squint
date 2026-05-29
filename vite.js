@@ -58,12 +58,31 @@ async function pr_str_repl(v) {
   if (r.tag === 'rejected') return '#<Promise rejected ' + pr_str(r.val) + '>';
   return '#<Promise ' + pr_str(r.val) + '>';
 }
+// Resolve a bare specifier to the exact url vite serves it at, then import THAT
+// url. We can't \`import('/@resolve-deps/preact')\` and let the endpoint redirect:
+// the browser's module map keys by the *request* url, so a redirected import is
+// a different map entry than the page's own \`import('/node_modules/.vite/deps/
+// preact.js?v=...')\` - two preact instances, two \`options\` registries, and a
+// REPL \`render\` then can't reconcile the page's existing tree. Resolving first
+// and importing the canonical url shares the one instance.
+// Indirect import so vite's import-analysis doesn't rewrite it: a literal
+// \`import(url)\` here gets wrapped as \`import(__vite__injectQuery(url,'import'))\`,
+// which appends &import to the url - a different string than the page's own
+// \`import('/node_modules/.vite/deps/preact.js?v=...')\`, hence a second module
+// instance. Building the import() via Function keeps the url byte-for-byte.
+const __rawImport = new Function('u', 'return import(u)');
+async function __squintImport(spec) {
+  const res = await fetch('/@resolve-deps/' + encodeURIComponent(spec));
+  if (!res.ok) throw new Error('squint-repl: could not resolve ' + spec);
+  const url = await res.text();
+  return __rawImport(url);
+}
 if (import.meta.hot) {
   import.meta.hot.on('squint:nrepl', async ({ op, code, id, session }) => {
     if (op !== 'eval') return;
-    // bare dynamic imports in eval'd code go through vite's resolver
+    // bare dynamic imports in eval'd code resolve through __squintImport
     // (\\s* tolerates squint emitting e.g. \`import ('preact')\` for :refer)
-    const rewritten = code.replace(/import\\s*\\(\\s*'(.+?)'\\s*\\)/g, "import('/@resolve-deps/$1')");
+    const rewritten = code.replace(/import\\s*\\(\\s*'(.+?)'\\s*\\)/g, "__squintImport('$1')");
     let value, ex;
     try {
       // compile wraps the user's top-level value in [v] so a Promise survives
@@ -249,27 +268,50 @@ export default function squint(options = {}) {
       server.watcher.on('change', onChange);
       server.watcher.on('add', onChange);
 
-      // Resolve bare specifiers used in REPL-eval'd dynamic import()s. npm/path
+      // Resolve a bare specifier from REPL-eval'd dynamic import()s to the url
+      // vite serves it at, returned as text (the client imports that url; see
+      // __squintImport in the injected client - it must import the canonical
+      // url, not a redirect, to share the page's module instance). npm/path
       // specifiers go through vite's resolver; a bare ns name (e.g. `index`,
       // which squint emits for a local cljs require) that vite can't resolve
       // falls back to its compiled output under outDir (e.g. /js/index.js).
+      const sendUrl = (res, url) => {
+        res.writeHead(200, { 'content-type': 'text/plain' });
+        res.end(url);
+      };
       server.middlewares.use('/@resolve-deps', async (req, res) => {
         const spec = decodeURIComponent(req.url.slice(1));
         let resolved = null;
+        // resolve via the plugin container (runs vite's own resolver + dep
+        // pre-bundling). vite 6+ exposes it per-environment; older vite only on
+        // the server. (server.moduleGraph.resolveId existed in vite <=5 but was
+        // dropped in 6+, so don't depend on it.)
+        const container =
+          server.environments?.client?.pluginContainer ?? server.pluginContainer;
         try {
-          resolved = await server.moduleGraph.resolveId(spec);
+          resolved = await container.resolveId(spec);
         } catch {
           resolved = null;
         }
         if (resolved && resolved.id) {
-          res.writeHead(302, { location: `/@fs${resolved.id}` });
-          res.end();
+          // Return the SAME url the page uses for this module. vite serves files
+          // under `root` at a root-relative url and files outside it under /@fs;
+          // an optimized dep (<root>/node_modules/.vite/deps/foo.js?v=HASH) must
+          // come back as /node_modules/.vite/deps/foo.js?v=HASH - the form the
+          // page's own imports resolve to - so the browser reuses the one module
+          // instance (a different url string => a second copy => two `options`
+          // registries => a REPL `render` can't reconcile the page's tree and
+          // #jsx silently no-ops).
+          const id = resolved.id;
+          const url = id.startsWith(root + sep)
+            ? id.slice(root.length)
+            : `/@fs${id}`;
+          sendUrl(res, url);
           return;
         }
         const rel = outDir + '/' + spec.replace(/\./g, '/') + '.' + extension;
         if (existsSync(join(root, rel))) {
-          res.writeHead(302, { location: '/' + rel });
-          res.end();
+          sendUrl(res, '/' + rel);
           return;
         }
         res.writeHead(404);

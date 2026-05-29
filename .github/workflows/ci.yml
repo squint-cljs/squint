@@ -76,4 +76,4 @@ jobs:
       run: |
         npm --prefix examples/browser-repl install
         npx playwright install --with-deps chromium
-        bb test:browser-repl
+        bb test:browser-repl --vite 5 --vite 6 --vite 7 --vite 8

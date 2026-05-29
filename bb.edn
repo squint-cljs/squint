@@ -25,6 +25,6 @@
                    :task (clojure "-X:test")}
          test:libs {:doc "Run external library tests"
                     :task (t/libtests)}
-         test:browser-repl {:doc "Browser REPL e2e test (vite + playwright + nREPL). Needs `npx playwright install chromium`."
-                            :task (t/browser-repl-test)}}
+         test:browser-repl {:doc "Browser REPL e2e test (vite + playwright + nREPL).\nNeeds `npx playwright install chromium`.\nOptional --vite <version> (default 8), e.g. `bb test:browser-repl --vite 5`."
+                            :task (exec 'tasks/browser-repl-test)}}
  }
