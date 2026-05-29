@@ -13,7 +13,6 @@
 (def ^:dynamic *imported-vars* (atom {}))
 (def ^:dynamic *excluded-core-vars* (atom #{}))
 (def ^:dynamic *public-vars* (atom #{}))
-(def ^:dynamic *recur-targets* (atom []))
 (def ^:dynamic *repl* false)
 (def ^:dynamic *cljs-ns* 'user)
 (def ^:dynamic *target* :squint)
@@ -577,12 +576,12 @@
                   ["" upper-var->ident]
                   partitioned))
         enc-env (assoc enc-env :var->ident var->ident :top-level false)
-        body (binding [*recur-targets*
-                       (if loop? (map var->ident (map first partitioned))
-                           *recur-targets*)]
-               (emit-do (if iife?
-                          (assoc enc-env :context :return)
-                          enc-env) body))
+        body (let [recur-targets (if loop? (map var->ident (map first partitioned))
+                                     (:recur-targets enc-env))]
+               (emit-do (-> (if iife?
+                              (assoc enc-env :context :return)
+                              enc-env)
+                            (assoc :recur-targets recur-targets)) body))
         tag (:tag body)
         transient (:transient body)]
     (cond-> (str
@@ -639,7 +638,7 @@
 
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [gensym (:gensym env)
-        bindings *recur-targets*
+        bindings (:recur-targets env)
         temps (repeatedly (count exprs) gensym)
         eenv (expr-env env)]
     (when-let [cb (:recur-callback env)]
@@ -1091,7 +1090,7 @@
   (let [arrow? (:arrow env)
         single-expr-arrow? (and arrow? (= 1 (count body)))
         [env sig] (->sig env sig)]
-    (binding [*recur-targets* sig]
+    (let [env (assoc env :recur-targets sig)]
       (let [recur? (volatile! nil)
             env (assoc env :recur-callback
                        (fn [coll]
