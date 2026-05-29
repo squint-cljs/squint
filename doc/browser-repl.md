@@ -4,6 +4,8 @@ The squint vite plugin (`squint-cljs/vite`) hot-reloads your squint code in the
 browser and lets you eval into the live page over nREPL. The following setup
 runs it via `npm run dev`.
 
+The squint vite plugin currently supports vite v5-v8.
+
 For a working setup, see [`examples/browser-repl`](../examples/browser-repl).
 
 ## Setup

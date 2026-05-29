@@ -256,8 +256,14 @@ export default function squint(options = {}) {
       server.middlewares.use('/@resolve-deps', async (req, res) => {
         const spec = decodeURIComponent(req.url.slice(1));
         let resolved = null;
+        // resolve via the plugin container (runs vite's own resolver + dep
+        // pre-bundling). vite 6+ exposes it per-environment; older vite only on
+        // the server. (server.moduleGraph.resolveId existed in vite <=5 but was
+        // dropped in 6+, so don't depend on it.)
+        const container =
+          server.environments?.client?.pluginContainer ?? server.pluginContainer;
         try {
-          resolved = await server.moduleGraph.resolveId(spec);
+          resolved = await container.resolveId(spec);
         } catch {
           resolved = null;
         }
