@@ -12,12 +12,7 @@ modules.
 If you want to use squint, but with the normal ClojureScript standard library
 and data structures, check out [cherry](https://github.com/squint-cljs/cherry).
 
-> :warning: This project is a work in progress and may still undergo breaking
-> changes.
-
 ## Quickstart
-
-Although it's early days, you're welcome to try out `squint` and submit issues.
 
 ``` shell
 $ mkdir squint-test && cd squint-test
