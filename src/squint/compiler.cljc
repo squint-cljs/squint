@@ -384,7 +384,6 @@
                              ::cc/set emit-set
                              ::cc/special emit-special}} env)))))
 
-(def ^:dynamic *jsx* false)
 
 (defn jsx [form]
   (list 'squint-compiler-jsx form))
@@ -396,7 +395,7 @@
   (list 'squint-compiler-js-map form))
 
 (defmethod emit-special 'squint-compiler-jsx [_ env [_ form]]
-  (set! *jsx* true)
+  (swap! (:ns-state env) assoc :jsx true)
   (let [env (assoc env :jsx true)]
     (emit form env)))
 
@@ -466,8 +465,7 @@
        :or {core-alias "squint_core"}
        :as opts} state]
    (let [opts (merge state opts)]
-     (binding [*jsx* false]
-       (let [repl? (:repl opts)
+     (let [repl? (:repl opts)
              core-package (get import-maps "squint-cljs/core.js" "squint-cljs/core.js")
              need-html-import (atom false)
              need-multi-import (atom false)
@@ -481,7 +479,6 @@
                              (format "import * as %s from '%s';\n"
                                      core-alias core-package)))
              pragmas (atom {:js ""})]
-         (binding [*jsx* false]
            ;; Seed ns-state's :current with the ns we're compiling. `def` stores
            ;; vars under (:current ns-state) and resolution reads from it, so
            ;; :current must be set before the first form (e.g. a REPL eval in ns
@@ -494,7 +491,7 @@
                                                         :pragmas pragmas
                                                         :need-html-import need-html-import
                                                         :need-multi-import need-multi-import))
-                 jsx *jsx*
+                 jsx (:jsx @(:ns-state opts))
                  _ (when (and jsx jsx-runtime)
                      (let [jsx-name (str "jsx" (if jsx-dev "DEV" ""))
                            jsxs-name (str "jsx" (if jsx-dev "" "s") (if jsx-dev "DEV" ""))
@@ -548,7 +545,7 @@
                     :javascript (str pragmas imports transpiled exports)
                     :jsx jsx
                     :ns (cc/current-ns opts)
-                    :ns-state (:ns-state opts)))))))))
+                    :ns-state (:ns-state opts)))))))
 
 #?(:cljs
    (defn- macros-opt->symbol-keys
