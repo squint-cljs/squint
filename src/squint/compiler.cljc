@@ -259,7 +259,7 @@
                                             ;; used by cherry embed:
                                             (some-> env :macros (get nss) (get nms))
                                             (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)
-                                                  macro-ns (cc/resolve-macro-ns resolved-ns)]
+                                                  macro-ns (cc/resolve-macro-ns resolved-ns (:target env))]
                                               (or (get-in ns-state [:macros macro-ns nms])
                                                   (get-in ns-state [:macros resolved-ns nms])
                                                   (get-in ns-state [:macros nss nms])
@@ -283,7 +283,7 @@
                                          (let [refers (:refers current-ns-state)]
                                            (when-let [macro-ns (get refers nms)]
                                              (or (get-in ns-state [:macros macro-ns nms])
-                                                 (let [resolved (cc/resolve-macro-ns macro-ns)]
+                                                 (let [resolved (cc/resolve-macro-ns macro-ns (:target env))]
                                                    (or (get-in ns-state [:macros resolved nms])
                                                        (get-in built-in-macro-nss [macro-ns nms])
                                                        (get-in built-in-macro-nss [resolved nms])))))))
@@ -369,6 +369,7 @@
      (str
       (emit f (merge {:ns-state (atom {})
                       :context :statement
+                      :target :squint
                       :top-level true
                       :core-vars core-vars
                       :gensym (let [ctr (volatile! 0)]
@@ -464,7 +465,6 @@
        :as opts} state]
    (let [opts (merge state opts)]
      (binding [cc/*core-package* "squint-cljs/core.js"
-               cc/*target* :squint
                *jsx* false
                cc/*repl* (:repl opts cc/*repl*)]
        (let [core-package (get import-maps cc/*core-package* cc/*core-package*)
@@ -488,8 +488,7 @@
                    *aliases* aliases
                    *jsx* false
                    *excluded-core-vars* (atom #{})
-                   *cljs-ns* (:ns opts *cljs-ns*)
-                   cc/*target* :squint]
+                   *cljs-ns* (:ns opts *cljs-ns*)]
            ;; Sync the ns-state's :current to the ns we're compiling. `def`
            ;; stores vars under (:current ns-state) and resolution reads from it,
            ;; so :current must track *cljs-ns* - otherwise a threaded ns-state
