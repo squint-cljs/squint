@@ -489,8 +489,7 @@
                    *jsx* false
                    *excluded-core-vars* (atom #{})
                    *cljs-ns* (:ns opts *cljs-ns*)
-                   cc/*target* :squint
-                   cc/*async* (:async opts)]
+                   cc/*target* :squint]
            ;; Sync the ns-state's :current to the ns we're compiling. `def`
            ;; stores vars under (:current ns-state) and resolution reads from it,
            ;; so :current must track *cljs-ns* - otherwise a threaded ns-state

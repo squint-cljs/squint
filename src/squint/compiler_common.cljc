@@ -9,7 +9,6 @@
    [squint.internal.macros :as macros]))
 
 (def ^:dynamic *aliases* (atom {}))
-(def ^:dynamic *async* false)
 (def ^:dynamic *imported-vars* (atom {}))
 (def ^:dynamic *excluded-core-vars* (atom #{}))
 (def ^:dynamic *public-vars* (atom #{}))
@@ -123,11 +122,11 @@
     (cond-> (format (if gen?
                       "(%sfunction%s () {\n%s\n})()"
                       "(%s() =>%s {\n%s\n})()")
-                    (if *async* "async " "")
+                    (if (:async env) "async " "")
                     (if gen?
                       "*" "")
                     s)
-      *async* (wrap-await env)
+      (:async env) (wrap-await env)
       true (yield-iife env))))
 
 (defmethod emit-special 'throw [_ env [_ expr]]
@@ -698,9 +697,9 @@
 (defmethod emit-special 'await [_ env [_await more]]
   (js-await env more))
 
-#_(defn wrap-iife [s]
-    (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
-      *async* (wrap-await)))
+#_(defn wrap-iife [s env]
+    (cond-> (format "(%sfunction () {\n %s\n})()" (if (:async env) "async " "") s)
+      (:async env) (wrap-await)))
 
 (defn unwrap [s]
   (str/replace (str s) #"^\(|\)$" ""))
@@ -1106,13 +1105,13 @@
 break;}" body)
                    body)]
         (str (when-not elide-function?
-               (str (when *async*
+               (str (when (:async env)
                       "async ")
                     (when-not arrow? "function")
                     (when (:gen env)
                       "*")
                     (when (or (not arrow?)
-                              *async*)
+                              (:async env))
                       " ")))
              (comma-list (map (fn [x]
                                 (if (map? x)
@@ -1147,7 +1146,7 @@ break;}" body)
           (emit new-f env))
         (-> (if name
               (let [body (rest expr)]
-                (str (when *async*
+                (str (when (:async env)
                        "async ") "function"
                      ;; TODO: why is this duplicated here and in emit-function?
                      (when (:gen env)
@@ -1169,8 +1168,7 @@ break;}" body)
         env (assoc env :gen gen?)
         arrow? (:=> m)
         env (assoc env :arrow arrow?)]
-    (binding [*async* async?]
-      (emit-function* env sigs (meta expr)))))
+    (emit-function* (assoc env :async async?) sigs (meta expr))))
 
 (defmethod emit-special 'try [_type env [_try & body :as expression]]
   (let [gensym (:gensym env)
@@ -1474,9 +1472,9 @@ break;}" body)
     (swap! *public-vars* conj (munge* name))
     (defclass/emit-class env
       emit
-      (fn [async body-fn]
-        (binding [*async* async]
-          (body-fn)))
+      ;; async flows through env (emit-object-fn sets :async); callback just emits
+      (fn [_async body-fn]
+        (body-fn))
       emit-return
       form)))
 
