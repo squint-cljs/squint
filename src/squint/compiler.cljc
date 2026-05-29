@@ -15,7 +15,7 @@
    [edamame.core :as e]
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
-                                          *aliases* *cljs-ns* *excluded-core-vars* *public-vars*
+                                          *aliases* *cljs-ns* *public-vars*
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
@@ -483,7 +483,6 @@
          (binding [*public-vars* public-vars
                    *aliases* aliases
                    *jsx* false
-                   *excluded-core-vars* (atom #{})
                    *cljs-ns* (:ns opts *cljs-ns*)]
            ;; Sync the ns-state's :current to the ns we're compiling. `def`
            ;; stores vars under (:current ns-state) and resolution reads from it,

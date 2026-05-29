@@ -8,7 +8,6 @@
    [squint.internal.macros :as macros]))
 
 (def ^:dynamic *aliases* (atom {}))
-(def ^:dynamic *excluded-core-vars* (atom #{}))
 (def ^:dynamic *public-vars* (atom #{}))
 (def ^:dynamic *cljs-ns* 'user)
 
@@ -299,9 +298,11 @@
 
 
 (defn maybe-core-var [sym env]
-  (let [m (munge sym)]
+  (let [m (munge sym)
+        ns-state @(:ns-state env)
+        excluded (get-in ns-state [(:current ns-state) :excludes])]
     (when (and (contains? (:core-vars env) m)
-               (not (contains? @*excluded-core-vars* m)))
+               (not (contains? excluded m)))
       (str
        (when-let [core-alias (:core-alias env)]
          (str core-alias "."))
@@ -899,7 +900,10 @@
                  (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
                  (= :refer-clojure k)
                  (let [{:keys [exclude]} exprs]
-                   (swap! *excluded-core-vars* into exclude)
+                   (swap! (:ns-state env)
+                          (fn [ns-state]
+                            (update-in ns-state [(:current ns-state) :excludes]
+                                       (fnil into #{}) exclude)))
                    acc)
                  :else acc))
              ""
