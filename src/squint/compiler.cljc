@@ -15,7 +15,7 @@
    [edamame.core :as e]
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
-                                          *cljs-ns* *public-vars*
+                                          *cljs-ns*
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
@@ -474,7 +474,6 @@
              need-multi-import (atom false)
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
-             public-vars (atom #{})
              jsx-runtime (:jsx-runtime opts)
              jsx-dev (:development jsx-runtime)
              imports (atom (if repl?
@@ -483,8 +482,7 @@
                              (format "import * as %s from '%s';\n"
                                      core-alias core-package)))
              pragmas (atom {:js ""})]
-         (binding [*public-vars* public-vars
-                   *jsx* false
+         (binding [*jsx* false
                    *cljs-ns* (:ns opts *cljs-ns*)]
            ;; Sync the ns-state's :current to the ns we're compiling. `def`
            ;; stores vars under (:current ns-state) and resolution reads from it,
@@ -533,9 +531,10 @@
                                   (format "import * as squint_multi from '%s';\n" multi-pkg)))))
                  pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
+                 public-vars (get @(:ns-state opts) :public-vars #{})
                  exports (when-not elide-exports
                            (str
-                            (when-let [vars (disj @public-vars "default$")]
+                            (when-let [vars (disj public-vars "default$")]
                               (when (seq vars)
                                 (if false #_repl?
                                   (str/join "\n"
@@ -544,7 +543,7 @@
                                                  vars))
                                   (format "\nexport { %s }\n"
                                           (str/join ", " vars)))))
-                            (when (contains? @public-vars "default$")
+                            (when (contains? public-vars "default$")
                               "export default default$\n")))]
              (assoc opts
                     :pragmas pragmas

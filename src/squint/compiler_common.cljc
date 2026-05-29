@@ -7,7 +7,6 @@
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
 
-(def ^:dynamic *public-vars* (atom #{}))
 (def ^:dynamic *cljs-ns* 'user)
 
 (def common-macros
@@ -664,9 +663,8 @@
 
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
-    ;; TODO: move *public-vars* to :ns-state atom
     (when-not (:private (meta name))
-      (swap! *public-vars* conj (munge* name)))
+      (swap! (:ns-state env) update :public-vars (fnil conj #{}) (munge* name)))
     (swap! (:ns-state env) (fn [state]
                              (let [current (:current state)]
                                (assoc-in state [current name] {}))))
@@ -1435,7 +1433,7 @@ break;}" body)
 
 (defmethod emit-special 'squint.defclass/defclass* [_ env form]
   (let [name (second form)]
-    (swap! *public-vars* conj (munge* name))
+    (swap! (:ns-state env) update :public-vars (fnil conj #{}) (munge* name))
     (defclass/emit-class env
       emit
       ;; async flows through env (emit-object-fn sets :async); callback just emits
