@@ -1631,6 +1631,26 @@ with `backticks`")))]
   (is (eq [1 2 1] (jsv! '(into [] (dedupe) [1 1 2 1 1]))))
   (is (eq [5 6 5] (jsv! '(transduce (dedupe) conj [] [5 5 6 6 5])))))
 
+(deftest distinct?-test
+  (is (true? (jsv! '(distinct? 1))))
+  (is (true? (jsv! '(distinct? 1 2 3))))
+  (is (false? (jsv! '(distinct? 1 2 1))))
+  (is (false? (jsv! '(distinct? [1] [2] [1])))))
+
+(deftest any?-test
+  (is (true? (jsv! '(any? nil))))
+  (is (true? (jsv! '(any? 1)))))
+
+(deftest ifn?-test
+  (is (true? (jsv! '(ifn? inc))))
+  (is (false? (jsv! '(ifn? 1)))))
+
+(deftest list*-test
+  (is (eq '(1 2 3 4) (jsv! '(list* 1 2 [3 4]))))
+  (is (eq '(1 2) (jsv! '(list* [1 2]))))
+  (is (eq '(1) (jsv! '(list* 1 nil))))
+  (is (eq '() (jsv! '(list* nil)))))
+
 (deftest update-test
   (is (eq {:a 2} (jsv! '(update {:a 1} :a inc))))
   (is (eq {:a 3} (jsv! '(update {:a 1} :a + 2)))))

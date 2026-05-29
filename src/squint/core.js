@@ -1207,6 +1207,11 @@ export function list(...args) {
   return new List(...args);
 }
 
+export function list_STAR_(...args) {
+  const last = args.pop();
+  return new List(...args, ...iterable(last));
+}
+
 export function array_QMARK_(x) {
   return Array.isArray(x);
 }
@@ -2412,6 +2417,26 @@ export function subs(s, start, end) {
 
 export function fn_QMARK_(x) {
   return 'function' === typeof x;
+}
+
+export function ifn_QMARK_(x) {
+  return fn_QMARK_(x);
+}
+
+export function any_QMARK_(_x) {
+  return true;
+}
+
+export function distinct_QMARK_(x, ...more) {
+  if (more.length === 0) return true;
+  const seen = [x];
+  for (const y of more) {
+    for (const s of seen) {
+      if (truth_(_EQ_(s, y))) return false;
+    }
+    seen.push(y);
+  }
+  return true;
 }
 
 export function re_seq(re, s) {
