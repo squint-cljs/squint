@@ -8,7 +8,6 @@
    [squint.internal.macros :as macros]))
 
 (def ^:dynamic *aliases* (atom {}))
-(def ^:dynamic *imported-vars* (atom {}))
 (def ^:dynamic *excluded-core-vars* (atom #{}))
 (def ^:dynamic *public-vars* (atom #{}))
 (def ^:dynamic *cljs-ns* 'user)
@@ -303,7 +302,6 @@
   (let [m (munge sym)]
     (when (and (contains? (:core-vars env) m)
                (not (contains? @*excluded-core-vars* m)))
-      (swap! *imported-vars* update (:core-package env) (fnil conj #{}) m)
       (str
        (when-let [core-alias (:core-alias env)]
          (str core-alias "."))
@@ -454,7 +452,6 @@
                                                        (statement (format "globalThis.%s = globalThis.%s || {}" mns mns))
                                                        (statement (format "globalThis.%s.%s = %s" mns auto-alias auto-alias))))
                                                 (statement (format "import * as %s from '%s'" auto-alias resolved)))))
-                                     (swap! *imported-vars* update (str resolved) (fnil identity #{}))
                                      (swap! (:ns-state env)
                                             (fn [ns-state]
                                               (let [current (:current ns-state)]
@@ -727,7 +724,6 @@
                     ;; the repl bind + register globalThis.<cur-ns>.<alias> (like
                     ;; an explicit :as) so its vars resolve.
                     (let [auto-alias (alias-munge (str original-libname))]
-                      (swap! *imported-vars* update libname (fnil identity #{}))
                       (if (:repl env)
                         (str
                           (if (library-ns? (:target env) original-libname)
@@ -753,7 +749,6 @@
                                            (str " with " (unwrap (emit with env)))
                                            ""))))))
                 (when (and as (not default?))
-                  (swap! *imported-vars* update libname (fnil identity #{}))
                   (str
                     (statement (cond
                                  ;; local cljs ns in the REPL: run the module for
@@ -837,7 +832,6 @@
                       ;; so qualified refs from macro expansions resolve
                       (when (and (not as) (symbol? original-libname))
                         (let [auto-alias (alias-munge (str original-libname))]
-                          (swap! *imported-vars* update libname (fnil identity #{}))
                           (if (:repl env)
                             (statement (format "var %s = await import('%s'%s)" auto-alias libname
                                                (if with

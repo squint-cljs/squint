@@ -15,7 +15,7 @@
    [edamame.core :as e]
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
-                                          *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
+                                          *aliases* *cljs-ns* *excluded-core-vars* *public-vars*
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
@@ -222,7 +222,6 @@
      (let [fexpr (first expr)]
        (if (:quote env)
          (do
-           (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
            (format "%slist(%s)"
                    (if-let [ca (:core-alias env)]
                      (str ca ".")
@@ -471,7 +470,6 @@
              need-multi-import (atom false)
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
-             imported-vars (atom {})
              public-vars (atom #{})
              aliases (atom {core-alias "squint-cljs/core.js"})
              jsx-runtime (:jsx-runtime opts)
@@ -482,8 +480,7 @@
                              (format "import * as %s from '%s';\n"
                                      core-alias core-package)))
              pragmas (atom {:js ""})]
-         (binding [*imported-vars* imported-vars
-                   *public-vars* public-vars
+         (binding [*public-vars* public-vars
                    *aliases* aliases
                    *jsx* false
                    *excluded-core-vars* (atom #{})
