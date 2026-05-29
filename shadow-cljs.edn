@@ -3,7 +3,10 @@
  {:squint
   {:js-options {;; don't bundle any npm libs
                 :js-provider :import}
-   :compiler-options {:infer-externs :auto}
+   :compiler-options {:infer-externs :auto
+                      ;; we keep the deprecated *-string* aliases and their
+                      ;; tests around on purpose, so silence the warning
+                      :warnings {:fn-deprecated false}}
    :target :esm
    :runtime :browser
    :devtools {:enabled false}
@@ -19,11 +22,14 @@
     :compiler.node {:depends-on #{:compiler :node}
                     :exports
                     {compileFile squint.compiler.node/compile-file-js
-                     compileString squint.compiler.node/compile-string-js}}
+                     compileString squint.compiler.node/compile-string-js
+                     readConfig squint.compiler.node/read-config-js}}
     :cljs.pprint {:entries [cljs.pprint]
                   :depends-on #{:compiler}}
     :node.nrepl_server {:depends-on #{:compiler.node :cljs.pprint :node}
-                        :exports {startServer squint.repl.nrepl-server/start-server}}
+                        :exports {startServer squint.repl.nrepl-server/start-server
+                                  handleBrowserMessage squint.repl.nrepl-server/handle-browser-message
+                                  evalString squint.repl.nrepl-server/evaluate-string}}
     :cli {:depends-on #{:compiler :compiler.node :node}
           :init-fn squint.internal.cli/init}}
    :build-hooks [(shadow.cljs.build-report/hook

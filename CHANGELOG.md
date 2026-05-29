@@ -4,9 +4,14 @@
 
 ## Unreleased
 
-- Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`.
-- Fix [#820](https://github.com/squint-cljs/squint/issues/820): `:macros` option silently ignored when passed to `compileString` / `compileStringEx` from JavaScript callers (string keys were keyword-ized by `clj-ize-opts` and no longer matched the symbol-keyed macro lookups in `compile*`).
-- Fix [#822](https://github.com/squint-cljs/squint/issues/822): syntax-quoted forms and quoted symbols threw `ReferenceError` at runtime. Adds runtime `symbol`, `symbol?`, `sequence`, `name`, `namespace`; symbols are a tagged `Sym` class.
+- Fix [#822](https://github.com/squint-cljs/squint/issues/822): syntax-quoted forms and quoted symbols threw `ReferenceError` at runtime. Adds runtime `symbol`, `symbol?`, `sequence`, `namespace` and a tagged `Sym` class, and teaches `name` to decompose symbols.
+- REPL: print promises as `#<Promise 1>` / `#<Promise rejected ..>` / `#<Promise pending>` instead of silently unwrapping them. Also surfaces a Promise wrapper in the playground (resolved value still inspectable).
+
+## 0.12.190
+
+- Browser nREPL support. See [docs](https://github.com/squint-cljs/squint/blob/main/doc/browser-repl.md)
+- Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`. ([@willcohen](https://github.com/willcohen))
+- Fix [#820](https://github.com/squint-cljs/squint/issues/820): `:macros` option silently ignored when passed to `compileString` / `compileStringEx` from JavaScript callers (string keys were keyword-ized by `clj-ize-opts` and no longer matched the symbol-keyed macro lookups in `compile*`). ([@willcohen](https://github.com/willcohen))
 
 ## 0.11.189
 

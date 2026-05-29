@@ -450,6 +450,13 @@
 (deftest new-test
   (is (eq "hello" (jsv! '(str (js/String. "hello"))))))
 
+(deftest name-test
+  (is (= "foo" (jsv! '(name :foo))))
+  (is (= "foo" (jsv! '(name "foo"))))
+  (is (= "foo/bar" (jsv! '(name :foo/bar))))
+  (is (thrown? js/Error (jsv! '(name 42))))
+  (is (thrown? js/Error (jsv! '(name nil)))))
+
 (deftest quote-test
   (is (eq '{x 1} (jsv! (list 'quote '{x 1})))))
 
@@ -1874,9 +1881,25 @@ with `backticks`")))]
     (let [s (squint/compile-string "(ns foo (:require [\"node:fs\" :as fs :refer [existsSync]]))"
                                    {:repl true})]
       (is (str/includes? s "var fs = await import('node:fs');
-var { existsSync } = (await import ('node:fs'));
+var { existsSync } = (await import('node:fs'));
 globalThis.foo.existsSync = existsSync;
 globalThis.foo.fs = fs;")))))
+
+(deftest repl-require-test
+  (testing "a library ns :as binds to the module's exports, not globalThis.<ns>"
+    (let [s (squint/compile-string "(ns foo (:require [clojure.string :as str])) (str/join \",\" [1 2])"
+                                   {:repl true})]
+      (is (str/includes? s "var str = await import('squint-cljs/src/squint/string.js')"))
+      (is (not (str/includes? s "globalThis.clojure.string")))))
+  (testing "a bare [ns] require resolves like [ns :as ns] (registers the alias)"
+    (let [bare (squint/compile-string "(ns foo (:require [bar])) (bar/baz)" {:repl true})]
+      (is (str/includes? bare "var bar = globalThis.bar"))
+      (is (str/includes? bare "globalThis.foo.bar = bar"))
+      (is (str/includes? bare "globalThis.foo.bar.baz()"))))
+  (testing "a bare dotted [some.ns] require imports once (no duplicate)"
+    (let [s (squint/compile-string "(ns foo (:require [some.ns]))")
+          n (count (re-seq #"import \* as some_DOT_ns " s))]
+      (is (= 1 n)))))
 
 (deftest import-attributes-test
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})
@@ -1910,7 +1933,7 @@ globalThis.foo.fs = fs;")))))
     (is (str/includes? js "import default$1 from 'some-js-lib'"))
     (is (str/includes? js "const { atom } = default$1;")))
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom" {:repl true})]
-    (is (str/includes? js "var { atom } = (await import ('some-js-lib')).default;"))))
+    (is (str/includes? js "var { atom } = (await import('some-js-lib')).default;"))))
 
 (deftest ns-test-async
   (t/async done
@@ -2776,7 +2799,7 @@ new Foo();")
                      :elide-exports true
                      :top-level false}
                 nil)]
-    (is (true? (js/eval (.-javascript result))))))
+    (is (true? (js/eval (.-javascript ^js result))))))
 
 (deftest issue-704-test
   (is (eq 10 (jsv! "(let [a (atom 1)] (while (< @a 10) (swap! a inc)) @a)"))))

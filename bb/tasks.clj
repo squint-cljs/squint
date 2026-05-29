@@ -68,6 +68,16 @@
   (bump-core-vars)
   (shell "npx shadow-cljs --aliases :dev --config-merge .work/config-merge.edn watch squint"))
 
+(defn browser-repl-test []
+  ;; squint's own e2e test for the browser REPL (not example code). Lives in
+  ;; e2e/; spawns its own `vite dev` against examples/browser-repl (isolated
+  ;; ports) + headless playwright browser + nREPL client.
+  (shell "node" "node_cli.js" "compile"
+         "--paths" "e2e"
+         "--output-dir" "e2e"
+         "--extension" "mjs")
+  (shell "node" "e2e/browser_repl_test.mjs"))
+
 (defn test-project [_]
   (let [dir "test-project"]
     (fs/delete-tree (fs/path dir "lib"))

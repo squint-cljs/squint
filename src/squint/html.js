@@ -50,7 +50,8 @@ export function css(v, props) {
   return ret;
 }
 
-function attr(v) {
+export function attr(v) {
+  if (v == null) return '';
   if (typeof(v) === 'object') {
     return css({}, v);
   } else

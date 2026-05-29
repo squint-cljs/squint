@@ -649,20 +649,10 @@ export function symbol_QMARK_(x) {
   return x instanceof Sym;
 }
 
-export function name(x) {
-  if (x == null) return null;
-  if (x instanceof Sym) return x.name;
-  const s = String(x);
-  const slash = s.indexOf("/");
-  return slash > 0 && slash < s.length - 1 ? s.substring(slash + 1) : s;
-}
-
 export function namespace(x) {
-  if (x == null) return null;
   if (x instanceof Sym) return x.namespace;
-  const s = String(x);
-  const slash = s.indexOf("/");
-  return slash > 0 && slash < s.length - 1 ? s.substring(0, slash) : null;
+  if (typeof x === 'string') return null;
+  throw new Error("Doesn't support namespace: " + typeof x);
 }
 
 export function first(coll) {
@@ -1009,6 +999,12 @@ export function keep_indexed(f, coll) {
 
 export function str(...xs) {
   return xs.join('');
+}
+
+export function name(x) {
+  if (x instanceof Sym) return x.name;
+  if (typeof x === 'string') return x;
+  throw new Error("Doesn't support name: " + typeof x);
 }
 
 export function not(expr) {
@@ -3067,6 +3063,13 @@ function toEDN(value, seen = new WeakSet()) {
       case LIST_TYPE:
         return `(${mapv((v) => `${toEDN(v, seen)}`, value).join(', ')})`;
       default:
+        // Non-plain objects (Promise, Error, Date, class instances, ...) have a
+        // constructor other than Object. Print them as #<Name> rather than {}
+        // (which is what Object.keys would yield for opaque values like a
+        // Promise).
+        if (value.constructor && value.constructor !== Object) {
+          return `#<${value.constructor.name}>`;
+        }
         keys = Object.keys(value);
         return `{${keys.map((k) => `:${k} ${toEDN(value[k], seen)}`).join(', ')}}`;
     }

@@ -15,7 +15,6 @@
    [edamame.core :as e]
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
-                                          *aliases* *cljs-ns* *excluded-core-vars* *imported-vars* *public-vars*
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
@@ -185,7 +184,7 @@
 (defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
   (emit (list 'do #_(list 'js* (str "var " (munge name) ";\n"))
               (if (:repl env)
-                `(when-not (exists? ~(symbol *cljs-ns* name))
+                `(when-not (exists? ~(symbol (cc/current-ns env) name))
                    ~(vary-meta `(def ~name ~init)
                                assoc :squint.compiler/skip-var true))
                 (vary-meta `(def ~name ~init)
@@ -222,7 +221,6 @@
      (let [fexpr (first expr)]
        (if (:quote env)
          (do
-           (swap! *imported-vars* update "squintscript/core.js" (fnil conj #{}) 'list)
            (format "%slist(%s)"
                    (if-let [ca (:core-alias env)]
                      (str ca ".")
@@ -259,7 +257,7 @@
                                             ;; used by cherry embed:
                                             (some-> env :macros (get nss) (get nms))
                                             (let [resolved-ns (get-in current-ns-state [:aliases nss] nss)
-                                                  macro-ns (cc/resolve-macro-ns resolved-ns)]
+                                                  macro-ns (cc/resolve-macro-ns resolved-ns (:target env))]
                                               (or (get-in ns-state [:macros macro-ns nms])
                                                   (get-in ns-state [:macros resolved-ns nms])
                                                   (get-in ns-state [:macros nss nms])
@@ -283,7 +281,7 @@
                                          (let [refers (:refers current-ns-state)]
                                            (when-let [macro-ns (get refers nms)]
                                              (or (get-in ns-state [:macros macro-ns nms])
-                                                 (let [resolved (cc/resolve-macro-ns macro-ns)]
+                                                 (let [resolved (cc/resolve-macro-ns macro-ns (:target env))]
                                                    (or (get-in ns-state [:macros resolved nms])
                                                        (get-in built-in-macro-nss [macro-ns nms])
                                                        (get-in built-in-macro-nss [resolved nms])))))))
@@ -295,7 +293,7 @@
                          #?@(:cljs [macro (or (.-afn ^js macro) macro)])
                          new-expr (apply macro expr (assoc env
                                                            ;; Added for CLJS compat
-                                                           :ns {:name cc/*cljs-ns*}
+                                                           :ns {:name (cc/current-ns env)}
                                                            :utils {:emit emit})
                                          (rest expr))]
                      (emit new-expr env))
@@ -365,10 +363,11 @@
 (defn transpile-form
   ([f] (transpile-form f nil))
   ([f env]
-   (binding [cc/*repl* (:repl env cc/*repl*)]
-     (str
-      (emit f (merge {:ns-state (atom {})
-                      :context :statement
+   (str
+    (emit f (merge {:ns-state (atom {})
+                    :context :statement
+                    :target :squint
+                      :core-package "squint-cljs/core.js"
                       :top-level true
                       :core-vars core-vars
                       :gensym (let [ctr (volatile! 0)]
@@ -383,9 +382,8 @@
                              ::cc/map emit-map
                              ::cc/keyword emit-keyword
                              ::cc/set emit-set
-                             ::cc/special emit-special}} env))))))
+                             ::cc/special emit-special}} env)))))
 
-(def ^:dynamic *jsx* false)
 
 (defn jsx [form]
   (list 'squint-compiler-jsx form))
@@ -397,7 +395,7 @@
   (list 'squint-compiler-js-map form))
 
 (defmethod emit-special 'squint-compiler-jsx [_ env [_ form]]
-  (set! *jsx* true)
+  (swap! (:ns-state env) assoc :jsx true)
   (let [env (assoc env :jsx true)]
     (emit form env)))
 
@@ -416,22 +414,27 @@
     :read-cond :allow
     :features #{:squint :cljs}}))
 
-(defn read-forms [s]
-  (e/parse-string-all s (assoc squint-parse-opts
-                               :auto-resolve-ns true
-                               :auto-resolve @*aliases*)))
+(defn read-forms
+  ([s] (read-forms s nil))
+  ([s env]
+   (let [ns-state (some-> (:ns-state env) deref)
+         aliases (get-in ns-state [(:current ns-state) :aliases])]
+     (e/parse-string-all s (assoc squint-parse-opts
+                                  :auto-resolve-ns true
+                                  :auto-resolve (or aliases {}))))))
 
 (defn transpile*
   ([s] (transpile* s {}))
   ([s env]
    (let [env (merge {:ns-state (atom {})
                      :context :statement} env)
-         forms (if (string? s) (read-forms s) s)
+         forms (if (string? s) (read-forms s env) s)
          max-form-idx (dec (count forms))
-         return? (= :return (:context env))
+         orig-ctx (:context env)
+         return? (contains? #{:return :repl-return} orig-ctx)
          env (if return? (assoc env :context :statement) env)]
-     (loop [transpiled (if (and cc/*repl* *cljs-ns*)
-                         (let [ns (munge *cljs-ns*)]
+     (loop [transpiled (if (and (:repl env) (cc/current-ns env))
+                         (let [ns (munge (cc/current-ns env))]
                            (cc/ensure-global ns))
                          "")
             forms forms
@@ -440,7 +443,7 @@
                          (first forms) ::e/eof)
              last? (= form-idx max-form-idx)
              env (if (and return? last?)
-                   (assoc env :context :return)
+                   (assoc env :context orig-ctx)
                    env)]
          (if (= ::e/eof next-form)
            transpiled
@@ -462,34 +465,25 @@
        :or {core-alias "squint_core"}
        :as opts} state]
    (let [opts (merge state opts)]
-     (binding [cc/*core-package* "squint-cljs/core.js"
-               cc/*target* :squint
-               *jsx* false
-               cc/*repl* (:repl opts cc/*repl*)]
-       (let [core-package (get import-maps cc/*core-package* cc/*core-package*)
+     (let [repl? (:repl opts)
+             core-package (get import-maps "squint-cljs/core.js" "squint-cljs/core.js")
              need-html-import (atom false)
              need-multi-import (atom false)
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
-             imported-vars (atom {})
-             public-vars (atom #{})
-             aliases (atom {core-alias cc/*core-package*})
              jsx-runtime (:jsx-runtime opts)
              jsx-dev (:development jsx-runtime)
-             imports (atom (if cc/*repl*
+             imports (atom (if repl?
                              (format "var %s = await import('%s');\n"
                                      core-alias core-package)
                              (format "import * as %s from '%s';\n"
                                      core-alias core-package)))
              pragmas (atom {:js ""})]
-         (binding [*imported-vars* imported-vars
-                   *public-vars* public-vars
-                   *aliases* aliases
-                   *jsx* false
-                   *excluded-core-vars* (atom #{})
-                   *cljs-ns* (:ns opts *cljs-ns*)
-                   cc/*target* :squint
-                   cc/*async* (:async opts)]
+           ;; Seed ns-state's :current with the ns we're compiling. `def` stores
+           ;; vars under (:current ns-state) and resolution reads from it, so
+           ;; :current must be set before the first form (e.g. a REPL eval in ns
+           ;; X, or the next form in a session). A leading (ns ..) form updates it.
+           (swap! (:ns-state opts) assoc :current (:ns opts 'user))
            (let [transpiled (transpile* s (assoc opts
                                                         :core-alias core-alias
                                                         :imports imports
@@ -497,48 +491,51 @@
                                                         :pragmas pragmas
                                                         :need-html-import need-html-import
                                                         :need-multi-import need-multi-import))
-                 jsx *jsx*
+                 jsx (:jsx @(:ns-state opts))
                  _ (when (and jsx jsx-runtime)
-                     (swap! imports str
-                            (format
-                             "var {jsx%s: _jsx, jsx%s%s: _jsxs, Fragment: _Fragment } = await import('%s');\n"
-                             (if jsx-dev "DEV" "")
-                             (if jsx-dev "" "s")
-                             (if jsx-dev "DEV" "")
-                             (let [jsx-package (str (:import-source jsx-runtime
-                                                                    "react")
-                                                    (if jsx-dev
-                                                      "/jsx-dev-runtime"
-                                                      "/jsx-runtime"))]
-                               (get import-maps jsx-package jsx-package)))))
+                     (let [jsx-name (str "jsx" (if jsx-dev "DEV" ""))
+                           jsxs-name (str "jsx" (if jsx-dev "" "s") (if jsx-dev "DEV" ""))
+                           jsx-package (let [pkg (str (:import-source jsx-runtime "react")
+                                                      (if jsx-dev "/jsx-dev-runtime" "/jsx-runtime"))]
+                                         (get import-maps pkg pkg))]
+                       (swap! imports str
+                              ;; REPL evaluates plain JS, so dynamic await-import;
+                              ;; otherwise a static import (no top-level await, which
+                              ;; bundlers' default targets reject).
+                              (if repl?
+                                (format "var {%s: _jsx, %s: _jsxs, Fragment: _Fragment } = await import('%s');\n"
+                                        jsx-name jsxs-name jsx-package)
+                                (format "import {%s as _jsx, %s as _jsxs, Fragment as _Fragment } from '%s';\n"
+                                        jsx-name jsxs-name jsx-package)))))
                  _ (when @need-html-import
                      (swap! imports str
                             (let [html-pkg "squint-cljs/src/squint/html.js"
                                   html-pkg (get import-maps html-pkg html-pkg)]
-                                (if cc/*repl*
+                                (if repl?
                                   (format "var squint_html = await import('%s');\n" html-pkg)
                                   (format "import * as squint_html from '%s';\n" html-pkg)))))
                  _ (when @need-multi-import
                      (swap! imports str
                             (let [multi-pkg "squint-cljs/src/squint/multi.js"
                                   multi-pkg (get import-maps multi-pkg multi-pkg)]
-                                (if cc/*repl*
+                                (if repl?
                                   (format "var squint_multi = await import('%s');\n" multi-pkg)
                                   (format "import * as squint_multi from '%s';\n" multi-pkg)))))
                  pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
+                 public-vars (get-in @(:ns-state opts) [(cc/current-ns opts) :vars] #{})
                  exports (when-not elide-exports
                            (str
-                            (when-let [vars (disj @public-vars "default$")]
+                            (when-let [vars (disj public-vars "default$")]
                               (when (seq vars)
-                                (if false #_cc/*repl*
+                                (if false #_repl?
                                   (str/join "\n"
                                             (map (fn [var]
                                                    (str "export " var ";"))
                                                  vars))
                                   (format "\nexport { %s }\n"
                                           (str/join ", " vars)))))
-                            (when (contains? @public-vars "default$")
+                            (when (contains? public-vars "default$")
                               "export default default$\n")))]
              (assoc opts
                     :pragmas pragmas
@@ -547,8 +544,8 @@
                     :body transpiled
                     :javascript (str pragmas imports transpiled exports)
                     :jsx jsx
-                    :ns *cljs-ns*
-                    :ns-state (:ns-state opts)))))))))
+                    :ns (cc/current-ns opts)
+                    :ns-state (:ns-state opts)))))))
 
 #?(:cljs
    (defn- macros-opt->symbol-keys

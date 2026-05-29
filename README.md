@@ -12,12 +12,7 @@ modules.
 If you want to use squint, but with the normal ClojureScript standard library
 and data structures, check out [cherry](https://github.com/squint-cljs/cherry).
 
-> :warning: This project is a work in progress and may still undergo breaking
-> changes.
-
 ## Quickstart
-
-Although it's early days, you're welcome to try out `squint` and submit issues.
 
 ``` shell
 $ mkdir squint-test && cd squint-test
@@ -413,6 +408,13 @@ squint repl` (or `bunx --bun repl`) and select the `clojure` or `babashka` type
 REPL. REPL away!
 
 <img src="https://pbs.twimg.com/media/F6Pry0eWwAEwsRD?format=jpg">
+
+## Browser REPL
+
+The `squint-cljs/vite` plugin provides a browser REPL: it hot-reloads compiled
+squint in the page and runs an nREPL server that your editor connects to,
+evaluating forms in the live page. See
+[doc/browser-repl.md](doc/browser-repl.md).
 
 ## Truthiness
 
