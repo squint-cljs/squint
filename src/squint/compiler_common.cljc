@@ -669,7 +669,8 @@
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
     (when-not (:private (meta name))
-      (swap! (:ns-state env) update :public-vars (fnil conj #{}) (munge* name)))
+      (swap! (:ns-state env)
+             (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))
     (swap! (:ns-state env) (fn [state]
                              (let [current (:current state)]
                                (assoc-in state [current name] {}))))
@@ -1436,7 +1437,8 @@ break;}" body)
 
 (defmethod emit-special 'squint.defclass/defclass* [_ env form]
   (let [name (second form)]
-    (swap! (:ns-state env) update :public-vars (fnil conj #{}) (munge* name))
+    (swap! (:ns-state env)
+           (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name))))
     (defclass/emit-class env
       emit
       ;; async flows through env (emit-object-fn sets :async); callback just emits

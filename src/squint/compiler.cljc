@@ -523,7 +523,7 @@
                                   (format "import * as squint_multi from '%s';\n" multi-pkg)))))
                  pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
-                 public-vars (get @(:ns-state opts) :public-vars #{})
+                 public-vars (get-in @(:ns-state opts) [(cc/current-ns opts) :vars] #{})
                  exports (when-not elide-exports
                            (str
                             (when-let [vars (disj public-vars "default$")]
