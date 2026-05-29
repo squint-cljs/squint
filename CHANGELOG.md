@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## 0.12.192
+
+- Add support for Vite 5-8
+
 ## 0.12.191
 
 - Add `dedupe` (seq and transducer arities)
