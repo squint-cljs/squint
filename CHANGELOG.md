@@ -6,6 +6,7 @@
 
 - Add `dedupe` (seq and transducer arities)
 - Add `distinct?`, `any?`, `ifn?`, `list*`
+- Fix [#819](https://github.com/squint-cljs/squint/issues/819): macro changes not picked up in watch mode. The persistent compiler now re-evaluates a macro namespace when its source file changes (mtime + sha256 gate), instead of keeping the first-loaded definitions.
 - REPL: print promises as `#<Promise 1>` / `#<Promise rejected ..>` / `#<Promise pending>` instead of silently unwrapping them. Also surfaces a Promise wrapper in the playground (resolved value still inspectable).
 
 ## 0.12.190

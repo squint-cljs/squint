@@ -1,5 +1,6 @@
 (ns squint.compiler.node
   (:require
+   ["crypto" :as crypto]
    ["fs" :as fs]
    ["path" :as path]
    [clojure.string :as str]
@@ -10,11 +11,34 @@
 
 (def sci (atom nil))
 
+;; Tracks macro source files so we only re-eval (`:reload`) a macro namespace
+;; when its file actually changed. Without this, the persistent SCI instance
+;; keeps the first-loaded macro defs forever in watch mode (issue #819);
+;; reloading on every compile would re-eval untouched macro nses (measured
+;; ~1-5ms each) instead of a microsecond stat. path -> {:mtime _ :sha _}.
+(def macro-state (atom {}))
+
 (defn slurp [f]
   (fs/readFileSync f "utf-8"))
 
 (defn spit [f s]
   (fs/writeFileSync f s "utf-8"))
+
+(defn- sha256 [s]
+  (-> (crypto/createHash "sha256") (.update s) (.digest "hex")))
+
+(defn- macro-file-changed?
+  "True when macro-ns's source file changed since last seen. Cheap mtime gate
+  first; only on mtime change do we read + sha256 to confirm real content
+  change (suppresses spurious reloads on touch-without-edit). Updates cache."
+  [macro-ns]
+  (when-let [path (utils/resolve-file macro-ns)]
+    (let [{:keys [mtime sha]} (get @macro-state path)
+          cur-mtime (.-mtimeMs (fs/statSync path))]
+      (when (not= cur-mtime mtime)
+        (let [cur-sha (sha256 (slurp path))]
+          (swap! macro-state assoc path {:mtime cur-mtime :sha cur-sha})
+          (not= cur-sha sha))))))
 
 (defn- cljc-with-macros?
   "Check if a require clause refers to a .cljc file that contains defmacro."
@@ -52,9 +76,10 @@
                          (.then prev
                                 (fn [_]
                                   (let [[macro-ns & {:keys [refer as]}] require-macros
+                                        reload? (or reload (macro-file-changed? macro-ns))
                                         macros (js/Promise.resolve
                                                 (do (eval-form (cond-> (list 'require (list 'quote macro-ns))
-                                                                 reload (concat [:reload])))
+                                                                 reload? (concat [:reload])))
                                                     (let [publics (eval-form
                                                                    `(ns-publics '~macro-ns))
                                                           macros (keep (fn [[k v]]

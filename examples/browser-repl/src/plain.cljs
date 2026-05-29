@@ -1,5 +1,6 @@
 (ns plain
-  (:require [ui]))
+  (:require [ui])
+  (:require-macros [e2e-macros :refer [tag]]))
 
 ;; Plain squint, no framework: build an HTML string with #html, set it as
 ;; innerHTML, and re-attach the click listener on each render. State is an atom;
@@ -12,6 +13,7 @@
           #html [:div {:style ui/card}
                  [:div {:style (assoc ui/label :color "#0a7d5a")} "plain squint - #html"]
                  [:div {:style ui/counted} "Counted: " @state]
+                 [:div {:id "macro-tag"} (tag)]
                  [:button {:id "plain-btn" :style ui/btn} "Click me!"]])
     (.addEventListener (.querySelector el "#plain-btn") "click"
                        (fn [_] (swap! state inc)))))
