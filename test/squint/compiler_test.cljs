@@ -2781,7 +2781,7 @@ new Foo();")
                      :elide-exports true
                      :top-level false}
                 nil)]
-    (is (true? (js/eval (.-javascript result))))))
+    (is (true? (js/eval (.-javascript ^js result))))))
 
 (deftest issue-704-test
   (is (eq 10 (jsv! "(let [a (atom 1)] (while (< @a 10) (swap! a inc)) @a)"))))

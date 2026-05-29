@@ -4,7 +4,7 @@
    [cljs.pprint :as pp]
    ["fs" :as fs]
    ["net" :as node-net]
-   [squint.compiler-common :as cc :refer [*cljs-ns*]]
+   [squint.compiler-common :as cc]
    [squint.compiler :as compiler]
    [squint.internal.node.utils :as utils]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]
@@ -60,8 +60,26 @@
             "ops" (zipmap (map name (keys ops)) (repeat {}))
             "status" ["done"]}))
 
-;; TODO: this should not be global
-(def last-ns (atom cc/*cljs-ns*))
+;; Result of the last compile (carries :ns-state, threaded back into the next
+;; compile via the `state` arg, so the compiler ns-state persists across evals).
+(def state (atom nil))
+
+;; Shared compiler ns-state. A host (e.g. the vite plugin) can inject the same
+;; ns-state atom it threads through its file compiles, so the REPL knows the
+;; vars/aliases those files defined (e.g. a `def` that ran at page load). cljs
+;; atoms survive the js->clj/clj->js round-trip as opaque objects, so this can
+;; be passed across the JS boundary. nil -> the REPL keeps its own ns-state.
+(def !ns-state (atom nil))
+
+(defn current-ns
+  "Current REPL namespace = :current of the persistent compiler ns-state (the
+  one the last compile used, carried in `state`). Updated by compiles via the
+  ns handler / compile* seed. Falls back to a host-injected ns-state before the
+  first eval, then to 'user."
+  []
+  (or (some-> @state :ns-state deref :current)
+      (some-> @!ns-state deref :current)
+      'user))
 
 (def pretty-print-fns-map
   {"cider.nrepl.pprint/pprint" pp/write})
@@ -84,7 +102,6 @@
 (defn send-value [request send-fn v]
   (let [[v opts] v
         sci-ns (:ns opts)]
-    (reset! last-ns sci-ns)
     (let [v (format-value (:nrepl.middleware.print/print request)
                           (:nrepl.middleware.print/options request)
                           v)]
@@ -96,17 +113,9 @@
     (when-let [message (or (:message data) (.-message e))]
       (send-fn request {"err" (str message "\n")}))
     (send-fn request {"ex" (str e)
-                      "ns" (str cc/*cljs-ns*)})))
+                      "ns" (str (current-ns))})))
 
 (def in-progress (atom false))
-(def state (atom nil))
-
-;; Shared compiler ns-state. A host (e.g. the vite plugin) can inject the same
-;; ns-state atom it threads through its file compiles, so the REPL knows the
-;; vars/aliases those files defined (e.g. a `def` that ran at page load). cljs
-;; atoms survive the js->clj/clj->js round-trip as opaque objects, so this can
-;; be passed across the JS boundary. nil -> the REPL keeps its own ns-state.
-(def !ns-state (atom nil))
 
 ;; Transport seam. By default the server evaluates compiled JS locally (node).
 ;; A host (e.g. a vite plugin) can inject a browser transport via start-server's
@@ -141,7 +150,6 @@
         ;; evaluated. A form's own (ns ...) still switches from there.
         ns (when ns (symbol ns))
         {js-str :javascript
-         cljs-ns :ns
          :as new-state} (compiler/compile-string* the-val
                                                   (cond-> {;; :repl-return wraps the top-level value in [v]; the
                                                            ;; eval handler unboxes. This keeps a Promise the user
@@ -163,7 +171,6 @@
         ;; when emitted, runs first and the appended line is unreachable.
         js-str (str js-str "\n;return [undefined];")
         js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]
-    (reset! last-ns cljs-ns)
     js-str))
 
 (defn node-eval
@@ -224,26 +231,26 @@
   Returns Promise<#js {:value :ns}>; rejects on error."
   [code]
   (-> (evaluate code {:id (str (random-uuid)) :session "http"})
-      (.then (fn [value] #js {:value value :ns (str @last-ns)}))))
+      (.then (fn [value] #js {:value value :ns (str (current-ns))}))))
 
 (defn do-handle-eval [{:keys [ns code file
                               _load-file? _line] :as request} send-fn]
   (->
    (evaluate code request)
    (.then (fn [value]
-            (send-fn request {"ns" (str @last-ns)
+            (send-fn request {"ns" (str (current-ns))
                               "value" value})))
    (.catch (fn [e]
              (js/console.error e)
              (handle-error send-fn request e)))
    (.finally (fn []
-               (send-fn request {"ns" (str @last-ns)
+               (send-fn request {"ns" (str (current-ns))
                                  "status" ["done"]})))))
 
 (defn handle-eval [{:keys [ns] :as request} send-fn]
   ;; evaluate in the ns the editor sent (the buffer's ns); fall back to the last
   ;; ns for clients that don't send one.
-  (do-handle-eval (assoc request :ns (or ns @last-ns))
+  (do-handle-eval (assoc request :ns (or ns (current-ns)))
                   send-fn))
 
 (defn handle-clone [request send-fn]
@@ -267,7 +274,7 @@
               sci-ns
               (or (when ns
                     (the-sci-ns (store/get-ctx) (symbol ns)))
-                  @last-ns
+                  (current-ns)
                   @sci/ns)]
           (sci/binding [sci/ns sci-ns]
             (let [m (sci/eval-string* (store/get-ctx) (gstring/format "
