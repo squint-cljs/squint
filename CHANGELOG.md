@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.12.191
 
 - Add `dedupe` (seq and transducer arities)
 - Add `distinct?`, `any?`, `ifn?`, `list*`
