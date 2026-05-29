@@ -1,5 +1,4 @@
 (ns squint.compiler-common
-  (:refer-clojure :exclude [*repl*])
   (:require
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
@@ -12,7 +11,6 @@
 (def ^:dynamic *imported-vars* (atom {}))
 (def ^:dynamic *excluded-core-vars* (atom #{}))
 (def ^:dynamic *public-vars* (atom #{}))
-(def ^:dynamic *repl* false)
 (def ^:dynamic *cljs-ns* 'user)
 
 (def common-macros
@@ -427,7 +425,7 @@
                                            (when (contains? aliases (symbol am))
                                              am)))]
                              (str
-                              (when *repl*
+                              (when (:repl env)
                                 (str "globalThis." (munge *cljs-ns*) "."))
                               (alias-munge resolved-alias) "."
                               (munged-name sn)))
@@ -448,7 +446,7 @@
                                  _ (when (and resolved (not (contains? aliases (symbol auto-alias))))
                                      (when-let [imports (:imports env)]
                                        (swap! imports str
-                                              (if *repl*
+                                              (if (:repl env)
                                                 (let [mns (munge *cljs-ns*)]
                                                   (str (statement (format "var %s = await import('%s')" auto-alias resolved))
                                                        ;; ensure the ns object exists before assigning onto it — the ns
@@ -462,11 +460,11 @@
                                               (let [current (:current ns-state)]
                                                 (update-in ns-state [current :aliases]
                                                            (fn [a] ((fnil assoc {}) a (symbol auto-alias) (str resolved))))))))]
-                             (if (and resolved (not (and *repl* (= "Math" munged))))
-                               (str (when *repl*
+                             (if (and resolved (not (and (:repl env) (= "Math" munged))))
+                               (str (when (:repl env)
                                       (str "globalThis." (munge *cljs-ns*) "."))
                                     auto-alias "." (munged-name (symbol nm)))
-                               (if (and *repl* (not= "Math" munged))
+                               (if (and (:repl env) (not= "Math" munged))
                                  (let [ns-state (some-> env :ns-state deref)]
                                    (if (get-in ns-state [(symbol ns) (symbol nm)])
                                      (str (munge ns) "." (munge nm))
@@ -479,15 +477,15 @@
                        (let [alias (get aliases expr)]
                          (or
                           (when (contains? current-ns expr)
-                            (str (when *repl*
+                            (str (when (:repl env)
                                    (str "globalThis." (munge *cljs-ns*) ".")) (munged-name expr)))
                           (when (contains? (:refers current-ns) expr)
-                            (str (when *repl*
+                            (str (when (:repl env)
                                    (str "globalThis." (munge *cljs-ns*) "."))
                                  (munged-name expr)))
                           (some-> (maybe-core-var expr env) munge)
                           (when alias
-                            (str (when *repl*
+                            (str (when (:repl env)
                                    (str "globalThis." (munge *cljs-ns*) "."))
                                  (alias-munge expr)))
                           (let [m (munged-name expr)]
@@ -659,7 +657,7 @@
         env* (no-top-level env)]
     (str "var " (munge name) " = "
          (emit expr (expr-env env*)) ";\n"
-         (when *repl*
+         (when (:repl env)
            (emit-return (str "globalThis."
                             (when *cljs-ns*
                               (str (munge *cljs-ns*) "."))
@@ -710,7 +708,7 @@
           as (when as (munge as))
           expr (str
                 (when (and as default?)
-                  (if *repl*
+                  (if (:repl env)
                     (statement (format "const %s = (await import('%s'%s)).%s"
                                        (alias-munge as)
                                        libname
@@ -730,7 +728,7 @@
                     ;; an explicit :as) so its vars resolve.
                     (let [auto-alias (alias-munge (str original-libname))]
                       (swap! *imported-vars* update libname (fnil identity #{}))
-                      (if *repl*
+                      (if (:repl env)
                         (str
                           (if (library-ns? (:target env) original-libname)
                             (statement (format "var %s = await import('%s'%s)" auto-alias libname
@@ -745,7 +743,7 @@
                                              (str " with " (unwrap (emit with env)))
                                              "")))))
                     ;; string require without :as or :refer — side-effect import
-                    (if *repl*
+                    (if (:repl env)
                       (statement (format "await import('%s'%s)" libname
                                          (if with
                                            (str ", " (emit {:with with} env))
@@ -765,14 +763,14 @@
                                  ;; redefs / HMR updates. Library nses (e.g.
                                  ;; clojure.string) export their vars instead, so
                                  ;; bind to the module object.
-                                 (and *repl* (symbol? original-libname)
+                                 (and (:repl env) (symbol? original-libname)
                                       (not (library-ns? (:target env) original-libname)))
                                  (format "await import('%s'%s); var %s = globalThis.%s"
                                          libname
                                          (if with (str ", " (emit {:with with} env)) "")
                                          (alias-munge as)
                                          (munge original-libname))
-                                 *repl*
+                                 (:repl env)
                                  (format "var %s = await import('%s'%s)" (alias-munge as) libname
                                          (if with (str ", " (emit {:with with} env)) ""))
                                  :else
@@ -784,10 +782,10 @@
                       (let [auto-alias (alias-munge (str original-libname))]
                         (statement (cond
                                      ;; local ns: live globalThis cell
-                                     (and *repl* (not (library-ns? (:target env) original-libname)))
+                                     (and (:repl env) (not (library-ns? (:target env) original-libname)))
                                      (format "var %s = globalThis.%s" auto-alias (munge original-libname))
                                      ;; library ns: reuse the module-bound alias
-                                     *repl*
+                                     (:repl env)
                                      (format "var %s = %s" auto-alias (alias-munge as))
                                      :else
                                      (format "import * as %s from '%s'%s" auto-alias libname
@@ -811,7 +809,7 @@
                                                                      (when-let [renamed (get rename refer)]
                                                                        (str " as " (munge renamed)))))
                                                               runtime-refer))]
-                          (if *repl*
+                          (if (:repl env)
                             (str (statement (format "var { %s } = (await import('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
                                                     (if with
                                                       (str ", " (emit {:with with} env))
@@ -840,7 +838,7 @@
                       (when (and (not as) (symbol? original-libname))
                         (let [auto-alias (alias-munge (str original-libname))]
                           (swap! *imported-vars* update libname (fnil identity #{}))
-                          (if *repl*
+                          (if (:repl env)
                             (statement (format "var %s = await import('%s'%s)" auto-alias libname
                                                (if with
                                                  (str ", " (emit {:with with} env))
@@ -899,7 +897,7 @@
                   {:current name
                    (:core-alias env) (:core-package env)})))
     (str
-     (when *repl*
+     (when (:repl env)
        ensure-obj)
      (reduce (fn [acc [k & exprs]]
                (cond
@@ -912,7 +910,7 @@
                  :else acc))
              ""
              clauses)
-     (when *repl*
+     (when (:repl env)
        (str
         (reduce-kv (fn [acc k _v]
                      (if (symbol? k)
@@ -935,7 +933,7 @@
                         aliases)))
                   {:current name})))
     (str (str/join "" (map #(process-require-clause env *cljs-ns* %) clauses))
-         (when *repl*
+         (when (:repl env)
            (let [mname (munge *cljs-ns*)
                  split-name (str/split (str mname) #"\.")
                  ensure-obj (-> (reduce (fn [{:keys [js nk]} k]

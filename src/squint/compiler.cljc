@@ -365,11 +365,10 @@
 (defn transpile-form
   ([f] (transpile-form f nil))
   ([f env]
-   (binding [cc/*repl* (:repl env cc/*repl*)]
-     (str
-      (emit f (merge {:ns-state (atom {})
-                      :context :statement
-                      :target :squint
+   (str
+    (emit f (merge {:ns-state (atom {})
+                    :context :statement
+                    :target :squint
                       :core-package "squint-cljs/core.js"
                       :top-level true
                       :core-vars core-vars
@@ -385,7 +384,7 @@
                              ::cc/map emit-map
                              ::cc/keyword emit-keyword
                              ::cc/set emit-set
-                             ::cc/special emit-special}} env))))))
+                             ::cc/special emit-special}} env)))))
 
 (def ^:dynamic *jsx* false)
 
@@ -433,7 +432,7 @@
          orig-ctx (:context env)
          return? (contains? #{:return :repl-return} orig-ctx)
          env (if return? (assoc env :context :statement) env)]
-     (loop [transpiled (if (and cc/*repl* *cljs-ns*)
+     (loop [transpiled (if (and (:repl env) *cljs-ns*)
                          (let [ns (munge *cljs-ns*)]
                            (cc/ensure-global ns))
                          "")
@@ -465,9 +464,9 @@
        :or {core-alias "squint_core"}
        :as opts} state]
    (let [opts (merge state opts)]
-     (binding [*jsx* false
-               cc/*repl* (:repl opts cc/*repl*)]
-       (let [core-package (get import-maps "squint-cljs/core.js" "squint-cljs/core.js")
+     (binding [*jsx* false]
+       (let [repl? (:repl opts)
+             core-package (get import-maps "squint-cljs/core.js" "squint-cljs/core.js")
              need-html-import (atom false)
              need-multi-import (atom false)
              opts (merge {:ns-state (atom {})
@@ -477,7 +476,7 @@
              aliases (atom {core-alias "squint-cljs/core.js"})
              jsx-runtime (:jsx-runtime opts)
              jsx-dev (:development jsx-runtime)
-             imports (atom (if cc/*repl*
+             imports (atom (if repl?
                              (format "var %s = await import('%s');\n"
                                      core-alias core-package)
                              (format "import * as %s from '%s';\n"
@@ -515,7 +514,7 @@
                               ;; REPL evaluates plain JS, so dynamic await-import;
                               ;; otherwise a static import (no top-level await, which
                               ;; bundlers' default targets reject).
-                              (if cc/*repl*
+                              (if repl?
                                 (format "var {%s: _jsx, %s: _jsxs, Fragment: _Fragment } = await import('%s');\n"
                                         jsx-name jsxs-name jsx-package)
                                 (format "import {%s as _jsx, %s as _jsxs, Fragment as _Fragment } from '%s';\n"
@@ -524,14 +523,14 @@
                      (swap! imports str
                             (let [html-pkg "squint-cljs/src/squint/html.js"
                                   html-pkg (get import-maps html-pkg html-pkg)]
-                                (if cc/*repl*
+                                (if repl?
                                   (format "var squint_html = await import('%s');\n" html-pkg)
                                   (format "import * as squint_html from '%s';\n" html-pkg)))))
                  _ (when @need-multi-import
                      (swap! imports str
                             (let [multi-pkg "squint-cljs/src/squint/multi.js"
                                   multi-pkg (get import-maps multi-pkg multi-pkg)]
-                                (if cc/*repl*
+                                (if repl?
                                   (format "var squint_multi = await import('%s');\n" multi-pkg)
                                   (format "import * as squint_multi from '%s';\n" multi-pkg)))))
                  pragmas (:js @pragmas)
@@ -540,7 +539,7 @@
                            (str
                             (when-let [vars (disj @public-vars "default$")]
                               (when (seq vars)
-                                (if false #_cc/*repl*
+                                (if false #_repl?
                                   (str/join "\n"
                                             (map (fn [var]
                                                    (str "export " var ";"))

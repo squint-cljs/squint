@@ -6,7 +6,7 @@
    [clojure.string :as str]
    [edamame.core :as e]
    [squint.compiler :as compiler]
-   [squint.compiler-common :as cc :refer [*cljs-ns* *repl*]]
+   [squint.compiler-common :as cc :refer [*cljs-ns*]]
    [squint.repl.print :as rp]))
 
 (def pending-input (atom ""))
@@ -140,7 +140,6 @@
   ([] (socket-repl nil))
   ([opts]
    (set! *cljs-ns* 'user)
-   (set! *repl* true)
    (let [port (or (:port opts)
                   0)
          srv (net/createServer
@@ -157,7 +156,6 @@
   ([] (repl nil))
   ([_opts]
    (set! *cljs-ns* 'user)
-   (set! *repl* true)
    (when tty (.setRawMode js/process.stdin true))
    (.then (js/Promise.resolve (js/eval "globalThis.user = globalThis.user || {};"))
           (fn [_]
