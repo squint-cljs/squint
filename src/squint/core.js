@@ -623,11 +623,13 @@ export function sequence(coll) {
 
 // Internal name Sym to avoid clashing with the global Symbol used elsewhere
 // in this file (Symbol.iterator etc.).
-class Sym extends String {
+class Sym {
   constructor(ns, name) {
-    super(ns != null ? `${ns}/${name}` : name);
-    this.name = name;
     this.namespace = ns ?? null;
+    this.name = name;
+  }
+  toString() {
+    return this.namespace != null ? `${this.namespace}/${this.name}` : this.name;
   }
 }
 export { Sym };

@@ -461,7 +461,7 @@
   (is (eq '{x 1} (jsv! (list 'quote '{x 1})))))
 
 (deftest syntax-quote-test
-  (is (eq '(foo 1) (jsv! "`(foo ~1)"))))
+  (is (true? (jsv! "(= '(foo 1) `(foo ~1))"))))
 
 (deftest symbol-runtime-test
   (testing "symbol? distinguishes symbols from strings"
