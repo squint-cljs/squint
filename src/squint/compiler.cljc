@@ -15,7 +15,7 @@
    [edamame.core :as e]
    [squint.compiler-common :as cc :refer [#?(:cljs Exception)
                                           #?(:cljs format)
-                                          *aliases* *cljs-ns* *public-vars*
+                                          *cljs-ns* *public-vars*
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.defclass :as defclass]
@@ -416,17 +416,21 @@
     :read-cond :allow
     :features #{:squint :cljs}}))
 
-(defn read-forms [s]
-  (e/parse-string-all s (assoc squint-parse-opts
-                               :auto-resolve-ns true
-                               :auto-resolve @*aliases*)))
+(defn read-forms
+  ([s] (read-forms s nil))
+  ([s env]
+   (let [ns-state (some-> (:ns-state env) deref)
+         aliases (get-in ns-state [(:current ns-state) :aliases])]
+     (e/parse-string-all s (assoc squint-parse-opts
+                                  :auto-resolve-ns true
+                                  :auto-resolve (or aliases {}))))))
 
 (defn transpile*
   ([s] (transpile* s {}))
   ([s env]
    (let [env (merge {:ns-state (atom {})
                      :context :statement} env)
-         forms (if (string? s) (read-forms s) s)
+         forms (if (string? s) (read-forms s env) s)
          max-form-idx (dec (count forms))
          orig-ctx (:context env)
          return? (contains? #{:return :repl-return} orig-ctx)
@@ -471,7 +475,6 @@
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
              public-vars (atom #{})
-             aliases (atom {core-alias "squint-cljs/core.js"})
              jsx-runtime (:jsx-runtime opts)
              jsx-dev (:development jsx-runtime)
              imports (atom (if repl?
@@ -481,7 +484,6 @@
                                      core-alias core-package)))
              pragmas (atom {:js ""})]
          (binding [*public-vars* public-vars
-                   *aliases* aliases
                    *jsx* false
                    *cljs-ns* (:ns opts *cljs-ns*)]
            ;; Sync the ns-state's :current to the ns we're compiling. `def`
