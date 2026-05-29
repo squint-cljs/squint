@@ -6,6 +6,10 @@
 
 - Fix [#822](https://github.com/squint-cljs/squint/issues/822): syntax-quoted forms and quoted symbols threw `ReferenceError` at runtime. Adds runtime `symbol`, `symbol?`, `sequence`, `namespace` and a tagged `Sym` class; `name` and `namespace` return a symbol's name and namespace respectively.
 
+## 0.12.192
+
+- Add support for Vite 5-8
+
 ## 0.12.191
 
 - Add `dedupe` (seq and transducer arities)
