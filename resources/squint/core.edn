@@ -49,6 +49,7 @@
   counted_QMARK_
   cycle
   dec
+  dedupe
   deref
   disj
   disj_BANG_

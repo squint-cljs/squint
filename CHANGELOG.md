@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add `dedupe` (seq and transducer arities)
 - REPL: print promises as `#<Promise 1>` / `#<Promise rejected ..>` / `#<Promise pending>` instead of silently unwrapping them. Also surfaces a Promise wrapper in the playground (resolved value still inspectable).
 
 ## 0.12.190

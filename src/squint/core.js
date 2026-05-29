@@ -1861,6 +1861,38 @@ export function distinct(coll) {
   });
 }
 
+const DEDUPE_NONE = Symbol('dedupe-none');
+
+function dedupe1() {
+  return (rf) => {
+    let prev = DEDUPE_NONE;
+    return (...args) => {
+      const al = args.length;
+      if (al === 0) return rf();
+      if (al === 1) return rf(args[0]);
+      if (al === 2) {
+        const result = args[0];
+        const input = args[1];
+        const skip = prev !== DEDUPE_NONE && truth_(_EQ_(prev, input));
+        prev = input;
+        return skip ? result : rf(result, input);
+      }
+    };
+  };
+}
+
+export function dedupe(coll) {
+  if (arguments.length === 0) return dedupe1();
+  return lazy(function* () {
+    let prev = DEDUPE_NONE;
+    for (const x of iterable(coll)) {
+      if (prev === DEDUPE_NONE || !truth_(_EQ_(prev, x))) yield x;
+      prev = x;
+    }
+    return;
+  });
+}
+
 export function update(coll, k, f, ...args) {
   f = __toFn(f);
   return assoc(coll, k, f(get(coll, k), ...args));

@@ -1625,6 +1625,12 @@ with `backticks`")))]
   (doseq [coll [[1 1 1 2 3 4 1] nil]]
     (is (eq (distinct coll) (vec (jsv! `(distinct ~coll)))))))
 
+(deftest dedupe-test
+  (doseq [coll [[1 1 2 2 2 3 1 1] [[1] [1] [2] [2]] [] nil]]
+    (is (eq (dedupe coll) (vec (jsv! `(dedupe ~coll))))))
+  (is (eq [1 2 1] (jsv! '(into [] (dedupe) [1 1 2 1 1]))))
+  (is (eq [5 6 5] (jsv! '(transduce (dedupe) conj [] [5 5 6 6 5])))))
+
 (deftest update-test
   (is (eq {:a 2} (jsv! '(update {:a 1} :a inc))))
   (is (eq {:a 3} (jsv! '(update {:a 1} :a + 2)))))
