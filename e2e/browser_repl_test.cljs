@@ -192,6 +192,25 @@
         (let [content (.readFileSync fs (path/join adir js) "utf8")]
           (check "bundle has no HMR" false (str/includes? content "import.meta.hot")))))))
 
+(defn ^:async check-macro-reload
+  "Issue #819: with the persistent vite compiler running, editing a macro file
+  and re-saving the file that uses it must surface the NEW macro output, not the
+  first-loaded definition (a regression where the SCI instance cached macros)."
+  [page macro-file consumer-file orig-consumer]
+  (await (with-timeout 15000 "macro-tag v1"
+                       (.waitForFunction page "document.querySelector('#macro-tag') && document.querySelector('#macro-tag').textContent.includes('macro-v1')")))
+  (check "macro initial render (v1)" true
+         (str/includes? (await (.textContent page "#macro-tag")) "macro-v1"))
+  ;; edit the macro, then touch the consuming source so vite recompiles it and
+  ;; re-runs the macro scan (the .cljc isn't in the JS module graph, so only the
+  ;; consumer edit triggers a recompile - matches the accepted #819 workflow)
+  (.writeFileSync fs macro-file "(ns e2e-macros)\n(defmacro tag [] \"macro-v2\")\n")
+  (.writeFileSync fs consumer-file (str orig-consumer "\n;; touched by e2e\n"))
+  (await (with-timeout 20000 "macro-tag v2 (HMR after macro edit)"
+                       (.waitForFunction page "document.querySelector('#macro-tag') && document.querySelector('#macro-tag').textContent.includes('macro-v2')")))
+  (check "macro edit picked up across recompile (#819)" true
+         (str/includes? (await (.textContent page "#macro-tag")) "macro-v2")))
+
 ;; ------------------------------------------------------------------ run ----
 
 ;; Hard safety net: never let the process hang past 2 min (unref'd so a fast
@@ -207,6 +226,18 @@
                           :env (js/Object.assign #js {} js/process.env
                                                  #js {"SQUINT_NREPL_PORT" (str NREPL-PORT)})})
         browser (atom nil)
+        ;; #819 fixture: macro file + the source that uses it. Capture originals
+        ;; so we can restore after editing them at runtime.
+        macro-file (path/join EXDIR "src" "e2e_macros.cljc")
+        consumer-file (path/join EXDIR "src" "plain.cljs")
+        orig-macro (.readFileSync fs macro-file "utf8")
+        orig-consumer (.readFileSync fs consumer-file "utf8")
+        restore-files! (fn [] (try (.writeFileSync fs macro-file orig-macro)
+                                   (.writeFileSync fs consumer-file orig-consumer)
+                                   (catch :default _ nil)))
+        ;; safety net: the hard-timeout path calls process.exit and skips the
+        ;; finally below, so restore on exit too (sync, idempotent)
+        _ (.on js/process "exit" restore-files!)
         ;; capture everything for diagnostics on failure (CI has no live view)
         vlog (atom "")
         log! (fn [& xs] (swap! vlog str (apply str xs) "\n"))]
@@ -231,6 +262,7 @@
         (await (check-counter page "plain (#html)" "#plain"))
         (await (check-counter page "preact (#jsx)" "#preact"))
         (await (check-counter page "reagami (hiccup)" "#reagami"))
+        (await (check-macro-reload page macro-file consumer-file orig-consumer))
         (let [client (await (with-timeout 10000 "nrepl connect" (make-client NREPL-PORT)))
               clone (await (with-timeout 10000 "nrepl clone" (nrepl-request client #js {:op "clone"})))
               session (some (fn [m] (aget m "new-session")) (js/Array.from clone))
@@ -270,6 +302,7 @@
         (println @vlog)
         (println "---------------------------------"))
       (finally
+        (restore-files!)
         (when @browser (try (await (.close @browser)) (catch :default _ nil)))
         (.kill vite)))
     (println (if (zero? @failures) "\nAll checks passed." (str "\n" @failures " failure(s).")))

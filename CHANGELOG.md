@@ -4,7 +4,13 @@
 
 ## Unreleased
 
-- Fix [#822](https://github.com/squint-cljs/squint/issues/822): syntax-quoted forms and quoted symbols threw `ReferenceError` at runtime. Adds runtime `symbol`, `symbol?`, `sequence`, `namespace` and a tagged `Sym` class, and teaches `name` to decompose symbols.
+- Fix [#822](https://github.com/squint-cljs/squint/issues/822): syntax-quoted forms and quoted symbols threw `ReferenceError` at runtime. Adds runtime `symbol`, `symbol?`, `sequence`, `namespace` and a tagged `Sym` class; `name` and `namespace` return a symbol's name and namespace respectively.
+
+## 0.12.191
+
+- Add `dedupe` (seq and transducer arities)
+- Add `distinct?`, `any?`, `ifn?`, `list*`
+- Fix [#819](https://github.com/squint-cljs/squint/issues/819): macro changes not picked up in watch mode. The persistent compiler now re-evaluates a macro namespace when its source file changes (mtime + sha256 gate), instead of keeping the first-loaded definitions.
 - REPL: print promises as `#<Promise 1>` / `#<Promise rejected ..>` / `#<Promise pending>` instead of silently unwrapping them. Also surfaces a Promise wrapper in the playground (resolved value still inspectable).
 
 ## 0.12.190

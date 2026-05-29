@@ -20,6 +20,7 @@
   aclone
   add_watch
   alength
+  any_QMARK_
   apply
   array
   array_QMARK_
@@ -50,12 +51,14 @@
   counted_QMARK_
   cycle
   dec
+  dedupe
   deref
   disj
   disj_BANG_
   dissoc
   dissoc_BANG_
   distinct
+  distinct_QMARK_
   doall
   dorun
   drop
@@ -87,6 +90,7 @@
   group_by
   identical_QMARK_
   identity
+  ifn_QMARK_
   inc
   int_QMARK_
   integer_QMARK_
@@ -107,6 +111,7 @@
   lazy
   list
   list_QMARK_
+  list_STAR_
   long$
   map
   map_QMARK_
