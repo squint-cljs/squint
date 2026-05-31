@@ -2644,7 +2644,7 @@ export function parse_long(s) {
   if (string_QMARK_(s)) {
     if (/^[+-]?\d+$/.test(s)) {
       const i = parseInt(s);
-      if (Number.MIN_SAFE_INTEGER <= i <= Number.MAX_SAFE_INTEGER) {
+      if (Number.MIN_SAFE_INTEGER <= i && i <= Number.MAX_SAFE_INTEGER) {
         return i;
       }
     }
