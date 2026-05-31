@@ -61,11 +61,15 @@ Fix: use `.size`.
 
 ## Semantic deviations from Clojure
 
-### 5. `compare` throws on booleans — `core.js:2363`
+### 5. `compare` throws on booleans — `core.js:2363` — FIXED
 
-Only handles number/string/array; booleans fall through to
+Only handled number/string/array; booleans fell through to
 `throw "comparing boolean to boolean"`. Clojure: `(compare false true)` → `-1`.
-Also means `(sort [true false])` throws.
+Also meant `(sort [true false])` threw.
+
+Fixed: added a `boolean`/`boolean` case to the same-type branch (`false < true`
+via JS coercion). Confirmed against CLJS (plk): `(compare false true)` → `-1`,
+`(sort [true false true false])` → `(false false true true)`.
 
 ### 6. `seqable?` returns `false` for plain objects (maps) — `core.js:575`
 
@@ -75,12 +79,13 @@ predict whether `seq`/`iterable` will work. So `(seqable? {:a 1})` → `false`
 while `(seq {:a 1})` succeeds — internally inconsistent, and Clojure returns
 `true`.
 
-### 7. `clojure.string/replace` with string match interprets `$` in the replacement — `string.js:97`
+### 7. `clojure.string/replace` with string match interprets `$` in the replacement — `string.js:97` — NOT A BUG
 
 Passes the replacement straight to `String.prototype.replace`, so `$&`, `$1`,
-etc. are expanded. `(str/replace "hello" "l" "$&")` → squint `"hello"`, Clojure
-`"he$&$&o"` (literal). For the string/string arity the replacement should be
-treated literally.
+etc. are expanded. This deviates from Clojure JVM (which treats the string/string
+replacement literally), but MATCHES ClojureScript, which squint targets.
+Confirmed against CLJS (plk): `(str/replace "hello" "l" "$&")` → `"hello"`,
+`(str/replace "hello" "l" "$1x")` → `"he$1x$1xo"` - identical to squint. No change.
 
 ### 8. `nth` returns the not-found default for an in-bounds `undefined` element — `core.js:520`
 

@@ -2372,7 +2372,8 @@ export function compare(x, y) {
     }
     const tx = typeof x;
     const ty = typeof y;
-    if ((tx === 'number' && ty === 'number') || (tx === 'string' && ty === 'string')) {
+    if ((tx === 'number' && ty === 'number') || (tx === 'string' && ty === 'string') ||
+        (tx === 'boolean' && ty === 'boolean')) {
       if (x === y) {
         return 0;
       }

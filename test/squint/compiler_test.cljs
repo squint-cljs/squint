@@ -1723,7 +1723,13 @@ with `backticks`")))]
   (is (eq 1 (jsv! '(compare ["xyz" 3] ["abc" 2]))))
   (is (eq -1 (jsv! '(compare ["xyz" 2] ["xyz" 3]))))
   (is (eq 0 (jsv! '(compare ["xyz" 2] ["xyz" 2]))))
-  (is (eq 1 (jsv! '(compare ["xyz" 3] ["xyz" 2])))))
+  (is (eq 1 (jsv! '(compare ["xyz" 3] ["xyz" 2]))))
+  ;; booleans: false < true (CLJS), and sort must not throw
+  (is (eq -1 (jsv! '(compare false true))))
+  (is (eq 1 (jsv! '(compare true false))))
+  (is (eq 0 (jsv! '(compare true true))))
+  (is (eq 0 (jsv! '(compare false false))))
+  (is (eq [false false true true] (jsv! '(sort [true false true false])))))
 
 (deftest sort-by-test
   (is (eq (sort-by count ["aaa" "bb" "c"]) (jsv! '(sort-by count ["aaa" "bb" "c"]))))
