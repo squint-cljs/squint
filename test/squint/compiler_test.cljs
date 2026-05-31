@@ -705,7 +705,14 @@
   (doseq [coll [#{"a" "b" "c"} {:a 1 :b 2}]]
     (is (eq (pr-str coll) (jsv! `(pr-str ~coll)))))
   (is (eq "#js/Map {\"a\" 1}" (jsv! "(pr-str #js/Map {:a 1})")))
-  (is (eq "nil" (jsv! "(pr-str js/undefined)"))))
+  (is (eq "nil" (jsv! "(pr-str js/undefined)")))
+  ;; Infinity / -Infinity / NaN print as ##Inf / ##-Inf / ##NaN, like CLJS
+  (is (eq "##Inf" (jsv! "(pr-str js/Infinity)")))
+  (is (eq "##-Inf" (jsv! "(pr-str (/ -1.0 0))")))
+  (is (eq "##NaN" (jsv! "(pr-str js/NaN)")))
+  (is (eq "[##Inf ##NaN]" (jsv! "(pr-str [js/Infinity js/NaN])")))
+  ;; str is unaffected
+  (is (eq "Infinity" (jsv! "(str js/Infinity)"))))
 
 (deftest str-test
   (is (eq "123" (jsv! '(str 1 2 3))))

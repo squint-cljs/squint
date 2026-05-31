@@ -12,6 +12,7 @@
 - Fix `seqable?` returning `false` for maps; `(seqable? {:a 1})` → `true`, matching CLJS (`seq` already worked on objects)
 - Fix `nth` returning the not-found default for an in-bounds element that is `undefined` (e.g. sparse / `object-array` / JS-interop arrays); it now decides found-ness by the index bound, not the value
 - Fix `parse-double` not trimming leading/trailing whitespace (`(parse-double "  3.14  ")` → `3.14`); the whitespace character class in the regexes was double-escaped and matched literal backslashes instead of control chars
+- `pr-str` / `prn` now print `Infinity`, `-Infinity` and `NaN` as `##Inf`, `##-Inf` and `##NaN`, matching CLJS (`str` is unchanged)
 
 ## 0.12.192
 
