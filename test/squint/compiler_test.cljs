@@ -235,6 +235,14 @@
   (is (false? (jsv! "(neg-int? :some-keyword)")))
   (is (false? (jsv! "(neg-int? [-4])"))))
 
+(deftest parse-long-test
+  (is (= 42 (jsv! "(parse-long \"42\")")))
+  (is (= -42 (jsv! "(parse-long \"-42\")")))
+  (is (= 9007199254740991 (jsv! "(parse-long \"9007199254740991\")")))
+  (is (nil? (jsv! "(parse-long \"99999999999999999999\")")))
+  (is (nil? (jsv! "(parse-long \"9007199254740992\")")))
+  (is (nil? (jsv! "(parse-long \"foo\")"))))
+
 (deftest no-truth-check-test
   (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)"
                 #_"(when (= 1 1) 1)"
