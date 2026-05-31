@@ -21,7 +21,3 @@ Short list pulled from `notes/browser-repl-dep-resolution.md`. Each item meant t
 
 - CJS deps return under `.default` (e.g. `(.. canvas-confetti -default)`). Document.
 - HMR self-accept re-runs module side effects (listeners re-bind). Document gotcha.
-
-## Compiler cleanup
-
-- Kill dynamic vars (`*cljs-ns*`, `*aliases*`, `*public-vars*`, ...). Thread one `ns-state` instead. Current sync (`:current` <- `*cljs-ns*` at compile start) is a patch; fold the rest in. Past bug: `(:current ns-state)` desynced from `*cljs-ns*` -> REPL resolution broken.
