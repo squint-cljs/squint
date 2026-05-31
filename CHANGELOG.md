@@ -8,6 +8,7 @@
 - Fix `select-keys` dropping keys mapped to `nil` (loose `!= undefined` matched `null`); nil-valued keys are now kept, matching Clojure
 - Fix `clojure.string/split` limit semantics: a positive limit now caps the number of splits and keeps the remainder (e.g. `(str/split "a-b-c-d" #"-" 2)` → `["a" "b-c-d"]`) instead of truncating like JS `String.split`; limit `0` discards trailing empties, negative keeps them
 - Fix `compare` throwing on booleans; `(compare false true)` → `-1` and `(sort [true false])` no longer throws, matching CLJS
+- `clojure.set/intersection` and `union` now use `.size` (not `.length`) for their set-size optimization, which was previously dead code (`undefined > undefined`); results were already correct, this restores the intended performance
 
 ## 0.12.192
 

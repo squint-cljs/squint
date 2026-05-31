@@ -46,7 +46,7 @@ Clojure `{:a nil :b 2}`.
 Fixed: `v !== undefined`. Confirmed against CLJS (plk):
 `(select-keys {:a nil :b 2 :c 3} [:a :b :missing])` → `{:a nil, :b 2}`.
 
-### 4. `clojure.set/intersection` & `union` size-optimization is dead code — `set.js:27,65`
+### 4. `clojure.set/intersection` & `union` size-optimization is dead code — `set.js:27,65` — FIXED
 
 ```js
 case 2: return xs[0].length > xs[1].length ? ...
@@ -57,7 +57,8 @@ is always `undefined > undefined` → `false`, so the "pick the smaller set"
 branch never fires. Results are still correct (the ops are symmetric and
 `_intersection2` re-swaps by size internally), but the optimization is inert.
 
-Fix: use `.size`.
+Fixed: use `.size`. No behaviour change, just restores the intended
+"iterate the smaller set" / "copy the larger set" optimization.
 
 ## Semantic deviations from Clojure
 
