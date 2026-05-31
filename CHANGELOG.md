@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix `parse-long` returning out-of-range values instead of `nil` (the safe-integer upper bound was a no-op due to a chained comparison)
+
 ## 0.12.192
 
 - Add support for Vite 5-8
