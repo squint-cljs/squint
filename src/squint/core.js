@@ -504,21 +504,22 @@ export function println(...args) {
 
 export function nth(coll, idx, orElse) {
   if (coll) {
-    var elt = undefined;
+    // "found" must be decided by the index bound, not by the value: an
+    // in-bounds element that happens to be `undefined` is still found.
     if (Array.isArray(coll)) {
-      elt = coll[idx];
+      if (idx >= 0 && idx < coll.length) {
+        return coll[idx];
+      }
     } else {
+      // iterables may lack .length and can be infinite, so iterate and stop
+      // at idx rather than computing a bound.
       const iter = iterable(coll);
       let i = 0;
       for (const value of iter) {
-        if (i++ == idx) {
-          elt = value;
-          break;
+        if (i++ === idx) {
+          return value;
         }
       }
-    }
-    if (elt !== undefined) {
-      return elt;
     }
   }
   return orElse;

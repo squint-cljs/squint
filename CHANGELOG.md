@@ -10,6 +10,7 @@
 - Fix `compare` throwing on booleans; `(compare false true)` → `-1` and `(sort [true false])` no longer throws, matching CLJS
 - `clojure.set/intersection` and `union` now use `.size` (not `.length`) for their set-size optimization, which was previously dead code (`undefined > undefined`); results were already correct, this restores the intended performance
 - Fix `seqable?` returning `false` for maps; `(seqable? {:a 1})` → `true`, matching CLJS (`seq` already worked on objects)
+- Fix `nth` returning the not-found default for an in-bounds element that is `undefined` (e.g. sparse / `object-array` / JS-interop arrays); it now decides found-ness by the index bound, not the value
 
 ## 0.12.192
 

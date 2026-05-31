@@ -98,11 +98,19 @@ replacement literally), but MATCHES ClojureScript, which squint targets.
 Confirmed against CLJS (plk): `(str/replace "hello" "l" "$&")` → `"hello"`,
 `(str/replace "hello" "l" "$1x")` → `"he$1x$1xo"` - identical to squint. No change.
 
-### 8. `nth` returns the not-found default for an in-bounds `undefined` element — `core.js:520`
+### 8. `nth` returns the not-found default for an in-bounds `undefined` element — `core.js:520` — FIXED
 
-`(nth [1 nil 3] 1 :x)` → `:x` instead of `nil`, because it tests
-`elt !== undefined` rather than checking the index bound. Affects arrays holding
-`undefined`.
+Tested `elt !== undefined` (a value check) rather than the index bound, so an
+in-bounds element that is `undefined` was reported as missing. The common
+`(nth [1 nil 3] 1 :x)` actually worked (squint `nil` is `null`, and
+`null !== undefined`); the bug bit on real `undefined` holes -
+`(nth (js/Array. 3) 0 :x)` → `:x` instead of `nil`. Affects sparse arrays,
+`(object-array n)` / `(make-array n)`, and JS-interop arrays holding `undefined`.
+
+Fixed: the array path now checks `idx >= 0 && idx < coll.length` and returns
+`coll[idx]` (even when `undefined`); the iterable path returns the value as soon
+as the loop reaches `idx`. The iterable path deliberately avoids `.length` so it
+still works on length-less and infinite/lazy seqs (`(nth (range) 5)` → `5`).
 
 ## Minor / cosmetic
 

@@ -1615,7 +1615,16 @@ with `backticks`")))]
   (is (nil? (jsv! '(nth nil 1))))
   (is (eq :default (jsv! '(nth nil 1 :default))))
   (is (= 1 (jsv! '(nth [1 2 3] 0))))
-  (is (eq :default (jsv! '(nth [1 2 3] 5 :default)))))
+  (is (eq :default (jsv! '(nth [1 2 3] 5 :default))))
+  ;; in-bounds nil/undefined elements are found, not treated as missing
+  (is (nil? (jsv! '(nth [1 nil 3] 1 :default))))
+  ;; sparse array: in-bounds hole (undefined) is found (nil), oob is the default
+  (is (nil? (jsv! '(nth (js/Array. 3) 0 :default))))
+  (is (eq :default (jsv! '(nth (js/Array. 3) 5 :default))))
+  ;; negative index falls back to the default
+  (is (eq :default (jsv! '(nth [1 2 3] -1 :default))))
+  ;; works on infinite lazy seqs without computing a length
+  (is (= 5 (jsv! '(nth (range) 5)))))
 
 (deftest drop-test
   (let [dropped (jsv! '(drop 3 (range 6)))]
