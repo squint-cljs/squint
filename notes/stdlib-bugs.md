@@ -22,11 +22,16 @@ intended the same check; the chained comparison defeated it.
 
 Fixed: `Number.MIN_SAFE_INTEGER <= i && i <= Number.MAX_SAFE_INTEGER`.
 
-### 2. `clojure.string/split` ignores Clojure's limit semantics — `string.js:52`
+### 2. `clojure.string/split` ignores Clojure's limit semantics — `string.js:52` — FIXED
 
 JS `String.prototype.split(re, limit)` *truncates* the result; Clojure's limit
 caps the number of *splits* and keeps the remainder.
 `(str/split "a-b-c-d" #"-" 2)` → squint `["a" "b"]`, Clojure `["a" "b-c-d"]`.
+
+Fixed: a positive limit now loops, splitting at most `limit-1` times and keeping
+the remainder; `<1`/unset does a full split. Also fixed `discardTrailingIfNeeded`
+to drop trailing empties for limit `0` (not just unset), matching Clojure
+(negative limit keeps them). Confirmed against CLJS (plk).
 
 ### 3. `select-keys` drops keys with `nil` values — `core.js:1304` — FIXED
 

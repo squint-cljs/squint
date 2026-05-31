@@ -39,6 +39,23 @@
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/split "foo\nbar\n\n" #"\n")))))
 
+(deftest split-limit-test
+  ;; positive limit caps the number of splits and keeps the remainder,
+  ;; matching Clojure (not JS truncation)
+  (evalll (eq ["a" "b-c-d"])
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result (str/split "a-b-c-d" #"-" 2))))
+  (evalll (eq ["a" "b" "c-d"])
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result (str/split "a-b-c-d" #"-" 3))))
+  ;; limit 0 / unset discards trailing empties; negative keeps them
+  (evalll (eq ["a" "b"])
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result (str/split "a-b-" #"-" 0))))
+  (evalll (eq ["a" "b" ""])
+          '(do (ns foo (:require [squint.string :as str]))
+               (def result (str/split "a-b-" #"-" -1)))))
+
 (deftest split-lines-test
   (evalll (eq ["foo" "bar"])
           '(do (ns foo (:require [squint.string :as str]))
