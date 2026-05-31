@@ -2176,7 +2176,14 @@ globalThis.foo.fs = fs;")))))
 (deftest seqable?-test
   (is (true? (jsv! "(seqable? [])")))
   (is (true? (jsv! "(seqable? #{})")))
-  (is (false? (jsv! "(seqable? 1)"))))
+  (is (false? (jsv! "(seqable? 1)")))
+  ;; plain objects (maps) are seqable, matching CLJS
+  (is (true? (jsv! "(seqable? {:a 1})")))
+  (is (true? (jsv! "(seqable? {})")))
+  (is (true? (jsv! "(seqable? \"foo\")")))
+  (is (true? (jsv! "(seqable? nil)")))
+  (is (false? (jsv! "(seqable? true)")))
+  (is (false? (jsv! "(seqable? inc)"))))
 
 (deftest merge-with-test
   (is (eq {:a 3 :b 1 :c 1} (jsv! "(merge-with + {:a 1 :c 1} {:a 2 :b 1})"))))

@@ -576,6 +576,9 @@ export function seqable_QMARK_(x) {
   return (
     x === null ||
     x === undefined ||
+    // plain objects (squint maps) are seqable via Object.entries in `iterable`,
+    // even though they lack Symbol.iterator.
+    object_QMARK_(x) ||
     // we used to check instanceof Object but this returns false for TC39 Records
     // also we used to write `Symbol.iterator in` but this does not work for strings and some other types
     !!x[Symbol.iterator]
@@ -587,7 +590,10 @@ export function iterable(x) {
   if (x === null || x === undefined) {
     return [];
   }
-  if (seqable_QMARK_(x)) {
+  // fast path: anything with Symbol.iterator (arrays, strings, sets, maps,
+  // lazy seqs). Inlined rather than calling seqable?, which also reports plain
+  // objects as seqable; those are handled by the Object.entries branch below.
+  if (x[Symbol.iterator]) {
     return x;
   }
   if (x instanceof Object) return Object.entries(x);

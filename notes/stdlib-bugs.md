@@ -72,13 +72,23 @@ Fixed: added a `boolean`/`boolean` case to the same-type branch (`false < true`
 via JS coercion). Confirmed against CLJS (plk): `(compare false true)` → `-1`,
 `(sort [true false true false])` → `(false false true true)`.
 
-### 6. `seqable?` returns `false` for plain objects (maps) — `core.js:575`
+### 6. `seqable?` returns `false` for plain objects (maps) — `core.js:575` — FIXED
 
-Checks only `x[Symbol.iterator]`, which objects lack. But `seq`/`iterable` do
+Checked only `x[Symbol.iterator]`, which objects lack. But `seq`/`iterable` do
 work on objects (via `Object.entries`), and the README says `seqable?` should
 predict whether `seq`/`iterable` will work. So `(seqable? {:a 1})` → `false`
 while `(seq {:a 1})` succeeds — internally inconsistent, and Clojure returns
 `true`.
+
+Fixed: added `object_QMARK_(x)` (plain-object check) to `seqable?`.
+`iterable` previously short-circuited on `seqable?` and would have returned the
+raw object instead of its entries, so `iterable` was decoupled and now inlines
+the `x[Symbol.iterator]` fast path (bit-identical to its original behaviour;
+plain objects still fall through to the `Object.entries` branch). `seqable?` now
+has no internal callers, so its predicate change can't affect iteration.
+`iterable`'s fallback stays `instanceof Object` (not `object_QMARK_`) so TC39
+Records keep working. Confirmed against CLJS (plk): `(seqable? {:a 1})` → `true`,
+`(seqable? 1)`/`(seqable? true)`/`(seqable? inc)` → `false`.
 
 ### 7. `clojure.string/replace` with string match interprets `$` in the replacement — `string.js:97` — NOT A BUG
 
