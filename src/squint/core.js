@@ -2663,10 +2663,10 @@ export function parse_long(s) {
 
 export function parse_double(s) {
   if (string_QMARK_(s)) {
-    if (/^[\\x00-\\x20]*[+-]?NaN[\\x00-\\x20]*$/.test(s)) {
+    if (/^[\x00-\x20]*[+-]?NaN[\x00-\x20]*$/.test(s)) {
       return NaN;
     } else if (
-      /^[\\x00-\\x20]*[+-]?(Infinity|((\d+\.?\d*|\.\d+)([eE][+-]?\d+)?)[dDfF]?)[\\x00-\\x20]*$/.test(
+      /^[\x00-\x20]*[+-]?(Infinity|((\d+\.?\d*|\.\d+)([eE][+-]?\d+)?)[dDfF]?)[\x00-\x20]*$/.test(
         s
       )
     ) {
@@ -2675,7 +2675,7 @@ export function parse_double(s) {
       return null;
     }
   } else {
-    throw new parsing_err(s);
+    return parsing_err(s);
   }
 }
 

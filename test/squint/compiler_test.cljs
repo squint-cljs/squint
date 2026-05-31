@@ -243,6 +243,17 @@
   (is (nil? (jsv! "(parse-long \"9007199254740992\")")))
   (is (nil? (jsv! "(parse-long \"foo\")"))))
 
+(deftest parse-double-test
+  (is (= 3.14 (jsv! "(parse-double \"3.14\")")))
+  (is (= -2.5 (jsv! "(parse-double \"-2.5\")")))
+  (is (= 1500.0 (jsv! "(parse-double \"1.5e3\")")))
+  ;; leading/trailing whitespace is trimmed, matching Clojure
+  (is (= 3.14 (jsv! "(parse-double \"  3.14  \")")))
+  (is (= 1.5 (jsv! "(parse-double \"\\t1.5\\n\")")))
+  (is (jsv! "(.isNaN js/Number (parse-double \"  NaN \"))"))
+  (is (= ##Inf (jsv! "(parse-double \"Infinity\")")))
+  (is (nil? (jsv! "(parse-double \"abc\")"))))
+
 (deftest no-truth-check-test
   (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)"
                 #_"(when (= 1 1) 1)"
