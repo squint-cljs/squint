@@ -28,7 +28,7 @@ JS `String.prototype.split(re, limit)` *truncates* the result; Clojure's limit
 caps the number of *splits* and keeps the remainder.
 `(str/split "a-b-c-d" #"-" 2)` → squint `["a" "b"]`, Clojure `["a" "b-c-d"]`.
 
-### 3. `select-keys` drops keys with `nil` values — `core.js:1304`
+### 3. `select-keys` drops keys with `nil` values — `core.js:1304` — FIXED
 
 ```js
 if (v != undefined) { assoc_BANG_(ret, k, v); }
@@ -38,7 +38,8 @@ if (v != undefined) { assoc_BANG_(ret, k, v); }
 silently omitted. `(select-keys {:a nil :b 2} [:a :b])` → squint `{b:2}`,
 Clojure `{:a nil :b 2}`.
 
-Fix: `v !== undefined`.
+Fixed: `v !== undefined`. Confirmed against CLJS (plk):
+`(select-keys {:a nil :b 2 :c 3} [:a :b :missing])` → `{:a nil, :b 2}`.
 
 ### 4. `clojure.set/intersection` & `union` size-optimization is dead code — `set.js:27,65`
 

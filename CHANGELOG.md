@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Fix `parse-long` returning out-of-range values instead of `nil` (the safe-integer upper bound was a no-op due to a chained comparison)
+- Fix `select-keys` dropping keys mapped to `nil` (loose `!= undefined` matched `null`); nil-valued keys are now kept, matching Clojure
 
 ## 0.12.192
 

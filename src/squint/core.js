@@ -1301,7 +1301,7 @@ export function select_keys(o, ks) {
   const ret = emptyOfType(type) || {};
   for (const k of ks) {
     const v = get(o, k);
-    if (v != undefined) {
+    if (v !== undefined) {
       assoc_BANG_(ret, k, v);
     }
   }
