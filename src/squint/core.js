@@ -1,6 +1,6 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
-// __toFn is not public API — the leading underscores mark it as an
+// __toFn is not public API - the leading underscores mark it as an
 // implementation helper shared with other squint runtime modules
 // (e.g. multi.js). Signature and semantics may change without notice.
 export function __toFn(x) {
@@ -2565,7 +2565,7 @@ export function meta(x) {
 export function with_meta(x, m) {
   // For functions, wrap in a new callable that forwards to the original
   // so fn? stays true and the original isn't mutated. copy() can't handle
-  // functions — a {...x} spread loses the call signature.
+  // functions - a {...x} spread loses the call signature.
   if (typeof x === 'function') {
     const wrapped = function (...args) { return x.apply(this, args); };
     wrapped[_metaSym] = m;

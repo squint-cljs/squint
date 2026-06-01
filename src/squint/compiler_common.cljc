@@ -451,7 +451,7 @@
                                               (if (:repl env)
                                                 (let [mns (munge current)]
                                                   (str (statement (format "var %s = await import('%s')" auto-alias resolved))
-                                                       ;; ensure the ns object exists before assigning onto it — the ns
+                                                       ;; ensure the ns object exists before assigning onto it - the ns
                                                        ;; form also emits this guard, but our auto-import may land first.
                                                        (statement (format "globalThis.%s = globalThis.%s || {}" mns mns))
                                                        (statement (format "globalThis.%s.%s = %s" mns auto-alias auto-alias))))
@@ -723,7 +723,7 @@
                                          "")))))
                 (when (and (not as) (not refer))
                   (if (symbol? original-libname)
-                    ;; symbol require without :as or :refer — generate namespace
+                    ;; symbol require without :as or :refer - generate namespace
                     ;; import. A bare [some.ns] aliases the ns to itself, so in
                     ;; the repl bind + register globalThis.<cur-ns>.<alias> (like
                     ;; an explicit :as) so its vars resolve.
@@ -742,7 +742,7 @@
                                            (if with
                                              (str " with " (unwrap (emit with env)))
                                              "")))))
-                    ;; string require without :as or :refer — side-effect import
+                    ;; string require without :as or :refer - side-effect import
                     (if (:repl env)
                       (statement (format "await import('%s'%s)" libname
                                          (if with

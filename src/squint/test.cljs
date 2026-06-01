@@ -204,7 +204,7 @@
                               (run-all)))]
     ;; Match cljs.test: bracket each ns's run with :begin/:end-test-ns
     ;; events so reporters can group output. Anonymous (nil-ns) groups
-    ;; — explicit fns without :ns meta — are skipped so we don't print
+    ;; - explicit fns without :ns meta - are skipped so we don't print
     ;; "Testing " with no name.
     (when ns-str (report {:type :begin-test-ns :ns ns-str}))
     (let [chain (run-with-fixtures)
