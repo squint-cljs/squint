@@ -22,7 +22,7 @@ function setHasEquiv(s, v) {
 }
 
 // Map<any, Set<any>> insert with value equality on both keys and
-// members — so a preference/ancestry relation expressed with freshly
+// members - so a preference/ancestry relation expressed with freshly
 // allocated vectors like [:km :m] reads back the same as the original.
 // Without this, everything that keys on dispatch values (prefer tables,
 // hierarchy maps) silently loses entries for compound keys.
@@ -77,9 +77,9 @@ function _deriveInto(h, tag, parent) {
   }
   addRel(h.parents, tag, parent);
   // Matches Clojure's derive: new ancestor relations flow to
-  // { tag and everything under tag } × { parent and everything above parent }.
+  // { tag and everything under tag } x { parent and everything above parent }.
   // Crucially, the left side is the DESCENDANTS of tag (plus tag), not
-  // its ancestors — deriving 'tag isa parent' must not make tag's
+  // its ancestors - deriving 'tag isa parent' must not make tag's
   // existing ancestors also isa parent.
   const withSelf = (m, t) => {
     const acc = new Set([t]);
@@ -195,7 +195,7 @@ class MultiFn {
     this.methodCache = new Map();
     this.cachedHierarchy = this.hierarchy.deref();
     // defaultDispatchVal is immutable after construction, so the
-    // resolved default fn only changes when methodTable changes —
+    // resolved default fn only changes when methodTable changes -
     // which always routes through resetCache. Memoize here so
     // getMethod's no-match branch is O(1).
     const defKey = findKeyByEquiv(this.methodTable, this.defaultDispatchVal);
@@ -238,8 +238,8 @@ class MultiFn {
     // Two-path cache read: primitives hit Map.get in O(1); non-primitive
     // dispatch values (typically vectors) scan the cache with _EQ_ so
     // freshly-allocated structurally-equal vectors hit prior entries.
-    // Previously non-primitives skipped the cache entirely — every
-    // dispatch redid findBest, which scans methodTable × _isa cost.
+    // Previously non-primitives skipped the cache entirely - every
+    // dispatch redid findBest, which scans methodTable x _isa cost.
     if (isPrimitive(val)) {
       const cached = this.methodCache.get(val);
       if (cached !== undefined) return cached;
@@ -270,10 +270,10 @@ class MultiFn {
 export function defmulti(name, dispatchFn, opts) {
   opts = opts || {};
   const defaultVal = 'default' in opts ? opts.default : 'default';
-  // Accept three shapes for :hierarchy —
-  //   (a) omitted     → defer to the global hierarchy
-  //   (b) a deref-able ref (atom/var-like) → use as-is
-  //   (c) a plain hierarchy (the result of make-hierarchy) → wrap so
+  // Accept three shapes for :hierarchy -
+  //   (a) omitted     -> defer to the global hierarchy
+  //   (b) a deref-able ref (atom/var-like) -> use as-is
+  //   (c) a plain hierarchy (the result of make-hierarchy) -> wrap so
   //       MultiFn can call .deref() on it uniformly. The wrapped form
   //       is a frozen snapshot of that hierarchy at defmulti time.
   let hierarchy;

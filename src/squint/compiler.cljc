@@ -269,7 +269,7 @@
                                                               (get-in ns-state [:macros alias-sym nms])))
                                                           (:aliases current-ns-state)))
                                                   ;; Built-in fallback. Only consult if the user actually
-                                                  ;; required this ns — otherwise (cljs.test/foo) with no
+                                                  ;; required this ns - otherwise (cljs.test/foo) with no
                                                   ;; require would silently work. Cheaper to first see if
                                                   ;; there's even a built-in candidate.
                                                   (when-let [m (or (get-in built-in-macro-nss [macro-ns nms])

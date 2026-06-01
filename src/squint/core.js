@@ -1,6 +1,6 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
-// __toFn is not public API — the leading underscores mark it as an
+// __toFn is not public API - the leading underscores mark it as an
 // implementation helper shared with other squint runtime modules
 // (e.g. multi.js). Signature and semantics may change without notice.
 export function __toFn(x) {
@@ -504,21 +504,22 @@ export function println(...args) {
 
 export function nth(coll, idx, orElse) {
   if (coll) {
-    var elt = undefined;
+    // "found" must be decided by the index bound, not by the value: an
+    // in-bounds element that happens to be `undefined` is still found.
     if (Array.isArray(coll)) {
-      elt = coll[idx];
+      if (idx >= 0 && idx < coll.length) {
+        return coll[idx];
+      }
     } else {
+      // iterables may lack .length and can be infinite, so iterate and stop
+      // at idx rather than computing a bound.
       const iter = iterable(coll);
       let i = 0;
       for (const value of iter) {
-        if (i++ == idx) {
-          elt = value;
-          break;
+        if (i++ === idx) {
+          return value;
         }
       }
-    }
-    if (elt !== undefined) {
-      return elt;
     }
   }
   return orElse;
@@ -576,6 +577,9 @@ export function seqable_QMARK_(x) {
   return (
     x === null ||
     x === undefined ||
+    // plain objects (squint maps) are seqable via Object.entries in `iterable`,
+    // even though they lack Symbol.iterator.
+    object_QMARK_(x) ||
     // we used to check instanceof Object but this returns false for TC39 Records
     // also we used to write `Symbol.iterator in` but this does not work for strings and some other types
     !!x[Symbol.iterator]
@@ -587,7 +591,10 @@ export function iterable(x) {
   if (x === null || x === undefined) {
     return [];
   }
-  if (seqable_QMARK_(x)) {
+  // fast path: anything with Symbol.iterator (arrays, strings, sets, maps,
+  // lazy seqs). Inlined rather than calling seqable?, which also reports plain
+  // objects as seqable; those are handled by the Object.entries branch below.
+  if (x[Symbol.iterator]) {
     return x;
   }
   if (x instanceof Object) return Object.entries(x);
@@ -1301,7 +1308,7 @@ export function select_keys(o, ks) {
   const ret = emptyOfType(type) || {};
   for (const k of ks) {
     const v = get(o, k);
-    if (v != undefined) {
+    if (v !== undefined) {
       assoc_BANG_(ret, k, v);
     }
   }
@@ -2372,7 +2379,8 @@ export function compare(x, y) {
     }
     const tx = typeof x;
     const ty = typeof y;
-    if ((tx === 'number' && ty === 'number') || (tx === 'string' && ty === 'string')) {
+    if ((tx === 'number' && ty === 'number') || (tx === 'string' && ty === 'string') ||
+        (tx === 'boolean' && ty === 'boolean')) {
       if (x === y) {
         return 0;
       }
@@ -2557,7 +2565,7 @@ export function meta(x) {
 export function with_meta(x, m) {
   // For functions, wrap in a new callable that forwards to the original
   // so fn? stays true and the original isn't mutated. copy() can't handle
-  // functions — a {...x} spread loses the call signature.
+  // functions - a {...x} spread loses the call signature.
   if (typeof x === 'function') {
     const wrapped = function (...args) { return x.apply(this, args); };
     wrapped[_metaSym] = m;
@@ -2644,7 +2652,7 @@ export function parse_long(s) {
   if (string_QMARK_(s)) {
     if (/^[+-]?\d+$/.test(s)) {
       const i = parseInt(s);
-      if (Number.MIN_SAFE_INTEGER <= i <= Number.MAX_SAFE_INTEGER) {
+      if (Number.MIN_SAFE_INTEGER <= i && i <= Number.MAX_SAFE_INTEGER) {
         return i;
       }
     }
@@ -2655,10 +2663,10 @@ export function parse_long(s) {
 
 export function parse_double(s) {
   if (string_QMARK_(s)) {
-    if (/^[\\x00-\\x20]*[+-]?NaN[\\x00-\\x20]*$/.test(s)) {
+    if (/^[\x00-\x20]*[+-]?NaN[\x00-\x20]*$/.test(s)) {
       return NaN;
     } else if (
-      /^[\\x00-\\x20]*[+-]?(Infinity|((\d+\.?\d*|\.\d+)([eE][+-]?\d+)?)[dDfF]?)[\\x00-\\x20]*$/.test(
+      /^[\x00-\x20]*[+-]?(Infinity|((\d+\.?\d*|\.\d+)([eE][+-]?\d+)?)[dDfF]?)[\x00-\x20]*$/.test(
         s
       )
     ) {
@@ -2667,7 +2675,7 @@ export function parse_double(s) {
       return null;
     }
   } else {
-    throw new parsing_err(s);
+    return parsing_err(s);
   }
 }
 
@@ -3056,7 +3064,13 @@ export function vreset_BANG_(vol, v) {
 
 function toEDN(value, seen = new WeakSet()) {
   if (value == null) return 'nil';
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'number') {
+    if (value === Infinity) return '##Inf';
+    if (value === -Infinity) return '##-Inf';
+    if (Number.isNaN(value)) return '##NaN';
+    return String(value);
+  }
+  if (typeof value === 'boolean') return String(value);
   if (typeof value === 'string') return JSON.stringify(value);
   if (typeof value === 'bigint') return `${value}N`;
 

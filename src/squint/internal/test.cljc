@@ -96,7 +96,7 @@
       :each `(clojure.test/set-each-fixtures! ~ns-name [~@fns]))))
 
 (defn core-async [_&form _&env done & body]
-  ;; (async done body...) — common cljs.test idiom for async tests.
+  ;; (async done body...) - common cljs.test idiom for async tests.
   ;; Expands to a Promise constructor whose `resolve` is bound to `done`
   ;; in the body's scope. The deftest body returns this Promise and
   ;; test-var awaits it; no ^:async marker needed on the outer fn.

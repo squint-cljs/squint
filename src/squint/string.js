@@ -40,7 +40,7 @@ export function trimr(s) {
 }
 
 function discardTrailingIfNeeded(limit, v) {
-  if (limit == null && v.length > 1) {
+  if ((limit == null || limit === 0) && v.length > 1) {
     for (;;)
     if (v[v.length - 1] === "") {
       v.pop();
@@ -50,8 +50,25 @@ function discardTrailingIfNeeded(limit, v) {
 }
 
 export function split(s, re, limit) {
-  const split = s.split(re, limit);
-  return discardTrailingIfNeeded(limit, split);
+  // Clojure's limit caps the number of splits and keeps the remainder, unlike
+  // JS String.prototype.split which truncates the result. Only a positive
+  // limit changes behaviour; <1 (or unset) does a full split, with trailing
+  // empties discarded when the limit is 0 / unset.
+  if (limit == null || limit < 1) {
+    return discardTrailingIfNeeded(limit, s.split(re));
+  }
+  const parts = [];
+  let rem = s;
+  while (limit > 1) {
+    const m = rem.match(re);
+    if (m == null) break;
+    const idx = m.index;
+    parts.push(rem.substring(0, idx));
+    rem = rem.substring(idx + m[0].length);
+    limit--;
+  }
+  parts.push(rem);
+  return parts;
 }
 
 export function starts_with_QMARK_(s, substr) {

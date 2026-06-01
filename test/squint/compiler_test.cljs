@@ -235,6 +235,25 @@
   (is (false? (jsv! "(neg-int? :some-keyword)")))
   (is (false? (jsv! "(neg-int? [-4])"))))
 
+(deftest parse-long-test
+  (is (= 42 (jsv! "(parse-long \"42\")")))
+  (is (= -42 (jsv! "(parse-long \"-42\")")))
+  (is (= 9007199254740991 (jsv! "(parse-long \"9007199254740991\")")))
+  (is (nil? (jsv! "(parse-long \"99999999999999999999\")")))
+  (is (nil? (jsv! "(parse-long \"9007199254740992\")")))
+  (is (nil? (jsv! "(parse-long \"foo\")"))))
+
+(deftest parse-double-test
+  (is (= 3.14 (jsv! "(parse-double \"3.14\")")))
+  (is (= -2.5 (jsv! "(parse-double \"-2.5\")")))
+  (is (= 1500.0 (jsv! "(parse-double \"1.5e3\")")))
+  ;; leading/trailing whitespace is trimmed, matching Clojure
+  (is (= 3.14 (jsv! "(parse-double \"  3.14  \")")))
+  (is (= 1.5 (jsv! "(parse-double \"\\t1.5\\n\")")))
+  (is (jsv! "(.isNaN js/Number (parse-double \"  NaN \"))"))
+  (is (= ##Inf (jsv! "(parse-double \"Infinity\")")))
+  (is (nil? (jsv! "(parse-double \"abc\")"))))
+
 (deftest no-truth-check-test
   (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)"
                 #_"(when (= 1 1) 1)"
@@ -686,7 +705,14 @@
   (doseq [coll [#{"a" "b" "c"} {:a 1 :b 2}]]
     (is (eq (pr-str coll) (jsv! `(pr-str ~coll)))))
   (is (eq "#js/Map {\"a\" 1}" (jsv! "(pr-str #js/Map {:a 1})")))
-  (is (eq "nil" (jsv! "(pr-str js/undefined)"))))
+  (is (eq "nil" (jsv! "(pr-str js/undefined)")))
+  ;; Infinity / -Infinity / NaN print as ##Inf / ##-Inf / ##NaN, like CLJS
+  (is (eq "##Inf" (jsv! "(pr-str js/Infinity)")))
+  (is (eq "##-Inf" (jsv! "(pr-str (/ -1.0 0))")))
+  (is (eq "##NaN" (jsv! "(pr-str js/NaN)")))
+  (is (eq "[##Inf ##NaN]" (jsv! "(pr-str [js/Infinity js/NaN])")))
+  ;; str is unaffected
+  (is (eq "Infinity" (jsv! "(str js/Infinity)"))))
 
 (deftest str-test
   (is (eq "123" (jsv! '(str 1 2 3))))
@@ -1431,7 +1457,9 @@ with `backticks`")))]
     (is (= 1 (.get m "a")))
     (is (= 2 (.get m "b")))
     (is (not (.has m "c"))))
-  (is (eq #js {} (jsv! '(select-keys nil [])))))
+  (is (eq #js {} (jsv! '(select-keys nil []))))
+  ;; nil-valued keys are kept (present), missing keys dropped
+  (is (eq #js {:a nil :b 2} (jsv! '(select-keys {:a nil :b 2 :c 3} [:a :b :missing])))))
 
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 20))))))
@@ -1605,7 +1633,16 @@ with `backticks`")))]
   (is (nil? (jsv! '(nth nil 1))))
   (is (eq :default (jsv! '(nth nil 1 :default))))
   (is (= 1 (jsv! '(nth [1 2 3] 0))))
-  (is (eq :default (jsv! '(nth [1 2 3] 5 :default)))))
+  (is (eq :default (jsv! '(nth [1 2 3] 5 :default))))
+  ;; in-bounds nil/undefined elements are found, not treated as missing
+  (is (nil? (jsv! '(nth [1 nil 3] 1 :default))))
+  ;; sparse array: in-bounds hole (undefined) is found (nil), oob is the default
+  (is (nil? (jsv! '(nth (js/Array. 3) 0 :default))))
+  (is (eq :default (jsv! '(nth (js/Array. 3) 5 :default))))
+  ;; negative index falls back to the default
+  (is (eq :default (jsv! '(nth [1 2 3] -1 :default))))
+  ;; works on infinite lazy seqs without computing a length
+  (is (= 5 (jsv! '(nth (range) 5)))))
 
 (deftest drop-test
   (let [dropped (jsv! '(drop 3 (range 6)))]
@@ -1713,7 +1750,13 @@ with `backticks`")))]
   (is (eq 1 (jsv! '(compare ["xyz" 3] ["abc" 2]))))
   (is (eq -1 (jsv! '(compare ["xyz" 2] ["xyz" 3]))))
   (is (eq 0 (jsv! '(compare ["xyz" 2] ["xyz" 2]))))
-  (is (eq 1 (jsv! '(compare ["xyz" 3] ["xyz" 2])))))
+  (is (eq 1 (jsv! '(compare ["xyz" 3] ["xyz" 2]))))
+  ;; booleans: false < true (CLJS), and sort must not throw
+  (is (eq -1 (jsv! '(compare false true))))
+  (is (eq 1 (jsv! '(compare true false))))
+  (is (eq 0 (jsv! '(compare true true))))
+  (is (eq 0 (jsv! '(compare false false))))
+  (is (eq [false false true true] (jsv! '(sort [true false true false])))))
 
 (deftest sort-by-test
   (is (eq (sort-by count ["aaa" "bb" "c"]) (jsv! '(sort-by count ["aaa" "bb" "c"]))))
@@ -2160,7 +2203,14 @@ globalThis.foo.fs = fs;")))))
 (deftest seqable?-test
   (is (true? (jsv! "(seqable? [])")))
   (is (true? (jsv! "(seqable? #{})")))
-  (is (false? (jsv! "(seqable? 1)"))))
+  (is (false? (jsv! "(seqable? 1)")))
+  ;; plain objects (maps) are seqable, matching CLJS
+  (is (true? (jsv! "(seqable? {:a 1})")))
+  (is (true? (jsv! "(seqable? {})")))
+  (is (true? (jsv! "(seqable? \"foo\")")))
+  (is (true? (jsv! "(seqable? nil)")))
+  (is (false? (jsv! "(seqable? true)")))
+  (is (false? (jsv! "(seqable? inc)"))))
 
 (deftest merge-with-test
   (is (eq {:a 3 :b 1 :c 1} (jsv! "(merge-with + {:a 1 :c 1} {:a 2 :b 1})"))))
