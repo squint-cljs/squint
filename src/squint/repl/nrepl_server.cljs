@@ -127,9 +127,11 @@
 (def browser-eval-timeout-ms 8000)
 
 (defn handle-browser-message
-  "Feed a browser eval reply back into the server, resolving the awaiting eval.
-  `msg` is a JS object (or JSON string) {op, value, ex, id, session}. Exposed so
-  a transport can deliver browser replies."
+  "Feed a browser reply back into the server, resolving the awaiting request.
+  `msg` is a JS object (or JSON string) {op, value/completions, ex, id, session}.
+  The stored resolve fn receives the whole msg and extracts what it needs (eval
+  takes :value, complete-js takes :completions). Exposed so a transport can
+  deliver browser replies."
   [msg]
   (let [msg (if (string? msg) (js/JSON.parse msg) msg)
         id (.-id ^js msg)
@@ -138,7 +140,7 @@
       (swap! !pending dissoc id)
       (if-some [ex (.-ex ^js msg)]
         ((.-reject ^js p) (js/Error. (str ex)))
-        ((.-resolve ^js p) (.-value ^js msg))))))
+        ((.-resolve ^js p) msg)))))
 
 (defn compile [the-val ns]
   (let [;; Apply squint.edn's :jsx-runtime so #jsx eval'd at the REPL emits
@@ -192,7 +194,9 @@
   (js/Promise.
    (fn [resolve reject]
      (let [id (:id request)]
-       (swap! !pending assoc id #js {:resolve resolve :reject reject})
+       ;; handle-browser-message now resolves with the whole reply msg; pull the value.
+       (swap! !pending assoc id #js {:resolve (fn [msg] (resolve (.-value ^js msg)))
+                                     :reject reject})
        ;; Don't hang forever if no browser is connected (or it never replies):
        ;; the eval runs *in the page*, so without an open tab there's nothing to
        ;; run it. Reject with an actionable message.
@@ -214,6 +218,71 @@
                     :session (:session request)})
          (do (swap! !pending dissoc id)
              (reject (js/Error. "No browser transport connected"))))))))
+
+(defn- own+proto-names
+  "All property names of `obj` and its prototype chain (like what's reachable via
+  dot access), as a JS array."
+  [obj]
+  (let [acc (js/Set.)]
+    (loop [o obj]
+      (when (some? o)
+        (doseq [n (js/Object.getOwnPropertyNames o)]
+          (.add acc n))
+        (recur (js/Object.getPrototypeOf o))))
+    (js/Array.from acc)))
+
+(def js-complete-limit 100)
+
+(defn js-completions
+  "JS interop candidates for a `js/...` prefix, enumerated from `globalThis`.
+  e.g. `js/Ma` -> [\"js/Math\" \"js/Map\" ...], `js/console.lo` -> [\"js/console.log\"].
+  Returns a JS array of candidate strings (capped). Pure, runtime-agnostic: the
+  browser listener (vite.js) mirrors this so completion reflects the page's
+  globals; node uses it directly."
+  [prefix]
+  (if-not (str/starts-with? prefix "js/")
+    #js []
+    (let [s (subs prefix 3)
+          parts (.split s ".")
+          partial (aget parts (dec (.-length parts)))
+          path (.slice parts 0 (dec (.-length parts)))
+          obj (reduce (fn [o seg] (when (some? o) (aget o seg)))
+                      js/globalThis
+                      (js/Array.from path))]
+      (if (nil? obj)
+        #js []
+        (let [pre (str "js/" (when (pos? (.-length path))
+                               (str (.join path ".") ".")))]
+          (->> (own+proto-names obj)
+               (filter (fn [n] (str/starts-with? n partial)))
+               (sort)
+               (take js-complete-limit)
+               (map (fn [n] (str pre n)))
+               (into-array)))))))
+
+(defn browser-js-complete
+  "Ask the browser to enumerate JS-interop candidates for `prefix` (its globals
+  differ from node's). Sends a `complete-js` op over the transport and resolves
+  with a JS array of candidate strings; resolves to [] on timeout or no transport."
+  [prefix request]
+  (js/Promise.
+   (fn [resolve _reject]
+     (let [id (:id request)]
+       (swap! !pending assoc id #js {:resolve (fn [msg] (resolve (or (.-completions ^js msg) #js [])))
+                                     :reject (fn [_] (resolve #js []))})
+       (js/setTimeout
+        (fn []
+          (when (get @!pending id)
+            (swap! !pending dissoc id)
+            (resolve #js [])))
+        browser-eval-timeout-ms)
+       (if-let [send @!browser-send]
+         (send #js {:op "complete-js"
+                    :prefix prefix
+                    :id id
+                    :session (:session request)})
+         (do (swap! !pending dissoc id)
+             (resolve #js [])))))))
 
 (def !eval-fn (atom node-eval))
 
@@ -266,69 +335,83 @@
   (->> (map pr-str forms)
        (str/join \newline)))
 
-(defn handle-lookup [{:keys [ns] :as request} send-fn]
-  #_(let [mapping-type (-> request :op)]
-      (try
-        (let [ns-str (:ns request)
-              sym-str (or (:sym request) (:symbol request))
-              sci-ns
-              (or (when ns
-                    (the-sci-ns (store/get-ctx) (symbol ns)))
-                  (current-ns)
-                  @sci/ns)]
-          (sci/binding [sci/ns sci-ns]
-            (let [m (sci/eval-string* (store/get-ctx) (gstring/format "
-(let [ns '%s
-      full-sym '%s]
-  (when-let [v (ns-resolve ns full-sym)]
-    (let [m (meta v)]
-      (assoc m :arglists (:arglists m)
-       :doc (:doc m)
-       :name (:name m)
-       :ns (some-> m :ns ns-name)
-       :val @v))))" ns-str sym-str))
-                  doc (:doc m)
-                  file (:file m)
-                  line (:line m)
-                  reply (case mapping-type
-                          :eldoc (cond->
-                                     {"ns" (:ns m)
-                                      "name" (:name m)
-                                      "eldoc" (mapv #(mapv str %) (:arglists m))
-                                      "type" (cond
-                                               (ifn? (:val m)) "function"
-                                               :else "variable")
-                                      "status" ["done"]}
-                                   doc (assoc "docstring" doc))
-                          (:info :lookup) (cond->
-                                              {"ns" (:ns m)
-                                               "name" (:name m)
-                                               "arglists-str" (forms-join (:arglists m))
-                                               "status" ["done"]}
-                                            doc (assoc "doc" doc)
-                                            file (assoc "file" file)
-                                            line (assoc "line" line)))]
-              (send-fn request reply))))
-        (catch js/Error e
-          (let [status (cond->
-                           #{"done"}
-                         (= mapping-type :eldoc)
-                         (conj "no-eldoc"))]
-            (send-fn
-             request
-             {"status" status "ex" (str e)}))))))
+(defn ns-state-map
+  "The live compiler ns-state map: prefer the one carried by the last compile
+  (`state`), fall back to a host-injected ns-state. nil before the first eval
+  with no host atom. See notes/internal/compiler-ns-state.md for its shape."
+  []
+  (or (some-> @state :ns-state deref)
+      (some-> @!ns-state deref)))
+
+(defn handle-lookup [{:keys [op ns] :as request} send-fn]
+  ;; Resolve a var's metadata from the compiler ns-state (squint has no runtime
+  ;; ns environment; arglists/doc are captured at compile time, keyed by the
+  ;; unmunged symbol under [ns var-sym]). Only same-session, unqualified vars
+  ;; resolve; core fns and external-lib vars are not tracked -> no-info.
+  (let [sym (or (:sym request) (:symbol request))
+        ns-sym (symbol (or ns (str (current-ns))))
+        m (when (and sym (not (str/includes? sym "/")))
+            (get-in (ns-state-map) [ns-sym (symbol sym)]))
+        {:keys [arglists doc line file]} m]
+    (if m
+      (let [base {"ns" (str ns-sym) "name" (str sym) "status" ["done"]}
+            reply (case op
+                    :eldoc (cond-> (assoc base
+                                          "eldoc" (mapv #(mapv str %) arglists)
+                                          "type" (if arglists "function" "variable"))
+                             doc (assoc "docstring" doc))
+                    ;; :info :lookup
+                    (cond-> base
+                      arglists (assoc "arglists-str" (forms-join arglists))
+                      doc (assoc "doc" doc)
+                      file (assoc "file" file)
+                      line (assoc "line" line)))]
+        (send-fn request reply))
+      (send-fn request {"status" (case op
+                                   :eldoc ["no-eldoc" "done"]
+                                   ["no-info" "done"])}))))
 
 (defn handle-load-file [{:keys [file] :as request} send-fn]
-  #_(do-handle-eval (assoc request
-                           :code file
-                           :load-file? true
-                           :ns @sci/ns)
-                    send-fn))
+  ;; nREPL load-file sends the file contents in `file`. Evaluate them through
+  ;; the normal eval path so the client gets a value + done response.
+  (do-handle-eval (assoc request :code file :load-file? true)
+                  send-fn))
 
-;;;; Completions, based on babashka.nrepl
+;;;; Completions
 
-(defn handle-complete [request send-fn]
-  #_(send-fn request (utils/handle-complete* request)))
+(defn handle-complete [{:keys [ns] :as request} send-fn]
+  ;; Two candidate sources, merged:
+  ;; - cljs: the compiler ns-state for the current ns (locally defined vars,
+  ;;   :refers, :aliases). Core fns / external-lib publics are not tracked.
+  ;;   Munged self-aliases (e.g. clojure_DOT_string) are dropped as noise.
+  ;; - js: for a `js/...` prefix, JS-interop names enumerated from globalThis -
+  ;;   in the browser when eval is delegated there (its globals differ), else
+  ;;   from node directly.
+  (let [prefix (or (:prefix request) (:symbol request) "")
+        ns-sym (symbol (or ns (str (current-ns))))
+        cur (get (ns-state-map) ns-sym)
+        names (concat (filter symbol? (keys cur))
+                      (keys (:refers cur))
+                      (keys (:aliases cur)))
+        cljs-cands (->> names
+                        (map str)
+                        (remove #(str/includes? % "_DOT_"))
+                        (filter #(str/starts-with? % prefix)))
+        js-prefix? (str/starts-with? prefix "js/")
+        js-promise (cond
+                     (not js-prefix?) (js/Promise.resolve #js [])
+                     @!browser-send (browser-js-complete prefix request)
+                     :else (js/Promise.resolve (js-completions prefix)))]
+    (-> js-promise
+        (.then (fn [js-cands]
+                 (let [cands (->> (concat cljs-cands (js/Array.from js-cands))
+                                  distinct
+                                  sort
+                                  (mapv (fn [c] {"candidate" c})))]
+                   (send-fn request {"completions" cands "status" ["done"]}))))
+        (.catch (fn [_]
+                  (send-fn request {"completions" (mapv (fn [c] {"candidate" c}) (sort cljs-cands))
+                                    "status" ["done"]}))))))
 
 ;;;; End completions
 

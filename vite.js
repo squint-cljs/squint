@@ -77,8 +77,32 @@ async function __squintImport(spec) {
   const url = await res.text();
   return __rawImport(url);
 }
+// JS-interop completion against the page's globalThis. Mirrors js-completions
+// in squint.repl.nrepl-server (node side) so browser and node behave the same.
+function __jsCompletions(prefix) {
+  if (!prefix || !prefix.startsWith('js/')) return [];
+  const s = prefix.slice(3);
+  const parts = s.split('.');
+  const partial = parts[parts.length - 1];
+  const path = parts.slice(0, -1);
+  let obj = globalThis;
+  for (const seg of path) { obj = obj == null ? obj : obj[seg]; }
+  if (obj == null) return [];
+  const acc = new Set();
+  for (let o = obj; o != null; o = Object.getPrototypeOf(o)) {
+    for (const n of Object.getOwnPropertyNames(o)) acc.add(n);
+  }
+  const pre = 'js/' + (path.length ? path.join('.') + '.' : '');
+  return Array.from(acc).filter((n) => n.startsWith(partial)).sort().slice(0, 100).map((n) => pre + n);
+}
 if (import.meta.hot) {
-  import.meta.hot.on('squint:nrepl', async ({ op, code, id, session }) => {
+  import.meta.hot.on('squint:nrepl', async ({ op, code, id, session, prefix }) => {
+    if (op === 'complete-js') {
+      import.meta.hot.send('squint:nrepl-reply', {
+        op: 'complete-js', id, session, completions: __jsCompletions(prefix),
+      });
+      return;
+    }
     if (op !== 'eval') return;
     // bare dynamic imports in eval'd code resolve through __squintImport
     // (\\s* tolerates squint emitting e.g. \`import ('preact')\` for :refer)

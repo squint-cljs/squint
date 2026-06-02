@@ -673,7 +673,11 @@
              (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))
     (swap! (:ns-state env) (fn [state]
                              (let [current (:current state)]
-                               (assoc-in state [current name] {}))))
+                               ;; keep the var's metadata (:arglists, :doc, :line)
+                               ;; so nREPL info/eldoc can read it back
+                               (assoc-in state [current name]
+                                         (select-keys (meta name)
+                                                      [:arglists :doc :line :file :private :macro])))))
     (let [skip-var? (:squint.compiler/skip-var (meta expr))]
       (emit-var more skip-var? env))))
 
