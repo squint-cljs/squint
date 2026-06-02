@@ -113,6 +113,11 @@
                       (resolve msgs))))))
        (.write (.-sock client) (bencode op))))))
 
+(defn msg-field
+  "First non-nil value of string key `k` across the response messages."
+  [msgs k]
+  (some (fn [m] (aget m k)) (js/Array.from msgs)))
+
 (defn nrepl-eval
   ([client session code] (nrepl-eval client session code nil))
   ([client session code ns]
@@ -294,7 +299,28 @@
                           " (render #jsx [:div \"jsx-repl-ok\"] (js/document.querySelector \"#preact\"))")))
           (check "REPL #jsx renders"
                  "jsx-repl-ok"
-                 (await (.textContent page "#preact")))))
+                 (await (.textContent page "#preact")))
+          ;; info / eldoc / complete (issue #832): the server reads arglists/doc
+          ;; and completion candidates from the compiler ns-state, populated by
+          ;; the server-side compile that every eval runs (even browser evals).
+          (await (ev "(ns infotest) (defn add2 \"adds two\" [a b] (+ a b))"))
+          (let [info (await (with-timeout 10000 "nrepl info"
+                                          (nrepl-request client #js {:op "info" :sym "add2" :ns "infotest"})))]
+            (check "info arglists-str" "[a b]" (msg-field info "arglists-str"))
+            (check "info doc" "adds two" (msg-field info "doc")))
+          (let [eldoc (await (with-timeout 10000 "nrepl eldoc"
+                                           (nrepl-request client #js {:op "eldoc" :sym "add2" :ns "infotest"})))]
+            (check "eldoc docstring" "adds two" (msg-field eldoc "docstring")))
+          (let [cpl (await (with-timeout 10000 "nrepl complete"
+                                         (nrepl-request client #js {:op "complete" :prefix "add" :ns "infotest"})))
+                cands (msg-field cpl "completions")
+                names (when cands (map (fn [c] (aget c "candidate")) (js/Array.from cands)))]
+            (check "complete finds add2" true (boolean (some (fn [n] (= "add2" n)) names))))
+          ;; unknown symbol must reply no-info, not hang (the bug in #832)
+          (let [unknown (await (with-timeout 10000 "nrepl info unknown"
+                                             (nrepl-request client #js {:op "info" :sym "nope-nope" :ns "infotest"})))
+                st (msg-field unknown "status")]
+            (check "info unknown -> no-info" true (boolean (and st (.includes st "no-info")))))))
       (catch :default e
         (swap! failures inc)
         (println "ERROR:" (.-message e))
