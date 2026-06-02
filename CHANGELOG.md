@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.12.193
 
 - Fix [#832](https://github.com/squint-cljs/squint/issues/832): nREPL server hung on advertised ops. `info`/`eldoc`/`lookup`, `complete` (including `js/` interop completion) and `load-file` are now implemented.
 - Fix `parse-long` returning out-of-range values instead of `nil` (the safe-integer upper bound was a no-op due to a chained comparison)
