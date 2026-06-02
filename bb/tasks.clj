@@ -68,27 +68,41 @@
   (bump-core-vars)
   (shell "npx shadow-cljs --aliases :dev --config-merge .work/config-merge.edn watch squint"))
 
-(defn browser-repl-test
-  "squint's own e2e test for the browser REPL (not example code). Lives in e2e/;
-  spawns its own `vite dev` against examples/browser-repl (isolated ports) +
-  headless playwright browser + nREPL client.
-
-  :vite - one or more vite majors (or full versions) to sweep, each installed
-  into the example before its run, so CI can cover all supported versions
-  (`bb test:browser-repl --vite 5 --vite 6 --vite 7 --vite 8`). Default [\"8\"]
-  (the newest we support). Always installed, so a run is deterministic
-  regardless of what a prior run left in the example."
-  {:org.babashka/cli {:coerce {:vite []}}}
-  [{:keys [vite] :or {vite ["8"]}}]
-  ;; the e2e harness is the same across versions; compile it once, then sweep
+(defn- compile-e2e []
+  ;; compile the squint e2e harnesses (browser_repl_test, nrepl_node_test,
+  ;; shared nrepl_client) once; the mjs is the same across vite versions
   (shell "node" "node_cli.js" "compile"
          "--paths" "e2e"
          "--output-dir" "e2e"
-         "--extension" "mjs")
+         "--extension" "mjs"))
+
+(defn- nrepl-node-e2e []
+  ;; nREPL server on the node path (local eval, no browser transport - how
+  ;; `squint nrepl-server` runs): info/eldoc/complete incl. js/ completion
+  (shell "node" "e2e/nrepl_node_test.mjs"))
+
+(defn- browser-repl-sweep [vite]
   (doseq [v vite]
     (println "[browser-repl-test] installing" (str "vite@" v) "in the example")
     (shell {:dir "examples/browser-repl"} "npm" "install" (str "vite@" v))
     (shell "node" "e2e/browser_repl_test.mjs")))
+
+(defn e2e
+  "squint's own e2e tests (not example code). Lives in e2e/. One group:
+  - node nREPL server path (no browser);
+  - browser REPL: spawns `vite dev` against examples/browser-repl (isolated
+    ports) + headless playwright browser + nREPL client.
+
+  :vite - one or more vite majors (or full versions) to sweep for the browser
+  test, each installed into the example before its run, so CI can cover all
+  supported versions (`bb test:e2e --vite 5 --vite 6 --vite 7 --vite 8`).
+  Default [\"8\"] (the newest we support). Always installed, so a run is
+  deterministic regardless of what a prior run left in the example."
+  {:org.babashka/cli {:coerce {:vite []}}}
+  [{:keys [vite] :or {vite ["8"]}}]
+  (compile-e2e)
+  (nrepl-node-e2e)
+  (browser-repl-sweep vite))
 
 (defn test-project [_]
   (let [dir "test-project"]
