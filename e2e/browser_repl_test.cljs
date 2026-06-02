@@ -320,7 +320,21 @@
           (let [unknown (await (with-timeout 10000 "nrepl info unknown"
                                              (nrepl-request client #js {:op "info" :sym "nope-nope" :ns "infotest"})))
                 st (msg-field unknown "status")]
-            (check "info unknown -> no-info" true (boolean (and st (.includes st "no-info")))))))
+            (check "info unknown -> no-info" true (boolean (and st (.includes st "no-info")))))
+          ;; JS-interop completion routes to the browser (js/document is a browser
+          ;; global, absent in node - so this proves the complete-js round-trip).
+          (let [jscpl (await (with-timeout 10000 "nrepl js complete"
+                                           (nrepl-request client #js {:op "complete" :prefix "js/docume" :ns "infotest"})))
+                names (let [cs (msg-field jscpl "completions")]
+                        (when cs (map (fn [c] (aget c "candidate")) (js/Array.from cs))))]
+            (check "js complete finds js/document" true
+                   (boolean (some (fn [n] (= "js/document" n)) names))))
+          (let [jscpl (await (with-timeout 10000 "nrepl js member complete"
+                                           (nrepl-request client #js {:op "complete" :prefix "js/console.lo" :ns "infotest"})))
+                names (let [cs (msg-field jscpl "completions")]
+                        (when cs (map (fn [c] (aget c "candidate")) (js/Array.from cs))))]
+            (check "js complete finds js/console.log" true
+                   (boolean (some (fn [n] (= "js/console.log" n)) names))))))
       (catch :default e
         (swap! failures inc)
         (println "ERROR:" (.-message e))

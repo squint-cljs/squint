@@ -106,3 +106,8 @@ back to the host atom, then `'user`.
   plus `:refers` and `:aliases` keys, prefix-filtered, munged self-aliases
   (containing `_DOT_`) dropped. Core fns (`resources/squint/core.edn`) and
   publics of arbitrary required libs are not enumerated - no runtime ns env.
+  For a `js/...` prefix, JS-interop names are enumerated from `globalThis` (its
+  prototype chain) - in the browser over the transport (`complete-js` op in
+  vite.js) when eval is delegated there, else from node directly (`js-completions`).
+  This is the one completion path that does NOT use ns-state; it queries the live
+  JS runtime, mirroring sci.nrepl/scittle's browser-side interop completion.

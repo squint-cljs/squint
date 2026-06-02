@@ -127,9 +127,11 @@
 (def browser-eval-timeout-ms 8000)
 
 (defn handle-browser-message
-  "Feed a browser eval reply back into the server, resolving the awaiting eval.
-  `msg` is a JS object (or JSON string) {op, value, ex, id, session}. Exposed so
-  a transport can deliver browser replies."
+  "Feed a browser reply back into the server, resolving the awaiting request.
+  `msg` is a JS object (or JSON string) {op, value/completions, ex, id, session}.
+  The stored resolve fn receives the whole msg and extracts what it needs (eval
+  takes :value, complete-js takes :completions). Exposed so a transport can
+  deliver browser replies."
   [msg]
   (let [msg (if (string? msg) (js/JSON.parse msg) msg)
         id (.-id ^js msg)
@@ -138,7 +140,7 @@
       (swap! !pending dissoc id)
       (if-some [ex (.-ex ^js msg)]
         ((.-reject ^js p) (js/Error. (str ex)))
-        ((.-resolve ^js p) (.-value ^js msg))))))
+        ((.-resolve ^js p) msg)))))
 
 (defn compile [the-val ns]
   (let [;; Apply squint.edn's :jsx-runtime so #jsx eval'd at the REPL emits
@@ -192,7 +194,9 @@
   (js/Promise.
    (fn [resolve reject]
      (let [id (:id request)]
-       (swap! !pending assoc id #js {:resolve resolve :reject reject})
+       ;; handle-browser-message now resolves with the whole reply msg; pull the value.
+       (swap! !pending assoc id #js {:resolve (fn [msg] (resolve (.-value ^js msg)))
+                                     :reject reject})
        ;; Don't hang forever if no browser is connected (or it never replies):
        ;; the eval runs *in the page*, so without an open tab there's nothing to
        ;; run it. Reject with an actionable message.
@@ -214,6 +218,71 @@
                     :session (:session request)})
          (do (swap! !pending dissoc id)
              (reject (js/Error. "No browser transport connected"))))))))
+
+(defn- own+proto-names
+  "All property names of `obj` and its prototype chain (like what's reachable via
+  dot access), as a JS array."
+  [obj]
+  (let [acc (js/Set.)]
+    (loop [o obj]
+      (when (some? o)
+        (doseq [n (js/Object.getOwnPropertyNames o)]
+          (.add acc n))
+        (recur (js/Object.getPrototypeOf o))))
+    (js/Array.from acc)))
+
+(def js-complete-limit 100)
+
+(defn js-completions
+  "JS interop candidates for a `js/...` prefix, enumerated from `globalThis`.
+  e.g. `js/Ma` -> [\"js/Math\" \"js/Map\" ...], `js/console.lo` -> [\"js/console.log\"].
+  Returns a JS array of candidate strings (capped). Pure, runtime-agnostic: the
+  browser listener (vite.js) mirrors this so completion reflects the page's
+  globals; node uses it directly."
+  [prefix]
+  (if-not (str/starts-with? prefix "js/")
+    #js []
+    (let [s (subs prefix 3)
+          parts (.split s ".")
+          partial (aget parts (dec (.-length parts)))
+          path (.slice parts 0 (dec (.-length parts)))
+          obj (reduce (fn [o seg] (when (some? o) (aget o seg)))
+                      js/globalThis
+                      (js/Array.from path))]
+      (if (nil? obj)
+        #js []
+        (let [pre (str "js/" (when (pos? (.-length path))
+                               (str (.join path ".") ".")))]
+          (->> (own+proto-names obj)
+               (filter (fn [n] (str/starts-with? n partial)))
+               (sort)
+               (take js-complete-limit)
+               (map (fn [n] (str pre n)))
+               (into-array)))))))
+
+(defn browser-js-complete
+  "Ask the browser to enumerate JS-interop candidates for `prefix` (its globals
+  differ from node's). Sends a `complete-js` op over the transport and resolves
+  with a JS array of candidate strings; resolves to [] on timeout or no transport."
+  [prefix request]
+  (js/Promise.
+   (fn [resolve _reject]
+     (let [id (:id request)]
+       (swap! !pending assoc id #js {:resolve (fn [msg] (resolve (or (.-completions ^js msg) #js [])))
+                                     :reject (fn [_] (resolve #js []))})
+       (js/setTimeout
+        (fn []
+          (when (get @!pending id)
+            (swap! !pending dissoc id)
+            (resolve #js [])))
+        browser-eval-timeout-ms)
+       (if-let [send @!browser-send]
+         (send #js {:op "complete-js"
+                    :prefix prefix
+                    :id id
+                    :session (:session request)})
+         (do (swap! !pending dissoc id)
+             (resolve #js [])))))))
 
 (def !eval-fn (atom node-eval))
 
@@ -311,24 +380,38 @@
 ;;;; Completions
 
 (defn handle-complete [{:keys [ns] :as request} send-fn]
-  ;; Candidates come from the compiler ns-state for the current ns: locally
-  ;; defined vars (symbol keys), :refers and :aliases. Core fns and external-lib
-  ;; publics are not tracked, so they don't complete. Munged self-aliases (e.g.
-  ;; clojure_DOT_string) are dropped as noise.
+  ;; Two candidate sources, merged:
+  ;; - cljs: the compiler ns-state for the current ns (locally defined vars,
+  ;;   :refers, :aliases). Core fns / external-lib publics are not tracked.
+  ;;   Munged self-aliases (e.g. clojure_DOT_string) are dropped as noise.
+  ;; - js: for a `js/...` prefix, JS-interop names enumerated from globalThis -
+  ;;   in the browser when eval is delegated there (its globals differ), else
+  ;;   from node directly.
   (let [prefix (or (:prefix request) (:symbol request) "")
         ns-sym (symbol (or ns (str (current-ns))))
         cur (get (ns-state-map) ns-sym)
         names (concat (filter symbol? (keys cur))
                       (keys (:refers cur))
                       (keys (:aliases cur)))
-        cands (->> names
-                   (map str)
-                   (remove #(str/includes? % "_DOT_"))
-                   (filter #(str/starts-with? % prefix))
-                   distinct
-                   sort
-                   (mapv (fn [c] {"candidate" c})))]
-    (send-fn request {"completions" cands "status" ["done"]})))
+        cljs-cands (->> names
+                        (map str)
+                        (remove #(str/includes? % "_DOT_"))
+                        (filter #(str/starts-with? % prefix)))
+        js-prefix? (str/starts-with? prefix "js/")
+        js-promise (cond
+                     (not js-prefix?) (js/Promise.resolve #js [])
+                     @!browser-send (browser-js-complete prefix request)
+                     :else (js/Promise.resolve (js-completions prefix)))]
+    (-> js-promise
+        (.then (fn [js-cands]
+                 (let [cands (->> (concat cljs-cands (js/Array.from js-cands))
+                                  distinct
+                                  sort
+                                  (mapv (fn [c] {"candidate" c})))]
+                   (send-fn request {"completions" cands "status" ["done"]}))))
+        (.catch (fn [_]
+                  (send-fn request {"completions" (mapv (fn [c] {"candidate" c}) (sort cljs-cands))
+                                    "status" ["done"]}))))))
 
 ;;;; End completions
 
