@@ -266,14 +266,41 @@
   (->> (map pr-str forms)
        (str/join \newline)))
 
-(defn handle-lookup [{:keys [op] :as request} send-fn]
-  ;; Symbol info/lookup/eldoc is not implemented yet. Reply with the
-  ;; appropriate "no info" status so clients get a response instead of hanging
-  ;; on an advertised op the server never answers (see issue #832).
-  (let [status (case op
-                 :eldoc ["no-eldoc" "done"]
-                 ["no-info" "done"])]
-    (send-fn request {"status" status})))
+(defn ns-state-map
+  "The live compiler ns-state map: prefer the one carried by the last compile
+  (`state`), fall back to a host-injected ns-state. nil before the first eval
+  with no host atom. See notes/internal/compiler-ns-state.md for its shape."
+  []
+  (or (some-> @state :ns-state deref)
+      (some-> @!ns-state deref)))
+
+(defn handle-lookup [{:keys [op ns] :as request} send-fn]
+  ;; Resolve a var's metadata from the compiler ns-state (squint has no runtime
+  ;; ns environment; arglists/doc are captured at compile time, keyed by the
+  ;; unmunged symbol under [ns var-sym]). Only same-session, unqualified vars
+  ;; resolve; core fns and external-lib vars are not tracked -> no-info.
+  (let [sym (or (:sym request) (:symbol request))
+        ns-sym (symbol (or ns (str (current-ns))))
+        m (when (and sym (not (str/includes? sym "/")))
+            (get-in (ns-state-map) [ns-sym (symbol sym)]))
+        {:keys [arglists doc line file]} m]
+    (if m
+      (let [base {"ns" (str ns-sym) "name" (str sym) "status" ["done"]}
+            reply (case op
+                    :eldoc (cond-> (assoc base
+                                          "eldoc" (mapv #(mapv str %) arglists)
+                                          "type" (if arglists "function" "variable"))
+                             doc (assoc "docstring" doc))
+                    ;; :info :lookup
+                    (cond-> base
+                      arglists (assoc "arglists-str" (forms-join arglists))
+                      doc (assoc "doc" doc)
+                      file (assoc "file" file)
+                      line (assoc "line" line)))]
+        (send-fn request reply))
+      (send-fn request {"status" (case op
+                                   :eldoc ["no-eldoc" "done"]
+                                   ["no-info" "done"])}))))
 
 (defn handle-load-file [{:keys [file] :as request} send-fn]
   ;; nREPL load-file sends the file contents in `file`. Evaluate them through
@@ -283,10 +310,25 @@
 
 ;;;; Completions
 
-(defn handle-complete [request send-fn]
-  ;; Completion is not implemented yet. Reply with an empty completion list so
-  ;; clients don't hang on the advertised op.
-  (send-fn request {"completions" [] "status" ["done"]}))
+(defn handle-complete [{:keys [ns] :as request} send-fn]
+  ;; Candidates come from the compiler ns-state for the current ns: locally
+  ;; defined vars (symbol keys), :refers and :aliases. Core fns and external-lib
+  ;; publics are not tracked, so they don't complete. Munged self-aliases (e.g.
+  ;; clojure_DOT_string) are dropped as noise.
+  (let [prefix (or (:prefix request) (:symbol request) "")
+        ns-sym (symbol (or ns (str (current-ns))))
+        cur (get (ns-state-map) ns-sym)
+        names (concat (filter symbol? (keys cur))
+                      (keys (:refers cur))
+                      (keys (:aliases cur)))
+        cands (->> names
+                   (map str)
+                   (remove #(str/includes? % "_DOT_"))
+                   (filter #(str/starts-with? % prefix))
+                   distinct
+                   sort
+                   (mapv (fn [c] {"candidate" c})))]
+    (send-fn request {"completions" cands "status" ["done"]})))
 
 ;;;; End completions
 

@@ -337,7 +337,10 @@
         fdecl (if (map? (last fdecl))
                 (butlast fdecl)
                 fdecl)
-        m m #_(conj {:arglists (list 'quote (sigs fdecl))} m)
+        ;; record arglists in the var metadata (fdecl is normalized above to a
+        ;; seq of arities, each (params & body)), so nREPL info/eldoc can read
+        ;; them back from ns-state. Inert for emission (name emits via munge).
+        m (conj {:arglists (apply list (map first fdecl))} m)
         m (conj (if (meta name) (meta name) {}) m)]
     (list 'def (with-meta name m)
           (with-meta (cons `fn fdecl)

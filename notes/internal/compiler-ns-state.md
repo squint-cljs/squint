@@ -53,11 +53,11 @@ Notes / gotchas:
   1. `[ns :vars]` - a set of **munged name strings** (`foo_QMARK_`), used for
      `export { ... }` generation (compiler.cljc:526).
   2. `[ns <var-sym>]` - keyed by the **unmunged symbol**, value is a metadata
-     map. Today `def` stores `{}` here (compiler_common.cljc:669-678) - it drops
-     the var's metadata. `defn` builds `:doc`/attr-map into the name's meta but
-     `:arglists` capture is commented out (fn.cljc:340). So **arglists/doc are
-     not currently queryable**; enabling that needs both call sites to store
-     `(meta name)` instead of `{}` and to re-add `:arglists`.
+     map: `(select-keys (meta name) [:arglists :doc :line :file :private :macro])`
+     (compiler_common.cljc:669-678). `defn` records `:arglists` and `:doc` into
+     the name's meta (fn.cljc:319-344). So `(get-in @ns-state [ns sym])` yields
+     e.g. `{:arglists ([a b]) :doc "..."}` - this is what nREPL info/eldoc read.
+     A plain `(def x 1)` with no metadata stores `{}`.
 - To enumerate a namespace's declared vars without munging, take the symbol keys
   of `(get @ns-state ns)` (everything that is a symbol, not the `:vars`/`:aliases`
   /`:refers`/`:excludes` keywords).
@@ -95,10 +95,14 @@ The nREPL server keeps two atoms (nrepl_server.cljs):
 `current-ns` in the server reads `(:current @ (:ns-state of last state))`, falling
 back to the host atom, then `'user`.
 
-## Implication for info/eldoc/complete
+## Implication for info/eldoc/complete (implemented)
 
-- **complete**: enumerate symbol keys of `(get @ns-state current-ns)` for locals,
-  plus core fns (from `resources/squint/core.edn`), plus `:aliases`/`:refers`.
-  There is no way to list publics of an arbitrary required JS/cljs lib at runtime.
-- **info/eldoc**: needs per-var `:doc`/`:arglists`, which requires the two
-  capture fixes noted above before it can return anything beyond name/ns.
+`src/squint/repl/nrepl_server.cljs` reads ns-state via `ns-state-map`:
+
+- **info/eldoc/lookup**: `(get-in @ns-state [ns sym])` -> `{:arglists :doc ...}`.
+  Only same-session, unqualified vars resolve; core fns and external-lib vars are
+  not tracked, so they return `no-info`/`no-eldoc`.
+- **complete**: candidates = symbol keys of `(get @ns-state current-ns)` (locals)
+  plus `:refers` and `:aliases` keys, prefix-filtered, munged self-aliases
+  (containing `_DOT_`) dropped. Core fns (`resources/squint/core.edn`) and
+  publics of arbitrary required libs are not enumerated - no runtime ns env.
