@@ -1,6 +1,6 @@
 # Browser REPL: open TODOs
 
-Short list pulled from `notes/browser-repl-dep-resolution.md`. Each item meant to be tackled in its own context.
+Short list pulled from `notes/internal/browser-repl-dep-resolution.md`. Each item meant to be tackled in its own context.
 
 ## Eval / printing
 
