@@ -266,69 +266,27 @@
   (->> (map pr-str forms)
        (str/join \newline)))
 
-(defn handle-lookup [{:keys [ns] :as request} send-fn]
-  #_(let [mapping-type (-> request :op)]
-      (try
-        (let [ns-str (:ns request)
-              sym-str (or (:sym request) (:symbol request))
-              sci-ns
-              (or (when ns
-                    (the-sci-ns (store/get-ctx) (symbol ns)))
-                  (current-ns)
-                  @sci/ns)]
-          (sci/binding [sci/ns sci-ns]
-            (let [m (sci/eval-string* (store/get-ctx) (gstring/format "
-(let [ns '%s
-      full-sym '%s]
-  (when-let [v (ns-resolve ns full-sym)]
-    (let [m (meta v)]
-      (assoc m :arglists (:arglists m)
-       :doc (:doc m)
-       :name (:name m)
-       :ns (some-> m :ns ns-name)
-       :val @v))))" ns-str sym-str))
-                  doc (:doc m)
-                  file (:file m)
-                  line (:line m)
-                  reply (case mapping-type
-                          :eldoc (cond->
-                                     {"ns" (:ns m)
-                                      "name" (:name m)
-                                      "eldoc" (mapv #(mapv str %) (:arglists m))
-                                      "type" (cond
-                                               (ifn? (:val m)) "function"
-                                               :else "variable")
-                                      "status" ["done"]}
-                                   doc (assoc "docstring" doc))
-                          (:info :lookup) (cond->
-                                              {"ns" (:ns m)
-                                               "name" (:name m)
-                                               "arglists-str" (forms-join (:arglists m))
-                                               "status" ["done"]}
-                                            doc (assoc "doc" doc)
-                                            file (assoc "file" file)
-                                            line (assoc "line" line)))]
-              (send-fn request reply))))
-        (catch js/Error e
-          (let [status (cond->
-                           #{"done"}
-                         (= mapping-type :eldoc)
-                         (conj "no-eldoc"))]
-            (send-fn
-             request
-             {"status" status "ex" (str e)}))))))
+(defn handle-lookup [{:keys [op] :as request} send-fn]
+  ;; Symbol info/lookup/eldoc is not implemented yet. Reply with the
+  ;; appropriate "no info" status so clients get a response instead of hanging
+  ;; on an advertised op the server never answers (see issue #832).
+  (let [status (case op
+                 :eldoc ["no-eldoc" "done"]
+                 ["no-info" "done"])]
+    (send-fn request {"status" status})))
 
 (defn handle-load-file [{:keys [file] :as request} send-fn]
-  #_(do-handle-eval (assoc request
-                           :code file
-                           :load-file? true
-                           :ns @sci/ns)
-                    send-fn))
+  ;; nREPL load-file sends the file contents in `file`. Evaluate them through
+  ;; the normal eval path so the client gets a value + done response.
+  (do-handle-eval (assoc request :code file :load-file? true)
+                  send-fn))
 
-;;;; Completions, based on babashka.nrepl
+;;;; Completions
 
 (defn handle-complete [request send-fn]
-  #_(send-fn request (utils/handle-complete* request)))
+  ;; Completion is not implemented yet. Reply with an empty completion list so
+  ;; clients don't hang on the advertised op.
+  (send-fn request {"completions" [] "status" ["done"]}))
 
 ;;;; End completions
 

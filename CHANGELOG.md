@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix [#832](https://github.com/squint-cljs/squint/issues/832): nREPL server hung on advertised ops (`info`/`lookup`/`eldoc`, `load-file`, `complete`) whose handlers were stubs that never replied. They now respond: `info`/`lookup` -> `no-info`, `eldoc` -> `no-eldoc`, `complete` -> empty list, and `load-file` evaluates the file contents.
 - Fix `parse-long` returning out-of-range values instead of `nil` (the safe-integer upper bound was a no-op due to a chained comparison)
 - Fix `select-keys` dropping keys mapped to `nil` (loose `!= undefined` matched `null`); nil-valued keys are now kept, matching Clojure
 - Fix `clojure.string/split` limit semantics: a positive limit now caps the number of splits and keeps the remainder (e.g. `(str/split "a-b-c-d" #"-" 2)` -> `["a" "b-c-d"]`) instead of truncating like JS `String.split`; limit `0` discards trailing empties, negative keeps them
