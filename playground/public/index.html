@@ -6,7 +6,7 @@
   <meta content="width=device-width, initial-scale=1" name="viewport" />
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
   <meta content="utf-8" http-equiv="encoding" />
-  <script async src="https://ga.jspm.io/npm:es-module-shims@1.8.2/dist/es-module-shims.js"
+  <script async src="https://ga.jspm.io/npm:es-module-shims@2.6.2/dist/es-module-shims.js"
     crossorigin="anonymous"></script>
   <script type="importmap">
       {
@@ -17,6 +17,9 @@
           "squint-cljs/src/squint/string.js": "./src/squint/string.js",
           "squint-cljs/src/squint/set.js": "./src/squint/set.js",
           "squint-cljs/src/squint/html.js": "./src/squint/html.js",
+          "squint-cljs/src/squint/math.js": "./src/squint/math.js",
+          "squint-cljs/src/squint/multi.js": "./src/squint/multi.js",
+          "squint-cljs/src/squint/test.js": "./src/squint/test.js",
           "@codemirror/language": "https://ga.jspm.io/npm:@codemirror/language@6.10.0/dist/index.js",
           "@codemirror/lang-javascript": "https://ga.jspm.io/npm:@codemirror/lang-javascript@6.2.1/dist/index.js",
           "@codemirror/state": "https://ga.jspm.io/npm:@codemirror/state@6.4.0/dist/index.js",
@@ -105,7 +108,8 @@
 </head>
 
 <body>
-  <div id="main">
+<div id="app"></div>
+<div id="main">
     <div style="position: absolute; right: 0px; top: 0px; margin: 2px">
       <a href="https://gitHub.com/squint-cljs/squint"><img
           src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a>

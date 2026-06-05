@@ -2,12 +2,12 @@
   (:require
    ["node:net" :as net]
    ["node:readline" :as readline]
-   ["node:util" :as util]
    ["squint-cljs/core.js" :as squint]
    [clojure.string :as str]
    [edamame.core :as e]
    [squint.compiler :as compiler]
-   [squint.compiler-common :as cc :refer [*async* *cljs-ns* *repl*]]))
+   [squint.compiler-common :as cc]
+   [squint.repl.print :as rp]))
 
 (def pending-input (atom ""))
 
@@ -15,14 +15,17 @@
 
 (def in-progress (atom false))
 
-(def last-ns (atom *cljs-ns*))
+(def last-ns (atom 'user))
+
+(def rl-closed (atom false))
 
 (defn continue [rl socket]
   (reset! in-progress false)
-  (.setPrompt ^js rl (str @last-ns "=> "))
-  (.prompt rl)
-  (when-not (str/blank? @pending-input)
-    (eval-next socket rl)))
+  (when-not @rl-closed
+    (.setPrompt ^js rl (str @last-ns "=> "))
+    (.prompt rl)
+    (when-not (str/blank? @pending-input)
+      (eval-next socket rl))))
 
 (defn erase-processed [rdr]
   (let [line (e/get-line-number rdr)
@@ -40,26 +43,37 @@
 (defn compile [the-val rl socket]
   (let [{js-str :javascript
          cljs-ns :ns
-         :as new-state} (binding [*cljs-ns* @last-ns]
-                        (compiler/compile-string* (binding [*print-meta* true]
-                                                    (pr-str the-val)) {:context :return
-                                                                       :elide-exports true
-                                                                       :repl true}
-                                                  @state))
+         :as new-state} (compiler/compile-string* (binding [*print-meta* true]
+                                                    (pr-str the-val))
+                                                  ;; :repl-return wraps the top-level value in [v] so a
+                                                  ;; Promise the user returned survives the async IIFE
+                                                  ;; (the eval handler unboxes); same shape as the nREPL
+                                                  ;; server uses.
+                                                  {:context :repl-return
+                                                   :elide-exports true
+                                                   :repl true
+                                                   :async true
+                                                   :ns @last-ns}
+                                                  @state)
         _ (reset! state new-state)
-        js-str (str/replace "(async function () {\n%s\n}) ()" "%s" js-str)]
+        ;; ensure there's always a box to unwrap (lone `(ns ..)` emits no return)
+        js-str (str js-str "\n;return [undefined];")
+        js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]
     (reset! last-ns cljs-ns)
     #_(binding [*print-fn* *print-err-fn*]
-      (println "---")
-      (println js-str)
-      (println "---"))
+        (println "---")
+        (println js-str)
+        (println "---"))
     (->
      (js/Promise.resolve (js/eval js-str))
-     (.then (fn [^js val]
-              (if socket
-                (.write socket (util/inspect val) "\n")
-                (js/console.log val))
-              (eval-next socket rl)))
+     (.then (fn [^js boxed]
+              (let [val (aget boxed 0)]
+                (-> (rp/pr-str-repl val)
+                    (.then (fn [s]
+                             (if socket
+                               (.write socket s "\n")
+                               (js/console.log s))
+                             (eval-next socket rl)))))))
      (.catch (fn [err]
                (squint/println err)
                (continue rl socket))))))
@@ -109,7 +123,9 @@
              (create-rl))]
     (on-line rl socket)
     (.setPrompt rl (str @last-ns "=> "))
-    (.on rl "close" resolve)
+    (.on rl "close" (fn []
+                      (reset! rl-closed true)
+                      (resolve)))
     (.prompt rl)))
 
 (defn on-connect [socket]
@@ -123,9 +139,7 @@
 (defn socket-repl
   ([] (socket-repl nil))
   ([opts]
-   (set! *cljs-ns* 'user)
-   (set! *repl* true)
-   (set! *async* true)
+   (reset! last-ns 'user)
    (let [port (or (:port opts)
                   0)
          srv (net/createServer
@@ -141,9 +155,7 @@
 (defn repl
   ([] (repl nil))
   ([_opts]
-   (set! *cljs-ns* 'user)
-   (set! *repl* true)
-   (set! *async* true)
+   (reset! last-ns 'user)
    (when tty (.setRawMode js/process.stdin true))
    (.then (js/Promise.resolve (js/eval "globalThis.user = globalThis.user || {};"))
           (fn [_]

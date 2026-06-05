@@ -20,7 +20,7 @@ jobs:
       uses: actions/setup-java@v2
       with:
         distribution: "adopt"
-        java-version: 11
+        java-version: 25
 
     - name: "Restore Cache"
       uses: "actions/cache@v4"
@@ -32,7 +32,7 @@ jobs:
     - name: Setup Clojure
       uses: DeLaGuardo/setup-clojure@12.5
       with:
-        cli: 1.10.3.1040
+        cli: latest
         bb: latest
 
     - name: Setup Node
@@ -62,3 +62,18 @@ jobs:
       run: |
         npm install --global yarn
         bb test:libs
+
+    - name: Cache Playwright browsers
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
+        restore-keys: ${{ runner.os }}-playwright-
+
+    - name: Run e2e tests
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        npm --prefix examples/browser-repl install
+        npx playwright install --with-deps chromium
+        bb test:e2e --vite 5 --vite 6 --vite 7 --vite 8

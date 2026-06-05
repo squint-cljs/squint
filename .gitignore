@@ -43,3 +43,7 @@ out
 .env
 App.jsx
 scratch
+e2e/*.mjs
+examples/browser-repl/js/
+examples/browser-repl/dist/
+.nrepl-port

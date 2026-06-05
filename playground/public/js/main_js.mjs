@@ -62,7 +62,7 @@ class LazyIterable extends Array {
   }
 }
 
-let compilerState = null;
+globalThis.compilerState = null;
 
 let jsEditor = null;
 
@@ -97,23 +97,59 @@ let reactRoot = ReactDOM.createRoot(document.querySelector("#result"));
 let evalCode = async (code) => {
   try {
     let importSource = url.searchParams.get('jsx.import-source') || 'react';
-    let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'return' : 'statement',
+    // In REPL mode, :repl-return wraps the top-level value in [v] so a Promise
+    // the user returned isn't auto-unwrapped by the async eval IIFE; we unbox
+    // below before rendering, so e.g. `(js/Promise.resolve 1)` shows as
+    // Promise(1) rather than just 1.
+    let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'repl-return' : 'statement',
                  "jsx-runtime": { "import-source": importSource, development: true }
                };
-    compilerState = compileStringEx(`${code}`, opts, compilerState);
-    let js = compilerState.javascript;
+    globalThis.compilerState = compileStringEx(`${code}`, opts, globalThis.compilerState);
+    let js = globalThis.compilerState.javascript;
     if (dev) {
       console.log("Loading local squint libs");
-      js = js.replaceAll("'squint-cljs/", "'./squint-local/");
+      // Rewrite to absolute URLs: Blob URLs used for non-REPL eval have an
+      // opaque origin that can't resolve relative specifiers. Anchor on the
+      // page origin — import.meta.url can point to an unexpected bundle path
+      // under Vite.
+      //
+      // Route everything through /src/squint/ (matching the importmap) so
+      // user-compiled code and the runtime modules (test.js, multi.js) end
+      // up importing the SAME URL for core.js. Previously user code went
+      // via /js/squint-local/core.js → Vite-transformed shim →
+      // /@fs/.../src/squint/core.js, while the runtime's bare specifier
+      // resolved via the importmap to /src/squint/core.js — two URLs,
+      // two ES-module instances, two _metaSym symbols, and with-meta
+      // written through one was invisible to meta in the other.
+      const base = `${window.location.origin}/src/squint/`;
+      js = js.replaceAll("'squint-cljs/src/squint/", `'${base}`);
+      js = js.replaceAll("'squint-cljs/", `'${base}`);
     }
     JSEditor(js);
     if (!repl) {
-      const encodedJs = encodeURIComponent(js);
-      const dataUri =
-        'data:text/javascript;charset=utf-8;eval=' + Date.now() + ',' + encodedJs;
-      let result = await import(/* @vite-ignore */dataUri);
+      const blob = new Blob([js], { type: 'text/javascript' });
+      const blobUrl = URL.createObjectURL(blob);
+      try {
+        let result = await import(/* @vite-ignore */blobUrl);
+      } finally {
+        URL.revokeObjectURL(blobUrl);
+      }
     } else {
-      let result = await eval(`(async function() { ${js} })()`);
+      // unbox the [v] wrapper added by :repl-return
+      let result = (await eval(`(async function() { ${js} })()`))[0];
+      // If the user returned a Promise, race it against a short timeout so the
+      // playground can still drill into the resolved value via Inspector while
+      // surfacing that it came wrapped in a Promise. Pending falls back to a
+      // plain text marker.
+      let promiseTag = null;
+      if (result instanceof Promise) {
+        const settled = result.then(v => ({tag: 'resolved', val: v}),
+                                    e => ({tag: 'rejected', val: e}));
+        const timer = new Promise(r => setTimeout(() => r({tag: 'pending'}), 1000));
+        const r = await Promise.race([settled, timer]);
+        promiseTag = r.tag;
+        result = r.val; // undefined for pending; fine, not rendered via Inspector
+      }
       if (result && result?.constructor?.name === 'LazyIterable') {
         let stdlib = (await import("squint-cljs/core.js"));
         let take_fn = stdlib.take;
@@ -125,7 +161,16 @@ let evalCode = async (code) => {
         else result.pop();
         result = new LazyIterable(result);
       }
-      reactRoot.render(React.createElement(Inspector, { data: result }));
+      // Use Inspector's root `name` to label a Promise wrapper: renders as one
+      // expandable line ("Promise: <value>") instead of stitching text spans
+      // around a separate tree, which looked broken on multi-line values.
+      const inspectorProps = promiseTag === 'rejected' ? { name: 'Promise rejected', data: result }
+                           : promiseTag === 'resolved' ? { name: 'Promise', data: result }
+                           : { data: result };
+      reactRoot.render(
+        promiseTag === 'pending'
+          ? React.createElement('span', null, '#<Promise pending>')
+          : React.createElement(Inspector, inspectorProps));
       if (docChanged) {
         url.searchParams.delete('src');
         window.history.replaceState(null, null, url);
@@ -235,19 +280,69 @@ const aocDoc = `
 
 (time (part-1))
 #_(time (part-2))`.trim();
-const aocBoilerplateUrl = 'https://gist.githubusercontent.com/borkdude/cf94b492d948f7f418aa81ba54f428ff/raw/a6e9992b079e20e21d753e8c75a7353c5908b225/aoc_ui.cljs';
+const aocBoilerplateUrl = 'https://gist.githubusercontent.com/borkdude/cf94b492d948f7f418aa81ba54f428ff/raw/3b58a80710fbbbda091966c8eb85323eef4652c1/aoc_ui.cljs';
 
 const boilerplate = urlParams.get('boilerplate');
 let boilerplateSrc;
 if (boilerplate) {
   boilerplateSrc = await fetch(boilerplate).then((p) => p.text());
 }
-let src = urlParams.get('src');
+
+function base64ToBytes(b64) {
+  const bin = atob(b64);
+  return Uint8Array.from(bin, c => c.charCodeAt(0));
+}
+
+function base64ToUtf8(b64) {
+  const bytes = base64ToBytes(b64);
+  return new TextDecoder().decode(bytes);
+}
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  const len = bytes.length;
+  for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+async function gzipUtf8ToBytes(str) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const cs = new CompressionStream('gzip');
+  const compressedStream = new Response(data).body.pipeThrough(cs);
+  const compressedArrayBuffer = await new Response(compressedStream).arrayBuffer();
+  return new Uint8Array(compressedArrayBuffer);
+}
+
+async function gunzipBytesToUtf8(uint8arr) {
+  const ds = new DecompressionStream('gzip');
+  const decompressedStream = new Blob([uint8arr]).stream().pipeThrough(ds);
+  const decompressedArrayBuffer = await new Response(decompressedStream).arrayBuffer();
+  return new TextDecoder().decode(decompressedArrayBuffer);
+}
+
+async function zipCode(code) {
+  const zippedBytes = await gzipUtf8ToBytes(code);
+  const base64 = bytesToBase64(zippedBytes);
+  return 'gzip:' + base64;
+}
+
+let src = urlParams.get('src'), isGzip = false;
+
 if (src) {
   if (/http(s)?:\/\/.*/.test(src)) {
     src = await fetch(src).then((p) => p.text());
   } else {
-    src = atob(src);
+    if (src.startsWith('gzip:')) {
+      isGzip = true;
+      src = src.substring(5);
+    }
+    if (isGzip) {
+      const bytes = base64ToBytes(src);
+      src = await gunzipBytesToUtf8(bytes);
+    } else {
+      src = base64ToUtf8(src);
+    }
   }
   doc = src;
 } else {
@@ -279,30 +374,31 @@ window.compile = () => {
   code = (boilerplateSrc || '') + '\n\n' + code;
   evalCode(code);
 };
-window.share = () => {
-  let code = editor.state.doc.toString().trim();
-  code = btoa(code);
-  url.searchParams.set('src', code);
+
+window.share = async () => {
+  const code = editor.state.doc.toString().trim();
+  const src = await zipCode(code);
+  url.searchParams.set('src', src);
   window.location = url;
 };
-window.blankAOC = () => {
-  const code = btoa(aocDoc);
+window.blankAOC = async () => {
+  const code = await zipCode(aocDoc);
   const url = new URL(window.location);
   url.searchParams.set('src', code);
   url.searchParams.set('boilerplate', aocBoilerplateUrl);
   url.searchParams.set('repl', true);
 
   window.location = url;
-}
+};
 
 window.changeREPL = (target) => {
   document.getElementById('result').innerText = '';
   if (target.checked) {
     repl = true;
-    compile();
+    window.compile();
   } else {
     repl = false;
-    compile();
+    window.compile();
   }
   url.searchParams.set('repl', repl);
   window.history.replaceState(null, null, url);
@@ -310,4 +406,4 @@ window.changeREPL = (target) => {
 if (repl) {
   document.getElementById('replCheckBox').checked = true;
 }
-compile();
+window.compile();

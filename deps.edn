@@ -3,11 +3,12 @@
         babashka/process {:mvn/version "0.1.7"}
         org.babashka/cli {:git/url "https://github.com/babashka/cli"
                           :git/sha "b79db1a4ee37a4fc3a4d94ea8d97bb5a7e89a183"}
-        org.babashka/sci {:mvn/version "0.6.37"}}
+        org.babashka/sci {:mvn/version "0.10.49"}}
  :aliases
  {:dev {}
   :cljs {:extra-paths ["test"]
-         :extra-deps {thheller/shadow-cljs {:mvn/version "2.25.10"}
+         :extra-deps {org.clojure/clojure {:mvn/version "1.12.1"}
+                      thheller/shadow-cljs {:mvn/version "3.3.5"}
                       funcool/promesa {:mvn/version "11.0.678"}}}
   :test ;; added by neil
   {:extra-paths ["test"]

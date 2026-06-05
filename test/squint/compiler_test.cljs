@@ -9,6 +9,8 @@
    [squint.compiler :as squint]
    [squint.html-test]
    [squint.jsx-test]
+   [squint.math-test]
+   [squint.multi-test]
    [squint.string-test]
    [squint.test-utils :refer [eq js! jss! jsv!]]))
 
@@ -200,7 +202,7 @@
                    x)")]
     (is (= 3 (js/eval s))))
   (is (eq #js {:a 1} (jsv! "{:a (or 1 (cond true (prn :yes)) 2)}")))
-  (is (let [v (jsv! "(let [x false] (if x 1 nil))")]
+  (is (let [v (jsv! "(let [x false] (if x 1 nil))" {:context :expr})]
         (and (nil? v)
              (not (undefined? v))))))
 
@@ -209,8 +211,52 @@
   (is (not (str/includes? (jss! "(if (zero? x) 1 2)") "truth_")))
   (is (false? (jsv! "(zero? \"0\")"))))
 
+(deftest pos-int?-test
+  (is (true? (jsv! "(pos-int? 100)")))
+  (is (false? (jsv! "(pos-int? 0)")))
+  (is (false? (jsv! "(pos-int? -4)")))
+  (is (false? (jsv! "(pos-int? 0.3)")))
+  (is (false? (jsv! "(pos-int? :some-keyword)")))
+  (is (false? (jsv! "(pos-int? [4])"))))
+
+(deftest nat-int?-test
+  (is (true? (jsv! "(nat-int? 100)")))
+  (is (true? (jsv! "(nat-int? 0)")))
+  (is (false? (jsv! "(nat-int? -4)")))
+  (is (false? (jsv! "(nat-int? 0.3)")))
+  (is (false? (jsv! "(nat-int? :some-keyword)")))
+  (is (false? (jsv! "(nat-int? [4])"))))
+
+(deftest neg-int?-test
+  (is (false? (jsv! "(neg-int? 100)")))
+  (is (false? (jsv! "(neg-int? 0)")))
+  (is (true? (jsv! "(neg-int? -4)")))
+  (is (false? (jsv! "(neg-int? 0.3)")))
+  (is (false? (jsv! "(neg-int? :some-keyword)")))
+  (is (false? (jsv! "(neg-int? [-4])"))))
+
+(deftest parse-long-test
+  (is (= 42 (jsv! "(parse-long \"42\")")))
+  (is (= -42 (jsv! "(parse-long \"-42\")")))
+  (is (= 9007199254740991 (jsv! "(parse-long \"9007199254740991\")")))
+  (is (nil? (jsv! "(parse-long \"99999999999999999999\")")))
+  (is (nil? (jsv! "(parse-long \"9007199254740992\")")))
+  (is (nil? (jsv! "(parse-long \"foo\")"))))
+
+(deftest parse-double-test
+  (is (= 3.14 (jsv! "(parse-double \"3.14\")")))
+  (is (= -2.5 (jsv! "(parse-double \"-2.5\")")))
+  (is (= 1500.0 (jsv! "(parse-double \"1.5e3\")")))
+  ;; leading/trailing whitespace is trimmed, matching Clojure
+  (is (= 3.14 (jsv! "(parse-double \"  3.14  \")")))
+  (is (= 1.5 (jsv! "(parse-double \"\\t1.5\\n\")")))
+  (is (jsv! "(.isNaN js/Number (parse-double \"  NaN \"))"))
+  (is (= ##Inf (jsv! "(parse-double \"Infinity\")")))
+  (is (nil? (jsv! "(parse-double \"abc\")"))))
+
 (deftest no-truth-check-test
-  (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)" "(when (= 1 1) 1)"
+  (let [inputs ["(if (zero? 0) 1 2)" "(when (< 1 2) 1)"
+                #_"(when (= 1 1) 1)"
                 "(let [x (zero? 0)] (when x 1))"
                 "(if (neg? 1) 0 1)" "(if (not 1) 0 1)"
                 "(if \"foo\" 1 2)" "(if :foo 1 2)"
@@ -313,7 +359,10 @@
                      (def a (atom []))
                      (doseq [_ {:a 1 :b 2}]
                        (swap! a conj _))
-                     @a))))))
+                     @a)))))
+  (testing "in expr position"
+    (is (true? (jsv! '(let [x (doseq [i [1 2 3]] i)]
+                        (nil? x)))))))
 
 ;; TODO:
 (deftest for-test
@@ -388,7 +437,21 @@
                            x))"
                   {:repl true})]
       (is (str/includes? s "globalThis"))
-      (is (eq [1 2 3] (js/eval s))))))
+      (is (eq [1 2 3] (js/eval s)))))
+  ;; TODO: this test doesn't belong to for-test?
+  (testing "js* and code value as template"
+    (is (eq {:a 1} (jsv! '(let [x (or {:a 1} {})] x)))))
+  (testing "yield* should be wrapped in parens"
+    (is (eq "((1))" (jsv! "(defn crash-me []
+  (for [_y (range 1)]
+    (for [_x (range 1)]
+      (let [alive? true
+            n 3]
+        (cond
+          (and alive? (or (= n 2) (= n 3))) 1
+          (and (not alive?) (= n 3)) 1
+          :else 0)))))
+     (pr-str (crash-me))")))))
 
 (deftest Math-test
   (let [expr '(Math/sqrt 3.14)]
@@ -406,6 +469,13 @@
 (deftest new-test
   (is (eq "hello" (jsv! '(str (js/String. "hello"))))))
 
+(deftest name-test
+  (is (= "foo" (jsv! '(name :foo))))
+  (is (= "foo" (jsv! '(name "foo"))))
+  (is (= "foo/bar" (jsv! '(name :foo/bar))))
+  (is (thrown? js/Error (jsv! '(name 42))))
+  (is (thrown? js/Error (jsv! '(name nil)))))
+
 (deftest quote-test
   (is (eq '{x 1} (jsv! (list 'quote '{x 1})))))
 
@@ -420,7 +490,10 @@
   (let [s (jss! '(do (defn foo []
                        (case 1 1 2 3 4))
                      (foo)))]
-    (is (= 2 (js/eval s)))))
+    (is (= 2 (js/eval s))))
+  (is (eq :yes (jsv! '(do (defn foo [x y]
+                            (case [1 2] :yes))
+                           (foo 1 2))))))
 
 (deftest dot-test
   (let [s (jss! "(do (def x (.-x #js {:x 1})) x)")]
@@ -555,10 +628,10 @@
   (async done
     (->
      (.then (jsv! '(do (defn ^:async foo []
-                         (js-await (js/Promise.resolve :hello)))
+                         (await (js/Promise.resolve :hello)))
 
                        (defn ^:async bar []
-                         (let [x (js-await (foo))]
+                         (let [x (await (foo))]
                            x))
 
                        (bar)))
@@ -569,18 +642,23 @@
      (.finally #(done)))))
 
 (deftest top-level-await-test
-  (is (str/includes? (jss! "(js-await 1)") "await")))
+  (is (str/includes? (jss! "(await 1)") "await")))
+
+(deftest legacy-await-spellings-test
+  (testing "js-await and js/await are kept as aliases for await"
+    (is (str/includes? (jss! "(js-await 1)") "await"))
+    (is (str/includes? (jss! "(js/await 1)") "await"))))
 
 (deftest await-variadic-test
   (async done
     (->
-     (.then (jsv! '(do (defn ^:async foo [& xs] (js-await 10))
-                       (defn ^:async bar [x & xs] (js-await 20))
+     (.then (jsv! '(do (defn ^:async foo [& xs] (await 10))
+                       (defn ^:async bar [x & xs] (await 20))
                        (defn ^:async baz
                          ([x] (baz x 1 2 3))
                          ([x & xs]
-                          (let [x (js/await (foo x))
-                                y (js/await (apply bar xs))]
+                          (let [x (await (foo x))
+                                y (await (apply bar xs))]
                             (+ x y))))
 
                        (baz 1)))
@@ -591,8 +669,8 @@
      (.finally #(done)))))
 
 (deftest async-await-anon-fn-test
-  (is (instance? js/Promise (jsv! "((fn ^:async foo [] (js-await {})))")))
-  (is (instance? js/Promise (jsv! "((^:async fn [] (js-await {})))"))))
+  (is (instance? js/Promise (jsv! "((fn ^:async foo [] (await {})))")))
+  (is (instance? js/Promise (jsv! "((^:async fn [] (await {})))"))))
 
 (deftest native-js-array-test
   (let [s (jss! "(let [x 2
@@ -624,13 +702,57 @@
   (is (eq "hello/world" (jsv! "(ns hello) ::world"))))
 
 (deftest pr-str-test
-  (is (eq (js/Set. #js ["a" "b" "c"]) (js/Set. (js/JSON.parse (jsv! '(pr-str #{:a :b :c})))))))
+  (doseq [coll [#{"a" "b" "c"} {:a 1 :b 2}]]
+    (is (eq (pr-str coll) (jsv! `(pr-str ~coll)))))
+  (is (eq "#js/Map {\"a\" 1}" (jsv! "(pr-str #js/Map {:a 1})")))
+  (is (eq "nil" (jsv! "(pr-str js/undefined)")))
+  ;; Infinity / -Infinity / NaN print as ##Inf / ##-Inf / ##NaN, like CLJS
+  (is (eq "##Inf" (jsv! "(pr-str js/Infinity)")))
+  (is (eq "##-Inf" (jsv! "(pr-str (/ -1.0 0))")))
+  (is (eq "##NaN" (jsv! "(pr-str js/NaN)")))
+  (is (eq "[##Inf ##NaN]" (jsv! "(pr-str [js/Infinity js/NaN])")))
+  ;; str is unaffected
+  (is (eq "Infinity" (jsv! "(str js/Infinity)"))))
 
 (deftest str-test
   (is (eq "123" (jsv! '(str 1 2 3))))
   (is (eq "foobarbaz", (jsv! '(str "foo" "bar" "baz"))))
   (is (eq "1barfirst,second[object Object]"
-          (jsv! '(str 1 "bar" [:first :second] {"hello" "goodbye"})))))
+          (jsv! '(str 1 "bar" [:first :second] {"hello" "goodbye"}))))
+  (let [s (jss! `(let [x# {:toString (fn [] "toString")
+                           :valueOf (fn [] "valueOf")}]
+                   (str nil ::foo ~js/undefined true false 1 2 x# "multiline
+
+with `backticks`")))]
+    #_(println :s s)
+    (testing "only variables cause ??'' checks"
+      (is (= 1 (count (re-seq #"\?\?''" s)))))
+    (is (eq "squint.compiler-test/footruefalse12toStringmultiline\n\nwith `backticks`"
+            (js/eval s)))
+    #_(js/process.exit)))
+
+(deftest str-numeric-infix-no-nullish-test
+  (testing "str must not wrap known-numeric infix expressions in ??''
+            (esbuild flags this as suspicious-nullish-coalescing) and
+            must still produce the number's string representation"
+    (doseq [[form expected] [['(let [n 5] (str "max=" (dec n))) "max=4"]
+                             ['(let [n 5] (str (inc n))) "6"]
+                             ['(let [a 5 b 6] (str (+ a b))) "11"]
+                             ['(let [a 5 b 6] (str (- a b))) "-1"]
+                             ['(let [a 5 b 6] (str (* a b))) "30"]
+                             ['(let [a 5 b 6] (str (/ a b))) "0.8333333333333334"]
+                             ['(let [a 5 b 6] (str (bit-and a b))) "4"]
+                             ['(let [a 5 b 6] (str (bit-or a b))) "7"]
+                             ['(let [n 5] (str "five " (dec n) " three")) "five 4 three"]]]
+      (let [s (jss! form)]
+        (is (zero? (count (re-seq #"\?\?''" s)))
+            (str "expected no ??'' in compiled output for " (pr-str form)
+                 "\n--- compiled ---\n" s)))
+      (let [v (jsv! form)]
+        (is (string? v)
+            (str "expected string result for " (pr-str form) ", got " (pr-str v)))
+        (is (= expected v)
+            (str "wrong runtime value for " (pr-str form)))))))
 
 (deftest comp-test
   (is (eq "0" (jsv! '((comp) "0")))
@@ -822,6 +944,8 @@
 
 (deftest assoc-in-test
   (testing "happy path"
+    (is (eq #js {"1" 3}
+            (jsv! '(assoc-in nil ["1"] 3))))
     (is (eq #js {"1" 3}
             (jsv! '(assoc-in {"1" 2} ["1"] 3))))
     (is (eq #js {"1" #js [(js/Map. #js [#js [8 9]])]}
@@ -1165,6 +1289,8 @@
   (is (= true (jsv! '(vector? (mapv inc [0 1 2 3 4])))))
   (is (eq ["A" "B" "C"]
           (jsv! '(mapv #(.toUpperCase %) "abc"))))
+  (is (eq ["A" "B" "C"]
+          (jsv! '(mapv :value [{:value "A"} {:value "B"} {:value "C"}]))))
   (testing "nil"
     (is (eq [] (jsv! '(mapv inc nil)))))
   (testing "multiple colls"
@@ -1200,22 +1326,22 @@
 
 (deftest map-indexed-test
   (is (eq [[0 0] [1 1] [2 2] [3 3] [4 4]]
-          (jsv! '(map-indexed vector [0 1 2 3 4]))))
+          (jsv! '(vec (map-indexed vector [0 1 2 3 4])))))
   (is (= 20 (apply + (jsv! '(map-indexed + #{0 1 2 3 4})))))
   (is (eq [[0 :a 1] [1 :b 2]]
-          (jsv! '(map-indexed #(vector %1 (first %2) (inc (second %2)))
-                              {:a 0 :b 1}))))
+          (jsv! '(vec (map-indexed #(vector %1 (first %2) (inc (second %2)))
+                                  {:a 0 :b 1})))))
   (is (eq [[0 "A"] [1 "B"] [2 "C"]]
-          (jsv! '(map-indexed #(vector %1 (.toUpperCase %2))
-                              "abc"))))
+          (jsv! '(vec (map-indexed #(vector %1 (.toUpperCase %2))
+                                   "abc")))))
   (is (eq [[0 0 1] [1 1 2] [2 2 3] [3 3 4] [4 4 5]]
-          (jsv! '(map-indexed
-                  #(vector %1 (first %2) (inc (second %2)))
-                  (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
-                      (js/Map.))))))
+          (jsv! '(vec (map-indexed
+                      #(vector %1 (first %2) (inc (second %2)))
+                      (-> [[0 0] [1 1] [2 2] [3 3] [4 4]]
+                          (js/Map.)))))))
   (testing "nil"
-    (is (eq () (jsv! '(map-indexed vector nil))))
-    (is (eq () (jsv! '(map-indexed vector js/undefined)))))
+    (is (eq () (jsv! '(vec (map-indexed vector nil)))))
+    (is (eq () (jsv! '(vec (map-indexed vector js/undefined))))))
   (testing "transducer"
     (is (eq [[0 10] [1 11] [2 12] [3 13] [4 14] [5 15] [6 16] [7 17] [8 18] [9 19]]
             (jsv! "(into [] (map-indexed vector) (range 10 20))")))))
@@ -1237,8 +1363,8 @@
   (is (= "abc" (jsv! '((constantly "abc")))))
   (is (= 10 (jsv! '((constantly 10)))))
   (is (= true (jsv! '((constantly true)))))
-  (is (= nil (jsv! '((constantly nil)))))
-  (is (= nil (jsv! '((constantly nil) "with some" "args" 1 :a)))))
+  (is (nil? (jsv! '((constantly nil)))))
+  (is (nil? (jsv! '((constantly nil) "with some" "args" 1 :a)))))
 
 (deftest list?-test
   (is (= true (jsv! '(list? '(1 2 3 4)))))
@@ -1331,7 +1457,9 @@
     (is (= 1 (.get m "a")))
     (is (= 2 (.get m "b")))
     (is (not (.has m "c"))))
-  (is (eq #js {} (jsv! '(select-keys nil [])))))
+  (is (eq #js {} (jsv! '(select-keys nil []))))
+  ;; nil-valued keys are kept (present), missing keys dropped
+  (is (eq #js {:a nil :b 2} (jsv! '(select-keys {:a nil :b 2 :c 3} [:a :b :missing])))))
 
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 20))))))
@@ -1476,14 +1604,15 @@
   (is (eq [1 4 7] (jsv! '(vec (take-nth 3 [1 2 3 4 5 6 7 8 9]))))))
 
 (deftest take-last-test
-    (is (nil? (jsv! '(take-last 0 [1 2 3 4]))))
-    (is (nil? (jsv! '(take-last 0 {:a 1 :b 2 :c 3 :d 4}))))
-    (is (eq [3 4] (jsv! '(vec (take-last 2 [1 2 3 4])))))
-    (is (eq [[:c 3] [:d 4]] (jsv! '(vec (take-last 2 {:a 1 :b 2 :c 3 :d 4})))))
-    (is (eq [[:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 3 {:a 1 :b 2 :c 3 :d 4})))))
-    (is (eq [[:a 1] [:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 4 {:a 1 :b 2 :c 3 :d 4})))))
-    (is (eq [[:a 1] [:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 5 {:a 1 :b 2 :c 3 :d 4})))))
-    (is (eq [1 2 3 4] (jsv! '(vec (take-last 5 [1 2 3 4]))))))
+  (is (nil? (jsv! '(take-last 0 [1 2 3 4]))))
+  (is (nil? (jsv! '(take-last 0 {:a 1 :b 2 :c 3 :d 4}))))
+  (is (nil? (jsv! '(take-last -1 [1 2 3 4]))))
+  (is (eq [3 4] (jsv! '(vec (take-last 2 [1 2 3 4])))))
+  (is (eq [[:c 3] [:d 4]] (jsv! '(vec (take-last 2 {:a 1 :b 2 :c 3 :d 4})))))
+  (is (eq [[:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 3 {:a 1 :b 2 :c 3 :d 4})))))
+  (is (eq [[:a 1] [:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 4 {:a 1 :b 2 :c 3 :d 4})))))
+  (is (eq [[:a 1] [:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 5 {:a 1 :b 2 :c 3 :d 4})))))
+  (is (eq [1 2 3 4] (jsv! '(vec (take-last 5 [1 2 3 4]))))))
 
 (deftest +-test
   (is (zero? (jsv! '(apply + []))))
@@ -1504,7 +1633,16 @@
   (is (nil? (jsv! '(nth nil 1))))
   (is (eq :default (jsv! '(nth nil 1 :default))))
   (is (= 1 (jsv! '(nth [1 2 3] 0))))
-  (is (eq :default (jsv! '(nth [1 2 3] 5 :default)))))
+  (is (eq :default (jsv! '(nth [1 2 3] 5 :default))))
+  ;; in-bounds nil/undefined elements are found, not treated as missing
+  (is (nil? (jsv! '(nth [1 nil 3] 1 :default))))
+  ;; sparse array: in-bounds hole (undefined) is found (nil), oob is the default
+  (is (nil? (jsv! '(nth (js/Array. 3) 0 :default))))
+  (is (eq :default (jsv! '(nth (js/Array. 3) 5 :default))))
+  ;; negative index falls back to the default
+  (is (eq :default (jsv! '(nth [1 2 3] -1 :default))))
+  ;; works on infinite lazy seqs without computing a length
+  (is (= 5 (jsv! '(nth (range) 5)))))
 
 (deftest drop-test
   (let [dropped (jsv! '(drop 3 (range 6)))]
@@ -1523,6 +1661,32 @@
 (deftest distinct-test
   (doseq [coll [[1 1 1 2 3 4 1] nil]]
     (is (eq (distinct coll) (vec (jsv! `(distinct ~coll)))))))
+
+(deftest dedupe-test
+  (doseq [coll [[1 1 2 2 2 3 1 1] [[1] [1] [2] [2]] [] nil]]
+    (is (eq (dedupe coll) (vec (jsv! `(dedupe ~coll))))))
+  (is (eq [1 2 1] (jsv! '(into [] (dedupe) [1 1 2 1 1]))))
+  (is (eq [5 6 5] (jsv! '(transduce (dedupe) conj [] [5 5 6 6 5])))))
+
+(deftest distinct?-test
+  (is (true? (jsv! '(distinct? 1))))
+  (is (true? (jsv! '(distinct? 1 2 3))))
+  (is (false? (jsv! '(distinct? 1 2 1))))
+  (is (false? (jsv! '(distinct? [1] [2] [1])))))
+
+(deftest any?-test
+  (is (true? (jsv! '(any? nil))))
+  (is (true? (jsv! '(any? 1)))))
+
+(deftest ifn?-test
+  (is (true? (jsv! '(ifn? inc))))
+  (is (false? (jsv! '(ifn? 1)))))
+
+(deftest list*-test
+  (is (eq '(1 2 3 4) (jsv! '(list* 1 2 [3 4]))))
+  (is (eq '(1 2) (jsv! '(list* [1 2]))))
+  (is (eq '(1) (jsv! '(list* 1 nil))))
+  (is (eq '() (jsv! '(list* nil)))))
 
 (deftest update-test
   (is (eq {:a 2} (jsv! '(update {:a 1} :a inc))))
@@ -1586,7 +1750,13 @@
   (is (eq 1 (jsv! '(compare ["xyz" 3] ["abc" 2]))))
   (is (eq -1 (jsv! '(compare ["xyz" 2] ["xyz" 3]))))
   (is (eq 0 (jsv! '(compare ["xyz" 2] ["xyz" 2]))))
-  (is (eq 1 (jsv! '(compare ["xyz" 3] ["xyz" 2])))))
+  (is (eq 1 (jsv! '(compare ["xyz" 3] ["xyz" 2]))))
+  ;; booleans: false < true (CLJS), and sort must not throw
+  (is (eq -1 (jsv! '(compare false true))))
+  (is (eq 1 (jsv! '(compare true false))))
+  (is (eq 0 (jsv! '(compare true true))))
+  (is (eq 0 (jsv! '(compare false false))))
+  (is (eq [false false true true] (jsv! '(sort [true false true false])))))
 
 (deftest sort-by-test
   (is (eq (sort-by count ["aaa" "bb" "c"]) (jsv! '(sort-by count ["aaa" "bb" "c"]))))
@@ -1602,7 +1772,8 @@
 (deftest shuffle-test
   (let [shuffled (jsv! '(shuffle [1 2 3 4]))]
     (doseq [i shuffled]
-      (is (contains? #{1 2 3 4} i)))))
+      (is (contains? #{1 2 3 4} i))))
+  (is (= false (jsv! '(= (vec (range 100)) (shuffle (range 100)))))))
 
 (deftest some-test
   (is (= 1 (jsv! '(some #(when (odd? %) %) [2 1 2 1])))))
@@ -1630,6 +1801,10 @@
               (take 10 (jsv! '(repeatedly #(rand-int 10))))))
   (is (every? #(< % 10)
               (jsv! '(repeatedly 5 #(rand-int 10))))))
+
+(deftest rand-test
+  (is (< 0 (jsv! '(rand)) 1 ))
+  (is (< 0 (jsv! '(rand 5)) 5 )))
 
 (deftest group-by-test
   (is (eq [1 3] (jsv! '(get (group-by odd? [1 2 3 4]) true))))
@@ -1662,8 +1837,8 @@
 
 (deftest map-literal-test
   (is (eq {} (jsv! '{})))
-  (is (eq {"1" true} (jsv! '(do (def x 1) {x true}))))
-  (is (eq {"0,1" true} (jsv! '{[0 1] true}))))
+  (is (eq {"1" true} (jsv! '(do (def x 1) {x true}) {:context :expr})))
+  (is (eq {"0,1" true} (jsv! '{[0 1] true} {:context :expr}))))
 
 (deftest split-with-test
   (is (eq [[1] [2 3]] (jsv! '(mapv vec (split-with odd? [1 2 3])))))
@@ -1713,6 +1888,30 @@
        (str/trim (squint/compile-string "(ns foo (:require [\"some-js-lib\" :refer [atom]])) atom" {:repl true}))
        "foo.atom;")))
 
+(deftest symbol-require-generates-namespace-import-test
+  (testing "bare symbol require generates namespace import"
+    (let [s (squint/compile-string "(ns foo (:require [some-lib])) (some-lib/bar)")]
+      (is (str/includes? s "import * as some_lib from"))
+      (is (str/includes? s "some_lib.bar()"))))
+  (testing "symbol require with :as also generates original-name import"
+    (let [s (squint/compile-string "(ns foo (:require [some-ns :as s])) (some-ns/bar)")]
+      (is (str/includes? s "import * as s from"))
+      (is (str/includes? s "import * as some_ns from"))
+      (is (str/includes? s "some_ns.bar()"))))
+  (testing "symbol require with :refer generates namespace import"
+    (let [s (squint/compile-string "(ns foo (:require [some-lib :refer [bar]])) (some-lib/baz)")]
+      (is (str/includes? s "import * as some_lib from"))
+      (is (str/includes? s "import { bar } from"))
+      (is (str/includes? s "some_lib.baz()"))))
+  (testing "string require does not generate namespace import"
+    (let [s (squint/compile-string "(ns foo (:require [\"./styles.css\"]))")]
+      (is (str/includes? s "import './styles.css'"))
+      (is (not (str/includes? s "import * as styles")))))
+  (testing "string require with :refer does not generate namespace import"
+    (let [s (squint/compile-string "(ns foo (:require [\"some-js-lib\" :refer [widget]]))")]
+      (is (str/includes? s "import { widget } from"))
+      (is (not (str/includes? s "import * as some"))))))
+
 (deftest require-test
   (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
     (is (and
@@ -1733,43 +1932,59 @@
     (let [s (squint/compile-string "(ns foo (:require [\"node:fs\" :as fs :refer [existsSync]]))"
                                    {:repl true})]
       (is (str/includes? s "var fs = await import('node:fs');
-var { existsSync } = (await import ('node:fs'));
+var { existsSync } = (await import('node:fs'));
 globalThis.foo.existsSync = existsSync;
 globalThis.foo.fs = fs;")))))
 
+(deftest repl-require-test
+  (testing "a library ns :as binds to the module's exports, not globalThis.<ns>"
+    (let [s (squint/compile-string "(ns foo (:require [clojure.string :as str])) (str/join \",\" [1 2])"
+                                   {:repl true})]
+      (is (str/includes? s "var str = await import('squint-cljs/src/squint/string.js')"))
+      (is (not (str/includes? s "globalThis.clojure.string")))))
+  (testing "a bare [ns] require resolves like [ns :as ns] (registers the alias)"
+    (let [bare (squint/compile-string "(ns foo (:require [bar])) (bar/baz)" {:repl true})]
+      (is (str/includes? bare "var bar = globalThis.bar"))
+      (is (str/includes? bare "globalThis.foo.bar = bar"))
+      (is (str/includes? bare "globalThis.foo.bar.baz()"))))
+  (testing "a bare dotted [some.ns] require imports once (no duplicate)"
+    (let [s (squint/compile-string "(ns foo (:require [some.ns]))")
+          n (count (re-seq #"import \* as some_DOT_ns " s))]
+      (is (= 1 n)))))
+
 (deftest import-attributes-test
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})
-                     "with { \"type\": \"json\" }"))
+                     "with {\"type\": \"json\"}"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false
                                                                                        :repl true})
-                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+                     ", ({\"with\": ({\"type\": \"json\"})})"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :as dude :with {:type :json}]))" {:elide-imports false})
-                     "with { \"type\": \"json\" }"))
+                     "with {\"type\": \"json\"}"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :as dude :with {:type :json}]))" {:elide-imports false
                                                                                        :repl true})
-                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+                     ", ({\"with\": ({\"type\": \"json\"})})"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :refer [x] :with {:type :json}]))" {:elide-imports false})
-                     "with { \"type\": \"json\" }"))
+                     "with {\"type\": \"json\"}"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :refer [x] :with {:type :json}]))" {:elide-imports false
-                                                                                                :repl true})
-                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+                                                                                                  :repl true})
+                     ", ({\"with\": ({\"type\": \"json\"})})"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false})
-                     "with { \"type\": \"json\" }"))
+                     "with {\"type\": \"json\"}"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :with {:type :json}]))" {:elide-imports false
                                                                                                :repl true})
-                     ", ({ \"with\": ({ \"type\": \"json\" }) })"))
+                     ", ({\"with\": ({\"type\": \"json\"})})"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :as dude :with {:type :json}]))" {:elide-imports false})
-                     "with { \"type\": \"json\" }"))
+                     "with {\"type\": \"json\"}"))
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json$default\" :as dude :with {:type :json}]))" {:elide-imports false
                                                                                                :repl true})
-                     ", ({ \"with\": ({ \"type\": \"json\" }) })")))
+                     ", ({\"with\": ({\"type\": \"json\"})})")))
 
 (deftest default-require-test
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom")]
     (is (str/includes? js "import default$1 from 'some-js-lib'"))
     (is (str/includes? js "const { atom } = default$1;")))
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom" {:repl true})]
-    (is (str/includes? js "var { atom } = (await import ('some-js-lib')).default;"))))
+    (is (str/includes? js "var { atom } = (await import('some-js-lib')).default;"))))
 
 (deftest ns-test-async
   (t/async done
@@ -1850,6 +2065,7 @@ globalThis.foo.fs = fs;")))))
                           x)))))
 
 (deftest dissoc-test
+  (is (eq nil (jsv! '(dissoc nil "1"))))
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc {"1" 2 "3" 4}))))
   (is (eq #js {"3" 4} (jsv! '(dissoc {"1" 2 "3" 4} "1"))))
   (is (eq #js {} (jsv! '(dissoc {"1" 2 "3" 4} "1" "3")))))
@@ -1908,7 +2124,11 @@ globalThis.foo.fs = fs;")))))
           (p/finally done)))))
 
 (deftest atom-test
-  (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y"))))
+  (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y")))
+  (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (reset-vals! x 2)] (+ old new))")))
+  (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (swap-vals! x inc)] (+ old new))")))
+  (is (= true  (jsv! "(def x (atom 1)) (compare-and-set! x 1 2)")))
+  (is (= false (jsv! "(def x (atom 1)) (compare-and-set! x 2 3)"))))
 
 (deftest override-core-var-test
   (is (= 1 (jsv! "(def count 1) (set! count (inc count)) (defn frequencies [x] (dec x)) (frequencies count)"))))
@@ -1921,7 +2141,7 @@ globalThis.foo.fs = fs;")))))
             (js->clj (jsv! "(def a (atom [])) (defn log [x] (swap! a conj x) x)  (def x (lazy-seq (cons (doto 1 log) (lazy-seq (cons (doto 2 log) (vec (map inc [2 3 4]))))))) (vec x) (vec x) [@a (vec x)]"))))))
 
 (deftest keep-indexed-test
-  (is (eq #js [12 14 16 18 20] (jsv! "(keep-indexed (fn [i e] (when (odd? i) (inc e))) (range 10 20))")))
+  (is (eq #js [12 14 16 18 20] (jsv! "(vec (keep-indexed (fn [i e] (when (odd? i) (inc e))) (range 10 20)))")))
   (is (eq #js [12 14 16 18 20] (jsv! "(into [] (keep-indexed (fn [i e] (when (odd? i) (inc e)))) (range 10 20))"))))
 
 (deftest into-array-test
@@ -1953,7 +2173,7 @@ globalThis.foo.fs = fs;")))))
       (fs/mkdirSync "test-output"))
     (fs/writeFileSync "test-output/foo.mjs" js)
     (is (str/includes? (process/execSync "node test-output/foo.mjs")
-                       "[[-1,-2,-3],true,-10]"))))
+                       "[[-1 -2 -3] true -10]"))))
 
 (deftest pre-post-test
   (testing "pre"
@@ -1983,7 +2203,14 @@ globalThis.foo.fs = fs;")))))
 (deftest seqable?-test
   (is (true? (jsv! "(seqable? [])")))
   (is (true? (jsv! "(seqable? #{})")))
-  (is (false? (jsv! "(seqable? 1)"))))
+  (is (false? (jsv! "(seqable? 1)")))
+  ;; plain objects (maps) are seqable, matching CLJS
+  (is (true? (jsv! "(seqable? {:a 1})")))
+  (is (true? (jsv! "(seqable? {})")))
+  (is (true? (jsv! "(seqable? \"foo\")")))
+  (is (true? (jsv! "(seqable? nil)")))
+  (is (false? (jsv! "(seqable? true)")))
+  (is (false? (jsv! "(seqable? inc)"))))
 
 (deftest merge-with-test
   (is (eq {:a 3 :b 1 :c 1} (jsv! "(merge-with + {:a 1 :c 1} {:a 2 :b 1})"))))
@@ -2425,7 +2652,8 @@ new Foo();")
   (testing "multi-arirt + variadic"
     (is (eq [6 7 8 9] (jsv! "(defn ^:gen foo ([] (js-yield (+ 1 2 3))) ([x & xs] (js-yield x) (js-yield* xs))) (into [] cat [(foo) (foo 7 8 9)])"))))
   (is (eq [1 2] (jsv! "(vec ((^:gen fn [] (js-yield 1) (js-yield 2))))")))
-  (is (eq [1 2] (jsv! "(vec ((fn ^:gen foo [] (js-yield 1) (js-yield 2))))"))))
+  (is (eq [1 2] (jsv! "(vec ((fn ^:gen foo [] (js-yield 1) (js-yield 2))))")))
+  (is (eq [1 2] (jsv! "(vec ((fn ^:gen foo [] (+ (js-yield 1) (js-yield 2)))))"))))
 
 (deftest infix-return-test
   (is (true? (jsv! "(defn foo [x] (and (int? x) (< 10 x 18))) (foo 12)"))))
@@ -2434,6 +2662,20 @@ new Foo();")
   (let [exports (:exports (squint/compile-string* "(defn- foo []) (defn bar [])"))]
     (is (not (str/includes? exports "foo")))
     (is (str/includes? exports "bar"))))
+
+(deftest compile-forms-test
+  (testing "compile* accepts pre-parsed forms"
+    (let [str-js (:body (squint/compile* "(+ 1 2) (defn f [x] (inc x))"
+                                         {:elide-imports true}))
+          forms-js (:body (squint/compile* '[(+ 1 2) (defn f [x] (inc x))]
+                                           {:elide-imports true}))]
+      (is (= str-js forms-js))))
+  (testing "transpile* accepts pre-parsed forms"
+    (is (= (squint/transpile* "(+ 1 2)")
+           (squint/transpile* '[(+ 1 2)]))))
+  (testing "deprecated *-string* aliases still work"
+    (is (= (:javascript (squint/compile-string* "(+ 1 2)"))
+           (:javascript (squint/compile* "(+ 1 2)"))))))
 
 (deftest use-existing-alias-test
   (testing "single-word alias"
@@ -2457,8 +2699,7 @@ new Foo();")
   (is (true? (jsv! "(def obj {:a ^:=> (fn [] (this-as this this))}) (not= obj (.a obj))")))
   (is (true? (jsv! "(def obj {:a (^:=> fn [] (this-as this this))}) (not= obj (.a obj))")))
   (is (true? (jsv! "(def obj {:a (fn ^:=> [] (this-as this this))}) (not= obj (.a obj))")))
-  (testing "no paren wrapping"
-    (is (str/starts-with? (:body (squint/compile-string* "(fn ^:=> [] 1)" {:context :expr})) "() =>"))))
+  (is (eq 1 (jsv! "(^:=> (fn [x] x) 1)"))))
 
 (deftest alias-test
   (is (str/includes?
@@ -2581,7 +2822,8 @@ new Foo();")
                  (js/eval s)))))
 
 (deftest not=test
-  (is (true? (jsv! '(not= 1 2)))))
+  (is (true? (jsv! '(not= 1 2))))
+  (is (true? (jsv! '(apply not= [1 2])))))
 
 (deftest issue-697-test
   (let [compiler-macros
@@ -2599,5 +2841,175 @@ new Foo();")
                           :elide-exports true
                           :top-level false}))))))
 
+(deftest compile-string-macros-js-test
+  (let [compiler-macros #js {:custom
+                             #js {:expr-and (fn [_ _ & args]
+                                              (let [js (str/join " && " (repeat (count args) "(~{})"))]
+                                                (vary-meta
+                                                 (concat (list 'js* js) args)
+                                                 assoc :tag 'boolean)))}}
+        result (squint/compileStringEx
+                "(let [value 1]
+       (custom/expr-and (= value 1) (= 2 2)))"
+                #js {:context "expr"
+                     :macros compiler-macros
+                     :elide-imports true
+                     :elide-exports true
+                     :top-level false}
+                nil)]
+    (is (true? (js/eval (.-javascript ^js result))))))
+
+(deftest issue-704-test
+  (is (eq 10 (jsv! "(let [a (atom 1)] (while (< @a 10) (swap! a inc)) @a)"))))
+
+(deftest =-test
+  (doseq [example ["(false? (= js/undefined false))"
+                   "(false? (= false nil))"
+                   "(false? (= js/NaN js/NaN))"
+                   "(true? (= {:a 1} {:a 1}))"
+                   "(false? (= {:a 1} {:a 1 :b 2}))"
+                   "(true? (= [1 2 3] [1 2 3] [1 2 3]))"]]
+    (is (true? (jsv! example)) (str "should return true: " example)))
+  (testing "optimization, bypass _EQ_ function when comparing with primitive literal"
+    (let [res (jss! "(let [f (fn [x] (= 1 x))] f)" {:context :expression})]
+      (is (str/includes? res "1 === x"))
+      (is (false? ((js/eval res)))))))
+
+(deftest keys-and-vals-test
+  (is (eq [:a :b :c] (jsv! "(keys {:a 1 :b 2 :c 3})")))
+  (is (eq [:a :b :c] (jsv! "(keys (assoc (js/Map.) :a 1 :b 2 :c 3))")))
+  (is (eq [1 2 3] (jsv! "(vals {:a 1 :b 2 :c 3})")))
+  (is (eq [1 2 3] (jsv! "(vals (assoc (js/Map.) :a 1 :b 2 :c 3))"))))
+
+(deftest object-tag-inference-test
+  (testing "assoc in return position with non-symbolic expression"
+    (is (eq {:a :b :foo :bar} ((jsv! '(let [f (fn [] (assoc (or {:a :b} {}) :foo :bar))]
+                                        f))))))
+  (let [s (jss! "(defn foo [^object x] (assoc x :a 1))")]
+    (is (str/includes? s "...x"))
+    (is (not (str/includes? s "assoc"))))
+  (testing "shadowed by inner fn"
+    (let [s (jss! "(defn foo [^object x] (fn [x] (assoc x :a 1)))")]
+      (is (not (str/includes? s "...x")))
+      (is (str/includes? s "assoc"))))
+  (testing "shadowed by let"
+    (let [s (jss! "(defn foo [^object x] (let [x nil] (assoc x :a 1)))")]
+      (is (not (str/includes? s "...x")))
+      (is (str/includes? s "assoc"))))
+  (testing "shadowed by letfn"
+    (let [s (jss! "(defn foo [^object x] (letfn [(x [a] a)] (assoc x :a 1)))")]
+      (is (not (str/includes? s "...x")))
+      (is (str/includes? s "assoc"))))
+  (testing "assoc! + get + non-symbol expr"
+    (let [s (jss! "(defn foo [^object x] (assoc! x :a 1)) (get ^object (foo {}) :a)"
+                  {:context :return})]
+      (is (str/includes? s "x[\"a\"] = 1),x"))
+      (is (eq 1 ((js/Function. s)))))
+    (testing "get + symbol expr"
+      (let [s (jss! "(def x (assoc! ^object {} :a 1)) (get ^object x :a)"
+                    {:context :return})]
+        (is (str/includes? s "[\"a\"] = 1),"))
+        (is (eq 1 ((js/Function. s))))))
+    (testing "get compile argument in expr context"
+      (is (eq 1 (jsv! '(do (defn foo [] (get (let [x {:a 1}] x) :a)) (foo)))))))
+  (testing "object literal inference"
+    (let [s (jss! "(let [x {:a 1}] (get x :a))")]
+      (is (str/includes? s "[\"a\"]")))
+    (let [s (jss! "(get {:a 1} :a)")]
+      (is (str/includes? s "[\"a\"]")))
+    (testing "nested assoc"
+      (let [s (jss! '((fn [^object x]
+                        (-> (assoc x :a :b)
+                            (assoc :c :d))) {}))]
+        (is (= 1 (count (re-seq #"\.\.\." s))))
+        (is (not (str/includes? s "assoc")))
+        (is (eq {:a :b :c :d} (js/eval s))))
+      (let [s (jss! '(let [x {:a 1}]
+                       (assoc (-> (assoc x :b 2) (assoc :c :d)) :e :f)))]
+        (is (= 1 (count (re-seq #"\.\.\." s))))
+        (is (not (str/includes? s "assoc")))
+        (is (str/includes? s "[\"e\"] = \"f\""))
+        (is (eq {:a 1 :b 2 :c :d :e :f} (js/eval s))))
+      (let [s (jss! '(assoc (let [x 1 o {}] (assoc o :x x)) :b 2))]
+        (is (= 1 (count (re-seq #"\.\.\." s))))
+        (is (not (str/includes? s "assoc")))
+        (is (str/includes? s "[\"b\"] = 2"))
+        (is (eq {:x 1 :b 2} (js/eval s))))
+      (testing "auto-transient"
+        (let [s (jss! '(assoc {:a 1} :b 2))]
+          (is (not (str/includes? s "assoc")))
+          (is (not (str/includes? s "...")))
+          (is (str/includes? s "[\"b\"] = 2")))
+        (let [s (jss! '(assoc (assoc! {} :a 1) :b 2))]
+          (is (not (str/includes? s "assoc")))
+          (is (not (str/includes? s "...")))
+          (is (str/includes? s "[\"a\"] = 1"))
+          (is (str/includes? s "[\"b\"] = 2")))
+        (let [s (jss! '(let [x {}]
+                         (assoc (assoc! x :a 1) :b 2)))]
+          (is (not (str/includes? s "assoc")))
+          (testing "assoc! mutates and potentially returns shared object"
+            (is (str/includes? s "...")))
+          (is (str/includes? s "[\"a\"] = 1"))
+          (is (not (str/includes? s "[\"b\"] = 2"))))))))
+
+(deftest number-interop-test
+  (is (fn? (jsv! '(.-toString 1))))
+  (is (eq "1" (jsv! '(.toString 1)))))
+
+(deftest dotimes-test
+  (is (eq 45 (jsv! '(let [a (atom 0)]
+                      (dotimes [i 10]
+                        (swap! a + i))
+                      @a))))
+  (is (eq 10 (jsv! '(let [a (atom 0)]
+                      (dotimes [_ 10]
+                        (swap! a inc))
+                      @a))))
+  (is (eq 10 (jsv! '((fn [i] (let [a (atom 0)]
+                               (dotimes [i i]
+                                 (swap! a inc))
+                               @a)) 10))))
+  (is (eq 55 (jsv! '(let [a (atom 0)
+                          i 10]
+                      (dotimes [i i]
+                        (let [i (inc i)]
+                          (swap! a + i)))
+                      @a)))))
+
+(deftest volatile-test
+  (is (eq 2 (jsv! "(def x (volatile! 1)) (vswap! x inc) @x"))))
+
+(deftest some?-macro-test
+  (let [s (jss! "(defn foo [x] (let [y (some? x)] (when y (js/console.log y))))")]
+    (testing "inlind some? via macro"
+      (is (str/includes? s "!(x == null)")))
+    (testing "no truth check"
+      (is (str/includes? s "if (y1)")))))
+
+(deftest with-meta-on-fn-test
+  (testing "with-meta on a fn returns a callable carrying meta"
+    (is (true? (jsv! '(let [f (fn [] :ok)
+                            g (with-meta f {:name "foo"})]
+                        (fn? g))))
+        "fn? stays true")
+    (is (= "foo" (jsv! '(let [f (fn [] :ok)
+                              g (with-meta f {:name "foo"})]
+                          (:name (meta g)))))
+        ":name round-trips through (meta ...)")
+    (is (= 42 (jsv! '(let [f (fn [x] (* x 2))
+                           g (with-meta f {:tag :doubler})]
+                       (g 21))))
+        "the wrapped fn forwards args to the original"))
+  (testing "the original fn is not mutated"
+    (is (nil? (jsv! '(let [f (fn [] :ok)
+                           _ (with-meta f {:name "foo"})]
+                       (meta f)))))))
+
 (defn init []
-  (t/run-tests 'squint.compiler-test 'squint.jsx-test 'squint.string-test 'squint.html-test))
+  (t/run-tests 'squint.compiler-test
+               'squint.jsx-test
+               'squint.string-test
+               'squint.html-test
+               'squint.math-test
+               'squint.multi-test))

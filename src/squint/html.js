@@ -16,12 +16,14 @@ export function html([s]) {
 }
 
 function escapeHTML(text) {
-  return text.toString()
-    .replace("&",  "&amp;")
-    .replace("<",  "&lt;")
-    .replace(">", "&gt;")
-    .replace("\"", "&quot;")
-    .replace("'", "&apos;");
+  const map = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&apos;"
+  };
+  return text.toString().replace(/[&<>"']/g, m => map[m]);
 }
 
 function safe(x) {
@@ -48,7 +50,8 @@ export function css(v, props) {
   return ret;
 }
 
-function attr(v) {
+export function attr(v) {
+  if (v == null) return '';
   if (typeof(v) === 'object') {
     return css({}, v);
   } else
@@ -58,7 +61,7 @@ function attr(v) {
 }
 
 function toHTML(v, unsafe) {
-  if (v == null) return;
+  if (v == null) return '';
   if (v instanceof Html) return v;
   if (typeof(v) === 'string') return unsafe ? v : safe(v);
   if (v[Symbol.iterator]) {

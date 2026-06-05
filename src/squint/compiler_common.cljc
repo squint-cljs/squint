@@ -1,21 +1,18 @@
 (ns squint.compiler-common
-  (:refer-clojure :exclude [*target* *repl*])
   (:require
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
+   [squint.compiler.utils :as utils]
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
 
-(def ^:dynamic *aliases* (atom {}))
-(def ^:dynamic *async* false)
-(def ^:dynamic *imported-vars* (atom {}))
-(def ^:dynamic *excluded-core-vars* (atom #{}))
-(def ^:dynamic *public-vars* (atom #{}))
-(def ^:dynamic *recur-targets* (atom []))
-(def ^:dynamic *repl* false)
-(def ^:dynamic *cljs-ns* 'user)
-(def ^:dynamic *target* :squint)
+(defn current-ns
+  "The namespace currently being compiled, tracked in ns-state under :current.
+  Defaults to 'user (matching the historical *cljs-ns* root) when unset, e.g.
+  the transpile-internal entry that does not seed :current."
+  [env]
+  (or (:current @(:ns-state env)) 'user))
 
 (def common-macros
   {'coercive-boolean macros/coercive-boolean
@@ -37,7 +34,13 @@
    'bit-shift-right-zero-fill macros/bit-shift-right-zero-fill
    'unsigned-bit-shift-right macros/unsigned-bit-shift-right
    'bit-set macros/bit-set
-   'undefined? macros/undefined?})
+   'undefined? macros/undefined?
+   'str macros/stringify
+   '= macros/equals
+   'not= macros/core-not=
+   'identical? macros/core-identical?
+   'alength macros/alength
+   'some? macros/core-some?})
 
 (defn wrap-parens [s]
   (str "(" s ")"))
@@ -46,39 +49,57 @@
 
 #?(:cljs (def format gstring/format))
 
-(defmulti emit (fn [expr _env] (type expr)))
+(def emit utils/emit)
 
 (defmulti emit-special (fn [disp _env & _args] disp))
 
 (defn emit-return [s env]
-  (if (= :return (:context env))
-    (format "return %s"
-            s)
+  (case (:context env)
+    ;; :repl-return is set only at the outermost top-level REPL form; box the
+    ;; value so a Promise the user produced isn't auto-unwrapped by the async
+    ;; eval IIFE. Sub-emits that enter a new fn scope assoc :context :return,
+    ;; which naturally degrades to a plain (unwrapped) return.
+    :repl-return (format "return [%s]" s)
+    :return (format "return %s" s)
     s))
 
-(defrecord Code [js bool]
+(defrecord Code [js tag transient]
   Object
   (toString [_] js))
 
-(defn bool-expr [js]
-  (map->Code {:js js
-              :bool true}))
+(defn tagged-expr
+  ([js tag]
+   (map->Code {:js js
+               :tag tag}))
+  ([js tag transient]
+   (map->Code {:js js
+               :tag tag
+               :transient transient})))
 
-(defmethod emit-special 'js* [_ env [_js* & opts :as expr]]
-  (let [bool? (= 'boolean (:tag (meta expr)))
-        [env' template substitutions] (if (map? (first opts))
-                                        [(first opts)
-                                         (second opts)
-                                         (drop 2 opts)]
-                                        [nil (first opts) (rest opts)])]
+(defn replace-first*
+  "Like clojure.string/replace-first with a string match, but treats
+  the replacement as a literal string. Avoids the cljs gotcha where
+  String.prototype.replace interprets `$` in the replacement."
+  [s match replacement]
+  (let [s (str s)
+        match (str match)]
+    (if-let [idx (str/index-of s match)]
+      (str (subs s 0 idx) replacement (subs s (+ idx (count match))))
+      s)))
+
+(defmethod emit-special 'js* [_ env [_js* template & args :as expr]]
+  (let [mexpr (meta expr)
+        tag (:tag mexpr)
+        transient (:transient mexpr)
+        template (str template)]
     (cond->
         (-> (reduce (fn [template substitution]
-                      (str/replace-first template "~{}"
-                                         (emit substitution (merge (assoc env :context :expr) env'))))
+                      (replace-first* template "~{}"
+                                      (emit substitution (merge (assoc env :context :expr)))))
                     template
-                    substitutions)
+                    args)
             (emit-return (merge env (meta expr))))
-      bool? bool-expr)))
+      tag (tagged-expr tag transient))))
 
 (defn expr-env [env]
   (assoc env :context :expr :top-level false))
@@ -86,7 +107,7 @@
 (defn yield-iife
   [s env]
   (if (:gen env)
-    (format "yield* (%s)" s)
+    (format "(yield* %s)" s)
     s))
 
 (defn wrap-await
@@ -99,11 +120,11 @@
     (cond-> (format (if gen?
                       "(%sfunction%s () {\n%s\n})()"
                       "(%s() =>%s {\n%s\n})()")
-                    (if *async* "async " "")
+                    (if (:async env) "async " "")
                     (if gen?
                       "*" "")
                     s)
-      *async* (wrap-await env)
+      (:async env) (wrap-await env)
       true (yield-iife env))))
 
 (defmethod emit-special 'throw [_ env [_ expr]]
@@ -170,9 +191,14 @@
       expr)))
 
 (defmethod emit ::number [expr env]
-  (-> (str expr)
+  (-> (if (and (zero? expr)
+               #?(:clj (neg? (Double/compare expr 0))
+                  :cljs (js/Object.is -0.0 expr)))
+        "-0"
+        (str expr))
       (emit-return env)
-      (escape-jsx env)))
+      (escape-jsx env)
+      (tagged-expr 'number)))
 
 (defmethod emit #?(:clj java.lang.String :cljs js/String) [^String expr env]
   (let [unsafe-html? (:unsafe-html env)]
@@ -188,13 +214,14 @@
               (emit-return (cond-> expr
                              (not (:skip-quotes env))
                              (pr-str)) env))
-      (pos? (count expr)) (bool-expr))))
+      (pos? (count expr)) (tagged-expr 'string))))
 
 (defmethod emit #?(:clj java.lang.Boolean :cljs js/Boolean) [^String expr env]
   (-> (if (:jsx-attr env)
         (escape-jsx expr env)
         (str expr))
-      (emit-return env)))
+      (emit-return env)
+      (tagged-expr 'boolean)))
 
 #?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr _env]
           (str \/ expr \/)))
@@ -208,12 +235,16 @@
 
 (def suffix-unary-operators '#{++ --})
 
-(def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "=" "==" "===" "<" ">" "<=" ">=" "!="
+(def infix-operators #{"+" "+=" "-" "-=" "/" "*" "%" "==" "===" "<" ">" "<=" ">=" "!="
                        "<<" ">>" "<<<" ">>>" "!==" "&" "|" "&&" "||" "instanceof"
                        "bit-or" "bit-and" "js-mod" "js-??"})
 
 (def boolean-infix-operators
-  #{"=" "==" "===" "<" ">" "<=" ">=" "!=" "instanceof"})
+  #{"==" "===" "<" ">" "<=" ">=" "!=" "instanceof"})
+
+(def numeric-infix-operators
+  #{"+" "+=" "-" "-=" "/" "*" "%" "<<" ">>" "<<<" ">>>" "&" "|"
+    "bit-or" "bit-and" "js-mod"})
 
 (def chainable-infix-operators #{"+" "-" "*" "/" "&" "|" "&&" "||" "bit-or" "bit-and" "js-??"})
 
@@ -236,7 +267,8 @@
   (let [env (assoc enc-env :context :expr :top-level false)
         acount (count args)
         op-name (name operator)
-        bool? (contains? boolean-infix-operators op-name)]
+        bool? (contains? boolean-infix-operators op-name)
+        numeric? (contains? numeric-infix-operators op-name)]
     (if (and (not (chainable-infix-operators op-name)) (> acount 2))
       (emit (list 'cljs.core/&&
                   (list operator (first args) (second args))
@@ -250,7 +282,7 @@
                   (= 1 acount))
              (str "1 / " (emit (first args) env))
              :else
-             (-> (let [substitutions {'= "===" == "===" '!= "!=="
+             (-> (let [substitutions {'== "===" '!= "!=="
                                       '+ "+"
                                       'bit-or "|"
                                       'bit-and "&"
@@ -258,20 +290,22 @@
                                       'js-?? "??"}]
                    (str/join (str " " (or (substitutions operator)
                                           operator) " ")
-                             (map wrap-parens (emit-args env args))))
-                 ))
+                             (emit-args env args)))))
+       wrap-parens
        (emit-return enc-env)
-       (cond-> bool? (bool-expr))))))
+       (cond->
+           bool? (tagged-expr 'boolean)
+           numeric? (tagged-expr 'number))))))
 
 (def core-vars (atom #{}))
 
-(def ^:dynamic *core-package* "squint-cljs/core.js")
 
 (defn maybe-core-var [sym env]
-  (let [m (munge sym)]
+  (let [m (munge sym)
+        ns-state @(:ns-state env)
+        excluded (get-in ns-state [(:current ns-state) :excludes])]
     (when (and (contains? (:core-vars env) m)
-               (not (contains? @*excluded-core-vars* m)))
-      (swap! *imported-vars* update *core-package* (fnil conj #{}) m)
+               (not (contains? excluded m)))
       (str
        (when-let [core-alias (:core-alias env)]
          (str core-alias "."))
@@ -279,6 +313,78 @@
 
 (defn alias-munge [s]
   (-> s str munge (str/replace #"\." "_DOT_") ))
+
+(defn resolve-import-map [import-maps lib]
+  (get import-maps lib lib))
+
+(defn resolve-macro-ns
+  "Map a runtime namespace to its macro namespace (per target)."
+  [alias target]
+  (case target
+    :squint (case alias
+              (clojure.test cljs.test) 'squint.test
+              alias)
+    (case alias
+      (clojure.test cljs.test) 'cherry.test
+      alias)))
+
+(def ^:private builtin-test-macro-names
+  '#{deftest is testing are async use-fixtures})
+
+(defn builtin-refer-is-macro?
+  "Returns true when a `:refer`'d symbol is known to be a compiler built-in
+  macro and must not be emitted as a runtime import."
+  [original-libname refer-sym]
+  (and (symbol? original-libname)
+       (contains? '#{cljs.test clojure.test cherry.test squint.test} original-libname)
+       (contains? builtin-test-macro-names refer-sym)))
+
+;; Namespaces that map to a squint/cherry library module (per target), instead
+;; of a local source ns. Single source of truth for both resolve-ns and
+;; library-ns?: their vars are exported by the module, so a repl `:as` alias
+;; binds to the imported module object - not globalThis.<ns>, which only local,
+;; repl-compiled nses self-register.
+(def ^:private library-imports
+  '{:squint {squint.string "squint-cljs/src/squint/string.js"
+             clojure.string "squint-cljs/src/squint/string.js"
+             squint.set "squint-cljs/src/squint/set.js"
+             clojure.set "squint-cljs/src/squint/set.js"
+             squint.math "squint-cljs/src/squint/math.js"
+             clojure.math "squint-cljs/src/squint/math.js"
+             cljs.math "squint-cljs/src/squint/math.js"
+             squint.test "squint-cljs/src/squint/test.js"
+             cljs.test "squint-cljs/src/squint/test.js"
+             clojure.test "squint-cljs/src/squint/test.js"}
+    :cherry {cljs.string "cherry-cljs/lib/clojure.string.js"
+             clojure.string "cherry-cljs/lib/clojure.string.js"
+             cljs.walk "cherry-cljs/lib/clojure.walk.js"
+             clojure.walk "cherry-cljs/lib/clojure.walk.js"
+             cljs.set "cherry-cljs/lib/clojure.set.js"
+             clojure.set "cherry-cljs/lib/clojure.set.js"
+             cljs.pprint "cherry-cljs/lib/cljs.pprint.js"
+             clojure.pprint "cherry-cljs/lib/cljs.pprint.js"
+             cljs.test "cherry-cljs/lib/clojure.test.js"
+             clojure.test "cherry-cljs/lib/clojure.test.js"}})
+
+(defn library-ns?
+  "True when `alias` resolves to a library module (see `library-imports`) rather
+  than a local source ns."
+  [target alias]
+  (contains? (get library-imports target) alias))
+
+(defn resolve-ns [env alias]
+  (let [import-maps (:import-maps env)
+        target (:target env)]
+    (if-let [lib (get-in library-imports [target alias])]
+      (resolve-import-map import-maps lib)
+      (case target
+        :squint (if (symbol? alias)
+                  (if-let [resolve-ns (:resolve-ns env)]
+                    (or (resolve-ns alias)
+                        alias)
+                    alias)
+                  (resolve-import-map import-maps alias))
+        alias))))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
@@ -312,37 +418,76 @@
                                     sym-ns)
                                   "."
                                   (munged-name sn)))
-                           (when (contains? aliases (symbol sym-ns))
+                           (when-let [resolved-alias
+                                     (or (when (contains? aliases (symbol sym-ns))
+                                           sym-ns)
+                                         ;; also check alias-munged form for dotted namespaces
+                                         ;; e.g. my.macros/foo -> my_DOT_macros
+                                         (let [am (alias-munge sym-ns)]
+                                           (when (contains? aliases (symbol am))
+                                             am)))]
                              (str
-                              (when *repl*
-                                (str "globalThis." (munge *cljs-ns*) "."))
-                              (alias-munge sym-ns) "."
+                              (when (:repl env)
+                                (str "globalThis." (munge current) "."))
+                              (alias-munge resolved-alias) "."
                               (munged-name sn)))
                            (let [ns (namespace expr)
                                  munged (munge ns)
-                                 nm (name expr)]
-                             (if (and *repl* (not= "Math" munged))
-                               (let [ns-state (some-> env :ns-state deref)]
-                                 (if (get-in ns-state [(symbol ns) (symbol nm)])
-                                   (str (munge ns) "." (munge nm))
-                                   (str "globalThis." (munge *cljs-ns*) "." munged "." (munge nm))))
-                               (str munged "." (munge (name expr)))))))
+                                 nm (name expr)
+                                 ;; auto-import: if ns resolves to a file, generate import on the fly
+                                 auto-alias (alias-munge ns)
+                                 resolved (or (when-let [rns (:resolve-ns env)]
+                                                (rns (symbol ns)))
+                                              ;; fall back to the built-in ns->libname mapping
+                                              ;; so macro-generated qualified refs to e.g. cljs.test
+                                              ;; get an auto-import in squint output.
+                                              (let [r (resolve-ns env (symbol ns))]
+                                                (when (and (string? r)
+                                                           (not= r (str (symbol ns))))
+                                                  r)))
+                                 _ (when (and resolved (not (contains? aliases (symbol auto-alias))))
+                                     (when-let [imports (:imports env)]
+                                       (swap! imports str
+                                              (if (:repl env)
+                                                (let [mns (munge current)]
+                                                  (str (statement (format "var %s = await import('%s')" auto-alias resolved))
+                                                       ;; ensure the ns object exists before assigning onto it - the ns
+                                                       ;; form also emits this guard, but our auto-import may land first.
+                                                       (statement (format "globalThis.%s = globalThis.%s || {}" mns mns))
+                                                       (statement (format "globalThis.%s.%s = %s" mns auto-alias auto-alias))))
+                                                (statement (format "import * as %s from '%s'" auto-alias resolved)))))
+                                     (swap! (:ns-state env)
+                                            (fn [ns-state]
+                                              (let [current (:current ns-state)]
+                                                (update-in ns-state [current :aliases]
+                                                           (fn [a] ((fnil assoc {}) a (symbol auto-alias) (str resolved))))))))]
+                             (if (and resolved (not (and (:repl env) (= "Math" munged))))
+                               (str (when (:repl env)
+                                      (str "globalThis." (munge current) "."))
+                                    auto-alias "." (munged-name (symbol nm)))
+                               (if (and (:repl env) (not= "Math" munged))
+                                 (let [ns-state (some-> env :ns-state deref)]
+                                   (if (get-in ns-state [(symbol ns) (symbol nm)])
+                                     (str (munge ns) "." (munge nm))
+                                     (str "globalThis." (munge current) "." munged "." (munge nm))))
+                                 (str munged "." (munge (name expr))))))))
                      (if-let [renamed (get (:var->ident env) expr)]
-                       (cond-> (munge** (str renamed))
-                         (:bool (meta renamed)) (bool-expr))
+                       (let [tag (:tag (meta renamed))]
+                         (cond-> (munge** (str renamed))
+                           tag (tagged-expr tag)))
                        (let [alias (get aliases expr)]
                          (or
                           (when (contains? current-ns expr)
-                            (str (when *repl*
-                                   (str "globalThis." (munge *cljs-ns*) ".")) (munged-name expr)))
+                            (str (when (:repl env)
+                                   (str "globalThis." (munge current) ".")) (munged-name expr)))
                           (when (contains? (:refers current-ns) expr)
-                            (str (when *repl*
-                                   (str "globalThis." (munge *cljs-ns*) "."))
+                            (str (when (:repl env)
+                                   (str "globalThis." (munge current) "."))
                                  (munged-name expr)))
                           (some-> (maybe-core-var expr env) munge)
                           (when alias
-                            (str (when *repl*
-                                   (str "globalThis." (munge *cljs-ns*) "."))
+                            (str (when (:repl env)
+                                   (str "globalThis." (munge current) "."))
                                  (alias-munge expr)))
                           (let [m (munged-name expr)]
                             m)))))]
@@ -375,27 +520,31 @@
         ctx (:context env)
         statement-env (assoc env :context :statement)
         iife? (and (seq bl) (= :expr ctx))
-        exprs (map #(save-pragma statement-env (emit % statement-env)) bl)
-        s (cond-> (str (str/join "" exprs)
-                       (let [ctx (if iife? :return
-                                     ctx)]
-                         (cond-> (emit l (assoc env :context
-                                                ctx))
-                           (= :return ctx) (statement))))
+        exprs (str/join (map #(save-pragma statement-env (emit % statement-env)) bl))
+        lctx (if iife? :return ctx)
+        res (emit l (assoc env :context lctx))
+        tag (:tag res)
+        transient (:transient res)
+        res (cond-> res
+              (= :return ctx) (statement))
+        s (cond-> (str exprs res)
             iife?
             (wrap-implicit-iife env))]
-    s))
+    (cond-> s
+      tag (tagged-expr tag transient))))
 
 (defmethod emit-special 'do [_type env [_ & exprs]]
   (emit-do env exprs))
 
 (defn emit-let [enc-env bindings body loop?]
-  (let [gensym (:gensym enc-env)
+  (let [top-level? (:top-level enc-env)
+        gensym (if (:top-level enc-env)
+                 gensym
+                 (:gensym enc-env))
         context (:context enc-env)
         env (assoc enc-env :context :expr)
         partitioned (partition 2 bindings)
-        iife? (or (= :expr context)
-                  (:top-level env))
+        iife? (= :expr context)
         upper-var->ident (:var->ident enc-env)
         [bindings var->ident]
         (let [env (dissoc env :top-level)]
@@ -406,26 +555,34 @@
                                       (munge var-name))
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
-                          rhs-bool? (:bool rhs)
-                          expr (format "%s %s = %s;\n" (if loop? "let" "const")lhs rhs)
-                          var->ident (assoc var->ident var-name
-                                            (vary-meta renamed
-                                                       assoc :bool rhs-bool?))]
+                          tag (:tag rhs)
+                          expr (format "%s %s = %s;\n" (if (or loop? top-level?
+                                                               (:mutable vm))
+                                                         "let" "const") lhs rhs)
+                          var->ident
+                          (-> var->ident
+                              (assoc var-name
+                                     (cond-> renamed
+                                       tag
+                                       (vary-meta assoc :tag tag))))]
                       [(str acc expr) var->ident]))
                   ["" upper-var->ident]
                   partitioned))
-        enc-env (assoc enc-env :var->ident var->ident :top-level false)]
+        enc-env (assoc enc-env :var->ident var->ident :top-level false)
+        body (let [recur-targets (if loop? (map var->ident (map first partitioned))
+                                     (:recur-targets enc-env))]
+               (emit-do (-> (if iife?
+                              (assoc enc-env :context :return)
+                              enc-env)
+                            (assoc :recur-targets recur-targets)) body))
+        tag (:tag body)
+        transient (:transient body)]
     (cond-> (str
              bindings
              (when loop?
                "while(true){\n")
              ;; TODO: move this to env arg?
-             (binding [*recur-targets*
-                       (if loop? (map var->ident (map first partitioned))
-                           *recur-targets*)]
-               (emit-do (if iife?
-                          (assoc enc-env :context :return)
-                          enc-env) body))
+             body
              (when loop?
                ;; TODO: not sure why I had to insert the ; here, but else
                ;; (loop [x 1] (+ 1 2 x)) breaks
@@ -433,7 +590,8 @@
       iife?
       (wrap-implicit-iife env)
       iife?
-      (emit-return enc-env))))
+      (emit-return enc-env)
+      tag (tagged-expr tag transient))))
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
@@ -473,7 +631,7 @@
 
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [gensym (:gensym env)
-        bindings *recur-targets*
+        bindings (:recur-targets env)
         temps (repeatedly (count exprs) gensym)
         eenv (expr-env env)]
     (when-let [cb (:recur-callback env)]
@@ -500,22 +658,26 @@
         env* (no-top-level env)]
     (str "var " (munge name) " = "
          (emit expr (expr-env env*)) ";\n"
-         (when *repl*
+         (when (:repl env)
            (emit-return (str "globalThis."
-                            (when *cljs-ns*
-                              (str (munge *cljs-ns*) "."))
+                            (when (current-ns env)
+                              (str (munge (current-ns env)) "."))
                             (munge name) " = " (munge name)
                             (when (= :statement (:context env)) ";\n"))
                         env)))))
 
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)]
-    ;; TODO: move *public-vars* to :ns-state atom
     (when-not (:private (meta name))
-      (swap! *public-vars* conj (munge* name)))
+      (swap! (:ns-state env)
+             (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))
     (swap! (:ns-state env) (fn [state]
                              (let [current (:current state)]
-                               (assoc-in state [current name] {}))))
+                               ;; keep the var's metadata (:arglists, :doc, :line)
+                               ;; so nREPL info/eldoc can read it back
+                               (assoc-in state [current name]
+                                         (select-keys (meta name)
+                                                      [:arglists :doc :line :file :private :macro])))))
     (let [skip-var? (:squint.compiler/skip-var (meta expr))]
       (emit-var more skip-var? env))))
 
@@ -530,45 +692,28 @@
 (defmethod emit-special 'js-await [_ env [_await more]]
   (js-await env more))
 
-#_(defn wrap-iife [s]
-    (cond-> (format "(%sfunction () {\n %s\n})()" (if *async* "async " "") s)
-      *async* (wrap-await)))
+(defmethod emit-special 'await [_ env [_await more]]
+  (js-await env more))
 
-(defn resolve-ns [env alias]
-  (case *target*
-    :squint
-    (case alias
-      (squint.string clojure.string) "squint-cljs/src/squint/string.js"
-      (squint.set clojure.set) "squint-cljs/src/squint/set.js"
-      (if (symbol? alias)
-        (if-let [resolve-ns (:resolve-ns env)]
-          (or (resolve-ns alias)
-              alias)
-          alias)
-        alias))
-    :cherry
-    (case alias
-      (cljs.string clojure.string) "cherry-cljs/lib/clojure.string.js"
-      (cljs.walk clojure.walk) "cherry-cljs/lib/clojure.walk.js"
-      (cljs.set clojure.set) "cherry-cljs/lib/clojure.set.js"
-      (cljs.pprint clojure.pprint) "cherry-cljs/lib/cljs.pprint.js"
-      alias)
-    alias))
+#_(defn wrap-iife [s env]
+    (cond-> (format "(%sfunction () {\n %s\n})()" (if (:async env) "async " "") s)
+      (:async env) (wrap-await)))
 
 (defn unwrap [s]
-  (str/replace s #"^\(|\)$" ""))
+  (str/replace (str s) #"^\(|\)$" ""))
 
-(defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as with]}]]
+(defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as with as-alias]}]]
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
     (let [env (expr-env env)
+          original-libname libname
           libname (resolve-ns env libname)
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           default? (= "default" suffix) ;; we only support a default suffix for now anyway
           as (when as (munge as))
           expr (str
                 (when (and as default?)
-                  (if *repl*
+                  (if (:repl env)
                     (statement (format "const %s = (await import('%s'%s)).%s"
                                        (alias-munge as)
                                        libname
@@ -581,27 +726,73 @@
                                          (str " with " (unwrap (emit with env)))
                                          "")))))
                 (when (and (not as) (not refer))
-                  ;; import presumably for side effects
-                  (if *repl*
-                    (statement (format "await import('%s'%s)" libname
-                                       (if with
-                                         (str ", " (emit {:with with} env))
-                                         "")))
-                    (statement (format "import '%s'%s" libname
-                                       (if with
-                                         (str " with " (unwrap (emit with env)))
-                                         "")))))
+                  (if (symbol? original-libname)
+                    ;; symbol require without :as or :refer - generate namespace
+                    ;; import. A bare [some.ns] aliases the ns to itself, so in
+                    ;; the repl bind + register globalThis.<cur-ns>.<alias> (like
+                    ;; an explicit :as) so its vars resolve.
+                    (let [auto-alias (alias-munge (str original-libname))]
+                      (if (:repl env)
+                        (str
+                          (if (library-ns? (:target env) original-libname)
+                            (statement (format "var %s = await import('%s'%s)" auto-alias libname
+                                               (if with (str ", " (emit {:with with} env)) "")))
+                            (statement (format "await import('%s'%s); var %s = globalThis.%s" libname
+                                               (if with (str ", " (emit {:with with} env)) "")
+                                               auto-alias (munge original-libname))))
+                          (statement (format "globalThis.%s.%s = %s"
+                                             (munge current-ns-name) auto-alias auto-alias)))
+                        (statement (format "import * as %s from '%s'%s" auto-alias libname
+                                           (if with
+                                             (str " with " (unwrap (emit with env)))
+                                             "")))))
+                    ;; string require without :as or :refer - side-effect import
+                    (if (:repl env)
+                      (statement (format "await import('%s'%s)" libname
+                                         (if with
+                                           (str ", " (emit {:with with} env))
+                                           "")))
+                      (statement (format "import '%s'%s" libname
+                                         (if with
+                                           (str " with " (unwrap (emit with env)))
+                                           ""))))))
                 (when (and as (not default?))
-                  (swap! *imported-vars* update libname (fnil identity #{}))
-                  (statement (if *repl*
-                               (format "var %s = await import('%s'%s)" (alias-munge as) libname
-                                       (if with
-                                         (str ", " (emit {:with with} env))
-                                         ""))
-                               (format "import * as %s from '%s'%s" (alias-munge as) libname
-                                       (if with
-                                         (str " with " (unwrap (emit with env)))
-                                         "")))))
+                  (str
+                    (statement (cond
+                                 ;; local cljs ns in the REPL: run the module for
+                                 ;; side effects (populates globalThis.<ns>) and
+                                 ;; bind the alias to that live ns object, so
+                                 ;; cross-ns refs deref the live cell and see
+                                 ;; redefs / HMR updates. Library nses (e.g.
+                                 ;; clojure.string) export their vars instead, so
+                                 ;; bind to the module object.
+                                 (and (:repl env) (symbol? original-libname)
+                                      (not (library-ns? (:target env) original-libname)))
+                                 (format "await import('%s'%s); var %s = globalThis.%s"
+                                         libname
+                                         (if with (str ", " (emit {:with with} env)) "")
+                                         (alias-munge as)
+                                         (munge original-libname))
+                                 (:repl env)
+                                 (format "var %s = await import('%s'%s)" (alias-munge as) libname
+                                         (if with (str ", " (emit {:with with} env)) ""))
+                                 :else
+                                 (format "import * as %s from '%s'%s" (alias-munge as) libname
+                                         (if with (str " with " (unwrap (emit with env))) ""))))
+                    ;; also bind the full ns name (for macro-expansion / full-name refs)
+                    (when (and (symbol? original-libname)
+                               (not= (str as) (alias-munge (str original-libname))))
+                      (let [auto-alias (alias-munge (str original-libname))]
+                        (statement (cond
+                                     ;; local ns: live globalThis cell
+                                     (and (:repl env) (not (library-ns? (:target env) original-libname)))
+                                     (format "var %s = globalThis.%s" auto-alias (munge original-libname))
+                                     ;; library ns: reuse the module-bound alias
+                                     (:repl env)
+                                     (format "var %s = %s" auto-alias (alias-munge as))
+                                     :else
+                                     (format "import * as %s from '%s'%s" auto-alias libname
+                                             (if with (str " with " (unwrap (emit with env))) ""))))))))
                 (when refer
                   (swap! (:ns-state env)
                          (fn [ns-state]
@@ -609,43 +800,68 @@
                              (update-in ns-state [current :refers]
                                         (fn [refers]
                                           (merge refers (zipmap (map (fn [refer]
-                                                                       (get rename refer refer)) refer) (repeat libname))))))))
-                  (let [referred+renamed (str/join ", "
-                                                   (map (fn [refer]
-                                                          (str (munge refer)
-                                                               (when-let [renamed (get rename refer)]
-                                                                 (str " as " (munge renamed)))))
-                                                        refer))]
-                    (if *repl*
-                      (str (statement (format "var { %s } = (await import ('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
-                                              (if with
-                                                (str ", " (emit {:with with} env))
-                                                "")
-                                              (if suffix
-                                                (str "." suffix)
-                                                "")))
-                           (str/join (map (fn [sym]
-                                            (let [sym (munge sym)]
-                                              (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym))))
-                                          (map (fn [refer]
-                                                 (get rename refer refer))
-                                               refer))))
+                                                                       (get rename refer refer)) refer)
+                                                               (repeat (if (symbol? original-libname)
+                                                                         original-libname libname)))))))))
+                  (let [runtime-refer (remove #(builtin-refer-is-macro? original-libname %) refer)]
+                    (str
+                      (when (seq runtime-refer)
+                        (let [referred+renamed (str/join ", "
+                                                         (map (fn [refer]
+                                                                (str (munge refer)
+                                                                     (when-let [renamed (get rename refer)]
+                                                                       (str " as " (munge renamed)))))
+                                                              runtime-refer))]
+                          (if (:repl env)
+                            (str (statement (format "var { %s } = (await import('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
+                                                    (if with
+                                                      (str ", " (emit {:with with} env))
+                                                      "")
+                                                    (if suffix
+                                                      (str "." suffix)
+                                                      "")))
+                                 (str/join (map (fn [sym]
+                                                  (let [sym (munge sym)]
+                                                    (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym))))
+                                                (map (fn [refer]
+                                                       (get rename refer refer))
+                                                     runtime-refer))))
 
-                      (if default?
-                        (let [libname* ((:gensym env) "default")]
-                          (str (statement (format "import %s from '%s'%s" libname* libname (if with
-                                                                                             (str " with " (unwrap (emit with env)))
-                                                                                             "")))
-                               (statement (format "const { %s } = %s" referred+renamed libname*))))
-                        (statement (format "import { %s } from '%s'%s" referred+renamed libname (if with
-                                                                                                  (str " with " (unwrap (emit with env)))
-                                                                                                  ""))))))))]
-      (when as
+                            (if default?
+                              (let [libname* ((:gensym env) "default")]
+                                (str (statement (format "import %s from '%s'%s" libname* libname (if with
+                                                                                                   (str " with " (unwrap (emit with env)))
+                                                                                                   "")))
+                                     (statement (format "const { %s } = %s" referred+renamed libname*))))
+                              (statement (format "import { %s } from '%s'%s" referred+renamed libname (if with
+                                                                                                        (str " with " (unwrap (emit with env)))
+                                                                                                        "")))))))
+                      ;; for symbol requires with :refer but no :as, also generate namespace import
+                      ;; so qualified refs from macro expansions resolve
+                      (when (and (not as) (symbol? original-libname))
+                        (let [auto-alias (alias-munge (str original-libname))]
+                          (if (:repl env)
+                            (statement (format "var %s = await import('%s'%s)" auto-alias libname
+                                               (if with
+                                                 (str ", " (emit {:with with} env))
+                                                 "")))
+                            (statement (format "import * as %s from '%s'%s" auto-alias libname
+                                               (if with
+                                                 (str " with " (unwrap (emit with env)))
+                                                 ""))))))))))]
+      (when (or as as-alias (symbol? original-libname))
         (swap! (:ns-state env)
                (fn [ns-state]
-                 (let [current (:current ns-state)]
-                   (update-in ns-state [current :aliases] (fn [aliases]
-                                                            ((fnil assoc {}) aliases as libname)))))))
+                 (let [current (:current ns-state)
+                       the-alias (or as as-alias)]
+                   (cond-> ns-state
+                     the-alias
+                     (update-in [current :aliases] (fn [aliases]
+                                                     ((fnil assoc {}) aliases the-alias libname)))
+                     (symbol? original-libname)
+                     (update-in [current :aliases] (fn [aliases]
+                                                     ((fnil assoc {}) aliases
+                                                      (symbol (alias-munge (str original-libname))) libname))))))))
       (when-not (:elide-imports env)
         expr)
       #_nil)))
@@ -665,26 +881,9 @@
   (let [mname (munge name)
         ensure-obj (ensure-global mname)
         ns-obj (str "globalThis." mname)]
-    ;; TODO: deprecate *cljs-ns*
-    (set! *cljs-ns* name)
     (swap! (:ns-state env) assoc :current name)
-    (reset! *aliases*
-            (->> clauses
-                 (some
-                  (fn [[k & exprs]]
-                    (when (= :require k) exprs)))
-                 (reduce
-                  (fn [aliases [full as alias]]
-                    (let [full (resolve-ns env full)]
-                      (case as
-                        (:as :as-alias)
-                        (assoc aliases (munge alias) full)
-                        #_:else
-                        aliases)))
-                  {:current name
-                   (:core-alias env) *core-package*})))
     (str
-     (when *repl*
+     (when (:repl env)
        ensure-obj)
      (reduce (fn [acc [k & exprs]]
                (cond
@@ -692,12 +891,15 @@
                  (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
                  (= :refer-clojure k)
                  (let [{:keys [exclude]} exprs]
-                   (swap! *excluded-core-vars* into exclude)
+                   (swap! (:ns-state env)
+                          (fn [ns-state]
+                            (update-in ns-state [(:current ns-state) :excludes]
+                                       (fnil into #{}) exclude)))
                    acc)
                  :else acc))
              ""
              clauses)
-     (when *repl*
+     (when (:repl env)
        (str
         (reduce-kv (fn [acc k _v]
                      (if (symbol? k)
@@ -705,23 +907,13 @@
                             ns-obj "." (alias-munge k) " = " (alias-munge k) ";\n")
                        acc))
                    ""
-                   @*aliases*))))))
+                   (get-in @(:ns-state env) [name :aliases])))))))
 
 (defmethod emit-special 'require [_ env [_ & clauses]]
   (let [clauses (map second clauses)]
-    (reset! *aliases*
-            (->> clauses
-                 (reduce
-                  (fn [aliases [full as alias]]
-                    (let [full (resolve-ns env full)]
-                       (case as
-                        (:as :as-alias)
-                        (assoc aliases alias full)
-                        aliases)))
-                  {:current name})))
-    (str (str/join "" (map #(process-require-clause env *cljs-ns* %) clauses))
-         (when *repl*
-           (let [mname (munge *cljs-ns*)
+    (str (str/join "" (map #(process-require-clause env (current-ns env) %) clauses))
+         (when (:repl env)
+           (let [mname (munge (current-ns env))
                  split-name (str/split (str mname) #"\.")
                  ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
                                           (let [nk (str (when nk
@@ -742,7 +934,7 @@
                                     ns-obj "." #_".aliases." k " = " k ";\n"))
                              acc))
                          ""
-                         @*aliases*)))))))
+                         (get-in @(:ns-state env) [(current-ns env) :aliases]))))))))
 
 (defmethod emit-special 'str [_type env [_str & args]]
   (apply clojure.core/str (interpose " + " (emit-args env args))))
@@ -750,7 +942,8 @@
 (defn emit-method [env obj method args]
   (let [eenv (expr-env env)
         method (munge** method)]
-    (emit-return (str (emit obj eenv) "."
+    (emit-return (str (cond-> (emit obj eenv)
+                        (number? obj) wrap-parens) "."
                       method
                       (comma-list (emit-args env args)))
                  env)))
@@ -761,7 +954,10 @@
                         [method args])
         method-str (str method)]
     (if (str/starts-with? method-str "-")
-      (emit (list 'js* (str "~{}." (symbol (munge** (subs method-str 1)))) obj) env)
+      (emit (list 'js* (str (if (number? obj)
+                              "(~{})."
+                              "~{}.")
+                            (symbol (munge** (subs method-str 1)))) obj) env)
       (emit-method env obj (symbol method-str) args))))
 
 (defn emit-aget [env var idxs]
@@ -803,56 +999,55 @@
                  env)))
 
 (defmethod emit-special 'new [_type env [_new class & args]]
-  (emit-return (str "new " (emit class (expr-env env)) (comma-list (emit-args env args))) env))
+  (emit-return (wrap-parens (str "new " (emit class (expr-env env)) (comma-list (emit-args env args)))) env))
 
 (defmethod emit-special 'dec [_type env [_ var]]
-  (emit-return (str "(" (emit var (assoc env :context :expr)) " - " 1 ")") env))
+  (-> (emit-return (str "(" (emit var (assoc env :context :expr)) " - " 1 ")") env)
+      (tagged-expr 'number)))
 
 (defmethod emit-special 'inc [_type env [_ var]]
-  (emit-return (str "(" (emit var (assoc env :context :expr)) " + " 1 ")") env))
-
-#_(defmethod emit-special 'defined? [_type env [_ var]]
-    (str "typeof " (emit var env) " !== \"undefined\" && " (emit var env) " !== null"))
-
-#_(defmethod emit-special '? [_type env [_ test then else]]
-    (str (emit test env) " ? " (emit then env) " : " (emit else env)))
-
-#_#_(defmethod emit-special 'and [_type env [_ & more]]
-      (if (empty? more)
-        true
-        (emit-return (wrap-parens (apply str (interpose " && " (emit-args env more)))) env)))
-
-(defmethod emit-special 'or [_type env [_ & more]]
-  (if (empty? more)
-    nil
-    (emit-return (wrap-parens (apply str (interpose " || " (emit-args env more)))) env)))
+  (-> (emit-return (str "(" (emit var (assoc env :context :expr)) " + " 1 ")") env)
+      (tagged-expr 'number)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
-  (str "while (" (emit test) ") { \n"
-       (emit-do env body)
-       "\n }"))
+  (str "while (" (emit test (expr-env env)) ") { \n"
+       (emit-do (assoc env :context :statement) body)
+       "\n}"))
 
 (defn map-params [m]
   (let [ks (:keys m)]
     (zipmap ks (map munge ks))))
+
+(defn gen-param [param gensym]
+  (let [tag (:tag (meta param))]
+    (cond-> (munge (gensym param))
+      tag (with-meta {:tag tag}))))
 
 (defn ->sig [env sig]
   (let [gensym (:gensym env)]
     (reduce (fn [[env sig seen] param]
               (if (map? param)
                 (let [params (map-params param)]
-                  [(update env :var->ident merge params)
+                  [(update env :var->ident (fn [m]
+                                             (-> m
+                                                 (merge params))))
                    (conj sig param)
                    (into seen params)])
                 (if (contains? seen param)
-                  (let [new-param (gensym param)
-                        env (update env :var->ident assoc param (munge new-param))
+                  (let [new-param (gen-param param gensym)
+                        env (update env :var->ident (fn [m]
+                                                      (->
+                                                       m
+                                                       (assoc param new-param))))
                         sig (conj sig new-param)
                         seen (conj seen param)]
                     [env sig seen])
-                  [(update env :var->ident assoc param (munge param))
-                   (conj sig param)
-                   (conj seen param)])))
+                  (let [new-param (gen-param param identity)]
+                    [(update env :var->ident (fn [m]
+                                               (-> m
+                                                   (assoc param new-param))))
+                     (conj sig new-param)
+                     (conj seen param)]))))
             [env [] #{}]
             sig)))
 
@@ -864,37 +1059,43 @@
   ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
   (let [arrow? (:arrow env)
+        single-expr-arrow? (and arrow? (= 1 (count body)))
         [env sig] (->sig env sig)]
-    (binding [*recur-targets* sig]
+    (let [env (assoc env :recur-targets sig)]
       (let [recur? (volatile! nil)
             env (assoc env :recur-callback
                        (fn [coll]
                          (when (identical? sig coll)
                            (vreset! recur? true))))
-            body (emit-do (assoc env :context :return)
-                          body)
+            body (if single-expr-arrow?
+                   (emit (first body) (assoc env :context :expr))
+                   (emit-do (assoc env :context :return)
+                            body))
             body (if @recur?
                    (format "while(true){
 %s
 break;}" body)
                    body)]
         (str (when-not elide-function?
-               (str (when *async*
+               (str (when (:async env)
                       "async ")
                     (when-not arrow? "function")
                     (when (:gen env)
                       "*")
                     (when (or (not arrow?)
-                              *async*)
+                              (:async env))
                       " ")))
              (comma-list (map (fn [x]
                                 (if (map? x)
                                   (destructured-map env x)
-                                  (munge x))) sig))
+                                  x)) sig))
              (when arrow?
-               " =>")
-             " {\n"
-             body "\n}")))))
+               "=>")
+             (if single-expr-arrow?
+               body
+               (str
+                " {\n"
+                body "\n}")))))))
 
 (defn emit-function* [env expr opts]
   (let [name (when (symbol? (first expr)) (first expr))
@@ -917,7 +1118,7 @@ break;}" body)
           (emit new-f env))
         (-> (if name
               (let [body (rest expr)]
-                (str (when *async*
+                (str (when (:async env)
                        "async ") "function"
                      ;; TODO: why is this duplicated here and in emit-function?
                      (when (:gen env)
@@ -929,7 +1130,6 @@ break;}" body)
                 (str (emit-function env nil signature body))))
             (cond-> (and
                      (not (:squint.internal.fn/def opts))
-                     (not arrow?)
                      (= :expr (:context env))) (wrap-parens))
             (emit-return env))))))
 
@@ -940,8 +1140,7 @@ break;}" body)
         env (assoc env :gen gen?)
         arrow? (:=> m)
         env (assoc env :arrow arrow?)]
-    (binding [*async* async?]
-      (emit-function* env sigs (meta expr)))))
+    (emit-function* (assoc env :async async?) sigs (meta expr))))
 
 (defmethod emit-special 'try [_type env [_try & body :as expression]]
   (let [gensym (:gensym env)
@@ -976,7 +1175,9 @@ break;}" body)
                        "}\n"
                        (when-let [[_ _exception binding & catch-body] (first catch-clause)]
                          (let [binding (munge binding)
-                               env (assoc-in env [:var->ident binding] (gensym binding))]
+                               env (update env :var->ident (fn [m]
+                                                             (-> m
+                                                                 (assoc binding (gensym binding)))))]
                            (str "catch(" (emit binding (expr-env env)) "){\n"
                                 (emit-do env catch-body)
                                 "}\n")))
@@ -988,65 +1189,75 @@ break;}" body)
             (wrap-implicit-iife env))
           (emit-return outer-env)))))
 
-(defmethod emit-special 'funcall [_type env [fname & args :as _expr]]
+(defmethod emit-special 'funcall [_type env [fname & args :as expr]]
   (let [ns (when (symbol? fname) (namespace fname))
         fname (if ns (symbol (munge ns) (name fname))
                   fname)
-        cherry? (= :cherry *target*)
+        cherry? (= :cherry (:target env))
         cherry+interop? (and
                          cherry?
-                         (= "js" ns))]
-    (emit-return (str
-                  (emit fname (expr-env env))
-                  ;; this is needed when calling keywords, symbols, etc. We could
-                  ;; optimize this later by inferring that we're not directly
-                  ;; calling a `function`.
-                  (when (and cherry? (not cherry+interop?)) ".call")
-                  (comma-list (emit-args env
-                                         (if cherry?
-                                           (if (not cherry+interop?)
-                                             (cons
-                                              (if (= "super" (first (str/split (str fname) #"\.")))
-                                                'self__ nil) args)
-                                             args)
-                                           args))))
-                 env)))
+                         (= "js" ns))
+        tag (:tag (meta expr))
+        transient (:transient (meta expr))]
+    (cond-> (emit-return (str
+                         (emit fname (expr-env env))
+                         ;; this is needed when calling keywords, symbols, etc. We could
+                         ;; optimize this later by inferring that we're not directly
+                         ;; calling a `function`.
+                         (when (and cherry? (not cherry+interop?)) ".call")
+                         (comma-list (emit-args env
+                                                (if cherry?
+                                                  (if (not cherry+interop?)
+                                                    (cons
+                                                     (if (= "super" (first (str/split (str fname) #"\.")))
+                                                       'self__ nil) args)
+                                                    args)
+                                                  args))))
+                         env)
+      tag (tagged-expr tag transient))))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
   (let [gensym (:gensym env)
         bindings (take-nth 2 form)
         fns (take-nth 2 (rest form))
         binding-map (zipmap bindings (map #(gensym %) bindings))
-        env (update env :var->ident merge binding-map)
+        env (update env :var->ident (fn [m]
+                                      (-> m
+                                          (merge binding-map))))
         bindings (map #(vary-meta (get binding-map %) assoc :squint.compiler/no-rename true) bindings)
         form (interleave bindings fns)
         let `(let* ~(vec form) ~@body)]
     (emit let env)))
 
 (defmethod emit-special 'zero? [_ env [_ num]]
-  (bool-expr (-> (format "(%s === 0)" (emit num (assoc env :context :expr)))
-                 (emit-return env))))
+  (tagged-expr (-> (format "(%s === 0)" (emit num (assoc env :context :expr)))
+                   (emit-return env))
+               'boolean))
 
 (defmethod emit-special 'neg? [_ env [_ num]]
-  (bool-expr (-> (format "(%s < 0)" (emit num (assoc env :context :expr)))
-                 (emit-return env))))
+  (tagged-expr (-> (format "(%s < 0)" (emit num (assoc env :context :expr)))
+                   (emit-return env))
+               'boolean))
 
 (defmethod emit-special 'pos? [_ env [_ num]]
-  (bool-expr (-> (format "(%s > 0)" (emit num (assoc env :context :expr)))
-                 (emit-return env))))
+  (tagged-expr (-> (format "(%s > 0)" (emit num (assoc env :context :expr)))
+                   (emit-return env))
+               'boolean))
 
 (defmethod emit-special 'nil? [_ env [_ obj]]
-  (bool-expr (-> (format "(%s == null)" (emit obj (assoc env :context :expr)))
-                 (emit-return env))))
+  (tagged-expr (-> (format "(%s == null)" (emit obj (assoc env :context :expr)))
+                   (emit-return env))
+               'boolean))
 
 (defmethod emit-special 'js-in [_ env [_ key obj]]
-  (bool-expr (emit (list 'js* "~{} in ~{}" key obj) env)))
+  (tagged-expr (emit (list 'js* "~{} in ~{}" key obj) env)
+               'boolean))
 
 (defmethod emit-special 'js-yield [_ env [_ key obj]]
-  (emit (list 'js* "yield ~{}" key obj) env))
+  (emit (list 'js* "(yield ~{})" key obj) env))
 
 (defmethod emit-special 'js-yield* [_ env [_ key obj]]
-  (emit (list 'js* "yield* ~{}" key obj) env))
+  (emit (list 'js* "(yield* ~{})" key obj) env))
 
 (defmethod emit #?(:clj clojure.lang.MapEntry :cljs MapEntry) [expr env]
   ;; RegExp case moved here:
@@ -1105,6 +1316,9 @@ break;}" body)
   (let [f (-> env :emit ::special)]
     (f sym env expr)))
 
+(defn skip-truth? [tag]
+  (contains? #{'boolean 'string} tag))
+
 (defmethod emit-special 'if [_type env [_if test then else :as expr]]
   ;; NOTE: I tried making the output smaller if the if is in return position
   ;; if .. return .. else return ..
@@ -1114,9 +1328,9 @@ break;}" body)
   ;; tools like eslint will rewrite in the short form anyway.
   (let [expr-env (assoc env :context :expr)
         naked-condition (emit test expr-env)
-        skip-truth? (or (:bool naked-condition)
-                        (:bool (meta expr))
-                        (= 'boolean (:tag (meta test))))
+        skip-truth? (or (skip-truth? (:tag naked-condition))
+                        (skip-truth? (:tag (meta expr)))
+                        (skip-truth? (:tag (meta test))))
         condition (if skip-truth?
                     naked-condition
                     (emit (list 'clojure.core/truth_ (list 'js* naked-condition)) expr-env))]
@@ -1146,7 +1360,7 @@ break;}" body)
   (if (contains? v :&)
     (let [rest-opts (dissoc v :&)
           env (assoc env :js true)
-          cherry? (= :cherry *target*)]
+          cherry? (= :cherry (:target env))]
       (when-let [dyn (:has-dynamic-expr env)]
         (reset! dyn true))
       (-> (format "${squint_html.css(%s,%s)}"
@@ -1181,7 +1395,7 @@ break;}" body)
                (when-let [dyn (:has-dynamic-expr env)]
                  (reset! dyn true))
                (let [env (assoc env :js true)
-                     cherry? (= :cherry *target*)]
+                     cherry? (= :cherry (:target env))]
                  (format "${squint_html.attrs(%s,%s)}"
                          (emit (cond->> (get v* :&)
                                  cherry? (list `clj->js)) (dissoc env :jsx))
@@ -1191,7 +1405,7 @@ break;}" body)
                        (map
                         (fn [[k v]]
                           (let [str? (or (string? v)
-                                         (when (= :squint *target*)
+                                         (when (= :squint (:target env))
                                            (keyword? v)))]
                             (if (= :& k)
                               (str "{..." (emit v (dissoc env :jsx)) "}")
@@ -1200,6 +1414,16 @@ break;}" body)
                                      (cond
                                        (and html? (map? v))
                                        (emit-css v env)
+                                       ;; dynamic :style (a runtime map or string,
+                                       ;; not a literal map): stringify at runtime
+                                       ;; via squint_html.attr (map -> css, string
+                                       ;; passes through).
+                                       (and html? (= "style" (name k)) (not (string? v)))
+                                       (do (when-let [dyn (:has-dynamic-expr env)]
+                                             (reset! dyn true))
+                                           (-> (format "${squint_html.attr(%s)}"
+                                                       (emit v (assoc env :jsx false :js true)))
+                                               (wrap-double-quotes)))
                                        #_#_(and html? (vector? v))
                                        (-> (str/join " " (map #(emit % env) v))
                                            (wrap-double-quotes))
@@ -1217,12 +1441,13 @@ break;}" body)
 
 (defmethod emit-special 'squint.defclass/defclass* [_ env form]
   (let [name (second form)]
-    (swap! *public-vars* conj (munge* name))
+    (swap! (:ns-state env)
+           (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name))))
     (defclass/emit-class env
       emit
-      (fn [async body-fn]
-        (binding [*async* async]
-          (body-fn)))
+      ;; async flows through env (emit-object-fn sets :async); callback just emits
+      (fn [_async body-fn]
+        (body-fn))
       emit-return
       form)))
 
@@ -1255,11 +1480,12 @@ break;}" body)
        (.substring tag (unchecked-inc-int class-index)))]))
 
 (defn- merge-attrs [attrs short-attrs]
-  (let [attrs (if-let [c (:class attrs)]
-                (if-let [sc (:class short-attrs)]
-                  (assoc attrs :class (str sc " " c))
-                  attrs)
-                attrs)
+  (let [attrs (let [c (:class attrs)
+                    sc (:class short-attrs)]
+                (cond
+                  (and c sc) (assoc attrs :class (str sc " " c))
+                  sc (assoc attrs :class sc)
+                  :else attrs))
         attrs (if-let [id (:id short-attrs (:id attrs))]
                 (assoc attrs :id id)
                 attrs)]
@@ -1356,7 +1582,7 @@ break;}" body)
                      "squint_html.unsafe_tag"))
            env))))
     (emit-return
-     (if (and (= :cherry *target*)
+     (if (and (= :cherry (:target env))
               (not (::js (meta expr))))
        (format "%svector(%s)"
                (if-let [core-alias (:core-alias env)]
@@ -1396,10 +1622,10 @@ break;}" body)
                         (update
                          :var->ident
                          (fn [vi]
-                           (merge
-                            vi
-                            (zipmap fields
-                                    (map (fn [fld]
-                                           (symbol (str "self__." fld)))
-                                         fields*)))))
+                           (-> vi
+                               (merge
+                                (zipmap fields
+                                        (map (fn [fld]
+                                               (symbol (str "self__." fld)))
+                                             fields*))))))
                         (assoc :type true)))))))

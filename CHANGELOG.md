@@ -4,8 +4,194 @@
 
 ## Unreleased
 
+- CLI: `--help`/`-h`, argument validation and error messages are now provided by babashka.cli's `dispatch` (standard `Usage`/`Commands`/`Options` help, errors to stderr). Builds on [#691](https://github.com/squint-cljs/squint/issues/691) ([@lread](https://github.com/lread))
+
+## 0.12.193
+
+- Fix [#832](https://github.com/squint-cljs/squint/issues/832): nREPL server hung on advertised ops. `info`/`eldoc`/`lookup`, `complete` (including `js/` interop completion) and `load-file` are now implemented.
+- Fix `parse-long` returning out-of-range values instead of `nil` (the safe-integer upper bound was a no-op due to a chained comparison)
+- Fix `select-keys` dropping keys mapped to `nil` (loose `!= undefined` matched `null`); nil-valued keys are now kept, matching Clojure
+- Fix `clojure.string/split` limit semantics: a positive limit now caps the number of splits and keeps the remainder (e.g. `(str/split "a-b-c-d" #"-" 2)` -> `["a" "b-c-d"]`) instead of truncating like JS `String.split`; limit `0` discards trailing empties, negative keeps them
+- Fix `compare` throwing on booleans; `(compare false true)` -> `-1` and `(sort [true false])` no longer throws, matching CLJS
+- `clojure.set/intersection` and `union` now use `.size` (not `.length`) for their set-size optimization, which was previously dead code (`undefined > undefined`); results were already correct, this restores the intended performance
+- Fix `seqable?` returning `false` for maps; `(seqable? {:a 1})` -> `true`, matching CLJS (`seq` already worked on objects)
+- Fix `nth` returning the not-found default for an in-bounds element that is `undefined` (e.g. sparse / `object-array` / JS-interop arrays); it now decides found-ness by the index bound, not the value
+- Fix `parse-double` not trimming leading/trailing whitespace (`(parse-double "  3.14  ")` -> `3.14`); the whitespace character class in the regexes was double-escaped and matched literal backslashes instead of control chars
+- `pr-str` / `prn` now print `Infinity`, `-Infinity` and `NaN` as `##Inf`, `##-Inf` and `##NaN`, matching CLJS (`str` is unchanged)
+
+## 0.12.192
+
+- Add support for Vite 5-8
+
+## 0.12.191
+
+- Add `dedupe` (seq and transducer arities)
+- Add `distinct?`, `any?`, `ifn?`, `list*`
+- Fix [#819](https://github.com/squint-cljs/squint/issues/819): macro changes not picked up in watch mode. The persistent compiler now re-evaluates a macro namespace when its source file changes (mtime + sha256 gate), instead of keeping the first-loaded definitions.
+- REPL: print promises as `#<Promise 1>` / `#<Promise rejected ..>` / `#<Promise pending>` instead of silently unwrapping them. Also surfaces a Promise wrapper in the playground (resolved value still inspectable).
+
+## 0.12.190
+
+- Browser nREPL support. See [docs](https://github.com/squint-cljs/squint/blob/main/doc/browser-repl.md)
+- Fix [#815](https://github.com/squint-cljs/squint/issues/815): `str` wrapping known-numeric infix expressions in `??''`, which esbuild flagged as `suspicious-nullish-coalescing`. ([@willcohen](https://github.com/willcohen))
+- Fix [#820](https://github.com/squint-cljs/squint/issues/820): `:macros` option silently ignored when passed to `compileString` / `compileStringEx` from JavaScript callers (string keys were keyword-ized by `clj-ize-opts` and no longer matched the symbol-keyed macro lookups in `compile*`). ([@willcohen](https://github.com/willcohen))
+
+## 0.11.189
+
+- [#809](https://github.com/squint-cljs/squint/issues/809): add `squint.compiler/compile*` and `squint.compiler/transpile*` which accept either a string or a sequence of pre-parsed forms, skipping the `forms -> string -> forms` roundtrip for SSR use cases. The previous names `compile-string*` / `transpile-string*` are retained as deprecated aliases.
+- Fix [#810](https://github.com/squint-cljs/squint/issues/810): shorthand classes in `#html` / `#jsx` were erased when an attrs map was present without a `:class` key (e.g. `[:div.myclass {}]`).
+
+## 0.11.188
+
+- Add multimethod support ([#806](https://github.com/squint-cljs/squint/issues/806)):
+  `defmulti`, `defmethod`, `get-method`, `methods`,
+  `remove-method`, `remove-all-methods`, `prefer-method`, `prefers`, and
+  hierarchy ops `isa?`, `derive`, `underive`, `make-hierarchy`, `parents`,
+  `ancestors`, `descendants`.
+- `cljs.test/report` is now a multimethod, extensible via `defmethod`:
+
+  ```
+  (defmethod report [:cljs.test/default :begin-test-var] [m] ...)
+  ```
+  `test-var` now fires `:begin-test-var` / `:end-test-var` events.
+
+## 0.11.187
+
+- Accept plain `await` in async functions, in anticipation of CLJS next.
+  The legacy `js-await` and `js/await` forms continue to work as
+  aliases for now and may be deprecated in a future version.
+- Add built-in `cljs.test` / `clojure.test` support: `deftest`, `is`, `testing`,
+  `are`, `use-fixtures`, `async`, `run-tests`.
+- Fix `with-meta` now preserves callability when applied to a function
+- Fix [#783](https://github.com/squint-cljs/squint/issues/783): auto-load macros from `.cljc` files via `:require` (no need for `:require-macros`)
+- Fix [#783](https://github.com/squint-cljs/squint/issues/783): resolve qualified symbols from macro expansions
+- Fix [#784](https://github.com/squint-cljs/squint/issues/784): resolve transitive macro deps and auto-import runtime deps from macro expansion
+- Fix [#786](https://github.com/squint-cljs/squint/issues/786): `resolve-macro-ns` for cherry namespace resolution
+
+## v0.10.186 (2026-03-07)
+
+- Fix #799: forgot to add `squint.math` file to `package.json`
+
+## v0.10.185 (2026-01-26)
+
+- Fix emitting negative zero value (`-0.0`)
+- Add `squint.math`, also available as `clojure.math` namespace (a direct port of the original)
+
+## v0.9.184
+
+- Fix [#792](https://github.com/squint-cljs/squint/issues/792): `prn` `js/undefined` as `nil`
+- Fix [#793](https://github.com/squint-cljs/squint/issues/793): fix `yield*` IIFE (needs wrapping in parens)
+
+## v0.9.183
+
+- [#779](https://github.com/squint-cljs/squint/pull/779): Added `compare-and-swap!`, `swap-vals!` and `reset-vals!` ([@tonsky](https://github.com/tonsky))
+- [#788](https://github.com/squint-cljs/squint/pull/788): Fixed compilation of `dotimes` with `_` binding ([@tonsky](https://github.com/tonsky))
+- [#790](https://github.com/squint-cljs/squint/pull/790): Fixed `shuffle` not working on lazy sequences ([@tonsky](https://github.com/tonsky))
+- Multiple `:require-macros` with `:refer` now accumulate instead of overwriting ([@willcohen](https://github.com/willcohen))
+
+## v0.9.182
+
+- Allow macro namespaces to load `"node:fs", etc.` to read config files for conditional compilation
+- Don't emit IIFE for top-level let so you can write `let` over `defn` to capture values.
+
+## v0.9.181
+
+- Fix `js-yield` and `js-yield*` in expression position
+- Implement `some?` as macro
+
+## v0.9.180
+
+- Fix [#758](https://github.com/squint-cljs/squint/issues/758): `volatile!`, `vswap!`, `vreset!`
+- `pr-str`, `prn` etc now print EDN (with the idea that you can paste it back into your program)
+- new `#js/Map` reader that reads a JavaScript `Map` from a Clojure map (maps are printed like this with `pr-str` too)
+
+## v0.9.178
+
+- Support passing keyword to `mapv`
+- [#759](https://github.com/squint-cljs/squint/issues/759): `doseq` can't be used in expression context
+- Fix [#753](https://github.com/squint-cljs/squint/issues/753): optimize output of dotimes
+- `alength` as macro
+
+## v0.9.177
+
+- Inline `identical?` calls
+- Clean up emissiong of paren wrapping
+- Add `nat-int?`, `neg-int?`, `pos-int?` ([@eNotchy](https://github.com/eNotchy))
+- Add `rand`
+
+## v0.9.176
+
+- Fix rendering of `null` and `undefined` in `#html`
+
+## v0.9.175
+
+- [#747](https://github.com/squint-cljs/squint/issues/747): `#html` escape fix
+
+## v0.9.174
+
+- Optimize nested `assoc` calls, e.g. produced with `->`
+- Avoid object spread when object isn't shared (`auto-transient`)
+
+## v0.9.173 (2025-10-19)
+
+- Optimize `str` even more
+
+## v0.9.172 (2025-10-19)
+
+Remove debug output from compilation
+
+## v0.9.171 (2025-10-19)
+
+- Optimize `=`, `and`, and `not=` even more
+
+## v0.9.170 (2025-10-19)
+
+- `not=` on undefined and false should return `true`
+
+## v0.9.169 (2025-10-18)
+
+- Optimize code produced for `assoc`, `assoc!` and `get` when object argument can be inferred or is type hinted with `^object`
+- Optimize `str` using macro that compiles into template strings + `?? ''` for null/undefined
+- Fix [#732](https://github.com/squint-cljs/squint/issues/732): `take-last` should return `nil` or empty seq for negative numbers
+
+## v0.8.159 (2025-10-13)
+
+- [#725](https://github.com/squint-cljs/squint/issues/725): `keys` and `vals` should work on `js/Map`
+
+## v0.8.158 (2025-10-10)
+
+- Make `map-indexed` and `keep-indexed` lazy
+
+## v0.8.157 (2025-10-08)
+
+- Compile time optimization for `=` when using it on numbers, strings or keyword literals
+
+### News
+
+[Cljdoc](https://github.com/cljdoc/cljdoc/blob/488fe6282737c1237c5394a66a7e8392a000c6bb/doc/cljdoc-developer-technical-guide.adoc#front-end-code) chose squint for its small bundle sizes and easy migration off of TypeScript towards CLJS
+
+## v0.8.156 (2025-10-07)
+
+- Switch `=` to a deep-equals implementation that works on primitives, objects, `Arrays`, `Maps` and `Sets`
+
+## v0.8.155 (2025-10-02)
+
+- Fix [#710](https://github.com/squint-cljs/squint/issues/710): add `parse-double`
+- Fix [#714](https://github.com/squint-cljs/squint/issues/714): `assoc-in` on `nil` or `undefined`
+- Fix [#714](https://github.com/squint-cljs/squint/issues/714): `dissoc` on `nil` or `undefined`
+
+## v0.8.154 (2025-09-19)
+
+- Basic `:import-maps` support in `squint.edn` (just literal replacements, prefixes not supported yet)
+
+## v0.8.153 (2025-08-31)
+
+- Fix [#704](https://github.com/squint-cljs/squint/issues/704): `while` didn't compile correctly
 - Add `clojure.string/includes?`
-- [#691](https://github.com/squint-cljs/squint/issues/691): Add validation to CLI ([@lread](https://github.com/lread))
+- Emit less code for varargs functions
+- Fix solidJS example
+- Documentation improvements ([@lread](https://github.com/lread))
+- Fix [#697](https://github.com/squint-cljs/squint/issues/697): `ClassCastException` in statement function when passed Code records
 
 ## v0.8.152 (2025-07-18)
 

@@ -14,10 +14,10 @@
                             bit-and-not bit-clear bit-flip bit-test
                             bit-shift-left bit-shift-right bit-shift-right-zero-fill
                             unsigned-bit-shift-right bit-set undefined?
-                            simple-benchmark delay])
-  (:require [clojure.string :as str]
+                            simple-benchmark delay not=? alength vswap!])
+  (:require [clojure.core :as cc]
+            [clojure.string :as str]
             [squint.compiler-common :as-alias ana]
-            [clojure.core :as cc]
             #?(:clj [squint.internal.defmacro :as core]))
   #?(:cljs (:require-macros [squint.internal.defmacro :as core])))
 
@@ -59,12 +59,13 @@
   (assert (vector? bindings))
   (assert (= 2 (count bindings)))
   (let [i (first bindings)
-        n (second bindings)]
-    `(let [n# ~n]
-       (loop [~i 0]
-         (when (< ~i n#)
-           ~@body
-           (recur (inc ~i)))))))
+        n (second bindings)
+        n-sym (gensym "n")]
+    `(let [~n-sym ~n
+           ~(with-meta i {:mutable true}) 0]
+       ~(list 'js* "for (;~{}<~{};~{}++) {\n~{}\n}" i n-sym i
+              (list* 'do body))
+       nil)))
 
 (defn core-if-not
   "if-not from clojure.core"
@@ -239,25 +240,26 @@
   (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
         step (fn step [exprs]
                (if-not exprs
-                 (list 'js* "yield ~{}" body)
+                 (list 'js* "yield ~{};" body)
                  (let [k (first exprs)
                        v (second exprs)
                        subform (step (nnext exprs))]
                    (cond
-                     (= k :let) `(let ~v ~subform)
-                     (= k :while)
+                     (= :let k) `(let ~v ~subform)
+                     (= :while k)
                      ;; emit literal JS because `if` detects that
                      ;; it's an expr context and emits a ternary,
                      ;; but you can't break inside of a ternary
                      (list 'js*
                            "if (~{}) {\n~{}\n} else { break; }"
                            v subform)
-                     (= k :when) `(when ~v
+                     (= :when k) `(when ~v
                                     ~subform)
                      (keyword? k) (err "Invalid 'for' keyword" k)
-                     :else (list 'squint.impl/for-of [k v] subform)))))]
-    (list 'lazy (list 'js* "function* () {\n~{}\n}"
-                      (step (seq seq-exprs))))))
+                     :else (list 'squint.impl/for-of [k v] subform)))))
+        ret (list 'lazy (list (with-meta 'fn {:gen true}) []
+                              (step (seq seq-exprs))))]
+    ret))
 
 (defn core-doseq
   "Repeatedly executes body (presumably for side-effects) with
@@ -292,7 +294,6 @@
   "defs name to have the root value of init iff the named var has no root value,
   else init is unevaluated"
   [_&form _&env x init]
-  #_(prn &env)
   (let [qualified (if (namespace x)
                     x
                     x
@@ -304,6 +305,9 @@
 
 (defn- bool-expr [e]
   (vary-meta e assoc :tag 'boolean))
+
+(defn- num-expr [e]
+  (vary-meta e assoc :tag 'number))
 
 (defn core-exists?
   "Return true if argument exists, analogous to usage of typeof operator
@@ -490,17 +494,26 @@
    `(let [or# ~x]
       (if or# or# (or ~@next)))))
 
-(defn core-and
+(core/defmacro core-and
   "Evaluates exprs one at a time, from left to right. If a form
   returns logical false (nil or false), and returns that value and
   doesn't evaluate any of the other expressions, otherwise it returns
   the value of the last expr. (and) returns true."
-  {:added "1.0"}
-  ([_ _] true)
-  ([_ _ x] x)
-  ([_ _ x & next]
-   `(let [and# ~x]
-      (if and# (and ~@next) and#))))
+  ([] true)
+  ([x] x)
+  ([x & next]
+   (let [emit (-> &env :utils :emit)
+         emitted (emit x (assoc &env :context :expr))
+         tag (or (:tag emitted)
+                 (:tag (meta x)))
+         x (with-meta (list 'js* emitted)
+             {:tag tag})]
+     (if (= 'boolean tag)
+       (list 'js* "(~{} && ~{})"
+             x
+             `(and ~@next))
+       `(let [and# ~x]
+          (if and# (and ~@next) and#))))))
 
 (defn core-assert
   "Evaluates expr and throws an exception if it does not evaluate to
@@ -533,7 +546,7 @@
   (core/list 'js* "(~ ~{})" x))
 
 (core/defmacro ^::ana/numeric bit-and
-  ([x y] (core/list 'js* "(~{} & ~{})" x y))
+  ([x y] (num-expr (core/list 'js* "(~{} & ~{})" x y)))
   ([x y & more] `(cc/bit-and (cc/bit-and ~x ~y) ~@more)))
 
 ;; internal do not use
@@ -542,7 +555,7 @@
   ([x y & more] `(cc/unsafe-bit-and (cc/unsafe-bit-and ~x ~y) ~@more)))
 
 (core/defmacro ^::ana/numeric bit-or
-  ([x y] (core/list 'js* "(~{} | ~{})" x y))
+  ([x y] (num-expr (core/list 'js* "(~{} | ~{})" x y)))
   ([x y & more] `(cc/bit-or (cc/bit-or ~x ~y) ~@more)))
 
 (core/defmacro ^::ana/numeric int [x]
@@ -603,3 +616,197 @@
   calls."
   [& body]
   `(new cljs.core/Delay (fn [] ~@body) nil))
+
+(defn constant? [x]
+  (or (number? x)
+      (keyword? x)
+      (string? x)
+      (boolean? x)))
+
+(defn primitive? [tag]
+  (contains? #{'number 'string 'boolean} tag))
+
+(core/defmacro equals
+  ([_] true)
+  ([x y]
+   (let [emit (-> &env :utils :emit)
+         x-emitted (emit x (assoc &env :context :expr))
+         x-tag (or (:tag x-emitted)
+                   (:tag (meta x)))
+         x (with-meta (list 'js* (str x-emitted))
+             {:tag x-tag})
+         y-emitted (emit y (assoc &env :context :expr))
+         y-tag (or (:tag y-emitted)
+                   (:tag (meta y)))
+         y (with-meta (list 'js* (str y-emitted))
+             {:tag y-tag})]
+     (with-meta
+       (if (or (primitive? x-tag) (primitive? y-tag))
+         (core/list 'js* "(~{} === ~{})" x y)
+         `(cljs.core/_EQ_ ~x ~y))
+       {:tag 'boolean})))
+  ([x y & xs]
+   (list 'js* "(~{} && ~{})" `(cc/= ~x ~y) `(cc/= ~y ~@xs))))
+
+(core/defmacro stringify [& xs]
+  (let [emit (-> &env :utils :emit)
+        args (keep (fn [expr]
+                     (cond
+                       (nil? expr) nil
+                       (and (string? expr)
+                            (re-matches #"[A-Za-z0-9_-]*" expr)) expr
+                       :else
+                       (let [emitted (emit expr (assoc &env :context :expr))
+                             tag (or (:tag emitted)
+                                     (:tag (meta expr)))
+                             const? (constant? expr)]
+                         (if (primitive? tag)
+                           (if (or
+                                ;; escape literal strings that may contain backticks, newlines etc
+                                (and const? (= 'string tag))
+                                (not const?))
+                             (str "${" emitted "}")
+                             emitted)
+                           (str "${" emitted "??''}"))))) xs)]
+    (with-meta `(~'js* ~(str "`" (str/join args) "`"))
+      {:tag 'string})))
+
+(core/defmacro assoc-inline [x & xs]
+  (assert (and (even? (count xs))
+               (seq xs))
+          "assoc! must be called with and object and an even + positive amount of arguments")
+  (if (and (= 'assoc (first &form))
+           (let [snd (second &form)]
+             (and (seq? snd)
+                  (= 'assoc (first snd)))))
+    ;; This optimizes the `(-> (assoc ..) (assoc ..))` pattern which is pretty common
+    ;; If we first did a full macroexpansion pass, we could even optimize this:
+    ;; (assoc (-> (assoc {} :a :b) (assoc :c (+ 1 2 3))) :a 1)
+    (let [snd (second &form)]
+      (with-meta `(assoc ~(second snd) ~@(rest (rest snd)) ~@xs)
+        (meta &form)))
+    (let [emit (-> &env :utils :emit)
+          emitted (emit x (assoc &env :context :expr))
+          tag (or (:tag emitted)
+                  (:tag (meta x)))
+          transient (:transient emitted)
+          x (with-meta (list 'js* (str emitted))
+              {:tag tag
+               :transient transient})]
+      (if (= 'object tag)
+        (if transient
+          `(assoc! ~x ~@xs)
+          (with-meta
+            (list* 'js* (str "({...~{},"
+                             (str/join ","
+                                       (repeat (/ (count xs) 2) "~{}:~{}"))
+                             "})")
+                   x xs)
+            {:tag 'object
+             :transient true}))
+        (let [[fn _ & tail] &form]
+          (with-meta
+            (list* fn x tail)
+            (assoc (meta &form)
+                   :squint.compiler/skip-macro true)))))))
+
+(core/defmacro assoc!-inline [x & xs]
+  (assert (and (even? (count xs))
+               (seq xs))
+          "assoc! must be called with and object and an even + positive amount of arguments")
+  (let [emit (-> &env :utils :emit)
+        emitted (emit x (assoc &env :context :expr))
+        tag (or (:tag emitted)
+                (:tag (meta x)))
+        transient (:transient emitted)
+        x* x
+        x (with-meta (list 'js* (str emitted))
+            {:tag tag})]
+    (if (= 'object tag)
+      (if-not (symbol? x*)
+        (let [obj-sym (with-meta (gensym)
+                        {:tag tag})]
+          (with-meta `(^:=> (fn [~obj-sym]
+                              (assoc! ~obj-sym ~@xs)) ~x)
+            ;; TODO: we shouldn't have to add a tag here with function return
+            ;; tag inference, which isn't yet available, but within reach
+            {:tag tag :transient transient}))
+        (with-meta
+          (list* 'js* (str "("
+                           (str/join "," (repeat (/ (count xs) 2) "~{}"))
+                           ",~{}"
+                           ")")
+                 (concat
+                  (map (fn [[k v]]
+                         `(aset ~x ~k ~v))
+                       (partition 2 xs))
+                  [x]))
+          {:tag 'object :transient transient}))
+      (let [[fn _ & tail] &form]
+        (with-meta
+          (list* fn x tail)
+          (assoc (meta &form)
+                 :squint.compiler/skip-macro true))))))
+
+(core/defmacro get-inline
+  ([x b]
+   (let [emit (-> &env :utils :emit)
+         emitted (emit x (assoc &env :context :expr))
+         tag (or (:tag emitted)
+                 (:tag (meta x)))
+         x (with-meta (list 'js* (str emitted))
+             {:tag tag})]
+     (if (= 'object tag)
+       `(cljs.core/aget ~x ~b)
+       (let [[fn _ & tail] &form]
+         (with-meta
+           (list* fn x tail)
+           (assoc (meta &form)
+                  :squint.compiler/skip-macro true))))))
+  ([x b not-found]
+   (let [emit (-> &env :utils :emit)
+         emitted (emit x (assoc &env :context :expr))
+         tag (or (:tag emitted)
+                 (:tag (meta x)))
+         x* x
+         x (with-meta (list 'js* (str emitted))
+             {:tag tag})]
+     (if (= 'object tag)
+       (if (and (symbol? x*)
+                (or (constant? b)
+                    (symbol? b)))
+         (list 'js* "(~{} in ~{} ? ~{} : ~{})"
+               b
+               x
+               `(cljs.core/aget ~x ~b)
+               not-found)
+         (let [obj-sym (with-meta (gensym)
+                         {:tag tag})
+               key-sym (gensym)]
+           `(^:=> (fn [~obj-sym ~key-sym]
+                    ~(list 'js* "(~{} in ~{} ? ~{} : ~{})"
+                           key-sym
+                           obj-sym
+                           `(cljs.core/aget ~obj-sym ~key-sym)
+                           not-found)) ~x ~b)))
+       (let [[fn _ & tail] &form]
+         (with-meta
+           (list* fn x tail)
+           (assoc (meta &form)
+                  :squint.compiler/skip-macro true)))))))
+
+(core/defmacro core-not=
+  [& xs]
+  (bool-expr `(not (= ~@xs))))
+
+(core/defmacro core-identical? [x y]
+  (bool-expr `(== ~x ~y)))
+
+(core/defmacro alength [x]
+  `(.-length ~x))
+
+(core/defmacro vswap! [v f & args]
+  `(vreset! ~v (~f @~v ~@args)))
+
+(core/defmacro core-some? [x]
+  `(not (nil? ~x)))
