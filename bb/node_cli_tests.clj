@@ -22,41 +22,41 @@
   (apply p/shell {:continue true
                   :dir test-dir
                   :out :string
-                  :err :inherit}
+                  :err :string} ;; errors go to stderr (babashka.cli standard)
          (into ["node" "../../node_cli.js"] args)))
 
 (deftest cmd-with-no-args-test
-  (let [{:keys [exit out]} (squint "repl" "foo")]
+  (let [{:keys [exit err]} (squint "repl" "foo")]
     (is (= 1 exit))
-    (is (re-find #".*ERROR.* Must specify no args, found: foo" out))))
+    (is (str/includes? err "Error: Must specify no args, found: foo"))))
 
 (deftest cmd-with-one-arg-test
-  (let [{:keys [exit out]} (squint "run")]
+  (let [{:keys [exit err]} (squint "run")]
     (is (= 1 exit))
-    (is (re-find #".*ERROR.* Must specify a single <file>" out)))
+    (is (str/includes? err "Error: Must specify a single <file>")))
 
-  (let [{:keys [exit out]} (squint "run" "too" "many" "args")]
+  (let [{:keys [exit err]} (squint "run" "too" "many" "args")]
     (is (= 1 exit))
-    (is (re-find #".*ERROR.* Must specify a single <file>, found: too many args" out))))
+    (is (str/includes? err "Error: Must specify a single <file>, found: too many args"))))
 
 (deftest unrecognized-opt-test
-  (let [{:keys [exit out]} (squint "compile" "--wtf")]
+  (let [{:keys [exit err]} (squint "compile" "--wtf")]
     (is (= 1 exit))
-    (is (re-find #".*ERROR.* Unrecognized option: --wtf" out)))
-  (let [{:keys [exit out]} (squint "compile" "-wtf")]
+    (is (str/includes? err "Unknown option: --wtf")))
+  (let [{:keys [exit err]} (squint "compile" "-wtf")]
     (is (= 1 exit))
-    (is (re-find #".*ERROR.* Unrecognized option: -w" out))))
+    (is (str/includes? err "Unknown option: -w"))))
 
 (deftest opt-with-no-value-test
-  (let [{:keys [exit out]} (squint "compile" "--paths")]
+  (let [{:keys [exit err]} (squint "compile" "--paths")]
     (is (= 1 exit))
-    (is (re-find #".*ERROR.* Option specified without value: --paths" out))))
+    (is (str/includes? err "Missing value for option --paths"))))
 
 (deftest compile-is-assumed-when-not-specified-test
   ;; help alone brings up all cmds help
   (let [{:keys [exit out]} (squint "--help")]
     (is (= 0 exit))
-    (is (str/includes? out "Usage: squint <subcommand>")))
+    (is (str/includes? out "Usage: squint [options] <command>")))
   ;; if anything else not matching another cmd is specified, assume compile
   (let [{:keys [exit out]} (squint "some-file" "--help")]
     (is (= 0 exit))
@@ -69,20 +69,20 @@
     (is (= "6" (str/trim out))))
   (let [{:keys [exit out]} (squint "-e" "--help")]
     (is (= 0 exit))
-    (is (str/includes? out "Usage: squint -e")))
-  (let [{:keys [exit out]} (squint "-e")]
+    (is (str/includes? out "Usage: squint eval")))
+  (let [{:keys [exit err]} (squint "-e")]
     (is (= 1 exit))
-    (is (re-find #".*ERROR.* Option specified without value: -e" out))))
+    (is (str/includes? err "Missing value for option -e"))))
 
 (deftest no-files-processed-test
-  (let [{:keys [exit out]} (squint "compile" "wontfind")]
+  (let [{:keys [exit out err]} (squint "compile" "wontfind")]
     (is (= 1 exit))
-    (is (re-find #".*ERROR.* Compile processed no files" out))
+    (is (str/includes? err "Error: Compile processed no files"))
     (is (re-find #"Compiled sources: 0" out))
     (is (not (re-find #"Copied resources:" out))))
-  (let [{:keys [exit out]} (squint "compile" "wontfind" "--copy-resources" :foo)]
+  (let [{:keys [exit out err]} (squint "compile" "wontfind" "--copy-resources" :foo)]
     (is (= 1 exit))
-    (is (re-find #".*ERROR.* Compile processed no files" out))
+    (is (str/includes? err "Error: Compile processed no files"))
     (is (re-find #"Compiled sources: 0" out))
     (is (re-find #"Copied resources: 0" out))))
 
