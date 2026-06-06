@@ -97,9 +97,6 @@
 
 (defn evaluate [{:keys [opts]}]
   (let [e (:expr opts)
-        e e #_(if (:repl opts)
-                (str/replace "(do %s\n)" "%s" e)
-                e)
         res (cc/compile-string e (assoc opts :repl (:repl opts) :ns-state (atom {:current 'user})
                                         :context (if (:repl opts) :return :statement)
                                         :elide-exports (and (:repl opts)
@@ -180,22 +177,17 @@
                     :coerce :string}
    :paths          {:desc "Search paths for cljs/cljc files"
                     :ref "<path>"
-                    :squint-edn? true
                     :coerce [:string]
                     :default-desc "., src"
-                    :default ["." "src"]
-                    :example-values ["." "src"] }
-   :copy-resources {:desc "Copy any non cljs/cljc files found in --paths as resources"
-                    :extra-desc ["- use keyword to match files with extension"
-                                 "- otherwise matches files by regex"]
+                    :default ["." "src"]}
+   :copy-resources {:desc "Copy non cljs/cljc files from --paths as resources; a keyword matches by extension, otherwise by regex (repeat for multiple, e.g. --copy-resources :json)"
                     :ref "<resource>"
                     :coerce [:string]
                     :collect (fn [coll arg-value]
                                (conj (or coll #{})
                                      (if (str/starts-with? arg-value ":")
                                        (cli/coerce arg-value :keyword)
-                                       (cli/coerce arg-value :string))))
-                    :example-values [:json "'.*/images/.*\\\\.png'"]}
+                                       (cli/coerce arg-value :string))))}
    :output-dir     {:desc "Base output directory for JS files"
                     :ref "<dir>"
                     :default "."
@@ -227,12 +219,10 @@
 (def run-opt-order [:elide-imports :elide-exports :extension :output-dir :help])
 
 (def nrepl-server-spec
-  {:host {:desc "Host on which to expose server"
-          :extra-desc ["Use 0.0.0.0 to allow access from network"]
+  {:host {:desc "Host on which to expose server (0.0.0.0 to allow network access)"
           :default "127.0.0.1"
           :coerce :string}
-   :port {:desc "Port on which to expose server"
-          :extra-desc ["Use 0 to randomly select a port"]
+   :port {:desc "Port on which to expose server (0 to pick a random port)"
           :default 0
           :coerce :long}})
 (def nrepl-server-opt-order [:host :port :help])
