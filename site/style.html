@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Style Guide — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="rationale.html">Rationale</a>
+    <a href="js-primer.html">JS Primer</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="style.html">Style</a>
+    <a href="macros.html">Macros</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>Style Guide</h1>
+
+    <p>Squint inherits most of its style conventions from Clojure. This guide
+      covers the conventions specific to Squint and areas where JavaScript
+      interop creates new questions.</p>
+
+    <div class="toc">
+      <b>Contents</b>
+      <ul>
+        <li><a href="#naming">Naming</a></li>
+        <li><a href="#formatting">Formatting</a></li>
+        <li><a href="#namespaces">Namespace organization</a></li>
+        <li><a href="#interop">Interop style</a></li>
+        <li><a href="#async-style">Async code</a></li>
+        <li><a href="#mutability">Working with mutability</a></li>
+      </ul>
+    </div>
+
+    <h2 id="naming">Naming</h2>
+
+    <p>Follow Clojure conventions:</p>
+
+    <ul>
+      <li>Use <b>kebab-case</b> for functions and variables:
+        <code>fetch-data</code>, <code>user-name</code></li>
+      <li>Use <b>PascalCase</b> for React components and classes:
+        <code>App</code>, <code>UserProfile</code></li>
+      <li>Use <b>SCREAMING_SNAKE_CASE</b> for constants:
+        <code>MAX-RETRIES</code> (though kebab-case is also fine)</li>
+      <li>Predicates end with <code>?</code>:
+        <code>valid?</code>, <code>empty?</code></li>
+      <li>Side-effecting functions end with <code>!</code>:
+        <code>swap!</code>, <code>reset!</code></li>
+    </ul>
+
+    <p>Squint automatically converts kebab-case to camelCase in the compiled
+      output, so <code>fetch-data</code> becomes <code>fetchData</code> in JS.
+      This means you can use idiomatic Clojure names and get idiomatic JS
+      output.</p>
+
+    <h2 id="formatting">Formatting</h2>
+
+    <p>Standard Clojure formatting applies:</p>
+
+    <pre class="code"><span class="comment">;; Good — aligned arguments</span>
+(<span class="special">defn</span> <span class="symbol">process-user</span> [{<span class="keyword">:keys</span> [<span class="symbol">name</span> <span class="symbol">email</span> <span class="symbol">role</span>]}]
+  (<span class="special">let</span> [<span class="symbol">normalized</span> (<span class="special">-></span> <span class="symbol">name</span>
+                      (<span class="special">.</span><span class="symbol">trim</span>)
+                      (<span class="special">.</span><span class="symbol">toLowerCase</span>))]
+    {<span class="keyword">:name</span> <span class="symbol">normalized</span>
+     <span class="keyword">:email</span> <span class="symbol">email</span>
+     <span class="keyword">:role</span> (<span class="special">or</span> <span class="symbol">role</span> <span class="string">"user"</span>)}))
+
+<span class="comment">;; Bad — cramped, inconsistent</span>
+(<span class="special">defn</span> <span class="symbol">process-user</span> [{<span class="keyword">:keys</span> [<span class="symbol">name</span> <span class="symbol">email</span> <span class="symbol">role</span>]}]
+(<span class="special">let</span> [<span class="symbol">normalized</span> (<span class="special">.</span><span class="symbol">toLowerCase</span> (<span class="special">.</span><span class="symbol">trim</span> <span class="symbol">name</span>))]
+{<span class="keyword">:name</span> <span class="symbol">normalized</span> <span class="keyword">:email</span> <span class="symbol">email</span> <span class="keyword">:role</span> (<span class="special">or</span> <span class="symbol">role</span> <span class="string">"user"</span>)}))</pre>
+
+    <ul>
+      <li>Indent with 2 spaces</li>
+      <li>Align map values when it aids readability</li>
+      <li>Use threading macros (<code>-></code>, <code>->></code>) to
+        avoid deep nesting</li>
+      <li>One blank line between top-level forms</li>
+    </ul>
+
+    <h2 id="namespaces">Namespace organization</h2>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">my-app.handlers</span>
+  (<span class="keyword">:require</span>
+    <span class="comment">;; Node/npm packages first</span>
+    [<span class="string">"express"</span> <span class="keyword">:as</span> <span class="symbol">express</span>]
+    [<span class="string">"pg"</span> <span class="keyword">:refer</span> [<span class="symbol">Pool</span>]]
+
+    <span class="comment">;; Then project namespaces</span>
+    [<span class="symbol">my-app.db</span> <span class="keyword">:as</span> <span class="symbol">db</span>]
+    [<span class="symbol">my-app.utils</span> <span class="keyword">:refer</span> [<span class="symbol">parse-id</span> <span class="symbol">validate</span>]]))</pre>
+
+    <p>Group requires: external packages first, then project namespaces.
+      Prefer <code>:as</code> over <code>:refer</code> for external packages
+      to make it clear where functions come from.</p>
+
+    <h2 id="interop">Interop style</h2>
+
+    <p>When to use Squint's standard library vs. direct JS interop:</p>
+
+    <pre class="code"><span class="comment">;; Prefer: Squint stdlib when it exists</span>
+(<span class="symbol">map</span> <span class="symbol">inc</span> [<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>])
+(<span class="symbol">assoc</span> <span class="symbol">m</span> <span class="keyword">:key</span> <span class="symbol">value</span>)
+(<span class="symbol">filter</span> <span class="symbol">odd?</span> <span class="symbol">nums</span>)
+
+<span class="comment">;; Also fine: JS methods for simple operations</span>
+(<span class="special">.</span><span class="symbol">toUpperCase</span> <span class="symbol">s</span>)
+(<span class="special">.</span><span class="symbol">slice</span> <span class="symbol">arr</span> <span class="number">0</span> <span class="number">5</span>)
+(<span class="special">.</span><span class="symbol">startsWith</span> <span class="symbol">path</span> <span class="string">"/"</span>)
+
+<span class="comment">;; Prefer: JS methods when there's no Squint equivalent</span>
+(<span class="special">.</span><span class="symbol">padStart</span> <span class="symbol">s</span> <span class="number">10</span> <span class="string">"0"</span>)
+(<span class="macro">js/Object.entries</span> <span class="symbol">m</span>)
+(<span class="macro">js/JSON.stringify</span> <span class="symbol">data</span>)</pre>
+
+    <p>Use Squint's stdlib when it exists — it's more idiomatic and consistent.
+      Reach for JS methods when Squint doesn't provide an equivalent, or when
+      the JS method is simpler for the task at hand.</p>
+
+    <h2 id="async-style">Async code</h2>
+
+    <pre class="code"><span class="comment">;; Good — clear async boundary</span>
+(<span class="special">defn</span> <span class="macro">^:async</span> <span class="symbol">fetch-user</span> [<span class="symbol">id</span>]
+  (<span class="special">let</span> [<span class="symbol">response</span> (<span class="macro">js-await</span> (<span class="macro">js/fetch</span> (<span class="symbol">str</span> <span class="string">"/api/users/"</span> <span class="symbol">id</span>)))]
+    (<span class="special">when</span> (<span class="special">.</span><span class="symbol">-ok</span> <span class="symbol">response</span>)
+      (<span class="macro">js-await</span> (<span class="special">.</span><span class="symbol">json</span> <span class="symbol">response</span>)))))
+
+<span class="comment">;; Good — error handling at the boundary</span>
+(<span class="special">defn</span> <span class="macro">^:async</span> <span class="symbol">main</span> []
+  (<span class="special">try</span>
+    (<span class="special">let</span> [<span class="symbol">user</span> (<span class="macro">js-await</span> (<span class="symbol">fetch-user</span> <span class="number">42</span>))]
+      (<span class="symbol">process</span> <span class="symbol">user</span>))
+    (<span class="special">catch</span> <span class="symbol">e</span>
+      (<span class="symbol">println</span> <span class="string">"Error:"</span> (<span class="special">.</span><span class="symbol">-message</span> <span class="symbol">e</span>)))))</pre>
+
+    <p>Mark functions as <code>^:async</code> only when they need to
+      <code>js-await</code>. Don't make everything async "just in case" —
+      it adds overhead and complicates the return type.</p>
+
+    <h2 id="mutability">Working with mutability</h2>
+
+    <p>Since Squint's data structures are mutable, adopt defensive habits:</p>
+
+    <ul>
+      <li><b>Don't share mutable state.</b> If a function needs its own copy
+        of data, clone it explicitly at the boundary.</li>
+      <li><b>Prefer pure functions.</b> Even though mutation is possible,
+        functions that take input and return output without side effects are
+        still easier to reason about.</li>
+      <li><b>Use <code>atom</code> for explicit state.</b> When you need
+        mutable state, <code>atom</code> makes it visible and controlled.</li>
+      <li><b>Know the difference between bang and non-bang.</b>
+        <code>assoc</code> returns a shallow copy, <code>assoc!</code>
+        mutates in place. Use bang variants only when you're sure no other
+        code holds a reference to the collection.</li>
+    </ul>
+
+    <pre class="code"><span class="comment">;; Defensive pattern — clone before modifying</span>
+(<span class="special">defn</span> <span class="symbol">with-defaults</span> [<span class="symbol">opts</span>]
+  (<span class="symbol">merge</span> {<span class="keyword">:timeout</span> <span class="number">5000</span>
+          <span class="keyword">:retries</span> <span class="number">3</span>}
+         <span class="symbol">opts</span>))</pre>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+</body>
+</html>

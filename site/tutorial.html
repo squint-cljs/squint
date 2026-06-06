@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Tutorial — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="rationale.html">Rationale</a>
+    <a href="js-primer.html">JS Primer</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="style.html">Style</a>
+    <a href="macros.html">Macros</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>Tutorial</h1>
+
+    <p>This document will guide you through the basics of Squint. You should
+      have Squint <a href="index.html#getting-started">installed</a> to follow
+      along, or use the <a href="squint/">playground</a>.</p>
+
+    <div class="toc">
+      <b>Contents</b>
+      <ul>
+        <li><a href="#hello">Hello World</a></li>
+        <li><a href="#values">Values and types</a></li>
+        <li><a href="#functions">Functions</a></li>
+        <li><a href="#bindings">Let bindings</a></li>
+        <li><a href="#data">Data structures</a></li>
+        <li><a href="#destructuring">Destructuring</a></li>
+        <li><a href="#control">Control flow</a></li>
+        <li><a href="#namespaces">Namespaces and requires</a></li>
+        <li><a href="#interop">JavaScript interop</a></li>
+        <li><a href="#async">Async and await</a></li>
+        <li><a href="#jsx">JSX</a></li>
+      </ul>
+    </div>
+
+    <p><b>A note on JavaScript examples:</b> Throughout this tutorial,
+      JavaScript output is shown in <em>simplified form</em> to aid
+      understanding. The actual compiler output uses a small runtime
+      library (<code>squint_core</code>) for Clojure semantics and may
+      differ in variable naming and code structure. Use the
+      <a href="squint/">playground</a>
+      to see exact compiler output.</p>
+
+    <!-- ── Hello World ───────────────────────────────── -->
+
+    <h2 id="hello">Hello World</h2>
+
+    <p>Create a file called <code>hello.cljs</code>:</p>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">hello</span>)
+
+(<span class="symbol">println</span> <span class="string">"Hello, world!"</span>)</pre>
+
+    <p>Run it with:</p>
+
+    <pre class="code shell">$ npx squint run hello.cljs
+Hello, world!</pre>
+
+    <p>The <code>ns</code> form declares the namespace — it's how Squint knows
+      what module you're defining. Every file should start with one.</p>
+
+    <!-- ── Values and types ──────────────────────────── -->
+
+    <h2 id="values">Values and types</h2>
+
+    <p>Squint compiles to JavaScript, so all values are JavaScript values:</p>
+
+    <pre class="code"><span class="number">42</span>              <span class="comment">; number</span>
+<span class="number">3.14</span>            <span class="comment">; number (JS has no int/float distinction)</span>
+<span class="string">"hello"</span>         <span class="comment">; string</span>
+<span class="keyword">true</span>            <span class="comment">; boolean</span>
+<span class="keyword">false</span>           <span class="comment">; boolean</span>
+<span class="keyword">nil</span>             <span class="comment">; compiles to null</span>
+<span class="keyword">:foo</span>            <span class="comment">; keyword — compiles to the string "foo"</span>
+<span class="symbol">foo</span>             <span class="comment">; symbol — a variable reference</span></pre>
+
+    <p>Keywords like <code>:foo</code> are a Clojure concept. In Squint, they
+      compile to plain JavaScript strings. This means <code>:foo</code> and
+      <code>"foo"</code> are interchangeable as map keys.</p>
+
+    <!-- ── Functions ─────────────────────────────────── -->
+
+    <h2 id="functions">Functions</h2>
+
+    <p>Define named functions with <code>defn</code>:</p>
+
+    <pre class="code">(<span class="special">defn</span> <span class="symbol">greet</span> [<span class="symbol">name</span>]
+  (<span class="symbol">str</span> <span class="string">"Hello, "</span> <span class="symbol">name</span> <span class="string">"!"</span>))
+
+(<span class="symbol">println</span> (<span class="symbol">greet</span> <span class="string">"Alice"</span>))
+<span class="comment">;; Hello, Alice!</span></pre>
+
+    <p>Conceptually, this produces JavaScript like:</p>
+
+    <pre class="code"><span class="js-comment">// Simplified — actual output uses template literals</span>
+<span class="js-keyword">var</span> greet = <span class="js-keyword">function</span>(name) {
+  <span class="js-keyword">return</span> `Hello, ${name}!`;
+};
+
+squint_core.println(greet(<span class="js-string">"Alice"</span>));</pre>
+
+    <p>Anonymous functions use <code>fn</code>:</p>
+
+    <pre class="code">(<span class="special">def</span> <span class="symbol">add</span> (<span class="special">fn</span> [<span class="symbol">a</span> <span class="symbol">b</span>] (<span class="special">+</span> <span class="symbol">a</span> <span class="symbol">b</span>)))
+(<span class="symbol">println</span> (<span class="symbol">add</span> <span class="number">2</span> <span class="number">3</span>))
+<span class="comment">;; 5</span></pre>
+
+    <p>Short anonymous functions use <code>#(...)</code>:</p>
+
+    <pre class="code">(<span class="special">def</span> <span class="symbol">double</span> #(<span class="special">*</span> <span class="number">2</span> <span class="symbol">%</span>))
+(<span class="symbol">println</span> (<span class="symbol">double</span> <span class="number">21</span>))
+<span class="comment">;; 42</span></pre>
+
+    <p>Functions with multiple arities:</p>
+
+    <pre class="code">(<span class="special">defn</span> <span class="symbol">greet</span>
+  ([<span class="symbol">name</span>]
+   (<span class="symbol">greet</span> <span class="symbol">name</span> <span class="string">"Hi"</span>))
+  ([<span class="symbol">name</span> <span class="symbol">greeting</span>]
+   (<span class="symbol">str</span> <span class="symbol">greeting</span> <span class="string">", "</span> <span class="symbol">name</span> <span class="string">"!"</span>)))</pre>
+
+    <p>Variadic functions with <code>&amp;</code>:</p>
+
+    <pre class="code">(<span class="special">defn</span> <span class="symbol">log</span> [<span class="symbol">level</span> &amp; <span class="symbol">msgs</span>]
+  (<span class="symbol">println</span> (<span class="symbol">str</span> <span class="string">"["</span> <span class="symbol">level</span> <span class="string">"]"</span>) (<span class="symbol">apply</span> <span class="symbol">str</span> <span class="symbol">msgs</span>)))</pre>
+
+    <!-- ── Let bindings ──────────────────────────────── -->
+
+    <h2 id="bindings">Let bindings</h2>
+
+    <p>Use <code>let</code> to create local bindings:</p>
+
+    <pre class="code">(<span class="special">let</span> [<span class="symbol">x</span> <span class="number">10</span>
+      <span class="symbol">y</span> <span class="number">20</span>
+      <span class="symbol">sum</span> (<span class="special">+</span> <span class="symbol">x</span> <span class="symbol">y</span>)]
+  (<span class="symbol">println</span> <span class="string">"Sum:"</span> <span class="symbol">sum</span>))
+<span class="comment">;; Sum: 30</span></pre>
+
+    <p>Bindings are sequential — later bindings can reference earlier ones.
+      The <code>let</code> form compiles directly to <code>const</code>
+      declarations in JavaScript.</p>
+
+    <!-- ── Data structures ───────────────────────────── -->
+
+    <h2 id="data">Data structures</h2>
+
+    <p><b>Important:</b> Squint's data structures are JavaScript objects and
+      arrays under the hood. The standard library functions like
+      <code>assoc</code> and <code>conj</code> return <em>shallow copies</em>
+      (not persistent data structures). Use bang variants
+      (<code>assoc!</code>, <code>conj!</code>) when you want in-place
+      mutation. See the <a href="rationale.html">Rationale</a> for why.</p>
+
+    <p><b>Vectors</b> compile to JavaScript arrays:</p>
+
+    <pre class="code">(<span class="special">def</span> <span class="symbol">nums</span> [<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>])
+(<span class="symbol">println</span> (<span class="symbol">nth</span> <span class="symbol">nums</span> <span class="number">0</span>))   <span class="comment">; 1</span>
+(<span class="symbol">println</span> (<span class="symbol">count</span> <span class="symbol">nums</span>))    <span class="comment">; 3</span>
+(<span class="symbol">println</span> (<span class="symbol">conj</span> <span class="symbol">nums</span> <span class="number">4</span>))   <span class="comment">; [1, 2, 3, 4] — returns a new array</span></pre>
+
+    <p><b>Maps</b> compile to JavaScript objects:</p>
+
+    <pre class="code">(<span class="special">def</span> <span class="symbol">person</span> {<span class="keyword">:name</span> <span class="string">"Alice"</span> <span class="keyword">:age</span> <span class="number">30</span>})
+(<span class="symbol">println</span> (<span class="keyword">:name</span> <span class="symbol">person</span>))  <span class="comment">; "Alice"</span>
+(<span class="symbol">println</span> (<span class="symbol">get</span> <span class="symbol">person</span> <span class="keyword">:age</span>))  <span class="comment">; 30</span></pre>
+
+    <p><b>Sets</b> compile to JavaScript <code>Set</code> objects:</p>
+
+    <pre class="code">(<span class="special">def</span> <span class="symbol">unique</span> #{<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>})
+(<span class="symbol">println</span> (<span class="symbol">contains?</span> <span class="symbol">unique</span> <span class="number">2</span>))  <span class="comment">; true</span></pre>
+
+    <p>The standard library functions (<code>map</code>, <code>filter</code>,
+      <code>reduce</code>, <code>assoc</code>, <code>get</code>, etc.) work on
+      these structures just as you'd expect from Clojure, but remember they
+      operate on mutable JavaScript types under the hood.</p>
+
+    <!-- ── Destructuring ─────────────────────────────── -->
+
+    <h2 id="destructuring">Destructuring</h2>
+
+    <p>Squint supports Clojure's full destructuring syntax in <code>let</code>,
+      <code>fn</code>, and <code>defn</code>:</p>
+
+    <p><b>Sequential destructuring</b> (arrays):</p>
+
+    <pre class="code">(<span class="special">let</span> [[<span class="symbol">a</span> <span class="symbol">b</span> <span class="symbol">c</span>] [<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>]]
+  (<span class="symbol">println</span> <span class="symbol">a</span> <span class="symbol">b</span> <span class="symbol">c</span>))
+<span class="comment">;; 1 2 3</span></pre>
+
+    <p><b>Associative destructuring</b> (objects):</p>
+
+    <pre class="code">(<span class="special">defn</span> <span class="symbol">greet-user</span> [{<span class="keyword">:keys</span> [<span class="symbol">name</span> <span class="symbol">role</span>]}]
+  (<span class="symbol">str</span> <span class="string">"Hello "</span> <span class="symbol">name</span> <span class="string">", you are a "</span> <span class="symbol">role</span>))
+
+(<span class="symbol">greet-user</span> {<span class="keyword">:name</span> <span class="string">"Bob"</span> <span class="keyword">:role</span> <span class="string">"admin"</span>})
+<span class="comment">;; "Hello Bob, you are a admin"</span></pre>
+
+    <p>Under the hood, the compiled output uses <code>squint_core.get()</code>
+      to extract keys from the object — this preserves Clojure's keyword
+      lookup semantics rather than using JavaScript's native destructuring:</p>
+
+    <pre class="code"><span class="js-comment">// Actual compiled output (simplified)</span>
+<span class="js-keyword">var</span> greet_user = <span class="js-keyword">function</span>(p) {
+  <span class="js-keyword">const</span> name = squint_core.get(p, <span class="js-string">"name"</span>);
+  <span class="js-keyword">const</span> role = squint_core.get(p, <span class="js-string">"role"</span>);
+  <span class="js-keyword">return</span> `Hello ${name}, you are a ${role}`;
+};</pre>
+
+    <!-- ── Control flow ──────────────────────────────── -->
+
+    <h2 id="control">Control flow</h2>
+
+    <pre class="code"><span class="comment">;; if — returns a value (it's an expression)</span>
+(<span class="special">if</span> (<span class="special">&gt;</span> <span class="symbol">x</span> <span class="number">0</span>)
+  <span class="string">"positive"</span>
+  <span class="string">"non-positive"</span>)
+
+<span class="comment">;; when — like if but no else branch</span>
+(<span class="special">when</span> (<span class="symbol">valid?</span> <span class="symbol">input</span>)
+  (<span class="symbol">process</span> <span class="symbol">input</span>))
+
+<span class="comment">;; cond — multi-branch conditional</span>
+(<span class="special">cond</span>
+  (<span class="special">&lt;</span> <span class="symbol">n</span> <span class="number">0</span>)  <span class="string">"negative"</span>
+  (<span class="special">=</span> <span class="symbol">n</span> <span class="number">0</span>)  <span class="string">"zero"</span>
+  <span class="keyword">:else</span>    <span class="string">"positive"</span>)
+
+<span class="comment">;; case — constant matching</span>
+(<span class="special">case</span> <span class="symbol">direction</span>
+  <span class="string">"north"</span> [<span class="number">0</span> <span class="number">1</span>]
+  <span class="string">"south"</span> [<span class="number">0</span> <span class="number">-1</span>]
+  <span class="string">"east"</span>  [<span class="number">1</span> <span class="number">0</span>]
+  <span class="string">"west"</span>  [<span class="number">-1</span> <span class="number">0</span>])</pre>
+
+    <p>Looping uses <code>loop</code>/<code>recur</code> (compiles to a
+      <code>while</code> loop) or <code>doseq</code>/<code>dotimes</code>:</p>
+
+    <pre class="code">(<span class="special">loop</span> [<span class="symbol">i</span> <span class="number">0</span>]
+  (<span class="special">when</span> (<span class="special">&lt;</span> <span class="symbol">i</span> <span class="number">5</span>)
+    (<span class="symbol">println</span> <span class="symbol">i</span>)
+    (<span class="special">recur</span> (<span class="special">inc</span> <span class="symbol">i</span>))))
+
+<span class="comment">;; doseq — iterate over a collection</span>
+(<span class="special">doseq</span> [<span class="symbol">x</span> [<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>]]
+  (<span class="symbol">println</span> <span class="symbol">x</span>))</pre>
+
+    <!-- ── Namespaces ────────────────────────────────── -->
+
+    <h2 id="namespaces">Namespaces and requires</h2>
+
+    <p>Every Squint file is a namespace. The <code>ns</code> form at the top
+      declares it and its dependencies:</p>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">my-app.core</span>
+  (<span class="keyword">:require</span> [<span class="string">"fs"</span> <span class="keyword">:as</span> <span class="symbol">fs</span>]
+            [<span class="string">"path"</span> <span class="keyword">:refer</span> [<span class="symbol">join</span> <span class="symbol">resolve</span>]]
+            [<span class="symbol">my-app.utils</span> <span class="keyword">:as</span> <span class="symbol">utils</span>]))</pre>
+
+    <p>This compiles to ES module imports:</p>
+
+    <pre class="code"><span class="js-keyword">import</span> * <span class="js-keyword">as</span> squint_core <span class="js-keyword">from</span> <span class="js-string">"squint-cljs/core.js"</span>;
+<span class="js-keyword">import</span> * <span class="js-keyword">as</span> fs <span class="js-keyword">from</span> <span class="js-string">"fs"</span>;
+<span class="js-keyword">import</span> { join, resolve } <span class="js-keyword">from</span> <span class="js-string">"path"</span>;
+<span class="js-keyword">import</span> * <span class="js-keyword">as</span> utils <span class="js-keyword">from</span> <span class="js-string">"./my_app/utils.mjs"</span>;</pre>
+
+    <p>Notice: string requires (<code>"fs"</code>) import npm/Node packages.
+      Symbol requires (<code>my-app.utils</code>) import other Squint namespaces.</p>
+
+    <!-- ── JavaScript interop ────────────────────────── -->
+
+    <h2 id="interop">JavaScript interop</h2>
+
+    <p>Since Squint compiles to plain JS, interop is seamless:</p>
+
+    <pre class="code"><span class="comment">;; Access JS globals with js/</span>
+(<span class="macro">js/console.log</span> <span class="string">"hello"</span>)
+(<span class="special">def</span> <span class="symbol">now</span> (<span class="macro">js/Date.</span>))
+
+<span class="comment">;; Property access</span>
+(<span class="special">.-</span><span class="symbol">length</span> <span class="string">"hello"</span>)       <span class="comment">; 5</span>
+(<span class="special">.-</span><span class="symbol">protocol</span> <span class="symbol">location</span>)    <span class="comment">; "https:"</span>
+
+<span class="comment">;; Method calls</span>
+(<span class="special">.</span><span class="symbol">toUpperCase</span> <span class="string">"hello"</span>)   <span class="comment">; "HELLO"</span>
+(<span class="special">.</span><span class="symbol">slice</span> [<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>] <span class="number">1</span>)      <span class="comment">; [2, 3]</span>
+
+<span class="comment">;; Construct objects</span>
+(<span class="special">def</span> <span class="symbol">url</span> (<span class="macro">js/URL.</span> <span class="string">"https://example.com"</span>))
+
+<span class="comment">;; Object literals with JS keys</span>
+#js {<span class="keyword">:a</span> <span class="number">1</span> <span class="keyword">:b</span> <span class="number">2</span>}</pre>
+
+    <!-- ── Async ─────────────────────────────────────── -->
+
+    <h2 id="async">Async and await</h2>
+
+    <p>Mark functions as async with <code>^:async</code> metadata, and use
+      <code>js-await</code> to await promises:</p>
+
+    <pre class="code">(<span class="special">defn</span> <span class="macro">^:async</span> <span class="symbol">fetch-data</span> [<span class="symbol">url</span>]
+  (<span class="special">let</span> [<span class="symbol">response</span> (<span class="macro">js-await</span> (<span class="macro">js/fetch</span> <span class="symbol">url</span>))
+        <span class="symbol">data</span>     (<span class="macro">js-await</span> (<span class="special">.</span><span class="symbol">json</span> <span class="symbol">response</span>))]
+    (<span class="symbol">println</span> <span class="string">"Got:"</span> <span class="symbol">data</span>)
+    <span class="symbol">data</span>))</pre>
+
+    <p>This compiles to native <code>async</code>/<code>await</code>
+      (actual output shown):</p>
+
+    <pre class="code"><span class="js-keyword">var</span> fetch_data = <span class="js-keyword">async function</span>(url) {
+  <span class="js-keyword">const</span> response = (<span class="js-keyword">await</span> fetch(url));
+  <span class="js-keyword">const</span> data = (<span class="js-keyword">await</span> response.json());
+  squint_core.println(<span class="js-string">"Got:"</span>, data);
+  <span class="js-keyword">return</span> data;
+}</pre>
+
+    <!-- ── JSX ───────────────────────────────────────── -->
+
+    <h2 id="jsx">JSX</h2>
+
+    <p>Squint supports JSX via the <code>#jsx</code> reader tag:</p>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">app</span>
+  (<span class="keyword">:require</span> [<span class="string">"react"</span> <span class="keyword">:as</span> <span class="symbol">react</span>]))
+
+(<span class="special">defn</span> <span class="symbol">App</span> []
+  (<span class="special">let</span> [[<span class="symbol">count</span> <span class="symbol">setCount</span>] (<span class="symbol">react/useState</span> <span class="number">0</span>)]
+    <span class="macro">#jsx</span> [<span class="keyword">:div</span>
+      [<span class="keyword">:h1</span> <span class="string">"Count: "</span> <span class="symbol">count</span>]
+      [<span class="keyword">:button</span> {<span class="keyword">:onClick</span> #(<span class="symbol">setCount</span> <span class="special">inc</span>)}
+        <span class="string">"Increment"</span>]]))</pre>
+
+    <p>The <code>#jsx</code> tag converts hiccup-style vectors into JSX
+      that works directly with React and other JSX-consuming libraries.</p>
+
+    <hr>
+
+    <p>This covers the basics. For a complete reference of all built-in
+      forms, see the <a href="api.html">API Listing</a>. For Clojure developers,
+      the <a href="from-clojure.html">Squint from Clojure</a> guide covers
+      important differences.</p>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+  </footer>
+</body>
+</html>

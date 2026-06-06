@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Cookbook — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="rationale.html">Rationale</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="cookbook.html">Cookbook</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>Cookbook</h1>
+
+    <p>Practical recipes for common tasks in Squint. Each recipe is
+      self-contained — copy, adapt, and use.</p>
+
+    <div class="toc">
+      <b>Recipes</b>
+      <ul>
+        <li><a href="#cli-script">CLI script with argument parsing</a></li>
+        <li><a href="#http-server">HTTP server with Node.js</a></li>
+        <li><a href="#cloudflare">Cloudflare Worker</a></li>
+        <li><a href="#react">React component</a></li>
+        <li><a href="#file-processing">File processing pipeline</a></li>
+        <li><a href="#github-action">GitHub Action script</a></li>
+        <li><a href="#json-api">Consuming a JSON API</a></li>
+        <li><a href="#testing">Simple testing</a></li>
+      </ul>
+    </div>
+
+    <!-- ── CLI script ────────────────────────────────── -->
+
+    <h2 id="cli-script">CLI script with argument parsing</h2>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">cli</span>
+  (<span class="keyword">:require</span> [<span class="string">"process"</span> <span class="keyword">:as</span> <span class="symbol">process</span>]))
+
+(<span class="special">defn</span> <span class="symbol">parse-args</span> [<span class="symbol">argv</span>]
+  (<span class="special">let</span> [<span class="symbol">args</span> (<span class="special">.</span><span class="symbol">slice</span> <span class="symbol">argv</span> <span class="number">2</span>)]
+    {<span class="keyword">:command</span> (<span class="symbol">first</span> <span class="symbol">args</span>)
+     <span class="keyword">:flags</span>   (<span class="symbol">filter</span> #(<span class="special">.</span><span class="symbol">startsWith</span> <span class="symbol">%</span> <span class="string">"--"</span>) <span class="symbol">args</span>)
+     <span class="keyword">:rest</span>    (<span class="symbol">remove</span> #(<span class="special">.</span><span class="symbol">startsWith</span> <span class="symbol">%</span> <span class="string">"--"</span>) (<span class="symbol">rest</span> <span class="symbol">args</span>))}))
+
+(<span class="special">let</span> [{<span class="keyword">:keys</span> [<span class="symbol">command</span> <span class="symbol">flags</span> <span class="symbol">rest</span>]} (<span class="symbol">parse-args</span> <span class="symbol">process/argv</span>)]
+  (<span class="special">case</span> <span class="symbol">command</span>
+    <span class="string">"greet"</span> (<span class="symbol">println</span> <span class="string">"Hello,"</span> (<span class="symbol">first</span> <span class="symbol">rest</span>))
+    <span class="string">"help"</span>  (<span class="symbol">println</span> <span class="string">"Usage: cli [greet|help] [name]"</span>)
+    (<span class="symbol">println</span> <span class="string">"Unknown command:"</span> <span class="symbol">command</span>)))</pre>
+
+    <pre class="code shell">$ npx squint run cli.cljs greet Alice
+Hello, Alice</pre>
+
+    <!-- ── HTTP server ───────────────────────────────── -->
+
+    <h2 id="http-server">HTTP server with Node.js</h2>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">server</span>
+  (<span class="keyword">:require</span> [<span class="string">"http"</span> <span class="keyword">:as</span> <span class="symbol">http</span>]))
+
+(<span class="special">defn</span> <span class="symbol">handler</span> [<span class="symbol">req</span> <span class="symbol">res</span>]
+  (<span class="special">let</span> [<span class="symbol">url</span> (<span class="special">.-</span><span class="symbol">url</span> <span class="symbol">req</span>)
+        <span class="symbol">method</span> (<span class="special">.-</span><span class="symbol">method</span> <span class="symbol">req</span>)]
+    (<span class="symbol">println</span> <span class="symbol">method</span> <span class="symbol">url</span>)
+    (<span class="special">.</span><span class="symbol">writeHead</span> <span class="symbol">res</span> <span class="number">200</span> {<span class="keyword">:Content-Type</span> <span class="string">"text/plain"</span>})
+    (<span class="special">.</span><span class="symbol">end</span> <span class="symbol">res</span> (<span class="symbol">str</span> <span class="string">"Hello from Squint! You requested "</span> <span class="symbol">url</span>))))
+
+(<span class="special">def</span> <span class="symbol">port</span> <span class="number">3000</span>)
+
+(<span class="special">-></span> (<span class="symbol">http/createServer</span> <span class="symbol">handler</span>)
+    (<span class="special">.</span><span class="symbol">listen</span> <span class="symbol">port</span>
+      (<span class="special">fn</span> [] (<span class="symbol">println</span> (<span class="symbol">str</span> <span class="string">"Listening on http://localhost:"</span> <span class="symbol">port</span>)))))</pre>
+
+    <!-- ── Cloudflare Worker ─────────────────────────── -->
+
+    <h2 id="cloudflare">Cloudflare Worker</h2>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">worker</span>)
+
+(<span class="special">defn</span> <span class="macro">^:async</span> <span class="symbol">handle-request</span> [<span class="symbol">request</span> <span class="symbol">env</span> <span class="symbol">ctx</span>]
+  (<span class="special">let</span> [<span class="symbol">url</span> (<span class="macro">js/URL.</span> (<span class="special">.-</span><span class="symbol">url</span> <span class="symbol">request</span>))
+        <span class="symbol">path</span> (<span class="special">.-</span><span class="symbol">pathname</span> <span class="symbol">url</span>)]
+    (<span class="special">case</span> <span class="symbol">path</span>
+      <span class="string">"/"</span>
+      (<span class="macro">js/Response.</span> <span class="string">"Hello from Squint on the edge!"</span>
+        {<span class="keyword">:headers</span> {<span class="keyword">:content-type</span> <span class="string">"text/plain"</span>}})
+
+      <span class="string">"/api/time"</span>
+      (<span class="macro">js/Response.</span>
+        (<span class="macro">js/JSON.stringify</span> {<span class="keyword">:time</span> (<span class="special">.</span><span class="symbol">toISOString</span> (<span class="macro">js/Date.</span>))})
+        {<span class="keyword">:headers</span> {<span class="keyword">:content-type</span> <span class="string">"application/json"</span>}})
+
+      <span class="comment">;; default</span>
+      (<span class="macro">js/Response.</span> <span class="string">"Not found"</span> {<span class="keyword">:status</span> <span class="number">404</span>}))))
+
+(<span class="special">def</span> <span class="symbol">default</span> {<span class="keyword">:fetch</span> <span class="symbol">handle-request</span>})</pre>
+
+    <p>Deploy with <code>wrangler deploy</code>. Bundle size: typically
+      under 5kb.</p>
+
+    <!-- ── React component ───────────────────────────── -->
+
+    <h2 id="react">React component</h2>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">app</span>
+  (<span class="keyword">:require</span> [<span class="string">"react"</span> <span class="keyword">:as</span> <span class="symbol">react</span>]))
+
+(<span class="special">defn</span> <span class="symbol">TodoApp</span> []
+  (<span class="special">let</span> [[<span class="symbol">items</span> <span class="symbol">setItems</span>] (<span class="symbol">react/useState</span> [])
+        [<span class="symbol">input</span> <span class="symbol">setInput</span>] (<span class="symbol">react/useState</span> <span class="string">""</span>)
+        <span class="symbol">add-item</span> (<span class="special">fn</span> []
+                   (<span class="special">when</span> (<span class="symbol">seq</span> <span class="symbol">input</span>)
+                     (<span class="symbol">setItems</span> (<span class="symbol">conj</span> <span class="symbol">items</span> {<span class="keyword">:text</span> <span class="symbol">input</span>
+                                               <span class="keyword">:done</span> <span class="keyword">false</span>}))
+                     (<span class="symbol">setInput</span> <span class="string">""</span>)))]
+    <span class="macro">#jsx</span> [<span class="keyword">:div</span>
+      [<span class="keyword">:h1</span> <span class="string">"Todo List"</span>]
+      [<span class="keyword">:div</span>
+        [<span class="keyword">:input</span> {<span class="keyword">:value</span> <span class="symbol">input</span>
+                 <span class="keyword">:onChange</span> #(<span class="symbol">setInput</span> (<span class="special">.-</span><span class="symbol">value</span> (<span class="special">.-</span><span class="symbol">target</span> <span class="symbol">%</span>)))
+                 <span class="keyword">:onKeyDown</span> #(<span class="special">when</span> (<span class="special">=</span> (<span class="special">.-</span><span class="symbol">key</span> <span class="symbol">%</span>) <span class="string">"Enter"</span>) (<span class="symbol">add-item</span>))}]
+        [<span class="keyword">:button</span> {<span class="keyword">:onClick</span> <span class="symbol">add-item</span>} <span class="string">"Add"</span>]]
+      [<span class="keyword">:ul</span>
+        (<span class="symbol">map-indexed</span>
+          (<span class="special">fn</span> [<span class="symbol">i</span> {<span class="keyword">:keys</span> [<span class="symbol">text</span> <span class="symbol">done</span>]}]
+            <span class="macro">#jsx</span> [<span class="keyword">:li</span> {<span class="keyword">:key</span> <span class="symbol">i</span>} <span class="symbol">text</span>])
+          <span class="symbol">items</span>)]]))</pre>
+
+    <!-- ── File processing ───────────────────────────── -->
+
+    <h2 id="file-processing">File processing pipeline</h2>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">process-csv</span>
+  (<span class="keyword">:require</span> [<span class="string">"fs/promises"</span> <span class="keyword">:as</span> <span class="symbol">fs</span>]
+            [<span class="string">"path"</span> <span class="keyword">:as</span> <span class="symbol">path</span>]))
+
+(<span class="special">defn</span> <span class="symbol">parse-csv</span> [<span class="symbol">text</span>]
+  (<span class="special">let</span> [<span class="symbol">lines</span> (<span class="special">.</span><span class="symbol">split</span> (<span class="special">.</span><span class="symbol">trim</span> <span class="symbol">text</span>) <span class="string">"\n"</span>)
+        <span class="symbol">headers</span> (<span class="special">.</span><span class="symbol">split</span> (<span class="symbol">first</span> <span class="symbol">lines</span>) <span class="string">","</span>)]
+    (<span class="symbol">map</span> (<span class="special">fn</span> [<span class="symbol">line</span>]
+           (<span class="symbol">zipmap</span> <span class="symbol">headers</span> (<span class="special">.</span><span class="symbol">split</span> <span class="symbol">line</span> <span class="string">","</span>)))
+         (<span class="symbol">rest</span> <span class="symbol">lines</span>))))
+
+(<span class="special">defn</span> <span class="macro">^:async</span> <span class="symbol">main</span> []
+  (<span class="special">let</span> [<span class="symbol">text</span> (<span class="macro">js-await</span> (<span class="symbol">fs/readFile</span> <span class="string">"data.csv"</span> <span class="string">"utf-8"</span>))
+        <span class="symbol">rows</span> (<span class="symbol">parse-csv</span> <span class="symbol">text</span>)
+        <span class="symbol">summary</span> (<span class="special">->></span> <span class="symbol">rows</span>
+                     (<span class="symbol">group-by</span> #(<span class="symbol">get</span> <span class="symbol">%</span> <span class="string">"category"</span>))
+                     (<span class="symbol">map</span> (<span class="special">fn</span> [[<span class="symbol">k</span> <span class="symbol">v</span>]] {<span class="keyword">:category</span> <span class="symbol">k</span> <span class="keyword">:count</span> (<span class="symbol">count</span> <span class="symbol">v</span>)}))
+                     (<span class="symbol">sort-by</span> <span class="keyword">:count</span>)
+                     (<span class="symbol">reverse</span>))]
+    (<span class="symbol">doseq</span> [{<span class="keyword">:keys</span> [<span class="symbol">category</span> <span class="symbol">count</span>]} <span class="symbol">summary</span>]
+      (<span class="symbol">println</span> <span class="symbol">category</span> <span class="string">":"</span> <span class="symbol">count</span>))))
+
+(<span class="symbol">main</span>)</pre>
+
+    <!-- ── GitHub Action ─────────────────────────────── -->
+
+    <h2 id="github-action">GitHub Action script</h2>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">check-pr</span>
+  (<span class="keyword">:require</span> [<span class="string">"process"</span> <span class="keyword">:as</span> <span class="symbol">process</span>]))
+
+(<span class="special">defn</span> <span class="macro">^:async</span> <span class="symbol">main</span> []
+  (<span class="special">let</span> [<span class="symbol">token</span> (<span class="symbol">aget</span> <span class="symbol">process/env</span> <span class="string">"GITHUB_TOKEN"</span>)
+        <span class="symbol">repo</span>  (<span class="symbol">aget</span> <span class="symbol">process/env</span> <span class="string">"GITHUB_REPOSITORY"</span>)
+        <span class="symbol">url</span>   (<span class="symbol">str</span> <span class="string">"https://api.github.com/repos/"</span> <span class="symbol">repo</span> <span class="string">"/pulls?state=open"</span>)
+        <span class="symbol">res</span>   (<span class="macro">js-await</span> (<span class="macro">js/fetch</span> <span class="symbol">url</span>
+                {<span class="keyword">:headers</span> {<span class="keyword">:Authorization</span> (<span class="symbol">str</span> <span class="string">"token "</span> <span class="symbol">token</span>)}}))
+        <span class="symbol">prs</span>   (<span class="macro">js-await</span> (<span class="special">.</span><span class="symbol">json</span> <span class="symbol">res</span>))]
+    (<span class="symbol">println</span> (<span class="symbol">count</span> <span class="symbol">prs</span>) <span class="string">"open PRs"</span>)
+    (<span class="symbol">doseq</span> [<span class="symbol">pr</span> <span class="symbol">prs</span>]
+      (<span class="symbol">println</span> <span class="string">"  -"</span> (<span class="special">.-</span><span class="symbol">title</span> <span class="symbol">pr</span>)))))
+
+(<span class="symbol">main</span>)</pre>
+
+    <!-- ── JSON API ──────────────────────────────────── -->
+
+    <h2 id="json-api">Consuming a JSON API</h2>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">weather</span>)
+
+(<span class="special">defn</span> <span class="macro">^:async</span> <span class="symbol">get-weather</span> [<span class="symbol">city</span>]
+  (<span class="special">let</span> [<span class="symbol">url</span> (<span class="symbol">str</span> <span class="string">"https://wttr.in/"</span> <span class="symbol">city</span> <span class="string">"?format=j1"</span>)
+        <span class="symbol">res</span> (<span class="macro">js-await</span> (<span class="macro">js/fetch</span> <span class="symbol">url</span>))
+        <span class="symbol">data</span> (<span class="macro">js-await</span> (<span class="special">.</span><span class="symbol">json</span> <span class="symbol">res</span>))
+        <span class="symbol">current</span> (<span class="symbol">first</span> (<span class="special">.-</span><span class="symbol">current_condition</span> <span class="symbol">data</span>))]
+    {<span class="keyword">:temp</span> (<span class="special">.-</span><span class="symbol">temp_C</span> <span class="symbol">current</span>)
+     <span class="keyword">:feels-like</span> (<span class="special">.-</span><span class="symbol">FeelsLikeC</span> <span class="symbol">current</span>)
+     <span class="keyword">:desc</span> (<span class="special">.-</span><span class="symbol">value</span> (<span class="symbol">first</span> (<span class="special">.-</span><span class="symbol">weatherDesc</span> <span class="symbol">current</span>)))}))</pre>
+
+    <!-- ── Testing ───────────────────────────────────── -->
+
+    <h2 id="testing">Simple testing</h2>
+
+    <pre class="code">(<span class="special">ns</span> <span class="symbol">test</span>
+  (<span class="keyword">:require</span> [<span class="string">"assert"</span> <span class="keyword">:as</span> <span class="symbol">assert</span>]))
+
+(<span class="special">defn</span> <span class="symbol">test-basics</span> []
+  (<span class="symbol">assert/strictEqual</span> (<span class="special">+</span> <span class="number">1</span> <span class="number">2</span>) <span class="number">3</span>)
+  (<span class="symbol">assert/deepStrictEqual</span>
+    (<span class="symbol">vec</span> (<span class="symbol">map</span> <span class="special">inc</span> [<span class="number">1</span> <span class="number">2</span> <span class="number">3</span>]))
+    [<span class="number">2</span> <span class="number">3</span> <span class="number">4</span>])
+  (<span class="symbol">assert/strictEqual</span>
+    (<span class="keyword">:name</span> {<span class="keyword">:name</span> <span class="string">"Alice"</span>})
+    <span class="string">"Alice"</span>)
+  (<span class="symbol">println</span> <span class="string">"All tests passed!"</span>))
+
+(<span class="symbol">test-basics</span>)</pre>
+
+    <pre class="code shell">$ npx squint run test.cljs
+All tests passed!</pre>
+
+    <p>For larger projects, consider using Node's built-in test runner
+      (<code>node:test</code>) or a JS testing framework like Vitest.</p>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+</body>
+</html>

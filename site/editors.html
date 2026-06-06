@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="squint.css">
+  <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Editor &amp; nREPL Setup — Squint</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html" class="nav-home">squint</a>
+    <a href="tutorial.html">Tutorial</a>
+    <a href="from-clojure.html">From Clojure</a>
+    <a href="editors.html">Editors</a>
+    <a href="api.html">API</a>
+  </nav>
+
+  <main>
+    <h1>Editor &amp; nREPL Setup</h1>
+
+    <p>Squint works with any text editor — <code>.cljs</code> files get
+      Clojure syntax highlighting out of the box. For a richer experience
+      with inline evaluation, use nREPL integration.</p>
+
+    <div class="toc">
+      <b>Contents</b>
+      <ul>
+        <li><a href="#nrepl">nREPL server</a></li>
+        <li><a href="#calva">VS Code (Calva)</a></li>
+        <li><a href="#emacs">Emacs (CIDER)</a></li>
+        <li><a href="#vim">Neovim (Conjure)</a></li>
+        <li><a href="#intellij">IntelliJ (Cursive)</a></li>
+        <li><a href="#repl">Console REPL</a></li>
+      </ul>
+    </div>
+
+    <h2 id="nrepl">nREPL server</h2>
+
+    <p>Squint includes an experimental nREPL server that enables editor
+      integration:</p>
+
+    <pre class="code shell">$ npx squint nrepl-server :port 1339</pre>
+
+    <p>This starts an nREPL server on port 1339. Your editor's Clojure
+      plugin can connect to this port for inline evaluation, code
+      completion, and interactive development.</p>
+
+    <p><b>Note:</b> The nREPL server is experimental. Known limitation:
+      when sending multiple forms at once, some may not be evaluated.
+      Send forms one at a time for reliable results.</p>
+
+    <h2 id="calva">VS Code (Calva)</h2>
+
+    <p><a href="https://calva.io/">Calva</a> is the most popular Clojure
+      extension for VS Code. To use with Squint:</p>
+
+    <ol>
+      <li>Install the Calva extension from the VS Code marketplace.</li>
+      <li>Start the nREPL server: <code>npx squint nrepl-server :port 1339</code></li>
+      <li>In VS Code, run <b>Calva: Connect to a Running REPL Server</b>
+        from the command palette.</li>
+      <li>Select "Generic" as the project type.</li>
+      <li>Enter the port (1339).</li>
+    </ol>
+
+    <p>You can now evaluate expressions inline with
+      <code>Ctrl+Enter</code> (current form) or
+      <code>Alt+Enter</code> (top-level form).</p>
+
+    <h2 id="emacs">Emacs (CIDER)</h2>
+
+    <p><a href="https://docs.cider.mx/">CIDER</a> can connect to Squint's
+      nREPL server:</p>
+
+    <ol>
+      <li>Start the nREPL server:
+        <code>npx squint nrepl-server :port 1339</code></li>
+      <li>In Emacs, run <code>M-x cider-connect</code>.</li>
+      <li>Enter <code>localhost</code> and port <code>1339</code>.</li>
+    </ol>
+
+    <p>Standard CIDER keybindings work: <code>C-c C-e</code> to evaluate
+      the expression before point. Note: <code>C-c C-k</code> (evaluate
+      buffer) sends multiple forms at once, which may be unreliable due
+      to the nREPL limitation above. Prefer evaluating forms one at a
+      time.</p>
+
+    <h2 id="vim">Neovim (Conjure)</h2>
+
+    <p><a href="https://github.com/Olical/conjure">Conjure</a> connects
+      to nREPL for inline evaluation in Neovim:</p>
+
+    <ol>
+      <li>Install Conjure via your plugin manager.</li>
+      <li>Start the nREPL server:
+        <code>npx squint nrepl-server :port 1339</code></li>
+      <li>Create a <code>.nrepl-port</code> file containing
+        <code>1339</code> in your project root.</li>
+      <li>Open a <code>.cljs</code> file — Conjure auto-connects.</li>
+    </ol>
+
+    <h2 id="intellij">IntelliJ (Cursive)</h2>
+
+    <p><a href="https://cursive-ide.com/">Cursive</a> provides Clojure
+      support in IntelliJ. It can connect to Squint's nREPL via the
+      "Remote REPL" configuration:</p>
+
+    <ol>
+      <li>Start the nREPL server.</li>
+      <li>Create a new "Clojure REPL → Remote" run configuration.</li>
+      <li>Set host to <code>localhost</code>, port to <code>1339</code>.</li>
+    </ol>
+
+    <h2 id="repl">Console REPL</h2>
+
+    <p>For quick experimentation without editor integration:</p>
+
+    <pre class="code shell">$ npx squint repl</pre>
+
+    <p>This starts an interactive REPL in your terminal. You can also
+      use the web-based <a href="squint/">playground</a>
+      for a richer experience with syntax highlighting, compiled output
+      viewing, and sharing.</p>
+
+    <h2>Syntax highlighting without nREPL</h2>
+
+    <p>Even without nREPL, most editors highlight <code>.cljs</code> files
+      correctly. If yours doesn't, configure it to use Clojure syntax
+      highlighting for <code>.cljs</code> files. The experience will be
+      similar to editing ClojureScript — the syntax is identical.</p>
+
+    <hr>
+  </main>
+
+  <footer>
+    <p>Squint is open source under the EPL license.
+      <a href="https://github.com/squint-cljs/squint">Source on GitHub.</a></p>
+    <p>Design lovingly borrowed from
+      <a href="https://fennel-lang.org/">the Fennel programming language</a>.</p>
+  </footer>
+</body>
+</html>

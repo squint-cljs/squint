@@ -1,0 +1,421 @@
+:root {
+    /* ── Gray (neutral) ────────────────────────────────────
+       Identical to Fennel's grays — perceptually uniform lightness steps.
+       Contrast ratios (light mode, on --gray-99 white):
+       gray-10: 16.9:1  |  gray-15: 15.1:1  |  gray-25: 11.2:1
+       gray-38:  7.0:1  |  gray-50:  4.5:1  |  gray-60:  3.1:1  */
+    --gray-10: #1b1d1c;
+    --gray-15: #262626;
+    --gray-25: #3b3b3b;
+    --gray-38: #595959;
+    --gray-50: #777777;
+    --gray-60: #919191;
+    --gray-70: #ababab;
+    --gray-85: #d4d4d4;
+    --gray-95: #f0f0f0;
+    --gray-99: #ffffff;
+
+    /* ── Amber/Orange (primary accent) ─────────────────────
+       Derived from Squint logo #EA701D, hue ~65 OKLCH.
+       Chroma peaks around values 50-70. */
+    --amber-10: #2a1800;
+    --amber-15: #3a2200;
+    --amber-25: #573600;
+    --amber-38: #7c5200;
+    --amber-50: #9e6e10;
+    --amber-60: #be8a2a;
+    --amber-70: #d9a84e;
+    --amber-85: #f2d08e;
+    --amber-95: #fcedc8;
+    --amber-99: #fffbf2;
+
+    /* ── Blue (links) ──────────────────────────────────────
+       Hue 245-227, same family as Fennel. */
+    --blue-10: #00202a;
+    --blue-15: #032a3e;
+    --blue-25: #00415d;
+    --blue-38: #00627f;
+    --blue-50: #147da3;
+    --blue-60: #1e9ec1;
+    --blue-70: #68b6d9;
+    --blue-85: #a2def5;
+    --blue-95: #d3f2ff;
+    --blue-99: #f4fdff;
+
+    /* ── Teal (syntax: values, strings, keywords) ──────────
+       Hue ~195, low-mid chroma. */
+    --teal-10: #002020;
+    --teal-15: #002d2d;
+    --teal-25: #004545;
+    --teal-38: #006565;
+    --teal-50: #1a8585;
+    --teal-60: #35a2a2;
+    --teal-70: #5cbcbc;
+    --teal-85: #98dede;
+    --teal-95: #ccf0f0;
+    --teal-99: #f2fefe;
+
+    /* ── Warm brown (code backgrounds) ─────────────────────
+       Very low chroma, warm-shifted gray. */
+    --warm-10: #221c18;
+    --warm-15: #2d2621;
+    --warm-99: #fffcf9;
+
+    /* ── Semantic mappings (light mode) ──────────────────── */
+    --base-bg: var(--gray-99);
+    --base-bg-in: var(--gray-95);
+    --base-bg-mid: var(--gray-70);
+    --base-fg: var(--gray-10);
+
+    --link-reg: var(--blue-25);
+    --link-hov: var(--blue-15);
+    --link-vis: var(--blue-38);
+
+    --accent-main: var(--amber-38);
+    --accent-bold: var(--amber-25);
+
+    --source-bg: var(--warm-99);
+    --source-fg: var(--gray-10);
+    --source-comment: var(--gray-50);
+    --source-value: var(--teal-38);
+    --source-special: var(--amber-38);
+    --source-macro: var(--blue-38);
+    --source-symbol: var(--gray-25);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --base-bg: var(--gray-10);
+        --base-bg-in: var(--gray-15);
+        --base-bg-mid: var(--gray-25);
+        --base-fg: var(--gray-95);
+
+        --link-reg: var(--blue-60);
+        --link-hov: var(--blue-70);
+        --link-vis: var(--blue-50);
+
+        --accent-main: var(--amber-60);
+        --accent-bold: var(--amber-70);
+
+        --source-bg: var(--warm-10);
+        --source-fg: var(--gray-95);
+        --source-comment: var(--gray-60);
+        --source-value: var(--teal-70);
+        --source-special: var(--amber-70);
+        --source-macro: var(--blue-70);
+        --source-symbol: var(--gray-85);
+    }
+}
+
+/* ── Layout & typography ─────────────────────────────── */
+
+html {
+    color: var(--base-fg);
+    background-color: var(--base-bg);
+}
+
+body {
+    font-family: "Fira Sans", "Helvetica Neue", Helvetica, Calibri, Verdana, sans-serif;
+    margin: 40px auto;
+    padding: 1em;
+    max-width: 44em;
+    line-height: 1.6;
+    font-size: 14pt;
+}
+
+h1 {
+    text-align: center;
+    font-size: 2.4em;
+    margin-bottom: 0.2em;
+}
+
+h1 svg.logo {
+    max-width: 300px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+h1 svg {
+    max-width: 1.6em;
+    height: auto;
+    vertical-align: -0.15em;
+}
+
+h2 {
+    margin-top: 2.5em;
+    color: var(--accent-bold);
+}
+
+h3 {
+    margin: 0 0 0.3em 0;
+    font-size: 11pt;
+    color: var(--accent-main);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+img {
+    max-width: 100%;
+}
+
+/* ── Links ───────────────────────────────────────────── */
+
+a {
+    color: var(--link-reg);
+}
+
+a:hover {
+    color: var(--link-hov);
+}
+
+a:visited {
+    color: var(--link-vis);
+}
+
+:focus {
+    outline: 4px solid var(--accent-main);
+    outline-offset: 4px;
+}
+
+/* ── Code & monospace ────────────────────────────────── */
+
+tt, pre, code, kbd {
+    font-family: "Fira Mono", Inconsolata, monospace;
+}
+
+code {
+    background-color: var(--base-bg-in);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+.code {
+    border-radius: 3px;
+    border: 1px solid var(--base-bg-mid);
+    font-size: 12pt;
+    line-height: 1.5;
+    margin: 1.5em 0;
+    padding: 1em;
+    text-align: left;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    background-color: var(--source-bg);
+    color: var(--source-fg);
+}
+
+/* ── Syntax highlighting ─────────────────────────────── */
+
+.code .comment       { color: var(--source-comment); font-style: italic; }
+.code .keyword       { color: var(--source-value); }
+.code .string        { color: var(--source-value); }
+.code .number        { color: var(--source-value); }
+.code .special       { color: var(--source-special); font-weight: bold; }
+.code .macro         { color: var(--source-macro); }
+.code .symbol        { color: var(--source-symbol); }
+
+.code .js-keyword    { color: var(--source-special); font-weight: bold; }
+.code .js-string     { color: var(--source-value); }
+.code .js-number     { color: var(--source-value); }
+.code .js-comment    { color: var(--source-comment); font-style: italic; }
+
+/* ── Side-by-side code comparison ────────────────────── */
+
+.code-compare {
+    display: flex;
+    gap: 1em;
+    margin: 2em 0;
+}
+
+.code-pane {
+    flex: 1;
+    min-width: 0;
+}
+
+.code-pane .code {
+    margin-top: 0;
+}
+
+@media (max-width: 700px) {
+    .code-compare {
+        flex-direction: column;
+    }
+}
+
+/* ── "Where" inline list ─────────────────────────────── */
+
+#where {
+    list-style: none;
+    padding: 0;
+    text-align: center;
+}
+
+#where li {
+    display: inline-block;
+    margin: 0.3em 1em;
+}
+
+/* ── Feature list styling ────────────────────────────── */
+
+.features {
+    padding-left: 1.2em;
+}
+
+.features li {
+    margin-bottom: 0.6em;
+}
+
+/* ── Install / getting started ───────────────────────── */
+
+.shell {
+    background-color: var(--base-bg-in);
+    color: var(--base-fg);
+}
+
+/* ── Interactive REPL ─────────────────────────────────── */
+
+.outputs {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+    min-height: 16em;
+}
+
+.code-flex {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    width: min-content;
+    min-height: 16em;
+}
+
+#repl-console, #compiled-js {
+    overflow-y: auto;
+    padding: 1em 1.2em;
+    display: block;
+    flex-grow: 1;
+    max-height: 20em;
+}
+
+#repl-console pre {
+    margin: 0;
+    font-size: 11pt;
+    white-space: pre-wrap;
+}
+
+#repl-console .input  { color: var(--accent-main); }
+#repl-console .error  { color: #c44; }
+#repl-console .info   { color: var(--source-comment); font-style: italic; }
+#repl-console .result { color: var(--source-value); }
+
+.repl-input-container {
+    display: flex;
+    border-top: 1px solid var(--base-bg-mid);
+}
+
+.repl-input-container > * {
+    outline: none;
+    border: none;
+    white-space: pre-wrap;
+    font-family: "Fira Mono", Inconsolata, monospace;
+    color: var(--base-fg);
+    background: var(--base-bg-in);
+    min-height: 1em;
+    padding: 0.8em;
+    margin: 0;
+}
+
+#repl-prompt {
+    padding-right: 0;
+    font-weight: bold;
+    color: var(--accent-main);
+}
+
+#repl-input {
+    flex: 1;
+    font-size: 11pt;
+    padding-left: 0.3em;
+    resize: none;
+    border-radius: 0 0 0 3px;
+}
+
+#toggle-compiled-code {
+    font-size: 10pt;
+    cursor: pointer;
+    border-radius: 0 0 3px 0;
+    border-left: 1px solid var(--base-bg-mid);
+    color: var(--link-reg);
+}
+
+#toggle-compiled-code:hover {
+    background: var(--base-bg);
+}
+
+#js-pane {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .outputs {
+        flex-direction: column;
+    }
+}
+
+/* ── Doc page navigation ─────────────────────────────── */
+
+nav {
+    font-size: 0.9em;
+    margin-bottom: 2em;
+    padding-bottom: 0.5em;
+    border-bottom: 1px solid var(--base-bg-mid);
+}
+
+nav a {
+    margin-right: 1.5em;
+    text-decoration: none;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+nav .nav-home {
+    font-weight: bold;
+    color: var(--accent-main);
+}
+
+/* ── Table of contents (doc pages) ───────────────────── */
+
+.toc {
+    background-color: var(--base-bg-in);
+    border-radius: 3px;
+    padding: 1em 1.5em;
+    margin: 1.5em 0;
+}
+
+.toc ul {
+    margin: 0.3em 0;
+    padding-left: 1.2em;
+}
+
+.toc li {
+    margin: 0.2em 0;
+}
+
+/* ── Footer ──────────────────────────────────────────── */
+
+footer {
+    color: var(--gray-50);
+    font-size: 0.9em;
+}
+
+footer a {
+    color: var(--gray-50);
+}
+
+hr {
+    margin-top: 2em;
+    border: none;
+    border-top: 1px solid var(--base-bg-mid);
+}
