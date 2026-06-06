@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- CLI: `--help`/`-h`, argument validation and error messages are now provided by babashka.cli's `dispatch` (standard `Usage`/`Commands`/`Options` help, errors to stderr). Builds on [#691](https://github.com/squint-cljs/squint/issues/691) ([@lread](https://github.com/lread))
+
 ## 0.12.193
 
 - Fix [#832](https://github.com/squint-cljs/squint/issues/832): nREPL server hung on advertised ops. `info`/`eldoc`/`lookup`, `complete` (including `js/` interop completion) and `load-file` are now implemented.
