@@ -2,7 +2,7 @@
  :deps {borkdude/edamame {:mvn/version "1.4.30"}
         babashka/process {:mvn/version "0.1.7"}
         org.babashka/cli {:git/url "https://github.com/babashka/cli"
-                          :git/sha "b79db1a4ee37a4fc3a4d94ea8d97bb5a7e89a183"}
+                          :git/sha "161d4f4cd7d6f82b5bfbfa61dbc7e67d795fbec4"}
         org.babashka/sci {:mvn/version "0.10.49"}}
  :aliases
  {:dev {}
