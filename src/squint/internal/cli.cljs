@@ -339,11 +339,16 @@
 
 (defn init []
   (let [cli-args (vec (.slice js/process.argv 2))
-        cli-args (->> cli-args
-                      (support-implicit-compile table)
-                      (treat-eval-opt-as-command table))
+        ;; pass the babashka.cli completion command through untouched: the implicit
+        ;; rewrites below would otherwise hide it from dispatch
+        completion? (= "org.babashka.cli/completions" (first cli-args))
+        cli-args (if completion?
+                   cli-args
+                   (->> cli-args
+                        (support-implicit-compile table)
+                        (treat-eval-opt-as-command table)))
         ;; bare invocation -> top-level help
-        cli-args (if (empty? cli-args) ["--help"] cli-args)]
+        cli-args (if (and (not completion?) (empty? cli-args)) ["--help"] cli-args)]
     (cli/dispatch table cli-args
                   {:prog "squint"
                    :help true
