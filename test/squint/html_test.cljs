@@ -187,3 +187,41 @@
              (is (= "<button data-click=\"[&quot;inc&quot;]\"></button>" v))))
           (.catch #(is false "nooooo"))
           (.finally done)))))
+
+(deftest html-literal-attr-escape-test
+  ;; literal string attribute values are HTML-escaped at compile time
+  (t/async done
+    (->
+     (p/do
+       (p/let [js (compile-html "(str #html [:div {:class \"<script>\"}])")
+               v (js/eval js)
+               _ (is (= "<div class=\"&lt;script&gt;\"></div>" v))]
+         (p/let [js (compile-html "(str #html [:a {:title \"a&\\\"b\"}])")
+                 v (js/eval js)
+                 _ (is (= "<a title=\"a&amp;&quot;b\"></a>" v))])))
+     (p/catch #(is false "nooooo"))
+     (p/finally done))))
+
+(deftest html-boolean-attr-test
+  ;; true -> bare attribute name (hiccup convention); false -> rendered value
+  (t/async done
+    (->
+     (p/do
+       (p/let [js (compile-html "(str #html [:input {:checked true}])")
+               v (js/eval js)
+               _ (is (= "<input checked>" v))]
+         (p/let [js (compile-html "(str #html [:input {:disabled false}])")
+                 v (js/eval js)
+                 _ (is (= "<input disabled=\"false\">" v))])))
+     (p/catch #(is false "nooooo"))
+     (p/finally done))))
+
+(deftest html-nonstyle-map-attr-test
+  ;; only :style maps render as CSS; other map values follow the `str`
+  ;; contract (a plain object stringifies to "[object Object]" in squint)
+  (t/async done
+    (let [js (compile-html "(str #html [:div {:data-foo {:a 1}}])")]
+      (-> (js/eval js)
+          (.then #(is (= "<div data-foo=\"[object Object]\"></div>" %)))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))
