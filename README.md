@@ -99,6 +99,7 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 - [wordle](https://github.com/jackdbd/squint-wordle)
 - [Zenith](https://tofutheloafu.itch.io/zenith): a game developed for the Lisp Game Jame 2024 by Trevor
 - [hiccupad](https://brianium.github.io/hiccupad/) ([source](https://github.com/brianium/hiccupad))
+- [hyper](https://github.com/dynamic-alpha/hyper): a reactive server-rendered web framework for Clojure
 
 ## Advent of Code
 

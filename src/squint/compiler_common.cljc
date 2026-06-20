@@ -175,6 +175,17 @@
 #?(:clj (derive #?(:clj java.lang.Long) ::number))
 #?(:cljs (derive js/Number ::number))
 
+(defn escape-html*
+  "Compile-time HTML escaping for literal body and attribute values. Mirrors
+  the runtime escapeHTML in src/squint/html.js."
+  [text]
+  (str/escape (str text)
+              {\& "&amp;"
+               \< "&lt;"
+               \> "&gt;"
+               \" "&quot;"
+               \' "&apos;"}))
+
 (defn escape-jsx [expr env]
   (let [html? (:html env)]
     (if (and (:jsx env) (or html?
@@ -207,10 +218,7 @@
                      (or (:html env)
                          (not (:jsx-runtime env)))
                      (not unsafe-html?))
-              (str/replace expr #"([<>])" (fn [x]
-                                            (get
-                                             {"<" "&lt;"
-                                              ">" "&gt;"} (second x))))
+              (escape-html* expr)
               (emit-return (cond-> expr
                              (not (:skip-quotes env))
                              (pr-str)) env))
@@ -1410,12 +1418,17 @@ break;}" body)
                           (let [str? (or (string? v)
                                          (when (= :squint (:target env))
                                            (keyword? v)))]
-                            (if (= :& k)
+                            (cond
+                              (= :& k)
                               (str "{..." (emit v (dissoc env :jsx)) "}")
+                              ;; boolean true -> bare attribute name (hiccup convention)
+                              (and html? (true? v))
+                              (name k)
+                              :else
                               (str (name k) "="
                                    (let [env env]
                                      (cond
-                                       (and html? (map? v))
+                                       (and html? (= "style" (name k)) (map? v))
                                        (emit-css v env)
                                        ;; dynamic :style (a runtime map or string,
                                        ;; not a literal map): stringify at runtime
@@ -1427,9 +1440,9 @@ break;}" body)
                                            (-> (format "${squint_html.attr(%s)}"
                                                        (emit v (assoc env :jsx false :js true)))
                                                (wrap-double-quotes)))
-                                       #_#_(and html? (vector? v))
-                                       (-> (str/join " " (map #(emit % env) v))
-                                           (wrap-double-quotes))
+                                       ;; literal string value: escape at compile time
+                                       (and html? (string? v))
+                                       (emit (escape-html* v) (assoc env :jsx false))
                                        :else
                                        (cond-> (emit v (assoc env :jsx false))
                                          (not str?)
