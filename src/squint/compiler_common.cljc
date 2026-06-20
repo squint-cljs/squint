@@ -490,7 +490,8 @@
                          (or
                           (when (contains? current-ns expr)
                             (str (when (:repl env)
-                                   (str "globalThis." (munge current) ".")) (munged-name expr)))
+                                   (str "globalThis." (munge current) "."))
+                                 (get-in current-ns [:var-renames (munged-name expr)] (munged-name expr))))
                           (when (contains? (:refers current-ns) expr)
                             (str (when (:repl env)
                                    (str "globalThis." (munge current) "."))
@@ -663,22 +664,44 @@
 (defn no-top-level [env]
   (dissoc env :top-level))
 
+(defn var-ident
+  "The JS identifier a var is emitted as: its renamed form when it shadowed a
+  require alias (see emit-special 'def), otherwise its munged name."
+  [env name]
+  (let [munged (str (munge* name))]
+    (get-in @(:ns-state env) [(current-ns env) :var-renames munged] munged)))
+
 (defn emit-var [[name ?doc ?expr :as expr] _skip-var? env]
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
-        env* (no-top-level env)]
-    (str "var " (munge name) " = "
+        env* (no-top-level env)
+        ident (var-ident env name)]
+    (str "var " ident " = "
          (emit expr (expr-env env*)) ";\n"
          (when (:repl env)
            (emit-return (str "globalThis."
                             (when (current-ns env)
                               (str (munge (current-ns env)) "."))
-                            (munge name) " = " (munge name)
+                            ident " = " ident
                             (when (= :statement (:context env)) ";\n"))
                         env)))))
 
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
-  (let [name (first more)]
+  (let [name (first more)
+        st @(:ns-state env)
+        current (:current st)
+        munged (str (munge* name))]
+    ;; A def whose name shadows a :require alias or :refer would clash with that
+    ;; import binding in JS (`import * as foo` / `import { foo }` + `var foo`).
+    ;; Rename the var to a fresh gensym (a bare reference resolves to the var;
+    ;; `<alias>/x` keeps using the alias) and record real->renamed so references
+    ;; and the export follow. A plain gensym (G__N) is collision-proof: the
+    ;; counter is global and the G__ prefix is reserved.
+    (when (and (not (:repl env))
+               (or (contains? (get-in st [current :aliases]) (symbol munged))
+                   (contains? (get-in st [current :refers]) name)))
+      (let [renamed (str ((:gensym env)))]
+        (swap! (:ns-state env) assoc-in [current :var-renames munged] renamed)))
     (when-not (:private (meta name))
       (swap! (:ns-state env)
              (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))

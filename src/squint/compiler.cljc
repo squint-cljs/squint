@@ -524,6 +524,7 @@
                  pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
                  public-vars (get-in @(:ns-state opts) [(cc/current-ns opts) :vars] #{})
+                 var-renames (get-in @(:ns-state opts) [(cc/current-ns opts) :var-renames] {})
                  exports (when-not elide-exports
                            (str
                             (when-let [vars (disj public-vars "default$")]
@@ -534,7 +535,14 @@
                                                    (str "export " var ";"))
                                                  vars))
                                   (format "\nexport { %s }\n"
-                                          (str/join ", " vars)))))
+                                          (str/join ", "
+                                                    ;; a var renamed to dodge an alias collision is
+                                                    ;; exported back under its real name
+                                                    (map (fn [v]
+                                                           (if-let [r (get var-renames v)]
+                                                             (str r " as " v)
+                                                             v))
+                                                         vars))))))
                             (when (contains? public-vars "default$")
                               "export default default$\n")))]
              (assoc opts
