@@ -360,6 +360,9 @@
              squint.math "squint-cljs/src/squint/math.js"
              clojure.math "squint-cljs/src/squint/math.js"
              cljs.math "squint-cljs/src/squint/math.js"
+             squint.walk "squint-cljs/src/squint/walk.js"
+             clojure.walk "squint-cljs/src/squint/walk.js"
+             cljs.walk "squint-cljs/src/squint/walk.js"
              squint.test "squint-cljs/src/squint/test.js"
              cljs.test "squint-cljs/src/squint/test.js"
              clojure.test "squint-cljs/src/squint/test.js"}

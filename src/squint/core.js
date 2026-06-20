@@ -179,16 +179,31 @@ export function assoc_BANG_(m, k, v, ...kvs) {
   return m;
 }
 
+const _metaSym = Symbol('meta');
+
+// Copies metadata from `from` onto `to` (when present) and returns `to`. Used
+// to make value-producing operations (copy, empty, conj, into) carry metadata
+// like Clojure does, instead of dropping it on the freshly built structure.
+// Kept branch-light for the hot path: reads an absent symbol property (cheap,
+// no hidden-class change) and only writes when metadata is actually present.
+function copyMeta(from, to) {
+  const m = from?.[_metaSym];
+  if (m !== undefined) to[_metaSym] = m;
+  return to;
+}
+
 function copy(o) {
   switch (typeConst(o)) {
     case MAP_TYPE:
-      return new Map(o);
+      return copyMeta(o, new Map(o));
     case SET_TYPE:
-      return new o.constructor(o);
+      return copyMeta(o, new o.constructor(o));
     case ARRAY_TYPE:
-      return [...o];
+      return copyMeta(o, [...o]);
     case OBJECT_TYPE:
-      return { ...o };
+      return copyMeta(o, { ...o });
+    case LIST_TYPE:
+      return copyMeta(o, new List(...o));
     default:
       throw new Error(`Don't know how to copy object of type ${typeof o}.`);
   }
@@ -399,14 +414,14 @@ export function conj(...xs) {
     case SET_TYPE:
       if (o instanceof SortedSet) {
         // prevent re-sorting of collection
-        return conj_BANG_set(new o.constructor(o), rest);
+        return copyMeta(o, conj_BANG_set(new o.constructor(o), rest));
       } else {
-        return new o.constructor([...o, ...rest]);
+        return copyMeta(o, new o.constructor([...o, ...rest]));
       }
     case LIST_TYPE:
-      return new List(...rest.reverse(), ...o);
+      return copyMeta(o, new List(...rest.reverse(), ...o));
     case ARRAY_TYPE:
-      return [...o, ...rest];
+      return copyMeta(o, [...o, ...rest]);
     case MAP_TYPE:
       m = new Map(o);
       for (const x of rest) {
@@ -417,7 +432,7 @@ export function conj(...xs) {
         else m.set(x[0], x[1]);
       }
 
-      return m;
+      return copyMeta(o, m);
     case LAZY_ITERABLE_TYPE:
       return lazy(function* () {
         yield* rest;
@@ -431,7 +446,7 @@ export function conj(...xs) {
         else o2[x[0]] = x[1];
       }
 
-      return o2;
+      return copyMeta(o, o2);
     default:
       throw new Error(
         'Illegal argument: conj expects a Set, Array, List, Map, or Object as the first argument.'
@@ -1495,7 +1510,7 @@ export function partition_by(f, coll) {
 export function empty(coll) {
   const type = typeConst(coll);
   if (type != null) {
-    return emptyOfType(type);
+    return copyMeta(coll, emptyOfType(type));
   } else {
     throw new Error(`Can't create empty of ${typeof coll}`);
   }
@@ -2553,8 +2568,6 @@ export function nat_int_QMARK_(x) {
 export function neg_int_QMARK_(x) {
   return int_QMARK_(x) && x < 0;
 }
-
-const _metaSym = Symbol('meta');
 
 export function meta(x) {
   if (x instanceof Object) {

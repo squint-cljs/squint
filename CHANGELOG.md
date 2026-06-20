@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Add `clojure.walk` (`walk`, `prewalk`, `postwalk`, `prewalk-replace`, `postwalk-replace`, `keywordize-keys`, `stringify-keys`, and the `*-demo` helpers)
+- `empty`, `conj`, `assoc`, `into` and other `copy`-based operations now carry metadata, matching Clojure (previously metadata was dropped on the freshly built structure); `with-meta`/`copy` now also support lists
 - `#html` now escapes literal string attributes
 - `#html` now does not emit `true` for a boolean-true attribute, but emits bare attribute
 - `#html` now gates CSS output on `style` attribute name
