@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `=` distinguishing `null` from `undefined`; both are `nil` in CLJS, so `(= js/undefined nil)` and e.g. `(= (keys nil) nil)` now return `true`.
 - Apply reader metadata (`^:foo`) on vector, map, set and `fn` literals as runtime metadata, matching CLJS (`(meta ^:foo [1 2])` -> `{:foo true}`). Reader location keys, compiler directives (`:tag`/`:async`/`:gen`) and squint-internal keys are not included; edamame now records location under `:line`/`:column`.
 - Fix `=` not treating sequential collections of different concrete types as equal; `(= '(1 2) [1 2])` and lazy-seq/vector comparisons now return `true`, matching CLJS. Equal-typed collections keep their existing fast paths.
 - Fix named variadic `fn` whose name munges (e.g. `dispatch!`) emitting an invalid self-reference (`dispatch!.cljs$...`) in its dispatcher; the munged name is now used.

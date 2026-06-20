@@ -24,6 +24,8 @@ function dequal(foo, bar) {
   // supports primitives, Array, Set, Map and plain objects
   // like CLJS: does not support NaN
   if (foo === bar) return true;
+  // null and undefined are both nil in CLJS, so they compare equal
+  if (foo == null) return bar == null;
   var ctor, len, tmp;
 
   if (foo && bar && (ctor = foo.constructor) === bar.constructor) {

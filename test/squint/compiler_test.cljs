@@ -1960,7 +1960,13 @@ with `backticks`")))]
   (testing "non-sequential collections are not equal to sequentials"
     (is (jsv! '(not= #{1 2} [1 2])))
     (is (jsv! '(= #{1 2} #{2 1})))
-    (is (jsv! '(= {:a 1} {:a 1})))))
+    (is (jsv! '(= {:a 1} {:a 1}))))
+  (testing "null and undefined are both nil and compare equal"
+    (is (jsv! '(= js/undefined nil)))
+    (is (jsv! '(= (keys nil) nil)))
+    (is (jsv! '(= {:a (keys nil)} {:a nil})))
+    (is (jsv! '(not= nil 5)))
+    (is (jsv! '(not= 0 nil)))))
 
 (deftest reader-metadata-test
   (testing "reader metadata on data literals and fns becomes runtime metadata"
