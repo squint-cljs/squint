@@ -1913,6 +1913,31 @@ with `backticks`")))]
       (is (str/includes? s "import { widget } from"))
       (is (not (str/includes? s "import * as some"))))))
 
+(deftest def-shadowing-require-alias-test
+  (testing "a def whose name shadows a require alias renames the var, keeping the alias"
+    (let [s (squint/compile-string
+             "(ns foo (:require [some-ns :as s])) (def s 1) (defn g [] (inc s)) (s/bar) s")]
+      ;; the alias import is left intact (no collision with the var binding)
+      (is (str/includes? s "import * as s from"))
+      (is (not (str/includes? s "var s =")))
+      ;; qualified refs keep using the alias, bare refs use the renamed var
+      (is (str/includes? s "s.bar()"))
+      ;; the renamed var is exported back under its real name
+      (is (re-find #"export \{ G__\d+ as s" s))
+      ;; the renamed var, not the alias, is what bare references and the fn body resolve to
+      (let [renamed (second (re-find #"var (G__\d+) = 1" s))]
+        (is (some? renamed))
+        (is (str/includes? s (str "(" renamed " + 1)"))))))
+  (testing "a def whose name shadows a :refer renames the var, keeping the refer import"
+    (let [s (squint/compile-string
+             "(ns foo (:require [some-ns :refer [join]])) (def join 1) (inc join)")]
+      (is (str/includes? s "import { join } from"))
+      (is (not (str/includes? s "var join =")))
+      (is (re-find #"export \{ G__\d+ as join" s))
+      (let [renamed (second (re-find #"var (G__\d+) = 1" s))]
+        (is (some? renamed))
+        (is (str/includes? s (str "(" renamed " + 1)")))))))
+
 (deftest require-test
   (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
     (is (and
