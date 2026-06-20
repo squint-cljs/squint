@@ -12,6 +12,7 @@
    [squint.math-test]
    [squint.multi-test]
    [squint.string-test]
+   [squint.walk-test]
    [squint.test-utils :refer [eq js! jss! jsv!]]))
 
 (deftest return-test
@@ -3012,4 +3013,5 @@ new Foo();")
                'squint.string-test
                'squint.html-test
                'squint.math-test
+               'squint.walk-test
                'squint.multi-test))

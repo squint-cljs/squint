@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Add `clojure.walk` (`walk`, `prewalk`, `postwalk`, `prewalk-replace`, `postwalk-replace`, `keywordize-keys`, `stringify-keys`, and the `*-demo` helpers)
+- `empty`, `conj`, `assoc`, `into` and other `copy`-based operations now carry metadata, matching Clojure (previously metadata was dropped on the freshly built structure); `with-meta`/`copy` now also support lists
 - CLI: `--help`/`-h`, argument validation and error messages are now provided by babashka.cli's `dispatch` (standard `Usage`/`Commands`/`Options` help, errors to stderr). Builds on [#691](https://github.com/squint-cljs/squint/issues/691) ([@lread](https://github.com/lread))
 
 ## 0.12.193
