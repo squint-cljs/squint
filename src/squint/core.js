@@ -75,6 +75,26 @@ function dequal(foo, bar) {
       return Object.keys(bar).length === len;
     }
   }
+
+  // Cross-type sequential equality, like CLJS `(= '(1 2) [1 2])`: vectors,
+  // lists and lazy seqs compare element-wise regardless of concrete type. Only
+  // reached when the same-constructor paths above did not apply, so equal-typed
+  // collections keep their fast paths.
+  if (
+    foo && bar &&
+    (Array.isArray(foo) || foo instanceof LazyIterable) &&
+    (Array.isArray(bar) || bar instanceof LazyIterable)
+  ) {
+    const fi = foo[Symbol.iterator]();
+    const bi = bar[Symbol.iterator]();
+    while (true) {
+      const a = fi.next();
+      const b = bi.next();
+      if (a.done || b.done) return !!(a.done && b.done);
+      if (!dequal(a.value, b.value)) return false;
+    }
+  }
+
   return false;
 }
 // end inlined version of dequals

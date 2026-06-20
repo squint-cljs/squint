@@ -1949,6 +1949,19 @@ with `backticks`")))]
                                  (if (seq xs) (apply sum! (+ acc (first xs)) (rest xs)) acc))]
                       (sum! 0 1 2 3)))))))
 
+(deftest sequential-equality-test
+  (testing "vectors, lists and lazy seqs compare equal element-wise, like CLJS"
+    (is (jsv! '(= (list 1 2 3) [1 2 3])))
+    (is (jsv! '(= [1 2 3] (list 1 2 3))))
+    (is (jsv! '(= (map inc [1 2 3]) [2 3 4])))
+    (is (jsv! '(= (list 1 2 3) (list 1 2 3))))
+    (is (jsv! '(not= (list 1 2) [1 2 3])))
+    (is (jsv! '(not= (list 1 2 3) [1 2 4]))))
+  (testing "non-sequential collections are not equal to sequentials"
+    (is (jsv! '(not= #{1 2} [1 2])))
+    (is (jsv! '(= #{1 2} #{2 1})))
+    (is (jsv! '(= {:a 1} {:a 1})))))
+
 (deftest require-test
   (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
     (is (and
