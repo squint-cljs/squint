@@ -1962,6 +1962,22 @@ with `backticks`")))]
     (is (jsv! '(= #{1 2} #{2 1})))
     (is (jsv! '(= {:a 1} {:a 1})))))
 
+(deftest reader-metadata-test
+  (testing "reader metadata on data literals and fns becomes runtime metadata"
+    (is (eq {:foo true} (jsv! '(meta ^:foo [1 2]))))
+    (is (eq {:foo true} (jsv! '(meta ^:foo {:a 1}))))
+    (is (eq {:foo true} (jsv! '(meta ^:foo #{1 2}))))
+    (is (eq {:foo true} (jsv! '(meta ^:foo (fn [])))))
+    (is (true? (jsv! '(:a/b (meta ^:a/b [1]))))))
+  (testing "a fn carrying metadata stays callable"
+    (is (eq 42 (jsv! '(let [f ^:foo (fn [] 42)] (f))))))
+  (testing "no metadata yields nil"
+    (is (nil? (jsv! '(meta [1 2]))))
+    (is (nil? (jsv! '(meta (fn []))))))
+  (testing "compiler directives (:tag, :async, :gen) do not leak into runtime metadata"
+    (is (nil? (jsv! '(meta ^object {}))))
+    (is (nil? (jsv! '(meta ^js [1 2]))))))
+
 (deftest require-test
   (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
     (is (and

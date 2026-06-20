@@ -104,6 +104,37 @@
 (defn expr-env [env]
   (assoc env :context :expr :top-level false))
 
+;; Metadata that is not user data metadata: edamame location keys (:line/:column
+;; per squint-parse-opts) and compiler directives read directly during codegen
+;; (:tag type hints, :async/:gen fn markers).
+(def ^:private non-user-meta-keys #{:line :column :tag :async :gen})
+
+(defn user-meta
+  "User-supplied reader metadata on a form (e.g. `^:foo`), excluding reader
+  location keys, compiler directives and squint-internal (`:squint.*`) keys;
+  nil when none."
+  [form]
+  (when-let [m (meta form)]
+    (let [m (reduce dissoc m non-user-meta-keys)
+          m (reduce-kv (fn [acc k v]
+                         (if (and (keyword? k)
+                                  (when-let [ns (namespace k)]
+                                    (or (= "squint" ns)
+                                        (str/starts-with? ns "squint."))))
+                           acc
+                           (assoc acc k v)))
+                       {} m)]
+      (not-empty m))))
+
+(defn emit-with-meta
+  "Wraps an emitted collection/fn value in a `with-meta` call when the source
+  `form` carries user reader metadata; otherwise returns `value` unchanged."
+  [value form env]
+  (if-let [um (user-meta form)]
+    (str (when-let [ca (:core-alias env)] (str ca "."))
+         "with_meta(" value ", " (emit um (expr-env (dissoc env :jsx))) ")")
+    value))
+
 (defn yield-iife
   [s env]
   (if (:gen env)
@@ -1621,15 +1652,17 @@ break;}" body)
                      "squint_html.unsafe_tag"))
            env))))
     (emit-return
-     (if (and (= :cherry (:target env))
-              (not (::js (meta expr))))
-       (format "%svector(%s)"
-               (if-let [core-alias (:core-alias env)]
-                 (str core-alias ".")
-                 "")
-               (str/join ", " (emit-args env expr)))
-       (format "[%s]"
-               (str/join ", " (emit-args env expr))))
+     (emit-with-meta
+      (if (and (= :cherry (:target env))
+               (not (::js (meta expr))))
+        (format "%svector(%s)"
+                (if-let [core-alias (:core-alias env)]
+                  (str core-alias ".")
+                  "")
+                (str/join ", " (emit-args env expr)))
+        (format "[%s]"
+                (str/join ", " (emit-args env expr))))
+      expr env)
      env)))
 
 (defmethod emit-special 'squint-compiler-html [_ env [_ form]]

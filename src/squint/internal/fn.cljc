@@ -345,8 +345,11 @@
         m (conj {:arglists (apply list (map first fdecl))} m)
         m (conj (if (meta name) (meta name) {}) m)]
     (list 'def (with-meta name m)
+          ;; The fn value only needs the ::def marker and codegen hints; var
+          ;; metadata like :arglists/:doc belongs on the name, not the fn value
+          ;; (it would otherwise surface as runtime metadata via with-meta).
           (with-meta (cons `fn fdecl)
-            (assoc m ::def true)))))
+            (assoc (select-keys m [:async :gen :tag]) ::def true)))))
 
 (defn core-defn- [_&form _&env name & args]
   `(clojure.core/defn ~(vary-meta name assoc :private true) ~@args))

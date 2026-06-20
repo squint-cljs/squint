@@ -199,7 +199,10 @@
 
 (defmethod emit-special 'fn [_type env [_fn & sigs :as expr]]
   (let [expanded (apply core-fn expr {} sigs)]
-    (emit expanded env)))
+    (if (cc/user-meta expr)
+      ;; preserve reader metadata (e.g. ^:foo (fn ...)) on the fn value
+      (emit-return (cc/emit-with-meta (emit expanded (cc/expr-env env)) expr env) env)
+      (emit expanded env))))
 
 #_(defmethod emit-special 'break [_type _env [_break]]
     (statement "break"))
@@ -346,7 +349,7 @@
                                  (str (emit (key-fn k) expr-env) ": "))
                                (emit (val pair) expr-env))))
               keys (str/join ", " (map mk-pair (seq expr)))]
-          (escape-jsx (-> (format "({%s})" keys)
+          (escape-jsx (-> (cc/emit-with-meta (format "({%s})" keys) expr env)
                           (emit-return env))
                       env*))
         (let [expr (list* 'doto {} (map (fn [[k v]]
@@ -356,8 +359,10 @@
 
 (defn emit-set [expr env]
   (emit-return
-   (format "(new Set ([%s]))"
-           (str/join ", " (emit-args (expr-env env) expr)))
+   (cc/emit-with-meta
+    (format "(new Set ([%s]))"
+            (str/join ", " (emit-args (expr-env env) expr)))
+    expr env)
    env))
 
 (defn transpile-form
@@ -407,6 +412,9 @@
    {:all true
     :end-location false
     :location? seq?
+    ;; conform location metadata to Clojure's :line/:column keys
+    :row-key :line
+    :col-key :column
     :readers {'js #(vary-meta % assoc ::js true)
               'jsx jsx
               'html html
