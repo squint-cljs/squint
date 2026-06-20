@@ -194,7 +194,9 @@
                  (range c)))]
     (let [async (:async meta)
           gen (:gen meta)
-          name (or name (gensym "f"))
+          ;; munge up front (like multi-arity-fn) so the raw-name self-reference
+          ;; emitted below is a valid JS identifier for names like `dispatch!`
+          name (munge (or name (gensym "f")))
           rname (symbol #_(str nil #_ana/*cljs-ns*) (str name))
           sig   (remove '#{&} arglist)
           c-1   (dec (count sig))

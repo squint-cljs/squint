@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix named variadic `fn` whose name munges (e.g. `dispatch!`) emitting an invalid self-reference (`dispatch!.cljs$...`) in its dispatcher; the munged name is now used.
 - Fix `def`/`defn` whose name shadows a `:require` alias or `:refer` producing colliding JS identifiers (`import * as foo` / `import { foo }` + `var foo`). The var is now renamed to a fresh gensym and exported under its real name; a bare `foo` is the var, `foo/bar` stays the alias.
 - Add `clojure.walk` (`walk`, `prewalk`, `postwalk`, `prewalk-replace`, `postwalk-replace`, `keywordize-keys`, `stringify-keys`, and the `*-demo` helpers)
 - `empty`, `conj`, `assoc`, `into` and other `copy`-based operations now carry metadata, matching Clojure (previously metadata was dropped on the freshly built structure); `with-meta`/`copy` now also support lists

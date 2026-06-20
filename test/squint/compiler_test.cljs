@@ -1938,6 +1938,17 @@ with `backticks`")))]
         (is (some? renamed))
         (is (str/includes? s (str "(" renamed " + 1)")))))))
 
+(deftest named-variadic-fn-munge-test
+  (testing "a named variadic fn whose name munges (e.g. has !) emits valid JS and can self-recur"
+    (let [s (squint/compile-string
+             "(let [sum! (fn sum! [acc & xs] (if (seq xs) (apply sum! (+ acc (first xs)) (rest xs)) acc))] (sum! 0 1 2 3))")]
+      ;; the self-reference in the variadic dispatcher must use the munged name
+      (is (not (str/includes? s "sum!.cljs")))
+      (is (str/includes? s "sum_BANG_.cljs")))
+    (is (= 6 (jsv! '(let [sum! (fn sum! [acc & xs]
+                                 (if (seq xs) (apply sum! (+ acc (first xs)) (rest xs)) acc))]
+                      (sum! 0 1 2 3)))))))
+
 (deftest require-test
   (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
     (is (and
