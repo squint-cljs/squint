@@ -623,6 +623,21 @@ export function seqable_QMARK_(x) {
   );
 }
 
+// squint has no distinct MapEntry type (map entries are plain 2-element
+// arrays). We tag entries produced from a map with this marker symbol so
+// map-entry? can tell them apart from ordinary vectors. Symbol-keyed props are
+// invisible to =, into, iteration and JSON, so the effect is contained.
+const MAP_ENTRY = Symbol('squint.lang.map-entry');
+
+function tagMapEntry(e) {
+  e[MAP_ENTRY] = true;
+  return e;
+}
+
+export function map_entry_QMARK_(x) {
+  return Array.isArray(x) && x[MAP_ENTRY] === true;
+}
+
 export function iterable(x) {
   // nil puns to empty iterable, support passing nil to first/rest/reduce, etc.
   if (x === null || x === undefined) {
@@ -634,7 +649,7 @@ export function iterable(x) {
   if (x[Symbol.iterator]) {
     return x;
   }
-  if (x instanceof Object) return Object.entries(x);
+  if (x instanceof Object) return Object.entries(x).map(tagMapEntry);
   throw new TypeError(`${x} is not iterable`);
 }
 
@@ -2538,6 +2553,23 @@ export function string_QMARK_(s) {
   return typeof s === 'string';
 }
 
+export function unchecked_int(x) {
+  return Math.trunc(x);
+}
+
+// squint has no keyword type; keywords are strings, so keyword? is string?
+export function keyword_QMARK_(x) {
+  return typeof x === 'string';
+}
+
+export function simple_keyword_QMARK_(x) {
+  return typeof x === 'string' && !x.includes('/');
+}
+
+export function qualified_keyword_QMARK_(x) {
+  return typeof x === 'string' && x.includes('/');
+}
+
 export function coll_QMARK_(coll) {
   return typeConst(coll) != undefined;
 }
@@ -2639,7 +2671,7 @@ export function bounded_count(n, coll) {
 export function find(m, k) {
   const v = get(m, k);
   if (v !== undefined) {
-    return [k, v];
+    return tagMapEntry([k, v]);
   }
 }
 

@@ -106,6 +106,7 @@
   keep_indexed
   key
   keys
+  keyword_QMARK_
   last
   lazy
   list
@@ -114,6 +115,7 @@
   long$
   map
   map_QMARK_
+  map_entry_QMARK_
   map_indexed
   mapcat
   mapv
@@ -158,6 +160,7 @@
   pr_str
   println
   prn
+  qualified_keyword_QMARK_
   quot
   rand
   rand_int
@@ -195,6 +198,7 @@
   set
   set_QMARK_
   shuffle
+  simple_keyword_QMARK_
   some
   some_QMARK_
   some_fn
@@ -224,6 +228,7 @@
   true_QMARK_
   truth_
   type
+  unchecked_int
   unreduced
   update
   update_BANG_

@@ -928,7 +928,13 @@
                      (symbol? original-libname)
                      (update-in [current :aliases] (fn [aliases]
                                                      ((fnil assoc {}) aliases
-                                                      (symbol (alias-munge (str original-libname))) libname))))))))
+                                                      (symbol (alias-munge (str original-libname))) libname)))
+                     ;; clean alias -> original namespace symbol (the :aliases
+                     ;; value is a JS path); used to resolve macros required via
+                     ;; an :as alias to their macro namespace
+                     (and the-alias (symbol? original-libname))
+                     (update-in [current :ns-aliases] (fn [m]
+                                                        ((fnil assoc {}) m the-alias original-libname))))))))
       (when-not (:elide-imports env)
         expr)
       #_nil)))

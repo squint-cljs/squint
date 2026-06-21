@@ -501,6 +501,26 @@
 (defprotocol IFoo :extend-via-metadata true (foo [_]))
 (foo (with-meta {} {`foo (fn [_] :via-meta)}))"))))
 
+(deftest keyword-pred-test
+  ;; keywords are strings in squint, so keyword? is string?
+  (is (jsv! '(keyword? :foo)))
+  (is (jsv! '(keyword? "foo")))
+  (is (not (jsv! '(keyword? 1))))
+  (is (jsv! '(simple-keyword? :foo)))
+  (is (not (jsv! '(simple-keyword? :foo/bar))))
+  (is (jsv! '(qualified-keyword? :foo/bar)))
+  (is (not (jsv! '(qualified-keyword? :foo)))))
+
+(deftest map-entry-pred-test
+  (is (jsv! '(map-entry? (first {:a 1}))))
+  (is (jsv! '(reduce (fn [_ e] (reduced (map-entry? e))) nil {:a 1})))
+  (is (not (jsv! '(map-entry? [1 2]))))
+  (is (not (jsv! '(map-entry? "ab")))))
+
+(deftest unchecked-int-test
+  (is (= 3 (jsv! '(unchecked-int 3.7))))
+  (is (= -3 (jsv! '(unchecked-int -3.7)))))
+
 (deftest case-test
   (is (= 2 (jsv! '(case 1 1 2 3 4))))
   (is (= 5 (jsv! '(case 6 1 2 3 4 (inc 4)))))
