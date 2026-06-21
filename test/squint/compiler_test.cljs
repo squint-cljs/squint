@@ -492,6 +492,19 @@
   (is (str/includes? (jss! "(ns my.app (:require [clojure.string :as s])) 's/join")
                      "s/join")))
 
+(deftest local-shadows-alias-test
+  ;; a local binding that shadows a :require alias must not break qualified refs:
+  ;; the qualified call resolves to the collision-proof full-ns import alias, not
+  ;; the shadowed short alias
+  ;; param shadows the alias
+  (let [s (jss! "(ns app (:require [clojure.string :as s])) (defn f [s] (s/upper-case s))")]
+    (is (str/includes? s "clojure_DOT_string.upper_case"))
+    (is (not (str/includes? s "(s.upper_case"))))
+  ;; let binding shadows the alias
+  (let [s (jss! "(ns app (:require [clojure.string :as s])) (defn f [x] (let [s x] (s/upper-case s)))")]
+    (is (str/includes? s "clojure_DOT_string.upper_case"))
+    (is (not (str/includes? s "(s.upper_case")))))
+
 (deftest extend-via-metadata-test
   ;; a protocol declared :extend-via-metadata dispatches to an impl stored on the
   ;; receiver's metadata, keyed by the (syntax-quote-resolved) fully-qualified
@@ -519,7 +532,29 @@
 
 (deftest unchecked-int-test
   (is (= 3 (jsv! '(unchecked-int 3.7))))
-  (is (= -3 (jsv! '(unchecked-int -3.7)))))
+  (is (= -3 (jsv! '(unchecked-int -3.7))))
+  (is (= 4 (jsv! '(unchecked-inc-int 3))))
+  (is (= 2 (jsv! '(unchecked-dec-int 3))))
+  (is (= 7 (jsv! '(unchecked-add-int 3 4)))))
+
+(deftest keyword-symbol-fn-test
+  ;; keywords/symbols are strings in squint
+  (is (= "foo" (jsv! '(keyword "foo"))))
+  (is (= "a/b" (jsv! '(keyword "a" "b"))))
+  (is (jsv! '(symbol? 'foo)))
+  (is (not (jsv! '(symbol? 1))))
+  (is (= "foo" (jsv! '(namespace :foo/bar))))
+  (is (nil? (jsv! '(namespace :foo)))))
+
+(deftest reify-test
+  ;; reify implements protocols on an anonymous object, closing over locals
+  (is (eq [10 15]
+          (jsv! '(do (defprotocol IFoo (foo [_]) (bar [_ x]))
+                     (let [n 10
+                           r (reify IFoo (foo [_] n) (bar [_ x] (+ x n)))]
+                       [(foo r) (bar r 5)])))))
+  (is (jsv! '(do (defprotocol IFoo (foo [_]))
+                 (satisfies? IFoo (reify IFoo (foo [_] 1)))))))
 
 (deftest case-test
   (is (= 2 (jsv! '(case 1 1 2 3 4))))

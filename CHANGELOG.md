@@ -11,6 +11,9 @@
 - Macros in a `.cljc`/`.cljs` namespace required via an `:as` alias (without `:refer`) now expand (alias resolves to the macro namespace)
 - Add `keyword?`, `simple-keyword?`, `qualified-keyword?` (keywords are strings in squint, so these are string-based) and `unchecked-int`
 - Add `map-entry?`; map entries are tagged so they are distinguishable from plain vectors
+- Add `reify`
+- Add `keyword`, `symbol?`, `namespace`, `unchecked-inc-int`, `unchecked-dec-int`, `unchecked-add-int` (keywords/symbols are strings in squint)
+- Fix qualified references to a namespace alias that is shadowed by a local binding or parameter of the same name (e.g. `[x.y :as r]` + `(let [r ...] (r/f r))`); they now resolve to the full-namespace import instead of the local
 - Fix `=` distinguishing `null` from `undefined`; both are `nil` in CLJS, so `(= js/undefined nil)` and e.g. `(= (keys nil) nil)` now return `true`.
 - Apply reader metadata (`^:foo`) on vector, map, set and `fn` literals as runtime metadata, matching CLJS (`(meta ^:foo [1 2])` -> `{:foo true}`). Reader location keys, compiler directives (`:tag`/`:async`/`:gen`) and squint-internal keys are not included; edamame now records location under `:line`/`:column`.
 - Fix `=` not treating sequential collections of different concrete types as equal; `(= '(1 2) [1 2])` and lazy-seq/vector comparisons now return `true`, matching CLJS. Equal-typed collections keep their existing fast paths.

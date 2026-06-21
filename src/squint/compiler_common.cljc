@@ -470,11 +470,17 @@
                                          (let [am (alias-munge sym-ns)]
                                            (when (contains? aliases (symbol am))
                                              am)))]
-                             (str
-                              (when (:repl env)
-                                (str "globalThis." (munge current) "."))
-                              (alias-munge resolved-alias) "."
-                              (munged-name sn)))
+                             ;; when a local binding or param shadows the alias
+                             ;; (same name), the short alias would resolve to the
+                             ;; local in JS; use the collision-proof full-ns alias
+                             (let [ns-state @(:ns-state env)
+                                   full-ns (when (contains? (:var->ident env) (symbol sym-ns))
+                                             (get-in ns-state [(:current ns-state) :ns-aliases (symbol sym-ns)]))]
+                               (str
+                                (when (:repl env)
+                                  (str "globalThis." (munge current) "."))
+                                (if full-ns (alias-munge (str full-ns)) (alias-munge resolved-alias)) "."
+                                (munged-name sn))))
                            (let [ns (namespace expr)
                                  munged (munge ns)
                                  nm (name expr)

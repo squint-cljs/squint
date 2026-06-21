@@ -2557,8 +2557,39 @@ export function unchecked_int(x) {
   return Math.trunc(x);
 }
 
-// squint has no keyword type; keywords are strings, so keyword? is string?
+export function unchecked_inc_int(x) {
+  return x + 1;
+}
+
+export function unchecked_dec_int(x) {
+  return x - 1;
+}
+
+export function unchecked_add_int(x, y) {
+  return x + y;
+}
+
+// keywords/symbols are strings in squint; namespace is the part before "/"
+export function namespace(x) {
+  const i = x.indexOf('/');
+  return i >= 0 ? x.slice(0, i) : null;
+}
+
+// squint has no keyword type; keywords are strings, so keyword/keyword? are
+// string-based. (keyword name) or (keyword ns name).
+export function keyword(arg1, arg2) {
+  if (arg2 !== undefined) {
+    return (arg1 != null ? arg1 + '/' : '') + arg2;
+  }
+  return arg1;
+}
+
 export function keyword_QMARK_(x) {
+  return typeof x === 'string';
+}
+
+// squint has no symbol type either; symbols are strings
+export function symbol_QMARK_(x) {
   return typeof x === 'string';
 }
 

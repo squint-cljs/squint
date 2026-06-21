@@ -106,6 +106,7 @@
   keep_indexed
   key
   keys
+  keyword
   keyword_QMARK_
   last
   lazy
@@ -129,6 +130,7 @@
   min_key
   mod
   name
+  namespace
   nat_int_QMARK_
   neg_QMARK_
   neg_int_QMARK_
@@ -214,6 +216,7 @@
   subvec
   swap_BANG_
   swap_vals_BANG_
+  symbol_QMARK_
   system_time
   t
   take
@@ -228,6 +231,9 @@
   true_QMARK_
   truth_
   type
+  unchecked_add_int
+  unchecked_dec_int
+  unchecked_inc_int
   unchecked_int
   unreduced
   update

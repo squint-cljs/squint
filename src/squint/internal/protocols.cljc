@@ -114,6 +114,29 @@
     `(do
        ~@(mapcat #(emit-type-methods type-sym %) impl-map))))
 
+(core/defn- emit-reify-method
+  [obj-sym psym method]
+  (core/let [mname (first method)
+             msym (if (= 'Object psym)
+                    (str mname)
+                    (symbol (str psym "_" mname)))]
+    ;; the protocol dispatcher passes `this` as the first argument, so the
+    ;; method is a plain fn over its declared params (no `this` binding needed)
+    `(unchecked-set ~obj-sym ~msym (fn ~@(rest method)))))
+
+(core/defn core-reify
+  [_&form _&env & impls]
+  (core/let [obj (gensym "reify__")
+             impl-map (->impl-map impls)]
+    `(let [~obj {}]
+       ~@(mapcat (core/fn [[psym methods]]
+                   (core/concat
+                    (when-not (= 'Object psym)
+                      [`(unchecked-set ~obj (unchecked-get ~psym "__sym") true)])
+                    (map #(emit-reify-method obj psym %) methods)))
+                 impl-map)
+       ~obj)))
+
 (core/defn- parse-impls [specs]
   (core/loop [ret {} s specs]
     (if (seq s)
