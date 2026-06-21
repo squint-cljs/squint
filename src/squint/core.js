@@ -2593,6 +2593,11 @@ export function symbol_QMARK_(x) {
   return typeof x === 'string';
 }
 
+// squint has no first-class Var objects (#'x emits the value), so var? is false
+export function var_QMARK_(_x) {
+  return false;
+}
+
 export function simple_keyword_QMARK_(x) {
   return typeof x === 'string' && !x.includes('/');
 }

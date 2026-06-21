@@ -546,6 +546,11 @@
   (is (= "foo" (jsv! '(namespace :foo/bar))))
   (is (nil? (jsv! '(namespace :foo)))))
 
+(deftest var-pred-test
+  ;; squint has no first-class vars, so var? is always false
+  (is (false? (jsv! '(var? 1))))
+  (is (false? (jsv! '(var? "x")))))
+
 (deftest reify-test
   ;; reify implements protocols on an anonymous object, closing over locals
   (is (eq [10 15]

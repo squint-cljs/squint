@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add `var?` (always false; squint has no first-class vars)
 - Support dynamic vars and `binding`. An earmuffed `def` (e.g. `*foo*`) compiles to a mutable box `{value ...}`; references read `.value`, `set!` assigns it, and `binding` saves/sets/restores it. Because only the box's property is mutated (never the import binding), this works across separately-compiled ESM modules.
 - Quoted symbols now compile to strings of their name (squint has no symbol type, like keywords)
 - Syntax-quote resolves symbols against the current ns and aliases (bare -> current ns, aliased -> full ns), matching Clojure
