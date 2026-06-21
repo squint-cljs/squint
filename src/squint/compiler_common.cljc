@@ -353,6 +353,17 @@
 (defn alias-munge [s]
   (-> s str munge (str/replace #"\." "_DOT_") ))
 
+(defn dynamic-name?
+  "True for an earmuffed name like *foo* - squint's convention for a dynamic
+  var. Dynamic vars compile to a box {value ...}; references read .value and
+  `binding` save/sets/restores it, which works across ESM modules (the box
+  object is shared; the import binding is never reassigned)."
+  [sym-or-name]
+  (let [s (name sym-or-name)]
+    (and (> (count s) 2)
+         (str/starts-with? s "*")
+         (str/ends-with? s "*"))))
+
 (defn resolve-import-map [import-maps lib]
   (get import-maps lib lib))
 
@@ -448,7 +459,8 @@
           (emit-return (escape-jsx (str (emit fname (dissoc (expr-env env) :jsx))
                                         "." (munge** path)) env)
                        env))
-        (let [munged-name (fn [expr] (munge* (name expr)))
+        (let [orig-sym expr
+              munged-name (fn [expr] (munge* (name expr)))
               expr (if-let [sym-ns (some-> (namespace expr) munge)]
                      (let [sn (symbol (name expr))]
                        (or (when (or (= "cljs.core" sym-ns)
@@ -542,7 +554,14 @@
                                  (alias-munge expr)))
                           (let [m (munged-name expr)]
                             m)))))]
-          (emit-return (escape-jsx expr env)
+          ;; a reference to a dynamic var (earmuffed, not a local) reads the
+          ;; box's .value
+          (emit-return (escape-jsx
+                        (cond-> expr
+                          (and (dynamic-name? orig-sym)
+                               (not (contains? (:var->ident env) orig-sym)))
+                          (str ".value"))
+                        env)
                        env))))))
 
 (defn save-pragma [env next-t]
@@ -714,9 +733,15 @@
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
         env* (no-top-level env)
-        ident (var-ident env name)]
+        ident (var-ident env name)
+        init (emit expr (expr-env env*))
+        ;; a dynamic var (earmuffed) compiles to a mutable box {value ...} so
+        ;; set!/binding can mutate it across ESM modules; references read .value
+        init (if (dynamic-name? name)
+               (str "({value: " init "})")
+               init)]
     (str "var " ident " = "
-         (emit expr (expr-env env*)) ";\n"
+         init ";\n"
          (when (:repl env)
            (emit-return (str "globalThis."
                             (when (current-ns env)

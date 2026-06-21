@@ -59,6 +59,7 @@
                              'if-not macros/core-if-not
                              'when macros/core-when
                              'when-not macros/core-when-not
+                             'binding macros/core-binding
                              'doto macros/core-doto
                              'cond macros/core-cond
                              'cond-> macros/core-cond->

@@ -82,6 +82,19 @@
   [_&form _&env test & body]
   (list 'if test nil (cons 'do body)))
 
+(defn core-binding
+  "binding from clojure.core. Dynamic vars (earmuffed) compile to a box; this
+  saves the current value, set!s the new one, and restores in a finally."
+  [_&form _&env bindings & body]
+  (let [pairs (partition 2 bindings)
+        gs (mapv (fn [_] (gensym "binding__")) pairs)]
+    `(let [~@(mapcat (fn [g [v _]] [g v]) gs pairs)]
+       ~@(map (fn [[v val]] (list 'set! v val)) pairs)
+       (try
+         ~@body
+         (finally
+           ~@(map (fn [g [v _]] (list 'set! v g)) gs pairs))))))
+
 (defn core-doto
   "doto from clojure.core"
   [_&form _&env x & forms]

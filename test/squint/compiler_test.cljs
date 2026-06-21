@@ -556,6 +556,30 @@
   (is (jsv! '(do (defprotocol IFoo (foo [_]))
                  (satisfies? IFoo (reify IFoo (foo [_] 1)))))))
 
+(deftest binding-test
+  ;; dynamic vars (earmuffed) compile to a box; binding sets and restores it,
+  ;; visible across function calls
+  (is (eq [1 2 1]
+          (jsv! '(do (def ^:dynamic *x* 1)
+                     (defn getx [] *x*)
+                     [(getx) (binding [*x* 2] (getx)) (getx)]))))
+  ;; set! mutates the dynamic var
+  (is (= 5 (jsv! '(do (def ^:dynamic *y* 0) (set! *y* 5) *y*))))
+  ;; restored even when the body throws
+  (is (= 1 (jsv! '(do (def ^:dynamic *x* 1)
+                      (try (binding [*x* 2] (throw (js/Error. "boom"))) (catch :default _ nil))
+                      *x*))))
+  ;; compiles to a box read via .value
+  (let [s (jss! "(def ^:dynamic *x* 1) *x*")]
+    (is (str/includes? s "{value: 1}"))
+    (is (str/includes? s "_STAR_x_STAR_.value")))
+  ;; cross-ns: a dynamic var referenced/bound via an alias mutates the imported
+  ;; box's .value (the import binding itself is never reassigned, so this is
+  ;; ESM-safe across separately-compiled modules)
+  (let [s (jss! "(ns app (:require [other.ns :as d])) (binding [d/*x* 9] (d/*x*))")]
+    (is (str/includes? s "d._STAR_x_STAR_.value = 9"))
+    (is (str/includes? s "d._STAR_x_STAR_.value"))))
+
 (deftest case-test
   (is (= 2 (jsv! '(case 1 1 2 3 4))))
   (is (= 5 (jsv! '(case 6 1 2 3 4 (inc 4)))))
