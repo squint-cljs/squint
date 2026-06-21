@@ -478,7 +478,28 @@
   (is (thrown? js/Error (jsv! '(name nil)))))
 
 (deftest quote-test
-  (is (eq '{x 1} (jsv! (list 'quote '{x 1})))))
+  (is (eq '{x 1} (jsv! (list 'quote '{x 1}))))
+  ;; squint has no symbol type; quoted symbols compile to strings of their name
+  (is (= "foo" (jsv! '(quote foo))))
+  (is (= "foo/bar" (jsv! '(quote foo/bar)))))
+
+(deftest syntax-quote-ns-test
+  ;; syntax-quote resolves symbols against the current ns + aliases (read time)
+  (is (str/includes? (jss! "(ns my.app (:require [clojure.string :as s])) `s/join")
+                     "clojure.string/join"))
+  (is (str/includes? (jss! "(ns my.app) `foo") "my.app/foo"))
+  ;; a plain-quoted symbol is left unresolved
+  (is (str/includes? (jss! "(ns my.app (:require [clojure.string :as s])) 's/join")
+                     "s/join")))
+
+(deftest extend-via-metadata-test
+  ;; a protocol declared :extend-via-metadata dispatches to an impl stored on the
+  ;; receiver's metadata, keyed by the (syntax-quote-resolved) fully-qualified
+  ;; method name
+  (is (= "via-meta"
+         (jsv! "(ns my.app)
+(defprotocol IFoo :extend-via-metadata true (foo [_]))
+(foo (with-meta {} {`foo (fn [_] :via-meta)}))"))))
 
 (deftest case-test
   (is (= 2 (jsv! '(case 1 1 2 3 4))))

@@ -75,7 +75,11 @@
                        (fn [prev require-macros]
                          (.then prev
                                 (fn [_]
-                                  (let [[macro-ns & {:keys [refer as]}] require-macros
+                                  (let [;; a libspec may be a bare symbol, normalize to vector
+                                        require-macros (if (symbol? require-macros)
+                                                         [require-macros]
+                                                         require-macros)
+                                        [macro-ns & {:keys [refer as]}] require-macros
                                         reload? (or reload (macro-file-changed? macro-ns))
                                         macros (js/Promise.resolve
                                                 (do (eval-form (cond-> (list 'require (list 'quote macro-ns))

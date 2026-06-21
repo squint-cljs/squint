@@ -160,6 +160,10 @@
 (defmethod emit-special 'js/typeof [_ env [_ form]]
   (emit-return (str "typeof " (emit form (expr-env env))) env))
 
+;; squint has no vars; (var x) / #'x resolves to the value of x for now
+(defmethod emit-special 'var [_ env [_ form]]
+  (emit form env))
+
 (defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let env bindings more) env))
 
@@ -427,9 +431,13 @@
   ([s env]
    (let [ns-state (some-> (:ns-state env) deref)
          aliases (get-in ns-state [(:current ns-state) :aliases])]
+     ;; edamame auto-tracks the source's ns form into the :ns-state atom and
+     ;; uses it to auto-resolve keywords and syntax-quoted symbols (current ns
+     ;; + aliases), matching Clojure semantics.
      (e/parse-string-all s (assoc squint-parse-opts
                                   :auto-resolve-ns true
-                                  :auto-resolve (or aliases {}))))))
+                                  :auto-resolve (or aliases {})
+                                  :ns-state (atom {}))))))
 
 (defn transpile*
   ([s] (transpile* s {}))

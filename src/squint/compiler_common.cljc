@@ -430,9 +430,11 @@
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
   (if (:quote env)
-    (emit-return (escape-jsx (emit (list 'cljs.core/symbol
-                                         (str expr))
-                                   (dissoc env :quote)) env)
+    ;; squint has no symbol type; like keywords, quoted symbols compile to
+    ;; strings of their full name. Syntax-quote resolution (current ns +
+    ;; aliases) is done at read time (see read-forms), so the symbol arriving
+    ;; here is already fully qualified; a plain-quoted symbol is left as-is.
+    (emit-return (escape-jsx (emit (str expr) (dissoc env :quote)) env)
                  env)
     (let [ns-state @(:ns-state env)
           current (:current ns-state)

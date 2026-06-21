@@ -2,18 +2,26 @@
   (:require [clojure.core :as core]))
 
 (core/defn- emit-protocol-method-arity
-  [mname method-sym args]
+  [mname method-sym qualified-name args]
   (let [this (first args)]
     `(~args
       (if (nil? ~this)
         ((unchecked-get ~mname nil)  ~@args)
-        ((unchecked-get ~(first args) ;; this
-                        ~method-sym) ~@args)))))
+        ;; NOTE: call (unchecked-get this sym) in head position so it compiles
+        ;; to a bound method call this[sym](..) - deftype/reify bodies rely on
+        ;; `this`. Only fall back to the metadata impl when the slot is absent.
+        (if (undefined? (unchecked-get ~this ~method-sym))
+          ;; :extend-via-metadata fallback: look up the impl on this's metadata
+          ;; under the fully-qualified method name
+          ((get (meta ~this) ~qualified-name) ~@args)
+          ((unchecked-get ~(first args) ;; this
+                          ~method-sym) ~@args))))))
 
 (core/defn- emit-protocol-method
-  [p method]
+  [ns-name p method]
   (let [mname (first method)
         method-sym (symbol (str p "_" mname))
+        qualified-name (str ns-name "/" mname)
         method (rest method)
         [mdocs margs] (if (string? (last method))
                         [(last method) (butlast method)]
@@ -22,21 +30,22 @@
         (js/Symbol ~(str p "_" mname)))
       (defn ~mname
         ~@(when mdocs [mdocs])
-        ~@(map #(emit-protocol-method-arity mname method-sym %) margs)))))
+        ~@(map #(emit-protocol-method-arity mname method-sym qualified-name %) margs)))))
 
 (core/defn core-defprotocol
-  [_&env _&form p & doc+methods]
-  (core/let [[doc-and-opts methods] [(core/take-while #(not (list? %))
+  [_&form &env p & doc+methods]
+  (core/let [ns-name (core/some-> &env :ns :name core/str)
+             [doc-and-opts methods] [(core/take-while #(not (list? %))
                                                       doc+methods)
                                      (core/drop-while #(not (list? %))
                                                       doc+methods)]
              pmeta (if (string? (first doc-and-opts))
                      (into {:doc (first doc-and-opts)}
-                           (partition 2 (rest doc-and-opts)))
-                     (into {} (partition 2 doc-and-opts)))]
+                           (map vec (partition 2 (rest doc-and-opts))))
+                     (into {} (map vec (partition 2 doc-and-opts))))]
     `(do
        (def ~(with-meta p pmeta) {:__sym (js/Symbol ~(str p))})
-       ~@(mapcat #(emit-protocol-method p %) methods))))
+       ~@(mapcat #(emit-protocol-method ns-name p %) methods))))
 
 (core/defn ->impl-map [impls]
   (core/loop [ret {} s impls]
