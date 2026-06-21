@@ -473,7 +473,11 @@
 (deftest name-test
   (is (= "foo" (jsv! '(name :foo))))
   (is (= "foo" (jsv! '(name "foo"))))
-  (is (= "foo/bar" (jsv! '(name :foo/bar))))
+  ;; keywords are strings in squint; name/namespace both treat "/" as the ns
+  ;; separator (so they round-trip), unlike Clojure string `name`
+  (is (= "bar" (jsv! '(name :foo/bar))))
+  (is (= "foo" (jsv! '(namespace :foo/bar))))
+  (is (nil? (jsv! '(namespace :foo))))
   (is (thrown? js/Error (jsv! '(name 42))))
   (is (thrown? js/Error (jsv! '(name nil)))))
 

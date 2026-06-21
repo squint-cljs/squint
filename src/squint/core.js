@@ -1022,7 +1022,12 @@ export function str(...xs) {
 }
 
 export function name(x) {
-  if (typeof x === 'string') return x;
+  if (typeof x === 'string') {
+    // keywords/symbols are strings in squint; name is the part after the "/"
+    // ns separator (consistent with `namespace`, which returns the part before)
+    const i = x.indexOf('/');
+    return i >= 1 ? x.slice(i + 1) : x;
+  }
   throw new Error("Doesn't support name: " + typeof x);
 }
 
