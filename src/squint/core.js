@@ -2884,7 +2884,9 @@ export function transient$(x) {
 }
 
 export function persistent_BANG_(x) {
-  return Object.freeze(x);
+  // no Object.freeze: persistent structures stay extensible so symbol-keyed
+  // metadata can be attached
+  return x;
 }
 
 class SortedSet {

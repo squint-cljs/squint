@@ -2770,8 +2770,12 @@ new Foo();")
 
 (deftest persistent!-test
   (is (eq {} (jsv! '(persistent! (transient {})))))
-  (is (thrown? js/Error (jsv! '(assoc! (persistent! (transient {})) :a 1))))
-  (is (eq {:a 1} (jsv! '(assoc! (transient (persistent! (transient {}))) :a 1)))))
+  (is (eq {:a 1} (jsv! '(assoc! (transient (persistent! (transient {}))) :a 1))))
+  ;; persistent! does not freeze, so symbol-keyed metadata can be attached
+  (is (true? (jsv! '(let [v (persistent! (transient [1 2]))
+                          s (js/Symbol "tag")]
+                      (aset v s true)
+                      (aget v s))))))
 
 (deftest sorted-set-test
   (is (eq -10 (first (jsv! '(sorted-set 1 2 3 -10)))))

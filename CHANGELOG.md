@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- `persistent!` no longer freezes its argument, so persistent structures stay extensible for symbol-keyed metadata
 - `vswap!` and `vreset!` return the new value, like Clojure
 - `nth` on an out-of-bounds index without a default now throws, like Clojure
 - `disj` on nil returns nil instead of throwing
