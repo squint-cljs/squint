@@ -188,7 +188,7 @@
            (drop 2 arglist)))
        arglists))
 
-(defn- variadic-fn [name meta [[arglist & body :as method] :as fdecl] emit-var?]
+(defn- variadic-fn [name meta [[arglist & _body :as method] :as _fdecl] _emit-var?]
   (letfn [(dest-args [c]
             (map (fn [n] (core-unchecked-get (core-js-arguments) n))
                  (range c)))]
@@ -245,7 +245,7 @@
                            (str "Parameter declaration "
                                 (first sigs)
                                 " should be a vector")
-                           (str "Parameter declaration missing"))))))
+                           "Parameter declaration missing")))))
         psig (fn* [sig]
                   ;; Ensure correct type before destructuring sig
                   (when (not (seq? sig))

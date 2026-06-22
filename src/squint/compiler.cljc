@@ -229,12 +229,11 @@
     (escape-jsx
      (let [fexpr (first expr)]
        (if (:quote env)
-         (do
-           (format "%slist(%s)"
-                   (if-let [ca (:core-alias env)]
-                     (str ca ".")
-                     "")
-                   (str/join ", " (emit-args env expr))))
+         (format "%slist(%s)"
+                 (if-let [ca (:core-alias env)]
+                   (str ca ".")
+                   "")
+                 (str/join ", " (emit-args env expr)))
          (cond (symbol? fexpr)
                (let [head* fexpr
                      ns-state @(:ns-state env)
@@ -489,8 +488,8 @@
               import-maps]
        :or {core-alias "squint_core"}
        :as opts} state]
-   (let [opts (merge state opts)]
-     (let [repl? (:repl opts)
+   (let [opts (merge state opts)
+         repl? (:repl opts)
              core-package (get import-maps "squint-cljs/core.js" "squint-cljs/core.js")
              need-html-import (atom false)
              need-multi-import (atom false)
@@ -578,7 +577,7 @@
                     :javascript (str pragmas imports transpiled exports)
                     :jsx jsx
                     :ns (cc/current-ns opts)
-                    :ns-state (:ns-state opts)))))))
+                    :ns-state (:ns-state opts))))))
 
 #?(:cljs
    (defn- macros-opt->symbol-keys

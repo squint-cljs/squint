@@ -1164,9 +1164,9 @@
   (assert (vector? sig))
   (let [arrow? (:arrow env)
         single-expr-arrow? (and arrow? (= 1 (count body)))
-        [env sig] (->sig env sig)]
-    (let [env (assoc env :recur-targets sig)]
-      (let [recur? (volatile! nil)
+        [env sig] (->sig env sig)
+        env (assoc env :recur-targets sig)
+        recur? (volatile! nil)
             env (assoc env :recur-callback
                        (fn [coll]
                          (when (identical? sig coll)
@@ -1199,7 +1199,7 @@ break;}" body)
                body
                (str
                 " {\n"
-                body "\n}")))))))
+                body "\n}")))))
 
 (defn emit-function* [env expr opts]
   (let [name (when (symbol? (first expr)) (first expr))
@@ -1231,7 +1231,7 @@ break;}" body)
                      (munge name) " "
                      (emit-function env name signature body true)))
               (let [body (rest expr)]
-                (str (emit-function env nil signature body))))
+                (emit-function env nil signature body)))
             (cond-> (and
                      (not (:squint.internal.fn/def opts))
                      (= :expr (:context env))) (wrap-parens))
@@ -1324,7 +1324,7 @@ break;}" body)
   (let [gensym (:gensym env)
         bindings (take-nth 2 form)
         fns (take-nth 2 (rest form))
-        binding-map (zipmap bindings (map #(gensym %) bindings))
+        binding-map (zipmap bindings (map gensym bindings))
         env (update env :var->ident (fn [m]
                                       (-> m
                                           (merge binding-map))))
@@ -1519,8 +1519,7 @@ break;}" body)
                               (name k)
                               :else
                               (str (name k) "="
-                                   (let [env env]
-                                     (cond
+                                   (cond
                                        (and html? (= "style" (name k)) (map? v))
                                        (emit-css v env)
                                        ;; dynamic :style (a runtime map or string,
@@ -1544,7 +1543,7 @@ break;}" body)
                                          ;; escaping elsewhere?
                                          (escape-jsx (assoc env :html-attr (and html? (not str?))))
                                          (and html? (not str?))
-                                         (wrap-double-quotes))))))))
+                                         (wrap-double-quotes)))))))
                         v)))))
         ""))))
 

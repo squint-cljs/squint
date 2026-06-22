@@ -4,13 +4,13 @@
    ["path" :as path]
    ["url" :as url]
    [babashka.cli :as cli]
+   [clojure.string :as str]
    [shadow.esm :as esm]
    [squint.compiler :as cc]
    [squint.compiler.node :as compiler]
-   [squint.repl.node :as repl]
-   #_[squint.repl.nrepl-server :as nrepl]
    [squint.internal.node.utils :as utils]
-   [clojure.string :as str]))
+   [squint.repl.node :as repl]
+   #_[squint.repl.nrepl-server :as nrepl]))
 
 (def resolve-ns
   ;; same resolution compile-file uses for callers that don't supply :resolve-ns

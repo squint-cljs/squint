@@ -31,11 +31,11 @@
                          (if (seq bs)
                            (let [firstb (first bs)]
                              (cond
-                               (= firstb '&) (recur (pb ret (second bs) gseq)
+                               (= '& firstb) (recur (pb ret (second bs) gseq)
                                                     n
                                                     (nnext bs)
                                                     true)
-                               (= firstb :as) (pb ret (second bs) gvec)
+                               (= :as firstb) (pb ret (second bs) gvec)
                                :else (if seen-rest?
                                        (throw #?(:clj (new Exception "Unsupported binding form, only :as can follow & parameter")
                                                  :cljs (new js/Error "Unsupported binding form, only :as can follow & parameter")))
@@ -73,7 +73,7 @@
                                                    mkn (name mk)]
                                                (cond
                                                  js-keys? (assoc transforms mk #(subs (str (keyword (or mkns (namespace %)) (name %))) 1))
-                                                 (= mkn "keys") (assoc transforms mk #(keyword (or mkns (namespace %)) (name %)))
+                                                 (= "keys" mkn) (assoc transforms mk #(keyword (or mkns (namespace %)) (name %)))
                                                  #_#_(= mkn "syms") (assoc transforms mk #(list `quote (symbol (or mkns (namespace %)) (name %))))
                                                  #_#_(= mkn "strs") (assoc transforms mk str)
                                                  :else transforms))
