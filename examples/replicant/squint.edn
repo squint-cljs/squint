@@ -1,0 +1,4 @@
+{:paths ["src" "../../../replicant/src"]
+ :output-dir "js"
+ :extension "js"
+ :main [app]}

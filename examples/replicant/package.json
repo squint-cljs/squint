@@ -1,0 +1,14 @@
+{
+  "name": "replicant",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "squint-cljs": "file:../../squint"
+  },
+  "devDependencies": {
+    "vite": "^8.0.14"
+  }
+}
