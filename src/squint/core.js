@@ -2268,8 +2268,14 @@ export function fnil(f, x, ...xs) {
 
 export function every_QMARK_(pred, coll) {
   pred = __toFn(pred);
-  for (const x of iterable(coll)) {
-    if (!pred(x)) return false;
+  if (Array.isArray(coll)) {
+    for (let i = 0; i < coll.length; i++) if (!pred(coll[i])) return false;
+    return true;
+  }
+  const next = chunkCursor(coll);
+  let ch;
+  while ((ch = next()) !== null) {
+    for (let i = 0; i < ch.length; i++) if (!pred(ch[i])) return false;
   }
   return true;
 }
@@ -2383,9 +2389,20 @@ export function shuffle(coll) {
 
 export function some(pred, coll) {
   pred = __toFn(pred);
-  for (const o of iterable(coll)) {
-    const res = pred(o);
-    if (truth_(res)) return res;
+  if (Array.isArray(coll)) {
+    for (let i = 0; i < coll.length; i++) {
+      const res = pred(coll[i]);
+      if (truth_(res)) return res;
+    }
+    return undefined;
+  }
+  const next = chunkCursor(coll);
+  let ch;
+  while ((ch = next()) !== null) {
+    for (let i = 0; i < ch.length; i++) {
+      const res = pred(ch[i]);
+      if (truth_(res)) return res;
+    }
   }
   return undefined;
 }
