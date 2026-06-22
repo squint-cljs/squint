@@ -160,7 +160,11 @@
       (let [ext (or extension ".mjs")
             ext (if (str/starts-with? ext ".") ext (str "." ext))
             ext' (path/extname resolved)]
-        (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext))))))
+        ;; ESM specifiers use "/" on every platform; path/relative yields "\\"
+        ;; on Windows, which would collapse in the emitted JS string.
+        (str "./" (-> resolved
+                      (str/replace (re-pattern (str ext' "$")) ext)
+                      (str/replace "\\" "/")))))))
 
 (defn compile-file [{:keys [in-file in-str out-file extension output-dir]
                      :or {output-dir ""}
@@ -223,3 +227,7 @@
 #_{:clj-kondo/ignore [:unused-private-var]}
 (def ^:private read-config-js
   (jsify utils/read-config))
+
+#_{:clj-kondo/ignore [:unused-private-var]}
+(def ^:private deps-paths-js
+  (jsify utils/deps-paths))

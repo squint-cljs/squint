@@ -18,7 +18,7 @@
 // An optional dev-only HTTP endpoint (POST /__repl_eval, off by default, see
 // ENABLE_HTTP_EVAL) drives the same eval path with curl, handy without an editor.
 
-import { compileFile, readConfig } from './node-api.js';
+import { compileFile, readConfig, depsPaths } from './node-api.js';
 import {
   startServer,
   handleBrowserMessage,
@@ -200,7 +200,14 @@ export default function squint(options = {}) {
       logger = config.logger ?? console;
       // squint.edn is the source of truth; plugin options override it.
       const cfg = readConfig(root) || {};
-      paths = (options.paths ?? cfg.paths ?? ['src']).map((p) => resolve(root, p));
+      // :deps in squint.edn resolve (via `clojure -Spath`) to absolute source
+      // dirs; add them to paths so the dep namespaces are compiled and their
+      // requires resolve. depsPaths reads squint.edn itself: the deps map has
+      // symbol keys that would not survive readConfig's clj<->js round-trip.
+      const depDirs = options.paths ? [] : depsPaths(root);
+      paths = [...(options.paths ?? cfg.paths ?? ['src']), ...depDirs].map((p) =>
+        resolve(root, p),
+      );
       outDir = options.outDir ?? cfg['output-dir'] ?? 'js';
       extension = options.extension ?? cfg.extension ?? 'js';
       main = options.main ?? cfg.main;

@@ -24,7 +24,7 @@ Replicant itself is pulled in as a git dependency via the `:deps` key in
 ```clojure
 {:paths ["src"]
  :deps {io.github.cjohansen/replicant {:git/url "https://github.com/borkdude/replicant"
-                                       :git/sha "e8bf46f4604cc9303bf9120b526e52af494373d2"}}}
+                                       :git/sha "de29298dccff23b254ab62bef3fa273d25a83ec1"}}}
 ```
 
 `:deps` uses the same format as `deps.edn`. Source directories are resolved with

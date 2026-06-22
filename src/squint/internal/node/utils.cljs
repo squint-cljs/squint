@@ -28,28 +28,36 @@
 (defn set-cfg! [cfg]
   (reset! !cfg cfg))
 
-(defn- dir? [f]
-  (and (fs/existsSync f)
+(defn- dep-dir?
+  "A classpath entry that is an external source directory: absolute (the
+  project's own relative :paths like \"src\"/\"resources\" that clojure injects
+  are dropped) and an existing directory (jars are dropped)."
+  [f]
+  (and (path/isAbsolute f)
+       (fs/existsSync f)
        (.isDirectory (fs/lstatSync f))))
 
 (defn deps->paths
   "Resolve a `:deps` map to source directories by shelling out to
   `clojure -Spath`. Returns the classpath directory entries. Jars are
-  dropped: only git/local deps are supported for now."
-  [deps]
-  (let [sdeps (str {:deps deps})
-        out (try
-              (cproc/execFileSync "clojure"
-                                  #js ["-Srepro" "-Sdeps" sdeps "-Spath"]
-                                  #js {:encoding "utf-8"
-                                       :stdio #js ["ignore" "pipe" "inherit"]})
-              (catch :default e
-                (if (= "ENOENT" (.-code e))
-                  (throw (js/Error. "Resolving :deps requires the `clojure` CLI on PATH."))
-                  (throw (js/Error. (str "Failed to resolve :deps via `clojure -Spath`: " (.-message e)))))))
-        cp (str/trim out)
-        entries (str/split cp (re-pattern path/delimiter))]
-    (filterv dir? entries)))
+  dropped: only git/local deps are supported for now. `dir` is the working
+  directory clojure runs in, so `:local/root` relative paths resolve against it."
+  ([deps] (deps->paths deps nil))
+  ([deps dir]
+   (let [sdeps (str {:deps deps})
+         out (try
+               (cproc/execFileSync "clojure"
+                                   #js ["-Srepro" "-Sdeps" sdeps "-Spath"]
+                                   #js {:encoding "utf-8"
+                                        :cwd (or dir (js/process.cwd))
+                                        :stdio #js ["ignore" "pipe" "inherit"]})
+               (catch :default e
+                 (if (= "ENOENT" (.-code e))
+                   (throw (js/Error. "Resolving :deps requires the `clojure` CLI on PATH."))
+                   (throw (js/Error. (str "Failed to resolve :deps via `clojure -Spath`: " (.-message e)))))))
+         cp (str/trim out)
+         entries (str/split cp (re-pattern path/delimiter))]
+     (filterv dep-dir? entries))))
 
 (def ^:private !deps-paths (atom {}))
 
@@ -77,6 +85,17 @@
    (let [f (path/resolve dir "squint.edn")]
      (when (fs/existsSync f)
        (edn/read-string (slurp f))))))
+
+(defn deps-paths
+  "Resolve the `:deps` of the squint.edn in `dir` to absolute source
+  directories. Returns [] when there is no squint.edn or no `:deps`. Kept
+  separate from JS callers reading the raw config: the deps map has symbol keys
+  that would not survive a clj<->js round-trip."
+  [dir]
+  (let [cfg (read-config dir)]
+    (if-let [deps (:deps cfg)]
+      (deps->paths deps dir)
+      [])))
 
 (defn process-opts! [opts]
   (let [file-cfg (get-cfg)
