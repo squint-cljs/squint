@@ -18,10 +18,15 @@ the upstream demo runner (`dev/replicant/dev.cljs`): data-driven event handlers
 (`:on {:input [[:actions/...]]}`) dispatched through `d/set-dispatch!`, state in
 an atom, re-render on change.
 
-Replicant itself is compiled from a local checkout via `squint.edn`:
+Replicant itself is pulled in as a git dependency via the `:deps` key in
+`squint.edn`:
 
 ```clojure
-{:paths ["src" "../../../replicant/src"]}
+{:paths ["src"]
+ :deps {io.github.cjohansen/replicant {:git/url "https://github.com/borkdude/replicant"
+                                       :git/sha "e8bf46f4604cc9303bf9120b526e52af494373d2"}}}
 ```
 
-Point that path at your own replicant checkout if it lives elsewhere.
+`:deps` uses the same format as `deps.edn`. Source directories are resolved with
+the `clojure` CLI (`-Spath`) and added to `:paths`. Only git and `:local/root`
+libraries are supported, no jars yet.

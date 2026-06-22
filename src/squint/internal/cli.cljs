@@ -263,8 +263,9 @@
     :epilog squint-edn-note
     :fn (fn [{:keys [opts]}]
           (args-validate {:arg-count 1 :arg-ref "<file>" :args (:file opts)})
-          (utils/set-cfg! opts)
-          (run opts (first (:file opts))))}
+          (let [opts (utils/expand-paths opts)]
+            (utils/set-cfg! opts)
+            (run opts (first (:file opts)))))}
    {:cmds ["compile"]
     :doc "Compile file(s)."
     :spec compile-spec
@@ -272,14 +273,15 @@
     :args->opts (repeat :file)
     :epilog (str "<files> overrides --paths (and :paths in squint.edn).\n" squint-edn-note)
     :fn (fn [{:keys [opts]}]
-          (utils/set-cfg! opts)
-          (-> (compile-files opts (:file opts))
+          (let [opts (utils/expand-paths opts)]
+            (utils/set-cfg! opts)
+            (-> (compile-files opts (:file opts))
               (.then (fn [{:keys [compiled copied]}]
                        (println "[squint] Compiled sources:" compiled)
                        (when (:copy-resources opts)
                          (println "[squint] Copied resources:" copied))
                        (when (zero? (+ compiled copied))
-                         (err-exit! "Compile processed no files"))))))}
+                         (err-exit! "Compile processed no files")))))))}
    {:cmds ["watch"]
     :doc "Watch and auto-recompile paths."
     :spec watch-spec
@@ -287,8 +289,9 @@
     :epilog squint-edn-note
     :fn (fn [{:keys [opts] :as m}]
           (args-validate (assoc m :arg-count 0))
-          (utils/set-cfg! opts)
-          (watch opts))}
+          (let [opts (utils/expand-paths opts)]
+            (utils/set-cfg! opts)
+            (watch opts)))}
    {:cmds ["repl"]
     :doc "Start a REPL."
     :fn (fn [m] (args-validate (assoc m :arg-count 0)) (repl/repl m))}

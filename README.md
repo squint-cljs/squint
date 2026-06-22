@@ -392,8 +392,18 @@ In `squint.edn` you can describe the following options:
   `re-find`.
 - `:output-dir`: the directory where compiled files will be created,
   which defaults to the project root directory.
+- `:deps`: a map of dependencies from the Clojure ecosystem, in the same format
+  as `deps.edn`. Only `:git/url` (with `:git/sha`) and `:local/root` libraries
+  are supported, no jars yet. Their source directories are resolved via the
+  `clojure` CLI (`-Spath`) and added to `:paths`. Requires `clojure` on the
+  `PATH`. Example:
+  ```clojure
+  {:paths ["src"]
+   :deps {io.github.cjohansen/replicant {:git/sha "..."}}}
+  ```
 
 See [examples/vite-react](examples/vite-react) for an example project which uses a `squint.edn`.
+See [examples/replicant](examples/replicant) for one that pulls a git dependency via `:deps`.
 
 ## Watch
 
