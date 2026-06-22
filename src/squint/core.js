@@ -906,6 +906,12 @@ export function lazy(f) {
   return new LazyIterable(unchunkedSteps(f()));
 }
 
+// gen(it) over a hoisted iterator: keeps the input head unpinned (streaming)
+function lazyIter(coll, gen) {
+  const it = es6_iterator(iterable(coll));
+  return lazy(() => gen(it));
+}
+
 // A chunked view of any seqable for chunk-aware ops, preserving chunkedness:
 // cells pass through, arrays slice into CHUNK_SIZE batches, others stay unchunked.
 function chunkCells(coll) {
@@ -1653,8 +1659,7 @@ export const partitionv = partition; // partition already returns a lazy of arra
 export const partitionv_all = partition_all;
 
 function partitionInternal(n, step, pad, coll, all) {
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     let p = [];
     let i = 0;
     for (const x of it) {
@@ -1919,8 +1924,7 @@ export function take(n, coll) {
   if (arguments.length === 1) {
     return take1(n);
   }
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     let i = n - 1;
     for (const x of it) {
       if (i-- >= 0) {
@@ -1979,8 +1983,7 @@ export function take_while(pred, coll) {
   if (arguments.length === 1) {
     return take_while1(pred);
   }
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     for (const o of it) {
       if (truth_(pred(o))) yield o;
       else return;
@@ -2014,8 +2017,7 @@ export function take_nth(n, coll) {
     return repeat(first(coll));
   }
 
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     let i = 0;
     for (const x of it) {
       if (i % n === 0) {
@@ -2065,8 +2067,7 @@ function drop1(n) {
 
 export function drop(n, xs) {
   if (arguments.length === 1) return drop1(n);
-  const iter = _iterator(iterable(xs));
-  return lazy(function* () {
+  return lazyIter(xs, function* (iter) {
     for (let x = 0; x < n; x++) {
       iter.next();
     }
@@ -2103,8 +2104,7 @@ function drop_while1(pred) {
 export function drop_while(pred, xs) {
   pred = __toFn(pred);
   if (arguments.length === 1) return drop_while1(pred);
-  const iter = _iterator(iterable(xs));
-  return lazy(function* () {
+  return lazyIter(xs, function* (iter) {
     while (true) {
       const nextItem = iter.next();
       if (nextItem.done) {
@@ -2140,8 +2140,7 @@ function distinct1() {
 
 export function distinct(coll) {
   if (arguments.length === 0) return distinct1();
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     const seen = new Set();
     for (const x of it) {
       if (!seen.has(x)) yield x;
@@ -2173,8 +2172,7 @@ function dedupe1() {
 
 export function dedupe(coll) {
   if (arguments.length === 0) return dedupe1();
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     let prev = DEDUPE_NONE;
     for (const x of it) {
       if (prev === DEDUPE_NONE || !truth_(_EQ_(prev, x))) yield x;
