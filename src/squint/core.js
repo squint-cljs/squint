@@ -2550,9 +2550,16 @@ export function aset(arr, idx, val, ...more) {
 }
 
 export function dorun(x) {
-  // force each chunk for side effects, no per-element cursor
-  const next = chunkCursor(x);
-  while (next() !== null);
+  // only a lazy seq needs forcing; force a chunk at a time. Anything already
+  // realized is walked natively (batching it would just be slower).
+  if (x instanceof LazyIterable) {
+    const next = chunkCursor(x);
+    while (next() !== null);
+    return null;
+  }
+  for (const _ of iterable(x)) {
+    // nothing here, just consume for side effects
+  }
   return null;
 }
 
