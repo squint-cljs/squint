@@ -1457,17 +1457,31 @@ function concat1(colls) {
     const r = collIter.next();
     return r.done ? CONCAT_DONE : r.value;
   };
-  const step = (cell) => () => {
-    let c = cell;
+  // src is null, a chunked cell, or {a, pos} for an array (raw-array fast path:
+  // no per-coll wrapper). Continuations carry immutable state, so a single pass
+  // streams.
+  const step = (src) => () => {
     for (;;) {
-      if (c !== null) {
-        c.force();
-        if (c.chunk !== null) return [c.chunk, step(c._rest)];
-        c = null;
+      if (src !== null) {
+        if (src instanceof LazyIterable) {
+          src.force();
+          if (src.chunk !== null) return [src.chunk, step(src._rest)];
+          src = null;
+        } else {
+          const a = src.a;
+          const pos = src.pos;
+          if (pos < a.length) {
+            const end = Math.min(pos + CHUNK_SIZE, a.length);
+            const ch = pos === 0 && end === a.length ? a : a.slice(pos, end);
+            return [ch, step({ a, pos: end })];
+          }
+          src = null;
+        }
       }
       const nc = nextColl();
       if (nc === CONCAT_DONE) return null;
-      c = chunkCells(nc);
+      src =
+        nc instanceof LazyIterable ? nc : Array.isArray(nc) ? { a: nc, pos: 0 } : chunkCells(nc);
     }
   };
   return new LazyIterable(step(null));
@@ -1485,17 +1499,6 @@ concat[IApply__apply] = (colls) => {
 export function mapcat(f, ...colls) {
   if (colls.length === 0) {
     return comp(map(f), cat);
-  }
-  if (colls.length === 1) {
-    const ff = __toFn(f);
-    return mapChunks(colls[0], (ch) => {
-      const out = [];
-      for (let i = 0; i < ch.length; i++) {
-        const r = ff(ch[i]);
-        if (r != null) for (const x of iterable(r)) out.push(x);
-      }
-      return out;
-    });
   }
   return concat1(map(f, ...colls));
 }
