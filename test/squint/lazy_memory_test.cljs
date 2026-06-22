@@ -26,15 +26,36 @@
                   (dorun s) (dorun s)
                   [@mc @fc])"))))
 
-(deftest take-realizes-only-prefix
-  (is (eq [5 8]
+(deftest take-prefix-bounded-and-cached
+  ;; Realization is chunked (a bounded batch, not the whole infinite seq) and a
+  ;; second pass over the same prefix recomputes nothing.
+  (is (eq [true true]
          (jsv! "(let [calls (atom 0)
                       s (map (fn [x] (swap! calls inc) x) (range))]
                   (dorun (take 5 s))
-                  (let [a @calls]
-                    (dorun (take 8 s))
-                    [a @calls]))"))
-      "take realizes only the prefix; extending reuses the cached prefix"))
+                  (let [after-first @calls]
+                    (dorun (take 5 s))
+                    [(<= after-first 64) (= after-first @calls)]))"))
+      "take realizes a bounded prefix; re-taking reuses the cache"))
+
+;; --- chunked realization: chunked sources realize a batch, unchunked stay exact ---
+
+(deftest chunked-vs-unchunked-realization
+  ;; range and vectors are chunked sources: a tiny take realizes a 32-batch,
+  ;; like ClojureScript.
+  (is (= 32 (jsv! "(let [n (atom 0)]
+                     (dorun (take 1 (map (fn [x] (swap! n inc) x) (range))))
+                     @n)"))
+      "range is a chunked source")
+  (is (= 32 (jsv! "(let [n (atom 0)]
+                     (dorun (take 1 (map (fn [x] (swap! n inc) x) (vec (range 100)))))
+                     @n)"))
+      "a vector is a chunked source")
+  ;; iterate is an unchunked source: realization stays exact.
+  (is (= 1 (jsv! "(let [n (atom 0)]
+                    (dorun (take 1 (map (fn [x] (swap! n inc) x) (iterate inc 0))))
+                    @n)"))
+      "iterate is an unchunked source"))
 
 ;; --- streaming: constant memory on a single non-retained pass ---
 

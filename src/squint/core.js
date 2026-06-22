@@ -812,44 +812,54 @@ export function reductions(f, arg1, arg2) {
 // API compatibility.
 export function warn_on_lazy_reusage_BANG_() {}
 
-// A LazyIterable is one cell of a self-caching cons-style chain. It drives a
-// single underlying JS iterator (shared down the chain) at most once per cell,
-// caching the realized value and the next cell. Re-iterating walks the cached
-// cells via a fresh cursor, so the elements are computed once regardless of how
-// many times the seq is traversed. A cursor holds only its current cell, so a
-// single forward traversal that does not retain the head streams in constant
-// memory: passed cells are unreferenced and collectable.
+const CHUNK_SIZE = 32;
+
+// A LazyIterable is one cell of a self-caching chunked seq. Each cell realizes
+// one chunk (an array of up to CHUNK_SIZE values) on first force and caches it
+// along with the next cell. A cursor flattens chunks to yield elements, holding
+// only its current cell, so a single forward pass that does not retain the head
+// streams in roughly constant memory (one chunk at a time). Re-iterating walks
+// the cached chunks, so elements are computed once regardless of how many
+// traversals.
+//
+// `step` is a thunk returning [chunkArray, nextStep] or null at the end. The
+// chunk must be non-empty: ops that can drop a whole chunk (e.g. filter) skip
+// ahead internally rather than emitting an empty chunk. Chunk-aware ops build
+// step thunks that transform whole chunks; lazy(genFn) batches a one-at-a-time
+// generator into chunks. Realization is therefore batched by CHUNK_SIZE, like
+// ClojureScript chunked seqs.
 class LazyIterable {
-  constructor(iter) {
-    this.iter = iter; // shared underlying iterator, nulled after this cell forces
+  constructor(step) {
+    this.step = step;
     this.realized = false;
-    this.empty = false;
-    this.value = undefined;
-    this._rest = null; // next cell
+    this.chunk = null; // array, or null when this is the terminal (empty) cell
+    this._rest = null;
   }
   force() {
     if (!this.realized) {
       this.realized = true;
-      const r = this.iter.next();
-      if (r.done) {
-        this.empty = true;
-      } else {
-        this.value = r.value;
-        this._rest = new LazyIterable(this.iter);
+      const r = this.step();
+      this.step = null;
+      if (r !== null && r !== undefined) {
+        this.chunk = r[0];
+        this._rest = new LazyIterable(r[1]);
       }
-      this.iter = null;
     }
     return this;
   }
   [Symbol.iterator]() {
-    let cur = this;
+    let cell = this;
+    let i = 0;
     return {
       next() {
-        cur.force();
-        if (cur.empty) return { value: undefined, done: true };
-        const v = cur.value;
-        cur = cur._rest;
-        return { value: v, done: false };
+        for (;;) {
+          cell.force();
+          const ch = cell.chunk;
+          if (ch === null) return { value: undefined, done: true };
+          if (i < ch.length) return { value: ch[i++], done: false };
+          cell = cell._rest;
+          i = 0;
+        }
       },
       [Symbol.iterator]() {
         return this;
@@ -860,10 +870,39 @@ class LazyIterable {
 
 LazyIterable.prototype[IIterable] = true; // Closure compatibility
 
-// f is a zero-arg generator function. Calling it builds the generator object
-// without running its body, so the seq stays lazy until first forced.
+// One-element chunks: an unchunked seq, realized one element at a time. Like a
+// ClojureScript cons chain, this preserves exact laziness; only sources that
+// are genuinely chunked (arrays, range) realize a batch at a time.
+function unchunkedSteps(iter) {
+  const step = () => {
+    const r = iter.next();
+    return r.done ? null : [[r.value], step];
+  };
+  return step;
+}
+
+// f is a zero-arg generator function (one element at a time). Calling it builds
+// the generator without running its body, so the seq stays lazy until forced.
+// The result is unchunked: each element realizes on demand.
 export function lazy(f) {
-  return new LazyIterable(f());
+  return new LazyIterable(unchunkedSteps(f()));
+}
+
+// A chunked view of any seqable for chunk-aware ops. Existing cells pass through
+// unchanged so chunkedness is preserved (a chunked input stays chunked, an
+// unchunked one stays unchunked). Arrays are a chunked source and slice into
+// CHUNK_SIZE batches; other raw iterables stay unchunked.
+function chunkCells(coll) {
+  if (coll instanceof LazyIterable) return coll;
+  if (Array.isArray(coll)) {
+    const step = (pos) => () => {
+      if (pos >= coll.length) return null;
+      const end = Math.min(pos + CHUNK_SIZE, coll.length);
+      return [coll.slice(pos, end), step(end)];
+    };
+    return new LazyIterable(step(0));
+  }
+  return new LazyIterable(unchunkedSteps(es6_iterator(iterable(coll))));
 }
 
 export class Cons {
@@ -929,12 +968,17 @@ export function map(f, ...colls) {
         };
       };
     case 1: {
-      const it = es6_iterator(iterable(colls[0]));
-      return lazy(function* () {
-        for (const x of it) {
-          yield f(x);
-        }
-      });
+      // chunk-aware: map a whole chunk at a time in a tight loop
+      const src = chunkCells(colls[0]);
+      const step = (cell) => () => {
+        cell.force();
+        const ch = cell.chunk;
+        if (ch === null) return null;
+        const out = new Array(ch.length);
+        for (let i = 0; i < ch.length; i++) out[i] = f(ch[i]);
+        return [out, step(cell._rest)];
+      };
+      return new LazyIterable(step(src));
     }
     default: {
       const iters = colls.map((coll) => es6_iterator(iterable(coll)));
@@ -980,14 +1024,26 @@ export function filter(pred, coll) {
     return filter1(pred);
   }
   pred = __toFn(pred);
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
-    for (const x of it) {
-      if (truth_(pred(x))) {
-        yield x;
+  // chunk-aware: filter a whole chunk at a time; skip chunks that empty out so
+  // a step never yields an empty chunk
+  const src = chunkCells(coll);
+  const step = (cell) => () => {
+    let c = cell;
+    for (;;) {
+      c.force();
+      const ch = c.chunk;
+      if (ch === null) return null;
+      const out = [];
+      for (let i = 0; i < ch.length; i++) {
+        const x = ch[i];
+        if (truth_(pred(x))) out.push(x);
       }
+      const rest = c._rest;
+      if (out.length !== 0) return [out, step(rest)];
+      c = rest;
     }
-  });
+  };
+  return new LazyIterable(step(src));
 }
 
 export function filterv(pred, coll) {
@@ -1022,27 +1078,40 @@ export function map_indexed(f, coll) {
   if (arguments.length === 1) {
     return map_indexed1(f);
   }
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
-    let idx = 0;
-    for (const i of it) {
-      yield f(idx, i);
-      idx++;
-    }
-  });
+  const src = chunkCells(coll);
+  const step = (cell, idx) => () => {
+    cell.force();
+    const ch = cell.chunk;
+    if (ch === null) return null;
+    const out = new Array(ch.length);
+    for (let i = 0; i < ch.length; i++) out[i] = f(idx + i, ch[i]);
+    return [out, step(cell._rest, idx + ch.length)];
+  };
+  return new LazyIterable(step(src, 0));
 }
 
 function keep_indexed2(f, coll) {
   f = __toFn(f);
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
-    let idx = 0;
-    for (const i of it) {
-      const v = f(idx, i);
-      if (truth_(v)) yield v;
-      idx++;
+  const src = chunkCells(coll);
+  const step = (cell, idx) => () => {
+    let c = cell;
+    let base = idx;
+    for (;;) {
+      c.force();
+      const ch = c.chunk;
+      if (ch === null) return null;
+      const out = [];
+      for (let i = 0; i < ch.length; i++) {
+        const v = f(base + i, ch[i]);
+        if (truth_(v)) out.push(v);
+      }
+      const rest = c._rest;
+      base += ch.length;
+      if (out.length !== 0) return [out, step(rest, base)];
+      c = rest;
     }
-  });
+  };
+  return new LazyIterable(step(src, 0));
 }
 
 function keep_indexed1(f) {
@@ -1173,22 +1242,30 @@ export function compare_and_set_BANG_(atm, oldv, newv) {
 }
 
 export function range(begin, end, step) {
-  return lazy(function* () {
-    let b = begin,
-      e = end,
-      s = step;
-    if (end === undefined) {
-      b = 0;
-      e = begin;
-    }
-    let i = b || 0;
-    s = step ?? 1;
-    const ascending = s >= 0;
-    while (e === undefined || (ascending && i < e) || (!ascending && e < i)) {
-      yield i;
+  // range is a chunked source, like ClojureScript: it realizes CHUNK_SIZE
+  // values at a time.
+  let b = begin,
+    e = end,
+    s = step;
+  if (end === undefined) {
+    b = 0;
+    e = begin;
+  }
+  const start = b || 0;
+  s = step ?? 1;
+  const ascending = s >= 0;
+  const more = (i) => e === undefined || (ascending && i < e) || (!ascending && e < i);
+  const mkStep = (from) => () => {
+    if (!more(from)) return null;
+    const out = [];
+    let i = from;
+    while (out.length < CHUNK_SIZE && more(i)) {
+      out.push(i);
       i += s;
     }
-  });
+    return [out, mkStep(i)];
+  };
+  return new LazyIterable(mkStep(start));
 }
 
 export function re_matches(re, s) {
@@ -1780,18 +1857,21 @@ export function take(n, coll) {
   if (arguments.length === 1) {
     return take1(n);
   }
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
-    let i = n - 1;
-    for (const x of it) {
-      if (i-- >= 0) {
-        yield x;
-      }
-      if (i < 0) {
-        return;
-      }
+  if (n <= 0) return new LazyIterable(() => null);
+  // chunk-aware: preserve input chunks, forcing only as many as needed; split
+  // the chunk that crosses the limit
+  const src = chunkCells(coll);
+  const step = (cell, remaining) => () => {
+    if (remaining <= 0) return null;
+    cell.force();
+    const ch = cell.chunk;
+    if (ch === null) return null;
+    if (ch.length <= remaining) {
+      return [ch, step(cell._rest, remaining - ch.length)];
     }
-  });
+    return [ch.slice(0, remaining), () => null];
+  };
+  return new LazyIterable(step(src, n));
 }
 
 export function take_last(n, coll) {
@@ -2107,12 +2187,24 @@ function keep1(pred) {
 export function keep(pred, coll) {
   pred = __toFn(pred);
   if (arguments.length === 1) return keep1(pred);
-  return lazy(function* () {
-    for (const o of iterable(coll)) {
-      const res = pred(o);
-      if (truth_(res)) yield res;
+  const src = chunkCells(coll);
+  const step = (cell) => () => {
+    let c = cell;
+    for (;;) {
+      c.force();
+      const ch = c.chunk;
+      if (ch === null) return null;
+      const out = [];
+      for (let i = 0; i < ch.length; i++) {
+        const res = pred(ch[i]);
+        if (truth_(res)) out.push(res);
+      }
+      const rest = c._rest;
+      if (out.length !== 0) return [out, step(rest)];
+      c = rest;
     }
-  });
+  };
+  return new LazyIterable(step(src));
 }
 
 export function reverse(coll) {
@@ -2270,46 +2362,42 @@ export function frequencies(coll) {
   return res;
 }
 
-// Self-caching cons cell for the lazy-seq macro. f is a thunk evaluating the
-// body to a seqable. The body runs once on first force; the resulting seq is
-// driven through one shared iterator and cached cell by cell, same as
-// LazyIterable.
+// Chunked cell for the lazy-seq macro. f is a thunk evaluating the body to a
+// seqable. The body runs once on first force; its result is batched into
+// chunks, same as LazyIterable.
 export class LazySeq {
   constructor(f) {
     this.f = f;
-    this.iter = null; // underlying iterator over f()'s result
     this.realized = false;
-    this.empty = false;
-    this.value = undefined;
+    this.chunk = null;
     this._rest = null;
   }
   force() {
     if (!this.realized) {
       this.realized = true;
-      if (!this.iter) {
-        this.iter = es6_iterator(iterable(this.f()));
-        this.f = null;
+      const step = unchunkedSteps(es6_iterator(iterable(this.f())));
+      this.f = null;
+      const r = step();
+      if (r !== null && r !== undefined) {
+        this.chunk = r[0];
+        this._rest = new LazyIterable(r[1]);
       }
-      const r = this.iter.next();
-      if (r.done) {
-        this.empty = true;
-      } else {
-        this.value = r.value;
-        this._rest = new LazyIterable(this.iter);
-      }
-      this.iter = null;
     }
     return this;
   }
   [Symbol.iterator]() {
-    let cur = this;
+    let cell = this;
+    let i = 0;
     return {
       next() {
-        cur.force();
-        if (cur.empty) return { value: undefined, done: true };
-        const v = cur.value;
-        cur = cur._rest;
-        return { value: v, done: false };
+        for (;;) {
+          cell.force();
+          const ch = cell.chunk;
+          if (ch === null) return { value: undefined, done: true };
+          if (i < ch.length) return { value: ch[i++], done: false };
+          cell = cell._rest;
+          i = 0;
+        }
       },
       [Symbol.iterator]() {
         return this;
