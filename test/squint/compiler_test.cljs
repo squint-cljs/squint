@@ -9,6 +9,7 @@
    [squint.compiler :as squint]
    [squint.html-test]
    [squint.jsx-test]
+   [squint.lazy-memory-test]
    [squint.math-test]
    [squint.multi-test]
    [squint.string-test]
@@ -1329,7 +1330,8 @@ with `backticks`")))]
             (jsv! '(do
                      (let [ xs (reductions + (range 3))]
                        [(count xs) (count xs)])))))
-    (is (eq 10
+    ;; chunked realization: taking 10 realizes a full 32-element chunk, like CLJS
+    (is (eq 32
             (jsv! '(do (let [a (atom [])
                              spy (fn [x] (swap! a conj x) x)]
                          (doall (take 10 (reductions + (map spy (range)))))
@@ -1699,7 +1701,8 @@ with `backticks`")))]
   (is (eq ["a" "b"] (jsv! '(vec (take 2 ["a" "b" "c"])))))
   (is (eq ["a" "b" "c"] (jsv! '(vec (take 5 ["a" "b" "c"])))))
   (is (eq [["a" 1] ["b" 2]] (jsv! '(vec (take 2 {"a" 1 "b" 2 "c" 3})))))
-  (is (= 2
+  ;; chunked realization: taking 2 realizes a full 32-element chunk, like CLJS
+  (is (= 32
          (jsv! '(let [o {:count 0}
                       s (range)
                       s' (map (fn [x]
@@ -3215,6 +3218,7 @@ new Foo();")
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test
+               'squint.lazy-memory-test
                'squint.string-test
                'squint.html-test
                'squint.math-test

@@ -552,14 +552,15 @@ export function nth(coll, idx, orElse) {
     if (idx >= 0 && idx < coll.length) {
       return coll[idx];
     }
-  } else {
-    // iterables may lack .length and can be infinite, so iterate and stop at idx
-    const iter = iterable(coll);
-    let i = 0;
-    for (const value of iter) {
-      if (i++ === idx) {
-        return value;
-      }
+  } else if (idx >= 0) {
+    // non-array: skip whole chunks instead of counting elements (handles
+    // infinite seqs since it stops once idx is reached)
+    const next = chunkCursor(coll);
+    let base = 0;
+    let ch;
+    while ((ch = next()) !== null) {
+      if (idx < base + ch.length) return ch[idx - base];
+      base += ch.length;
     }
   }
   // out of bounds. With a default return it, otherwise throw like Clojure
@@ -681,12 +682,24 @@ export function seq(x) {
 }
 
 export function first(coll) {
+  if (coll == null) return undefined;
+  if (Array.isArray(coll)) return coll[0];
+  if (coll instanceof LazyIterable) {
+    coll.force();
+    return coll.chunk === null ? undefined : coll.chunk[0];
+  }
   // destructuring uses iterable protocol
   const [first] = iterable(coll);
   return first;
 }
 
 export function second(coll) {
+  if (coll instanceof LazyIterable) {
+    coll.force();
+    const ch = coll.chunk;
+    if (ch === null) return undefined;
+    return ch.length > 1 ? ch[1] : first(coll._rest);
+  }
   const [_, v] = iterable(coll);
   return v;
 }
@@ -696,13 +709,20 @@ export function ffirst(coll) {
 }
 
 export function rest(coll) {
-  return lazy(function* () {
-    let first = true;
-    for (const x of iterable(coll)) {
-      if (first) first = false;
-      else yield x;
-    }
-  });
+  // chunk-aware: drop the first element of the first chunk, keep the rest of
+  // the chain chunked (preserves chunkedness, unlike re-iterating element-wise)
+  const cell = chunkCells(coll);
+  cell.force();
+  const ch = cell.chunk;
+  if (ch === null) return cell; // (rest ()) is ()
+  if (ch.length > 1) {
+    const c = new LazyIterable(null);
+    c.realized = true;
+    c.chunk = ch.slice(1);
+    c._rest = cell._rest;
+    return c;
+  }
+  return cell._rest; // first chunk had one element; the next cell is the rest
 }
 
 class Reduced {
@@ -717,16 +737,15 @@ class Reduced {
 
 export function last(coll) {
   coll = iterable(coll);
-  let lastEl;
-  switch (typeConst(coll)) {
-    case ARRAY_TYPE:
-      return coll[coll.length - 1];
-    default:
-      for (const x of coll) {
-        lastEl = x;
-      }
-      return lastEl;
+  if (Array.isArray(coll)) {
+    return coll[coll.length - 1];
   }
+  // non-array: walk chunks, keep the last chunk's last element
+  const next = chunkCursor(coll);
+  let lastEl;
+  let ch;
+  while ((ch = next()) !== null) lastEl = ch[ch.length - 1];
+  return lastEl;
 }
 
 export function reduced(x) {
@@ -739,31 +758,43 @@ export function reduced_QMARK_(x) {
 
 export function reduce(f, arg1, arg2) {
   f = __toFn(f);
-  let coll, val;
-  if (arguments.length === 2) {
-    // (reduce f coll)
-    const iter = iterable(arg1)[Symbol.iterator]();
-    const vd = iter.next();
-    if (vd.done) {
-      val = f();
-    } else {
-      val = vd.value;
+  const hasInit = arguments.length !== 2;
+  const coll = hasInit ? arg2 : arg1;
+  let val = hasInit ? arg1 : undefined;
+
+  // fast path: index loop over an array
+  if (Array.isArray(coll)) {
+    let i = 0;
+    if (!hasInit) {
+      if (coll.length === 0) return f();
+      val = coll[0];
+      i = 1;
     }
-    coll = iter;
-  } else {
-    // (reduce f val coll)
-    val = arg1;
-    coll = iterable(arg2);
-  }
-  if (val instanceof Reduced) {
-    return val.value;
-  }
-  for (const x of coll) {
-    val = f(val, x);
-    if (val instanceof Reduced) {
-      val = val.value;
-      break;
+    if (val instanceof Reduced) return val.value;
+    for (; i < coll.length; i++) {
+      val = f(val, coll[i]);
+      if (val instanceof Reduced) return val.value;
     }
+    return val;
+  }
+
+  // non-array: walk chunks (chunked cell or any other seqable)
+  const next = chunkCursor(coll);
+  let ch = next();
+  let i = 0;
+  if (!hasInit) {
+    if (ch === null) return f();
+    val = ch[0];
+    i = 1;
+  }
+  if (val instanceof Reduced) return val.value;
+  while (ch !== null) {
+    for (; i < ch.length; i++) {
+      val = f(val, ch[i]);
+      if (val instanceof Reduced) return val.value;
+    }
+    ch = next();
+    i = 0;
   }
   return val;
 }
@@ -796,42 +827,152 @@ function* _reductions3(f, init, coll) {
 export function reductions(f, arg1, arg2) {
   f = __toFn(f);
   if (arguments.length === 2) {
+    const it = es6_iterator(iterable(arg1));
     return lazy(function* () {
-      yield* _reductions2(f, iterable(arg1)[Symbol.iterator]());
+      yield* _reductions2(f, it);
     });
   }
+  const it = es6_iterator(iterable(arg2));
   return lazy(function* () {
-    yield* _reductions3(f, arg1, iterable(arg2)[Symbol.iterator]());
+    yield* _reductions3(f, arg1, it);
   });
 }
 
-var tolr = false;
+// Deprecated: lazy values are now cached, so reuse no longer recomputes. Kept
+// for API compatibility; remove in a future release.
 export function warn_on_lazy_reusage_BANG_() {
-  tolr = true;
+  console.warn(
+    'warn-on-lazy-reusage! is deprecated and does nothing: lazy values are now cached.',
+  );
 }
 
+const CHUNK_SIZE = 32;
+
+// One cell of a self-caching chunked seq. `step` is a thunk returning
+// [nonEmptyChunkArray, nextStep] or null at the end. See doc/dev/lazy-seqs.md.
 class LazyIterable {
-  constructor(gen) {
-    this.gen = gen;
-    this.usages = 0;
+  constructor(step) {
+    this.step = step;
+    this.realized = false;
+    this.chunk = null; // array, or null when this is the terminal (empty) cell
+    this._rest = null;
   }
-  [Symbol.iterator]() {
-    this.usages++;
-    if (this.usages >= 2 && tolr) {
-      try {
-        throw new Error();
-      } catch (e) {
-        console.warn('Re-use of lazy value', e.stack);
+  force() {
+    if (!this.realized) {
+      this.realized = true;
+      const r = this.step();
+      this.step = null;
+      if (r !== null && r !== undefined) {
+        this.chunk = r[0];
+        this._rest = new LazyIterable(r[1]);
       }
     }
-    return this.gen();
+    return this;
+  }
+  [Symbol.iterator]() {
+    let cell = this;
+    let i = 0;
+    return {
+      next() {
+        for (;;) {
+          cell.force();
+          const ch = cell.chunk;
+          if (ch === null) return { value: undefined, done: true };
+          if (i < ch.length) return { value: ch[i++], done: false };
+          cell = cell._rest;
+          i = 0;
+        }
+      },
+      [Symbol.iterator]() {
+        return this;
+      },
+    };
   }
 }
 
 LazyIterable.prototype[IIterable] = true; // Closure compatibility
 
+// One-element chunks: an unchunked seq, realized one element at a time.
+function unchunkedSteps(iter) {
+  const step = () => {
+    const r = iter.next();
+    return r.done ? null : [[r.value], step];
+  };
+  return step;
+}
+
+// f is a zero-arg generator function; its result is an unchunked lazy seq.
 export function lazy(f) {
-  return new LazyIterable(f);
+  return new LazyIterable(unchunkedSteps(f()));
+}
+
+// gen(it) over a hoisted iterator: keeps the input head unpinned (streaming)
+function lazyIter(coll, gen) {
+  const it = es6_iterator(iterable(coll));
+  return lazy(() => gen(it));
+}
+
+// A chunked view of any seqable for chunk-aware ops, preserving chunkedness:
+// cells pass through, arrays slice into CHUNK_SIZE batches, others stay unchunked.
+function chunkCells(coll) {
+  if (coll instanceof LazyIterable) return coll;
+  if (Array.isArray(coll)) {
+    const step = (pos) => () => {
+      if (pos >= coll.length) return null;
+      const end = Math.min(pos + CHUNK_SIZE, coll.length);
+      return [coll.slice(pos, end), step(end)];
+    };
+    return new LazyIterable(step(0));
+  }
+  return new LazyIterable(unchunkedSteps(es6_iterator(iterable(coll))));
+}
+
+// A cursor over a seq's chunks for realizers: returns a function yielding the
+// next chunk array or null. Drive it with an inline loop (keeps an accumulator a
+// plain local, unlike a callback). Callers keep their own array shortcut.
+function chunkCursor(coll) {
+  if (coll instanceof LazyIterable) {
+    let cell = coll;
+    return () => {
+      if (cell === null) return null;
+      cell.force();
+      const ch = cell.chunk;
+      cell = ch === null ? null : cell._rest;
+      return ch;
+    };
+  }
+  const it = es6_iterator(iterable(coll));
+  return () => {
+    const b = [];
+    for (let i = 0; i < CHUNK_SIZE; i++) {
+      const r = it.next();
+      if (r.done) break;
+      b.push(r.value);
+    }
+    return b.length === 0 ? null : b;
+  };
+}
+
+// Build a lazy seq transforming each input chunk via xf(chunk, baseIndex) -> new
+// chunk array, preserving chunkedness. Empty results are skipped (e.g. filter).
+// baseIndex is the input element count before the chunk, for indexed ops.
+function mapChunks(coll, xf) {
+  const src = chunkCells(coll);
+  const step = (cell, base) => () => {
+    let c = cell;
+    let b = base;
+    for (;;) {
+      c.force();
+      const ch = c.chunk;
+      if (ch === null) return null;
+      const out = xf(ch, b);
+      const rest = c._rest;
+      b += ch.length;
+      if (out.length !== 0) return [out, step(rest, b)];
+      c = rest;
+    }
+  };
+  return new LazyIterable(step(src, 0));
 }
 
 export class Cons {
@@ -839,24 +980,35 @@ export class Cons {
     this.x = x;
     this.coll = coll;
   }
-  *[Symbol.iterator]() {
-    yield this.x;
-    yield* iterable(this.coll);
+  [Symbol.iterator]() {
+    const x = this.x;
+    let coll = this.coll;
+    let started = false;
+    let it = null;
+    return {
+      next() {
+        if (!started) {
+          started = true;
+          return { value: x, done: false };
+        }
+        if (!it) {
+          it = es6_iterator(iterable(coll));
+          coll = null; // release the tail head so a single pass streams
+        }
+        return it.next();
+      },
+      [Symbol.iterator]() {
+        return this;
+      },
+    };
   }
 }
 
 export function cons(x, coll) {
   return new Cons(x, coll);
-  // return lazy(function* () {
-  //   yield x;
-  //   yield* iterable(coll);
-  // });
 }
 
 export function map(f, ...colls) {
-  // if (! (f instanceof Function)) {
-  //   throw new Error(`Argument f must be a function but is ${typeof(f)}`);
-  // }
   f = __toFn(f);
   switch (colls.length) {
     case 0:
@@ -879,14 +1031,14 @@ export function map(f, ...colls) {
         };
       };
     case 1:
-      return lazy(function* () {
-        for (const x of iterable(colls[0])) {
-          yield f(x);
-        }
+      return mapChunks(colls[0], (ch) => {
+        const out = new Array(ch.length);
+        for (let i = 0; i < ch.length; i++) out[i] = f(ch[i]);
+        return out;
       });
-    default:
+    default: {
+      const iters = colls.map((coll) => es6_iterator(iterable(coll)));
       return lazy(function* () {
-        const iters = colls.map((coll) => es6_iterator(iterable(coll)));
         while (true) {
           const args = [];
           for (const i of iters) {
@@ -899,27 +1051,21 @@ export function map(f, ...colls) {
           yield f(...args);
         }
       });
+    }
   }
 }
 
-function filter1(pred) {
+// 0/1 arities pass through to rf; step(rf) is the 2-arity reducer
+function transducer(step) {
   return (rf) => {
-    return (...args) => {
-      switch (args.length) {
-        case 0:
-          return rf();
-        case 1:
-          return rf(args[0]);
-        case 2: {
-          const result = args[0];
-          const input = args[1];
-          if (truth_(pred(input))) {
-            return rf(result, input);
-          } else return result;
-        }
-      }
-    };
+    const s = step(rf);
+    return (...args) =>
+      args.length === 0 ? rf() : args.length === 1 ? rf(args[0]) : s(args[0], args[1]);
   };
+}
+
+function filter1(pred) {
+  return transducer((rf) => (r, x) => (truth_(pred(x)) ? rf(r, x) : r));
 }
 
 export function filter(pred, coll) {
@@ -927,17 +1073,19 @@ export function filter(pred, coll) {
     return filter1(pred);
   }
   pred = __toFn(pred);
-  return lazy(function* () {
-    for (const x of iterable(coll)) {
-      if (truth_(pred(x))) {
-        yield x;
-      }
+  return mapChunks(coll, (ch) => {
+    const out = [];
+    for (let i = 0; i < ch.length; i++) {
+      const x = ch[i];
+      if (truth_(pred(x))) out.push(x);
     }
+    return out;
   });
 }
 
 export function filterv(pred, coll) {
-  return [...filter(pred, coll)];
+  // filter is chunked; vec bulk-appends its chunks
+  return pushAll([], filter(pred, coll));
 }
 
 export function remove(pred, coll) {
@@ -948,19 +1096,10 @@ export function remove(pred, coll) {
 }
 
 function map_indexed1(f) {
-  return (rf) => {
+  return transducer((rf) => {
     let i = -1;
-    return (...args) => {
-      switch (args.length) {
-        case 0:
-          return rf();
-        case 1:
-          return rf(args[0]);
-        case 2:
-          return rf(args[0], f(((i = i + 1), i), args[1]));
-      }
-    };
-  };
+    return (r, x) => rf(r, f(++i, x));
+  });
 }
 
 export function map_indexed(f, coll) {
@@ -968,50 +1107,33 @@ export function map_indexed(f, coll) {
   if (arguments.length === 1) {
     return map_indexed1(f);
   }
-  return lazy(function* () {
-    let idx = 0;
-    for (const i of iterable(coll)) {
-      yield f(idx, i);
-      idx++;
-    }
+  return mapChunks(coll, (ch, base) => {
+    const out = new Array(ch.length);
+    for (let i = 0; i < ch.length; i++) out[i] = f(base + i, ch[i]);
+    return out;
   });
 }
 
 function keep_indexed2(f, coll) {
   f = __toFn(f);
-  return lazy(function* () {
-    let idx = 0;
-    for (const i of iterable(coll)) {
-      const v = f(idx, i);
-      if (truth_(v)) yield v;
-      idx++;
+  return mapChunks(coll, (ch, base) => {
+    const out = [];
+    for (let i = 0; i < ch.length; i++) {
+      const v = f(base + i, ch[i]);
+      if (truth_(v)) out.push(v);
     }
+    return out;
   });
 }
 
 function keep_indexed1(f) {
-  return (rf) => {
+  return transducer((rf) => {
     let ia = -1;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) {
-        return rf();
-      }
-      if (al === 1) {
-        return rf(args[0]);
-      }
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        ia++;
-        const v = f(ia, input);
-        if (v == null) {
-          return result;
-        }
-        return rf(result, v);
-      }
+    return (r, x) => {
+      const v = f(++ia, x);
+      return v == null ? r : rf(r, v);
     };
-  };
+  });
 }
 
 export function keep_indexed(f, coll) {
@@ -1117,22 +1239,29 @@ export function compare_and_set_BANG_(atm, oldv, newv) {
 }
 
 export function range(begin, end, step) {
-  return lazy(function* () {
-    let b = begin,
-      e = end,
-      s = step;
-    if (end === undefined) {
-      b = 0;
-      e = begin;
-    }
-    let i = b || 0;
-    s = step ?? 1;
-    const ascending = s >= 0;
-    while (e === undefined || (ascending && i < e) || (!ascending && e < i)) {
-      yield i;
+  // range is a chunked source: it realizes CHUNK_SIZE values at a time
+  let b = begin,
+    e = end,
+    s = step;
+  if (end === undefined) {
+    b = 0;
+    e = begin;
+  }
+  const start = b || 0;
+  s = step ?? 1;
+  const ascending = s >= 0;
+  const more = (i) => e === undefined || (ascending && i < e) || (!ascending && e < i);
+  const mkStep = (from) => () => {
+    if (!more(from)) return null;
+    const out = [];
+    let i = from;
+    while (out.length < CHUNK_SIZE && more(i)) {
+      out.push(i);
       i += s;
     }
-  });
+    return [out, mkStep(i)];
+  };
+  return new LazyIterable(mkStep(start));
 }
 
 export function re_matches(re, s) {
@@ -1205,9 +1334,12 @@ export function mapv(...args) {
       }
       return ret;
     } else {
-      var ret = [];
-      for (const x of iter) {
-        ret.push(f(x));
+      // non-array: map whole chunks straight into the result array
+      const ret = [];
+      const next = chunkCursor(iter);
+      let ch;
+      while ((ch = next()) !== null) {
+        for (let i = 0; i < ch.length; i++) ret.push(f(ch[i]));
       }
       return ret;
     }
@@ -1215,12 +1347,32 @@ export function mapv(...args) {
   return [...map(...args)];
 }
 
-export function vec(x) {
-  if (array_QMARK_(x)) {
-    // return original, no need to clone the entire thing
-    return x;
+// Append every element of `from` to array `out`, bulk-appending whole chunks
+// for a chunked seq. Returns out.
+function pushAll(out, from) {
+  if (from instanceof LazyIterable) {
+    let cell = from;
+    for (;;) {
+      cell.force();
+      const ch = cell.chunk;
+      if (ch === null) return out;
+      Array.prototype.push.apply(out, ch);
+      cell = cell._rest;
+    }
   }
-  return [...iterable(x)];
+  for (const x of iterable(from)) out.push(x);
+  return out;
+}
+
+// Materialize a seq into a fresh, mutable array (bulk-copies chunked seqs).
+function toArray(coll) {
+  if (coll instanceof LazyIterable) return pushAll([], coll);
+  return [...iterable(coll)];
+}
+
+export function vec(x) {
+  if (array_QMARK_(x)) return x;
+  return pushAll([], x);
 }
 
 export function set(coll) {
@@ -1285,12 +1437,54 @@ export function array_QMARK_(x) {
   return Array.isArray(x);
 }
 
+const CONCAT_DONE = Symbol('concat-done');
+
 function concat1(colls) {
-  return lazy(function* () {
-    for (const coll of colls) {
-      yield* iterable(coll);
+  // chunk-aware: pass each coll's chunks through, preserving chunkedness. Each
+  // coll head is released once consumed so a single pass streams.
+  const isArr = Array.isArray(colls);
+  const arr = isArr ? colls.slice() : null;
+  const collIter = isArr ? null : es6_iterator(iterable(colls));
+  let idx = 0;
+  const nextColl = () => {
+    if (isArr) {
+      if (idx >= arr.length) return CONCAT_DONE;
+      const c = arr[idx];
+      arr[idx] = null;
+      idx++;
+      return c;
     }
-  });
+    const r = collIter.next();
+    return r.done ? CONCAT_DONE : r.value;
+  };
+  // src is null, a chunked cell, or {a, pos} for an array (raw-array fast path:
+  // no per-coll wrapper). Continuations carry immutable state, so a single pass
+  // streams.
+  const step = (src) => () => {
+    for (;;) {
+      if (src !== null) {
+        if (src instanceof LazyIterable) {
+          src.force();
+          if (src.chunk !== null) return [src.chunk, step(src._rest)];
+          src = null;
+        } else {
+          const a = src.a;
+          const pos = src.pos;
+          if (pos < a.length) {
+            const end = Math.min(pos + CHUNK_SIZE, a.length);
+            // slice (copy) so a cached chunk never aliases the caller's array
+            return [a.slice(pos, end), step({ a, pos: end })];
+          }
+          src = null;
+        }
+      }
+      const nc = nextColl();
+      if (nc === CONCAT_DONE) return null;
+      src =
+        nc instanceof LazyIterable ? nc : Array.isArray(nc) ? { a: nc, pos: 0 } : chunkCells(nc);
+    }
+  };
+  return new LazyIterable(step(null));
 }
 
 export function concat(...colls) {
@@ -1305,10 +1499,8 @@ concat[IApply__apply] = (colls) => {
 export function mapcat(f, ...colls) {
   if (colls.length === 0) {
     return comp(map(f), cat);
-  } else {
-    const mapped = map(f, ...colls);
-    return concat1(mapped);
   }
+  return concat1(map(f, ...colls));
 }
 
 export function identity(x) {
@@ -1316,8 +1508,8 @@ export function identity(x) {
 }
 
 export function interleave(...colls) {
+  const iters = colls.map((coll) => es6_iterator(iterable(coll)));
   return lazy(function* () {
-    const iters = colls.map((coll) => es6_iterator(iterable(coll)));
     while (true) {
       const res = [];
       for (const i of iters) {
@@ -1333,30 +1525,17 @@ export function interleave(...colls) {
 }
 
 function interpose1(sep) {
-  return (rf) => {
+  return transducer((rf) => {
     let started = false;
-    return (...args) => {
-      switch (args.length) {
-        case 0:
-          return rf();
-        case 1:
-          return rf(args[0]);
-        case 2: {
-          if (started) {
-            const sepr = rf(args[0], sep);
-            if (reduced_QMARK_(sepr)) {
-              return sepr;
-            } else {
-              return rf(sepr, args[1]);
-            }
-          } else {
-            started = true;
-            return rf(args[0], args[1]);
-          }
-        }
+    return (r, x) => {
+      if (!started) {
+        started = true;
+        return rf(r, x);
       }
+      const sepr = rf(r, sep);
+      return reduced_QMARK_(sepr) ? sepr : rf(sepr, x);
     };
-  };
+  });
 }
 
 export function interpose(sep, coll) {
@@ -1448,10 +1627,10 @@ export const partitionv = partition; // partition already returns a lazy of arra
 export const partitionv_all = partition_all;
 
 function partitionInternal(n, step, pad, coll, all) {
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     let p = [];
     let i = 0;
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (i < n) {
         p.push(x);
         if (p.length === n) {
@@ -1523,8 +1702,8 @@ export function partition_by(f, coll) {
   if (arguments.length === 1) {
     return partition_by1(f);
   }
+  const iter = es6_iterator(coll);
   return lazy(function* () {
-    const iter = es6_iterator(coll);
     const _fst = iter.next();
     if (_fst.done) {
       yield* null;
@@ -1623,7 +1802,13 @@ export function into(...args) {
     case 1:
       return args[0];
     case 2:
-      return conj(args[0] ?? [], ...iterable(args[1]));
+      // vector target bulk-appends chunks (copy preserves metadata); lists conj
+      // at the head, other targets need conj!
+      to = args[0] ?? [];
+      if (Array.isArray(to) && !(to instanceof List)) {
+        return pushAll(copy(to), args[1]);
+      }
+      return reduce(conj_BANG_, copy(to), args[1]);
     case 3:
       to = args[0];
       xform = args[1];
@@ -1674,42 +1859,23 @@ export function ensure_reduced(x) {
 }
 
 function take1(n) {
-  return (rf) => {
+  return transducer((rf) => {
     let na = n;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) {
-        return rf();
-      }
-      if (al === 1) {
-        const result = args[0];
-        return rf(result);
-      }
-      if (al === 2) {
-        let result = args[0];
-        const input = args[1];
-        const n = na;
-        const nn = ((na = na - 1), na);
-        if (n > 0) {
-          result = rf(result, input);
-        }
-        if (!(nn > 0)) {
-          return ensure_reduced(result);
-        } else {
-          return result;
-        }
-      }
+    return (r, x) => {
+      const nn = --na + 1;
+      if (nn > 0) r = rf(r, x);
+      return nn > 1 ? r : ensure_reduced(r);
     };
-  };
+  });
 }
 
 export function take(n, coll) {
   if (arguments.length === 1) {
     return take1(n);
   }
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     let i = n - 1;
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (i-- >= 0) {
         yield x;
       }
@@ -1743,22 +1909,7 @@ export function take_last(n, coll) {
 }
 
 function take_while1(pred) {
-  return (rf) => {
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) return rf();
-      if (al === 1) return rf(args[0]);
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        if (truth_(pred(input))) {
-          return rf(result, input);
-        } else {
-          return reduced(result);
-        }
-      }
-    };
-  };
+  return transducer((rf) => (r, x) => (truth_(pred(x)) ? rf(r, x) : reduced(r)));
 }
 
 export function take_while(pred, coll) {
@@ -1766,8 +1917,8 @@ export function take_while(pred, coll) {
   if (arguments.length === 1) {
     return take_while1(pred);
   }
-  return lazy(function* () {
-    for (const o of iterable(coll)) {
+  return lazyIter(coll, function* (it) {
+    for (const o of it) {
       if (truth_(pred(o))) yield o;
       else return;
     }
@@ -1775,23 +1926,10 @@ export function take_while(pred, coll) {
 }
 
 function take_nth1(n) {
-  return (rf) => {
+  return transducer((rf) => {
     let ia = -1;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) return rf();
-      if (al === 1) return rf(args[0]);
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        ia++;
-        const i = ia;
-        if (rem(i, n) === 0) {
-          return rf(result, input);
-        } else return result;
-      }
-    };
-  };
+    return (r, x) => (rem(++ia, n) === 0 ? rf(r, x) : r);
+  });
 }
 
 export function take_nth(n, coll) {
@@ -1800,9 +1938,9 @@ export function take_nth(n, coll) {
     return repeat(first(coll));
   }
 
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     let i = 0;
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (i % n === 0) {
         yield x;
       }
@@ -1825,33 +1963,15 @@ export function cycle(coll) {
 }
 
 function drop1(n) {
-  return (rf) => {
+  return transducer((rf) => {
     let na = n;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) {
-        return rf();
-      }
-      if (al === 1) {
-        return rf(args[0]);
-      }
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        const n = na;
-        na--;
-        if (n > 0) {
-          return result;
-        } else return rf(result, input);
-      }
-    };
-  };
+    return (r, x) => (na-- > 0 ? r : rf(r, x));
+  });
 }
 
 export function drop(n, xs) {
   if (arguments.length === 1) return drop1(n);
-  return lazy(function* () {
-    const iter = _iterator(iterable(xs));
+  return lazyIter(xs, function* (iter) {
     for (let x = 0; x < n; x++) {
       iter.next();
     }
@@ -1860,36 +1980,20 @@ export function drop(n, xs) {
 }
 
 function drop_while1(pred) {
-  return (rf) => {
+  return transducer((rf) => {
     let da = true;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) {
-        return rf();
-      }
-      if (al === 1) {
-        return rf(args[0]);
-      }
-      if (al === 2) {
-        const isDrop = da;
-        const result = args[0];
-        const input = args[1];
-        if (isDrop && truth_(pred(input))) {
-          return result;
-        } else {
-          da = null;
-          return rf(result, input);
-        }
-      }
+    return (r, x) => {
+      if (da && truth_(pred(x))) return r;
+      da = false;
+      return rf(r, x);
     };
-  };
+  });
 }
 
 export function drop_while(pred, xs) {
   pred = __toFn(pred);
   if (arguments.length === 1) return drop_while1(pred);
-  return lazy(function* () {
-    const iter = _iterator(iterable(xs));
+  return lazyIter(xs, function* (iter) {
     while (true) {
       const nextItem = iter.next();
       if (nextItem.done) {
@@ -1906,28 +2010,21 @@ export function drop_while(pred, xs) {
 }
 
 function distinct1() {
-  return (rf) => {
+  return transducer((rf) => {
     const seen = new Set();
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) return rf();
-      if (al === 1) return rf(args[0]);
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        if (seen.has(input)) return result;
-        seen.add(input);
-        return rf(result, input);
-      }
+    return (r, x) => {
+      if (seen.has(x)) return r;
+      seen.add(x);
+      return rf(r, x);
     };
-  };
+  });
 }
 
 export function distinct(coll) {
   if (arguments.length === 0) return distinct1();
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     const seen = new Set();
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (!seen.has(x)) yield x;
       seen.add(x);
     }
@@ -1938,28 +2035,21 @@ export function distinct(coll) {
 const DEDUPE_NONE = Symbol('dedupe-none');
 
 function dedupe1() {
-  return (rf) => {
+  return transducer((rf) => {
     let prev = DEDUPE_NONE;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) return rf();
-      if (al === 1) return rf(args[0]);
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        const skip = prev !== DEDUPE_NONE && truth_(_EQ_(prev, input));
-        prev = input;
-        return skip ? result : rf(result, input);
-      }
+    return (r, x) => {
+      const skip = prev !== DEDUPE_NONE && truth_(_EQ_(prev, x));
+      prev = x;
+      return skip ? r : rf(r, x);
     };
-  };
+  });
 }
 
 export function dedupe(coll) {
   if (arguments.length === 0) return dedupe1();
-  return lazy(function* () {
+  return lazyIter(coll, function* (it) {
     let prev = DEDUPE_NONE;
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (prev === DEDUPE_NONE || !truth_(_EQ_(prev, x))) yield x;
       prev = x;
     }
@@ -1999,8 +2089,14 @@ export function fnil(f, x, ...xs) {
 
 export function every_QMARK_(pred, coll) {
   pred = __toFn(pred);
-  for (const x of iterable(coll)) {
-    if (!pred(x)) return false;
+  if (Array.isArray(coll)) {
+    for (let i = 0; i < coll.length; i++) if (!pred(coll[i])) return false;
+    return true;
+  }
+  const next = chunkCursor(coll);
+  let ch;
+  while ((ch = next()) !== null) {
+    for (let i = 0; i < ch.length; i++) if (!pred(ch[i])) return false;
   }
   return true;
 }
@@ -2010,36 +2106,27 @@ export function not_every_QMARK_(pred, coll) {
 }
 
 function keep1(pred) {
-  return (rf) => {
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) return rf();
-      if (al === 1) return rf(args[0]);
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        const v = pred(input);
-        if (v == null) return result;
-        return rf(result, v);
-      }
-    };
-  };
+  return transducer((rf) => (r, x) => {
+    const v = pred(x);
+    return v == null ? r : rf(r, v);
+  });
 }
 
 export function keep(pred, coll) {
   pred = __toFn(pred);
   if (arguments.length === 1) return keep1(pred);
-  return lazy(function* () {
-    for (const o of iterable(coll)) {
-      const res = pred(o);
-      if (truth_(res)) yield res;
+  return mapChunks(coll, (ch) => {
+    const out = [];
+    for (let i = 0; i < ch.length; i++) {
+      const res = pred(ch[i]);
+      if (truth_(res)) out.push(res);
     }
+    return out;
   });
 }
 
 export function reverse(coll) {
-  coll = iterable(coll);
-  return [...coll].reverse();
+  return toArray(coll).reverse();
 }
 
 export function sort(f, coll) {
@@ -2048,9 +2135,8 @@ export function sort(f, coll) {
     f = undefined;
   }
   f = __toFn(f);
-  coll = iterable(coll);
-  // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
-  const clone = [...coll];
+  // need a copy since .sort works in place and .toSorted isn't on Node < 20
+  const clone = toArray(coll);
   // result is guaranteed to be stable since ES2019, like CLJS
   return clone.sort(f || compare);
 }
@@ -2090,7 +2176,7 @@ export function sort_by(keyfn, comp, coll) {
 }
 
 export function shuffle(coll) {
-  const result = [...coll];
+  const result = toArray(coll);
   let remaining = result.length;
   while (remaining) {
     const i = Math.floor(Math.random() * remaining--);
@@ -2104,9 +2190,20 @@ export function shuffle(coll) {
 
 export function some(pred, coll) {
   pred = __toFn(pred);
-  for (const o of iterable(coll)) {
-    const res = pred(o);
-    if (truth_(res)) return res;
+  if (Array.isArray(coll)) {
+    for (let i = 0; i < coll.length; i++) {
+      const res = pred(coll[i]);
+      if (truth_(res)) return res;
+    }
+    return undefined;
+  }
+  const next = chunkCursor(coll);
+  let ch;
+  while ((ch = next()) !== null) {
+    for (let i = 0; i < ch.length; i++) {
+      const res = pred(ch[i]);
+      if (truth_(res)) return res;
+    }
   }
   return undefined;
 }
@@ -2192,22 +2289,16 @@ export function frequencies(coll) {
   return res;
 }
 
-export class LazySeq {
+// The lazy-seq macro emits `new LazySeq(() => body)`: a LazyIterable whose step
+// evaluates the body thunk on first force and reads it unchunked.
+export class LazySeq extends LazyIterable {
   constructor(f) {
-    this.f = f;
-    this.res = undefined;
-  }
-  *[Symbol.iterator]() {
-    if (this.res === undefined) {
-      this.res = this.f();
-      this.f = null;
-    }
-    yield* iterable(this.res);
+    super(() => unchunkedSteps(es6_iterator(iterable(f())))());
   }
 }
 
 export function butlast(coll) {
-  const x = [...iterable(coll)];
+  const x = toArray(coll);
   x.pop();
   return x.length > 0 ? x : null;
 }
@@ -2231,10 +2322,11 @@ export function count(coll) {
   if (typeof len === 'number') {
     return len;
   }
+  // sum chunk lengths instead of counting elements one by one
+  const next = chunkCursor(coll);
   let ret = 0;
-  for (const _ of iterable(coll)) {
-    ret++;
-  }
+  let ch;
+  while ((ch = next()) !== null) ret += ch.length;
   return ret;
 }
 
@@ -2302,6 +2394,12 @@ export function aset(arr, idx, val, ...more) {
 }
 
 export function dorun(x) {
+  // only a lazy seq needs forcing; realized colls are walked natively
+  if (x instanceof LazyIterable) {
+    const next = chunkCursor(x);
+    while (next() !== null);
+    return null;
+  }
   for (const _ of iterable(x)) {
     // nothing here, just consume for side effects
   }

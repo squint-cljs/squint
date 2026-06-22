@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Lazy seqs are now cached. Previously squint did not cache results so if you consumed a seq twice its results would be computed twice. For performance seqs are chunked, same as CLJS.
+- Because lazy seqs are now cached, `warn-on-lazy-reusae!` now prints a deprecation warning and does nothing. It will be removed in the future.
 - `=` compares two lazy seqs of the same type element-wise instead of as plain objects, so e.g. `(= (concat nil ["a"]) (concat nil ["a"]))` is `true`
 - `persistent!` no longer freezes its argument, so persistent structures stay extensible for symbol-keyed metadata
 - `vswap!` and `vreset!` return the new value, like Clojure
