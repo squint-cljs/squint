@@ -740,26 +740,60 @@ export function reduced_QMARK_(x) {
 
 export function reduce(f, arg1, arg2) {
   f = __toFn(f);
-  let coll, val;
-  if (arguments.length === 2) {
-    // (reduce f coll)
-    const iter = iterable(arg1)[Symbol.iterator]();
-    const vd = iter.next();
-    if (vd.done) {
-      val = f();
-    } else {
-      val = vd.value;
+  const hasInit = arguments.length !== 2;
+  const coll = hasInit ? arg2 : arg1;
+  let val = hasInit ? arg1 : undefined;
+
+  // fast path: index loop over an array
+  if (Array.isArray(coll)) {
+    let i = 0;
+    if (!hasInit) {
+      if (coll.length === 0) return f();
+      val = coll[0];
+      i = 1;
     }
-    coll = iter;
-  } else {
-    // (reduce f val coll)
-    val = arg1;
-    coll = iterable(arg2);
+    if (val instanceof Reduced) return val.value;
+    for (; i < coll.length; i++) {
+      val = f(val, coll[i]);
+      if (val instanceof Reduced) return val.value;
+    }
+    return val;
+  }
+
+  // fast path: iterate whole chunks of a chunked seq
+  if (coll instanceof LazyIterable) {
+    let cell = coll;
+    let start = 0;
+    if (!hasInit) {
+      cell.force();
+      if (cell.chunk === null) return f();
+      val = cell.chunk[0];
+      start = 1;
+    }
+    if (val instanceof Reduced) return val.value;
+    for (;;) {
+      cell.force();
+      const ch = cell.chunk;
+      if (ch === null) return val;
+      for (let i = start; i < ch.length; i++) {
+        val = f(val, ch[i]);
+        if (val instanceof Reduced) return val.value;
+      }
+      start = 0;
+      cell = cell._rest;
+    }
+  }
+
+  // generic: any other seqable
+  const iter = iterable(coll)[Symbol.iterator]();
+  if (!hasInit) {
+    const vd = iter.next();
+    val = vd.done ? f() : vd.value;
   }
   if (val instanceof Reduced) {
     return val.value;
   }
-  for (const x of coll) {
+  for (const x of iter) {
     val = f(val, x);
     if (val instanceof Reduced) {
       val = val.value;
@@ -1348,15 +1382,11 @@ export function mapv(...args) {
   return [...map(...args)];
 }
 
-export function vec(x) {
-  if (array_QMARK_(x)) {
-    // return original, no need to clone the entire thing
-    return x;
-  }
-  // chunk-aware fast path: bulk-append whole chunks instead of element-by-element
-  if (x instanceof LazyIterable) {
-    const out = [];
-    let cell = x;
+// Append every element of `from` to array `out`, bulk-appending whole chunks
+// for a chunked seq. Returns out.
+function pushAll(out, from) {
+  if (from instanceof LazyIterable) {
+    let cell = from;
     for (;;) {
       cell.force();
       const ch = cell.chunk;
@@ -1365,7 +1395,16 @@ export function vec(x) {
       cell = cell._rest;
     }
   }
-  return [...iterable(x)];
+  for (const x of iterable(from)) out.push(x);
+  return out;
+}
+
+export function vec(x) {
+  if (array_QMARK_(x)) {
+    // return original, no need to clone the entire thing
+    return x;
+  }
+  return pushAll([], x);
 }
 
 export function set(coll) {
@@ -1797,7 +1836,15 @@ export function into(...args) {
     case 1:
       return args[0];
     case 2:
-      return conj(args[0] ?? [], ...iterable(args[1]));
+      // vector target: bulk-append chunks (copy preserves metadata). Lists conj
+      // at the head and other targets need conj!, so reduce with conj! on a
+      // copy. Either way avoids spreading the whole seq, which overflows the
+      // call stack on large input.
+      to = args[0] ?? [];
+      if (Array.isArray(to) && !(to instanceof List)) {
+        return pushAll(copy(to), args[1]);
+      }
+      return reduce(conj_BANG_, copy(to), args[1]);
     case 3:
       to = args[0];
       xform = args[1];
@@ -2419,6 +2466,18 @@ export function count(coll) {
   const len = coll.length || coll.size;
   if (typeof len === 'number') {
     return len;
+  }
+  // chunk-aware: sum chunk lengths instead of counting elements one by one
+  if (coll instanceof LazyIterable) {
+    let ret = 0;
+    let cell = coll;
+    for (;;) {
+      cell.force();
+      const ch = cell.chunk;
+      if (ch === null) return ret;
+      ret += ch.length;
+      cell = cell._rest;
+    }
   }
   let ret = 0;
   for (const _ of iterable(coll)) {
