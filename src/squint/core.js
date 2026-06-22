@@ -3171,6 +3171,7 @@ export function volatile_BANG_(x) {
 
 export function vreset_BANG_(vol, v) {
   vol.v = v;
+  return v;
 }
 
 function toEDN(value, seen = new WeakSet()) {

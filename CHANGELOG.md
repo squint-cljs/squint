@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- `vswap!` and `vreset!` return the new value, like Clojure
 - `nth` on an out-of-bounds index without a default now throws, like Clojure
 - `disj` on nil returns nil instead of throwing
 - `name` now returns the part after the `/` for a namespaced keyword/symbol (e.g. `(name :foo/bar)` -> `"bar"`), consistent with `namespace` so they round-trip. Since keywords are strings in squint this also applies to slash-containing strings (differs from Clojure string `name`).

@@ -3166,7 +3166,10 @@ new Foo();")
                       @a)))))
 
 (deftest volatile-test
-  (is (eq 2 (jsv! "(def x (volatile! 1)) (vswap! x inc) @x"))))
+  (is (eq 2 (jsv! "(def x (volatile! 1)) (vswap! x inc) @x")))
+  ;; vswap! and vreset! return the new value, like Clojure
+  (is (= 2 (jsv! "(def x (volatile! 1)) (vswap! x inc)")))
+  (is (= 5 (jsv! "(def x (volatile! 1)) (vreset! x 5)"))))
 
 (deftest some?-macro-test
   (let [s (jss! "(defn foo [x] (let [y (some? x)] (when y (js/console.log y))))")]
