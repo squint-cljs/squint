@@ -1353,6 +1353,18 @@ export function vec(x) {
     // return original, no need to clone the entire thing
     return x;
   }
+  // chunk-aware fast path: bulk-append whole chunks instead of element-by-element
+  if (x instanceof LazyIterable || x instanceof LazySeq) {
+    const out = [];
+    let cell = x;
+    for (;;) {
+      cell.force();
+      const ch = cell.chunk;
+      if (ch === null) return out;
+      Array.prototype.push.apply(out, ch);
+      cell = cell._rest;
+    }
+  }
   return [...iterable(x)];
 }
 
