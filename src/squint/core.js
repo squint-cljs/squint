@@ -968,6 +968,30 @@ function chunkCursor(coll) {
   };
 }
 
+// Build a lazy seq that transforms each input chunk via xf(chunk, baseIndex) ->
+// new chunk array. Preserves the input's chunkedness. xf may return a shorter
+// or empty array (e.g. filter); empty results are skipped so a step never emits
+// an empty chunk. baseIndex is the count of input elements before the chunk,
+// for indexed ops. Shared by the chunk-aware element ops.
+function mapChunks(coll, xf) {
+  const src = chunkCells(coll);
+  const step = (cell, base) => () => {
+    let c = cell;
+    let b = base;
+    for (;;) {
+      c.force();
+      const ch = c.chunk;
+      if (ch === null) return null;
+      const out = xf(ch, b);
+      const rest = c._rest;
+      b += ch.length;
+      if (out.length !== 0) return [out, step(rest, b)];
+      c = rest;
+    }
+  };
+  return new LazyIterable(step(src, 0));
+}
+
 export class Cons {
   constructor(x, coll) {
     this.x = x;
@@ -1030,19 +1054,12 @@ export function map(f, ...colls) {
           }
         };
       };
-    case 1: {
-      // chunk-aware: map a whole chunk at a time in a tight loop
-      const src = chunkCells(colls[0]);
-      const step = (cell) => () => {
-        cell.force();
-        const ch = cell.chunk;
-        if (ch === null) return null;
+    case 1:
+      return mapChunks(colls[0], (ch) => {
         const out = new Array(ch.length);
         for (let i = 0; i < ch.length; i++) out[i] = f(ch[i]);
-        return [out, step(cell._rest)];
-      };
-      return new LazyIterable(step(src));
-    }
+        return out;
+      });
     default: {
       const iters = colls.map((coll) => es6_iterator(iterable(coll)));
       return lazy(function* () {
@@ -1087,26 +1104,14 @@ export function filter(pred, coll) {
     return filter1(pred);
   }
   pred = __toFn(pred);
-  // chunk-aware: filter a whole chunk at a time; skip chunks that empty out so
-  // a step never yields an empty chunk
-  const src = chunkCells(coll);
-  const step = (cell) => () => {
-    let c = cell;
-    for (;;) {
-      c.force();
-      const ch = c.chunk;
-      if (ch === null) return null;
-      const out = [];
-      for (let i = 0; i < ch.length; i++) {
-        const x = ch[i];
-        if (truth_(pred(x))) out.push(x);
-      }
-      const rest = c._rest;
-      if (out.length !== 0) return [out, step(rest)];
-      c = rest;
+  return mapChunks(coll, (ch) => {
+    const out = [];
+    for (let i = 0; i < ch.length; i++) {
+      const x = ch[i];
+      if (truth_(pred(x))) out.push(x);
     }
-  };
-  return new LazyIterable(step(src));
+    return out;
+  });
 }
 
 export function filterv(pred, coll) {
@@ -1142,40 +1147,23 @@ export function map_indexed(f, coll) {
   if (arguments.length === 1) {
     return map_indexed1(f);
   }
-  const src = chunkCells(coll);
-  const step = (cell, idx) => () => {
-    cell.force();
-    const ch = cell.chunk;
-    if (ch === null) return null;
+  return mapChunks(coll, (ch, base) => {
     const out = new Array(ch.length);
-    for (let i = 0; i < ch.length; i++) out[i] = f(idx + i, ch[i]);
-    return [out, step(cell._rest, idx + ch.length)];
-  };
-  return new LazyIterable(step(src, 0));
+    for (let i = 0; i < ch.length; i++) out[i] = f(base + i, ch[i]);
+    return out;
+  });
 }
 
 function keep_indexed2(f, coll) {
   f = __toFn(f);
-  const src = chunkCells(coll);
-  const step = (cell, idx) => () => {
-    let c = cell;
-    let base = idx;
-    for (;;) {
-      c.force();
-      const ch = c.chunk;
-      if (ch === null) return null;
-      const out = [];
-      for (let i = 0; i < ch.length; i++) {
-        const v = f(base + i, ch[i]);
-        if (truth_(v)) out.push(v);
-      }
-      const rest = c._rest;
-      base += ch.length;
-      if (out.length !== 0) return [out, step(rest, base)];
-      c = rest;
+  return mapChunks(coll, (ch, base) => {
+    const out = [];
+    for (let i = 0; i < ch.length; i++) {
+      const v = f(base + i, ch[i]);
+      if (truth_(v)) out.push(v);
     }
-  };
-  return new LazyIterable(step(src, 0));
+    return out;
+  });
 }
 
 function keep_indexed1(f) {
@@ -2304,24 +2292,14 @@ function keep1(pred) {
 export function keep(pred, coll) {
   pred = __toFn(pred);
   if (arguments.length === 1) return keep1(pred);
-  const src = chunkCells(coll);
-  const step = (cell) => () => {
-    let c = cell;
-    for (;;) {
-      c.force();
-      const ch = c.chunk;
-      if (ch === null) return null;
-      const out = [];
-      for (let i = 0; i < ch.length; i++) {
-        const res = pred(ch[i]);
-        if (truth_(res)) out.push(res);
-      }
-      const rest = c._rest;
-      if (out.length !== 0) return [out, step(rest)];
-      c = rest;
+  return mapChunks(coll, (ch) => {
+    const out = [];
+    for (let i = 0; i < ch.length; i++) {
+      const res = pred(ch[i]);
+      if (truth_(res)) out.push(res);
     }
-  };
-  return new LazyIterable(step(src));
+    return out;
+  });
 }
 
 export function reverse(coll) {
