@@ -154,7 +154,7 @@
   (bump-core-vars)
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn compile squint")
   (compile-test-runtime)
-  (shell "node lib/squint_tests.js")
+  (shell "node --expose-gc lib/squint_tests.js")
   (node-repl-tests/run-tests {})
   (node-cli-tests/run-tests {})
   (test-project {})

@@ -9,6 +9,7 @@
    [squint.compiler :as squint]
    [squint.html-test]
    [squint.jsx-test]
+   [squint.lazy-memory-test]
    [squint.math-test]
    [squint.multi-test]
    [squint.string-test]
@@ -3215,6 +3216,7 @@ new Foo();")
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test
+               'squint.lazy-memory-test
                'squint.string-test
                'squint.html-test
                'squint.math-test
