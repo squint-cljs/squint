@@ -1,7 +1,8 @@
 # replicant example
 
 [Replicant](https://github.com/cjohansen/replicant) running under squint, served
-by vite.
+by vite. The app is the official Replicant getting-started tutorial,
+[tic-tac-toe](https://github.com/cjohansen/replicant-tic-tac-toe).
 
 ```
 npm install
@@ -12,16 +13,30 @@ The squint vite plugin compiles the ClojureScript, hot-reloads the page, and
 runs a browser nREPL you can connect your editor to (`.nrepl-port` or
 `localhost:1339`).
 
-`src/ohm.cljs` is the Ohm's law calculator from replicant's own dev demos
-(`dev/replicant/ohm.cljs`), copied verbatim. `src/app.cljs` is a trimmed copy of
-the upstream demo runner (`dev/replicant/dev.cljs`): data-driven event handlers
-(`:on {:input [[:actions/...]]}`) dispatched through `d/set-dispatch!`, state in
-an atom, re-render on change.
+`src/tic_tac_toe/{game.cljc,ui.cljc,core.cljs}` are copied from the tutorial.
+`src/tic_tac_toe/main.cljs` is the squint entry point (the tutorial boots from
+`dev/` via shadow's `:dev/after-load`).
 
-Replicant itself is compiled from a local checkout via `squint.edn`:
+Three spots were adapted to squint's data model:
+
+- `next-player` and `player->mark` are maps used as functions in CLJS
+  (`(next-player p)`); squint maps are plain JS objects, so these use `get`.
+- `tics` is looked up the same way (`(map #(get tics %) path)`).
+- the winning-path highlight uses a set of `[y x]` vectors in CLJS; squint sets
+  compare by reference, so it compares against the path with `=` instead.
+
+Maps keyed by `[y x]` vectors do work: squint stringifies the key consistently,
+so `assoc-in`/`get-in` round-trip.
+
+Replicant itself is pulled in as a git dependency via the `:deps` key in
+`squint.edn`:
 
 ```clojure
-{:paths ["src" "../../../replicant/src"]}
+{:paths ["src"]
+ :deps {io.github.cjohansen/replicant {:git/url "https://github.com/borkdude/replicant"
+                                       :git/sha "de29298dccff23b254ab62bef3fa273d25a83ec1"}}}
 ```
 
-Point that path at your own replicant checkout if it lives elsewhere.
+`:deps` uses the same format as `deps.edn`. Source directories are resolved with
+the `clojure` CLI (`-Spath`) and added to `:paths`. Only git and `:local/root`
+libraries are supported, no jars yet.

@@ -1,5 +1,6 @@
 {:paths ["src" "src-other"
          "resources"]
+ :deps {local/greetlib {:local/root "deps/greetlib"}}
  :output-dir "lib"
  :copy-resources #{"foo\\.json"  "test\\.json" :css}
  #_#_:import-maps {"squint-cljs/core.js" "https://foobar.net"

@@ -124,7 +124,10 @@
       (assert (str/includes? output "qualified test: 142"))
       (assert (str/includes? output "refer-only qualified: 242"))
       (assert (str/includes? output "real-debug: 42"))
-      (assert (str/includes? output "transitive-rt: debug: 42")))
+      (assert (str/includes? output "transitive-rt: debug: 42"))
+      ;; :deps with :local/root resolves to a source dir added to :paths
+      (assert (str/includes? output "greetlib hello deps")))
+    (assert (fs/exists? "test-project/lib/greetlib/core.mjs"))
     (assert (fs/exists? "test-project/lib/foo.json"))
     (assert (fs/exists? "test-project/lib/baz.css"))
     (assert (not (fs/exists? "test-project/lib/bar.json")))))

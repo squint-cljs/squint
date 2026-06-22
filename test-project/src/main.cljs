@@ -4,6 +4,7 @@
             [macros-transitive :refer [wrapper format-it]]
             [other-ns]
             [my-other-src :as src]
+            [greetlib.core :as greet]
             ["fs" :as fs]
             ["path" :as path]
             ["url" :as url :refer [fileURLToPath]]
@@ -34,3 +35,4 @@
 (println "refer-only qualified:" (with-add-200 42))
 (wrapper 42)
 (println "transitive-rt:" (format-it 42))
+(println (greet/greeting "deps"))

@@ -12,27 +12,9 @@
    [squint.internal.node.utils :as utils]
    [clojure.string :as str]))
 
-(defn file-in-output-dir [file paths output-dir]
-  (if output-dir
-    (path/resolve output-dir
-                  (compiler/adjust-file-for-paths file paths))
-    file))
-
-(defn resolve-ns [opts in-file x]
-  (let [output-dir (:output-dir opts)
-        paths (:paths opts)
-        in-file-in-output-dir (file-in-output-dir in-file paths output-dir)]
-    (when-let [resolved
-               (some-> (utils/resolve-file x)
-                       (file-in-output-dir paths output-dir)
-                       (some->> (path/relative (path/dirname (str in-file-in-output-dir)))))]
-      (let [ext (:extension opts ".mjs")
-            ext (if (str/starts-with? ext ".")
-                  ext
-                  (str "." ext))
-            ext' (path/extname resolved)
-            file (str "./" (str/replace resolved (re-pattern (str ext' "$")) ext))]
-        file))))
+(def resolve-ns
+  ;; same resolution compile-file uses for callers that don't supply :resolve-ns
+  compiler/resolve-ns)
 
 (defn files-from-path [path]
   (let [files (fs/readdirSync path)]
@@ -263,8 +245,9 @@
     :epilog squint-edn-note
     :fn (fn [{:keys [opts]}]
           (args-validate {:arg-count 1 :arg-ref "<file>" :args (:file opts)})
-          (utils/set-cfg! opts)
-          (run opts (first (:file opts))))}
+          (let [opts (utils/expand-paths opts)]
+            (utils/set-cfg! opts)
+            (run opts (first (:file opts)))))}
    {:cmds ["compile"]
     :doc "Compile file(s)."
     :spec compile-spec
@@ -272,14 +255,15 @@
     :args->opts (repeat :file)
     :epilog (str "<files> overrides --paths (and :paths in squint.edn).\n" squint-edn-note)
     :fn (fn [{:keys [opts]}]
-          (utils/set-cfg! opts)
-          (-> (compile-files opts (:file opts))
+          (let [opts (utils/expand-paths opts)]
+            (utils/set-cfg! opts)
+            (-> (compile-files opts (:file opts))
               (.then (fn [{:keys [compiled copied]}]
                        (println "[squint] Compiled sources:" compiled)
                        (when (:copy-resources opts)
                          (println "[squint] Copied resources:" copied))
                        (when (zero? (+ compiled copied))
-                         (err-exit! "Compile processed no files"))))))}
+                         (err-exit! "Compile processed no files")))))))}
    {:cmds ["watch"]
     :doc "Watch and auto-recompile paths."
     :spec watch-spec
@@ -287,8 +271,9 @@
     :epilog squint-edn-note
     :fn (fn [{:keys [opts] :as m}]
           (args-validate (assoc m :arg-count 0))
-          (utils/set-cfg! opts)
-          (watch opts))}
+          (let [opts (utils/expand-paths opts)]
+            (utils/set-cfg! opts)
+            (watch opts)))}
    {:cmds ["repl"]
     :doc "Start a REPL."
     :fn (fn [m] (args-validate (assoc m :arg-count 0)) (repl/repl m))}

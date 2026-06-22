@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Support `:deps` in `deps.edn`, resolved via `clojure -Spath`, added to `:paths` implicitly. Squint only supports `:git/sha` and `:local/root` libraries for now.
 - Lazy seqs are now cached. Previously squint did not cache results so if you consumed a seq twice its results would be computed twice. For performance seqs are chunked, same as CLJS.
 - Because lazy seqs are now cached, `warn-on-lazy-reusae!` now prints a deprecation warning and does nothing. It will be removed in the future.
 - `=` compares two lazy seqs of the same type element-wise instead of as plain objects, so e.g. `(= (concat nil ["a"]) (concat nil ["a"]))` is `true`
