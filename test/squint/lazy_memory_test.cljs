@@ -67,6 +67,22 @@
   ;; the call stack)
   (is (= 1000000 (jsv! "(count (into [] (range 1000000)))"))))
 
+(deftest concat-does-not-alias-input-array
+  ;; concat copies a coll into its cached chunks, so mutating the input array
+  ;; after concat is not observable on the seq (arrays are mutable in squint)
+  (is (= 1 (jsv! "(let [a [1 2 3]
+                        s (concat a [4 5])]
+                    (vec s)
+                    (aset a 0 99)
+                    (first s))"))
+      "small array (one chunk)")
+  (is (= 0 (jsv! "(let [a (vec (range 40))
+                        s (concat a [100])]
+                    (vec s)
+                    (aset a 0 99)
+                    (first s))"))
+      "large array (sliced into chunks)"))
+
 ;; --- streaming: constant memory on a single non-retained pass ---
 
 (defn- gc-available? []
