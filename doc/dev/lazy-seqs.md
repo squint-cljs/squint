@@ -116,10 +116,16 @@ unchunked.
 
 ## Realizers
 
-Functions that consume a seq fully take a chunk-aware fast path when the input is
-a chunked cell (`instanceof LazyIterable`, which `LazySeq` extends): they walk
-cells and process whole chunk arrays instead of going element by element through
-the cursor.
+Functions that consume a seq fully take a chunk-aware fast path: they process
+whole chunk arrays instead of going element by element through the seq cursor.
+
+Arrays keep a dedicated shortcut (`coll[idx]`, `coll.length`, an index loop -
+all O(1) or the tightest inline loop). The non-array tail (chunked cells and any
+other seqable) goes through `chunkCursor(coll)`, which returns a function
+yielding the next chunk array or null. Callers drive it with an inline loop, so
+the accumulator stays a plain local and it runs as fast as a hand-written cell
+walk. A callback or generator does not: a callback closes over the mutated
+accumulator and deopts, a generator pays per-chunk yield overhead.
 
 - `reduce` runs the reducing function over each chunk array in a tight loop
   (and an index loop for plain array input). Other reducers build on it.

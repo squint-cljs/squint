@@ -552,28 +552,15 @@ export function nth(coll, idx, orElse) {
     if (idx >= 0 && idx < coll.length) {
       return coll[idx];
     }
-  } else if (coll instanceof LazyIterable) {
-    // chunk-aware: skip whole chunks instead of counting elements
-    if (idx >= 0) {
-      let cell = coll;
-      let base = 0;
-      for (;;) {
-        cell.force();
-        const ch = cell.chunk;
-        if (ch === null) break;
-        if (idx < base + ch.length) return ch[idx - base];
-        base += ch.length;
-        cell = cell._rest;
-      }
-    }
-  } else {
-    // iterables may lack .length and can be infinite, so iterate and stop at idx
-    const iter = iterable(coll);
-    let i = 0;
-    for (const value of iter) {
-      if (i++ === idx) {
-        return value;
-      }
+  } else if (idx >= 0) {
+    // non-array: skip whole chunks instead of counting elements (handles
+    // infinite seqs since it stops once idx is reached)
+    const next = chunkCursor(coll);
+    let base = 0;
+    let ch;
+    while ((ch = next()) !== null) {
+      if (idx < base + ch.length) return ch[idx - base];
+      base += ch.length;
     }
   }
   // out of bounds. With a default return it, otherwise throw like Clojure
@@ -732,28 +719,15 @@ class Reduced {
 
 export function last(coll) {
   coll = iterable(coll);
-  // chunk-aware: walk cells, return the last element of the final chunk
-  if (coll instanceof LazyIterable) {
-    let cell = coll;
-    let lastEl;
-    for (;;) {
-      cell.force();
-      const ch = cell.chunk;
-      if (ch === null) return lastEl;
-      lastEl = ch[ch.length - 1];
-      cell = cell._rest;
-    }
+  if (Array.isArray(coll)) {
+    return coll[coll.length - 1];
   }
+  // non-array: walk chunks, keep the last chunk's last element
+  const next = chunkCursor(coll);
   let lastEl;
-  switch (typeConst(coll)) {
-    case ARRAY_TYPE:
-      return coll[coll.length - 1];
-    default:
-      for (const x of coll) {
-        lastEl = x;
-      }
-      return lastEl;
-  }
+  let ch;
+  while ((ch = next()) !== null) lastEl = ch[ch.length - 1];
+  return lastEl;
 }
 
 export function reduced(x) {
@@ -786,45 +760,23 @@ export function reduce(f, arg1, arg2) {
     return val;
   }
 
-  // fast path: iterate whole chunks of a chunked seq
-  if (coll instanceof LazyIterable) {
-    let cell = coll;
-    let start = 0;
-    if (!hasInit) {
-      cell.force();
-      if (cell.chunk === null) return f();
-      val = cell.chunk[0];
-      start = 1;
-    }
-    if (val instanceof Reduced) return val.value;
-    for (;;) {
-      cell.force();
-      const ch = cell.chunk;
-      if (ch === null) return val;
-      for (let i = start; i < ch.length; i++) {
-        val = f(val, ch[i]);
-        if (val instanceof Reduced) return val.value;
-      }
-      start = 0;
-      cell = cell._rest;
-    }
-  }
-
-  // generic: any other seqable
-  const iter = iterable(coll)[Symbol.iterator]();
+  // non-array: walk chunks (chunked cell or any other seqable)
+  const next = chunkCursor(coll);
+  let ch = next();
+  let i = 0;
   if (!hasInit) {
-    const vd = iter.next();
-    val = vd.done ? f() : vd.value;
+    if (ch === null) return f();
+    val = ch[0];
+    i = 1;
   }
-  if (val instanceof Reduced) {
-    return val.value;
-  }
-  for (const x of iter) {
-    val = f(val, x);
-    if (val instanceof Reduced) {
-      val = val.value;
-      break;
+  if (val instanceof Reduced) return val.value;
+  while (ch !== null) {
+    for (; i < ch.length; i++) {
+      val = f(val, ch[i]);
+      if (val instanceof Reduced) return val.value;
     }
+    ch = next();
+    i = 0;
   }
   return val;
 }
@@ -963,6 +915,35 @@ function chunkCells(coll) {
     return new LazyIterable(step(0));
   }
   return new LazyIterable(unchunkedSteps(es6_iterator(iterable(coll))));
+}
+
+// A cursor over a seq's chunks for realizers (reduce, count, last, nth, ...).
+// Returns a function that yields the next chunk array or null at the end. A
+// chunked cell yields its cached chunks; any other seqable is batched through
+// its iterator. Callers keep their own array shortcut: this is the non-array
+// tail. Driving it with an inline loop keeps the accumulator a plain local, so
+// it is as fast as a hand-written cell walk (a callback or generator is not).
+function chunkCursor(coll) {
+  if (coll instanceof LazyIterable) {
+    let cell = coll;
+    return () => {
+      if (cell === null) return null;
+      cell.force();
+      const ch = cell.chunk;
+      cell = ch === null ? null : cell._rest;
+      return ch;
+    };
+  }
+  const it = es6_iterator(iterable(coll));
+  return () => {
+    const b = [];
+    for (let i = 0; i < CHUNK_SIZE; i++) {
+      const r = it.next();
+      if (r.done) break;
+      b.push(r.value);
+    }
+    return b.length === 0 ? null : b;
+  };
 }
 
 export class Cons {
@@ -1398,21 +1379,13 @@ export function mapv(...args) {
         ret[i] = f(iter[i]);
       }
       return ret;
-    } else if (iter instanceof LazyIterable) {
-      // map whole chunks straight into the result array
-      const ret = [];
-      let cell = iter;
-      for (;;) {
-        cell.force();
-        const ch = cell.chunk;
-        if (ch === null) return ret;
-        for (let i = 0; i < ch.length; i++) ret.push(f(ch[i]));
-        cell = cell._rest;
-      }
     } else {
-      var ret = [];
-      for (const x of iter) {
-        ret.push(f(x));
+      // non-array: map whole chunks straight into the result array
+      const ret = [];
+      const next = chunkCursor(iter);
+      let ch;
+      while ((ch = next()) !== null) {
+        for (let i = 0; i < ch.length; i++) ret.push(f(ch[i]));
       }
       return ret;
     }
@@ -2505,22 +2478,11 @@ export function count(coll) {
   if (typeof len === 'number') {
     return len;
   }
-  // chunk-aware: sum chunk lengths instead of counting elements one by one
-  if (coll instanceof LazyIterable) {
-    let ret = 0;
-    let cell = coll;
-    for (;;) {
-      cell.force();
-      const ch = cell.chunk;
-      if (ch === null) return ret;
-      ret += ch.length;
-      cell = cell._rest;
-    }
-  }
+  // sum chunk lengths instead of counting elements one by one
+  const next = chunkCursor(coll);
   let ret = 0;
-  for (const _ of iterable(coll)) {
-    ret++;
-  }
+  let ch;
+  while ((ch = next()) !== null) ret += ch.length;
   return ret;
 }
 
@@ -2588,18 +2550,9 @@ export function aset(arr, idx, val, ...more) {
 }
 
 export function dorun(x) {
-  // chunk-aware: force each cell, no per-element cursor
-  if (x instanceof LazyIterable) {
-    let cell = x;
-    for (;;) {
-      cell.force();
-      if (cell.chunk === null) return null;
-      cell = cell._rest;
-    }
-  }
-  for (const _ of iterable(x)) {
-    // nothing here, just consume for side effects
-  }
+  // force each chunk for side effects, no per-element cursor
+  const next = chunkCursor(x);
+  while (next() !== null);
   return null;
 }
 
