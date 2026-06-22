@@ -1055,24 +1055,17 @@ export function map(f, ...colls) {
   }
 }
 
-function filter1(pred) {
+// 0/1 arities pass through to rf; step(rf) is the 2-arity reducer
+function transducer(step) {
   return (rf) => {
-    return (...args) => {
-      switch (args.length) {
-        case 0:
-          return rf();
-        case 1:
-          return rf(args[0]);
-        case 2: {
-          const result = args[0];
-          const input = args[1];
-          if (truth_(pred(input))) {
-            return rf(result, input);
-          } else return result;
-        }
-      }
-    };
+    const s = step(rf);
+    return (...args) =>
+      args.length === 0 ? rf() : args.length === 1 ? rf(args[0]) : s(args[0], args[1]);
   };
+}
+
+function filter1(pred) {
+  return transducer((rf) => (r, x) => (truth_(pred(x)) ? rf(r, x) : r));
 }
 
 export function filter(pred, coll) {
@@ -1103,19 +1096,10 @@ export function remove(pred, coll) {
 }
 
 function map_indexed1(f) {
-  return (rf) => {
+  return transducer((rf) => {
     let i = -1;
-    return (...args) => {
-      switch (args.length) {
-        case 0:
-          return rf();
-        case 1:
-          return rf(args[0]);
-        case 2:
-          return rf(args[0], f(((i = i + 1), i), args[1]));
-      }
-    };
-  };
+    return (r, x) => rf(r, f(++i, x));
+  });
 }
 
 export function map_indexed(f, coll) {
@@ -1143,28 +1127,13 @@ function keep_indexed2(f, coll) {
 }
 
 function keep_indexed1(f) {
-  return (rf) => {
+  return transducer((rf) => {
     let ia = -1;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) {
-        return rf();
-      }
-      if (al === 1) {
-        return rf(args[0]);
-      }
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        ia++;
-        const v = f(ia, input);
-        if (v == null) {
-          return result;
-        }
-        return rf(result, v);
-      }
+    return (r, x) => {
+      const v = f(++ia, x);
+      return v == null ? r : rf(r, v);
     };
-  };
+  });
 }
 
 export function keep_indexed(f, coll) {
@@ -1544,30 +1513,17 @@ export function interleave(...colls) {
 }
 
 function interpose1(sep) {
-  return (rf) => {
+  return transducer((rf) => {
     let started = false;
-    return (...args) => {
-      switch (args.length) {
-        case 0:
-          return rf();
-        case 1:
-          return rf(args[0]);
-        case 2: {
-          if (started) {
-            const sepr = rf(args[0], sep);
-            if (reduced_QMARK_(sepr)) {
-              return sepr;
-            } else {
-              return rf(sepr, args[1]);
-            }
-          } else {
-            started = true;
-            return rf(args[0], args[1]);
-          }
-        }
+    return (r, x) => {
+      if (!started) {
+        started = true;
+        return rf(r, x);
       }
+      const sepr = rf(r, sep);
+      return reduced_QMARK_(sepr) ? sepr : rf(sepr, x);
     };
-  };
+  });
 }
 
 export function interpose(sep, coll) {
@@ -1891,33 +1847,14 @@ export function ensure_reduced(x) {
 }
 
 function take1(n) {
-  return (rf) => {
+  return transducer((rf) => {
     let na = n;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) {
-        return rf();
-      }
-      if (al === 1) {
-        const result = args[0];
-        return rf(result);
-      }
-      if (al === 2) {
-        let result = args[0];
-        const input = args[1];
-        const n = na;
-        const nn = ((na = na - 1), na);
-        if (n > 0) {
-          result = rf(result, input);
-        }
-        if (!(nn > 0)) {
-          return ensure_reduced(result);
-        } else {
-          return result;
-        }
-      }
+    return (r, x) => {
+      const nn = --na + 1;
+      if (nn > 0) r = rf(r, x);
+      return nn > 1 ? r : ensure_reduced(r);
     };
-  };
+  });
 }
 
 export function take(n, coll) {
@@ -1960,22 +1897,7 @@ export function take_last(n, coll) {
 }
 
 function take_while1(pred) {
-  return (rf) => {
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) return rf();
-      if (al === 1) return rf(args[0]);
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        if (truth_(pred(input))) {
-          return rf(result, input);
-        } else {
-          return reduced(result);
-        }
-      }
-    };
-  };
+  return transducer((rf) => (r, x) => (truth_(pred(x)) ? rf(r, x) : reduced(r)));
 }
 
 export function take_while(pred, coll) {
@@ -1992,23 +1914,10 @@ export function take_while(pred, coll) {
 }
 
 function take_nth1(n) {
-  return (rf) => {
+  return transducer((rf) => {
     let ia = -1;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) return rf();
-      if (al === 1) return rf(args[0]);
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        ia++;
-        const i = ia;
-        if (rem(i, n) === 0) {
-          return rf(result, input);
-        } else return result;
-      }
-    };
-  };
+    return (r, x) => (rem(++ia, n) === 0 ? rf(r, x) : r);
+  });
 }
 
 export function take_nth(n, coll) {
@@ -2042,27 +1951,10 @@ export function cycle(coll) {
 }
 
 function drop1(n) {
-  return (rf) => {
+  return transducer((rf) => {
     let na = n;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) {
-        return rf();
-      }
-      if (al === 1) {
-        return rf(args[0]);
-      }
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        const n = na;
-        na--;
-        if (n > 0) {
-          return result;
-        } else return rf(result, input);
-      }
-    };
-  };
+    return (r, x) => (na-- > 0 ? r : rf(r, x));
+  });
 }
 
 export function drop(n, xs) {
@@ -2076,29 +1968,14 @@ export function drop(n, xs) {
 }
 
 function drop_while1(pred) {
-  return (rf) => {
+  return transducer((rf) => {
     let da = true;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) {
-        return rf();
-      }
-      if (al === 1) {
-        return rf(args[0]);
-      }
-      if (al === 2) {
-        const isDrop = da;
-        const result = args[0];
-        const input = args[1];
-        if (isDrop && truth_(pred(input))) {
-          return result;
-        } else {
-          da = null;
-          return rf(result, input);
-        }
-      }
+    return (r, x) => {
+      if (da && truth_(pred(x))) return r;
+      da = false;
+      return rf(r, x);
     };
-  };
+  });
 }
 
 export function drop_while(pred, xs) {
@@ -2121,21 +1998,14 @@ export function drop_while(pred, xs) {
 }
 
 function distinct1() {
-  return (rf) => {
+  return transducer((rf) => {
     const seen = new Set();
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) return rf();
-      if (al === 1) return rf(args[0]);
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        if (seen.has(input)) return result;
-        seen.add(input);
-        return rf(result, input);
-      }
+    return (r, x) => {
+      if (seen.has(x)) return r;
+      seen.add(x);
+      return rf(r, x);
     };
-  };
+  });
 }
 
 export function distinct(coll) {
@@ -2153,21 +2023,14 @@ export function distinct(coll) {
 const DEDUPE_NONE = Symbol('dedupe-none');
 
 function dedupe1() {
-  return (rf) => {
+  return transducer((rf) => {
     let prev = DEDUPE_NONE;
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) return rf();
-      if (al === 1) return rf(args[0]);
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        const skip = prev !== DEDUPE_NONE && truth_(_EQ_(prev, input));
-        prev = input;
-        return skip ? result : rf(result, input);
-      }
+    return (r, x) => {
+      const skip = prev !== DEDUPE_NONE && truth_(_EQ_(prev, x));
+      prev = x;
+      return skip ? r : rf(r, x);
     };
-  };
+  });
 }
 
 export function dedupe(coll) {
@@ -2231,20 +2094,10 @@ export function not_every_QMARK_(pred, coll) {
 }
 
 function keep1(pred) {
-  return (rf) => {
-    return (...args) => {
-      const al = args.length;
-      if (al === 0) return rf();
-      if (al === 1) return rf(args[0]);
-      if (al === 2) {
-        const result = args[0];
-        const input = args[1];
-        const v = pred(input);
-        if (v == null) return result;
-        return rf(result, v);
-      }
-    };
-  };
+  return transducer((rf) => (r, x) => {
+    const v = pred(x);
+    return v == null ? r : rf(r, v);
+  });
 }
 
 export function keep(pred, coll) {
