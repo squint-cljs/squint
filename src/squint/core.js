@@ -696,9 +696,10 @@ export function ffirst(coll) {
 }
 
 export function rest(coll) {
+  const it = es6_iterator(iterable(coll));
   return lazy(function* () {
     let first = true;
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (first) first = false;
       else yield x;
     }
@@ -796,42 +797,73 @@ function* _reductions3(f, init, coll) {
 export function reductions(f, arg1, arg2) {
   f = __toFn(f);
   if (arguments.length === 2) {
+    const it = es6_iterator(iterable(arg1));
     return lazy(function* () {
-      yield* _reductions2(f, iterable(arg1)[Symbol.iterator]());
+      yield* _reductions2(f, it);
     });
   }
+  const it = es6_iterator(iterable(arg2));
   return lazy(function* () {
-    yield* _reductions3(f, arg1, iterable(arg2)[Symbol.iterator]());
+    yield* _reductions3(f, arg1, it);
   });
 }
 
-var tolr = false;
-export function warn_on_lazy_reusage_BANG_() {
-  tolr = true;
-}
+// Reuse of a lazy value is now cached and correct, so this is a no-op kept for
+// API compatibility.
+export function warn_on_lazy_reusage_BANG_() {}
 
+// A LazyIterable is one cell of a self-caching cons-style chain. It drives a
+// single underlying JS iterator (shared down the chain) at most once per cell,
+// caching the realized value and the next cell. Re-iterating walks the cached
+// cells via a fresh cursor, so the elements are computed once regardless of how
+// many times the seq is traversed. A cursor holds only its current cell, so a
+// single forward traversal that does not retain the head streams in constant
+// memory: passed cells are unreferenced and collectable.
 class LazyIterable {
-  constructor(gen) {
-    this.gen = gen;
-    this.usages = 0;
+  constructor(iter) {
+    this.iter = iter; // shared underlying iterator, nulled after this cell forces
+    this.realized = false;
+    this.empty = false;
+    this.value = undefined;
+    this._rest = null; // next cell
+  }
+  force() {
+    if (!this.realized) {
+      this.realized = true;
+      const r = this.iter.next();
+      if (r.done) {
+        this.empty = true;
+      } else {
+        this.value = r.value;
+        this._rest = new LazyIterable(this.iter);
+      }
+      this.iter = null;
+    }
+    return this;
   }
   [Symbol.iterator]() {
-    this.usages++;
-    if (this.usages >= 2 && tolr) {
-      try {
-        throw new Error();
-      } catch (e) {
-        console.warn('Re-use of lazy value', e.stack);
-      }
-    }
-    return this.gen();
+    let cur = this;
+    return {
+      next() {
+        cur.force();
+        if (cur.empty) return { value: undefined, done: true };
+        const v = cur.value;
+        cur = cur._rest;
+        return { value: v, done: false };
+      },
+      [Symbol.iterator]() {
+        return this;
+      },
+    };
   }
 }
 
 LazyIterable.prototype[IIterable] = true; // Closure compatibility
 
+// f is a zero-arg generator function. Calling it builds the generator object
+// without running its body, so the seq stays lazy until first forced.
 export function lazy(f) {
-  return new LazyIterable(f);
+  return new LazyIterable(f());
 }
 
 export class Cons {
@@ -839,9 +871,27 @@ export class Cons {
     this.x = x;
     this.coll = coll;
   }
-  *[Symbol.iterator]() {
-    yield this.x;
-    yield* iterable(this.coll);
+  [Symbol.iterator]() {
+    const x = this.x;
+    let coll = this.coll;
+    let started = false;
+    let it = null;
+    return {
+      next() {
+        if (!started) {
+          started = true;
+          return { value: x, done: false };
+        }
+        if (!it) {
+          it = es6_iterator(iterable(coll));
+          coll = null; // release the tail head so a single pass streams
+        }
+        return it.next();
+      },
+      [Symbol.iterator]() {
+        return this;
+      },
+    };
   }
 }
 
@@ -878,15 +928,17 @@ export function map(f, ...colls) {
           }
         };
       };
-    case 1:
+    case 1: {
+      const it = es6_iterator(iterable(colls[0]));
       return lazy(function* () {
-        for (const x of iterable(colls[0])) {
+        for (const x of it) {
           yield f(x);
         }
       });
-    default:
+    }
+    default: {
+      const iters = colls.map((coll) => es6_iterator(iterable(coll)));
       return lazy(function* () {
-        const iters = colls.map((coll) => es6_iterator(iterable(coll)));
         while (true) {
           const args = [];
           for (const i of iters) {
@@ -899,6 +951,7 @@ export function map(f, ...colls) {
           yield f(...args);
         }
       });
+    }
   }
 }
 
@@ -927,8 +980,9 @@ export function filter(pred, coll) {
     return filter1(pred);
   }
   pred = __toFn(pred);
+  const it = es6_iterator(iterable(coll));
   return lazy(function* () {
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (truth_(pred(x))) {
         yield x;
       }
@@ -968,9 +1022,10 @@ export function map_indexed(f, coll) {
   if (arguments.length === 1) {
     return map_indexed1(f);
   }
+  const it = es6_iterator(iterable(coll));
   return lazy(function* () {
     let idx = 0;
-    for (const i of iterable(coll)) {
+    for (const i of it) {
       yield f(idx, i);
       idx++;
     }
@@ -979,9 +1034,10 @@ export function map_indexed(f, coll) {
 
 function keep_indexed2(f, coll) {
   f = __toFn(f);
+  const it = es6_iterator(iterable(coll));
   return lazy(function* () {
     let idx = 0;
-    for (const i of iterable(coll)) {
+    for (const i of it) {
       const v = f(idx, i);
       if (truth_(v)) yield v;
       idx++;
@@ -1286,9 +1342,25 @@ export function array_QMARK_(x) {
 }
 
 function concat1(colls) {
+  // An array of colls holds every coll head for the whole walk, pinning each
+  // realized chain. Release each slot once its iterator is taken so the coll
+  // streams. A lazy seq of colls already releases consumed cells via its cursor.
+  if (Array.isArray(colls)) {
+    const arr = colls.slice();
+    return lazy(function* () {
+      for (let i = 0; i < arr.length; i++) {
+        const it = es6_iterator(iterable(arr[i]));
+        arr[i] = null;
+        yield* it;
+      }
+    });
+  }
+  const collIter = es6_iterator(iterable(colls));
   return lazy(function* () {
-    for (const coll of colls) {
-      yield* iterable(coll);
+    for (let r; !(r = collIter.next()).done; ) {
+      const it = es6_iterator(iterable(r.value));
+      r = null; // release the coll head so each coll streams during delegation
+      yield* it;
     }
   });
 }
@@ -1316,8 +1388,8 @@ export function identity(x) {
 }
 
 export function interleave(...colls) {
+  const iters = colls.map((coll) => es6_iterator(iterable(coll)));
   return lazy(function* () {
-    const iters = colls.map((coll) => es6_iterator(iterable(coll)));
     while (true) {
       const res = [];
       for (const i of iters) {
@@ -1448,10 +1520,11 @@ export const partitionv = partition; // partition already returns a lazy of arra
 export const partitionv_all = partition_all;
 
 function partitionInternal(n, step, pad, coll, all) {
+  const it = es6_iterator(iterable(coll));
   return lazy(function* () {
     let p = [];
     let i = 0;
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (i < n) {
         p.push(x);
         if (p.length === n) {
@@ -1523,8 +1596,8 @@ export function partition_by(f, coll) {
   if (arguments.length === 1) {
     return partition_by1(f);
   }
+  const iter = es6_iterator(coll);
   return lazy(function* () {
-    const iter = es6_iterator(coll);
     const _fst = iter.next();
     if (_fst.done) {
       yield* null;
@@ -1707,9 +1780,10 @@ export function take(n, coll) {
   if (arguments.length === 1) {
     return take1(n);
   }
+  const it = es6_iterator(iterable(coll));
   return lazy(function* () {
     let i = n - 1;
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (i-- >= 0) {
         yield x;
       }
@@ -1766,8 +1840,9 @@ export function take_while(pred, coll) {
   if (arguments.length === 1) {
     return take_while1(pred);
   }
+  const it = es6_iterator(iterable(coll));
   return lazy(function* () {
-    for (const o of iterable(coll)) {
+    for (const o of it) {
       if (truth_(pred(o))) yield o;
       else return;
     }
@@ -1800,9 +1875,10 @@ export function take_nth(n, coll) {
     return repeat(first(coll));
   }
 
+  const it = es6_iterator(iterable(coll));
   return lazy(function* () {
     let i = 0;
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (i % n === 0) {
         yield x;
       }
@@ -1850,8 +1926,8 @@ function drop1(n) {
 
 export function drop(n, xs) {
   if (arguments.length === 1) return drop1(n);
+  const iter = _iterator(iterable(xs));
   return lazy(function* () {
-    const iter = _iterator(iterable(xs));
     for (let x = 0; x < n; x++) {
       iter.next();
     }
@@ -1888,8 +1964,8 @@ function drop_while1(pred) {
 export function drop_while(pred, xs) {
   pred = __toFn(pred);
   if (arguments.length === 1) return drop_while1(pred);
+  const iter = _iterator(iterable(xs));
   return lazy(function* () {
-    const iter = _iterator(iterable(xs));
     while (true) {
       const nextItem = iter.next();
       if (nextItem.done) {
@@ -1925,9 +2001,10 @@ function distinct1() {
 
 export function distinct(coll) {
   if (arguments.length === 0) return distinct1();
+  const it = es6_iterator(iterable(coll));
   return lazy(function* () {
     const seen = new Set();
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (!seen.has(x)) yield x;
       seen.add(x);
     }
@@ -1957,9 +2034,10 @@ function dedupe1() {
 
 export function dedupe(coll) {
   if (arguments.length === 0) return dedupe1();
+  const it = es6_iterator(iterable(coll));
   return lazy(function* () {
     let prev = DEDUPE_NONE;
-    for (const x of iterable(coll)) {
+    for (const x of it) {
       if (prev === DEDUPE_NONE || !truth_(_EQ_(prev, x))) yield x;
       prev = x;
     }
@@ -2192,17 +2270,51 @@ export function frequencies(coll) {
   return res;
 }
 
+// Self-caching cons cell for the lazy-seq macro. f is a thunk evaluating the
+// body to a seqable. The body runs once on first force; the resulting seq is
+// driven through one shared iterator and cached cell by cell, same as
+// LazyIterable.
 export class LazySeq {
   constructor(f) {
     this.f = f;
-    this.res = undefined;
+    this.iter = null; // underlying iterator over f()'s result
+    this.realized = false;
+    this.empty = false;
+    this.value = undefined;
+    this._rest = null;
   }
-  *[Symbol.iterator]() {
-    if (this.res === undefined) {
-      this.res = this.f();
-      this.f = null;
+  force() {
+    if (!this.realized) {
+      this.realized = true;
+      if (!this.iter) {
+        this.iter = es6_iterator(iterable(this.f()));
+        this.f = null;
+      }
+      const r = this.iter.next();
+      if (r.done) {
+        this.empty = true;
+      } else {
+        this.value = r.value;
+        this._rest = new LazyIterable(this.iter);
+      }
+      this.iter = null;
     }
-    yield* iterable(this.res);
+    return this;
+  }
+  [Symbol.iterator]() {
+    let cur = this;
+    return {
+      next() {
+        cur.force();
+        if (cur.empty) return { value: undefined, done: true };
+        const v = cur.value;
+        cur = cur._rest;
+        return { value: v, done: false };
+      },
+      [Symbol.iterator]() {
+        return this;
+      },
+    };
   }
 }
 
