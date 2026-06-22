@@ -484,6 +484,7 @@ export function disj_BANG_(s, ...xs) {
 }
 
 export function disj(s, ...xs) {
+  if (s == null) return s;
   const s1 = new s.constructor([...s]);
   return disj_BANG_(s1, ...xs);
 }

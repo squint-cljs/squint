@@ -722,6 +722,10 @@
   (is (eq (js/Set.) (jsv! '(set))))
   (is (eq (js/Set.) (jsv! '(set nil)))))
 
+(deftest disj-test
+  (is (eq (js/Set. #js [1 3]) (jsv! '(disj #{1 2 3} 2))))
+  (is (nil? (jsv! '(disj nil 1)))))
+
 (deftest set?-test
   (is (true? (jsv! '(set? #{}))))
   (is (true? (jsv! '(set? (set [])))))
