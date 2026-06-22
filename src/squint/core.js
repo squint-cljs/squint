@@ -1432,6 +1432,14 @@ function pushAll(out, from) {
   return out;
 }
 
+// Materialize a seq into a fresh, mutable array. Chunked seqs bulk-copy their
+// chunks; an array is spread natively (faster than batching it). Used by ops
+// that need a copy they can sort/reverse/pop in place.
+function toArray(coll) {
+  if (coll instanceof LazyIterable) return pushAll([], coll);
+  return [...iterable(coll)];
+}
+
 export function vec(x) {
   if (array_QMARK_(x)) {
     // return original, no need to clone the entire thing
@@ -2311,8 +2319,7 @@ export function keep(pred, coll) {
 }
 
 export function reverse(coll) {
-  coll = iterable(coll);
-  return [...coll].reverse();
+  return toArray(coll).reverse();
 }
 
 export function sort(f, coll) {
@@ -2321,9 +2328,8 @@ export function sort(f, coll) {
     f = undefined;
   }
   f = __toFn(f);
-  coll = iterable(coll);
-  // we need to clone coll since .sort works in place and .toSorted isn't available on Node < 20
-  const clone = [...coll];
+  // need a copy since .sort works in place and .toSorted isn't on Node < 20
+  const clone = toArray(coll);
   // result is guaranteed to be stable since ES2019, like CLJS
   return clone.sort(f || compare);
 }
@@ -2363,7 +2369,7 @@ export function sort_by(keyfn, comp, coll) {
 }
 
 export function shuffle(coll) {
-  const result = [...coll];
+  const result = toArray(coll);
   let remaining = result.length;
   while (remaining) {
     const i = Math.floor(Math.random() * remaining--);
@@ -2476,7 +2482,7 @@ export class LazySeq extends LazyIterable {
 }
 
 export function butlast(coll) {
-  const x = [...iterable(coll)];
+  const x = toArray(coll);
   x.pop();
   return x.length > 0 ? x : null;
 }
