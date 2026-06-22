@@ -2078,7 +2078,12 @@ with `backticks`")))]
     (is (jsv! '(= (map inc [1 2 3]) [2 3 4])))
     (is (jsv! '(= (list 1 2 3) (list 1 2 3))))
     (is (jsv! '(not= (list 1 2) [1 2 3])))
-    (is (jsv! '(not= (list 1 2 3) [1 2 4]))))
+    (is (jsv! '(not= (list 1 2 3) [1 2 4])))
+    ;; two lazy seqs of the same type compare element-wise, not as objects
+    (is (jsv! '(= (concat nil ["a"]) (concat nil ["a"]))))
+    (is (jsv! '(not= (concat nil ["a"]) (concat nil ["b"]))))
+    (is (jsv! '(= (map inc [1 2 3]) (map inc [1 2 3]))))
+    (is (jsv! '(= {:classes (concat nil ["a"])} {:classes (concat nil ["a"])}))))
   (testing "non-sequential collections are not equal to sequentials"
     (is (jsv! '(not= #{1 2} [1 2])))
     (is (jsv! '(= #{1 2} #{2 1})))

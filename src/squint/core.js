@@ -68,7 +68,9 @@ function dequal(foo, bar) {
       return true;
     }
 
-    if (!ctor || typeof foo === 'object') {
+    // LazyIterable falls through to the sequential-equality path below; it is an
+    // object but must compare element-wise, not by enumerable properties
+    if ((!ctor || typeof foo === 'object') && !(foo instanceof LazyIterable)) {
       len = 0;
       for (const k in foo) {
         if (has.call(foo, k) && ++len && !has.call(bar, k)) return false;
