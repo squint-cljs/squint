@@ -1354,7 +1354,7 @@ export function vec(x) {
     return x;
   }
   // chunk-aware fast path: bulk-append whole chunks instead of element-by-element
-  if (x instanceof LazyIterable || x instanceof LazySeq) {
+  if (x instanceof LazyIterable) {
     const out = [];
     let cell = x;
     for (;;) {
@@ -2385,47 +2385,13 @@ export function frequencies(coll) {
   return res;
 }
 
-// Chunked cell for the lazy-seq macro. f is a thunk evaluating the body to a
-// seqable. The body runs once on first force; its result is batched into
-// chunks, same as LazyIterable.
-export class LazySeq {
+// The lazy-seq macro emits `new LazySeq(() => body)`. It is just a LazyIterable
+// whose step, on first force, evaluates the body thunk and reads its result one
+// element at a time (unchunked). Everything else (force, cursor, chunkedness) is
+// inherited.
+export class LazySeq extends LazyIterable {
   constructor(f) {
-    this.f = f;
-    this.realized = false;
-    this.chunk = null;
-    this._rest = null;
-  }
-  force() {
-    if (!this.realized) {
-      this.realized = true;
-      const step = unchunkedSteps(es6_iterator(iterable(this.f())));
-      this.f = null;
-      const r = step();
-      if (r !== null && r !== undefined) {
-        this.chunk = r[0];
-        this._rest = new LazyIterable(r[1]);
-      }
-    }
-    return this;
-  }
-  [Symbol.iterator]() {
-    let cell = this;
-    let i = 0;
-    return {
-      next() {
-        for (;;) {
-          cell.force();
-          const ch = cell.chunk;
-          if (ch === null) return { value: undefined, done: true };
-          if (i < ch.length) return { value: ch[i++], done: false };
-          cell = cell._rest;
-          i = 0;
-        }
-      },
-      [Symbol.iterator]() {
-        return this;
-      },
-    };
+    super(() => unchunkedSteps(es6_iterator(iterable(f())))());
   }
 }
 
