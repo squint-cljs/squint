@@ -1396,10 +1396,7 @@ function toArray(coll) {
 }
 
 export function vec(x) {
-  if (array_QMARK_(x)) {
-    // return original, no need to clone the entire thing
-    return x;
-  }
+  if (array_QMARK_(x)) return x;
   return pushAll([], x);
 }
 
@@ -1832,9 +1829,8 @@ export function into(...args) {
     case 1:
       return args[0];
     case 2:
-      // vector target: bulk-append chunks (copy preserves metadata). Lists conj
-      // at the head, other targets need conj!. Neither spreads the whole seq
-      // (which overflows the call stack on large input).
+      // vector target bulk-appends chunks (copy preserves metadata); lists conj
+      // at the head, other targets need conj!
       to = args[0] ?? [];
       if (Array.isArray(to) && !(to instanceof List)) {
         return pushAll(copy(to), args[1]);
@@ -1923,8 +1919,6 @@ export function take(n, coll) {
   if (arguments.length === 1) {
     return take1(n);
   }
-  // unchunked, like ClojureScript: take must not chunk its output, or downstream
-  // chunked ops would over-realize past the take boundary
   const it = es6_iterator(iterable(coll));
   return lazy(function* () {
     let i = n - 1;

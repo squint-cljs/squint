@@ -55,7 +55,17 @@
   (is (= 1 (jsv! "(let [n (atom 0)]
                     (dorun (take 1 (map (fn [x] (swap! n inc) x) (iterate inc 0))))
                     @n)"))
-      "iterate is an unchunked source"))
+      "iterate is an unchunked source")
+  ;; take is unchunked: a downstream op does not over-realize past the take.
+  (is (= 1 (jsv! "(let [n (atom 0)]
+                    (first (map (fn [x] (swap! n inc) x) (take 5 (range))))
+                    @n)"))
+      "take output is unchunked"))
+
+(deftest into-large-seq-does-not-overflow
+  ;; into reduces instead of spreading the whole seq into conj (which overflowed
+  ;; the call stack)
+  (is (= 1000000 (jsv! "(count (into [] (range 1000000)))"))))
 
 ;; --- streaming: constant memory on a single non-retained pass ---
 
