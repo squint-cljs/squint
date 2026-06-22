@@ -86,6 +86,14 @@ Chunkedness is source-dependent, matching ClojureScript:
 - `lazy` / `lazy-seq` / `iterate` / `cons` are unchunked: one element at a time,
   so exact laziness is preserved.
 
+Unchunked is chunked-with-size-1: each element is a cell holding a one-element
+chunk array. That is the cost of caching an unchunked seq - a cell plus an array
+per element - so realizing a large unchunked seq (e.g.
+`(reduce + (take 1e6 (iterate inc 0)))`) is 2-5x slower than old squint's
+uncached generators, though still ahead of ClojureScript. Chunked sources
+amortize this; unchunked sources cannot. It only shows up at scale; small
+collections (UI code) are unaffected.
+
 Chunk-aware ops read input through `chunkCells`, which passes existing cells
 through unchanged. A chunked input stays chunked, an unchunked input stays
 unchunked, following the same principle as ClojureScript's `chunked-seq?`
@@ -134,9 +142,26 @@ accumulator and deopts, a generator pays per-chunk yield overhead.
   input), and it preserves the target's metadata via `copy`.
 - `count` sums chunk lengths.
 
+## Mutability
+
+squint vectors are mutable JS arrays, and cells cache their chunk arrays.
+Invariant: a cached chunk must never alias an array the caller still holds, or
+mutating that array would change the seq after the fact.
+
+- Chunk-aware ops build a fresh output array per chunk; they never mutate an
+  input chunk.
+- `concat` copies array colls into its chunks (`slice`) instead of sharing them,
+  so mutating the input after `concat` is not observable on the seq.
+- `vec` / `doall` return the caller's array unchanged. This is the one exception
+  (documented squint behavior): the result aliases the input by design.
+
+When adding an op, do not store a chunk you received as your own cached chunk
+unless you copied it.
+
 ## Tests
 
 `test/squint/lazy_memory_test.cljs` pins the contract: caching (element-fn call
-counts), chunked vs unchunked realization, and streaming (max live heap under a
-ceiling). The streaming assertions need `--expose-gc`, which `bb test:node` sets
-when running `node lib/squint_tests.js`.
+counts), chunked vs unchunked realization, streaming (max live heap under a
+ceiling), and that `concat` does not alias an input array. The streaming
+assertions need `--expose-gc`, which `bb test:node` sets when running
+`node lib/squint_tests.js`.
