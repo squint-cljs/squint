@@ -1857,21 +1857,20 @@ export function take(n, coll) {
   if (arguments.length === 1) {
     return take1(n);
   }
-  if (n <= 0) return new LazyIterable(() => null);
-  // chunk-aware: preserve input chunks, forcing only as many as needed; split
-  // the chunk that crosses the limit
-  const src = chunkCells(coll);
-  const step = (cell, remaining) => () => {
-    if (remaining <= 0) return null;
-    cell.force();
-    const ch = cell.chunk;
-    if (ch === null) return null;
-    if (ch.length <= remaining) {
-      return [ch, step(cell._rest, remaining - ch.length)];
+  // unchunked, like ClojureScript: take must not chunk its output, or downstream
+  // chunked ops would over-realize past the take boundary
+  const it = es6_iterator(iterable(coll));
+  return lazy(function* () {
+    let i = n - 1;
+    for (const x of it) {
+      if (i-- >= 0) {
+        yield x;
+      }
+      if (i < 0) {
+        return;
+      }
     }
-    return [ch.slice(0, remaining), () => null];
-  };
-  return new LazyIterable(step(src, n));
+  });
 }
 
 export function take_last(n, coll) {
