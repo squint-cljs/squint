@@ -848,20 +848,8 @@ export function warn_on_lazy_reusage_BANG_() {
 
 const CHUNK_SIZE = 32;
 
-// A LazyIterable is one cell of a self-caching chunked seq. Each cell realizes
-// one chunk (an array of up to CHUNK_SIZE values) on first force and caches it
-// along with the next cell. A cursor flattens chunks to yield elements, holding
-// only its current cell, so a single forward pass that does not retain the head
-// streams in roughly constant memory (one chunk at a time). Re-iterating walks
-// the cached chunks, so elements are computed once regardless of how many
-// traversals.
-//
-// `step` is a thunk returning [chunkArray, nextStep] or null at the end. The
-// chunk must be non-empty: ops that can drop a whole chunk (e.g. filter) skip
-// ahead internally rather than emitting an empty chunk. Chunk-aware ops build
-// step thunks that transform whole chunks; lazy(genFn) batches a one-at-a-time
-// generator into chunks. Realization is therefore batched by CHUNK_SIZE, like
-// ClojureScript chunked seqs.
+// One cell of a self-caching chunked seq. `step` is a thunk returning
+// [nonEmptyChunkArray, nextStep] or null at the end. See doc/dev/lazy-seqs.md.
 class LazyIterable {
   constructor(step) {
     this.step = step;
@@ -904,9 +892,7 @@ class LazyIterable {
 
 LazyIterable.prototype[IIterable] = true; // Closure compatibility
 
-// One-element chunks: an unchunked seq, realized one element at a time. Like a
-// ClojureScript cons chain, this preserves exact laziness; only sources that
-// are genuinely chunked (arrays, range) realize a batch at a time.
+// One-element chunks: an unchunked seq, realized one element at a time.
 function unchunkedSteps(iter) {
   const step = () => {
     const r = iter.next();
@@ -915,17 +901,13 @@ function unchunkedSteps(iter) {
   return step;
 }
 
-// f is a zero-arg generator function (one element at a time). Calling it builds
-// the generator without running its body, so the seq stays lazy until forced.
-// The result is unchunked: each element realizes on demand.
+// f is a zero-arg generator function; its result is an unchunked lazy seq.
 export function lazy(f) {
   return new LazyIterable(unchunkedSteps(f()));
 }
 
-// A chunked view of any seqable for chunk-aware ops. Existing cells pass through
-// unchanged so chunkedness is preserved (a chunked input stays chunked, an
-// unchunked one stays unchunked). Arrays are a chunked source and slice into
-// CHUNK_SIZE batches; other raw iterables stay unchunked.
+// A chunked view of any seqable for chunk-aware ops, preserving chunkedness:
+// cells pass through, arrays slice into CHUNK_SIZE batches, others stay unchunked.
 function chunkCells(coll) {
   if (coll instanceof LazyIterable) return coll;
   if (Array.isArray(coll)) {
@@ -939,12 +921,9 @@ function chunkCells(coll) {
   return new LazyIterable(unchunkedSteps(es6_iterator(iterable(coll))));
 }
 
-// A cursor over a seq's chunks for realizers (reduce, count, last, nth, ...).
-// Returns a function that yields the next chunk array or null at the end. A
-// chunked cell yields its cached chunks; any other seqable is batched through
-// its iterator. Callers keep their own array shortcut: this is the non-array
-// tail. Driving it with an inline loop keeps the accumulator a plain local, so
-// it is as fast as a hand-written cell walk (a callback or generator is not).
+// A cursor over a seq's chunks for realizers: returns a function yielding the
+// next chunk array or null. Drive it with an inline loop (keeps an accumulator a
+// plain local, unlike a callback). Callers keep their own array shortcut.
 function chunkCursor(coll) {
   if (coll instanceof LazyIterable) {
     let cell = coll;
@@ -968,11 +947,9 @@ function chunkCursor(coll) {
   };
 }
 
-// Build a lazy seq that transforms each input chunk via xf(chunk, baseIndex) ->
-// new chunk array. Preserves the input's chunkedness. xf may return a shorter
-// or empty array (e.g. filter); empty results are skipped so a step never emits
-// an empty chunk. baseIndex is the count of input elements before the chunk,
-// for indexed ops. Shared by the chunk-aware element ops.
+// Build a lazy seq transforming each input chunk via xf(chunk, baseIndex) -> new
+// chunk array, preserving chunkedness. Empty results are skipped (e.g. filter).
+// baseIndex is the input element count before the chunk, for indexed ops.
 function mapChunks(coll, xf) {
   const src = chunkCells(coll);
   const step = (cell, base) => () => {
@@ -1023,16 +1000,9 @@ export class Cons {
 
 export function cons(x, coll) {
   return new Cons(x, coll);
-  // return lazy(function* () {
-  //   yield x;
-  //   yield* iterable(coll);
-  // });
 }
 
 export function map(f, ...colls) {
-  // if (! (f instanceof Function)) {
-  //   throw new Error(`Argument f must be a function but is ${typeof(f)}`);
-  // }
   f = __toFn(f);
   switch (colls.length) {
     case 0:
@@ -1294,8 +1264,7 @@ export function compare_and_set_BANG_(atm, oldv, newv) {
 }
 
 export function range(begin, end, step) {
-  // range is a chunked source, like ClojureScript: it realizes CHUNK_SIZE
-  // values at a time.
+  // range is a chunked source: it realizes CHUNK_SIZE values at a time
   let b = begin,
     e = end,
     s = step;
@@ -1420,9 +1389,7 @@ function pushAll(out, from) {
   return out;
 }
 
-// Materialize a seq into a fresh, mutable array. Chunked seqs bulk-copy their
-// chunks; an array is spread natively (faster than batching it). Used by ops
-// that need a copy they can sort/reverse/pop in place.
+// Materialize a seq into a fresh, mutable array (bulk-copies chunked seqs).
 function toArray(coll) {
   if (coll instanceof LazyIterable) return pushAll([], coll);
   return [...iterable(coll)];
@@ -1866,9 +1833,8 @@ export function into(...args) {
       return args[0];
     case 2:
       // vector target: bulk-append chunks (copy preserves metadata). Lists conj
-      // at the head and other targets need conj!, so reduce with conj! on a
-      // copy. Either way avoids spreading the whole seq, which overflows the
-      // call stack on large input.
+      // at the head, other targets need conj!. Neither spreads the whole seq
+      // (which overflows the call stack on large input).
       to = args[0] ?? [];
       if (Array.isArray(to) && !(to instanceof List)) {
         return pushAll(copy(to), args[1]);
@@ -2466,10 +2432,8 @@ export function frequencies(coll) {
   return res;
 }
 
-// The lazy-seq macro emits `new LazySeq(() => body)`. It is just a LazyIterable
-// whose step, on first force, evaluates the body thunk and reads its result one
-// element at a time (unchunked). Everything else (force, cursor, chunkedness) is
-// inherited.
+// The lazy-seq macro emits `new LazySeq(() => body)`: a LazyIterable whose step
+// evaluates the body thunk on first force and reads it unchunked.
 export class LazySeq extends LazyIterable {
   constructor(f) {
     super(() => unchunkedSteps(es6_iterator(iterable(f())))());
@@ -2573,8 +2537,7 @@ export function aset(arr, idx, val, ...more) {
 }
 
 export function dorun(x) {
-  // only a lazy seq needs forcing; force a chunk at a time. Anything already
-  // realized is walked natively (batching it would just be slower).
+  // only a lazy seq needs forcing; realized colls are walked natively
   if (x instanceof LazyIterable) {
     const next = chunkCursor(x);
     while (next() !== null);
