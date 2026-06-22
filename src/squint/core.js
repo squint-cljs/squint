@@ -1485,10 +1485,19 @@ concat[IApply__apply] = (colls) => {
 export function mapcat(f, ...colls) {
   if (colls.length === 0) {
     return comp(map(f), cat);
-  } else {
-    const mapped = map(f, ...colls);
-    return concat1(mapped);
   }
+  if (colls.length === 1) {
+    const ff = __toFn(f);
+    return mapChunks(colls[0], (ch) => {
+      const out = [];
+      for (let i = 0; i < ch.length; i++) {
+        const r = ff(ch[i]);
+        if (r != null) for (const x of iterable(r)) out.push(x);
+      }
+      return out;
+    });
+  }
+  return concat1(map(f, ...colls));
 }
 
 export function identity(x) {
