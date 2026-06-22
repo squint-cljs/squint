@@ -1756,7 +1756,10 @@ with `backticks`")))]
   ;; negative index falls back to the default
   (is (eq :default (jsv! '(nth [1 2 3] -1 :default))))
   ;; works on infinite lazy seqs without computing a length
-  (is (= 5 (jsv! '(nth (range) 5)))))
+  (is (= 5 (jsv! '(nth (range) 5))))
+  ;; out of bounds without a default throws, like Clojure
+  (is (thrown? js/Error (jsv! '(nth [1 2 3] 5))))
+  (is (thrown? js/Error (jsv! '(nth [1 2 3] -1)))))
 
 (deftest drop-test
   (let [dropped (jsv! '(drop 3 (range 6)))]

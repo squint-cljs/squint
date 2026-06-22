@@ -541,26 +541,28 @@ export function println(...args) {
 }
 
 export function nth(coll, idx, orElse) {
-  if (coll) {
-    // "found" must be decided by the index bound, not by the value: an
-    // in-bounds element that happens to be `undefined` is still found.
-    if (Array.isArray(coll)) {
-      if (idx >= 0 && idx < coll.length) {
-        return coll[idx];
-      }
-    } else {
-      // iterables may lack .length and can be infinite, so iterate and stop
-      // at idx rather than computing a bound.
-      const iter = iterable(coll);
-      let i = 0;
-      for (const value of iter) {
-        if (i++ === idx) {
-          return value;
-        }
+  const hasDefault = arguments.length > 2;
+  // nil coll puns to nil, like Clojure
+  if (coll == null) return hasDefault ? orElse : null;
+  // "found" is decided by the index bound, not the value. An in-bounds element
+  // that happens to be undefined is still found.
+  if (Array.isArray(coll)) {
+    if (idx >= 0 && idx < coll.length) {
+      return coll[idx];
+    }
+  } else {
+    // iterables may lack .length and can be infinite, so iterate and stop at idx
+    const iter = iterable(coll);
+    let i = 0;
+    for (const value of iter) {
+      if (i++ === idx) {
+        return value;
       }
     }
   }
-  return orElse;
+  // out of bounds. With a default return it, otherwise throw like Clojure
+  if (hasDefault) return orElse;
+  throw new Error('Index out of bounds: ' + idx);
 }
 
 export function get(coll, key, otherwise = undefined) {
