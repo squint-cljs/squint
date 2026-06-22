@@ -2579,8 +2579,11 @@ export function unchecked_add_int(x, y) {
 
 // keywords/symbols are strings in squint; namespace is the part before "/"
 export function namespace(x) {
+  // keywords/symbols are strings in squint; namespace is the part before the
+  // "/" ns separator (consistent with `name`, which returns the part after).
+  // i >= 1 so a leading "/" yields a nil namespace rather than an empty one.
   const i = x.indexOf('/');
-  return i >= 0 ? x.slice(0, i) : null;
+  return i >= 1 ? x.slice(0, i) : null;
 }
 
 // squint has no keyword type; keywords are strings, so keyword/keyword? are

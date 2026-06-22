@@ -9,6 +9,7 @@
 - `nth` on an out-of-bounds index without a default now throws, like Clojure
 - `disj` on nil returns nil instead of throwing
 - `name` now returns the part after the `/` for a namespaced keyword/symbol (e.g. `(name :foo/bar)` -> `"bar"`), consistent with `namespace` so they round-trip. Since keywords are strings in squint this also applies to slash-containing strings (differs from Clojure string `name`).
+- `namespace` uses the same `/` threshold as `name`, so a leading `/` yields a nil namespace instead of an empty string and `(str (namespace x) "/" (name x))` round-trips.
 - Add `var?` (always false; squint has no first-class vars)
 - Support dynamic vars and `binding`. An earmuffed `def` (e.g. `*foo*`) compiles to a mutable box `{value ...}`; references read `.value`, `set!` assigns it, and `binding` saves/sets/restores it. Because only the box's property is mutated (never the import binding), this works across separately-compiled ESM modules.
 - Quoted symbols now compile to strings of their name (squint has no symbol type, like keywords)
