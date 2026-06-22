@@ -1418,28 +1418,40 @@ export function array_QMARK_(x) {
   return Array.isArray(x);
 }
 
+const CONCAT_DONE = Symbol('concat-done');
+
 function concat1(colls) {
-  // An array of colls holds every coll head for the whole walk, pinning each
-  // realized chain. Release each slot once its iterator is taken so the coll
-  // streams. A lazy seq of colls already releases consumed cells via its cursor.
-  if (Array.isArray(colls)) {
-    const arr = colls.slice();
-    return lazy(function* () {
-      for (let i = 0; i < arr.length; i++) {
-        const it = es6_iterator(iterable(arr[i]));
-        arr[i] = null;
-        yield* it;
-      }
-    });
-  }
-  const collIter = es6_iterator(iterable(colls));
-  return lazy(function* () {
-    for (let r; !(r = collIter.next()).done; ) {
-      const it = es6_iterator(iterable(r.value));
-      r = null; // release the coll head so each coll streams during delegation
-      yield* it;
+  // chunk-aware: pass each coll's chunks through, preserving chunkedness. Each
+  // coll head is released once consumed so a single pass streams.
+  const isArr = Array.isArray(colls);
+  const arr = isArr ? colls.slice() : null;
+  const collIter = isArr ? null : es6_iterator(iterable(colls));
+  let idx = 0;
+  const nextColl = () => {
+    if (isArr) {
+      if (idx >= arr.length) return CONCAT_DONE;
+      const c = arr[idx];
+      arr[idx] = null;
+      idx++;
+      return c;
     }
-  });
+    const r = collIter.next();
+    return r.done ? CONCAT_DONE : r.value;
+  };
+  const step = (cell) => () => {
+    let c = cell;
+    for (;;) {
+      if (c !== null) {
+        c.force();
+        if (c.chunk !== null) return [c.chunk, step(c._rest)];
+        c = null;
+      }
+      const nc = nextColl();
+      if (nc === CONCAT_DONE) return null;
+      c = chunkCells(nc);
+    }
+  };
+  return new LazyIterable(step(null));
 }
 
 export function concat(...colls) {

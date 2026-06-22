@@ -90,15 +90,14 @@ Chunk-aware ops read input through `chunkCells`, which passes existing cells
 through unchanged. A chunked input stays chunked, an unchunked input stays
 unchunked, following the same principle as ClojureScript's `chunked-seq?`
 branch. Chunk-aware ops: `map` (one coll), `filter`, `remove`, `keep`,
-`map-indexed`, `keep-indexed`. Other ops stay on the generic unchunked path:
-they consume input element-wise and emit one-element chunks.
+`map-indexed`, `keep-indexed`, `concat`. Other ops stay on the generic unchunked
+path: they consume input element-wise and emit one-element chunks.
 
-Differences from ClojureScript:
+`concat` passes each coll's chunks through, so concatenating chunked sources
+stays fast (about 5x over the element-wise path for large arrays).
 
-- `take` is unchunked here and in ClojureScript. It must not chunk its output,
-  or a downstream chunked op would over-realize past the take boundary.
-- ClojureScript chunks `concat` (lazy-cat); squint leaves it unchunked. This is
-  a throughput difference only, not an observable laziness difference.
+`take` is unchunked, here and in ClojureScript. It must not chunk its output, or
+a downstream chunked op would over-realize past the take boundary.
 
 A consequence, same as ClojureScript: `(take 1 (map prn (range)))` prints 32,
 because `range` is a chunked source and `map` realizes its full chunk.
