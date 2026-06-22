@@ -682,12 +682,24 @@ export function seq(x) {
 }
 
 export function first(coll) {
+  if (coll == null) return undefined;
+  if (Array.isArray(coll)) return coll[0];
+  if (coll instanceof LazyIterable) {
+    coll.force();
+    return coll.chunk === null ? undefined : coll.chunk[0];
+  }
   // destructuring uses iterable protocol
   const [first] = iterable(coll);
   return first;
 }
 
 export function second(coll) {
+  if (coll instanceof LazyIterable) {
+    coll.force();
+    const ch = coll.chunk;
+    if (ch === null) return undefined;
+    return ch.length > 1 ? ch[1] : first(coll._rest);
+  }
   const [_, v] = iterable(coll);
   return v;
 }
@@ -697,14 +709,20 @@ export function ffirst(coll) {
 }
 
 export function rest(coll) {
-  const it = es6_iterator(iterable(coll));
-  return lazy(function* () {
-    let first = true;
-    for (const x of it) {
-      if (first) first = false;
-      else yield x;
-    }
-  });
+  // chunk-aware: drop the first element of the first chunk, keep the rest of
+  // the chain chunked (preserves chunkedness, unlike re-iterating element-wise)
+  const cell = chunkCells(coll);
+  cell.force();
+  const ch = cell.chunk;
+  if (ch === null) return cell; // (rest ()) is ()
+  if (ch.length > 1) {
+    const c = new LazyIterable(null);
+    c.realized = true;
+    c.chunk = ch.slice(1);
+    c._rest = cell._rest;
+    return c;
+  }
+  return cell._rest; // first chunk had one element; the next cell is the rest
 }
 
 class Reduced {
