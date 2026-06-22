@@ -820,9 +820,13 @@ export function reductions(f, arg1, arg2) {
   });
 }
 
-// Reuse of a lazy value is now cached and correct, so this is a no-op kept for
-// API compatibility.
-export function warn_on_lazy_reusage_BANG_() {}
+// Deprecated: lazy values are now cached, so reuse no longer recomputes. Kept
+// for API compatibility; remove in a future release.
+export function warn_on_lazy_reusage_BANG_() {
+  console.warn(
+    'warn-on-lazy-reusage! is deprecated and does nothing: lazy values are now cached.',
+  );
+}
 
 const CHUNK_SIZE = 32;
 
