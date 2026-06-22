@@ -552,6 +552,20 @@ export function nth(coll, idx, orElse) {
     if (idx >= 0 && idx < coll.length) {
       return coll[idx];
     }
+  } else if (coll instanceof LazyIterable) {
+    // chunk-aware: skip whole chunks instead of counting elements
+    if (idx >= 0) {
+      let cell = coll;
+      let base = 0;
+      for (;;) {
+        cell.force();
+        const ch = cell.chunk;
+        if (ch === null) break;
+        if (idx < base + ch.length) return ch[idx - base];
+        base += ch.length;
+        cell = cell._rest;
+      }
+    }
   } else {
     // iterables may lack .length and can be infinite, so iterate and stop at idx
     const iter = iterable(coll);
@@ -718,6 +732,18 @@ class Reduced {
 
 export function last(coll) {
   coll = iterable(coll);
+  // chunk-aware: walk cells, return the last element of the final chunk
+  if (coll instanceof LazyIterable) {
+    let cell = coll;
+    let lastEl;
+    for (;;) {
+      cell.force();
+      const ch = cell.chunk;
+      if (ch === null) return lastEl;
+      lastEl = ch[ch.length - 1];
+      cell = cell._rest;
+    }
+  }
   let lastEl;
   switch (typeConst(coll)) {
     case ARRAY_TYPE:
@@ -1081,7 +1107,8 @@ export function filter(pred, coll) {
 }
 
 export function filterv(pred, coll) {
-  return [...filter(pred, coll)];
+  // filter is chunked; vec bulk-appends its chunks
+  return pushAll([], filter(pred, coll));
 }
 
 export function remove(pred, coll) {
@@ -1371,6 +1398,17 @@ export function mapv(...args) {
         ret[i] = f(iter[i]);
       }
       return ret;
+    } else if (iter instanceof LazyIterable) {
+      // map whole chunks straight into the result array
+      const ret = [];
+      let cell = iter;
+      for (;;) {
+        cell.force();
+        const ch = cell.chunk;
+        if (ch === null) return ret;
+        for (let i = 0; i < ch.length; i++) ret.push(f(ch[i]));
+        cell = cell._rest;
+      }
     } else {
       var ret = [];
       for (const x of iter) {
@@ -2550,6 +2588,15 @@ export function aset(arr, idx, val, ...more) {
 }
 
 export function dorun(x) {
+  // chunk-aware: force each cell, no per-element cursor
+  if (x instanceof LazyIterable) {
+    let cell = x;
+    for (;;) {
+      cell.force();
+      if (cell.chunk === null) return null;
+      cell = cell._rest;
+    }
+  }
   for (const _ of iterable(x)) {
     // nothing here, just consume for side effects
   }
