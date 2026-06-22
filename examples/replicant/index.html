@@ -2,12 +2,21 @@
 <html>
   <head>
     <meta charset="utf8">
-    <title>replicant + squint</title>
+    <title>tic-tac-toe: replicant + squint</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+      body { font-family: system-ui, sans-serif; background: #fdeddd; margin: 0;
+             min-height: 100vh; display: flex; flex-direction: column;
+             align-items: center; gap: 1rem; padding: 2rem 1rem; }
+      #app { width: min(80vh, 90vw); }
+      .cell-content { display: block; padding: 12%; color: #1a1a1a; }
+      .cell-content svg { display: block; width: 100%; height: 100%; }
+    </style>
   </head>
-  <body style="font-family:system-ui,sans-serif;background:#fafafa;margin:24px">
-    <h1 style="font-size:18px">replicant running under squint</h1>
+  <body>
+    <h1 style="font-size:18px">replicant tic-tac-toe running under squint</h1>
     <div id="app"></div>
-    <!-- The entry ns (:main [app]) and the REPL eval listener are injected by
-         the squint vite plugin. -->
+    <!-- The entry ns (:main) and the REPL eval listener are injected by the
+         squint vite plugin. -->
   </body>
 </html>
