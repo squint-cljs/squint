@@ -1472,8 +1472,8 @@ function concat1(colls) {
           const pos = src.pos;
           if (pos < a.length) {
             const end = Math.min(pos + CHUNK_SIZE, a.length);
-            const ch = pos === 0 && end === a.length ? a : a.slice(pos, end);
-            return [ch, step({ a, pos: end })];
+            // slice (copy) so a cached chunk never aliases the caller's array
+            return [a.slice(pos, end), step({ a, pos: end })];
           }
           src = null;
         }
