@@ -114,6 +114,20 @@ unchunked.
   of the generator (see Streaming) so it does not pin the input head. The result
   is unchunked.
 
+## Realizers
+
+Functions that consume a seq fully take a chunk-aware fast path when the input is
+a chunked cell (`instanceof LazyIterable`, which `LazySeq` extends): they walk
+cells and process whole chunk arrays instead of going element by element through
+the cursor.
+
+- `reduce` runs the reducing function over each chunk array in a tight loop
+  (and an index loop for plain array input). Other reducers build on it.
+- `vec` and `into` (vector target) bulk-append chunks via `pushAll`. `into` must
+  not spread the whole seq into `conj` (it overflows the call stack on large
+  input), and it preserves the target's metadata via `copy`.
+- `count` sums chunk lengths.
+
 ## Tests
 
 `test/squint/lazy_memory_test.cljs` pins the contract: caching (element-fn call
