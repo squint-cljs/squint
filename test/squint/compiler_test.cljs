@@ -814,6 +814,23 @@
   (is (= "foo" (jsv! '(#{:foo :bar} :foo))))
   (is (= "the-default" (jsv! '(#{:foo :bar} :dude :the-default)))))
 
+(deftest coll-call-binding-test
+  ;; a set or map literal bound to a local is callable as a function
+  (is (= 2 (jsv! '(let [s #{1 2 3}] (s 2)))))
+  (is (= nil (jsv! '(let [s #{1 2 3}] (s 9)))))
+  (is (= 1 (jsv! '(let [m {:a 1 :b 2}] (m :a)))))
+  (is (= "d" (jsv! '(let [m {:a 1}] (m :z :d)))))
+  ;; tag carries through aliasing
+  (is (= 2 (jsv! '(let [a #{1 2} b a] (b 2)))))
+  ;; a set or map literal bound to a var is callable as a function
+  (is (= "foo" (jsv! "(def s #{:foo :bar}) (s :foo)")))
+  (is (= nil (jsv! "(def s #{:foo :bar}) (s :nope)")))
+  (is (= 1 (jsv! "(def m {:a 1 :b 2}) (m :a)")))
+  (is (= "d" (jsv! "(def m {:a 1}) (m :z :d)")))
+  ;; provable colls emit get, not a direct call
+  (is (str/includes? (jss! '(let [s #{1 2}] (s 1))) "get("))
+  (is (str/includes? (jss! "(def m {:a 1}) (m :a)") "get(")))
+
 (deftest minus-single-arg-test
   (is (= -10 (jsv! '(- 10))))
   (is (= -11 (jsv! '(- 10 21)))))

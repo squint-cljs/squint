@@ -370,12 +370,13 @@
       (cc/tagged-expr 'object true)))
 
 (defn emit-set [expr env]
-  (emit-return
-   (cc/emit-with-meta
-    (format "(new Set ([%s]))"
-            (str/join ", " (emit-args (expr-env env) expr)))
-    expr env)
-   env))
+  (-> (emit-return
+       (cc/emit-with-meta
+        (format "(new Set ([%s]))"
+                (str/join ", " (emit-args (expr-env env) expr)))
+        expr env)
+       env)
+      (cc/tagged-expr 'set)))
 
 (defn transpile-form
   ([f] (transpile-form f nil))

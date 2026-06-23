@@ -770,12 +770,18 @@
       (swap! (:ns-state env)
              (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))
     (swap! (:ns-state env) (fn [state]
-                             (let [current (:current state)]
-                               ;; keep the var's metadata (:arglists, :doc, :line)
-                               ;; so nREPL info/eldoc can read it back
+                             (let [current (:current state)
+                                   ;; a var bound to a set or map literal is a
+                                   ;; collection: record it so a later call
+                                   ;; (the-var k) emits get, matching CLJS which
+                                   ;; calls sets and maps as functions
+                                   init (second more)
+                                   coll-tag (cond (map? init) 'object
+                                                  (set? init) 'set)]
                                (assoc-in state [current name]
-                                         (select-keys (meta name)
-                                                      [:arglists :doc :line :file :private :macro])))))
+                                         (cond-> (select-keys (meta name)
+                                                              [:arglists :doc :line :file :private :macro])
+                                           coll-tag (assoc :tag coll-tag))))))
     (let [skip-var? (:squint.compiler/skip-var (meta expr))]
       (emit-var more skip-var? env))))
 
@@ -1295,7 +1301,22 @@ break;}" body)
 
 (defmethod emit-special 'funcall [_type env [fname & args :as expr]]
   (let [ns (when (symbol? fname) (namespace fname))
-        fname (if ns (symbol (munge ns) (name fname))
+        ;; CLJS calls sets and maps as functions: (#{1 2} 1), ({:a 1} :a).
+        ;; Squint reps those as Set / plain object which are not callable. When
+        ;; the callee is provably a set or map literal, bound to a local or to a
+        ;; current-ns var, emit get instead. Unknown callees keep a direct call.
+        st (some-> (:ns-state env) deref)
+        current (:current st)
+        argc (count args)
+        coll-tag? #{'object 'set}
+        coll? (and (symbol? fname) (not ns)
+                   (#{1 2} argc)
+                   (not= :cherry (:target env))
+                   (or (coll-tag? (:tag (meta (get (:var->ident env) fname))))
+                       (coll-tag? (get-in st [current fname :tag]))))]
+   (if coll?
+    (emit (list* 'clojure.core/get fname args) env)
+   (let [fname (if ns (symbol (munge ns) (name fname))
                   fname)
         cherry? (= :cherry (:target env))
         cherry+interop? (and
@@ -1318,7 +1339,7 @@ break;}" body)
                                                     args)
                                                   args))))
                          env)
-      tag (tagged-expr tag transient))))
+      tag (tagged-expr tag transient))))))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
   (let [gensym (:gensym env)
