@@ -827,9 +827,18 @@
   (is (= nil (jsv! "(def s #{:foo :bar}) (s :nope)")))
   (is (= 1 (jsv! "(def m {:a 1 :b 2}) (m :a)")))
   (is (= "d" (jsv! "(def m {:a 1}) (m :z :d)")))
+  ;; a vector literal bound to a local is callable: index lookup
+  (is (= 20 (jsv! '(let [v [10 20 30]] (v 1)))))
+  ;; a collection-returning core fn makes its binding callable
+  (is (= 2 (jsv! '(let [s (set [1 2 3])] (s 2)))))
+  (is (= nil (jsv! '(let [s (set [1 2 3])] (s 9)))))
+  (is (= 2 (jsv! '(let [m (zipmap [:a :b] [1 2])] (m :b)))))
+  (is (= 1 (jsv! "(def planned (set [1 2])) (planned 1)")))
+  (is (= 1 (jsv! "(def m (select-keys {:a 1 :b 2} [:a])) (m :a)")))
   ;; provable colls emit get, not a direct call
   (is (str/includes? (jss! '(let [s #{1 2}] (s 1))) "get("))
-  (is (str/includes? (jss! "(def m {:a 1}) (m :a)") "get(")))
+  (is (str/includes? (jss! "(def m {:a 1}) (m :a)") "get("))
+  (is (str/includes? (jss! '(let [s (set [1 2])] (s 1))) "get(")))
 
 (deftest minus-single-arg-test
   (is (= -10 (jsv! '(- 10))))

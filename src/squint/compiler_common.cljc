@@ -750,6 +750,28 @@
                             (when (= :statement (:context env)) ";\n"))
                         env)))))
 
+;; Core fns whose return value is a collection callable as a function in CLJS.
+;; The tag drives get routing at later call sites. 'object is a map (so get
+;; inlines to property access), 'array a vector, 'set a set, 'coll an unknown
+;; collection type.
+(def ^:private coll-returning-fns
+  '{set set, hash-set set, sorted-set set, disj set,
+    hash-map object, sorted-map object, array-map object, zipmap object,
+    frequencies object, group-by object, select-keys object,
+    vec array, vector array, mapv array, filterv array, subvec array,
+    vector-of array})
+
+;; The collection tag for an expr used as a def or binding init, or nil. A
+;; collection literal or a call to a collection-returning core fn is provable.
+(defn coll-init-tag [init env]
+  (cond (map? init) 'object
+        (set? init) 'set
+        (vector? init) 'array
+        (and (seq? init) (symbol? (first init))
+             (not (contains? (:var->ident env) (first init)))
+             (maybe-core-var (first init) env))
+        (coll-returning-fns (first init))))
+
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)
         st @(:ns-state env)
@@ -771,13 +793,10 @@
              (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))
     (swap! (:ns-state env) (fn [state]
                              (let [current (:current state)
-                                   ;; a var bound to a set or map literal is a
-                                   ;; collection: record it so a later call
-                                   ;; (the-var k) emits get, matching CLJS which
-                                   ;; calls sets and maps as functions
-                                   init (second more)
-                                   coll-tag (cond (map? init) 'object
-                                                  (set? init) 'set)]
+                                   ;; a var bound to a collection is callable as
+                                   ;; a function in CLJS: record the tag so a
+                                   ;; later call (the-var k) emits get
+                                   coll-tag (coll-init-tag (second more) env)]
                                (assoc-in state [current name]
                                          (cond-> (select-keys (meta name)
                                                               [:arglists :doc :line :file :private :macro])
@@ -1301,19 +1320,27 @@ break;}" body)
 
 (defmethod emit-special 'funcall [_type env [fname & args :as expr]]
   (let [ns (when (symbol? fname) (namespace fname))
-        ;; CLJS calls sets and maps as functions: (#{1 2} 1), ({:a 1} :a).
-        ;; Squint reps those as Set / plain object which are not callable. When
-        ;; the callee is provably a set or map literal, bound to a local or to a
-        ;; current-ns var, emit get instead. Unknown callees keep a direct call.
+        ;; CLJS calls collections as functions: (#{1 2} 1), ({:a 1} :a),
+        ;; ([:a :b] 0). Squint reps those as Set / plain object / array which
+        ;; are not callable. When the callee is provably a collection, emit get
+        ;; instead. Unknown callees keep a direct call. A callee is provable
+        ;; when it is bound to a collection literal or to a collection-returning
+        ;; core fn, tracked as a tag on the local binding or current-ns var.
         st (some-> (:ns-state env) deref)
         current (:current st)
         argc (count args)
-        coll-tag? #{'object 'set}
+        coll-tag? #{'object 'set 'array 'coll}
         coll? (and (symbol? fname) (not ns)
                    (#{1 2} argc)
                    (not= :cherry (:target env))
                    (or (coll-tag? (:tag (meta (get (:var->ident env) fname))))
-                       (coll-tag? (get-in st [current fname :tag]))))]
+                       (coll-tag? (get-in st [current fname :tag]))))
+        ;; tag the result of a collection-returning core fn so a binding of it
+        ;; carries the tag onward
+        coll-ret-tag (when (and (symbol? fname) (not ns)
+                                (not (contains? (:var->ident env) fname))
+                                (maybe-core-var fname env))
+                       (coll-returning-fns fname))]
    (if coll?
     (emit (list* 'clojure.core/get fname args) env)
    (let [fname (if ns (symbol (munge ns) (name fname))
@@ -1322,7 +1349,7 @@ break;}" body)
         cherry+interop? (and
                          cherry?
                          (= "js" ns))
-        tag (:tag (meta expr))
+        tag (or (:tag (meta expr)) coll-ret-tag)
         transient (:transient (meta expr))]
     (cond-> (emit-return (str
                          (emit fname (expr-env env))
@@ -1710,19 +1737,20 @@ break;}" body)
              (format "${%s`%s`}"
                      "squint_html.unsafe_tag"))
            env))))
-    (emit-return
-     (emit-with-meta
-      (if (and (= :cherry (:target env))
-               (not (::js (meta expr))))
-        (format "%svector(%s)"
-                (if-let [core-alias (:core-alias env)]
-                  (str core-alias ".")
-                  "")
-                (str/join ", " (emit-args env expr)))
-        (format "[%s]"
-                (str/join ", " (emit-args env expr))))
-      expr env)
-     env)))
+    (-> (emit-return
+         (emit-with-meta
+          (if (and (= :cherry (:target env))
+                   (not (::js (meta expr))))
+            (format "%svector(%s)"
+                    (if-let [core-alias (:core-alias env)]
+                      (str core-alias ".")
+                      "")
+                    (str/join ", " (emit-args env expr)))
+            (format "[%s]"
+                    (str/join ", " (emit-args env expr))))
+          expr env)
+         env)
+        (tagged-expr 'array))))
 
 (defmethod emit-special 'squint-compiler-html [_ env [_ form]]
   (let [env (assoc env :html true :jsx true)
