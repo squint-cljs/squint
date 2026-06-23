@@ -1551,6 +1551,8 @@ with `backticks`")))]
 (deftest vec-test
   (is (eq [] (jsv! '(vec))))
   (is (eq [] (jsv! '(vec []))))
+  (is (eq [true [1]] (jsv! '(let [v (vec (conj nil 1))]
+                              [(vector? v) v]))))
   (is (eq #js [0 1 2 3] (jsv! '(vec [0 1 2 3]))))
   (is (eq #js [0 1 2 3] (jsv! '(vec (range 4)))))
   (is (eq #{0 1 2 3} (jsv! '(vec #{0 1 2 3}))))
