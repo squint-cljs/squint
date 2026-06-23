@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## 0.13.195
+
+- Fix `(vec (list ..))` edge case
+- Improve inference of collections, such that `(let [x {:a 1}] (x :a))` works
+
 ## 0.13.194
 
 - [Replicant](https://github.com/cjohansen/replicant) support. See [example](https://github.com/squint-cljs/squint/tree/main/examples/replicant).

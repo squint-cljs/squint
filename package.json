@@ -2,7 +2,7 @@
   "name": "squint-cljs",
   "type": "module",
   "sideEffects": false,
-  "version": "0.13.194",
+  "version": "0.13.195",
   "files": [
     "core.js",
     "src/squint/core.js",
