@@ -892,6 +892,16 @@ class LazyIterable {
       },
     };
   }
+  // CLJS supports (.indexOf coll x) on seqs; mirror it so lazy seqs work like
+  // arrays. Uses value equality, like cljs.core, and returns -1 when absent.
+  indexOf(x, fromIndex = 0) {
+    let i = 0;
+    for (const v of this) {
+      if (i >= fromIndex && dequal(v, x)) return i;
+      i++;
+    }
+    return -1;
+  }
 }
 
 LazyIterable.prototype[IIterable] = true; // Closure compatibility

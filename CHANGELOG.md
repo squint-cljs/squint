@@ -6,6 +6,7 @@
 
 - Fix `(vec (list ..))` edge case
 - Improve inference of collections, such that `(let [x {:a 1}] (x :a))` works
+- Support `.indexOf` on lazy seqs, matching CLJS
 
 ## 0.13.194
 

@@ -2389,6 +2389,14 @@ globalThis.foo.fs = fs;")))))
     (is (eq [[1 2] [1 2 3 4 5]]
             (js->clj (jsv! "(def a (atom [])) (defn log [x] (swap! a conj x) x)  (def x (lazy-seq (cons (doto 1 log) (lazy-seq (cons (doto 2 log) (vec (map inc [2 3 4]))))))) (vec x) (vec x) [@a (vec x)]"))))))
 
+(deftest lazy-seq-index-of-test
+  (is (= 2 (jsv! "(.indexOf (concat [1 2] [3 4]) 3)")))
+  (is (= -1 (jsv! "(.indexOf (concat [1 2] [3 4]) 9)")))
+  (testing "value equality, like cljs.core"
+    (is (= 1 (jsv! "(.indexOf (concat [[1]] [[2]]) [2])"))))
+  (testing "fromIndex"
+    (is (= 2 (jsv! "(.indexOf (concat [1 2] [1 2]) 1 1)")))))
+
 (deftest keep-indexed-test
   (is (eq #js [12 14 16 18 20] (jsv! "(vec (keep-indexed (fn [i e] (when (odd? i) (inc e))) (range 10 20)))")))
   (is (eq #js [12 14 16 18 20] (jsv! "(into [] (keep-indexed (fn [i e] (when (odd? i) (inc e)))) (range 10 20))"))))
