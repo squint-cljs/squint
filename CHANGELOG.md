@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- `pr-str` and `prn` no longer misreport a shared reference as circular. An object referenced from two places now prints in full at each occurrence, while genuine cycles still print as `#object[circular]`.
+
 ## 0.13.195
 
 - Fix `(vec (list ..))` edge case

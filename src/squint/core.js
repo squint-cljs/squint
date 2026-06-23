@@ -3306,35 +3306,44 @@ function toEDN(value, seen = new WeakSet()) {
   if (typeof value === 'bigint') return `${value}N`;
 
   if (typeof value === 'object') {
+    // seen tracks the current ancestor path only. A shared reference that
+    // appears under sibling branches is a DAG, not a cycle, so delete on exit.
     if (seen.has(value)) return '#object[circular]';
     seen.add(value);
     const T = typeConst(value);
-    let keys;
+    let keys, result;
     switch (T) {
       case ARRAY_TYPE:
-        return `[${value.map((v) => toEDN(v, seen)).join(' ')}]`;
+        result = `[${value.map((v) => toEDN(v, seen)).join(' ')}]`;
+        break;
       case SET_TYPE:
-        return `#{${Array.from(value)
+        result = `#{${Array.from(value)
           .map((v) => toEDN(v, seen))
           .join(' ')}}`;
+        break;
       case MAP_TYPE:
-        return `#js/Map {${Array.from(value.entries())
+        result = `#js/Map {${Array.from(value.entries())
           .map(([k, v]) => `${toEDN(k, seen)} ${toEDN(v, seen)}`)
           .join(', ')}}`;
+        break;
       case LAZY_ITERABLE_TYPE:
       case LIST_TYPE:
-        return `(${mapv((v) => `${toEDN(v, seen)}`, value).join(', ')})`;
+        result = `(${mapv((v) => `${toEDN(v, seen)}`, value).join(', ')})`;
+        break;
       default:
         // Non-plain objects (Promise, Error, Date, class instances, ...) have a
         // constructor other than Object. Print them as #<Name> rather than {}
         // (which is what Object.keys would yield for opaque values like a
         // Promise).
         if (value.constructor && value.constructor !== Object) {
+          seen.delete(value);
           return `#<${value.constructor.name}>`;
         }
         keys = Object.keys(value);
-        return `{${keys.map((k) => `:${k} ${toEDN(value[k], seen)}`).join(', ')}}`;
+        result = `{${keys.map((k) => `:${k} ${toEDN(value[k], seen)}`).join(', ')}}`;
     }
+    seen.delete(value);
+    return result;
   }
 
   return `#object[${value.constructor.name}]`;

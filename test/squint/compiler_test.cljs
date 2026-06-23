@@ -870,6 +870,14 @@
   (is (eq "##-Inf" (jsv! "(pr-str (/ -1.0 0))")))
   (is (eq "##NaN" (jsv! "(pr-str js/NaN)")))
   (is (eq "[##Inf ##NaN]" (jsv! "(pr-str [js/Infinity js/NaN])")))
+  ;; shared (DAG) references are not circular, each occurrence prints in full
+  (is (eq "{:x [\"a\" \"b\"], :y [\"a\" \"b\"]}"
+          (jsv! "(let [shared [:a \"b\"]] (pr-str {:x shared :y shared}))")))
+  (is (eq "[[\"a\" \"b\"] [\"a\" \"b\"]]"
+          (jsv! "(let [shared [:a \"b\"]] (pr-str [shared shared]))")))
+  ;; genuine cycles are still reported
+  (is (eq "[1 2 #object[circular]]"
+          (jsv! "(let [a #js [1 2]] (.push a a) (pr-str a))")))
   ;; str is unaffected
   (is (eq "Infinity" (jsv! "(str js/Infinity)"))))
 
