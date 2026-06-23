@@ -1,4 +1,4 @@
-# replicant example
+# Replicant example
 
 [Replicant](https://github.com/cjohansen/replicant) running under squint, served
 by vite. The app is the official Replicant getting-started tutorial,
@@ -33,10 +33,9 @@ Replicant itself is pulled in as a git dependency via the `:deps` key in
 
 ```clojure
 {:paths ["src"]
- :deps {io.github.cjohansen/replicant {:git/url "https://github.com/borkdude/replicant"
-                                       :git/sha "de29298dccff23b254ab62bef3fa273d25a83ec1"}}}
+ :deps {io.github.cjohansen/replicant {:git/sha "<latest-sha>"}}}
 ```
 
 `:deps` uses the same format as `deps.edn`. Source directories are resolved with
-the `clojure` CLI (`-Spath`) and added to `:paths`. Only git and `:local/root`
-libraries are supported, no jars yet.
+the `clojure` CLI (using `-Spath`) and implicitly added to `:paths`. Only git and `:local/root`
+libraries are supported right now.
