@@ -712,7 +712,7 @@
           (with-meta
             (list* 'js* (str "({...~{},"
                              (str/join ","
-                                       (repeat (/ (count xs) 2) "~{}:~{}"))
+                                       (repeat (/ (count xs) 2) "[~{}]:~{}"))
                              "})")
                    x xs)
             {:tag 'object

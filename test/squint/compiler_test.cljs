@@ -1056,6 +1056,11 @@ with `backticks`")))]
   (testing "objects"
     (is (eq #js {"1" 2 "3" 4} (jsv! '(assoc {"1" 2} "3" 4))))
     (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(assoc {"1" 2} "3" 4 "5" 6)))))
+  (testing "object-tagged binding with a dynamic key uses a computed property"
+    (is (eq #js {"a" 1 "k7" 99}
+            (jsv! '(let [m {:a 1} k :k7] (assoc m k 99)))))
+    (is (eq #js {"a" 1 "x" 5 "y" 6}
+            (jsv! '(let [m {:a 1} k :x v 5] (assoc m k v :y 6))))))
   (testing "maps"
     (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
             (jsv! '(assoc (js/Map. [[1 2]]) 3 4))))
