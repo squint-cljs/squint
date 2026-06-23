@@ -1061,6 +1061,8 @@ with `backticks`")))]
             (jsv! '(let [m {:a 1} k :k7] (assoc m k 99)))))
     (is (eq #js {"a" 1 "x" 5 "y" 6}
             (jsv! '(let [m {:a 1} k :x v 5] (assoc m k v :y 6))))))
+  (testing "object-literal spread fast path preserves metadata"
+    (is (eq {:x 9} (jsv! '(let [m ^{:x 9} {:a 1}] (meta (assoc m :b 2)))))))
   (testing "maps"
     (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
             (jsv! '(assoc (js/Map. [[1 2]]) 3 4))))
