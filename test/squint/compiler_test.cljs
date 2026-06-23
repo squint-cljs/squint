@@ -827,6 +827,8 @@
   (is (= nil (jsv! "(def s #{:foo :bar}) (s :nope)")))
   (is (= 1 (jsv! "(def m {:a 1 :b 2}) (m :a)")))
   (is (= "d" (jsv! "(def m {:a 1}) (m :z :d)")))
+  ;; a def with a docstring still tags the init collection
+  (is (= 1 (jsv! "(def m \"doc\" {:a 1}) (m :a)")))
   ;; a vector literal bound to a local is callable: index lookup
   (is (= 20 (jsv! '(let [v [10 20 30]] (v 1)))))
   ;; a collection-returning core fn makes its binding callable

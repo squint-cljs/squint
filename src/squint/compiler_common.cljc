@@ -798,8 +798,11 @@
                              (let [current (:current state)
                                    ;; a var bound to a collection or keyword is
                                    ;; callable as a function in CLJS: record the
-                                   ;; tag so a later call (the-var k) emits get
-                                   coll-tag (init-return-tag (second more) env)]
+                                   ;; tag so a later call (the-var k) emits get.
+                                   ;; init is the last form, after an optional
+                                   ;; docstring, matching emit-var
+                                   init (if (= 3 (count more)) (nth more 2) (second more))
+                                   coll-tag (init-return-tag init env)]
                                (assoc-in state [current name]
                                          (cond-> (select-keys (meta name)
                                                               [:arglists :doc :line :file :private :macro])
@@ -1329,12 +1332,13 @@ break;}" body)
         ;; instead. Unknown callees keep a direct call. A callee is provable
         ;; when it is bound to a collection literal or to a collection-returning
         ;; core fn, tracked as a tag on the local binding or current-ns var.
-        st (some-> (:ns-state env) deref)
+        ;; only a bare symbol callee can be a tagged collection, keyword or
+        ;; tagged-return core fn; skip the ns-state deref for anything else
+        sym? (and (symbol? fname) (not ns))
+        st (when sym? (some-> (:ns-state env) deref))
         current (:current st)
         argc (count args)
-        callee-tag (when (and (symbol? fname) (not ns)
-                              (#{1 2} argc)
-                              (not= :cherry (:target env)))
+        callee-tag (when (and sym? (#{1 2} argc) (not= :cherry (:target env)))
                      (or (:tag (meta (get (:var->ident env) fname)))
                          (get-in st [current fname :tag])))
         ;; a collection callee calls as (get coll k); a keyword callee, repped
@@ -1343,7 +1347,7 @@ break;}" body)
         kw? (= 'string callee-tag)
         ;; tag the result of a tagged-return core fn so a binding of it carries
         ;; the tag onward
-        ret-tag (when (and (symbol? fname) (not ns)
+        ret-tag (when (and sym?
                            (not (contains? (:var->ident env) fname))
                            (maybe-core-var fname env))
                   (fn-return-tags fname))]
