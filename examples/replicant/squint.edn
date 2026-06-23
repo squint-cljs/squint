@@ -1,6 +1,5 @@
 {:paths ["src"]
- :deps {io.github.cjohansen/replicant {:git/url "https://github.com/borkdude/replicant"
-                                       :git/sha "de29298dccff23b254ab62bef3fa273d25a83ec1"}}
+ :deps {io.github.cjohansen/replicant {:git/sha "5bcdfb10a1060832908e2051bd487283243a2654"}}
  :output-dir "js"
  :extension "js"
  :main [tic-tac-toe.main]}
