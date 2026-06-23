@@ -840,6 +840,16 @@
   (is (str/includes? (jss! "(def m {:a 1}) (m :a)") "get("))
   (is (str/includes? (jss! '(let [s (set [1 2])] (s 1))) "get(")))
 
+(deftest keyword-call-binding-test
+  ;; a keyword bound to a local or var is callable as a function: (k m) is
+  ;; (get m k), arguments swapped relative to a collection callee
+  (is (= 1 (jsv! '(let [k :a] (k {:a 1 :b 2})))))
+  (is (= "d" (jsv! '(let [k :z] (k {:a 1} :d)))))
+  (is (= 1 (jsv! '(let [m {:a 1} k :a] (k m)))))
+  (is (= 42 (jsv! "(def kk :x) (kk {:x 42})")))
+  ;; a string-returning core fn makes its binding callable as a key
+  (is (= 9 (jsv! '(let [k (name :foo/bar)] (k {"bar" 9}))))))
+
 (deftest minus-single-arg-test
   (is (= -10 (jsv! '(- 10))))
   (is (= -11 (jsv! '(- 10 21)))))
