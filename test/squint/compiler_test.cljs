@@ -814,6 +814,44 @@
   (is (= "foo" (jsv! '(#{:foo :bar} :foo))))
   (is (= "the-default" (jsv! '(#{:foo :bar} :dude :the-default)))))
 
+(deftest coll-call-binding-test
+  ;; a set or map literal bound to a local is callable as a function
+  (is (= 2 (jsv! '(let [s #{1 2 3}] (s 2)))))
+  (is (= nil (jsv! '(let [s #{1 2 3}] (s 9)))))
+  (is (= 1 (jsv! '(let [m {:a 1 :b 2}] (m :a)))))
+  (is (= "d" (jsv! '(let [m {:a 1}] (m :z :d)))))
+  ;; tag carries through aliasing
+  (is (= 2 (jsv! '(let [a #{1 2} b a] (b 2)))))
+  ;; a set or map literal bound to a var is callable as a function
+  (is (= "foo" (jsv! "(def s #{:foo :bar}) (s :foo)")))
+  (is (= nil (jsv! "(def s #{:foo :bar}) (s :nope)")))
+  (is (= 1 (jsv! "(def m {:a 1 :b 2}) (m :a)")))
+  (is (= "d" (jsv! "(def m {:a 1}) (m :z :d)")))
+  ;; a def with a docstring still tags the init collection
+  (is (= 1 (jsv! "(def m \"doc\" {:a 1}) (m :a)")))
+  ;; a vector literal bound to a local is callable: index lookup
+  (is (= 20 (jsv! '(let [v [10 20 30]] (v 1)))))
+  ;; a collection-returning core fn makes its binding callable
+  (is (= 2 (jsv! '(let [s (set [1 2 3])] (s 2)))))
+  (is (= nil (jsv! '(let [s (set [1 2 3])] (s 9)))))
+  (is (= 2 (jsv! '(let [m (zipmap [:a :b] [1 2])] (m :b)))))
+  (is (= 1 (jsv! "(def planned (set [1 2])) (planned 1)")))
+  (is (= 1 (jsv! "(def m (select-keys {:a 1 :b 2} [:a])) (m :a)")))
+  ;; provable colls emit get, not a direct call
+  (is (str/includes? (jss! '(let [s #{1 2}] (s 1))) "get("))
+  (is (str/includes? (jss! "(def m {:a 1}) (m :a)") "get("))
+  (is (str/includes? (jss! '(let [s (set [1 2])] (s 1))) "get(")))
+
+(deftest keyword-call-binding-test
+  ;; a keyword bound to a local or var is callable as a function: (k m) is
+  ;; (get m k), arguments swapped relative to a collection callee
+  (is (= 1 (jsv! '(let [k :a] (k {:a 1 :b 2})))))
+  (is (= "d" (jsv! '(let [k :z] (k {:a 1} :d)))))
+  (is (= 1 (jsv! '(let [m {:a 1} k :a] (k m)))))
+  (is (= 42 (jsv! "(def kk :x) (kk {:x 42})")))
+  ;; a string-returning core fn makes its binding callable as a key
+  (is (= 9 (jsv! '(let [k (name :foo/bar)] (k {"bar" 9}))))))
+
 (deftest minus-single-arg-test
   (is (= -10 (jsv! '(- 10))))
   (is (= -11 (jsv! '(- 10 21)))))
@@ -1018,6 +1056,13 @@ with `backticks`")))]
   (testing "objects"
     (is (eq #js {"1" 2 "3" 4} (jsv! '(assoc {"1" 2} "3" 4))))
     (is (eq #js {"1" 2 "3" 4 "5" 6} (jsv! '(assoc {"1" 2} "3" 4 "5" 6)))))
+  (testing "object-tagged binding with a dynamic key uses a computed property"
+    (is (eq #js {"a" 1 "k7" 99}
+            (jsv! '(let [m {:a 1} k :k7] (assoc m k 99)))))
+    (is (eq #js {"a" 1 "x" 5 "y" 6}
+            (jsv! '(let [m {:a 1} k :x v 5] (assoc m k v :y 6))))))
+  (testing "object-literal spread fast path preserves metadata"
+    (is (eq {:x 9} (jsv! '(let [m ^{:x 9} {:a 1}] (meta (assoc m :b 2)))))))
   (testing "maps"
     (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
             (jsv! '(assoc (js/Map. [[1 2]]) 3 4))))
@@ -1506,6 +1551,8 @@ with `backticks`")))]
 (deftest vec-test
   (is (eq [] (jsv! '(vec))))
   (is (eq [] (jsv! '(vec []))))
+  (is (eq [true [1]] (jsv! '(let [v (vec (conj nil 1))]
+                              [(vector? v) v]))))
   (is (eq #js [0 1 2 3] (jsv! '(vec [0 1 2 3]))))
   (is (eq #js [0 1 2 3] (jsv! '(vec (range 4)))))
   (is (eq #{0 1 2 3} (jsv! '(vec #{0 1 2 3}))))

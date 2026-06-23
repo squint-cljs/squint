@@ -273,6 +273,10 @@ function isObj(coll) {
   return coll.constructor === Object;
 }
 
+function isVectorArray(x) {
+  return Array.isArray(x) && !(x instanceof List);
+}
+
 export function object_QMARK_(coll) {
   return coll != null && isObj(coll);
 }
@@ -288,7 +292,7 @@ function typeConst(obj) {
   if (obj instanceof Map) return MAP_TYPE;
   if (obj instanceof Set) return SET_TYPE;
   if (obj instanceof List) return LIST_TYPE;
-  if (Array.isArray(obj)) return ARRAY_TYPE;
+  if (isVectorArray(obj)) return ARRAY_TYPE;
   if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
   if (obj instanceof SortedSet) return SET_TYPE;
 
@@ -1318,7 +1322,7 @@ export function vector(...args) {
 export const array = vector;
 
 export function vector_QMARK_(x) {
-  return typeConst(x) === ARRAY_TYPE;
+  return isVectorArray(x);
 }
 
 export function mapv(...args) {
@@ -1371,7 +1375,7 @@ function toArray(coll) {
 }
 
 export function vec(x) {
-  if (array_QMARK_(x)) return x;
+  if (isVectorArray(x)) return x;
   return pushAll([], x);
 }
 
@@ -1805,7 +1809,7 @@ export function into(...args) {
       // vector target bulk-appends chunks (copy preserves metadata); lists conj
       // at the head, other targets need conj!
       to = args[0] ?? [];
-      if (Array.isArray(to) && !(to instanceof List)) {
+      if (isVectorArray(to)) {
         return pushAll(copy(to), args[1]);
       }
       return reduce(conj_BANG_, copy(to), args[1]);

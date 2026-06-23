@@ -750,6 +750,31 @@
                             (when (= :statement (:context env)) ";\n"))
                         env)))))
 
+;; Core fns whose return value is callable as a function in CLJS. The tag drives
+;; get routing at later call sites. 'object is a map (so get inlines to property
+;; access), 'array a vector, 'set a set, 'coll an unknown collection type,
+;; 'string a keyword (calls as (get coll k)). Only non-nil string returns are
+;; tagged 'string so the always-truthy skip stays correct.
+(def ^:private fn-return-tags
+  '{set set, hash-set set, sorted-set set, disj set,
+    hash-map object, sorted-map object, array-map object, zipmap object,
+    frequencies object, group-by object, select-keys object,
+    vec array, vector array, mapv array, filterv array, subvec array,
+    vector-of array,
+    name string, subs string, str string})
+
+;; The tag for an expr used as a def or binding init, or nil. A collection or
+;; keyword literal, or a call to a tagged-return core fn, is provable.
+(defn init-return-tag [init env]
+  (cond (map? init) 'object
+        (set? init) 'set
+        (vector? init) 'array
+        (keyword? init) 'string
+        (and (seq? init) (symbol? (first init))
+             (not (contains? (:var->ident env) (first init)))
+             (maybe-core-var (first init) env))
+        (fn-return-tags (first init))))
+
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
   (let [name (first more)
         st @(:ns-state env)
@@ -770,12 +795,18 @@
       (swap! (:ns-state env)
              (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))
     (swap! (:ns-state env) (fn [state]
-                             (let [current (:current state)]
-                               ;; keep the var's metadata (:arglists, :doc, :line)
-                               ;; so nREPL info/eldoc can read it back
+                             (let [current (:current state)
+                                   ;; a var bound to a collection or keyword is
+                                   ;; callable as a function in CLJS: record the
+                                   ;; tag so a later call (the-var k) emits get.
+                                   ;; init is the last form, after an optional
+                                   ;; docstring, matching emit-var
+                                   init (if (= 3 (count more)) (nth more 2) (second more))
+                                   coll-tag (init-return-tag init env)]
                                (assoc-in state [current name]
-                                         (select-keys (meta name)
-                                                      [:arglists :doc :line :file :private :macro])))))
+                                         (cond-> (select-keys (meta name)
+                                                              [:arglists :doc :line :file :private :macro])
+                                           coll-tag (assoc :tag coll-tag))))))
     (let [skip-var? (:squint.compiler/skip-var (meta expr))]
       (emit-var more skip-var? env))))
 
@@ -1295,13 +1326,43 @@ break;}" body)
 
 (defmethod emit-special 'funcall [_type env [fname & args :as expr]]
   (let [ns (when (symbol? fname) (namespace fname))
-        fname (if ns (symbol (munge ns) (name fname))
+        ;; CLJS calls collections as functions: (#{1 2} 1), ({:a 1} :a),
+        ;; ([:a :b] 0). Squint reps those as Set / plain object / array which
+        ;; are not callable. When the callee is provably a collection, emit get
+        ;; instead. Unknown callees keep a direct call. A callee is provable
+        ;; when it is bound to a collection literal or to a collection-returning
+        ;; core fn, tracked as a tag on the local binding or current-ns var.
+        ;; only a bare symbol callee can be a tagged collection, keyword or
+        ;; tagged-return core fn; skip the ns-state deref for anything else
+        sym? (and (symbol? fname) (not ns))
+        st (when sym? (some-> (:ns-state env) deref))
+        current (:current st)
+        argc (count args)
+        callee-tag (when (and sym? (#{1 2} argc) (not= :cherry (:target env)))
+                     (or (:tag (meta (get (:var->ident env) fname)))
+                         (get-in st [current fname :tag])))
+        ;; a collection callee calls as (get coll k); a keyword callee, repped
+        ;; as a string, calls as (get coll k) with coll and key swapped
+        coll? (#{'object 'set 'array 'coll} callee-tag)
+        kw? (= 'string callee-tag)
+        ;; tag the result of a tagged-return core fn so a binding of it carries
+        ;; the tag onward
+        ret-tag (when (and sym?
+                           (not (contains? (:var->ident env) fname))
+                           (maybe-core-var fname env))
+                  (fn-return-tags fname))]
+   (if (or coll? kw?)
+    (emit (if coll?
+            (list* 'clojure.core/get fname args)
+            (list* 'clojure.core/get (first args) fname (rest args)))
+          env)
+   (let [fname (if ns (symbol (munge ns) (name fname))
                   fname)
         cherry? (= :cherry (:target env))
         cherry+interop? (and
                          cherry?
                          (= "js" ns))
-        tag (:tag (meta expr))
+        tag (or (:tag (meta expr)) ret-tag)
         transient (:transient (meta expr))]
     (cond-> (emit-return (str
                          (emit fname (expr-env env))
@@ -1318,7 +1379,7 @@ break;}" body)
                                                     args)
                                                   args))))
                          env)
-      tag (tagged-expr tag transient))))
+      tag (tagged-expr tag transient))))))
 
 (defmethod emit-special 'letfn* [_ env [_ form & body]]
   (let [gensym (:gensym env)
@@ -1689,19 +1750,20 @@ break;}" body)
              (format "${%s`%s`}"
                      "squint_html.unsafe_tag"))
            env))))
-    (emit-return
-     (emit-with-meta
-      (if (and (= :cherry (:target env))
-               (not (::js (meta expr))))
-        (format "%svector(%s)"
-                (if-let [core-alias (:core-alias env)]
-                  (str core-alias ".")
-                  "")
-                (str/join ", " (emit-args env expr)))
-        (format "[%s]"
-                (str/join ", " (emit-args env expr))))
-      expr env)
-     env)))
+    (-> (emit-return
+         (emit-with-meta
+          (if (and (= :cherry (:target env))
+                   (not (::js (meta expr))))
+            (format "%svector(%s)"
+                    (if-let [core-alias (:core-alias env)]
+                      (str core-alias ".")
+                      "")
+                    (str/join ", " (emit-args env expr)))
+            (format "[%s]"
+                    (str/join ", " (emit-args env expr))))
+          expr env)
+         env)
+        (tagged-expr 'array))))
 
 (defmethod emit-special 'squint-compiler-html [_ env [_ form]]
   (let [env (assoc env :html true :jsx true)
