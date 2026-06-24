@@ -837,6 +837,12 @@
     (let [env (expr-env env)
           original-libname libname
           libname (resolve-ns env libname)
+          ;; Local ns resolved to a compiled module path. Bind to the module
+          ;; object like a library ns. The globalThis path only fits nses
+          ;; compiled into globalThis in-session.
+          resolved-local? (and (string? libname)
+                               (symbol? original-libname)
+                               (not (library-ns? (:target env) original-libname)))
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           default? (= "default" suffix) ;; we only support a default suffix for now anyway
           as (when as (munge as))
@@ -863,7 +869,8 @@
                     (let [auto-alias (alias-munge (str original-libname))]
                       (if (:repl env)
                         (str
-                          (if (library-ns? (:target env) original-libname)
+                          (if (or (library-ns? (:target env) original-libname)
+                                  resolved-local?)
                             (statement (format "var %s = await import('%s'%s)" auto-alias libname
                                                (if with (str ", " (emit {:with with} env)) "")))
                             (statement (format "await import('%s'%s); var %s = globalThis.%s" libname
@@ -896,7 +903,8 @@
                                  ;; clojure.string) export their vars instead, so
                                  ;; bind to the module object.
                                  (and (:repl env) (symbol? original-libname)
-                                      (not (library-ns? (:target env) original-libname)))
+                                      (not (library-ns? (:target env) original-libname))
+                                      (not resolved-local?))
                                  (format "await import('%s'%s); var %s = globalThis.%s"
                                          libname
                                          (if with (str ", " (emit {:with with} env)) "")
@@ -914,7 +922,8 @@
                       (let [auto-alias (alias-munge (str original-libname))]
                         (statement (cond
                                      ;; local ns: live globalThis cell
-                                     (and (:repl env) (not (library-ns? (:target env) original-libname)))
+                                     (and (:repl env) (not (library-ns? (:target env) original-libname))
+                                          (not resolved-local?))
                                      (format "var %s = globalThis.%s" auto-alias (munge original-libname))
                                      ;; library ns: reuse the module-bound alias
                                      (:repl env)

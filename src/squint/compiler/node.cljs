@@ -147,24 +147,36 @@
                   (adjust-file-for-paths file paths))
     file))
 
+(defn- with-output-extension
+  ;; Swap to `extension` (default .mjs) and use "/" for ESM specifiers.
+  [file extension]
+  (let [ext (or extension ".mjs")
+        ext (if (str/starts-with? ext ".") ext (str "." ext))]
+    (-> file
+        (str/replace (re-pattern (str (path/extname file) "$")) ext)
+        (str/replace "\\" "/"))))
+
+(defn- compiled-output-path
+  ;; Absolute path to ns `x`'s compiled output module, or nil for a non-local ns.
+  [x paths output-dir extension]
+  (some-> (utils/resolve-file x paths)
+          (file-in-output-dir paths output-dir)
+          (with-output-extension extension)))
+
 (defn resolve-ns
-  "Resolve a required libname/ns `x` to a relative path to its compiled output,
-  relative to `in-file`'s output location, using the caller-supplied
-  `:paths`/`:output-dir`/`:extension`. Returns nil when `x` is not a local
-  source ns (e.g. an npm package), leaving it as a bare import."
+  "Resolve required ns `x` to its compiled output path, relative to `in-file`'s
+  output location. Nil when `x` is not a local source ns."
   [{:keys [output-dir paths extension]} in-file x]
-  (let [in-file-in-output-dir (file-in-output-dir in-file paths output-dir)]
-    (when-let [resolved (some-> (utils/resolve-file x paths)
-                                (file-in-output-dir paths output-dir)
-                                (some->> (path/relative (path/dirname (str in-file-in-output-dir)))))]
-      (let [ext (or extension ".mjs")
-            ext (if (str/starts-with? ext ".") ext (str "." ext))
-            ext' (path/extname resolved)]
-        ;; ESM specifiers use "/" on every platform; path/relative yields "\\"
-        ;; on Windows, which would collapse in the emitted JS string.
-        (str "./" (-> resolved
-                      (str/replace (re-pattern (str ext' "$")) ext)
-                      (str/replace "\\" "/")))))))
+  (when-let [abs (compiled-output-path x paths output-dir extension)]
+    (let [base (path/dirname (str (file-in-output-dir in-file paths output-dir)))]
+      (str "./" (str/replace (path/relative base abs) "\\" "/")))))
+
+(defn resolve-ns-repl
+  "Like `resolve-ns` but returns an absolute path. The REPL evals in squint's lib
+  dir where a relative specifier cannot resolve."
+  [x]
+  (let [{:keys [output-dir paths extension]} (utils/expand-paths (or (utils/get-cfg) {}))]
+    (compiled-output-path x (or paths ["." "src"]) (or output-dir ".") extension)))
 
 (defn compile-file [{:keys [in-file in-str out-file extension output-dir]
                      :or {output-dir ""}
