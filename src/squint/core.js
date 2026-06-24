@@ -557,8 +557,12 @@ export function dec(n) {
   return n - 1;
 }
 
+// Dynamic var boxes (earmuffed name -> {val} box); rebind with `binding`.
+export const _STAR_print_fn_STAR_ = { val: (...args) => console.log(...args) };
+export const _STAR_print_err_fn_STAR_ = { val: (...args) => console.error(...args) };
+
 export function println(...args) {
-  console.log(...args);
+  _STAR_print_fn_STAR_.val(...args);
 }
 
 export function nth(coll, idx, orElse) {
@@ -3383,5 +3387,5 @@ export function pr_str(...xs) {
 }
 
 export function prn(...xs) {
-  return console.log(pr_str(...xs));
+  return _STAR_print_fn_STAR_.val(pr_str(...xs));
 }

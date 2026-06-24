@@ -365,6 +365,36 @@ evaluating forms in the live page. See
 
 Squint respect CLJS truth semantics: only `null`, `undefined` and `false` are non-truthy, `0` and `""` are truthy.
 
+## Dynamic vars
+
+A `def` with an earmuffed name (`*foo*`) is always a dynamic var in squint. It compiles to a
+mutable box `{val: ...}`. References read `.val`, `set!` assigns it, and
+`binding` saves, sets and restores it in a `finally`.
+
+``` clojure
+(def ^:dynamic *x* 1)
+
+(defn f [] *x*)
+
+(f)                  ;; => 1
+(binding [*x* 2]
+  (f))               ;; => 2
+(set! *x* 3)
+(f)                  ;; => 3
+```
+
+The box object is shared by reference, so a `binding` is visible across
+separately-compiled ESM modules: a module that reads `*x*` sees a value bound by
+another module. Only the box's property is mutated, never the import binding.
+
+`*print-fn*` and `*print-err-fn*` are dynamic vars. `println` and `prn` print
+through `*print-fn*`. Rebind it to redirect output, e.g. to stderr:
+
+``` clojure
+(binding [*print-fn* *print-err-fn*]
+  (println "to stderr"))
+```
+
 ## Macros
 
 To load macros, add a `squint.edn` file in the root of your project with

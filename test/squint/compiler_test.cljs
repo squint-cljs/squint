@@ -594,16 +594,31 @@
   (is (= 1 (jsv! '(do (def ^:dynamic *x* 1)
                       (try (binding [*x* 2] (throw (js/Error. "boom"))) (catch :default _ nil))
                       *x*))))
-  ;; compiles to a box read via .value
+  ;; compiles to a box read via .val
   (let [s (jss! "(def ^:dynamic *x* 1) *x*")]
-    (is (str/includes? s "{value: 1}"))
-    (is (str/includes? s "_STAR_x_STAR_.value")))
+    (is (str/includes? s "{val: 1}"))
+    (is (str/includes? s "_STAR_x_STAR_.val")))
   ;; cross-ns: a dynamic var referenced/bound via an alias mutates the imported
   ;; box's .value (the import binding itself is never reassigned, so this is
   ;; ESM-safe across separately-compiled modules)
   (let [s (jss! "(ns app (:require [other.ns :as d])) (binding [d/*x* 9] (d/*x*))")]
-    (is (str/includes? s "d._STAR_x_STAR_.value = 9"))
-    (is (str/includes? s "d._STAR_x_STAR_.value"))))
+    (is (str/includes? s "d._STAR_x_STAR_.val = 9"))
+    (is (str/includes? s "d._STAR_x_STAR_.val"))))
+
+(deftest print-fn-test
+  ;; println/prn print through *print-fn*; rebinding redirects output. String
+  ;; input so jsv! uses the full compile-string path (transpile-form, which jsv!
+  ;; uses for quoted forms, mishandles a fn-valued binding).
+  (is (eq ["hi"]
+          (jsv! "(let [out #js []]
+                   (binding [*print-fn* (fn [& xs] (.push out (apply str xs)))]
+                     (println \"hi\")
+                     out))")))
+  (is (eq ["[1 2]"]
+          (jsv! "(let [out #js []]
+                   (binding [*print-fn* (fn [s] (.push out s))]
+                     (prn [1 2])
+                     out))"))))
 
 (deftest case-test
   (is (= 2 (jsv! '(case 1 1 2 3 4))))

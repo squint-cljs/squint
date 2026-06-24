@@ -355,7 +355,7 @@
 
 (defn dynamic-name?
   "True for an earmuffed name like *foo* - squint's convention for a dynamic
-  var. Dynamic vars compile to a box {value ...}; references read .value and
+  var. Dynamic vars compile to a box {val ...}; references read .val and
   `binding` save/sets/restores it, which works across ESM modules (the box
   object is shared; the import binding is never reassigned)."
   [sym-or-name]
@@ -555,12 +555,12 @@
                           (let [m (munged-name expr)]
                             m)))))]
           ;; a reference to a dynamic var (earmuffed, not a local) reads the
-          ;; box's .value
+          ;; box's .val
           (emit-return (escape-jsx
                         (cond-> expr
                           (and (dynamic-name? orig-sym)
                                (not (contains? (:var->ident env) orig-sym)))
-                          (str ".value"))
+                          (str ".val"))
                         env)
                        env))))))
 
@@ -738,7 +738,7 @@
         ;; a dynamic var (earmuffed) compiles to a mutable box {value ...} so
         ;; set!/binding can mutate it across ESM modules; references read .value
         init (if (dynamic-name? name)
-               (str "({value: " init "})")
+               (str "({val: " init "})")
                init)]
     (str "var " ident " = "
          init ";\n"
