@@ -2820,6 +2820,10 @@ export function with_meta(x, m) {
   return ret;
 }
 
+export function vary_meta(x, f, ...args) {
+  return with_meta(x, f(meta(x), ...args));
+}
+
 export function boolean_QMARK_(x) {
   return x === true || x === false;
 }

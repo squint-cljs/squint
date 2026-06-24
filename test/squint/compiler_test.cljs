@@ -3279,6 +3279,17 @@ new Foo();")
                            _ (with-meta f {:name "foo"})]
                        (meta f)))))))
 
+(deftest vary-meta-test
+  (is (eq {:a 1 :b 2}
+          (jsv! '(meta (vary-meta (with-meta {} {:a 1}) assoc :b 2))))
+      "applies f to existing meta")
+  (is (eq {:a 2}
+          (jsv! '(meta (vary-meta (with-meta {} {:a 1}) update :a inc))))
+      "f sees prior meta value")
+  (is (eq {:x 1}
+          (jsv! '(meta (vary-meta {} assoc :x 1))))
+      "nil prior meta"))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test
