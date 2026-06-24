@@ -222,6 +222,14 @@
   (is (false? (jsv! "(pos-int? :some-keyword)")))
   (is (false? (jsv! "(pos-int? [4])"))))
 
+(deftest double?-test
+  ;; every JS number is a double in CLJS, including whole numbers
+  (is (true? (jsv! "(double? 1.5)")))
+  (is (true? (jsv! "(double? 1)")))
+  (is (false? (jsv! "(double? \"x\")")))
+  (is (false? (jsv! "(double? :k)")))
+  (is (false? (jsv! "(double? nil)"))))
+
 (deftest nat-int?-test
   (is (true? (jsv! "(nat-int? 100)")))
   (is (true? (jsv! "(nat-int? 0)")))

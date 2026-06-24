@@ -60,6 +60,7 @@
   distinct_QMARK_
   doall
   dorun
+  double_QMARK_
   drop
   drop_last
   drop_while

@@ -2786,6 +2786,10 @@ export function int_QMARK_(x) {
   return Number.isInteger(x);
 }
 
+export function double_QMARK_(x) {
+  return typeof x === 'number';
+}
+
 export const integer_QMARK_ = int_QMARK_;
 
 export function pos_int_QMARK_(x) {
