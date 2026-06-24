@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Make `core.js` more suitable for treeshaking when only a few functions from it are used.
 - `pr-str` and `prn` no longer misreport a shared reference as circular. An object referenced from two places now prints in full at each occurrence, while genuine cycles still print as `#object[circular]`.
 
 ## 0.13.195

@@ -70,7 +70,7 @@ function dequal(foo, bar) {
 
     // LazyIterable falls through to the sequential-equality path below; it is an
     // object but must compare element-wise, not by enumerable properties
-    if ((!ctor || typeof foo === 'object') && !(foo instanceof LazyIterable)) {
+    if ((!ctor || typeof foo === 'object') && foo[TYPE_TAG] !== LAZY_ITERABLE_TYPE) {
       len = 0;
       for (const k in foo) {
         if (has.call(foo, k) && ++len && !has.call(bar, k)) return false;
@@ -86,12 +86,12 @@ function dequal(foo, bar) {
   // collections keep their fast paths.
   if (
     foo && bar &&
-    (Array.isArray(foo) || foo instanceof LazyIterable) &&
-    (Array.isArray(bar) || bar instanceof LazyIterable)
+    (Array.isArray(foo) || foo[TYPE_TAG] === LAZY_ITERABLE_TYPE) &&
+    (Array.isArray(bar) || bar[TYPE_TAG] === LAZY_ITERABLE_TYPE)
   ) {
     const fi = foo[Symbol.iterator]();
     const bi = bar[Symbol.iterator]();
-    while (true) {
+    for (;;) {
       const a = fi.next();
       const b = bi.next();
       if (a.done || b.done) return !!(a.done && b.done);
@@ -249,6 +249,21 @@ const LIST_TYPE = 4;
 const SET_TYPE = 5;
 const LAZY_ITERABLE_TYPE = 6;
 
+// type tag set in each collection ctor, read by typeConst (DCE: no instanceof).
+const TYPE_TAG = Symbol('squint.lang.type');
+
+// @__NO_SIDE_EFFECTS__ lets bundlers drop unused calls, so a computed-key class
+// or IApply fn shakes out (neither does alone). See doc/dev/dce.md.
+// @__NO_SIDE_EFFECTS__
+function defclass(c) {
+  return c;
+}
+// @__NO_SIDE_EFFECTS__
+function withApply(f, applyFn) {
+  f[IApply__apply] = applyFn;
+  return f;
+}
+
 function emptyOfType(type) {
   switch (type) {
     case MAP_TYPE:
@@ -274,7 +289,7 @@ function isObj(coll) {
 }
 
 function isVectorArray(x) {
-  return Array.isArray(x) && !(x instanceof List);
+  return Array.isArray(x) && x[TYPE_TAG] !== LIST_TYPE;
 }
 
 export function object_QMARK_(coll) {
@@ -291,10 +306,10 @@ function typeConst(obj) {
   }
   if (obj instanceof Map) return MAP_TYPE;
   if (obj instanceof Set) return SET_TYPE;
-  if (obj instanceof List) return LIST_TYPE;
+  // brand, not instanceof, so dispatch does not reference the classes
+  const tag = obj[TYPE_TAG];
+  if (tag !== undefined) return tag;
   if (isVectorArray(obj)) return ARRAY_TYPE;
-  if (obj instanceof LazyIterable) return LAZY_ITERABLE_TYPE;
-  if (obj instanceof SortedSet) return SET_TYPE;
 
   // everything more specific than Object should go before this
   if (obj instanceof Object) return OBJECT_TYPE;
@@ -813,8 +828,8 @@ function* _reductions2(f, s) {
 }
 
 function* _reductions3(f, init, coll) {
-  let i = init,
-    rst = coll;
+  let i = init;
+  const rst = coll;
   while (true) {
     if (reduced_QMARK_(i)) {
       yield i.value;
@@ -854,8 +869,11 @@ const CHUNK_SIZE = 32;
 
 // One cell of a self-caching chunked seq. `step` is a thunk returning
 // [nonEmptyChunkArray, nextStep] or null at the end. See doc/dev/lazy-seqs.md.
+const LazyIterable = defclass(
 class LazyIterable {
   constructor(step) {
+    this[TYPE_TAG] = LAZY_ITERABLE_TYPE;
+    this[IIterable] = true; // Closure compatibility
     this.step = step;
     this.realized = false;
     this.chunk = null; // array, or null when this is the terminal (empty) cell
@@ -903,8 +921,7 @@ class LazyIterable {
     return -1;
   }
 }
-
-LazyIterable.prototype[IIterable] = true; // Closure compatibility
+);
 
 // One-element chunks: an unchunked seq, realized one element at a time.
 function unchunkedSteps(iter) {
@@ -989,7 +1006,8 @@ function mapChunks(coll, xf) {
   return new LazyIterable(step(src, 0));
 }
 
-export class Cons {
+export const Cons = defclass(
+class Cons {
   constructor(x, coll) {
     this.x = x;
     this.coll = coll;
@@ -1017,6 +1035,7 @@ export class Cons {
     };
   }
 }
+);
 
 export function cons(x, coll) {
   return new Cons(x, coll);
@@ -1430,6 +1449,7 @@ export function constantly(x) {
 class List extends Array {
   constructor(...args) {
     super();
+    this[TYPE_TAG] = LIST_TYPE;
     this.push(...args);
   }
 }
@@ -1501,14 +1521,10 @@ function concat1(colls) {
   return new LazyIterable(step(null));
 }
 
-export function concat(...colls) {
-  return concat1(colls);
-}
-
-// lazy seqable argument
-concat[IApply__apply] = (colls) => {
-  return concat1(colls);
-};
+export const concat = withApply(
+  (...colls) => concat1(colls),
+  (colls) => concat1(colls), // lazy seqable argument
+);
 
 export function mapcat(f, ...colls) {
   if (colls.length === 0) {
@@ -2891,9 +2907,11 @@ export function parse_long(s) {
 
 export function parse_double(s) {
   if (string_QMARK_(s)) {
+    // eslint-disable-next-line no-control-regex -- \x00-\x20 mirrors Java trim
     if (/^[\x00-\x20]*[+-]?NaN[\x00-\x20]*$/.test(s)) {
       return NaN;
     } else if (
+      // eslint-disable-next-line no-control-regex -- \x00-\x20 mirrors Java trim
       /^[\x00-\x20]*[+-]?(Infinity|((\d+\.?\d*|\.\d+)([eE][+-]?\d+)?)[dDfF]?)[\x00-\x20]*$/.test(
         s
       )
@@ -3006,8 +3024,10 @@ export function persistent_BANG_(x) {
   return x;
 }
 
+const SortedSet = defclass(
 class SortedSet {
   constructor(xs) {
+    this[TYPE_TAG] = SET_TYPE;
     const isSorted = xs instanceof SortedSet;
     if (!isSorted) {
       xs = sort(xs);
@@ -3070,6 +3090,7 @@ class SortedSet {
     return this.keys();
   }
 }
+);
 
 export function sorted_set(...xs) {
   return new SortedSet(xs);
