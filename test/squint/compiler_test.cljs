@@ -2581,6 +2581,10 @@ globalThis.foo.fs = fs;")))))
 (deftest js-delete-test
   (is (eq {:b 2} (jsv! "(def x {:a 1 :b 2}) (js-delete x :a) x"))))
 
+(deftest user-fn-named-delete-test
+  (is (= 42 (jsv! "(defn delete [x] x) (delete 42)")))
+  (is (= 10 (jsv! "(let [delete (fn [x] (* x 2))] (delete 5))"))))
+
 (deftest aset-test
   (is (eq [1] (jsv! "(def x []) (aset x 0 1) x")))
   (testing "multiple dimensions"
