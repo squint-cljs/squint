@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Add `clojure.string/replace-first`
+- Fix: user-defined function named after JS reserved word (e.g. `delete`) now correctly shadows the special form
 
 ## 0.14.196
 
