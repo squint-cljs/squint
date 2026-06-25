@@ -2730,6 +2730,14 @@ export function keyword(arg1, arg2) {
   return arg1;
 }
 
+// squint has no symbol type; symbols are strings, like keywords.
+export function symbol(arg1, arg2) {
+  if (arg2 !== undefined) {
+    return (arg1 != null ? arg1 + '/' : '') + arg2;
+  }
+  return arg1;
+}
+
 export function keyword_QMARK_(x) {
   return typeof x === 'string';
 }

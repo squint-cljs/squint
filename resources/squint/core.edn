@@ -220,6 +220,7 @@
   subvec
   swap_BANG_
   swap_vals_BANG_
+  symbol
   symbol_QMARK_
   system_time
   t

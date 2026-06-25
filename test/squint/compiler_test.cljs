@@ -563,6 +563,8 @@
   (is (= "a/b" (jsv! '(keyword "a" "b"))))
   (is (jsv! '(symbol? 'foo)))
   (is (not (jsv! '(symbol? 1))))
+  (is (= "foo" (jsv! '(symbol "foo"))))
+  (is (= "a/b" (jsv! '(symbol "a" "b"))))
   (is (= "foo" (jsv! '(namespace :foo/bar))))
   (is (nil? (jsv! '(namespace :foo)))))
 
