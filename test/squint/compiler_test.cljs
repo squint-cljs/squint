@@ -638,6 +638,11 @@
                     @a))"))
       "prn is readable"))
 
+(deftest print-test
+  (is (= "ab" (jsv! "(with-out-str (print \"a\") (print \"b\"))")))
+  (is (= "a [b]" (jsv! "(with-out-str (print \"a\" [\"b\"]))")))
+  (is (= "\"a\"" (jsv! "(with-out-str (pr \"a\"))"))))
+
 (deftest with-out-str-test
   (is (= "hi\n" (jsv! "(with-out-str (println \"hi\"))")))
   (is (= "[1 2]\n" (jsv! "(with-out-str (prn [1 2]))")))
@@ -854,6 +859,16 @@
   (is (= "bar" (jsv! '(:foo nil :bar))))
   (is (= "bar" (jsv! '(let [{:keys [foo] :or {foo :bar}} nil]
                         foo)))))
+
+(deftest coll?-test
+  (is (true? (jsv! '(coll? [1]))))
+  (is (true? (jsv! '(coll? {:a 1}))))
+  (is (true? (jsv! '(coll? #{1}))))
+  (is (true? (jsv! '(coll? (list 1)))))
+  (is (false? (jsv! '(coll? (fn [] 1)))))
+  (is (false? (jsv! '(coll? inc))))
+  (is (false? (jsv! '(coll? "s"))))
+  (is (false? (jsv! '(coll? 1)))))
 
 (deftest coll-call-test
   (is (= "bar" (jsv! '({:foo :bar} :foo))))
@@ -1160,8 +1175,10 @@ with `backticks`")))]
                      x)))))
   (testing "other types"
     (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))
-    (is (eq 1 (jsv! '(get (doto (js/eval "class Foo { }; new Foo()")
-                            (assoc! :foo 1)) :foo))))))
+    ;; non-vanilla objects are not collections; use aset/aget for raw properties
+    (is (eq 1 (jsv! '(let [o (js/eval "class Foo { }; new Foo()")]
+                       (aset o :foo 1)
+                       (aget o :foo)))))))
 
 (deftest assoc-in-test
   (testing "happy path"

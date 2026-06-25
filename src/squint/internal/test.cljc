@@ -30,23 +30,25 @@
           default)
       thrown? (let [klass (second form)
                     body (nthnext form 2)
-                    e-sym (gensym "e")]
+                    e-sym (gensym "e")
+                    match (if (= :default klass) true `(instance? ~klass ~e-sym))]
                 `(try
                    (do ~@body)
                    ~(report :fail (pr-str form) "No exception thrown" false)
                    (catch :default ~e-sym
-                     (if (instance? ~klass ~e-sym)
+                     (if ~match
                        ~(report :pass (pr-str form) e-sym true)
                        ~(report :fail (pr-str form) e-sym false)))))
       thrown-with-msg? (let [klass (second form)
                              re (nth form 2)
                              body (nthnext form 3)
-                             e-sym (gensym "e")]
+                             e-sym (gensym "e")
+                             match (if (= :default klass) true `(instance? ~klass ~e-sym))]
                          `(try
                             (do ~@body)
                             ~(report :fail (pr-str form) "No exception thrown" false)
                             (catch :default ~e-sym
-                              (if (instance? ~klass ~e-sym)
+                              (if ~match
                                 (if (re-find ~re (.-message ~e-sym))
                                   ~(report :pass (pr-str form) e-sym true)
                                   ~(report :fail (pr-str form) `(str "Exception message \"" (.-message ~e-sym) "\" did not match " ~re) false))

@@ -163,7 +163,9 @@
   pop
   pos_QMARK_
   pos_int_QMARK_
+  pr
   pr_str
+  print
   println
   prn
   qualified_keyword_QMARK_

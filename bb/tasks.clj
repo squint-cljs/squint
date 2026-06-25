@@ -202,8 +202,27 @@
       (shell "npm run test")
       (println "eucalypt tests successful!"))))
 
+(defn replicant-test []
+  (let [dir "libtests"]
+    (fs/delete-tree dir)
+    (fs/create-dir dir)
+    (shell {:dir dir} "git clone https://github.com/cjohansen/replicant")
+    (let [dir (fs/path dir "replicant")
+          shell (partial p/shell {:dir dir})
+          squint-local (fs/path dir "node_modules/squint-cljs")]
+      (fs/create-dirs dir)
+      (shell "npm install")
+      (fs/delete-tree squint-local)
+      (fs/create-dirs squint-local)
+      (run! #(fs/copy % squint-local) (fs/glob "." "*.{js,json}"))
+      (fs/copy-tree "lib" (fs/path squint-local "lib"))
+      (fs/copy-tree "src" (fs/path squint-local "src"))
+      (shell "npm run test")
+      (println "replicant tests successful!"))))
+
 (defn libtests []
   #_(build-squint-npm-package)
   ;; temporarily disabled because of not= bug
   #_(eucalypt-test)
-  (clojure-mode-test))
+  (clojure-mode-test)
+  (replicant-test))

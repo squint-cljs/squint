@@ -311,9 +311,6 @@ function typeConst(obj) {
   if (tag !== undefined) return tag;
   if (isVectorArray(obj)) return ARRAY_TYPE;
 
-  // everything more specific than Object should go before this
-  if (obj instanceof Object) return OBJECT_TYPE;
-
   return undefined;
 }
 
@@ -561,9 +558,17 @@ export const _STAR_print_newline_STAR_ = { val: false };
 export const _STAR_print_fn_STAR_ = { val: (s) => console.log(s) };
 export const _STAR_print_err_fn_STAR_ = { val: (s) => console.error(s) };
 
-export function println(...args) {
+export function print(...args) {
   _STAR_print_fn_STAR_.val(args.map((v) => toEDN(v, undefined, false)).join(' '));
+}
+
+export function println(...args) {
+  print(...args);
   if (_STAR_print_newline_STAR_.val) _STAR_print_fn_STAR_.val('\n');
+}
+
+export function pr(...xs) {
+  _STAR_print_fn_STAR_.val(pr_str(...xs));
 }
 
 export function nth(coll, idx, orElse) {
