@@ -608,6 +608,10 @@
     (is (str/includes? s "d._STAR_x_STAR_.val = 9"))
     (is (str/includes? s "d._STAR_x_STAR_.val"))))
 
+(deftest cross-module-dynvar-test
+  (testing "dynamic var imported from another module binds through its .val box"
+    (is (= {:my :env} (binding [t/*current-env* {:my :env}] (t/get-current-env))))))
+
 (deftest print-fn-test
   ;; println/prn print through *print-fn*; the newline is a separate *print-fn*
   ;; call gated by *print-newline* (default false, since console.log adds one).
