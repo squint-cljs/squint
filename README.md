@@ -73,7 +73,6 @@ need the extra performance, startup time and/or small bundle size.
   and `js/await` are still accepted.
 - `assoc!`, `dissoc!`, `conj!`, etc. perform in place mutation on objects
 - `assoc`, `dissoc`, `conj`, etc. return a new shallow copy of objects
-- `println` is a synonym for `console.log`
 - `pr-str` and `prn` print EDN with the idea that you can paste the output back into your programs
   - JavaScript `Map`s are printed like maps with a `#js/Map` prefix
 - Since JavaScript only supports strings for keys in maps, any data structures used as keys will be stringified
@@ -386,14 +385,6 @@ mutable box `{val: ...}`. References read `.val`, `set!` assigns it, and
 The box object is shared by reference, so a `binding` is visible across
 separately-compiled ESM modules: a module that reads `*x*` sees a value bound by
 another module. Only the box's property is mutated, never the import binding.
-
-`*print-fn*` and `*print-err-fn*` are dynamic vars. `println` and `prn` print
-through `*print-fn*`. Rebind it to redirect output, e.g. to stderr:
-
-``` clojure
-(binding [*print-fn* *print-err-fn*]
-  (println "to stderr"))
-```
 
 ## Macros
 

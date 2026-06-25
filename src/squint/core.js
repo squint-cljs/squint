@@ -557,12 +557,13 @@ export function dec(n) {
   return n - 1;
 }
 
-// Dynamic var boxes (earmuffed name -> {val} box); rebind with `binding`.
-export const _STAR_print_fn_STAR_ = { val: (...args) => console.log(...args) };
-export const _STAR_print_err_fn_STAR_ = { val: (...args) => console.error(...args) };
+export const _STAR_print_newline_STAR_ = { val: false };
+export const _STAR_print_fn_STAR_ = { val: (s) => console.log(s) };
+export const _STAR_print_err_fn_STAR_ = { val: (s) => console.error(s) };
 
 export function println(...args) {
-  _STAR_print_fn_STAR_.val(...args);
+  _STAR_print_fn_STAR_.val(args.map((v) => toEDN(v, undefined, false)).join(' '));
+  if (_STAR_print_newline_STAR_.val) _STAR_print_fn_STAR_.val('\n');
 }
 
 export function nth(coll, idx, orElse) {
@@ -3326,7 +3327,8 @@ export function vreset_BANG_(vol, v) {
   return v;
 }
 
-function toEDN(value, seen = new WeakSet()) {
+// readably=false (print/println, *print-readably*) emits strings unquoted.
+function toEDN(value, seen = new WeakSet(), readably = true) {
   if (value == null) return 'nil';
   if (typeof value === 'number') {
     if (value === Infinity) return '##Inf';
@@ -3335,7 +3337,7 @@ function toEDN(value, seen = new WeakSet()) {
     return String(value);
   }
   if (typeof value === 'boolean') return String(value);
-  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'string') return readably ? JSON.stringify(value) : value;
   if (typeof value === 'bigint') return `${value}N`;
 
   if (typeof value === 'object') {
@@ -3347,21 +3349,21 @@ function toEDN(value, seen = new WeakSet()) {
     let keys, result;
     switch (T) {
       case ARRAY_TYPE:
-        result = `[${value.map((v) => toEDN(v, seen)).join(' ')}]`;
+        result = `[${value.map((v) => toEDN(v, seen, readably)).join(' ')}]`;
         break;
       case SET_TYPE:
         result = `#{${Array.from(value)
-          .map((v) => toEDN(v, seen))
+          .map((v) => toEDN(v, seen, readably))
           .join(' ')}}`;
         break;
       case MAP_TYPE:
         result = `#js/Map {${Array.from(value.entries())
-          .map(([k, v]) => `${toEDN(k, seen)} ${toEDN(v, seen)}`)
+          .map(([k, v]) => `${toEDN(k, seen, readably)} ${toEDN(v, seen, readably)}`)
           .join(', ')}}`;
         break;
       case LAZY_ITERABLE_TYPE:
       case LIST_TYPE:
-        result = `(${mapv((v) => `${toEDN(v, seen)}`, value).join(', ')})`;
+        result = `(${mapv((v) => `${toEDN(v, seen, readably)}`, value).join(', ')})`;
         break;
       default:
         // Non-plain objects (Promise, Error, Date, class instances, ...) have a
@@ -3373,7 +3375,7 @@ function toEDN(value, seen = new WeakSet()) {
           return `#<${value.constructor.name}>`;
         }
         keys = Object.keys(value);
-        result = `{${keys.map((k) => `:${k} ${toEDN(value[k], seen)}`).join(', ')}}`;
+        result = `{${keys.map((k) => `:${k} ${toEDN(value[k], seen, readably)}`).join(', ')}}`;
     }
     seen.delete(value);
     return result;
@@ -3387,5 +3389,6 @@ export function pr_str(...xs) {
 }
 
 export function prn(...xs) {
-  return _STAR_print_fn_STAR_.val(pr_str(...xs));
+  _STAR_print_fn_STAR_.val(pr_str(...xs));
+  if (_STAR_print_newline_STAR_.val) _STAR_print_fn_STAR_.val('\n');
 }

@@ -16,6 +16,7 @@
   _STAR_
   _STAR_print_err_fn_STAR_
   _STAR_print_fn_STAR_
+  _STAR_print_newline_STAR_
   _iterator
   abs
   aclone

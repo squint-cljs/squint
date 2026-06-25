@@ -606,19 +606,34 @@
     (is (str/includes? s "d._STAR_x_STAR_.val"))))
 
 (deftest print-fn-test
-  ;; println/prn print through *print-fn*; rebinding redirects output. String
-  ;; input so jsv! uses the full compile-string path (transpile-form, which jsv!
-  ;; uses for quoted forms, mishandles a fn-valued binding).
-  (is (eq ["hi"]
-          (jsv! "(let [out #js []]
-                   (binding [*print-fn* (fn [& xs] (.push out (apply str xs)))]
-                     (println \"hi\")
-                     out))")))
-  (is (eq ["[1 2]"]
-          (jsv! "(let [out #js []]
-                   (binding [*print-fn* (fn [s] (.push out s))]
-                     (prn [1 2])
-                     out))"))))
+  ;; println/prn print through *print-fn*; the newline is a separate *print-fn*
+  ;; call gated by *print-newline* (default false, since console.log adds one).
+  ;; String input so jsv! uses the full compile-string path (transpile-form
+  ;; mishandles a fn-valued binding).
+  (is (= "hi"
+         (jsv! "(let [a (atom \"\")]
+                  (binding [*print-fn* (fn [s] (swap! a str s))]
+                    (println \"hi\")
+                    @a))"))
+      "default *print-newline* false: no extra newline")
+  (is (= "hi\n"
+         (jsv! "(let [a (atom \"\")]
+                  (binding [*print-newline* true *print-fn* (fn [s] (swap! a str s))]
+                    (println \"hi\")
+                    @a))"))
+      "*print-newline* true: newline emitted through *print-fn*")
+  (is (= "a [b]"
+         (jsv! "(let [a (atom \"\")]
+                  (binding [*print-fn* (fn [s] (swap! a str s))]
+                    (println \"a\" [\"b\"])
+                    @a))"))
+      "println is non-readable: strings unquoted, nested too")
+  (is (= "[1 2]"
+         (jsv! "(let [a (atom \"\")]
+                  (binding [*print-fn* (fn [s] (swap! a str s))]
+                    (prn [1 2])
+                    @a))"))
+      "prn is readable"))
 
 (deftest case-test
   (is (= 2 (jsv! '(case 1 1 2 3 4))))
