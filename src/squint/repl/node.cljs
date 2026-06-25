@@ -6,6 +6,7 @@
    [clojure.string :as str]
    [edamame.core :as e]
    [squint.compiler :as compiler]
+   [squint.compiler.node :as compiler-node]
    [squint.compiler-common :as cc]
    [squint.repl.print :as rp]))
 
@@ -53,6 +54,7 @@
                                                    :elide-exports true
                                                    :repl true
                                                    :async true
+                                                   :resolve-ns compiler-node/resolve-ns-repl
                                                    :ns @last-ns}
                                                   @state)
         _ (reset! state new-state)
@@ -102,7 +104,9 @@
 
 (defn input-handler [socket rl input]
   (swap! pending-input str input "\n")
-  (eval-next socket rl))
+  ;; only when idle, the in-flight compile drains pending-input itself
+  (when-not @in-progress
+    (eval-next socket rl)))
 
 (defn on-line [^js rl socket]
   (.on rl "line" #(input-handler socket rl %)))

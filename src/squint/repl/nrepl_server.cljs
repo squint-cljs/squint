@@ -6,6 +6,7 @@
    ["net" :as node-net]
    [squint.compiler-common :as cc]
    [squint.compiler :as compiler]
+   [squint.compiler.node :as compiler-node]
    [squint.internal.node.utils :as utils]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]
    [squint.repl.print :as rp]))
@@ -160,7 +161,10 @@
                                                            :context :repl-return
                                                            :elide-exports true
                                                            :repl true
-                                                           :async true}
+                                                           :async true
+                                                           ;; browser transport loads modules itself, no path resolver needed
+                                                           :resolve-ns (when-not @!browser-send
+                                                                         compiler-node/resolve-ns-repl)}
                                                     jsx-runtime (assoc :jsx-runtime jsx-runtime)
                                                     ;; share the host's ns-state so file-defined
                                                     ;; vars/aliases are visible to the REPL

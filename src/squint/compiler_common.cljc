@@ -355,7 +355,7 @@
 
 (defn dynamic-name?
   "True for an earmuffed name like *foo* - squint's convention for a dynamic
-  var. Dynamic vars compile to a box {value ...}; references read .value and
+  var. Dynamic vars compile to a box {val ...}; references read .val and
   `binding` save/sets/restores it, which works across ESM modules (the box
   object is shared; the import binding is never reassigned)."
   [sym-or-name]
@@ -555,12 +555,12 @@
                           (let [m (munged-name expr)]
                             m)))))]
           ;; a reference to a dynamic var (earmuffed, not a local) reads the
-          ;; box's .value
+          ;; box's .val
           (emit-return (escape-jsx
                         (cond-> expr
                           (and (dynamic-name? orig-sym)
                                (not (contains? (:var->ident env) orig-sym)))
-                          (str ".value"))
+                          (str ".val"))
                         env)
                        env))))))
 
@@ -738,7 +738,7 @@
         ;; a dynamic var (earmuffed) compiles to a mutable box {value ...} so
         ;; set!/binding can mutate it across ESM modules; references read .value
         init (if (dynamic-name? name)
-               (str "({value: " init "})")
+               (str "({val: " init "})")
                init)]
     (str "var " ident " = "
          init ";\n"
@@ -837,6 +837,10 @@
     (let [env (expr-env env)
           original-libname libname
           libname (resolve-ns env libname)
+          ;; resolved to a compiled module: bind to the module object, not globalThis
+          resolved-local? (and (string? libname)
+                               (symbol? original-libname)
+                               (not (library-ns? (:target env) original-libname)))
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           default? (= "default" suffix) ;; we only support a default suffix for now anyway
           as (when as (munge as))
@@ -863,7 +867,8 @@
                     (let [auto-alias (alias-munge (str original-libname))]
                       (if (:repl env)
                         (str
-                          (if (library-ns? (:target env) original-libname)
+                          (if (or (library-ns? (:target env) original-libname)
+                                  resolved-local?)
                             (statement (format "var %s = await import('%s'%s)" auto-alias libname
                                                (if with (str ", " (emit {:with with} env)) "")))
                             (statement (format "await import('%s'%s); var %s = globalThis.%s" libname
@@ -896,7 +901,8 @@
                                  ;; clojure.string) export their vars instead, so
                                  ;; bind to the module object.
                                  (and (:repl env) (symbol? original-libname)
-                                      (not (library-ns? (:target env) original-libname)))
+                                      (not (library-ns? (:target env) original-libname))
+                                      (not resolved-local?))
                                  (format "await import('%s'%s); var %s = globalThis.%s"
                                          libname
                                          (if with (str ", " (emit {:with with} env)) "")
@@ -914,7 +920,8 @@
                       (let [auto-alias (alias-munge (str original-libname))]
                         (statement (cond
                                      ;; local ns: live globalThis cell
-                                     (and (:repl env) (not (library-ns? (:target env) original-libname)))
+                                     (and (:repl env) (not (library-ns? (:target env) original-libname))
+                                          (not resolved-local?))
                                      (format "var %s = globalThis.%s" auto-alias (munge original-libname))
                                      ;; library ns: reuse the module-bound alias
                                      (:repl env)

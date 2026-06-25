@@ -222,6 +222,14 @@
   (is (false? (jsv! "(pos-int? :some-keyword)")))
   (is (false? (jsv! "(pos-int? [4])"))))
 
+(deftest double?-test
+  ;; every JS number is a double in CLJS, including whole numbers
+  (is (true? (jsv! "(double? 1.5)")))
+  (is (true? (jsv! "(double? 1)")))
+  (is (false? (jsv! "(double? \"x\")")))
+  (is (false? (jsv! "(double? :k)")))
+  (is (false? (jsv! "(double? nil)"))))
+
 (deftest nat-int?-test
   (is (true? (jsv! "(nat-int? 100)")))
   (is (true? (jsv! "(nat-int? 0)")))
@@ -555,6 +563,8 @@
   (is (= "a/b" (jsv! '(keyword "a" "b"))))
   (is (jsv! '(symbol? 'foo)))
   (is (not (jsv! '(symbol? 1))))
+  (is (= "foo" (jsv! '(symbol "foo"))))
+  (is (= "a/b" (jsv! '(symbol "a" "b"))))
   (is (= "foo" (jsv! '(namespace :foo/bar))))
   (is (nil? (jsv! '(namespace :foo)))))
 
@@ -586,16 +596,46 @@
   (is (= 1 (jsv! '(do (def ^:dynamic *x* 1)
                       (try (binding [*x* 2] (throw (js/Error. "boom"))) (catch :default _ nil))
                       *x*))))
-  ;; compiles to a box read via .value
+  ;; compiles to a box read via .val
   (let [s (jss! "(def ^:dynamic *x* 1) *x*")]
-    (is (str/includes? s "{value: 1}"))
-    (is (str/includes? s "_STAR_x_STAR_.value")))
+    (is (str/includes? s "{val: 1}"))
+    (is (str/includes? s "_STAR_x_STAR_.val")))
   ;; cross-ns: a dynamic var referenced/bound via an alias mutates the imported
   ;; box's .value (the import binding itself is never reassigned, so this is
   ;; ESM-safe across separately-compiled modules)
   (let [s (jss! "(ns app (:require [other.ns :as d])) (binding [d/*x* 9] (d/*x*))")]
-    (is (str/includes? s "d._STAR_x_STAR_.value = 9"))
-    (is (str/includes? s "d._STAR_x_STAR_.value"))))
+    (is (str/includes? s "d._STAR_x_STAR_.val = 9"))
+    (is (str/includes? s "d._STAR_x_STAR_.val"))))
+
+(deftest print-fn-test
+  ;; println/prn print through *print-fn*; the newline is a separate *print-fn*
+  ;; call gated by *print-newline* (default false, since console.log adds one).
+  ;; String input so jsv! uses the full compile-string path (transpile-form
+  ;; mishandles a fn-valued binding).
+  (is (= "hi"
+         (jsv! "(let [a (atom \"\")]
+                  (binding [*print-fn* (fn [s] (swap! a str s))]
+                    (println \"hi\")
+                    @a))"))
+      "default *print-newline* false: no extra newline")
+  (is (= "hi\n"
+         (jsv! "(let [a (atom \"\")]
+                  (binding [*print-newline* true *print-fn* (fn [s] (swap! a str s))]
+                    (println \"hi\")
+                    @a))"))
+      "*print-newline* true: newline emitted through *print-fn*")
+  (is (= "a [b]"
+         (jsv! "(let [a (atom \"\")]
+                  (binding [*print-fn* (fn [s] (swap! a str s))]
+                    (println \"a\" [\"b\"])
+                    @a))"))
+      "println is non-readable: strings unquoted, nested too")
+  (is (= "[1 2]"
+         (jsv! "(let [a (atom \"\")]
+                  (binding [*print-fn* (fn [s] (swap! a str s))]
+                    (prn [1 2])
+                    @a))"))
+      "prn is readable"))
 
 (deftest case-test
   (is (= 2 (jsv! '(case 1 1 2 3 4))))
@@ -3278,6 +3318,17 @@ new Foo();")
     (is (nil? (jsv! '(let [f (fn [] :ok)
                            _ (with-meta f {:name "foo"})]
                        (meta f)))))))
+
+(deftest vary-meta-test
+  (is (eq {:a 1 :b 2}
+          (jsv! '(meta (vary-meta (with-meta {} {:a 1}) assoc :b 2))))
+      "applies f to existing meta")
+  (is (eq {:a 2}
+          (jsv! '(meta (vary-meta (with-meta {} {:a 1}) update :a inc))))
+      "f sees prior meta value")
+  (is (eq {:x 1}
+          (jsv! '(meta (vary-meta {} assoc :x 1))))
+      "nil prior meta"))
 
 (defn init []
   (t/run-tests 'squint.compiler-test

@@ -14,6 +14,9 @@
   _LT__EQ_
   _PLUS_
   _STAR_
+  _STAR_print_err_fn_STAR_
+  _STAR_print_fn_STAR_
+  _STAR_print_newline_STAR_
   _iterator
   abs
   aclone
@@ -60,6 +63,7 @@
   distinct_QMARK_
   doall
   dorun
+  double_QMARK_
   drop
   drop_last
   drop_while
@@ -216,6 +220,7 @@
   subvec
   swap_BANG_
   swap_vals_BANG_
+  symbol
   symbol_QMARK_
   system_time
   t
@@ -244,6 +249,7 @@
   val
   vals
   var_QMARK_
+  vary_meta
   vec
   vector
   vector_QMARK_
