@@ -124,6 +124,10 @@ export function replace(s, match, replacement) {
   throw `Invalid match arg: $match`;
 }
 
+export function replace_first(s, match, replacement) {
+  return s.replace(match, replacement);
+}
+
 export function split_lines(s) {
   return split(s, /\n|\r\n/);
 }

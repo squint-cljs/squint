@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Add `clojure.string/replace-first`
+
 ## 0.14.196
 
 - Add `squint.edn` / `clojure.edn`, a minimal EDN reader in 300-ish lines of JS.

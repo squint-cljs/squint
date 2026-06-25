@@ -24,17 +24,3 @@
              (cljs.test/is (.-result ~'mod)))
            (finally
              (fs/unlinkSync filename#)))))))
-
-(defmacro evalll [expected body]
-  (let [check (if (seq? expected)
-                `(~@expected (.-result ~'mod))
-                `(= ~expected (.-result ~'mod)))]
-    `(let [prog# (~'compile! ~body)
-           filename# (str (gensym "test") ".mjs")]
-       (fs/writeFileSync filename# prog#)
-       (try
-         (let [~'mod (await (~'dyn-import (-> (path/resolve (js/process.cwd) filename#)
-                                              url/pathToFileURL)))]
-           (cljs.test/is ~check))
-         (finally
-           (fs/unlinkSync filename#))))))
