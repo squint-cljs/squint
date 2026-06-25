@@ -61,6 +61,7 @@
                              'when-not macros/core-when-not
                              'binding macros/core-binding
                              'doto macros/core-doto
+                             'with-out-str macros/core-with-out-str
                              'cond macros/core-cond
                              'cond-> macros/core-cond->
                              'cond->> macros/core-cond->>

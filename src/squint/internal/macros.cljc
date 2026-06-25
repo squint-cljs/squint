@@ -109,6 +109,16 @@
               forms)
        ~gx)))
 
+(defn core-with-out-str
+  "with-out-str from clojure.core"
+  [_&form _&env & body]
+  (let [sb (gensym) x (gensym)]
+    `(let [~sb (atom "")]
+       (binding [*print-newline* true
+                 *print-fn* (fn [~x] (swap! ~sb str ~x))]
+         ~@body)
+       (deref ~sb))))
+
 (defn core-cond
   [_ _ & clauses]
   (when clauses

@@ -638,6 +638,11 @@
                     @a))"))
       "prn is readable"))
 
+(deftest with-out-str-test
+  (is (= "hi\n" (jsv! "(with-out-str (println \"hi\"))")))
+  (is (= "[1 2]\n" (jsv! "(with-out-str (prn [1 2]))")))
+  (is (= "a\nb\n" (jsv! "(with-out-str (println \"a\") (println \"b\"))"))))
+
 (deftest case-test
   (is (= 2 (jsv! '(case 1 1 2 3 4))))
   (is (= 5 (jsv! '(case 6 1 2 3 4 (inc 4)))))
