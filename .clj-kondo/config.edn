@@ -1,3 +1,9 @@
 {:lint-as {squint.core/defclass clj-kondo.lint-as/def-catch-all
-           squint.internal.defmacro/defmacro clojure.core/defmacro}
+           squint.internal.defmacro/defmacro clojure.core/defmacro
+           squint.eval-macro/deftest-eval clojure.test/deftest}
+ :config-in-call {squint.eval-macro/deftest-eval
+                  {:linters {:unresolved-namespace {:level :off}
+                             :unresolved-symbol {:level :off}
+                             :equals-nil {:level :off}
+                             :inline-def {:level :off}}}}
  :linters {:discouraged-var {clojure.core/gensym {:message "gensym makes compiler not deterministic"}}}}
