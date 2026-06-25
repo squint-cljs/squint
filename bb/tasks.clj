@@ -220,9 +220,29 @@
       (shell "npm run test")
       (println "replicant tests successful!"))))
 
+(defn babashka-cli-test []
+  (let [dir "libtests"]
+    (fs/delete-tree dir)
+    (fs/create-dir dir)
+    (shell {:dir dir} "git clone https://github.com/babashka/cli")
+    (let [dir (fs/path dir "cli")
+          shell (partial p/shell {:dir dir})
+          squint-local (fs/path dir "node_modules/squint-cljs")]
+      (fs/create-dirs dir)
+      (shell "npm install")
+      (fs/delete-tree squint-local)
+      (fs/create-dirs squint-local)
+      (run! #(fs/copy % squint-local) (fs/glob "." "*.{js,json}"))
+      (fs/copy-tree "lib" (fs/path squint-local "lib"))
+      (fs/copy-tree "src" (fs/path squint-local "src"))
+      (shell "node_modules/.bin/squint" "compile")
+      (shell "node" ".squint-out/babashka/run_tests.mjs")
+      (println "babashka.cli tests successful!"))))
+
 (defn libtests []
   #_(build-squint-npm-package)
   ;; temporarily disabled because of not= bug
   #_(eucalypt-test)
   (clojure-mode-test)
-  (replicant-test))
+  (replicant-test)
+  (babashka-cli-test))
