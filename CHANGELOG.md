@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add `squint.edn` / `clojure.edn`, a minimal EDN reader in 300-ish lines of JS.
 - Add `*print-fn*`, `*print-err-fn*` and `*print-newline*` dynamic vars, similar to CLJS
 - BREAKING: `println` is no longer a synonym for `console.log` and now prints through `*print-fn*`
 - Add `double?`, `vary-meta`, `symbol` core fns
