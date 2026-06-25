@@ -7,7 +7,7 @@
  {:dev {}
   :cljs {:extra-paths ["test"]
          :extra-deps {org.clojure/clojure {:mvn/version "1.12.1"}
-                      thheller/shadow-cljs {:mvn/version "3.3.5"}
+                      thheller/shadow-cljs {:mvn/version "3.4.11"}
                       funcool/promesa {:mvn/version "11.0.678"}}}
   :test ;; added by neil
   {:extra-paths ["test"]

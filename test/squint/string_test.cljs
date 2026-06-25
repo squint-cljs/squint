@@ -19,27 +19,27 @@
 
 (def dyn-import (js/eval "(x) => import(x)"))
 
-(deftest blank?-test
+(deftest ^:async blank?-test
   (evalll true
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/blank? "")))))
 
-(deftest join-test
+(deftest ^:async join-test
   (evalll "0--1--2--3--4--5--6--7--8--9"
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/join "--" (range 10))))))
 
-(deftest replace-test
+(deftest ^:async replace-test
   (evalll "yyxxyyxx"
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/replace "--xx--xx" "--" "yy")))))
 
-(deftest split-test
+(deftest ^:async split-test
   (evalll (eq ["foo" "bar"])
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/split "foo\nbar\n\n" #"\n")))))
 
-(deftest split-limit-test
+(deftest ^:async split-limit-test
   ;; positive limit caps the number of splits and keeps the remainder,
   ;; matching Clojure (not JS truncation)
   (evalll (eq ["a" "b-c-d"])
@@ -56,46 +56,46 @@
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/split "a-b-" #"-" -1)))))
 
-(deftest split-lines-test
+(deftest ^:async split-lines-test
   (evalll (eq ["foo" "bar"])
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/split-lines "foo\nbar\n\n")))))
 
-(deftest lower-case-test
+(deftest ^:async lower-case-test
   (evalll "foobar"
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/lower-case "FooBar")))))
 
-(deftest upper-case-test
+(deftest ^:async upper-case-test
   (evalll "FOOBAR"
           '(do (ns foo (:require [squint.string :as str]))
                (def result (str/upper-case "FooBar")))))
 
-(deftest capitalize-test
+(deftest ^:async capitalize-test
   (evalll (eq ["" "F" "Foobar"])
           '(do (ns foo (:require [squint.string :as str]))
                (def result [(str/capitalize "")
                             (str/capitalize "f")
                             (str/capitalize "FooBar")]))))
 
-(deftest includes-test
+(deftest ^:async includes-test
   (evalll (eq [true])
           '(do (ns foo (:require [squint.string :as str]))
                (def result [(str/includes? "foo" "o")]))))
 
-;; (deftest string-conflict-test
+;; (deftest ^:async string-conflict-test
 ;;   (evalll (fn [res]
 ;;             (eq ["foo","bar"] res))
 ;;           '(do (ns foo (:require [squint.string :as str]))
 ;;                (defn split [x] (str x)) (def result (str/split "foo,bar" ",")))))
 
-;; (deftest split-test-string
+;; (deftest ^:async split-test-string
 ;;   (evalll (fn [res]
 ;;             (eq ["foo","bar","baz"] res))
 ;;           '(do (ns foo (:require [squint.string :as str]))
 ;;                (def result (str/split "foo--bar--baz" "--")))))
 
-;; (deftest split-test-regex
+;; (deftest ^:async split-test-regex
 ;;   (evalll (fn [res]
 ;;             (eq ["foo","bar","baz"] res))
 ;;           '(do (ns foo (:require [squint.string :as str]))
