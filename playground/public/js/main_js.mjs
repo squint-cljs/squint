@@ -135,8 +135,9 @@ let evalCode = async (code) => {
         URL.revokeObjectURL(blobUrl);
       }
     } else {
-      // unbox the [v] wrapper added by :repl-return
-      let result = (await eval(`(async function() { ${js} })()`))[0];
+      // unbox the [v] wrapper added by :repl-return; forms like require/ns
+      // emit no wrapper so the IIFE resolves to undefined
+      let result = (await eval(`(async function() { ${js} })()`))?.[0];
       // If the user returned a Promise, race it against a short timeout so the
       // playground can still drill into the resolved value via Inspector while
       // surfacing that it came wrapped in a Promise. Pending falls back to a
