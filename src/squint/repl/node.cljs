@@ -104,9 +104,7 @@
 
 (defn input-handler [socket rl input]
   (swap! pending-input str input "\n")
-  ;; Kick the eval loop only when idle. An in-flight compile is async and its
-  ;; continuation drains pending-input. Otherwise each piped line starts a
-  ;; concurrent compile and a require import may not resolve before the next form.
+  ;; only when idle, the in-flight compile drains pending-input itself
   (when-not @in-progress
     (eval-next socket rl)))
 

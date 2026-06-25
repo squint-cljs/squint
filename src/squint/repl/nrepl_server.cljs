@@ -162,9 +162,7 @@
                                                            :elide-exports true
                                                            :repl true
                                                            :async true
-                                                           ;; Node eval imports by absolute path. The
-                                                           ;; browser transport loads over HTTP and sets
-                                                           ;; globalThis, so leave its requires bare.
+                                                           ;; browser transport loads modules itself, no path resolver needed
                                                            :resolve-ns (when-not @!browser-send
                                                                          compiler-node/resolve-ns-repl)}
                                                     jsx-runtime (assoc :jsx-runtime jsx-runtime)

@@ -837,9 +837,7 @@
     (let [env (expr-env env)
           original-libname libname
           libname (resolve-ns env libname)
-          ;; Local ns resolved to a compiled module path. Bind to the module
-          ;; object like a library ns. The globalThis path only fits nses
-          ;; compiled into globalThis in-session.
+          ;; resolved to a compiled module: bind to the module object, not globalThis
           resolved-local? (and (string? libname)
                                (symbol? original-libname)
                                (not (library-ns? (:target env) original-libname)))

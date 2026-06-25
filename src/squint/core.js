@@ -2730,7 +2730,6 @@ export function keyword(arg1, arg2) {
   return arg1;
 }
 
-// squint has no symbol type; symbols are strings, like keywords.
 export function symbol(arg1, arg2) {
   if (arg2 !== undefined) {
     return (arg1 != null ? arg1 + '/' : '') + arg2;
@@ -3335,7 +3334,7 @@ export function vreset_BANG_(vol, v) {
   return v;
 }
 
-// readably=false (print/println, *print-readably*) emits strings unquoted.
+// readably false: strings unquoted
 function toEDN(value, seen = new WeakSet(), readably = true) {
   if (value == null) return 'nil';
   if (typeof value === 'number') {
