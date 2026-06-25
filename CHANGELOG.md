@@ -2,15 +2,15 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.14.196
 
 - Add `squint.edn` / `clojure.edn`, a minimal EDN reader in 300-ish lines of JS.
 - Add `*print-fn*`, `*print-err-fn*` and `*print-newline*` dynamic vars, similar to CLJS
-- BREAKING: `println` is no longer a synonym for `console.log` and now prints through `*print-fn*`
+- BREAKING: `println` is no longer a synonym for `console.log` and now prints through `*print-fn*` like CLJS
 - Add `double?`, `vary-meta`, `symbol` core fns
 - Add `with-out-str`
 - Add `print`, `pr`
-- BREAKING: `coll?` now returns for functions and other non-squint data structures. Use `aset`, `aget` for raw property access on those.
+- Fix: `coll?` returned `true` for functions. Use `aset`, `aget` for raw property access on non-objects.
 - Make `core.js` more suitable for treeshaking when only a few functions from it are used.
 - `pr-str` and `prn` no longer misreport a shared reference as circular. An object referenced from two places now prints in full at each occurrence, while genuine cycles still print as `#object[circular]`.
 - Fix `thrown?` to work with `:default` like CLJS
