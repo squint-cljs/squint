@@ -10,7 +10,7 @@
 - Add `double?`, `vary-meta`, `symbol` core fns
 - Add `with-out-str`
 - Add `print`, `pr`
-- `coll?` now returns for functions and other non-squint data structures. Use `aset`, `aget` for raw property access on those.
+- BREAKING: `coll?` now returns for functions and other non-squint data structures. Use `aset`, `aget` for raw property access on those.
 - Make `core.js` more suitable for treeshaking when only a few functions from it are used.
 - `pr-str` and `prn` no longer misreport a shared reference as circular. An object referenced from two places now prints in full at each occurrence, while genuine cycles still print as `#object[circular]`.
 - Fix `thrown?` to work with `:default` like CLJS
