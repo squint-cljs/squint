@@ -134,11 +134,13 @@ The public export surface is byte-for-byte identical to the previous release
 (verified by diffing the `export` lines); the helpers and `TYPE_TAG` are
 unexported module-locals.
 
-Update (variadic native-rest): the symbol formerly named `IApply__apply` is now
-`VARIADIC` and IS exported. Compiled variadic fns set `f[VARIADIC]` to their
-seq-taking impl so `apply` passes the rest as an unrealized seq; `withApply`
-sets the same symbol, so `concat`'s apply hook and the codegen hook are one
-mechanism. `VARIADIC` is the only added export.
+Update (variadic native-rest): the old `IApply__apply` symbol is gone. Compiled
+variadic fns set the `squint$lang$variadic` string property to their seq-taking
+impl so `apply` passes the rest as an unrealized seq; `withApply` sets the same
+property, so `concat`'s apply hook and the codegen hook are one mechanism. It is
+a string property (not a symbol or export): no new core export, global across
+core instances, an optimization hint with a permanent spread fallback. See
+doc/adr/0001-variadic-fn-native-rest.md.
 
 Results, esbuild 0.28 minified, importing from `squint-cljs/core.js`:
 

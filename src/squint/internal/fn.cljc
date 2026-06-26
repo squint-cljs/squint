@@ -181,17 +181,17 @@
         rest-sym (gensym "rest")
         impl (gensym "impl")
         fmeta {:async async :gen gen}]
-    ;; native rest params for direct calls; the seq-taking impl under VARIADIC
-    ;; lets apply pass an unrealized rest seq. empty rest -> nil (CLJS-compat).
-    ;; @__PURE__ keeps the def droppable when unused.
-    ;; only impl carries :async/:gen (it holds the body/yields); the facade is a
-    ;; plain fn that returns impl's result (the promise / generator)
+    ;; native rest params for direct calls; the seq-taking impl is stashed under
+    ;; the squint$lang$variadic property so apply can pass an unrealized rest seq
+    ;; (lazy, no spread). empty rest -> nil (CLJS-compat). @__PURE__ keeps the def
+    ;; droppable when unused. only impl carries :async/:gen (it holds the
+    ;; body/yields); the facade is a plain fn returning impl's result.
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
        (let [~impl ~(with-meta `(fn [~@fixed ~rest-target] ~@body) fmeta)
              ~name (fn [~@fixed ~(symbol (str "..." rest-sym))]
                      (~impl ~@fixed
                       (if (zero? (.-length ~rest-sym)) nil ~rest-sym)))]
-         (unchecked-set ~name ~'VARIADIC ~impl)
+         (unchecked-set ~name "squint$lang$variadic" ~impl)
          ~name))))
 
 (defn core-fn

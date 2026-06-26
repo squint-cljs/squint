@@ -261,7 +261,7 @@ function defclass(c) {
 }
 // @__NO_SIDE_EFFECTS__
 function withApply(f, applyFn) {
-  f[VARIADIC] = applyFn;
+  f.squint$lang$variadic = applyFn;
   return f;
 }
 
@@ -1428,15 +1428,15 @@ export function set_QMARK_(x) {
   return typeConst(x) === SET_TYPE;
 }
 
-// codegen sets this on variadic fns to their seq-taking impl, so apply can pass
-// the rest as an unrealized seq instead of spreading (lazy, no arg-limit crash)
-export const VARIADIC = Symbol('squint.lang.variadic');
-
 export function apply(f, ...args) {
   f = __toFn(f);
   const xs = args.slice(0, args.length - 1);
   const last = args[args.length - 1];
-  const v = f[VARIADIC];
+  // codegen sets squint$lang$variadic on variadic fns to their seq-taking impl,
+  // so apply can pass the rest as an unrealized seq instead of spreading (lazy,
+  // no arg-limit crash). A string property (not a symbol/export) so it is global
+  // across core instances and adds no public export. See doc/adr.
+  const v = f.squint$lang$variadic;
   if (v) {
     const nfixed = v.length - 1;
     const fixed = [];
