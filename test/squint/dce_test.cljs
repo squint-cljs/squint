@@ -37,7 +37,11 @@
    {:names ["atom" "deref" "reset_BANG_" "swap_BANG_"] :cap 2200}
    ;; get/assoc/str/keyword use no lazy seqs: the lazy machinery (marked by
    ;; concat1's "concat-done" symbol) must not be pulled in.
-   {:names ["atom" "get" "assoc" "str" "keyword"] :cap 4000 :absent ["concat-done"]}])
+   {:names ["atom" "get" "assoc" "str" "keyword"] :cap 4000 :absent ["concat-done"]}
+   ;; conj must dispatch SortedSet by brand, not `instanceof SortedSet`. An
+   ;; instanceof pins SortedSet + sort + compare (the "_elts" field is unique to
+   ;; SortedSet) into every app that uses conj.
+   {:names ["conj"] :cap 3800 :absent ["_elts"]}])
 
 (deftest no-dce-floor-regression
   (doseq [{:keys [names cap absent]} cases]

@@ -6,6 +6,7 @@
 
 - Add `clojure.string/replace-first`
 - Fix: user-defined function named after JS reserved word (e.g. `delete`) now correctly shadows the special form
+- Fix `conj` + `SortedSet` DCE issue
 
 ## 0.14.196
 

@@ -251,6 +251,7 @@ const LAZY_ITERABLE_TYPE = 6;
 
 // type tag set in each collection ctor, read by typeConst (DCE: no instanceof).
 const TYPE_TAG = Symbol('squint.lang.type');
+const SORTED_TAG = Symbol('squint.lang.sorted');
 
 // @__NO_SIDE_EFFECTS__ lets bundlers drop unused calls, so a computed-key class
 // or IApply fn shakes out (neither does alone). See doc/dev/dce.md.
@@ -452,7 +453,8 @@ export function conj(...xs) {
 
   switch (typeConst(o)) {
     case SET_TYPE:
-      if (o instanceof SortedSet) {
+      // brand, not instanceof, so conj does not pin SortedSet
+      if (o[SORTED_TAG]) {
         // prevent re-sorting of collection
         return copyMeta(o, conj_BANG_set(new o.constructor(o), rest));
       } else {
@@ -3053,6 +3055,7 @@ const SortedSet = defclass(
 class SortedSet {
   constructor(xs) {
     this[TYPE_TAG] = SET_TYPE;
+    this[SORTED_TAG] = true;
     const isSorted = xs instanceof SortedSet;
     if (!isSorted) {
       xs = sort(xs);
