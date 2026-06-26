@@ -81,8 +81,8 @@
   (let [e (:expr opts)
         res (cc/compile-string e (assoc opts :repl (:repl opts) :ns-state (atom {:current 'user})
                                         :context (if (:repl opts) :return :statement)
-                                        :elide-exports (and (:repl opts)
-                                                            (not (false? (:elide-exports opts))))))
+                                        ;; explicit --elide-exports wins, else elide only in repl
+                                        :elide-exports (:elide-exports opts (:repl opts))))
         res (if (:repl opts)
               (str/replace "(async function() { %s })()" "%s" res)
               res)
