@@ -7,7 +7,7 @@
 - Add `clojure.string/replace-first`
 - Fix: user-defined function named after JS reserved word (e.g. `delete`) now correctly shadows the special form
 - Fix `conj` + `SortedSet` DCE issue
-- Fix DCE of varargs/multi-arity functions
+- Fix [#771](https://github.com/squint-cljs/squint/issues/771): DCE of varargs/multi-arity functions and optimize via `...` spread
 - Improve DCE of defprotocol when no `:extend-via-metadata` is present
 
 ## 0.14.196
@@ -131,7 +131,7 @@
 
 ## v0.10.186 (2026-03-07)
 
-- Fix #799: forgot to add `squint.math` file to `package.json`
+- Fix [#799](https://github.com/squint-cljs/squint/issues/799): forgot to add `squint.math` file to `package.json`
 
 ## v0.10.185 (2026-01-26)
 

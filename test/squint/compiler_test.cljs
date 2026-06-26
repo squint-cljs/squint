@@ -2205,12 +2205,49 @@ with `backticks`")))]
   (testing "a named variadic fn whose name munges (e.g. has !) emits valid JS and can self-recur"
     (let [s (squint/compile-string
              "(let [sum! (fn sum! [acc & xs] (if (seq xs) (apply sum! (+ acc (first xs)) (rest xs)) acc))] (sum! 0 1 2 3))")]
-      ;; the self-reference in the variadic dispatcher must use the munged name
-      (is (not (str/includes? s "sum!.cljs")))
-      (is (str/includes? s "sum_BANG_.cljs")))
+      ;; the self-reference in the variadic impl must use the munged name
+      (is (not (str/includes? s "(sum!")))
+      (is (str/includes? s "sum_BANG_")))
     (is (= 6 (jsv! '(let [sum! (fn sum! [acc & xs]
                                  (if (seq xs) (apply sum! (+ acc (first xs)) (rest xs)) acc))]
                       (sum! 0 1 2 3)))))))
+
+(deftest variadic-native-rest-test
+  ;; variadic fns use native JS rest params; empty rest is nil (CLJS-compat)
+  (is (eq [1 nil] (jsv! '(let [foo (fn [x & xs] [x xs])] (foo 1)))))
+  (is (eq [1 [2 3]] (jsv! '(let [foo (fn [x & xs] [x xs])] (foo 1 2 3)))))
+  ;; apply does the fixed/rest split, passing the rest as a seq (no spread)
+  (is (eq [1 [2 3]] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo [1 2 3])))))
+  (is (eq [1 [2 3]] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo 1 [2 3])))))
+  (is (eq [1 nil] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo [1])))))
+  ;; destructured FIXED params: the facade must pass values through to impl, not
+  ;; splice the destructuring forms into the call (regression: replicant/clojure-mode)
+  (is (eq [1 2 3 [4 5]]
+          (jsv! '(let [f (fn [{:keys [a b]} c & xs] [a b c xs])] (f {:a 1 :b 2} 3 4 5)))))
+  (is (eq [1 2 3 [4 5]]
+          (jsv! '(let [f (fn [{:keys [a b]} c & xs] [a b c xs])] (apply f {:a 1 :b 2} 3 [4 5])))))
+  ;; concat uses the same VARIADIC hook; apply with prefix args must prepend them
+  (is (eq [1 2 3 4] (jsv! '(vec (apply concat [1 2] [[3 4]])))))
+  (is (eq [1 2 3 4] (jsv! '(vec (apply concat [[1 2] [3 4]])))))
+  (is (eq [] (jsv! '(vec (apply concat [])))))
+  ;; apply over a variadic fn stays lazy: an infinite seq must not be realized
+  (is (= 0 (jsv! '(apply (fn [x & xs] x) (range)))))
+  ;; only the consumed prefix of a lazy side-effecting seq is realized
+  (is (jsv! '(let [a (atom 0)
+                   s (map (fn [x] (swap! a inc) x) (range 1000000))]
+               (apply (fn [x & xs] x) s)
+               (< @a 1000000)))))
+
+(deftest apply-multi-arity-test
+  ;; apply over a multi-arity fn: existing tests only do direct calls. apply must
+  ;; pick the right fixed arity by arg count, else the variadic, and stay lazy.
+  (let [defs "(defn foo ([a] [:one a]) ([a b] [:two a b]) ([a b & r] [:var a b r]))"]
+    (is (eq [:one 1] (jsv! (str defs " (apply foo [1])"))))
+    (is (eq [:two 1 2] (jsv! (str defs " (apply foo [1 2])"))))
+    (is (eq [:var 1 2 [3]] (jsv! (str defs " (apply foo [1 2 3])"))))
+    (is (eq [:var 1 2 [3]] (jsv! (str defs " (apply foo 1 [2 3])")))))
+  ;; lazy: apply over a multi-arity variadic must not realize an infinite coll
+  (is (= 1 (jsv! '(do (defn h ([a] a) ([a & r] a)) (apply h 1 (range)))))))
 
 (deftest sequential-equality-test
   (testing "vectors, lists and lazy seqs compare equal element-wise, like CLJS"

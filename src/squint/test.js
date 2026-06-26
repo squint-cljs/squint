@@ -4,9 +4,9 @@ import * as clojure_DOT_string from 'squint-cljs/src/squint/string.js';
 var _STAR_current_env_STAR_ = ({val: null});
 var _STAR_current_reporter_STAR_ = ({val: "cljs.test/default"});
 var current_reporter = function () {
-const or__132408__auto__1 = _STAR_current_reporter_STAR_.val;
-if (squint_core.truth_(or__132408__auto__1)) {
-return or__132408__auto__1} else {
+const or__23674__auto__1 = _STAR_current_reporter_STAR_.val;
+if (squint_core.truth_(or__23674__auto__1)) {
+return or__23674__auto__1} else {
 return "cljs.test/default"};
 
 };
@@ -15,9 +15,9 @@ return ({"report-counters": ({"test": 0, "pass": 0, "fail": 0, "error": 0}), "te
 
 };
 var get_current_env = function () {
-const or__132408__auto__1 = _STAR_current_env_STAR_.val;
-if (squint_core.truth_(or__132408__auto__1)) {
-return or__132408__auto__1} else {
+const or__23674__auto__1 = _STAR_current_env_STAR_.val;
+if (squint_core.truth_(or__23674__auto__1)) {
+return or__23674__auto__1} else {
 return empty_env()};
 
 };
@@ -31,46 +31,33 @@ _STAR_current_env_STAR_.val = null;
 return null;
 
 };
-var update_current_env_BANG_ = (() => {
-const f1 = (function (var_args) {
-const args21 = [];
-const len__29152__auto__2 = arguments.length;
-let i33 = 0;
-while(true){
-if ((i33 < len__29152__auto__2)) {
-args21.push((arguments[i33]));
-let G__4 = (i33 + 1);
-i33 = G__4;
-continue;
-};break;
-}
-;
-const argseq__29378__auto__5 = (((2 < args21.length)) ? (args21.slice(2)) : (null));
-return f1.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), (arguments[1]), argseq__29378__auto__5);
+var update_current_env_BANG_ = /* @__PURE__ */ (() => {
+const impl31 = (function (ks, f, args) {
+const env2 = get_current_env();
+const new_env3 = squint_core.apply(squint_core.update_in, env2, ks, f, args);
+return set_env_BANG_(new_env3);
 
 });
-f1.cljs$core$IFn$_invoke$arity$variadic = (function (ks, f, args) {
-const env6 = get_current_env();
-const new_env7 = squint_core.apply(squint_core.update_in, env6, ks, f, args);
-return set_env_BANG_(new_env7);
+const f1 = (function (ks, f, ...rest2) {
+return impl31(ks, f, (((rest2.length === 0)) ? (null) : (rest2)));
 
 });
-f1.cljs$lang$maxFixedArity = 2;
+(f1["squint$lang$variadic"] = impl31);
 return f1;
 
 })();
 var testing_contexts_str = function () {
-const temp__132336__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-contexts"));
-if (squint_core.truth_(temp__132336__auto__1)) {
-const contexts2 = temp__132336__auto__1;
+const temp__23300__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-contexts"));
+if (squint_core.truth_(temp__23300__auto__1)) {
+const contexts2 = temp__23300__auto__1;
 return clojure_DOT_string.join(" ", squint_core.reverse(contexts2));
 };
 
 };
 var testing_vars_str = function () {
-const temp__132336__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-vars"));
-if (squint_core.truth_(temp__132336__auto__1)) {
-const vars2 = temp__132336__auto__1;
+const temp__23300__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-vars"));
+if (squint_core.truth_(temp__23300__auto__1)) {
+const vars2 = temp__23300__auto__1;
 return clojure_DOT_string.join(" ", squint_core.map(squint_core.str, vars2));
 };
 
@@ -85,10 +72,10 @@ var current_test_str = function () {
 const vars1 = testing_vars_str();
 const ctx2 = testing_contexts_str();
 if (squint_core.truth_((() => {
-const and__132415__auto__3 = vars1;
-if (squint_core.truth_(and__132415__auto__3)) {
+const and__23699__auto__3 = vars1;
+if (squint_core.truth_(and__23699__auto__3)) {
 return ctx2} else {
-return and__132415__auto__3};
+return and__23699__auto__3};
 
 })())) {
 return `${vars1??''}${" "}${ctx2??''}`} else {
@@ -101,18 +88,18 @@ return "test"} else {
 return null}}}};
 
 };
-var report_loc = function (p__5) {
-const map__12 = p__5;
+var report_loc = function (p__4) {
+const map__12 = p__4;
 const line3 = squint_core.get(map__12, "line");
 const column4 = squint_core.get(map__12, "column");
 const file5 = squint_core.get(map__12, "file");
 if (squint_core.truth_((() => {
-const or__132408__auto__6 = line3;
-if (squint_core.truth_(or__132408__auto__6)) {
-return or__132408__auto__6} else {
-const or__132408__auto__7 = column4;
-if (squint_core.truth_(or__132408__auto__7)) {
-return or__132408__auto__7} else {
+const or__23674__auto__6 = line3;
+if (squint_core.truth_(or__23674__auto__6)) {
+return or__23674__auto__6} else {
+const or__23674__auto__7 = column4;
+if (squint_core.truth_(or__23674__auto__7)) {
+return or__23674__auto__7} else {
 return file5};
 };
 
@@ -136,9 +123,9 @@ return inc_report_counter_BANG_("pass");
 squint_multi.defmethod(report, ["cljs.test/default", "fail"], (function (m) {
 inc_report_counter_BANG_("fail");
 console.error(`${"FAIL in "}${current_test_str()??''}${(() => {
-const temp__132336__auto__1 = report_loc(m);
-if (squint_core.truth_(temp__132336__auto__1)) {
-const l2 = temp__132336__auto__1;
+const temp__23300__auto__1 = report_loc(m);
+if (squint_core.truth_(temp__23300__auto__1)) {
+const l2 = temp__23300__auto__1;
 return `${" ("}${l2??''}${")"}`;
 };
 
@@ -152,9 +139,9 @@ return console.error("    actual:", squint_core.pr_str(squint_core.get(m, "actua
 squint_multi.defmethod(report, ["cljs.test/default", "error"], (function (m) {
 inc_report_counter_BANG_("error");
 console.error(`${"ERROR in "}${current_test_str()??''}${(() => {
-const temp__132336__auto__1 = report_loc(m);
-if (squint_core.truth_(temp__132336__auto__1)) {
-const l2 = temp__132336__auto__1;
+const temp__23300__auto__1 = report_loc(m);
+if (squint_core.truth_(temp__23300__auto__1)) {
+const l2 = temp__23300__auto__1;
 return `${" ("}${l2??''}${")"}`;
 };
 
@@ -183,13 +170,13 @@ return null;
 
 }));
 squint_multi.defmethod(report, ["cljs.test/default", "summary"], (function (_) {
-let map__16 = squint_core.get(get_current_env(), "report-counters");
-let test7 = squint_core.get(map__16, "test");
-let pass8 = squint_core.get(map__16, "pass");
-let fail9 = squint_core.get(map__16, "fail");
-let error10 = squint_core.get(map__16, "error");
-console.log("\nRan", test7, "tests containing", (pass8 + fail9 + error10), "assertions.");
-return console.log(`${fail9??''}`, "failures,", `${error10??''}`, "errors.");
+let map__15 = squint_core.get(get_current_env(), "report-counters");
+let test6 = squint_core.get(map__15, "test");
+let pass7 = squint_core.get(map__15, "pass");
+let fail8 = squint_core.get(map__15, "fail");
+let error9 = squint_core.get(map__15, "error");
+console.log("\nRan", test6, "tests containing", (pass7 + fail8 + error9), "assertions.");
+return console.log(`${fail8??''}`, "failures,", `${error9??''}`, "errors.");
 
 }));
 var successful_QMARK_ = function (results) {
@@ -197,10 +184,10 @@ return ((squint_core.get(results, "fail", 0) === 0) && (squint_core.get(results,
 
 };
 var async_QMARK_ = function (x) {
-const c__132398__auto__1 = Promise;
-const x__132399__auto__2 = x;
-const ret__132400__auto__3 = (x__132399__auto__2 instanceof c__132398__auto__1);
-return ret__132400__auto__3;
+const c__23603__auto__1 = Promise;
+const x__23604__auto__2 = x;
+const ret__23605__auto__3 = (x__23604__auto__2 instanceof c__23603__auto__1);
+return ret__23605__auto__3;
 
 };
 var wrap_async = function (setup, teardown) {
@@ -233,120 +220,120 @@ return f();
 }), fixtures);
 
 };
-var get_each_fixtures = (() => {
-const f11 = (function (...args12) {
-const G__131 = args12.length;
-switch (G__131) {case 0:
-return f11.cljs$core$IFn$_invoke$arity$0();
+var get_each_fixtures = /* @__PURE__ */ (() => {
+const f10 = (function (...args11) {
+const G__121 = args11.length;
+switch (G__121) {case 0:
+return f10.cljs$core$IFn$_invoke$arity$0();
 
 break;
 case 1:
-return f11.cljs$core$IFn$_invoke$arity$1(args12[0]);
+return f10.cljs$core$IFn$_invoke$arity$1(args11[0]);
 
 break;
 default:
-throw (new Error(`${"Invalid arity: "}${args12.length??''}`))};
+throw (new Error(`${"Invalid arity: "}${args11.length??''}`))};
 
 });
-f11.cljs$core$IFn$_invoke$arity$0 = (function () {
+f10.cljs$core$IFn$_invoke$arity$0 = (function () {
 return get_each_fixtures(null);
 
 });
-f11.cljs$core$IFn$_invoke$arity$1 = (function (ns_str) {
+f10.cljs$core$IFn$_invoke$arity$1 = (function (ns_str) {
 return squint_core.get_in(get_current_env(), ["each-fixtures", ns_str], []);
 
 });
-f11.cljs$lang$maxFixedArity = 1;
-return f11;
+f10.cljs$lang$maxFixedArity = 1;
+return f10;
 
 })();
-var set_each_fixtures_BANG_ = (() => {
-const f14 = (function (...args15) {
-const G__161 = args15.length;
-switch (G__161) {case 1:
-return f14.cljs$core$IFn$_invoke$arity$1(args15[0]);
+var set_each_fixtures_BANG_ = /* @__PURE__ */ (() => {
+const f13 = (function (...args14) {
+const G__151 = args14.length;
+switch (G__151) {case 1:
+return f13.cljs$core$IFn$_invoke$arity$1(args14[0]);
 
 break;
 case 2:
-return f14.cljs$core$IFn$_invoke$arity$2(args15[0], args15[1]);
+return f13.cljs$core$IFn$_invoke$arity$2(args14[0], args14[1]);
 
 break;
 default:
-throw (new Error(`${"Invalid arity: "}${args15.length??''}`))};
+throw (new Error(`${"Invalid arity: "}${args14.length??''}`))};
 
 });
-f14.cljs$core$IFn$_invoke$arity$1 = (function (fixtures) {
+f13.cljs$core$IFn$_invoke$arity$1 = (function (fixtures) {
 return set_each_fixtures_BANG_(null, fixtures);
 
 });
-f14.cljs$core$IFn$_invoke$arity$2 = (function (ns_str, fixtures) {
+f13.cljs$core$IFn$_invoke$arity$2 = (function (ns_str, fixtures) {
 return update_current_env_BANG_(["each-fixtures", ns_str], squint_core.constantly(fixtures));
 
 });
-f14.cljs$lang$maxFixedArity = 2;
-return f14;
+f13.cljs$lang$maxFixedArity = 2;
+return f13;
 
 })();
-var get_once_fixtures = (() => {
-const f17 = (function (...args18) {
-const G__191 = args18.length;
-switch (G__191) {case 0:
-return f17.cljs$core$IFn$_invoke$arity$0();
+var get_once_fixtures = /* @__PURE__ */ (() => {
+const f16 = (function (...args17) {
+const G__181 = args17.length;
+switch (G__181) {case 0:
+return f16.cljs$core$IFn$_invoke$arity$0();
 
 break;
 case 1:
-return f17.cljs$core$IFn$_invoke$arity$1(args18[0]);
+return f16.cljs$core$IFn$_invoke$arity$1(args17[0]);
 
 break;
 default:
-throw (new Error(`${"Invalid arity: "}${args18.length??''}`))};
+throw (new Error(`${"Invalid arity: "}${args17.length??''}`))};
 
 });
-f17.cljs$core$IFn$_invoke$arity$0 = (function () {
+f16.cljs$core$IFn$_invoke$arity$0 = (function () {
 return get_once_fixtures(null);
 
 });
-f17.cljs$core$IFn$_invoke$arity$1 = (function (ns_str) {
+f16.cljs$core$IFn$_invoke$arity$1 = (function (ns_str) {
 return squint_core.get_in(get_current_env(), ["once-fixtures", ns_str], []);
 
 });
-f17.cljs$lang$maxFixedArity = 1;
-return f17;
+f16.cljs$lang$maxFixedArity = 1;
+return f16;
 
 })();
-var set_once_fixtures_BANG_ = (() => {
-const f20 = (function (...args21) {
-const G__221 = args21.length;
-switch (G__221) {case 1:
-return f20.cljs$core$IFn$_invoke$arity$1(args21[0]);
+var set_once_fixtures_BANG_ = /* @__PURE__ */ (() => {
+const f19 = (function (...args20) {
+const G__211 = args20.length;
+switch (G__211) {case 1:
+return f19.cljs$core$IFn$_invoke$arity$1(args20[0]);
 
 break;
 case 2:
-return f20.cljs$core$IFn$_invoke$arity$2(args21[0], args21[1]);
+return f19.cljs$core$IFn$_invoke$arity$2(args20[0], args20[1]);
 
 break;
 default:
-throw (new Error(`${"Invalid arity: "}${args21.length??''}`))};
+throw (new Error(`${"Invalid arity: "}${args20.length??''}`))};
 
 });
-f20.cljs$core$IFn$_invoke$arity$1 = (function (fixtures) {
+f19.cljs$core$IFn$_invoke$arity$1 = (function (fixtures) {
 return set_once_fixtures_BANG_(null, fixtures);
 
 });
-f20.cljs$core$IFn$_invoke$arity$2 = (function (ns_str, fixtures) {
+f19.cljs$core$IFn$_invoke$arity$2 = (function (ns_str, fixtures) {
 return update_current_env_BANG_(["once-fixtures", ns_str], squint_core.constantly(fixtures));
 
 });
-f20.cljs$lang$maxFixedArity = 2;
-return f20;
+f19.cljs$lang$maxFixedArity = 2;
+return f19;
 
 })();
 var test_var = function (v) {
 if (squint_core.truth_(squint_core.fn_QMARK_(v))) {
 const test_name1 = (() => {
-const or__132408__auto__2 = squint_core.get(squint_core.meta(v), "name");
-if (squint_core.truth_(or__132408__auto__2)) {
-return or__132408__auto__2} else {
+const or__23674__auto__2 = squint_core.get(squint_core.meta(v), "name");
+if (squint_core.truth_(or__23674__auto__2)) {
+return or__23674__auto__2} else {
 return "anonymous"};
 
 })();
@@ -403,31 +390,31 @@ squint_core.swap_BANG_(test_registry, squint_core.assoc_in, [ns_str, test_name1]
 return test_fn;
 
 };
-var registered_tests = (() => {
-const f23 = (function (...args24) {
-const G__251 = args24.length;
-switch (G__251) {case 0:
-return f23.cljs$core$IFn$_invoke$arity$0();
+var registered_tests = /* @__PURE__ */ (() => {
+const f22 = (function (...args23) {
+const G__241 = args23.length;
+switch (G__241) {case 0:
+return f22.cljs$core$IFn$_invoke$arity$0();
 
 break;
 case 1:
-return f23.cljs$core$IFn$_invoke$arity$1(args24[0]);
+return f22.cljs$core$IFn$_invoke$arity$1(args23[0]);
 
 break;
 default:
-throw (new Error(`${"Invalid arity: "}${args24.length??''}`))};
+throw (new Error(`${"Invalid arity: "}${args23.length??''}`))};
 
 });
-f23.cljs$core$IFn$_invoke$arity$0 = (function () {
+f22.cljs$core$IFn$_invoke$arity$0 = (function () {
 return squint_core.vec(squint_core.mapcat(squint_core.vals, squint_core.vals(squint_core.deref(test_registry))));
 
 });
-f23.cljs$core$IFn$_invoke$arity$1 = (function (ns_str) {
+f22.cljs$core$IFn$_invoke$arity$1 = (function (ns_str) {
 return squint_core.vec(squint_core.vals(squint_core.get(squint_core.deref(test_registry), ns_str)));
 
 });
-f23.cljs$lang$maxFixedArity = 1;
-return f23;
+f22.cljs$lang$maxFixedArity = 1;
+return f22;
 
 })();
 var run_vars_with_once_fixtures = function (ns_str, vars) {
@@ -466,64 +453,51 @@ return finish6(chain5)};
 
 };
 var fresh_counters = ({"test": 0, "pass": 0, "fail": 0, "error": 0});
-var run_tests = (() => {
-const f26 = (function (var_args) {
-const args271 = [];
-const len__29152__auto__2 = arguments.length;
-let i283 = 0;
-while(true){
-if ((i283 < len__29152__auto__2)) {
-args271.push((arguments[i283]));
-let G__4 = (i283 + 1);
-i283 = G__4;
-continue;
-};break;
-}
-;
-const argseq__29378__auto__5 = (((0 < args271.length)) ? (args271.slice(0)) : (null));
-return f26.cljs$core$IFn$_invoke$arity$variadic(argseq__29378__auto__5);
+var run_tests = /* @__PURE__ */ (() => {
+const impl271 = (function (args) {
+const test_vars2 = ((squint_core.truth_(squint_core.empty_QMARK_(args))) ? (registered_tests()) : (((squint_core.truth_(squint_core.string_QMARK_(squint_core.first(args)))) ? (squint_core.vec(squint_core.mapcat(registered_tests, args))) : ((("else") ? (args) : (null))))));
+const _3 = (((_STAR_current_env_STAR_.val == null)) ? (set_env_BANG_(empty_env())) : (null));
+const saved_counters4 = squint_core.get(get_current_env(), "report-counters");
+const _5 = update_current_env_BANG_(["report-counters"], squint_core.constantly(fresh_counters));
+const groups6 = squint_core.reduce((function (acc, v) {
+const k7 = squint_core.get(squint_core.meta(v), "ns");
+return squint_core.update(acc, k7, squint_core.fnil(squint_core.conj, []), v);
 
-});
-f26.cljs$core$IFn$_invoke$arity$variadic = (function (args) {
-const test_vars6 = ((squint_core.truth_(squint_core.empty_QMARK_(args))) ? (registered_tests()) : (((squint_core.truth_(squint_core.string_QMARK_(squint_core.first(args)))) ? (squint_core.vec(squint_core.mapcat(registered_tests, args))) : ((("else") ? (args) : (null))))));
-const _7 = (((_STAR_current_env_STAR_.val == null)) ? (set_env_BANG_(empty_env())) : (null));
-const saved_counters8 = squint_core.get(get_current_env(), "report-counters");
-const _9 = update_current_env_BANG_(["report-counters"], squint_core.constantly(fresh_counters));
-const groups10 = squint_core.reduce((function (acc, v) {
-const k11 = squint_core.get(squint_core.meta(v), "ns");
-return squint_core.update(acc, k11, squint_core.fnil(squint_core.conj, []), v);
-
-}), ({}), test_vars6);
-const run_groups12 = (function () {
-return squint_core.reduce((function (chain, p__30) {
-const vec__1316 = p__30;
-const ns_str17 = squint_core.nth(vec__1316, 0, null);
-const vars18 = squint_core.nth(vec__1316, 1, null);
+}), ({}), test_vars2);
+const run_groups8 = (function () {
+return squint_core.reduce((function (chain, p__28) {
+const vec__912 = p__28;
+const ns_str13 = squint_core.nth(vec__912, 0, null);
+const vars14 = squint_core.nth(vec__912, 1, null);
 if (squint_core.truth_(async_QMARK_(chain))) {
 return chain.then((function (_) {
-return run_vars_with_once_fixtures(ns_str17, vars18);
+return run_vars_with_once_fixtures(ns_str13, vars14);
 
 }))} else {
-return run_vars_with_once_fixtures(ns_str17, vars18)};
+return run_vars_with_once_fixtures(ns_str13, vars14)};
 
-}), null, groups10);
+}), null, groups6);
 
 });
-const finish19 = (function (_) {
+const finish15 = (function (_) {
 report(({"type": "summary"}));
-const counters20 = squint_core.get(get_current_env(), "report-counters");
-update_current_env_BANG_(["report-counters"], squint_core.constantly(saved_counters8));
-return counters20;
+const counters16 = squint_core.get(get_current_env(), "report-counters");
+update_current_env_BANG_(["report-counters"], squint_core.constantly(saved_counters4));
+return counters16;
 
 });
-const chain21 = run_groups12();
-if (squint_core.truth_(async_QMARK_(chain21))) {
-return chain21.then(finish19)} else {
-return finish19(null)};
+const chain17 = run_groups8();
+if (squint_core.truth_(async_QMARK_(chain17))) {
+return chain17.then(finish15)} else {
+return finish15(null)};
 
 });
-f26.cljs$lang$maxFixedArity = 0;
-return f26;
+const f25 = (function (...rest26) {
+return impl271((((rest26.length === 0)) ? (null) : (rest26)));
+
+});
+(f25["squint$lang$variadic"] = impl271);
+return f25;
 
 })();
 
