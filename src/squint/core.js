@@ -253,8 +253,7 @@ const LAZY_ITERABLE_TYPE = 6;
 const TYPE_TAG = Symbol('squint.lang.type');
 const SORTED_TAG = Symbol('squint.lang.sorted');
 
-// @__NO_SIDE_EFFECTS__ lets bundlers drop unused calls, so a computed-key class
-// or variadic-apply fn shakes out (neither does alone). See doc/dev/dce.md.
+// @__NO_SIDE_EFFECTS__ lets a bundler drop unused defclass/withApply calls; see doc/dev/dce.md
 // @__NO_SIDE_EFFECTS__
 function defclass(c) {
   return c;
@@ -1432,16 +1431,10 @@ export function apply(f, ...args) {
   f = __toFn(f);
   const xs = args.slice(0, args.length - 1);
   const last = args[args.length - 1];
-  // codegen sets squint$lang$variadic on variadic fns to their seq-taking impl,
-  // so apply can pass the rest as an unrealized seq instead of spreading (lazy,
-  // no arg-limit crash). A string property (not a symbol/export) so it is global
-  // across core instances and adds no public export. See doc/adr.
+  // variadic impl hint; see doc/adr/0001
   const v = f.squint$lang$variadic;
   if (v) {
-    // maxfa = the variadic impl's fixed-arg count. Pull up to maxfa fixed args
-    // (bounded - never realizes a lazy coll past them); if more remain it is a
-    // variadic call (pass the rest as a seq, lazy); if not, the total args land
-    // on a fixed arity, so spread into the facade which dispatches by count.
+    // pull maxfa fixed args (bounded, lazy-safe); more left -> variadic, else fixed
     const maxfa = v.length - 1;
     const fixed = [];
     let i = 0, rest;
