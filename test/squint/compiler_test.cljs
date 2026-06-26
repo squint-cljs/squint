@@ -34,6 +34,16 @@
   (let [s (jss! "(do (def x (do 1 2 #js {:x 1 :y 2})) x)")]
     (is (eq (str #js {:x 1 :y 2}) (str (js/eval s))))))
 
+(deftest pure-iife-test
+  ;; multi-arity and variadic fns emit a `var f = (() => {...})()` IIFE; the
+  ;; @__PURE__ annotation lets a bundler drop it when f is unused. See
+  ;; squint.dce-test for the bundling check.
+  (is (str/includes? (jss! '(defn foo [& xs] xs)) "/* @__PURE__ */"))
+  (is (str/includes? (jss! '(defn foo ([a] a) ([a b] b))) "/* @__PURE__ */"))
+  ;; single fixed-arity fns and plain lets are not IIFE-wrapped, no annotation
+  (is (not (str/includes? (jss! '(defn foo [a] a)) "@__PURE__")))
+  (is (not (str/includes? (jss! '(let [a 1] a)) "@__PURE__"))))
+
 (deftest do-test
   (let [[v s] (js! '(do 1 2 3))]
     (is (= 3 v))

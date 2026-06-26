@@ -153,7 +153,9 @@
                             :squint.compiler/no-rename true)
             name     (with-meta name meta)
             args-sym (gensym "args")]
-        `(let [~name
+        ;; @__PURE__ lets a bundler drop this arity-dispatch IIFE when unused
+        `(cljs.core/js* "/* @__PURE__ */ ~{}"
+              (let [~name
                (fn [~(symbol (str "..." args-sym))]
                  (case (.-length ~args-sym)
                    ~@(mapcat #(fixed-arity rname args-sym %) sigs)
@@ -175,7 +177,7 @@
            ~@(map #(fn-method name %) fdecl)
            ;; optimization properties
            (set! (. (cljs.core/js* ~name) ~'-cljs$lang$maxFixedArity) ~maxfa)
-           ~name)))))
+           ~name))))))
 
 (defn- variadic-fn? [fdecl]
   (and (= 1 (count fdecl))
@@ -215,7 +217,9 @@
                        :gen gen)
           name  (with-meta name meta)
           args-sym (gensym "args")]
-      `(let [~name
+      ;; @__PURE__ lets a bundler drop this variadic IIFE when unused
+      `(cljs.core/js* "/* @__PURE__ */ ~{}"
+            (let [~name
              ~(with-meta
                 `(fn [~'var_args]
                    (let [~args-sym [] #_(array)]
@@ -229,7 +233,7 @@
                 nil #_{:async async
                  :gen gen})]
          ~(variadic-fn* name method)
-         ~name))))
+         ~name)))))
 
 (defn core-fn
   [&form &env & sigs]

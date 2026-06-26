@@ -7,13 +7,40 @@
    Uses the esbuild JS API (cross-platform; needs 0.18+ for @__NO_SIDE_EFFECTS__,
    devDep is 0.28)."
   (:require
+   ["esbuild" :as esbuild]
+   ["fs" :as fs]
+   ["os" :as os]
+   ["path" :as path]
    [clojure.string :as str]
    [clojure.test :refer [deftest is testing]]
-   ["esbuild" :as esbuild]))
+   [squint.compiler :as squint]))
 
 ;; forward slashes so the import path is valid on Windows too
 (def ^:private core
   (str/replace (str (js/process.cwd) "/src/squint/core.js") "\\" "/"))
+
+(defn- bundle-src
+  "Compiles squint `src` to its own module, then bundles a separate entry that
+   imports `import-name` from it. Cross-module on purpose: esbuild keeps an
+   imported module's top-level statements unless they are @__PURE__ or the
+   package opts out via sideEffects, which is exactly what pins unused fns in a
+   real build. Returns the minified bundle."
+  [src import-name]
+  (let [{:keys [pragmas body]} (squint/compile-string* src {:core-alias "squint_core"})
+        js (str/replace (str pragmas body) "squint-cljs/core.js" core)
+        mod (str/replace (path/join (.realpathSync fs (os/tmpdir))
+                                     (str "squint-dce-" (.getTime (js/Date.)) ".mjs"))
+                         "\\" "/")]
+    (fs/writeFileSync mod js)
+    (try
+      (let [res (esbuild/buildSync
+                 #js {:stdin #js {:contents (str "import { " import-name " } from "
+                                                 (js/JSON.stringify mod)
+                                                 ";\nconsole.log(" import-name ");")
+                                  :loader "js" :resolveDir (js/process.cwd)}
+                      :bundle true :minify true :format "esm" :write false})]
+        (.-text ^js (aget (.-outputFiles ^js res) 0)))
+      (finally (fs/rmSync mod)))))
 
 (defn- bundle
   "Minified esbuild bundle of an entry importing `names` from core; returns the
@@ -53,3 +80,16 @@
         (doseq [m (or absent [])]
           (is (not (str/includes? code m))
               (str "contains '" m "' - unused machinery pulled in")))))))
+
+(deftest unused-fn-shakes-out
+  ;; multi-arity/variadic fns emit a `var f = (() => {...})()` IIFE. Without the
+  ;; @__PURE__ annotation the IIFE is a top-level side effect a bundler keeps,
+  ;; pinning every unused fn (e.g. compiled macro bodies). "var_args" is unique
+  ;; to the variadic codegen. See squint.internal.fn.
+  (let [code (bundle-src
+              (str "(defn used [a] (inc a))\n"
+                   "(defn unused-variadic [& xs] (apply + xs))\n"
+                   "(defn unused-multi ([a] a) ([a b] (+ a b)))")
+              "used")]
+    (is (not (str/includes? code "var_args"))
+        "unused variadic fn survived bundling - missing @__PURE__?")))
