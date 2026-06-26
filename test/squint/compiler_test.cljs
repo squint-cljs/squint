@@ -2220,6 +2220,12 @@ with `backticks`")))]
   (is (eq [1 [2 3]] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo [1 2 3])))))
   (is (eq [1 [2 3]] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo 1 [2 3])))))
   (is (eq [1 nil] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo [1])))))
+  ;; destructured FIXED params: the facade must pass values through to impl, not
+  ;; splice the destructuring forms into the call (regression: replicant/clojure-mode)
+  (is (eq [1 2 3 [4 5]]
+          (jsv! '(let [f (fn [{:keys [a b]} c & xs] [a b c xs])] (f {:a 1 :b 2} 3 4 5)))))
+  (is (eq [1 2 3 [4 5]]
+          (jsv! '(let [f (fn [{:keys [a b]} c & xs] [a b c xs])] (apply f {:a 1 :b 2} 3 [4 5])))))
   ;; concat uses the same VARIADIC hook; apply with prefix args must prepend them
   (is (eq [1 2 3 4] (jsv! '(vec (apply concat [1 2] [[3 4]])))))
   (is (eq [1 2 3 4] (jsv! '(vec (apply concat [[1 2] [3 4]])))))

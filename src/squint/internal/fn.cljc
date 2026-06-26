@@ -178,6 +178,10 @@
         sig (vec (remove '#{&} arglist))
         fixed (subvec sig 0 (dec (count sig)))
         rest-target (peek sig)
+        ;; the facade takes plain params and passes them through; impl does any
+        ;; destructuring. Splicing the fixed params (which may be destructuring
+        ;; forms) into the impl CALL would emit them as literals, not values.
+        fixed-syms (mapv (fn [_] (gensym "arg")) fixed)
         rest-sym (gensym "rest")
         impl (gensym "impl")
         fmeta {:async async :gen gen}]
@@ -188,8 +192,8 @@
     ;; body/yields); the facade is a plain fn returning impl's result.
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
        (let [~impl ~(with-meta `(fn [~@fixed ~rest-target] ~@body) fmeta)
-             ~name (fn [~@fixed ~(symbol (str "..." rest-sym))]
-                     (~impl ~@fixed
+             ~name (fn [~@fixed-syms ~(symbol (str "..." rest-sym))]
+                     (~impl ~@fixed-syms
                       (if (zero? (.-length ~rest-sym)) nil ~rest-sym)))]
          (unchecked-set ~name "squint$lang$variadic" ~impl)
          ~name))))
