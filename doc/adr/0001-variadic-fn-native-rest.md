@@ -44,6 +44,43 @@ var foo = /* @__PURE__ */ (() => {
 
 The hint is a plain string property, not a symbol or a core export.
 
+### Multi-arity
+
+Multi-arity fns follow the same shape. Each arity compiles to its own `impl`
+fn (which does its own param destructuring); a facade switches on `args.length`
+and passes RAW `args[i]` through to the matching impl. The variadic arity (if
+any) uses a native rest slice and is stashed under `squint$lang$variadic`.
+
+```js
+var foo = /* @__PURE__ */ (() => {
+  const impl1 = function (a) { ... };
+  const impl2 = function (a, b) { ... };
+  const implV = function (a, b, r) { ... };          // r is a seq
+  const foo = function (...args) {
+    switch (args.length) {
+      case 1: return impl1(args[0]);
+      case 2: return impl2(args[0], args[1]);
+      default: { const rest = args.slice(2);
+                 return implV(args[0], args[1], rest.length === 0 ? null : rest); }
+    }
+  };
+  foo["squint$lang$variadic"] = implV;               // only if a variadic arity
+  return foo;
+})();
+```
+
+`apply` does a bounded pull of up to `maxfa = implV.length - 1` fixed args
+(never realizing a lazy coll past them): if more remain it is a variadic call
+(`implV(fixed..., restSeq)`, lazy); if not, the total args land on a fixed arity,
+so it spreads into the facade which dispatches by count. This picks the right
+fixed arity vs variadic the way CLJS's bounded-count does.
+
+CRITICAL (both single- and multi-arity): the facade must pass RAW params to the
+impl. Splicing the fixed params - which may be destructuring forms like
+`{:keys [a b]}` - into the impl CALL emits them as map/vector literals, not
+values (regression that broke replicant/clojure-mode: a destructured arg became
+`{"keys":[a,b]}`). Only the impl destructures.
+
 ## Consequences
 
 - `apply` over a variadic fn is lazy and never crashes on large/infinite colls

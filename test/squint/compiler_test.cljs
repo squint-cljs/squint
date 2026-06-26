@@ -2238,6 +2238,17 @@ with `backticks`")))]
                (apply (fn [x & xs] x) s)
                (< @a 1000000)))))
 
+(deftest apply-multi-arity-test
+  ;; apply over a multi-arity fn: existing tests only do direct calls. apply must
+  ;; pick the right fixed arity by arg count, else the variadic, and stay lazy.
+  (let [defs "(defn foo ([a] [:one a]) ([a b] [:two a b]) ([a b & r] [:var a b r]))"]
+    (is (eq [:one 1] (jsv! (str defs " (apply foo [1])"))))
+    (is (eq [:two 1 2] (jsv! (str defs " (apply foo [1 2])"))))
+    (is (eq [:var 1 2 [3]] (jsv! (str defs " (apply foo [1 2 3])"))))
+    (is (eq [:var 1 2 [3]] (jsv! (str defs " (apply foo 1 [2 3])")))))
+  ;; lazy: apply over a multi-arity variadic must not realize an infinite coll
+  (is (= 1 (jsv! '(do (defn h ([a] a) ([a & r] a)) (apply h 1 (range)))))))
+
 (deftest sequential-equality-test
   (testing "vectors, lists and lazy seqs compare equal element-wise, like CLJS"
     (is (jsv! '(= (list 1 2 3) [1 2 3])))

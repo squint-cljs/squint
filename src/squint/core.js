@@ -1438,22 +1438,27 @@ export function apply(f, ...args) {
   // across core instances and adds no public export. See doc/adr.
   const v = f.squint$lang$variadic;
   if (v) {
-    const nfixed = v.length - 1;
+    // maxfa = the variadic impl's fixed-arg count. Pull up to maxfa fixed args
+    // (bounded - never realizes a lazy coll past them); if more remain it is a
+    // variadic call (pass the rest as a seq, lazy); if not, the total args land
+    // on a fixed arity, so spread into the facade which dispatches by count.
+    const maxfa = v.length - 1;
     const fixed = [];
-    let i = 0;
-    for (; i < nfixed && i < xs.length; i++) fixed.push(xs[i]);
-    let rest;
-    if (i < nfixed) {
+    let i = 0, rest;
+    for (; i < maxfa && i < xs.length; i++) fixed.push(xs[i]);
+    if (i < maxfa) {
       let s = seq(last);
-      for (; i < nfixed && s != null; i++) {
+      for (; i < maxfa && s != null; i++) {
         fixed.push(first(s));
         s = next(s);
       }
       rest = s;
     } else {
-      rest = i < xs.length ? concat1([xs.slice(i), last]) : seq(last);
+      rest = i < xs.length ? concat1([xs.slice(i), last]) : last;
     }
-    return v(...fixed, rest == null ? null : rest);
+    rest = rest == null ? null : seq(rest);
+    if (rest == null) return f(...fixed);
+    return v(...fixed, rest);
   }
   return f(...xs, ...iterable(last));
 }
