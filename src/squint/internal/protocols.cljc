@@ -2,23 +2,25 @@
   (:require [clojure.core :as core]))
 
 (core/defn- emit-protocol-method-arity
-  [mname method-sym qualified-name args]
-  (let [this (first args)]
+  ;; NOTE: call (unchecked-get this sym) in head position so it compiles to a
+  ;; bound method call this[sym](..) - deftype/reify bodies rely on `this`.
+  [mname method-sym qualified-name evm? args]
+  (let [this (first args)
+        slot-call `((unchecked-get ~this ~method-sym) ~@args)]
     `(~args
       (if (nil? ~this)
-        ((unchecked-get ~mname nil)  ~@args)
-        ;; NOTE: call (unchecked-get this sym) in head position so it compiles
-        ;; to a bound method call this[sym](..) - deftype/reify bodies rely on
-        ;; `this`. Only fall back to the metadata impl when the slot is absent.
-        (if (undefined? (unchecked-get ~this ~method-sym))
-          ;; :extend-via-metadata fallback: look up the impl on this's metadata
-          ;; under the fully-qualified method name
-          ((get (meta ~this) ~qualified-name) ~@args)
-          ((unchecked-get ~(first args) ;; this
-                          ~method-sym) ~@args))))))
+        ((unchecked-get ~mname nil) ~@args)
+        ~(if evm?
+           ;; :extend-via-metadata: fall back to the metadata impl, looked up
+           ;; under the fully-qualified method name, when the slot is absent.
+           ;; Pins get+meta, so only emitted on opt-in (CLJS parity).
+           `(if (undefined? (unchecked-get ~this ~method-sym))
+              ((get (meta ~this) ~qualified-name) ~@args)
+              ~slot-call)
+           slot-call)))))
 
 (core/defn- emit-protocol-method
-  [ns-name p method]
+  [ns-name p evm? method]
   (let [mname (first method)
         method-sym (symbol (str p "_" mname))
         qualified-name (str ns-name "/" mname)
@@ -30,7 +32,7 @@
         (js/Symbol ~(str p "_" mname)))
       (defn ~mname
         ~@(when mdocs [mdocs])
-        ~@(map #(emit-protocol-method-arity mname method-sym qualified-name %) margs)))))
+        ~@(map #(emit-protocol-method-arity mname method-sym qualified-name evm? %) margs)))))
 
 (core/defn core-defprotocol
   [_&form &env p & doc+methods]
@@ -45,7 +47,7 @@
                      (into {} (map vec (partition 2 doc-and-opts))))]
     `(do
        (def ~(with-meta p pmeta) {:__sym (js/Symbol ~(str p))})
-       ~@(mapcat #(emit-protocol-method ns-name p %) methods))))
+       ~@(mapcat #(emit-protocol-method ns-name p (:extend-via-metadata pmeta) %) methods))))
 
 (core/defn ->impl-map [impls]
   (core/loop [ret {} s impls]

@@ -543,7 +543,12 @@
   (is (= "via-meta"
          (jsv! "(ns my.app)
 (defprotocol IFoo :extend-via-metadata true (foo [_]))
-(foo (with-meta {} {`foo (fn [_] :via-meta)}))"))))
+(foo (with-meta {} {`foo (fn [_] :via-meta)}))")))
+  ;; the metadata fallback pins get+meta, so it is only emitted on opt-in. A
+  ;; plain protocol dispatches straight to the slot, no get/meta (DCE).
+  (is (str/includes? (jss! '(defprotocol IFoo :extend-via-metadata true (foo [_])))
+                     "meta"))
+  (is (not (str/includes? (jss! '(defprotocol IBar (bar [_]))) "meta"))))
 
 (deftest keyword-pred-test
   ;; keywords are strings in squint, so keyword? is string?

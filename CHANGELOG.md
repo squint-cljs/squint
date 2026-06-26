@@ -7,7 +7,8 @@
 - Add `clojure.string/replace-first`
 - Fix: user-defined function named after JS reserved word (e.g. `delete`) now correctly shadows the special form
 - Fix `conj` + `SortedSet` DCE issue
-- Fix DCD of varargs/multi-arity functions
+- Fix DCE of varargs/multi-arity functions
+- Improve DCE of defprotocol when no `:extend-via-metadata` is present
 
 ## 0.14.196
 

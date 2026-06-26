@@ -26,8 +26,8 @@
    package opts out via sideEffects, which is exactly what pins unused fns in a
    real build. Returns the minified bundle."
   [src import-name]
-  (let [{:keys [pragmas body]} (squint/compile-string* src {:core-alias "squint_core"})
-        js (str/replace (str pragmas body) "squint-cljs/core.js" core)
+  (let [{:keys [javascript]} (squint/compile-string* src {:core-alias "squint_core"})
+        js (str/replace javascript "squint-cljs/core.js" core)
         mod (str/replace (path/join (.realpathSync fs (os/tmpdir))
                                      (str "squint-dce-" (.getTime (js/Date.)) ".mjs"))
                          "\\" "/")]
@@ -84,12 +84,14 @@
 (deftest unused-fn-shakes-out
   ;; multi-arity/variadic fns emit a `var f = (() => {...})()` IIFE. Without the
   ;; @__PURE__ annotation the IIFE is a top-level side effect a bundler keeps,
-  ;; pinning every unused fn (e.g. compiled macro bodies). "var_args" is unique
-  ;; to the variadic codegen. See squint.internal.fn.
+  ;; pinning every unused fn (e.g. compiled macro bodies). The marker is the
+  ;; `cljs$lang$maxFixedArity` property the codegen sets - a property name, so it
+  ;; survives minification (unlike the `var_args` param, which gets renamed). See
+  ;; squint.internal.fn.
   (let [code (bundle-src
               (str "(defn used [a] (inc a))\n"
                    "(defn unused-variadic [& xs] (apply + xs))\n"
                    "(defn unused-multi ([a] a) ([a b] (+ a b)))")
               "used")]
-    (is (not (str/includes? code "var_args"))
-        "unused variadic fn survived bundling - missing @__PURE__?")))
+    (is (not (str/includes? code "cljs$lang$maxFixedArity"))
+        "unused multi-arity/variadic fn survived bundling - missing @__PURE__?")))
