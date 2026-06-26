@@ -61,7 +61,7 @@ Two top-level statements in `src/squint/core.js`:
 
 ```js
 LazyIterable.prototype[IIterable] = true;   // ~line 907
-concat[IApply__apply] = (colls) => { ... }; // ~line 1509
+concat[VARIADIC] = (colls) => { ... }; // ~line 1509
 ```
 
 These are side-effecting assignments that reference their target symbols, so
@@ -91,7 +91,7 @@ statement references `C` and keeps it.
 
 squint's collection classes (`LazyIterable`, `Cons`, `List`, `SortedSet`, ...)
 all carry protocol methods under computed Symbol keys (`[IIterable]`,
-`[Symbol.iterator]`, `[IApply__apply]`, ...). Each is therefore retained
+`[Symbol.iterator]`, `[VARIADIC]`, ...). Each is therefore retained
 unconditionally and drags in what its methods reference (`dequal`, `get`,
 `sort`, `compare`). That is the floor.
 
@@ -107,11 +107,11 @@ per-call `/* @__PURE__ */`):
   [Symbol.iterator](){} }` is retained unconditionally (computed key looks
   side-effecting); passing it through a no-side-effects call lets a bundler drop
   it when `C` is unused.
-- `withApply(f, applyFn)` sets `f[IApply__apply] = applyFn` and returns `f`.
+- `withApply(f, applyFn)` sets `f[VARIADIC] = applyFn` and returns `f`.
   Used as `export const concat = withApply(fn, applyFn)`. A bare top-level
-  `concat[IApply__apply] = ...` is a side effect bundlers never drop; routing it
+  `concat[VARIADIC] = ...` is a side effect bundlers never drop; routing it
   through the no-side-effects helper lets concat drop when unused. Scales to any
-  number of IApply-aware fns, no per-fn module.
+  number of variadic-apply fns, no per-fn module.
 
 `@__NO_SIDE_EFFECTS__` needs esbuild 0.18+ or rollup 3.13+ (vite 5-8 ship rollup
 4, so vite dev=esbuild and prod=rollup both honor it). squint's own devDep
@@ -133,6 +133,12 @@ Three techniques remove the floor:
 The public export surface is byte-for-byte identical to the previous release
 (verified by diffing the `export` lines); the helpers and `TYPE_TAG` are
 unexported module-locals.
+
+Update (variadic native-rest): the symbol formerly named `IApply__apply` is now
+`VARIADIC` and IS exported. Compiled variadic fns set `f[VARIADIC]` to their
+seq-taking impl so `apply` passes the rest as an unrealized seq; `withApply`
+sets the same symbol, so `concat`'s apply hook and the codegen hook are one
+mechanism. `VARIADIC` is the only added export.
 
 Results, esbuild 0.28 minified, importing from `squint-cljs/core.js`:
 

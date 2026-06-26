@@ -254,14 +254,14 @@ const TYPE_TAG = Symbol('squint.lang.type');
 const SORTED_TAG = Symbol('squint.lang.sorted');
 
 // @__NO_SIDE_EFFECTS__ lets bundlers drop unused calls, so a computed-key class
-// or IApply fn shakes out (neither does alone). See doc/dev/dce.md.
+// or variadic-apply fn shakes out (neither does alone). See doc/dev/dce.md.
 // @__NO_SIDE_EFFECTS__
 function defclass(c) {
   return c;
 }
 // @__NO_SIDE_EFFECTS__
 function withApply(f, applyFn) {
-  f[IApply__apply] = applyFn;
+  f[VARIADIC] = applyFn;
   return f;
 }
 
@@ -1428,17 +1428,34 @@ export function set_QMARK_(x) {
   return typeConst(x) === SET_TYPE;
 }
 
-const IApply__apply = Symbol('IApply__apply');
+// codegen sets this on variadic fns to their seq-taking impl, so apply can pass
+// the rest as an unrealized seq instead of spreading (lazy, no arg-limit crash)
+export const VARIADIC = Symbol('squint.lang.variadic');
 
 export function apply(f, ...args) {
   f = __toFn(f);
   const xs = args.slice(0, args.length - 1);
-  const coll = iterable(args[args.length - 1]);
-  const af = f[IApply__apply];
-  if (af) {
-    return af(...xs, coll);
+  const last = args[args.length - 1];
+  const v = f[VARIADIC];
+  if (v) {
+    const nfixed = v.length - 1;
+    const fixed = [];
+    let i = 0;
+    for (; i < nfixed && i < xs.length; i++) fixed.push(xs[i]);
+    let rest;
+    if (i < nfixed) {
+      let s = seq(last);
+      for (; i < nfixed && s != null; i++) {
+        fixed.push(first(s));
+        s = next(s);
+      }
+      rest = s;
+    } else {
+      rest = i < xs.length ? concat1([xs.slice(i), last]) : seq(last);
+    }
+    return v(...fixed, rest == null ? null : rest);
   }
-  return f(...xs, ...coll);
+  return f(...xs, ...iterable(last));
 }
 
 export function even_QMARK_(x) {

@@ -41,20 +41,6 @@
           (let ~lets
             ~@body))))))
 
-(defn core-js-arguments []
-  (list 'js* "arguments"))
-
-(defn core-unchecked-get [obj key]
-  (list 'js* "(~{}[~{}])" obj key))
-
-(defn core-copy-arguments [dest]
-  (let [i-sym (gensym "i")]
-    `(let [len# (.-length ~(core-js-arguments))]
-       (loop [~i-sym 0]
-         (when (< ~i-sym len#)
-           (.push ~dest ~(core-unchecked-get (core-js-arguments) i-sym))
-           (recur (inc ~i-sym)))))))
-
 (defn- variadic-fn*
   ([sym method]
    (variadic-fn* sym method true))
@@ -147,8 +133,8 @@
                             {:variadic? variadic?
                              :fixed-arity mfa
                              :max-fixed-arity mfa
-                             :method-params (cond-> sigs #_#_macro? elide-implicit-macro-args)
-                             :arglists (cond-> arglists #_#_macro? elide-implicit-macro-args)
+                             :method-params sigs
+                             :arglists arglists
                              :arglists-meta (doall (map clojure.core/meta arglists))}
                             :squint.compiler/no-rename true)
             name     (with-meta name meta)
@@ -183,57 +169,30 @@
   (and (= 1 (count fdecl))
        (some '#{&} (ffirst fdecl))))
 
-(defn- elide-implicit-macro-args [arglists]
-  (map (fn [arglist]
-         (if (vector? arglist)
-           (subvec arglist 2)
-           (drop 2 arglist)))
-       arglists))
-
-(defn- variadic-fn [name meta [[arglist & _body :as method] :as _fdecl] _emit-var?]
-  (letfn [(dest-args [c]
-            (map (fn [n] (core-unchecked-get (core-js-arguments) n))
-                 (range c)))]
-    (let [async (:async meta)
-          gen (:gen meta)
-          ;; munge up front (like multi-arity-fn) so the raw-name self-reference
-          ;; emitted below is a valid JS identifier for names like `dispatch!`
-          name (munge (or name (gensym "f")))
-          rname (symbol #_(str nil #_ana/*cljs-ns*) (str name))
-          sig   (remove '#{&} arglist)
-          c-1   (dec (count sig))
-          macro? (:macro meta)
-          mfa   (cond-> c-1 macro? (- 2))
-          meta  (assoc meta
-                       :top-fn
-                       {:variadic? true
-                        :fixed-arity mfa
-                        :max-fixed-arity mfa
-                        :method-params (cond-> [sig] macro? elide-implicit-macro-args)
-                        :arglists (cond-> (list arglist) macro? elide-implicit-macro-args)
-                        :arglists-meta (doall (map clojure.core/meta [arglist]))}
-                       :squint.compiler/no-rename true
-                       :async async
-                       :gen gen)
-          name  (with-meta name meta)
-          args-sym (gensym "args")]
-      ;; @__PURE__ lets a bundler drop this variadic IIFE when unused
-      `(cljs.core/js* "/* @__PURE__ */ ~{}"
-            (let [~name
-             ~(with-meta
-                `(fn [~'var_args]
-                   (let [~args-sym [] #_(array)]
-                     ~(core-copy-arguments args-sym)
-                     (let [argseq# (when (< ~c-1 (.-length ~args-sym))
-                                     (.slice ~args-sym ~c-1) #_(new ^:ana/no-resolve cljs.core/IndexedSeq
-                                                                    0 nil))]
-                       (.
-                        ;; prevent resolving rname, for REPL mode
-                        ~(list 'js* (str rname)) (~'cljs$core$IFn$_invoke$arity$variadic ~@(dest-args c-1) argseq#)))))
-                nil #_{:async async
-                 :gen gen})]
-         ~(variadic-fn* name method)
-         ~name)))))
+(defn- variadic-fn [name meta [[arglist & body] :as _fdecl] _emit-var?]
+  (let [async (:async meta)
+        gen (:gen meta)
+        ;; no-rename so the recursive self-reference from impl resolves
+        name (with-meta (munge (or name (gensym "f")))
+               {:squint.compiler/no-rename true :async async :gen gen})
+        sig (vec (remove '#{&} arglist))
+        fixed (subvec sig 0 (dec (count sig)))
+        rest-target (peek sig)
+        rest-sym (gensym "rest")
+        impl (gensym "impl")
+        fmeta {:async async :gen gen}]
+    ;; native rest params for direct calls; the seq-taking impl under VARIADIC
+    ;; lets apply pass an unrealized rest seq. empty rest -> nil (CLJS-compat).
+    ;; @__PURE__ keeps the def droppable when unused.
+    ;; only impl carries :async/:gen (it holds the body/yields); the facade is a
+    ;; plain fn that returns impl's result (the promise / generator)
+    `(cljs.core/js* "/* @__PURE__ */ ~{}"
+       (let [~impl ~(with-meta `(fn [~@fixed ~rest-target] ~@body) fmeta)
+             ~name (fn [~@fixed ~(symbol (str "..." rest-sym))]
+                     (~impl ~@fixed
+                      (if (zero? (.-length ~rest-sym)) nil ~rest-sym)))]
+         (unchecked-set ~name ~'VARIADIC ~impl)
+         ~name))))
 
 (defn core-fn
   [&form &env & sigs]
