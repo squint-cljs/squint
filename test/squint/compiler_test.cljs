@@ -2447,6 +2447,15 @@ globalThis.foo.fs = fs;")))))
   (is (eq #js {"3" 4} (jsv! '(dissoc {"1" 2 "3" 4} "1"))))
   (is (eq #js {} (jsv! '(dissoc {"1" 2 "3" 4} "1" "3")))))
 
+(deftest dissoc-identity-test
+  (testing "returns the same coll when no removed key is present (cljs parity)"
+    (is (true?  (jsv! '(let [m {"1" 2 "3" 4}] (identical? m (dissoc m "9"))))))
+    (is (true?  (jsv! '(let [m {"1" 2 "3" 4}] (identical? m (dissoc m "9" "8"))))))
+    (is (true?  (jsv! '(let [m (js/Map. [["1" 2]])] (identical? m (dissoc m "9")))))))
+  (testing "copies (new coll) when a removed key is present"
+    (is (false? (jsv! '(let [m {"1" 2 "3" 4}] (identical? m (dissoc m "1"))))))
+    (is (false? (jsv! '(let [m (js/Map. [["1" 2]])] (identical? m (dissoc m "1"))))))))
+
 (deftest js-obj-test
   (is (eq #js {} (jsv! '(js-obj))))
   (is (eq #js {:a 1} (jsv! '(js-obj :a 1))))

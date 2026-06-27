@@ -392,16 +392,30 @@ function conj_BANG_set(o, rest) {
 }
 
 export function conj_BANG_(...xs) {
-  if (xs.length === 0) {
+  const n = xs.length;
+  if (n === 0) {
     return vector();
   }
 
-  const [_o, ...rest] = xs;
-
-  let o = _o;
+  let o = xs[0];
   if (o === null || o === undefined) {
     o = [];
   }
+
+  // Fast path for the common single-element conj! onto an array or set,
+  // avoiding the rest-array allocation and spread.
+  if (n === 2) {
+    switch (typeConst(o)) {
+      case ARRAY_TYPE:
+        o.push(xs[1]);
+        return o;
+      case SET_TYPE:
+        o.add(xs[1]);
+        return o;
+    }
+  }
+
+  const rest = xs.slice(1);
 
   switch (typeConst(o)) {
     case SET_TYPE:
@@ -531,19 +545,19 @@ export function dissoc_BANG_(m, ...ks) {
 export function dissoc(m, ...ks) {
   if (!m) return;
   if (ks.length === 0) return m;
-  const m2 = copy(m);
-  switch (typeConst(m)) {
-    case MAP_TYPE:
-      for (const k of ks) {
-        m2.delete(k);
-      }
-      break;
-    default:
-      for (const k of ks) {
-        delete m2[k];
-      }
-      break;
+  if (typeConst(m) === MAP_TYPE) {
+    let present = false;
+    for (const k of ks) if (m.has(k)) { present = true; break; }
+    if (!present) return m;
+    const m2 = copy(m);
+    for (const k of ks) m2.delete(k);
+    return m2;
   }
+  let present = false;
+  for (const k of ks) if (k in m) { present = true; break; }
+  if (!present) return m;
+  const m2 = copy(m);
+  for (const k of ks) delete m2[k];
   return m2;
 }
 

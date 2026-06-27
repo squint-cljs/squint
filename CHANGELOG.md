@@ -9,6 +9,7 @@
 - Fix `conj` + `SortedSet` DCE issue
 - Fix [#771](https://github.com/squint-cljs/squint/issues/771): DCE of varargs/multi-arity functions and optimize via `...` spread
 - Improve DCE of defprotocol when no `:extend-via-metadata` is present
+- Speed up `dissoc` and `conj!`
 
 ## 0.14.196
 
