@@ -37,3 +37,17 @@ changing `next`'s public result type.
 Smaller non-breaking subset: an `apply` array fast-path - index the fixed args +
 a single `slice(maxfa)` for the rest, keep `first`/`next` only for lazy seqs. See
 doc/adr/0001 for the variadic/multi-arity codegen + lazy apply this builds on.
+
+## Emit direct fixed-arity calls instead of the spread facade
+
+Like CLJS, when a call site passes a statically-known fixed number of args, emit
+a direct call to the function's fixed-arity implementation instead of routing
+through the variadic/spread facade. A variadic core fn like `conj`/`conj!`
+(`function (...xs)`) collects a rest array and spreads on every call, even for
+the common `(conj coll x)` 2-arg case; the call site already knows the arity, so
+the facade is pure overhead (allocation + dispatch).
+
+Idea: at a fixed-arity call site, target the specific arity directly. The
+runtime conj! 2-arg fast-path patch handles one fn; this is the general
+compiler-level fix across all variadic/multi-arity calls. See doc/adr/0001 for
+the variadic/multi-arity codegen this builds on.
