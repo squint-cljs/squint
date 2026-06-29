@@ -42,11 +42,12 @@
 
 (defn- cljc-with-macros?
   "Check if a require clause refers to a .cljc file that contains defmacro."
-  [[libname & _]]
-  (when (symbol? libname)
-    (when-let [path (utils/resolve-file libname)]
-      (and (str/ends-with? path ".cljc")
-           (str/includes? (slurp path) "defmacro")))))
+  [libspec]
+  (let [libname (if (symbol? libspec) libspec (first libspec))]
+    (when (symbol? libname)
+      (when-let [path (utils/resolve-file libname)]
+        (and (str/ends-with? path ".cljc")
+             (str/includes? (slurp path) "defmacro"))))))
 
 (defn scan-macros [s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
@@ -79,7 +80,8 @@
                                         require-macros (if (symbol? require-macros)
                                                          [require-macros]
                                                          require-macros)
-                                        [macro-ns & {:keys [refer as]}] require-macros
+                                        [macro-ns & {:keys [refer refer-macros as]}] require-macros
+                                        refer (or refer refer-macros)
                                         reload? (or reload (macro-file-changed? macro-ns))
                                         macros (js/Promise.resolve
                                                 (do (eval-form (cond-> (list 'require (list 'quote macro-ns))
