@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Route output through `println` in `cljs.test`
+
 ## 0.14.197
 
 - Add `clojure.string/replace-first`

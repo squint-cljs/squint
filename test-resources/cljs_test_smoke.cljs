@@ -1,5 +1,6 @@
 (ns cljs-test-smoke
-  (:require [cljs.test :as t :refer [deftest is testing are async]]))
+  (:require [cljs.test :as t :refer [deftest is testing are async]]
+            [clojure.string]))
 
 (deftest math-test
   (testing "basic math"
@@ -141,6 +142,20 @@
       (is (= [[:begin "inner"] [:end "inner"]] @events)
           "begin/end-test-var events fire and carry the var name"))))
 
+(deftest output-redirect-test
+  (testing "default reporters route through *print-fn*"
+    (let [saved-env (t/get-current-env)
+          out (atom [])]
+      (t/set-env! (t/empty-env))
+      (binding [*print-fn* (fn [s] (swap! out conj s))]
+        (t/report {:type :begin-test-ns :ns "captured.ns"})
+        (t/report {:type :fail :message "msg" :expected :a :actual :b}))
+      (t/set-env! saved-env)
+      (is (some #(clojure.string/includes? % "captured.ns") @out)
+          "begin-test-ns text captured via *print-fn*, not console")
+      (is (some #(clojure.string/includes? % "FAIL") @out)
+          "fail text captured via *print-fn*, not console"))))
+
 (defn ^:async -main []
   (t/set-env! (t/empty-env))
   (t/test-var math-test)
@@ -154,6 +169,7 @@
   (t/test-var report-only-counts-pass-fail-error-test)
   (t/test-var run-tests-quoted-symbol-test)
   (t/test-var report-is-multimethod-test)
+  (t/test-var output-redirect-test)
   (t/report {:type :summary}))
 
 (-main)
