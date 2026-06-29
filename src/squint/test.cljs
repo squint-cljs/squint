@@ -70,22 +70,22 @@
 
 (defmethod report [:cljs.test/default :fail] [m]
   (inc-report-counter! :fail)
-  (js/console.error (str "FAIL in " (current-test-str)
-                         (when-let [l (report-loc m)] (str " (" l ")"))))
-  (when (:message m) (js/console.error "  " (:message m)))
-  (js/console.error "  expected:" (pr-str (:expected m)))
-  (js/console.error "    actual:" (pr-str (:actual m))))
+  (println (str "FAIL in " (current-test-str)
+                (when-let [l (report-loc m)] (str " (" l ")"))))
+  (when (:message m) (println "  " (:message m)))
+  (println "  expected:" (pr-str (:expected m)))
+  (println "    actual:" (pr-str (:actual m))))
 
 (defmethod report [:cljs.test/default :error] [m]
   (inc-report-counter! :error)
-  (js/console.error (str "ERROR in " (current-test-str)
-                         (when-let [l (report-loc m)] (str " (" l ")"))))
-  (when (:message m) (js/console.error "  " (:message m)))
-  (when (:expected m) (js/console.error "  expected:" (pr-str (:expected m))))
-  (js/console.error "    actual:" (pr-str (:actual m))))
+  (println (str "ERROR in " (current-test-str)
+                (when-let [l (report-loc m)] (str " (" l ")"))))
+  (when (:message m) (println "  " (:message m)))
+  (when (:expected m) (println "  expected:" (pr-str (:expected m))))
+  (println "    actual:" (pr-str (:actual m))))
 
 (defmethod report [:cljs.test/default :begin-test-ns] [m]
-  (js/console.log "\nTesting" (str (:ns m))))
+  (println "\nTesting" (str (:ns m))))
 
 (defmethod report [:cljs.test/default :end-test-ns] [_])
 (defmethod report [:cljs.test/default :begin-test-var] [_])
@@ -93,8 +93,8 @@
 
 (defmethod report [:cljs.test/default :summary] [_]
   (let [{:keys [test pass fail error]} (:report-counters (get-current-env))]
-    (js/console.log "\nRan" test "tests containing" (+ pass fail error) "assertions.")
-    (js/console.log (str fail) "failures," (str error) "errors.")))
+    (println "\nRan" test "tests containing" (+ pass fail error) "assertions.")
+    (println (str fail) "failures," (str error) "errors.")))
 
 (defn successful? [results]
   (and (zero? (:fail results 0))

@@ -4,9 +4,9 @@ import * as clojure_DOT_string from 'squint-cljs/src/squint/string.js';
 var _STAR_current_env_STAR_ = ({val: null});
 var _STAR_current_reporter_STAR_ = ({val: "cljs.test/default"});
 var current_reporter = function () {
-const or__23674__auto__1 = _STAR_current_reporter_STAR_.val;
-if (squint_core.truth_(or__23674__auto__1)) {
-return or__23674__auto__1} else {
+const or__23653__auto__1 = _STAR_current_reporter_STAR_.val;
+if (squint_core.truth_(or__23653__auto__1)) {
+return or__23653__auto__1} else {
 return "cljs.test/default"};
 
 };
@@ -15,9 +15,9 @@ return ({"report-counters": ({"test": 0, "pass": 0, "fail": 0, "error": 0}), "te
 
 };
 var get_current_env = function () {
-const or__23674__auto__1 = _STAR_current_env_STAR_.val;
-if (squint_core.truth_(or__23674__auto__1)) {
-return or__23674__auto__1} else {
+const or__23653__auto__1 = _STAR_current_env_STAR_.val;
+if (squint_core.truth_(or__23653__auto__1)) {
+return or__23653__auto__1} else {
 return empty_env()};
 
 };
@@ -32,32 +32,32 @@ return null;
 
 };
 var update_current_env_BANG_ = /* @__PURE__ */ (() => {
-const impl31 = (function (ks, f, args) {
+const impl51 = (function (ks, f, args) {
 const env2 = get_current_env();
 const new_env3 = squint_core.apply(squint_core.update_in, env2, ks, f, args);
 return set_env_BANG_(new_env3);
 
 });
-const f1 = (function (ks, f, ...rest2) {
-return impl31(ks, f, (((rest2.length === 0)) ? (null) : (rest2)));
+const f1 = (function (arg2, arg3, ...rest4) {
+return impl51(arg2, arg3, (((rest4.length === 0)) ? (null) : (rest4)));
 
 });
-(f1["squint$lang$variadic"] = impl31);
+(f1["squint$lang$variadic"] = impl51);
 return f1;
 
 })();
 var testing_contexts_str = function () {
-const temp__23300__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-contexts"));
-if (squint_core.truth_(temp__23300__auto__1)) {
-const contexts2 = temp__23300__auto__1;
+const temp__23234__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-contexts"));
+if (squint_core.truth_(temp__23234__auto__1)) {
+const contexts2 = temp__23234__auto__1;
 return clojure_DOT_string.join(" ", squint_core.reverse(contexts2));
 };
 
 };
 var testing_vars_str = function () {
-const temp__23300__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-vars"));
-if (squint_core.truth_(temp__23300__auto__1)) {
-const vars2 = temp__23300__auto__1;
+const temp__23234__auto__1 = squint_core.seq(squint_core.get(get_current_env(), "testing-vars"));
+if (squint_core.truth_(temp__23234__auto__1)) {
+const vars2 = temp__23234__auto__1;
 return clojure_DOT_string.join(" ", squint_core.map(squint_core.str, vars2));
 };
 
@@ -72,10 +72,10 @@ var current_test_str = function () {
 const vars1 = testing_vars_str();
 const ctx2 = testing_contexts_str();
 if (squint_core.truth_((() => {
-const and__23699__auto__3 = vars1;
-if (squint_core.truth_(and__23699__auto__3)) {
+const and__23692__auto__3 = vars1;
+if (squint_core.truth_(and__23692__auto__3)) {
 return ctx2} else {
-return and__23699__auto__3};
+return and__23692__auto__3};
 
 })())) {
 return `${vars1??''}${" "}${ctx2??''}`} else {
@@ -88,18 +88,18 @@ return "test"} else {
 return null}}}};
 
 };
-var report_loc = function (p__4) {
-const map__12 = p__4;
+var report_loc = function (p__6) {
+const map__12 = p__6;
 const line3 = squint_core.get(map__12, "line");
 const column4 = squint_core.get(map__12, "column");
 const file5 = squint_core.get(map__12, "file");
 if (squint_core.truth_((() => {
-const or__23674__auto__6 = line3;
-if (squint_core.truth_(or__23674__auto__6)) {
-return or__23674__auto__6} else {
-const or__23674__auto__7 = column4;
-if (squint_core.truth_(or__23674__auto__7)) {
-return or__23674__auto__7} else {
+const or__23653__auto__6 = line3;
+if (squint_core.truth_(or__23653__auto__6)) {
+return or__23653__auto__6} else {
+const or__23653__auto__7 = column4;
+if (squint_core.truth_(or__23653__auto__7)) {
+return or__23653__auto__7} else {
 return file5};
 };
 
@@ -122,39 +122,39 @@ return inc_report_counter_BANG_("pass");
 }));
 squint_multi.defmethod(report, ["cljs.test/default", "fail"], (function (m) {
 inc_report_counter_BANG_("fail");
-console.error(`${"FAIL in "}${current_test_str()??''}${(() => {
-const temp__23300__auto__1 = report_loc(m);
-if (squint_core.truth_(temp__23300__auto__1)) {
-const l2 = temp__23300__auto__1;
+squint_core.println(`${"FAIL in "}${current_test_str()??''}${(() => {
+const temp__23234__auto__1 = report_loc(m);
+if (squint_core.truth_(temp__23234__auto__1)) {
+const l2 = temp__23234__auto__1;
 return `${" ("}${l2??''}${")"}`;
 };
 
 })()??''}`);
 if (squint_core.truth_(squint_core.get(m, "message"))) {
-console.error("  ", squint_core.get(m, "message"))};
-console.error("  expected:", squint_core.pr_str(squint_core.get(m, "expected")));
-return console.error("    actual:", squint_core.pr_str(squint_core.get(m, "actual")));
+squint_core.println("  ", squint_core.get(m, "message"))};
+squint_core.println("  expected:", squint_core.pr_str(squint_core.get(m, "expected")));
+return squint_core.println("    actual:", squint_core.pr_str(squint_core.get(m, "actual")));
 
 }));
 squint_multi.defmethod(report, ["cljs.test/default", "error"], (function (m) {
 inc_report_counter_BANG_("error");
-console.error(`${"ERROR in "}${current_test_str()??''}${(() => {
-const temp__23300__auto__1 = report_loc(m);
-if (squint_core.truth_(temp__23300__auto__1)) {
-const l2 = temp__23300__auto__1;
+squint_core.println(`${"ERROR in "}${current_test_str()??''}${(() => {
+const temp__23234__auto__1 = report_loc(m);
+if (squint_core.truth_(temp__23234__auto__1)) {
+const l2 = temp__23234__auto__1;
 return `${" ("}${l2??''}${")"}`;
 };
 
 })()??''}`);
 if (squint_core.truth_(squint_core.get(m, "message"))) {
-console.error("  ", squint_core.get(m, "message"))};
+squint_core.println("  ", squint_core.get(m, "message"))};
 if (squint_core.truth_(squint_core.get(m, "expected"))) {
-console.error("  expected:", squint_core.pr_str(squint_core.get(m, "expected")))};
-return console.error("    actual:", squint_core.pr_str(squint_core.get(m, "actual")));
+squint_core.println("  expected:", squint_core.pr_str(squint_core.get(m, "expected")))};
+return squint_core.println("    actual:", squint_core.pr_str(squint_core.get(m, "actual")));
 
 }));
 squint_multi.defmethod(report, ["cljs.test/default", "begin-test-ns"], (function (m) {
-return console.log("\nTesting", `${squint_core.get(m, "ns")??''}`);
+return squint_core.println("\nTesting", `${squint_core.get(m, "ns")??''}`);
 
 }));
 squint_multi.defmethod(report, ["cljs.test/default", "end-test-ns"], (function (_) {
@@ -170,13 +170,13 @@ return null;
 
 }));
 squint_multi.defmethod(report, ["cljs.test/default", "summary"], (function (_) {
-let map__15 = squint_core.get(get_current_env(), "report-counters");
-let test6 = squint_core.get(map__15, "test");
-let pass7 = squint_core.get(map__15, "pass");
-let fail8 = squint_core.get(map__15, "fail");
-let error9 = squint_core.get(map__15, "error");
-console.log("\nRan", test6, "tests containing", (pass7 + fail8 + error9), "assertions.");
-return console.log(`${fail8??''}`, "failures,", `${error9??''}`, "errors.");
+let map__17 = squint_core.get(get_current_env(), "report-counters");
+let test8 = squint_core.get(map__17, "test");
+let pass9 = squint_core.get(map__17, "pass");
+let fail10 = squint_core.get(map__17, "fail");
+let error11 = squint_core.get(map__17, "error");
+squint_core.println("\nRan", test8, "tests containing", (pass9 + fail10 + error11), "assertions.");
+return squint_core.println(`${fail10??''}`, "failures,", `${error11??''}`, "errors.");
 
 }));
 var successful_QMARK_ = function (results) {
@@ -184,10 +184,10 @@ return ((squint_core.get(results, "fail", 0) === 0) && (squint_core.get(results,
 
 };
 var async_QMARK_ = function (x) {
-const c__23603__auto__1 = Promise;
-const x__23604__auto__2 = x;
-const ret__23605__auto__3 = (x__23604__auto__2 instanceof c__23603__auto__1);
-return ret__23605__auto__3;
+const c__23598__auto__1 = Promise;
+const x__23599__auto__2 = x;
+const ret__23600__auto__3 = (x__23599__auto__2 instanceof c__23598__auto__1);
+return ret__23600__auto__3;
 
 };
 var wrap_async = function (setup, teardown) {
@@ -221,119 +221,115 @@ return f();
 
 };
 var get_each_fixtures = /* @__PURE__ */ (() => {
-const f10 = (function (...args11) {
-const G__121 = args11.length;
-switch (G__121) {case 0:
-return f10.cljs$core$IFn$_invoke$arity$0();
-
-break;
-case 1:
-return f10.cljs$core$IFn$_invoke$arity$1(args11[0]);
-
-break;
-default:
-throw (new Error(`${"Invalid arity: "}${args11.length??''}`))};
-
-});
-f10.cljs$core$IFn$_invoke$arity$0 = (function () {
+const impl151 = (function () {
 return get_each_fixtures(null);
 
 });
-f10.cljs$core$IFn$_invoke$arity$1 = (function (ns_str) {
+const impl162 = (function (ns_str) {
 return squint_core.get_in(get_current_env(), ["each-fixtures", ns_str], []);
 
 });
-f10.cljs$lang$maxFixedArity = 1;
-return f10;
-
-})();
-var set_each_fixtures_BANG_ = /* @__PURE__ */ (() => {
-const f13 = (function (...args14) {
-const G__151 = args14.length;
-switch (G__151) {case 1:
-return f13.cljs$core$IFn$_invoke$arity$1(args14[0]);
-
-break;
-case 2:
-return f13.cljs$core$IFn$_invoke$arity$2(args14[0], args14[1]);
-
-break;
-default:
-throw (new Error(`${"Invalid arity: "}${args14.length??''}`))};
-
-});
-f13.cljs$core$IFn$_invoke$arity$1 = (function (fixtures) {
-return set_each_fixtures_BANG_(null, fixtures);
-
-});
-f13.cljs$core$IFn$_invoke$arity$2 = (function (ns_str, fixtures) {
-return update_current_env_BANG_(["each-fixtures", ns_str], squint_core.constantly(fixtures));
-
-});
-f13.cljs$lang$maxFixedArity = 2;
-return f13;
-
-})();
-var get_once_fixtures = /* @__PURE__ */ (() => {
-const f16 = (function (...args17) {
-const G__181 = args17.length;
-switch (G__181) {case 0:
-return f16.cljs$core$IFn$_invoke$arity$0();
+const f12 = (function (...args13) {
+const G__173 = args13.length;
+switch (G__173) {case 0:
+return impl151();
 
 break;
 case 1:
-return f16.cljs$core$IFn$_invoke$arity$1(args17[0]);
+return impl162(args13[0]);
 
 break;
 default:
-throw (new Error(`${"Invalid arity: "}${args17.length??''}`))};
+throw (new Error(`${"Invalid arity: "}${args13.length??''}`))};
 
 });
-f16.cljs$core$IFn$_invoke$arity$0 = (function () {
-return get_once_fixtures(null);
-
-});
-f16.cljs$core$IFn$_invoke$arity$1 = (function (ns_str) {
-return squint_core.get_in(get_current_env(), ["once-fixtures", ns_str], []);
-
-});
-f16.cljs$lang$maxFixedArity = 1;
-return f16;
+return f12;
 
 })();
-var set_once_fixtures_BANG_ = /* @__PURE__ */ (() => {
-const f19 = (function (...args20) {
-const G__211 = args20.length;
-switch (G__211) {case 1:
-return f19.cljs$core$IFn$_invoke$arity$1(args20[0]);
+var set_each_fixtures_BANG_ = /* @__PURE__ */ (() => {
+const impl211 = (function (fixtures) {
+return set_each_fixtures_BANG_(null, fixtures);
+
+});
+const impl222 = (function (ns_str, fixtures) {
+return update_current_env_BANG_(["each-fixtures", ns_str], squint_core.constantly(fixtures));
+
+});
+const f18 = (function (...args19) {
+const G__233 = args19.length;
+switch (G__233) {case 1:
+return impl211(args19[0]);
 
 break;
 case 2:
-return f19.cljs$core$IFn$_invoke$arity$2(args20[0], args20[1]);
+return impl222(args19[0], args19[1]);
 
 break;
 default:
-throw (new Error(`${"Invalid arity: "}${args20.length??''}`))};
+throw (new Error(`${"Invalid arity: "}${args19.length??''}`))};
 
 });
-f19.cljs$core$IFn$_invoke$arity$1 = (function (fixtures) {
+return f18;
+
+})();
+var get_once_fixtures = /* @__PURE__ */ (() => {
+const impl271 = (function () {
+return get_once_fixtures(null);
+
+});
+const impl282 = (function (ns_str) {
+return squint_core.get_in(get_current_env(), ["once-fixtures", ns_str], []);
+
+});
+const f24 = (function (...args25) {
+const G__293 = args25.length;
+switch (G__293) {case 0:
+return impl271();
+
+break;
+case 1:
+return impl282(args25[0]);
+
+break;
+default:
+throw (new Error(`${"Invalid arity: "}${args25.length??''}`))};
+
+});
+return f24;
+
+})();
+var set_once_fixtures_BANG_ = /* @__PURE__ */ (() => {
+const impl331 = (function (fixtures) {
 return set_once_fixtures_BANG_(null, fixtures);
 
 });
-f19.cljs$core$IFn$_invoke$arity$2 = (function (ns_str, fixtures) {
+const impl342 = (function (ns_str, fixtures) {
 return update_current_env_BANG_(["once-fixtures", ns_str], squint_core.constantly(fixtures));
 
 });
-f19.cljs$lang$maxFixedArity = 2;
-return f19;
+const f30 = (function (...args31) {
+const G__353 = args31.length;
+switch (G__353) {case 1:
+return impl331(args31[0]);
+
+break;
+case 2:
+return impl342(args31[0], args31[1]);
+
+break;
+default:
+throw (new Error(`${"Invalid arity: "}${args31.length??''}`))};
+
+});
+return f30;
 
 })();
 var test_var = function (v) {
 if (squint_core.truth_(squint_core.fn_QMARK_(v))) {
 const test_name1 = (() => {
-const or__23674__auto__2 = squint_core.get(squint_core.meta(v), "name");
-if (squint_core.truth_(or__23674__auto__2)) {
-return or__23674__auto__2} else {
+const or__23653__auto__2 = squint_core.get(squint_core.meta(v), "name");
+if (squint_core.truth_(or__23653__auto__2)) {
+return or__23653__auto__2} else {
 return "anonymous"};
 
 })();
@@ -391,30 +387,29 @@ return test_fn;
 
 };
 var registered_tests = /* @__PURE__ */ (() => {
-const f22 = (function (...args23) {
-const G__241 = args23.length;
-switch (G__241) {case 0:
-return f22.cljs$core$IFn$_invoke$arity$0();
-
-break;
-case 1:
-return f22.cljs$core$IFn$_invoke$arity$1(args23[0]);
-
-break;
-default:
-throw (new Error(`${"Invalid arity: "}${args23.length??''}`))};
-
-});
-f22.cljs$core$IFn$_invoke$arity$0 = (function () {
+const impl391 = (function () {
 return squint_core.vec(squint_core.mapcat(squint_core.vals, squint_core.vals(squint_core.deref(test_registry))));
 
 });
-f22.cljs$core$IFn$_invoke$arity$1 = (function (ns_str) {
+const impl402 = (function (ns_str) {
 return squint_core.vec(squint_core.vals(squint_core.get(squint_core.deref(test_registry), ns_str)));
 
 });
-f22.cljs$lang$maxFixedArity = 1;
-return f22;
+const f36 = (function (...args37) {
+const G__413 = args37.length;
+switch (G__413) {case 0:
+return impl391();
+
+break;
+case 1:
+return impl402(args37[0]);
+
+break;
+default:
+throw (new Error(`${"Invalid arity: "}${args37.length??''}`))};
+
+});
+return f36;
 
 })();
 var run_vars_with_once_fixtures = function (ns_str, vars) {
@@ -454,7 +449,7 @@ return finish6(chain5)};
 };
 var fresh_counters = ({"test": 0, "pass": 0, "fail": 0, "error": 0});
 var run_tests = /* @__PURE__ */ (() => {
-const impl271 = (function (args) {
+const impl441 = (function (args) {
 const test_vars2 = ((squint_core.truth_(squint_core.empty_QMARK_(args))) ? (registered_tests()) : (((squint_core.truth_(squint_core.string_QMARK_(squint_core.first(args)))) ? (squint_core.vec(squint_core.mapcat(registered_tests, args))) : ((("else") ? (args) : (null))))));
 const _3 = (((_STAR_current_env_STAR_.val == null)) ? (set_env_BANG_(empty_env())) : (null));
 const saved_counters4 = squint_core.get(get_current_env(), "report-counters");
@@ -465,8 +460,8 @@ return squint_core.update(acc, k7, squint_core.fnil(squint_core.conj, []), v);
 
 }), ({}), test_vars2);
 const run_groups8 = (function () {
-return squint_core.reduce((function (chain, p__28) {
-const vec__912 = p__28;
+return squint_core.reduce((function (chain, p__45) {
+const vec__912 = p__45;
 const ns_str13 = squint_core.nth(vec__912, 0, null);
 const vars14 = squint_core.nth(vec__912, 1, null);
 if (squint_core.truth_(async_QMARK_(chain))) {
@@ -492,12 +487,12 @@ return chain17.then(finish15)} else {
 return finish15(null)};
 
 });
-const f25 = (function (...rest26) {
-return impl271((((rest26.length === 0)) ? (null) : (rest26)));
+const f42 = (function (...rest43) {
+return impl441((((rest43.length === 0)) ? (null) : (rest43)));
 
 });
-(f25["squint$lang$variadic"] = impl271);
-return f25;
+(f42["squint$lang$variadic"] = impl441);
+return f42;
 
 })();
 
