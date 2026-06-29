@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.14.197
 
 - Add `clojure.string/replace-first`
 - Fix: user-defined function named after JS reserved word (e.g. `delete`) now correctly shadows the special form
