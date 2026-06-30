@@ -1907,20 +1907,16 @@ export function repeat(...args) {
   if (args.length == 0 || args.length > 2) {
     throw new Error(`Invalid arity: ${args.length}`);
   }
-
-  return {
-    [IIterable]: true,
-    [IIterable__iterator]:
-      args.length == 1
-        ? function* () {
-            const x = args[0];
-            while (true) yield x;
-          }
-        : function* () {
-            const [n, x] = args;
-            for (var i = 0; i < n; i++) yield x;
-          },
-  };
+  if (args.length == 1) {
+    const x = args[0];
+    return lazy(function* () {
+      while (true) yield x;
+    });
+  }
+  const [n, x] = args;
+  return lazy(function* () {
+    for (var i = 0; i < n; i++) yield x;
+  });
 }
 
 export function ensure_reduced(x) {

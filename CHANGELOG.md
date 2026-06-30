@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Make `repeat` return a lazy seq, so it compares equal to vectors and lists
+
 - Fix unary `<`, `>`, `<=`, `>=` to return `true`
 
 - Fix `=` to compare `js/Date` values, so distinct `#inst` literals are not equal
