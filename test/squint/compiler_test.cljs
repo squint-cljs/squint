@@ -1993,6 +1993,17 @@ with `backticks`")))]
     (is (eq false (jsv! '(boolean false))))
     (is (eq true (jsv! '(boolean true))))))
 
+(deftest lazy-seq-instance-test
+  (testing "every lazy seq is an instance of LazySeq"
+    (is (eq true (jsv! '(instance? LazySeq (lazy-seq [1])))))
+    (is (eq true (jsv! '(instance? LazySeq (concat [1] [2])))))
+    (is (eq true (jsv! '(instance? LazySeq (map inc [1 2])))))
+    (is (eq true (jsv! '(instance? LazySeq (range 3))))))
+  (testing "non lazy values are not LazySeq instances"
+    (is (eq false (jsv! '(instance? LazySeq [1 2]))))
+    (is (eq false (jsv! '(instance? LazySeq nil))))
+    (is (eq false (jsv! '(instance? LazySeq 5))))))
+
 (deftest every?-test
   (is (= true (jsv! '(every? odd? nil))))
   (is (= true (jsv! '(every? odd? []))))
