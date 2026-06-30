@@ -1743,6 +1743,13 @@ with `backticks`")))]
     (is (eq [[0 1 2] [6 7 8] [12 13 14] [18 19 "a"]] (jsv! '(vec (partition 3 6 ["a"] (range 20))))))
     (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a"]] (jsv! '(vec (partition 4 6 ["a"] (range 20))))))
     (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15] [18 19 "a" "b"]] (jsv! '(vec (partition 4 6 ["a" "b" "c" "d"] (range 20)))))))
+  (testing "empty or nil pad still emits the final partial partition"
+    (is (eq [[0 1 2] [3 4 5] [6 7 8] [9]] (jsv! '(vec (partition 3 3 [] (range 10))))))
+    (is (eq [[0 1 2] [3 4 5] [6 7 8] [9]] (jsv! '(vec (partition 3 3 nil (range 10))))))
+    (is (eq [[0 1 2] [3 4 5] [6 7 8]] (jsv! '(vec (partition 3 3 (range 10)))))))
+  (testing "a non-array seqable pad is consumed for padding"
+    (is (eq [[0 1 2] [3 4 5] [6 7 8] [9 "a" "b"]] (jsv! '(vec (partition 3 3 '(:a :b :c) (range 10))))))
+    (is (eq [[0 1 2 3] [4 5 6 7] [8 "a" "b"]] (jsv! '(vec (partition 4 4 (map keyword ["a" "b"]) (range 9)))))))
   (testing "infinite seq"
     (is (eq [[0 1 2 3] [6 7 8 9] [12 13 14 15]] (jsv! '(vec (take 3 (partition 4 6 (range)))))))
     (is (eq [[0 1 2 3] [2 3 4 5] [4 5 6 7]] (jsv! '(vec (take 3 (partition 4 2 (range)))))))))
