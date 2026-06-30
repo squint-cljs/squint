@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Fix `=` to compare `js/Date` values, so distinct `#inst` literals are not equal
+
 - Route output through `println` in `cljs.test`
 - Support emojis as aliases
 - Add `float` and `double` core functions

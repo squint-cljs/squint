@@ -3308,7 +3308,9 @@ new Foo();")
                    "(false? (= js/NaN js/NaN))"
                    "(true? (= {:a 1} {:a 1}))"
                    "(false? (= {:a 1} {:a 1 :b 2}))"
-                   "(true? (= [1 2 3] [1 2 3] [1 2 3]))"]]
+                   "(true? (= [1 2 3] [1 2 3] [1 2 3]))"
+                   "(true? (= #inst \"2020-01-01\" #inst \"2020-01-01\"))"
+                   "(false? (= #inst \"2020-01-01\" #inst \"2021-01-01\"))"]]
     (is (true? (jsv! example)) (str "should return true: " example)))
   (testing "optimization, bypass _EQ_ function when comparing with primitive literal"
     (let [res (jss! "(let [f (fn [x] (= 1 x))] f)" {:context :expression})]
