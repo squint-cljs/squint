@@ -3247,6 +3247,13 @@ new Foo();")
     (is (re-find #"[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}"
                  (js/eval s)))))
 
+(deftest uuid-literal-test
+  (is (true? (jsv! "(uuid? #uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\")")))
+  (is (true? (jsv! "(= #uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\" #uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\")")))
+  (is (false? (jsv! "(= #uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\" #uuid \"00000000-0000-0000-0000-000000000000\")")))
+  (is (= "f81d4fae-7dec-11d0-a765-00a0c91e6bf6" (jsv! "(str #uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\")")))
+  (is (= "#uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\"" (jsv! "(pr-str #uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\")"))))
+
 (deftest not=test
   (is (true? (jsv! '(not= 1 2))))
   (is (true? (jsv! '(apply not= [1 2])))))

@@ -12,6 +12,7 @@
 - Map `clojure.core` and `cljs.core` to the core module so they can be required, including aliased fns and macros (`c/inc`, `c/->`)
 - Fix `repeatedly` to return an empty seq for count `0` and throw on a non-number count
 - Add `realized?` for delays and lazy seqs
+- Support `#uuid` literals with a `UUID` type
 
 ## 0.14.197
 
