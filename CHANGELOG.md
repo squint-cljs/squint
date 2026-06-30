@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Fix `cons` to compare equal to vectors and lists and to print as a list
+
 - Make `repeat` return a lazy seq, so it compares equal to vectors and lists
 
 - Fix unary `<`, `>`, `<=`, `>=` to return `true`
