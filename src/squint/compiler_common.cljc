@@ -314,7 +314,10 @@
                   (list* operator (rest args)))
             enc-env)
       (->
-       (cond (and (= '+ operator)
+       (cond (and (= 1 acount)
+                  (contains? #{"<" ">" "<=" ">=" "==" "==="} op-name))
+             "true"
+             (and (= '+ operator)
                   (zero? acount))
              "0"
              (and (= '* operator)
