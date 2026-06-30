@@ -2365,8 +2365,8 @@ export function frequencies(coll) {
 // The lazy-seq macro emits `new LazySeq(() => body)`: a LazyIterable whose step
 // evaluates the body thunk on first force and reads it unchunked.
 export class LazySeq extends LazyIterable {
-  // Every lazy seq squint builds is a LazyIterable, so treat them all as
-  // LazySeq instances for `(instance? LazySeq x)` parity with CLJS.
+  // Core fns build the base LazyIterable, not this subclass, so widen
+  // instanceof to any lazy cell for `(instance? LazySeq x)` parity with CLJS.
   static [Symbol.hasInstance](x) {
     return x instanceof LazyIterable;
   }
