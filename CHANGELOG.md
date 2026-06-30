@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Fix `fnil` to replace only `nil` arguments and to use per-position defaults for higher arities
+
 - Fix `cons` to compare equal to vectors and lists and to print as a list
 
 - Make `repeat` return a lazy seq, so it compares equal to vectors and lists

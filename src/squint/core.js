@@ -2146,14 +2146,14 @@ export function update_in(coll, path, f, ...args) {
   return assoc_in(coll, path, f(get_in(coll, path), ...args));
 }
 
-export function fnil(f, x, ...xs) {
+export function fnil(f, ...defaults) {
   f = __toFn(f);
-  return function (a, ...args) {
-    if (!a) {
-      return f(x, ...xs, ...args);
-    } else {
-      return f(a, ...xs, ...args);
+  const n = defaults.length;
+  return function (...args) {
+    for (let i = 0; i < n; i++) {
+      if (args[i] == null) args[i] = defaults[i];
     }
+    return f(...args);
   };
 }
 
