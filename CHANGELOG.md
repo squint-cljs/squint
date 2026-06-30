@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Make every lazy seq an instance of `LazySeq`, so `(instance? LazySeq (concat ...))` and similar return `true`
 - Fix `boolean` to coerce every value except `nil` and `false` to `true`
 - Fix `fnil` to replace only `nil` arguments and to use per-position defaults for higher arities
 - Fix `cons` to compare equal to vectors and lists and to print as a list
