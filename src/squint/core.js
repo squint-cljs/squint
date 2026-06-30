@@ -2328,7 +2328,10 @@ export function repeatedly(n, f) {
     n = undefined;
   }
   const res = _repeatedly(f);
-  if (n) {
+  if (n !== undefined) {
+    if (typeof n !== 'number') {
+      throw new Error('repeatedly: count must be a number, got: ' + str(n));
+    }
     return take(n, res);
   } else {
     return res;

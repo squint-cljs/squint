@@ -2064,7 +2064,10 @@ with `backticks`")))]
   (is (every? #(< % 10)
               (take 10 (jsv! '(repeatedly #(rand-int 10))))))
   (is (every? #(< % 10)
-              (jsv! '(repeatedly 5 #(rand-int 10))))))
+              (jsv! '(repeatedly 5 #(rand-int 10)))))
+  (is (empty? (jsv! '(repeatedly 0 +))))
+  (is (= [0 0 0] (vec (jsv! '(repeatedly 3 +)))))
+  (is (thrown? js/Error (jsv! '(repeatedly {} +)))))
 
 (deftest rand-test
   (is (< 0 (jsv! '(rand)) 1 ))
