@@ -2,7 +2,9 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.14.198
+
+These changes were all made to improve compatibility with dialect tests in [clojure-test-suite](https://github.com/jank-lang/clojure-test-suite/issues).
 
 - Add `sorted-map`, `sorted-map-by` and `sorted-set-by`, keeping entries in sorted order
 - Make `subvec` throw on an out-of-bounds range, a `nil` index or a non-vector, and coerce indices to integers, like CLJS
