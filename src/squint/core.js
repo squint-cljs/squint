@@ -1990,6 +1990,8 @@ export function take_last(n, coll) {
       lastN[i % n] = x;
       i++;
     }
+    // an empty or nil coll has no last n elements; return nil like CLJS.
+    if (i === 0) return null;
     if (i % n !== 0 && i >= n) {
       return lastN.slice(i % n).concat(lastN.slice(0, i % n));
     } else {
