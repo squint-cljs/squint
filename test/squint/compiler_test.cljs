@@ -3505,7 +3505,11 @@ new Foo();")
   (testing "with-meta on a lazy seq carries metadata"
     (is (eq {:x 1} (jsv! '(meta (with-meta (range 3) {:x 1})))))
     (is (eq {:x 1} (jsv! '(meta (with-meta (concat [1] [2]) {:x 1})))))
-    (is (eq {:x 1} (jsv! '(meta (with-meta (lazy-seq [1 2 3]) {:x 1}))))))
+    (is (eq {:x 1} (jsv! '(meta (with-meta (lazy-seq [1 2 3]) {:x 1})))))
+    (is (eq {:x 1} (jsv! '(meta (with-meta (cons 1 [2 3]) {:x 1})))))
+    (is (eq {:x 1} (jsv! '(meta (with-meta (rest [1 2 3]) {:x 1}))))))
+  (testing "preserves cons contents"
+    (is (eq [1 2 3] (jsv! '(vec (with-meta (cons 1 [2 3]) {:x 1}))))))
   (testing "does not realize or alias the original"
     (is (jsv! '(let [a (lazy-seq [1 2 3])
                      b (with-meta a {:x 1})]
