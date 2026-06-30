@@ -9,6 +9,7 @@
 - Add `float` and `double` core functions
 - Fix `are` to substitute bindings into the test form like CLJS, so assertions such as `thrown?` dispatch correctly
 - Fix emission of nullary `(+)` and `(*)` and unary `(- x)`
+- Map `clojure.core` and `cljs.core` to the core module so they can be required, including aliased fns and macros (`c/inc`, `c/->`)
 
 ## 0.14.197
 

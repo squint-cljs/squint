@@ -412,7 +412,9 @@
 ;; binds to the imported module object - not globalThis.<ns>, which only local,
 ;; repl-compiled nses self-register.
 (def ^:private library-imports
-  '{:squint {squint.string "squint-cljs/src/squint/string.js"
+  '{:squint {clojure.core "squint-cljs/core.js"
+             cljs.core "squint-cljs/core.js"
+             squint.string "squint-cljs/src/squint/string.js"
              clojure.string "squint-cljs/src/squint/string.js"
              squint.set "squint-cljs/src/squint/set.js"
              clojure.set "squint-cljs/src/squint/set.js"
@@ -854,8 +856,7 @@
 (defn process-require-clause [env current-ns-name libspec]
   (let [libspec (if (symbol? libspec) [libspec] libspec)
         [libname & {:keys [rename refer as with as-alias]}] libspec]
-  (when-not (or (= 'squint.core libname)
-                (= 'cherry.core libname))
+  (when-not (contains? '#{squint.core cherry.core} libname)
     (let [env (expr-env env)
           original-libname libname
           libname (resolve-ns env libname)

@@ -242,7 +242,13 @@
                      current-ns (get ns-state current)
                      ;; TODO: also check :excluded but right now it's not populated
                      excluded? (contains? current-ns head*)
-                     head (strip-core-symbol head*)
+                     head (let [s (strip-core-symbol head*)
+                                ns* (namespace head*)]
+                            (if (and (= s head*) ns*
+                                     (contains? '#{clojure.core cljs.core squint.core cherry.core}
+                                                (get-in current-ns [:ns-aliases (symbol ns*)])))
+                              (symbol (name head*))
+                              s))
                      expr* expr
                      expr (if (not= head head*)
                             (with-meta (cons head (rest expr))
