@@ -16,6 +16,8 @@
 - Add `realized?` for delays and lazy seqs
 - Support `#uuid` literals with a `UUID` type
 - Support `#inst` literals as `js/Date` and add `inst?`
+- Support extending `cljs.test/assert-expr` with `defmethod`, like CLJS
+- Add the `:squint/compile-time` reader feature for code that runs at compile time but is not emitted
 
 ## 0.14.197
 

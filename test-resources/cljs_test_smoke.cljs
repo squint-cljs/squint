@@ -1,6 +1,7 @@
 (ns cljs-test-smoke
   (:require [cljs.test :as t :refer [deftest is testing are async]]
-            [clojure.string]))
+            [clojure.string])
+  (:require-macros [cljs-test-smoke-macros]))
 
 (deftest math-test
   (testing "basic math"
@@ -18,6 +19,10 @@
     (are [x] (thrown? js/Error (throw x))
       (js/Error. "a")
       (js/Error. "b"))))
+
+(deftest custom-assert-expr-test
+  (testing "user assert-expr defmethod registers via the SCI macro loader"
+    (is (smoke/throws? (throw (js/Error. "boom"))))))
 
 (deftest expected-failure-test
   (is (= :foo :bar) "intentional"))
@@ -164,6 +169,7 @@
   (t/set-env! (t/empty-env))
   (t/test-var math-test)
   (t/test-var thrown-test)
+  (t/test-var custom-assert-expr-test)
   (t/test-var expected-failure-test)
   (await (t/test-var async-test))
   (await (t/test-var async-done-form-test))

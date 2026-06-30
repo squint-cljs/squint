@@ -161,12 +161,16 @@
     (assert (str/includes? out "dude"))))
 
 (defn test-cljs-test [_]
-  (let [src "test-resources/cljs_test_smoke.cljs"
-        out-file "test-resources/cljs_test_smoke.mjs"]
-    (shell "node" "node_cli.js" "compile" src)
-    (let [out (:out (shell {:out :string} "node" out-file))]
+  ;; Compiled with test-resources as the working dir so the :require-macros
+  ;; companion (cljs_test_smoke_macros.cljc) resolves on the default path.
+  (let [dir "test-resources"
+        out-file (str dir "/cljs_test_smoke.mjs")
+        macros-out (str dir "/cljs_test_smoke_macros.mjs")]
+    (shell {:dir dir} "node" "../node_cli.js" "compile" "cljs_test_smoke.cljs")
+    (let [out (:out (shell {:dir dir :out :string} "node" "cljs_test_smoke.mjs"))]
       (fs/delete out-file)
-      (assert (str/includes? out "Ran 12 tests containing 25 assertions") out)
+      (when (fs/exists? macros-out) (fs/delete macros-out))
+      (assert (str/includes? out "Ran 13 tests containing 26 assertions") out)
       (assert (str/includes? out "1 failures, 0 errors") out)
       ;; :begin-test-ns must fire for each ns visited by run-tests
       (assert (str/includes? out "Testing ns.a") out)
