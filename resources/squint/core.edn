@@ -27,6 +27,7 @@
   apply
   array
   array_QMARK_
+  array_map
   aset
   assoc
   assoc_BANG_
@@ -94,6 +95,7 @@
   get
   get_in
   group_by
+  hash_map
   identical_QMARK_
   identity
   ifn_QMARK_

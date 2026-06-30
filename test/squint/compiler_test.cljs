@@ -1155,6 +1155,13 @@ with `backticks`")))]
     (is (= false (jsv! '(contains? "abc" 1.5))))
     (is (= false (jsv! '(contains? "abc" "a"))))))
 
+(deftest hash-map-test
+  (is (eq {} (jsv! '(hash-map))))
+  (is (eq {:a 1 :b 2} (jsv! '(hash-map :a 1 :b 2))))
+  (is (eq {:x 10} (jsv! '(array-map :x 10))))
+  (is (= true (jsv! '(= {:a 1 :b 2} (hash-map :a 1 :b 2)))))
+  (is (eq {:a 1 :b 2} (jsv! '(apply hash-map [:a 1 :b 2])))))
+
 (deftest assoc-test
   (testing "arrays"
     (is (eq [1 2 8 4] (jsv! '(assoc [1 2 3 4] 2 8))))
