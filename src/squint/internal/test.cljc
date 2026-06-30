@@ -1,60 +1,75 @@
 (ns squint.internal.test
   (:require [clojure.walk :as walk]))
 
-(defn assert-expr [msg form]
-  (let [op (when (sequential? form) (first form))
-        loc (meta form)
+(defn- emit-report [msg form type expected actual ret]
+  (let [loc (meta form)
         line (:line loc)
-        column (:column loc)
-        report (fn [type expected actual ret]
-                 `(do (clojure.test/report {:type ~type :message ~msg :expected ~expected :actual ~actual
-                                            ~@(when line [:line line])
-                                            ~@(when column [:column column])})
-                      ~ret))
-        default (let [sym (gensym "value")]
-                  `(let [~sym ~form]
-                     (if ~sym
-                       ~(report :pass (pr-str form) sym sym)
-                       ~(report :fail (pr-str form) sym sym))))]
-    (case op
-      = (if (= 2 (count (rest form)))
-          (let [[expected actual] (rest form)
-                expected-sym (gensym "expected")
-                actual-sym (gensym "actual")
-                result-sym (gensym "result")]
-            `(let [~expected-sym ~expected
-                   ~actual-sym ~actual
-                   ~result-sym (= ~expected-sym ~actual-sym)]
-               (if ~result-sym
-                 ~(report :pass expected-sym actual-sym true)
-                 ~(report :fail expected-sym actual-sym false))))
-          default)
-      thrown? (let [klass (second form)
-                    body (nthnext form 2)
-                    e-sym (gensym "e")
-                    match (if (= :default klass) true `(instance? ~klass ~e-sym))]
-                `(try
-                   (do ~@body)
-                   ~(report :fail (pr-str form) "No exception thrown" false)
-                   (catch :default ~e-sym
-                     (if ~match
-                       ~(report :pass (pr-str form) e-sym true)
-                       ~(report :fail (pr-str form) e-sym false)))))
-      thrown-with-msg? (let [klass (second form)
-                             re (nth form 2)
-                             body (nthnext form 3)
-                             e-sym (gensym "e")
-                             match (if (= :default klass) true `(instance? ~klass ~e-sym))]
-                         `(try
-                            (do ~@body)
-                            ~(report :fail (pr-str form) "No exception thrown" false)
-                            (catch :default ~e-sym
-                              (if ~match
-                                (if (re-find ~re (.-message ~e-sym))
-                                  ~(report :pass (pr-str form) e-sym true)
-                                  ~(report :fail (pr-str form) `(str "Exception message \"" (.-message ~e-sym) "\" did not match " ~re) false))
-                                ~(report :fail (pr-str form) e-sym false)))))
-      default)))
+        column (:column loc)]
+    `(do (clojure.test/report {:type ~type :message ~msg :expected ~expected :actual ~actual
+                               ~@(when line [:line line])
+                               ~@(when column [:column column])})
+         ~ret)))
+
+;; Extensible like cljs.test/assert-expr, exposed to the SCI macro-loader so user defmethods register on it.
+(defmulti assert-expr
+  (fn [_menv _msg form]
+    (cond
+      (nil? form) :always-true
+      (seq? form) (first form)
+      :else :default)))
+
+(defmethod assert-expr :always-true [_menv msg form]
+  (emit-report msg form :pass (pr-str form) true true))
+
+(defmethod assert-expr :default [_menv msg form]
+  (let [sym (gensym "value")]
+    `(let [~sym ~form]
+       (if ~sym
+         ~(emit-report msg form :pass (pr-str form) sym sym)
+         ~(emit-report msg form :fail (pr-str form) sym sym)))))
+
+(defmethod assert-expr '= [menv msg form]
+  (if (= 2 (count (rest form)))
+    (let [[expected actual] (rest form)
+          expected-sym (gensym "expected")
+          actual-sym (gensym "actual")
+          result-sym (gensym "result")]
+      `(let [~expected-sym ~expected
+             ~actual-sym ~actual
+             ~result-sym (= ~expected-sym ~actual-sym)]
+         (if ~result-sym
+           ~(emit-report msg form :pass expected-sym actual-sym true)
+           ~(emit-report msg form :fail expected-sym actual-sym false))))
+    ((get-method assert-expr :default) menv msg form)))
+
+(defmethod assert-expr 'thrown? [_menv msg form]
+  (let [klass (second form)
+        body (nthnext form 2)
+        e-sym (gensym "e")
+        match (if (= :default klass) true `(instance? ~klass ~e-sym))]
+    `(try
+       (do ~@body)
+       ~(emit-report msg form :fail (pr-str form) "No exception thrown" false)
+       (catch :default ~e-sym
+         (if ~match
+           ~(emit-report msg form :pass (pr-str form) e-sym true)
+           ~(emit-report msg form :fail (pr-str form) e-sym false))))))
+
+(defmethod assert-expr 'thrown-with-msg? [_menv msg form]
+  (let [klass (second form)
+        re (nth form 2)
+        body (nthnext form 3)
+        e-sym (gensym "e")
+        match (if (= :default klass) true `(instance? ~klass ~e-sym))]
+    `(try
+       (do ~@body)
+       ~(emit-report msg form :fail (pr-str form) "No exception thrown" false)
+       (catch :default ~e-sym
+         (if ~match
+           (if (re-find ~re (.-message ~e-sym))
+             ~(emit-report msg form :pass (pr-str form) e-sym true)
+             ~(emit-report msg form :fail (pr-str form) `(str "Exception message \"" (.-message ~e-sym) "\" did not match " ~re) false))
+           ~(emit-report msg form :fail (pr-str form) e-sym false))))))
 
 (defn core-deftest [_&form &env name & body]
   (let [fn-meta (select-keys (meta name) [:async])
@@ -68,12 +83,12 @@
 
 (defn core-is
   ([&form &env form] (core-is &form &env form nil))
-  ([&form _&env form msg]
+  ([&form &env form msg]
    (let [loc (meta &form)
          form-with-meta (if (and loc (or (sequential? form) (symbol? form)))
                           (with-meta form loc)
                           form)]
-     (assert-expr msg form-with-meta))))
+     (assert-expr &env msg form-with-meta))))
 
 (defn core-testing [_&form _&env string & body]
   `(do

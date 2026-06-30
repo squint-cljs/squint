@@ -7,7 +7,8 @@
    [sci.core :as sci]
    [sci.ctx-store :as ctx-store]
    [squint.compiler.node :as cn :refer [sci]]
-   [squint.internal.node.utils :refer [resolve-file]]))
+   [squint.internal.node.utils :refer [resolve-file]]
+   [squint.internal.test :as internal-test]))
 
 (defn slurp [f]
   (fs/readFileSync f "utf-8"))
@@ -39,6 +40,10 @@
 (def analyzer-api-ns
   {'resolve analyzer-resolve})
 
+;; Expose the compiler's assert-expr multimethod so a compile-time user defmethod extends the object the `is` built-in dispatches on.
+(def test-ns
+  {'assert-expr internal-test/assert-expr})
+
 (declare ctx)
 (def ctx (sci/init {:load-fn (fn [{:keys [namespace]}]
                                (if (string? namespace)
@@ -50,10 +55,14 @@
                                    (let [fstr (slurp f)]
                                      {:source fstr}))))
                     :namespaces {'squint.analyzer.api analyzer-api-ns
-                                 'cljs.analyzer.api analyzer-api-ns}
+                                 'cljs.analyzer.api analyzer-api-ns
+                                 'cljs.test test-ns
+                                 'clojure.test test-ns
+                                 'squint.test test-ns}
                     :classes {:allow :all
                               'js js/globalThis}
-                    :features #{:squint :cljs}}))
+                    ;; :squint/compile-time is the compile-only reader feature, analogous to cljs's :clj: present in the macro reader, absent from the target reader.
+                    :features #{:squint :cljs :squint/compile-time}}))
 
 (ctx-store/reset-ctx! ctx)
 
