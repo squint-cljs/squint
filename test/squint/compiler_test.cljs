@@ -1482,6 +1482,22 @@ with `backticks`")))]
   (testing "stack consumptions"
     (is (= 49995000 (jsv! '(last (reductions + (range 10000))))))))
 
+(deftest sequential?-test
+  (testing "vectors, lists and seqs are sequential"
+    (is (= true (jsv! '(sequential? [1 2]))))
+    (is (= true (jsv! '(sequential? '(1 2)))))
+    (is (= true (jsv! '(sequential? (range 3)))))
+    (is (= true (jsv! '(sequential? (seq "ab")))))
+    (is (= true (jsv! '(sequential? (cons 1 [2]))))))
+  (testing "sets, maps, strings and scalars are not sequential"
+    (is (= false (jsv! '(sequential? #{1 2}))))
+    (is (= false (jsv! '(sequential? (sorted-set 1 2)))))
+    (is (= false (jsv! '(sequential? {:a 1}))))
+    (is (= false (jsv! '(sequential? "ab"))))
+    (is (= false (jsv! '(sequential? :a))))
+    (is (= false (jsv! '(sequential? 1))))
+    (is (= false (jsv! '(sequential? nil))))))
+
 (deftest seq-test
   (is (eq '("a" "b" "c") (jsv! '(seq "abc"))))
   (is (eq '(1 2 3) (jsv! '(seq [1 2 3]))))
