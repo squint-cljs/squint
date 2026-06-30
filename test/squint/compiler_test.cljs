@@ -225,6 +225,16 @@
   (is (not (str/includes? (jss! "(if (zero? x) 1 2)") "truth_")))
   (is (false? (jsv! "(zero? \"0\")"))))
 
+(deftest even?-odd?-test
+  (is (= true (jsv! '(even? 4))))
+  (is (= false (jsv! '(even? 3))))
+  (is (= true (jsv! '(odd? 3))))
+  (testing "throws on a non-integer, like CLJS"
+    (is (thrown? js/Error (jsv! '(even? 1.5))))
+    (is (thrown? js/Error (jsv! '(even? nil))))
+    (is (thrown? js/Error (jsv! '(odd? ##NaN))))
+    (is (thrown? js/Error (jsv! '(odd? ##Inf))))))
+
 (deftest pos-int?-test
   (is (true? (jsv! "(pos-int? 100)")))
   (is (false? (jsv! "(pos-int? 0)")))
