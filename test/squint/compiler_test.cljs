@@ -3179,7 +3179,23 @@ new Foo();")
     (is (eq [2 3] (jsv! '(vec (pop '(1 2 3)))))))
   (testing "peek and pop on nil"
     (is (= true (jsv! '(nil? (peek nil)))))
-    (is (= true (jsv! '(nil? (pop nil)))))))
+    (is (= true (jsv! '(nil? (pop nil))))))
+  (testing "pop on an empty collection throws, like CLJS"
+    (is (thrown? js/Error (jsv! '(pop []))))
+    (is (thrown? js/Error (jsv! '(pop '()))))))
+
+(deftest subvec-test
+  (is (eq [1 2] (jsv! '(subvec [0 1 2 3] 1 3))))
+  (is (eq [1 2 3] (jsv! '(subvec [0 1 2 3] 1))))
+  (testing "out-of-bounds, nil and non-vector throw, like CLJS"
+    (is (thrown? js/Error (jsv! '(subvec [0 1 2 3] -1 3))))
+    (is (thrown? js/Error (jsv! '(subvec [0 1 2 3] 1 5))))
+    (is (thrown? js/Error (jsv! '(subvec [0 1 2 3] 3 2))))
+    (is (thrown? js/Error (jsv! '(subvec [] nil 0))))
+    (is (thrown? js/Error (jsv! '(subvec "012" 0 2)))))
+  (testing "indices are coerced to integers, like CLJS"
+    (is (eq [0 1 2 3] (jsv! '(subvec [0 1 2 3] ##-Inf 4))))
+    (is (eq [2] (jsv! '(subvec [0 1 2] 2.72 3.14))))))
 
 (deftest gen-test
   (is (eq [0 1 2 3 4 5 6]

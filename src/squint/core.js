@@ -1392,6 +1392,19 @@ export function re_pattern(s) {
 }
 
 export function subvec(arr, start, end) {
+  if (!isVectorArray(arr)) {
+    throw new Error('subvec: argument must be a vector');
+  }
+  if (end === undefined) end = arr.length;
+  if (start == null || end == null) {
+    throw new Error('subvec: start and end must not be nil');
+  }
+  // CLJS coerces the indices with (int x) before bounds-checking.
+  start = start | 0;
+  end = end | 0;
+  if (start < 0 || end < start || end > arr.length) {
+    throw new Error('subvec: index out of bounds');
+  }
   return arr.slice(start, end);
 }
 
@@ -3344,8 +3357,10 @@ export function peek(vec) {
 export function pop(vec) {
   if (vec == null) return null;
   if (list_QMARK_(vec)) {
+    if (vec.length === 0) throw new Error("Can't pop empty list");
     return rest(vec);
   } else if (array_QMARK_(vec)) {
+    if (vec.length === 0) throw new Error("Can't pop empty vector");
     const ret = [...vec];
     ret.pop();
     return ret;

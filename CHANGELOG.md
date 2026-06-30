@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Make `subvec` throw on an out-of-bounds range, a `nil` index or a non-vector, and coerce indices to integers, like CLJS
+- Make `pop` throw on an empty vector or list, like Clojure and CLJS
 - Add `hash-map` and `array-map`, both building a plain map like a map literal
 - Make `even?` and `odd?` throw on a non-integer argument, like Clojure and CLJS
 - Fix `take-last` to return `nil` for an empty or `nil` collection, like CLJS
