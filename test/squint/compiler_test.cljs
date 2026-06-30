@@ -1983,6 +1983,16 @@ with `backticks`")))]
   (testing "extra args pass through"
     (is (eq [5 6 7] (jsv! '(vec ((fnil vector 100) 5 6 7)))))))
 
+(deftest boolean-test
+  (testing "only nil and false are falsy, unlike JS"
+    (is (eq true (jsv! '(boolean 0))))
+    (is (eq true (jsv! '(boolean ""))))
+    (is (eq true (jsv! '(boolean ##NaN))))
+    (is (eq true (jsv! '(boolean :k))))
+    (is (eq false (jsv! '(boolean nil))))
+    (is (eq false (jsv! '(boolean false))))
+    (is (eq true (jsv! '(boolean true))))))
+
 (deftest every?-test
   (is (= true (jsv! '(every? odd? nil))))
   (is (= true (jsv! '(every? odd? []))))

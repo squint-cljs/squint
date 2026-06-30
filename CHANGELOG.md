@@ -4,16 +4,12 @@
 
 ## Unreleased
 
+- Fix `boolean` to coerce every value except `nil` and `false` to `true`
 - Fix `fnil` to replace only `nil` arguments and to use per-position defaults for higher arities
-
 - Fix `cons` to compare equal to vectors and lists and to print as a list
-
 - Make `repeat` return a lazy seq, so it compares equal to vectors and lists
-
 - Fix unary `<`, `>`, `<=`, `>=` to return `true`
-
 - Fix `=` to compare `js/Date` values, so distinct `#inst` literals are not equal
-
 - Route output through `println` in `cljs.test`
 - Support emojis as aliases
 - Add `float` and `double` core functions
