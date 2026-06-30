@@ -1,6 +1,7 @@
 (ns cljs-test-smoke
   (:require [cljs.test :as t :refer [deftest is testing are async]]
-            [clojure.string]))
+            [clojure.string])
+  (:require-macros [cljs-test-smoke-macros]))
 
 (deftest math-test
   (testing "basic math"
@@ -14,6 +15,11 @@
   (is (thrown? js/Error (throw (js/Error. "boom"))))
   (is (thrown-with-msg? js/Error #"boom"
         (throw (js/Error. "boom!")))))
+
+(deftest custom-assert-expr-test
+  ;; smoke/throws? is a custom assertion op registered via a compile-time
+  ;; (defmethod cljs.test/assert-expr 'smoke/throws? ...) in cljs-test-smoke-macros.
+  (is (smoke/throws? (throw (js/Error. "boom")))))
 
 (deftest expected-failure-test
   (is (= :foo :bar) "intentional"))
@@ -160,6 +166,7 @@
   (t/set-env! (t/empty-env))
   (t/test-var math-test)
   (t/test-var thrown-test)
+  (t/test-var custom-assert-expr-test)
   (t/test-var expected-failure-test)
   (await (t/test-var async-test))
   (await (t/test-var async-done-form-test))
