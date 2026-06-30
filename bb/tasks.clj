@@ -62,11 +62,34 @@
   (shell "npx esbuild src/squint/core.js --minify --format=iife --global-name=squint.core --outfile=lib/squint.core.umd.js")
   (shell "npm publish"))
 
+(defn- watch-core-vars
+  "core.edn is generated from core.js exports (bump-core-vars) and inlined into
+  compiler.cljc at compile time via edn-resource. shadow does not track that
+  dependency, so adding a core var would otherwise need a dev restart. Polls
+  core.js; on change regenerates core.edn and, if it changed, touches
+  compiler.cljc so shadow recompiles and re-inlines the fresh vars."
+  []
+  (let [core-js "src/squint/core.js"
+        compiler "src/squint/compiler.cljc"]
+    (println "[core-vars] watching" core-js)
+    (loop [prev (fs/last-modified-time core-js)]
+      (Thread/sleep 1000)
+      (let [cur (fs/last-modified-time core-js)]
+        (when (not= prev cur)
+          (println "[core-vars] core.js changed; regenerating core.edn")
+          (let [before (slurp "resources/squint/core.edn")]
+            (bump-core-vars)
+            (when (not= before (slurp "resources/squint/core.edn"))
+              (println "[core-vars] core.edn updated; touching compiler.cljc")
+              (fs/set-last-modified-time compiler (System/currentTimeMillis)))))
+        (recur (fs/last-modified-time core-js))))))
+
 (defn watch-squint []
   (fs/create-dirs ".work")
   (fs/delete-tree ".shadow-cljs/builds/squint/dev/ana/squint")
   (spit ".work/config-merge.edn" (shadow-extra-test-config))
   (bump-core-vars)
+  (future (watch-core-vars))
   (shell "npx shadow-cljs --aliases :dev --config-merge .work/config-merge.edn watch squint"))
 
 (defn- compile-e2e []
