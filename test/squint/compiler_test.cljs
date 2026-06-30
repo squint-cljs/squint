@@ -3501,6 +3501,17 @@ new Foo();")
           (jsv! '(meta (vary-meta {} assoc :x 1))))
       "nil prior meta"))
 
+(deftest with-meta-on-lazy-seq-test
+  (testing "with-meta on a lazy seq carries metadata"
+    (is (eq {:x 1} (jsv! '(meta (with-meta (range 3) {:x 1})))))
+    (is (eq {:x 1} (jsv! '(meta (with-meta (concat [1] [2]) {:x 1})))))
+    (is (eq {:x 1} (jsv! '(meta (with-meta (lazy-seq [1 2 3]) {:x 1}))))))
+  (testing "does not realize or alias the original"
+    (is (eq [nil false [1 2 3]]
+            (jsv! '(let [a (lazy-seq [1 2 3])
+                         b (with-meta a {:x 1})]
+                     [(meta a) (realized? b) (vec b)]))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test
