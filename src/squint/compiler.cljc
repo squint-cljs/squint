@@ -440,7 +440,8 @@
     :readers {'js #(vary-meta % assoc ::js true)
               'jsx jsx
               'html html
-              'js/Map js-map}
+              'js/Map js-map
+              'uuid (fn [s] (list 'cljs.core/uuid s))}
     :read-cond :allow
     :features #{:squint :cljs}}))
 

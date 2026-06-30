@@ -6,6 +6,7 @@
   LazySeq
   NaN_QMARK_
   PROTOCOL_SENTINEL
+  UUID
   _
   _EQ_
   _GT_
@@ -251,6 +252,8 @@
   update_in
   update_keys
   update_vals
+  uuid
+  uuid_QMARK_
   val
   vals
   var_QMARK_

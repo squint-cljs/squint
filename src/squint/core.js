@@ -3322,6 +3322,23 @@ export function random_uuid() {
   return crypto.randomUUID();
 }
 
+export class UUID {
+  constructor(uuid) {
+    this.uuid = uuid;
+  }
+  toString() {
+    return this.uuid;
+  }
+}
+
+export function uuid(s) {
+  return new UUID(s);
+}
+
+export function uuid_QMARK_(x) {
+  return x instanceof UUID;
+}
+
 export class Delay {
   constructor(f) {
     this.f = f;
@@ -3403,6 +3420,7 @@ function toEDN(value, seen = new WeakSet(), readably = true) {
   if (typeof value === 'bigint') return `${value}N`;
 
   if (typeof value === 'object') {
+    if (value instanceof UUID) return readably ? `#uuid "${value.uuid}"` : value.uuid;
     // seen tracks the current ancestor path only. A shared reference that
     // appears under sibling branches is a DAG, not a cycle, so delete on exit.
     if (seen.has(value)) return '#object[circular]';
