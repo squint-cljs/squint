@@ -1447,6 +1447,30 @@ break;}" body)
                    (emit-return env))
                'boolean))
 
+;; A side-effect-free operand safe to emit more than once.
+(defn- simple-operand? [x]
+  (or (symbol? x) (number? x)))
+
+;; Inline the 2-arg case to a comparison, like CLJS, but only when both operands
+;; are simple (so emitting each twice is safe). Other arities fall back to the
+;; runtime fn, which is correct for nil and NaN.
+(defn- emit-min-max [op env expr]
+  (let [args (rest expr)]
+    (if (and (= 2 (count args)) (every? simple-operand? args))
+      (let [eenv (assoc env :context :expr)
+            a (emit (first args) eenv)
+            b (emit (second args) eenv)]
+        (-> (format "(%s %s %s ? %s : %s)" a op b a b)
+            (emit-return env)
+            (tagged-expr 'number)))
+      (emit-special 'funcall env expr))))
+
+(defmethod emit-special 'max [_ env expr]
+  (emit-min-max ">" env expr))
+
+(defmethod emit-special 'min [_ env expr]
+  (emit-min-max "<" env expr))
+
 (defmethod emit-special 'js-in [_ env [_ key obj]]
   (tagged-expr (emit (list 'js* "~{} in ~{}" key obj) env)
                'boolean))
@@ -1463,7 +1487,7 @@ break;}" body)
   (emit (vec expr) env))
 
 (def special-forms '#{zero? pos? neg? js-delete nil? js-in js-yield
-                      js-yield*})
+                      js-yield* max min})
 
 (derive #?(:clj clojure.lang.Cons :cljs Cons) ::list)
 (derive #?(:clj clojure.lang.IPersistentList :cljs IList) ::list)

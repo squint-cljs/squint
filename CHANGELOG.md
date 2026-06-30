@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix `min` and `max` to compare with `<`/`>` and return one of the values, so `nil` acts like zero and `NaN` propagates, like CLJS, instead of `Math.min`/`Math.max` coercing `nil` to `0`
+- Inline the 2-arg `min`/`max` call with simple operands to a comparison, like CLJS
+
 ## 0.14.198
 
 These changes were all made to improve compatibility with dialect tests in [clojure-test-suite](https://github.com/jank-lang/clojure-test-suite/issues).
