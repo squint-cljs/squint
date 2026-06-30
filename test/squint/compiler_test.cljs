@@ -1829,6 +1829,10 @@ with `backticks`")))]
   (is (eq [1 "a" 1 "b"] (jsv! '(vec (interleave (repeat 2 1) ["a" "b" "c"])))))
   (testing "satisfies IIterable"
     (is (= true (jsv! '(satisfies? IIterable (repeat 1))))))
+  (testing "compares equal to a vector or list of the same elements"
+    (is (true? (jsv! '(= (repeat 3 :x) [:x :x :x]))))
+    (is (true? (jsv! "(= (repeat 3 :x) '(:x :x :x))")))
+    (is (false? (jsv! '(= (repeat 3 :x) [:x :x])))))
   (testing "invalid arity"
     (is (thrown? js/Error (jsv! '(repeat))))))
 
