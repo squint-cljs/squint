@@ -20,6 +20,28 @@ function findKey(iter, tar, key) {
   }
 }
 
+function isSortedMap(m) {
+  return m != null && m[SORTED_TAG] === true && m[TYPE_TAG] === MAP_TYPE;
+}
+function isMapLike(m) {
+  return (
+    m != null &&
+    typeof m === 'object' &&
+    (m.constructor === Object || m instanceof Map || m[TYPE_TAG] === MAP_TYPE)
+  );
+}
+function mapHas(m, k) {
+  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE ? m.has(k) : has.call(m, k);
+}
+function mapGet(m, k) {
+  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE ? m.get(k) : m[k];
+}
+function mapCount(m) {
+  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE
+    ? m.size
+    : Object.keys(m).length;
+}
+
 function dequal(foo, bar) {
   // supports primitives, Array, Set, Map and plain objects
   // like CLJS: does not support NaN
@@ -27,6 +49,18 @@ function dequal(foo, bar) {
   // null and undefined are both nil in CLJS, so they compare equal
   if (foo == null) return bar == null;
   var ctor, len, tmp;
+
+  // A sorted map compares by entries against any map type (object, Map, sorted).
+  const fooSorted = isSortedMap(foo);
+  if (fooSorted || isSortedMap(bar)) {
+    const sm = fooSorted ? foo : bar;
+    const other = sm === foo ? bar : foo;
+    if (!isMapLike(other) || mapCount(sm) !== mapCount(other)) return false;
+    for (const k of sm.keys()) {
+      if (!mapHas(other, k) || !dequal(sm.get(k), mapGet(other, k))) return false;
+    }
+    return true;
+  }
 
   if (foo && bar && (ctor = foo.constructor) === bar.constructor) {
     if (ctor === Date) return foo.getTime() === bar.getTime();
@@ -221,7 +255,8 @@ function copyMeta(from, to) {
 function copy(o) {
   switch (typeConst(o)) {
     case MAP_TYPE:
-      return copyMeta(o, new Map(o));
+      // new o.constructor(o) preserves a SortedMap; for a plain Map it is new Map(o)
+      return copyMeta(o, new o.constructor(o));
     case SET_TYPE:
       return copyMeta(o, new o.constructor(o));
     case ARRAY_TYPE:
@@ -530,7 +565,8 @@ export function disj_BANG_(s, ...xs) {
 
 export function disj(s, ...xs) {
   if (s == null) return s;
-  const s1 = new s.constructor([...s]);
+  // pass s itself (not a spread) so a SortedSet keeps its comparator
+  const s1 = new s.constructor(s);
   return disj_BANG_(s1, ...xs);
 }
 
@@ -2580,6 +2616,7 @@ export function map_QMARK_(coll) {
   if (coll == null) return false;
   if (isObj(coll)) return true;
   if (coll instanceof Map) return true;
+  if (coll[TYPE_TAG] === MAP_TYPE) return true;
   return false;
 }
 
@@ -3153,12 +3190,13 @@ export function persistent_BANG_(x) {
 
 const SortedSet = defclass(
 class SortedSet {
-  constructor(xs) {
+  constructor(xs, cmp) {
     this[TYPE_TAG] = SET_TYPE;
     this[SORTED_TAG] = true;
-    const isSorted = xs instanceof SortedSet;
+    this._cmp = cmp ?? xs?._cmp;
+    const isSorted = xs instanceof SortedSet && xs._cmp === this._cmp;
     if (!isSorted) {
-      xs = sort(xs);
+      xs = this._cmp ? sort(this._cmp, xs) : sort(xs);
     }
     const s = new Set(xs);
     // we don't re-use xs since xs can contain duplicates
@@ -3168,9 +3206,10 @@ class SortedSet {
   add(x) {
     if (this._set.has(x)) return this;
     const xs = this._elts;
+    const cmp = this._cmp;
     let added = false;
     for (let i = 0; i < xs.length; i++) {
-      if (compare(x, xs[i]) <= 0) {
+      if ((cmp ? cmp(x, xs[i]) : compare(x, xs[i])) <= 0) {
         xs.splice(i, 0, x);
         added = true;
         break;
@@ -3222,6 +3261,85 @@ class SortedSet {
 
 export function sorted_set(...xs) {
   return new SortedSet(xs);
+}
+
+export function sorted_set_by(cmp, ...xs) {
+  return new SortedSet(xs, fnToComparator(__toFn(cmp)));
+}
+
+// A map that keeps its keys in sorted order. Backed by a sorted key array plus
+// a plain Map for lookup, and branded MAP_TYPE so map ops dispatch normally.
+const SortedMap = defclass(
+class SortedMap {
+  constructor(entries, cmp) {
+    this[TYPE_TAG] = MAP_TYPE;
+    this[SORTED_TAG] = true;
+    this._cmp = cmp ?? entries?._cmp;
+    this._map = new Map();
+    this._keys = [];
+    this.size = 0;
+    if (entries) {
+      for (const [k, v] of entries) this.set(k, v);
+    }
+  }
+  set(k, v) {
+    if (!this._map.has(k)) {
+      const ks = this._keys;
+      const cmp = this._cmp;
+      let i = 0;
+      while (i < ks.length && (cmp ? cmp(k, ks[i]) : compare(k, ks[i])) > 0) i++;
+      ks.splice(i, 0, k);
+    }
+    this._map.set(k, v);
+    this.size = this._map.size;
+    return this;
+  }
+  get(k) {
+    return this._map.get(k);
+  }
+  has(k) {
+    return this._map.has(k);
+  }
+  delete(k) {
+    if (this._map.delete(k)) {
+      this._keys.splice(this._keys.indexOf(k), 1);
+      this.size = this._map.size;
+    }
+    return this;
+  }
+  *keys() {
+    yield* this._keys;
+  }
+  *values() {
+    for (const k of this._keys) yield this._map.get(k);
+  }
+  *entries() {
+    for (const k of this._keys) yield [k, this._map.get(k)];
+  }
+  forEach(f) {
+    for (const k of this._keys) f(this._map.get(k), k, this);
+  }
+  clear() {
+    this._map.clear();
+    this._keys = [];
+    this.size = 0;
+  }
+  [Symbol.iterator]() {
+    return this.entries();
+  }
+}
+);
+
+export function sorted_map(...kvs) {
+  const m = new SortedMap();
+  for (let i = 0; i < kvs.length; i += 2) m.set(kvs[i], kvs[i + 1]);
+  return m;
+}
+
+export function sorted_map_by(cmp, ...kvs) {
+  const m = new SortedMap(null, fnToComparator(__toFn(cmp)));
+  for (let i = 0; i < kvs.length; i += 2) m.set(kvs[i], kvs[i + 1]);
+  return m;
 }
 
 function mkBoundFn(_sc, test, key) {

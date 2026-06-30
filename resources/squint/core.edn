@@ -219,7 +219,10 @@
   some_fn
   sort
   sort_by
+  sorted_map
+  sorted_map_by
   sorted_set
+  sorted_set_by
   split_at
   split_with
   str

@@ -782,7 +782,7 @@
 ;; tagged 'string so the always-truthy skip stays correct.
 (def ^:private fn-return-tags
   '{set set, hash-set set, sorted-set set, disj set,
-    hash-map object, sorted-map object, array-map object, zipmap object,
+    hash-map object, array-map object, zipmap object,
     frequencies object, group-by object, select-keys object,
     vec array, vector array, mapv array, filterv array, subvec array,
     vector-of array,
