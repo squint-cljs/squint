@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `take-last` to return `nil` for an empty or `nil` collection, like CLJS
 - Fix `sequential?` to return `false` for sets, maps and strings, instead of treating every iterable as sequential
 - Fix `seq` on a string to return its characters and on a set to return its elements, like CLJS
 - Fix `peek` and `pop` on a list to use its front, like CLJS, and `(pop nil)` to return `nil`

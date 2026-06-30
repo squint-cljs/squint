@@ -1917,7 +1917,11 @@ with `backticks`")))]
   (is (eq [[:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 3 {:a 1 :b 2 :c 3 :d 4})))))
   (is (eq [[:a 1] [:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 4 {:a 1 :b 2 :c 3 :d 4})))))
   (is (eq [[:a 1] [:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 5 {:a 1 :b 2 :c 3 :d 4})))))
-  (is (eq [1 2 3 4] (jsv! '(vec (take-last 5 [1 2 3 4]))))))
+  (is (eq [1 2 3 4] (jsv! '(vec (take-last 5 [1 2 3 4])))))
+  (testing "empty or nil coll returns nil"
+    (is (= true (jsv! '(nil? (take-last 2 nil)))))
+    (is (= true (jsv! '(nil? (take-last 2 [])))))
+    (is (= true (jsv! '(nil? (take-last 2 '())))))))
 
 (deftest +-test
   (is (zero? (jsv! '(apply + []))))
