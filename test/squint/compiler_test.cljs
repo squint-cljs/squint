@@ -1136,7 +1136,14 @@ with `backticks`")))]
     (is (= false (jsv! '(contains? {:a 1} :b)))))
   (testing "maps"
     (is (= true (jsv! '(contains? (js/Map. [[:a 1]]) :a))))
-    (is (= false (jsv! '(contains? (js/Map. [[:a 1]]) :b))))))
+    (is (= false (jsv! '(contains? (js/Map. [[:a 1]]) :b)))))
+  (testing "strings are indexed by integer"
+    (is (= true (jsv! '(contains? "abc" 0))))
+    (is (= true (jsv! '(contains? "abc" 2))))
+    (is (= false (jsv! '(contains? "abc" 3))))
+    (is (= false (jsv! '(contains? "abc" -1))))
+    (is (= false (jsv! '(contains? "abc" 1.5))))
+    (is (= false (jsv! '(contains? "abc" "a"))))))
 
 (deftest assoc-test
   (testing "arrays"
