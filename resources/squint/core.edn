@@ -63,6 +63,7 @@
   distinct_QMARK_
   doall
   dorun
+  double$
   double_QMARK_
   drop
   drop_last
@@ -85,6 +86,7 @@
   find
   first
   flatten
+  float$
   fn_QMARK_
   fnil
   frequencies

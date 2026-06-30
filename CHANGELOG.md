@@ -6,6 +6,7 @@
 
 - Route output through `println` in `cljs.test`
 - Support emojis as aliases
+- Add `float` and `double` core functions
 
 ## 0.14.197
 

@@ -3218,6 +3218,14 @@ export function long$(x) {
   return fix(x);
 }
 
+export function float$(x) {
+  return x;
+}
+
+export function double$(x) {
+  return x;
+}
+
 export function type(x) {
   return x != null && x.constructor;
 }
