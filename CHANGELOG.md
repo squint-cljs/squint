@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `contains?` on a string to test integer indices, so `(contains? "abc" 0)` is `true`, like CLJS
 - Make every lazy seq an instance of `LazySeq`, so `(instance? LazySeq (concat ...))` and similar return `true`
 - Support `with-meta` on a lazy seq or cons, attaching metadata without forcing realization
 - Fix `boolean` to coerce every value except `nil` and `false` to `true`

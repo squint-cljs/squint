@@ -525,6 +525,9 @@ export function disj(s, ...xs) {
 }
 
 export function contains_QMARK_(coll, v) {
+  if (typeof coll === 'string') {
+    return typeof v === 'number' && Number.isInteger(v) && v >= 0 && v < coll.length;
+  }
   switch (typeConst(coll)) {
     case SET_TYPE:
     case MAP_TYPE:
