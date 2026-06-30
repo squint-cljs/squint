@@ -3254,6 +3254,13 @@ new Foo();")
   (is (= "f81d4fae-7dec-11d0-a765-00a0c91e6bf6" (jsv! "(str #uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\")")))
   (is (= "#uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\"" (jsv! "(pr-str #uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\")"))))
 
+(deftest inst-literal-test
+  (is (true? (jsv! "(inst? #inst \"2020-01-01\")")))
+  (is (false? (jsv! "(inst? 5)")))
+  (is (true? (jsv! "(instance? js/Date #inst \"2020-01-01\")")))
+  (is (true? (jsv! "(= #inst \"2020-01-01\" #inst \"2020-01-01\")")))
+  (is (false? (jsv! "(= #inst \"2020-01-01\" #inst \"2021-01-01\")"))))
+
 (deftest not=test
   (is (true? (jsv! '(not= 1 2))))
   (is (true? (jsv! '(apply not= [1 2])))))

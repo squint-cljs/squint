@@ -98,6 +98,7 @@
   identity
   ifn_QMARK_
   inc
+  inst_QMARK_
   int_QMARK_
   integer_QMARK_
   interleave
