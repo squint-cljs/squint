@@ -29,6 +29,8 @@ function dequal(foo, bar) {
   var ctor, len, tmp;
 
   if (foo && bar && (ctor = foo.constructor) === bar.constructor) {
+    if (ctor === Date) return foo.getTime() === bar.getTime();
+
     if (ctor === Array) {
       if ((len = foo.length) === bar.length) {
         while (len-- && dequal(foo[len], bar[len]));
