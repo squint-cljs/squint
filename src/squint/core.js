@@ -1690,8 +1690,10 @@ export function partition_all(n, ...args) {
 }
 
 export function partition(n, ...args) {
+  // pad stays undefined for arity 1 and 2: only arity 4 provides a pad, which
+  // makes the final partial partition be emitted (padded when pad has elements).
   let step = n,
-    pad = [],
+    pad,
     coll = args[0];
 
   if (args.length === 2) {
@@ -1726,8 +1728,10 @@ function partitionInternal(n, step, pad, coll, all) {
     if (p.length > 0) {
       if (p.length === n || all) {
         yield p;
-      } else if (pad.length) {
-        p.push(...pad.slice(0, n - p.length));
+      } else if (pad !== undefined) {
+        if (pad != null) {
+          p.push(...[...iterable(pad)].slice(0, n - p.length));
+        }
         yield p;
       }
     }

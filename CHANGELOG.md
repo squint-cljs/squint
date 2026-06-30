@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `(partition n step pad coll)` to emit the final partial partition even when `pad` is empty or `nil`, like CLJS, and no longer throw on a `nil` pad
 - Fix `add-watch` and `remove-watch` to return the reference, like CLJS
 - Fix `cat` transducer appending a `nil` on completion, so `transduce` with `cat` or `mapcat` no longer adds a trailing `nil`
 - Fix `(conj nil)` to return `nil`, like CLJS, instead of an empty list
