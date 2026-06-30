@@ -459,6 +459,8 @@ export function conj(...xs) {
   }
 
   const [_o, ...rest] = xs;
+  // (conj coll) with nothing to add returns coll unchanged, including nil.
+  if (rest.length === 0) return _o;
 
   let o = _o;
   if (o === null || o === undefined) {
