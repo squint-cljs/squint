@@ -350,8 +350,19 @@
          (str core-alias "."))
        m))))
 
+(defn munge-unicode
+  "Replace chars host munge leaves intact but JS rejects in an identifier
+  (emoji, accented and CJK letters) with a `_uXXXX_` hex token."
+  [s]
+  (str/replace s #"[^A-Za-z0-9_$]"
+               (fn [m]
+                 (str "_u"
+                      #?(:clj (Integer/toHexString (int (.charAt ^String m 0)))
+                         :cljs (.toString (.charCodeAt m 0) 16))
+                      "_"))))
+
 (defn alias-munge [s]
-  (-> s str munge (str/replace #"\." "_DOT_") ))
+  (-> s str munge (str/replace #"\." "_DOT_") munge-unicode))
 
 (defn dynamic-name?
   "True for an earmuffed name like *foo* - squint's convention for a dynamic

@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Route output through `println` in `cljs.test`
+- Support emojis as aliases
 
 ## 0.14.197
 
