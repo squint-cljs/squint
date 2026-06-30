@@ -2500,11 +2500,13 @@ export function aclone(arr) {
 }
 
 export function add_watch(ref, key, fn) {
-  return ref._add_watch(key, fn);
+  ref._add_watch(key, fn);
+  return ref;
 }
 
 export function remove_watch(ref, key) {
-  return ref._remove_watch(key);
+  ref._remove_watch(key);
+  return ref;
 }
 
 export function reduce_kv(f, init, m) {
