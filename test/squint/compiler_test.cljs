@@ -3398,7 +3398,15 @@ new Foo();")
   (is (eq [:a :b :c] (jsv! "(keys {:a 1 :b 2 :c 3})")))
   (is (eq [:a :b :c] (jsv! "(keys (assoc (js/Map.) :a 1 :b 2 :c 3))")))
   (is (eq [1 2 3] (jsv! "(vals {:a 1 :b 2 :c 3})")))
-  (is (eq [1 2 3] (jsv! "(vals (assoc (js/Map.) :a 1 :b 2 :c 3))"))))
+  (is (eq [1 2 3] (jsv! "(vals (assoc (js/Map.) :a 1 :b 2 :c 3))")))
+  (testing "empty or nil returns nil, like CLJS"
+    (is (= true (jsv! "(nil? (keys {}))")))
+    (is (= true (jsv! "(nil? (keys (js/Map.)))")))
+    (is (= true (jsv! "(nil? (keys nil))")))
+    (is (= true (jsv! "(nil? (vals {}))")))
+    (is (= true (jsv! "(nil? (vals nil))"))))
+  (testing "js-keys still returns an array for empty input"
+    (is (eq [] (jsv! "(js-keys {})")))))
 
 (deftest object-tag-inference-test
   (testing "assoc in return position with non-symbolic expression"
