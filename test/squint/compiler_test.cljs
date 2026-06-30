@@ -3507,10 +3507,11 @@ new Foo();")
     (is (eq {:x 1} (jsv! '(meta (with-meta (concat [1] [2]) {:x 1})))))
     (is (eq {:x 1} (jsv! '(meta (with-meta (lazy-seq [1 2 3]) {:x 1}))))))
   (testing "does not realize or alias the original"
-    (is (eq [nil false [1 2 3]]
-            (jsv! '(let [a (lazy-seq [1 2 3])
-                         b (with-meta a {:x 1})]
-                     [(meta a) (realized? b) (vec b)]))))))
+    (is (jsv! '(let [a (lazy-seq [1 2 3])
+                     b (with-meta a {:x 1})]
+                 (nil? (meta a)))))
+    (is (eq false (jsv! '(realized? (with-meta (lazy-seq [1 2 3]) {:x 1})))))
+    (is (eq [1 2 3] (jsv! '(vec (with-meta (lazy-seq [1 2 3]) {:x 1})))))))
 
 (defn init []
   (t/run-tests 'squint.compiler-test
