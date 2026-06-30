@@ -441,7 +441,8 @@
               'jsx jsx
               'html html
               'js/Map js-map
-              'uuid (fn [s] (list 'cljs.core/uuid s))}
+              'uuid (fn [s] (list 'cljs.core/uuid s))
+              'inst (fn [s] (list 'js/Date. s))}
     :read-cond :allow
     :features #{:squint :cljs}}))
 

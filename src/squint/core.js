@@ -3339,6 +3339,10 @@ export function uuid_QMARK_(x) {
   return x instanceof UUID;
 }
 
+export function inst_QMARK_(x) {
+  return x instanceof Date;
+}
+
 export class Delay {
   constructor(f) {
     this.f = f;

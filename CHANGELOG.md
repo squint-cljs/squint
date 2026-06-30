@@ -13,6 +13,7 @@
 - Fix `repeatedly` to return an empty seq for count `0` and throw on a non-number count
 - Add `realized?` for delays and lazy seqs
 - Support `#uuid` literals with a `UUID` type
+- Support `#inst` literals as `js/Date` and add `inst?`
 
 ## 0.14.197
 
