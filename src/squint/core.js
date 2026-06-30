@@ -2726,25 +2726,33 @@ export function keys(obj) {
   if (obj == null) return;
   const t = typeConst(obj);
   switch (t) {
-    case OBJECT_TYPE:
-      return Object.keys(obj);
+    case OBJECT_TYPE: {
+      const ks = Object.keys(obj);
+      if (ks.length) return ks;
+      return;
+    }
     case MAP_TYPE:
-      return Array.from(obj.keys());
+      if (obj.size) return Array.from(obj.keys());
+      return;
   }
 }
 
 export function js_keys(obj) {
-  return keys(obj);
+  return keys(obj) ?? [];
 }
 
 export function vals(obj) {
   if (obj == null) return;
   const t = typeConst(obj);
   switch (t) {
-    case OBJECT_TYPE:
-      return Object.values(obj);
+    case OBJECT_TYPE: {
+      const vs = Object.values(obj);
+      if (vs.length) return vs;
+      return;
+    }
     case MAP_TYPE:
-      return Array.from(obj.values());
+      if (obj.size) return Array.from(obj.values());
+      return;
   }
 }
 
