@@ -2874,9 +2874,9 @@ export function with_meta(x, m) {
     wrapped[_metaSym] = m;
     return wrapped;
   }
-  // A lazy seq is not copied element-wise: clone the cell head so the new
+  // A lazy seq or cons is not copied element-wise: clone the head so the new
   // value carries its own metadata without forcing realization.
-  if (x instanceof LazyIterable) {
+  if (x?.[TYPE_TAG] === LAZY_ITERABLE_TYPE) {
     const ret = Object.assign(Object.create(Object.getPrototypeOf(x)), x);
     ret[_metaSym] = m;
     return ret;
