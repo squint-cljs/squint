@@ -1779,6 +1779,12 @@ with `backticks`")))]
     (is (eq (js/Set. #js [1]) (jsv! '(merge #{} 1))))
     (is (eq '(1) (jsv! '(merge (list) 1))))
     (is (thrown? js/Error (jsv! '(merge 1 1)))))
+  (testing "no truthy maps return nil"
+    (is (= true (jsv! '(nil? (merge)))))
+    (is (= true (jsv! '(nil? (merge nil)))))
+    (is (= true (jsv! '(nil? (merge nil nil)))))
+    (is (= true (jsv! '(nil? (merge false)))))
+    (is (eq {} (jsv! '(merge {} nil)))))
   (is (eq {:a 1} (jsv! '(merge nil {:a 1}))))
   (is (eq {:a 1} (jsv! '(merge {:a 2} {:a 1}))))
   (is (eq {:a 1 :b 2} (jsv! '(merge {:a 1} {:b 2}))))

@@ -1826,6 +1826,8 @@ export function empty(coll) {
 }
 
 export function merge(...args) {
+  // with no truthy maps, return nil like CLJS `(when (some identity maps) ...)`.
+  if (!args.some(truth_)) return null;
   // if the first arg is nil we coerce it into a map.
   const firstArg = args[0];
   let obj;
