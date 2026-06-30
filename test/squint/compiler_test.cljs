@@ -2726,6 +2726,14 @@ globalThis.foo.fs = fs;")))))
   (is (= 1 (jsv! "(+ 1 (+))")))
   (is (= 2 (jsv! "(* 2 (*))"))))
 
+(deftest unary-comparison-test
+  (is (true? (jsv! "(> 5)")))
+  (is (true? (jsv! "(< 5)")))
+  (is (true? (jsv! "(>= 5)")))
+  (is (true? (jsv! "(<= 5)")))
+  (is (true? (jsv! "(> 3 2 1)")))
+  (is (false? (jsv! "(> 1 2)"))))
+
 (deftest zipmap-test
   (is (eq #js {} (jsv! "(zipmap nil [1 2 3])")))
   (is (eq #js {} (jsv! "(zipmap [1 2 3] nil)")))

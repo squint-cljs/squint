@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Fix unary `<`, `>`, `<=`, `>=` to return `true`
+
 - Fix `=` to compare `js/Date` values, so distinct `#inst` literals are not equal
 
 - Route output through `println` in `cljs.test`
