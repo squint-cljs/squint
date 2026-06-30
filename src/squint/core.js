@@ -2416,7 +2416,7 @@ export function some_QMARK_(x) {
 }
 
 export function boolean$(x) {
-  return !!x;
+  return truth_(x);
 }
 
 export function zero_QMARK_(x) {
