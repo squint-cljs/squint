@@ -2598,18 +2598,18 @@ export function reduce_kv(f, init, m) {
   return ret;
 }
 
-export function max(x, y, ...more) {
-  if (y == undefined) {
-    return x;
-  }
-  return Math.max(x, y, ...more);
+export function max(x, ...more) {
+  // (if (> a b) a b) reduce, like CLJS: returns one of the values, so nil acts
+  // like zero and NaN propagates, instead of Math.max coercing nil to 0.
+  let m = x;
+  for (const y of more) m = m > y ? m : y;
+  return m;
 }
 
-export function min(x, y, ...more) {
-  if (y == undefined) {
-    return x;
-  }
-  return Math.min(x, y, ...more);
+export function min(x, ...more) {
+  let m = x;
+  for (const y of more) m = m < y ? m : y;
+  return m;
 }
 
 export function map_QMARK_(coll) {
