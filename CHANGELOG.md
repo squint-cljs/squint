@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `seq` on a string to return its characters and on a set to return its elements, like CLJS
 - Fix `peek` and `pop` on a list to use its front, like CLJS, and `(pop nil)` to return `nil`
 - Fix `keys` and `vals` to return `nil` for an empty or `nil` map, like CLJS
 - Fix `merge` to return `nil` when called with no maps or only `nil` maps, like CLJS

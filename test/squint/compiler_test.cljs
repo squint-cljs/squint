@@ -1483,11 +1483,11 @@ with `backticks`")))]
     (is (= 49995000 (jsv! '(last (reductions + (range 10000))))))))
 
 (deftest seq-test
-  (is (= "abc" (jsv! '(seq "abc"))))
+  (is (eq '("a" "b" "c") (jsv! '(seq "abc"))))
   (is (eq '(1 2 3) (jsv! '(seq [1 2 3]))))
   (is (eq '([:a 1] [:b 2]) (jsv! '(seq {:a 1 :b 2}))))
-  (is (eq (js/Set. [1 2 3])
-          (jsv! '(seq #{1 2 3}))))
+  (is (eq '(1 2 3) (jsv! '(sort (seq #{1 2 3})))))
+  (is (eq '(-2.5 1 3 4) (jsv! '(seq (sorted-set 3.0 1.0 -2.5 4.0)))))
   (is (eq (js/Map. #js[#js[1 2] #js[3 4]])
           (jsv! '(seq (js/Map. [[1 2] [3 4]])))))
   (testing "empty"

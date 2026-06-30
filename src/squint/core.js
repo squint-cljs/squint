@@ -722,10 +722,16 @@ export const es6_iterator = _iterator;
 
 export function seq(x) {
   if (x == null) return x;
+  // a string seqs into its characters, like CLJS.
+  if (typeof x === 'string') return x.length ? [...x] : null;
   const iter = iterable(x);
   // return nil for terminal checking
   if (iter.length === 0 || iter.size === 0) {
     return null;
+  }
+  // a set is iterable but not sequential; materialize its elements.
+  if (iter instanceof Set || iter[TYPE_TAG] === SET_TYPE) {
+    return [...iter];
   }
   const _i = iter[Symbol.iterator]();
   if (_i.next().done) return null;
