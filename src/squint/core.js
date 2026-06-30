@@ -1489,6 +1489,9 @@ export function apply(f, ...args) {
 }
 
 export function even_QMARK_(x) {
+  if (!Number.isInteger(x)) {
+    throw new Error(`Argument must be an integer: ${x}`);
+  }
   return x % 2 == 0;
 }
 
