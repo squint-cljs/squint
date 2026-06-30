@@ -1015,8 +1015,7 @@ with `backticks`")))]
   (testing "corner cases"
     (is (eq [], (jsv! '(conj))))
     (is (= true, (jsv! '(vector? (conj)))))
-    (is (eq '(), (jsv! '(conj nil))))
-    (is (= true, (jsv! '(array? (conj nil)))))
+    (is (= true (jsv! '(nil? (conj nil)))))
     (is (eq [2 1] (jsv! '(conj nil 1 2)))))
   (testing "arrays"
     (is (eq [1 2 3 4] (jsv! '(conj [1 2 3 4]))))
@@ -1049,7 +1048,8 @@ with `backticks`")))]
             (vec (jsv! '(conj (map inc [4])
                               0 1 2 3 4))))))
   (testing "other types"
-    (is (thrown? js/Error (jsv! '(conj "foo"))))))
+    (is (= "foo" (jsv! '(conj "foo"))))
+    (is (thrown? js/Error (jsv! '(conj "foo" 1))))))
 
 (deftest conj!-test
   (testing "corner cases"
