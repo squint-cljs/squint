@@ -1504,7 +1504,7 @@ class List extends Array {
 }
 
 export function list_QMARK_(x) {
-  return typeConst(x) === LIST_TYPE;
+  return x?.[TYPE_TAG] === LIST_TYPE;
 }
 
 export function list(...args) {
@@ -3307,7 +3307,11 @@ export function memoize(f) {
 }
 
 export function peek(vec) {
-  if (array_QMARK_(vec)) {
+  // A list peeks at its front; squint lists are array-backed, so check list
+  // before array to avoid returning the last element.
+  if (list_QMARK_(vec)) {
+    return first(vec);
+  } else if (array_QMARK_(vec)) {
     return vec[vec.length - 1];
   } else {
     return first(vec);
@@ -3315,7 +3319,10 @@ export function peek(vec) {
 }
 
 export function pop(vec) {
-  if (array_QMARK_(vec)) {
+  if (vec == null) return null;
+  if (list_QMARK_(vec)) {
+    return rest(vec);
+  } else if (array_QMARK_(vec)) {
     const ret = [...vec];
     ret.pop();
     return ret;
