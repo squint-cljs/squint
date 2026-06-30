@@ -244,6 +244,14 @@ export function assoc(o, k, v, ...kvs) {
   return ret;
 }
 
+// squint has no distinct hash-map or array-map type; both build a plain object.
+export function hash_map(...kvs) {
+  if (kvs.length === 0) return {};
+  return assoc({}, ...kvs);
+}
+
+export const array_map = hash_map;
+
 const MAP_TYPE = 1;
 const ARRAY_TYPE = 2;
 const OBJECT_TYPE = 3;

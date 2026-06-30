@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add `hash-map` and `array-map`, both building a plain map like a map literal
 - Make `even?` and `odd?` throw on a non-integer argument, like Clojure and CLJS
 - Fix `take-last` to return `nil` for an empty or `nil` collection, like CLJS
 - Fix `sequential?` to return `false` for sets, maps and strings, instead of treating every iterable as sequential
