@@ -13,7 +13,11 @@
 (deftest thrown-test
   (is (thrown? js/Error (throw (js/Error. "boom"))))
   (is (thrown-with-msg? js/Error #"boom"
-        (throw (js/Error. "boom!")))))
+        (throw (js/Error. "boom!"))))
+  (testing "are substitutes so is dispatches on thrown?"
+    (are [x] (thrown? js/Error (throw x))
+      (js/Error. "a")
+      (js/Error. "b"))))
 
 (deftest expected-failure-test
   (is (= :foo :bar) "intentional"))

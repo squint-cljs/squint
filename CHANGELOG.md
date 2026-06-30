@@ -7,6 +7,7 @@
 - Route output through `println` in `cljs.test`
 - Support emojis as aliases
 - Add `float` and `double` core functions
+- Fix `are` to substitute bindings into the test form like CLJS, so assertions such as `thrown?` dispatch correctly
 
 ## 0.14.197
 
