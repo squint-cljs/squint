@@ -1970,6 +1970,19 @@ with `backticks`")))]
   (is (eq (update-in {:a {:b {}}} [:a :b :c] (fnil inc 0))
           (jsv! (update-in {:a {:b {}}} [:a :b :c] (fnil inc 0))))))
 
+(deftest fnil-test
+  (is (eq [100] (jsv! '(vec ((fnil vector 100) nil)))))
+  (is (eq [5] (jsv! '(vec ((fnil vector 100) 5)))))
+  (testing "only nil is replaced, not other falsy values"
+    (is (eq [false] (jsv! '(vec ((fnil vector 100) false)))))
+    (is (eq [0] (jsv! '(vec ((fnil vector 100) 0))))))
+  (testing "per-position defaults for higher arities"
+    (is (eq [100 200] (jsv! '(vec ((fnil vector 100 200) nil nil)))))
+    (is (eq [5 200] (jsv! '(vec ((fnil vector 100 200) 5 nil)))))
+    (is (eq [100 5] (jsv! '(vec ((fnil vector 100 200) nil 5))))))
+  (testing "extra args pass through"
+    (is (eq [5 6 7] (jsv! '(vec ((fnil vector 100) 5 6 7)))))))
+
 (deftest every?-test
   (is (= true (jsv! '(every? odd? nil))))
   (is (= true (jsv! '(every? odd? []))))
