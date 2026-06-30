@@ -665,7 +665,11 @@ export function seq_QMARK_(x) {
   return x != null && !!x[Symbol.iterator];
 }
 
-export const sequential_QMARK_ = seq_QMARK_;
+export function sequential_QMARK_(x) {
+  // vectors and lists are arrays; lazy seqs and cons carry the lazy brand.
+  // Sets, maps and strings are iterable but not sequential.
+  return Array.isArray(x) || x?.[TYPE_TAG] === LAZY_ITERABLE_TYPE;
+}
 
 export function seqable_QMARK_(x) {
   return (
