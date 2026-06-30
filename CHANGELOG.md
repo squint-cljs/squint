@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `peek` and `pop` on a list to use its front, like CLJS, and `(pop nil)` to return `nil`
 - Fix `keys` and `vals` to return `nil` for an empty or `nil` map, like CLJS
 - Fix `merge` to return `nil` when called with no maps or only `nil` maps, like CLJS
 - Fix `(partition n step pad coll)` to emit the final partial partition even when `pad` is empty or `nil`, like CLJS, and no longer throw on a `nil` pad

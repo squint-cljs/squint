@@ -3136,7 +3136,13 @@ new Foo();")
 
 (deftest peek-pop-test
   (is (= 3 (jsv! '(peek [1 2 3]))))
-  (is (eq [1 2] (jsv! '(pop [1 2 3])))))
+  (is (eq [1 2] (jsv! '(pop [1 2 3]))))
+  (testing "a list peeks and pops at its front"
+    (is (= 1 (jsv! '(peek '(1 2 3)))))
+    (is (eq [2 3] (jsv! '(vec (pop '(1 2 3)))))))
+  (testing "peek and pop on nil"
+    (is (= true (jsv! '(nil? (peek nil)))))
+    (is (= true (jsv! '(nil? (pop nil)))))))
 
 (deftest gen-test
   (is (eq [0 1 2 3 4 5 6]
