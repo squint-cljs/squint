@@ -1036,6 +1036,7 @@ function mapChunks(coll, xf) {
 export const Cons = defclass(
 class Cons {
   constructor(x, coll) {
+    this[TYPE_TAG] = LAZY_ITERABLE_TYPE;
     this.x = x;
     this.coll = coll;
   }
