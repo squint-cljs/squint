@@ -834,7 +834,9 @@
 (defn unwrap [s]
   (str/replace (str s) #"^\(|\)$" ""))
 
-(defn process-require-clause [env current-ns-name [libname & {:keys [rename refer as with as-alias]}]]
+(defn process-require-clause [env current-ns-name libspec]
+  (let [libspec (if (symbol? libspec) [libspec] libspec)
+        [libname & {:keys [rename refer as with as-alias]}] libspec]
   (when-not (or (= 'squint.core libname)
                 (= 'cherry.core libname))
     (let [env (expr-env env)
@@ -1009,7 +1011,7 @@
                                                         ((fnil assoc {}) m the-alias original-libname))))))))
       (when-not (:elide-imports env)
         expr)
-      #_nil)))
+      #_nil))))
 
 (defn ensure-global [mname]
   (let [split-name (str/split (str mname) #"\.")]
