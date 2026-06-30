@@ -3073,7 +3073,11 @@ new Foo();")
   (is (eq [4 5 6 7 8 9] (jsv! '(subseq (sorted-set 1 2 3 4 5 6 7 8 9 0) <= 4 >= 2)))))
 
 (deftest cat-test
-  (is (eq [1 2 3 4 5 6] (jsv! '(into [] cat [[1 2 3] [4 5 6]])))))
+  (is (eq [1 2 3 4 5 6] (jsv! '(into [] cat [[1 2 3] [4 5 6]]))))
+  (testing "transduce completion does not append nil"
+    (is (eq [1 2 3] (jsv! '(transduce cat conj [] [[1 2] [3]]))))
+    (is (eq [1 1 2 2 3 3]
+            (jsv! '(transduce (mapcat (fn [x] (repeat 2 x))) conj [] [1 2 3]))))))
 
 (deftest pragmas-test
   (let [code "\"use client\"
