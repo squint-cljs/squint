@@ -24,6 +24,12 @@
                         [cljs.test :refer [is]]))
       (is (str/blank? ""))))
 
+(deftest-eval emoji-alias-test
+  ;; an emoji ns alias must munge to a valid JS identifier for `import * as`
+  (do (ns foo (:require [squint.string :as 😀]
+                        [cljs.test :refer [is]]))
+      (is (= "HI" (😀/upper-case "hi")))))
+
 (deftest-eval join-test
   (do (ns foo (:require [squint.string :as str]
                         [cljs.test :refer [is]]))
