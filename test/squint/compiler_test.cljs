@@ -3135,6 +3135,13 @@ new Foo();")
   (is (eq [0 2 1 2 1]
           (jsv! "(def a (atom 0)) (def x (delay (do (swap! a inc) 2))) [@a @x @a @x @a]"))))
 
+(deftest realized?-test
+  (is (eq [false true]
+          (jsv! "(def d (delay 1)) [(realized? d) (do @d (realized? d))]")))
+  (is (eq [false true]
+          (jsv! "(def s (repeatedly 3 inc)) [(realized? s) (do (doall s) (realized? s))]")))
+  (is (thrown? js/Error (jsv! "(realized? nil)"))))
+
 (deftest map?-test
   (is (eq [true true false]
           (jsv! "[(map? {}) (map? (new Map [])) (map? [])]"))))

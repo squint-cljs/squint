@@ -181,6 +181,7 @@
   re_matches
   re_pattern
   re_seq
+  realized_QMARK_
   reduce
   reduce_kv
   reduced

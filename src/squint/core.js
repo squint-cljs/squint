@@ -3337,6 +3337,13 @@ export class Delay {
   }
 }
 
+export function realized_QMARK_(x) {
+  if (x instanceof Delay || x instanceof LazyIterable) {
+    return x.realized === true;
+  }
+  throw new Error('realized? not supported on: ' + str(x));
+}
+
 function clj__GT_js_(x, seen) {
   // we need to protect against circular objects
   if (seen.has(x)) return x;
