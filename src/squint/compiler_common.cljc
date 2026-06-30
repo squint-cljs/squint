@@ -314,9 +314,15 @@
                   (list* operator (rest args)))
             enc-env)
       (->
-       (cond (and (= '- operator)
+       (cond (and (= '+ operator)
+                  (zero? acount))
+             "0"
+             (and (= '* operator)
+                  (zero? acount))
+             "1"
+             (and (= '- operator)
                   (= 1 acount))
-             (str "-" (emit (first args) env))
+             (str "-(" (emit (first args) env) ")")
              (and (= '/ operator)
                   (= 1 acount))
              (str "1 / " (emit (first args) env))

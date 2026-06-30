@@ -2709,6 +2709,14 @@ globalThis.foo.fs = fs;")))))
   (is (true? (jsv! "(apply = [1 1 1])")))
   (is (false? (jsv! "(apply = [1 1 2])"))))
 
+(deftest nullary-unary-arith-test
+  (is (= 0 (jsv! "(+)")))
+  (is (= 1 (jsv! "(*)")))
+  (is (= -5 (jsv! "(- 5)")))
+  (is (= 3 (jsv! "(- -3)")))
+  (is (= 1 (jsv! "(+ 1 (+))")))
+  (is (= 2 (jsv! "(* 2 (*))"))))
+
 (deftest zipmap-test
   (is (eq #js {} (jsv! "(zipmap nil [1 2 3])")))
   (is (eq #js {} (jsv! "(zipmap [1 2 3] nil)")))

@@ -8,6 +8,7 @@
 - Support emojis as aliases
 - Add `float` and `double` core functions
 - Fix `are` to substitute bindings into the test form like CLJS, so assertions such as `thrown?` dispatch correctly
+- Fix emission of nullary `(+)` and `(*)` and unary `(- x)`
 
 ## 0.14.197
 
