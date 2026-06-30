@@ -1,4 +1,5 @@
-(ns squint.internal.test)
+(ns squint.internal.test
+  (:require [clojure.walk :as walk]))
 
 (defn assert-expr [msg form]
   (let [op (when (sequential? form) (first form))
@@ -89,7 +90,7 @@
     (assert (zero? (mod (count args) binding-count))
             (str "are: arg count (" (count args) ") must be divisible by binding count (" binding-count ")"))
     `(do ~@(for [arg-group (partition binding-count args)]
-             `(clojure.test/is (let [~@(interleave bindings arg-group)] ~expr))))))
+             `(clojure.test/is ~(walk/postwalk-replace (zipmap bindings arg-group) expr))))))
 
 (defn core-use-fixtures [_&form &env type & fns]
   (let [ns-name (some-> &env :ns :name str)]
