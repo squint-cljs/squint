@@ -2569,6 +2569,9 @@ globalThis.foo.fs = fs;")))))
 
 (deftest atom-test
   (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y")))
+  (testing "add-watch and remove-watch return the reference"
+    (is (= true (jsv! "(def x (atom 1)) (identical? x (add-watch x :foo (fn [k r o n])))")))
+    (is (= true (jsv! "(def x (atom 1)) (add-watch x :foo (fn [k r o n])) (identical? x (remove-watch x :foo))"))))
   (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (reset-vals! x 2)] (+ old new))")))
   (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (swap-vals! x inc)] (+ old new))")))
   (is (= true  (jsv! "(def x (atom 1)) (compare-and-set! x 1 2)")))
