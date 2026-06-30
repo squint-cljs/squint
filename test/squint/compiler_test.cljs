@@ -2150,7 +2150,13 @@ with `backticks`")))]
        "globalThis.foo.readFileSync;"))
   (is (str/ends-with?
        (str/trim (squint/compile-string "(ns foo (:require [\"some-js-lib\" :refer [atom]])) atom" {:repl true}))
-       "foo.atom;")))
+       "foo.atom;"))
+  (testing "clojure.core and cljs.core resolve via bare, refer, and alias"
+    (is (= 2 (jsv! "(ns foo (:require clojure.core)) (inc 1)")))
+    (is (= 2 (jsv! "(ns foo (:require [clojure.core :refer [inc]])) (inc 1)")))
+    (is (= 2 (jsv! "(ns foo (:require [clojure.core :as c])) (c/inc 1)")))
+    (is (= 3 (jsv! "(ns foo (:require [clojure.core :as c])) (c/-> 1 inc inc)")))
+    (is (= 42 (jsv! "(ns foo (:require [cljs.core :as c])) (c/when true 42)")))))
 
 (deftest symbol-require-generates-namespace-import-test
   (testing "bare symbol require generates namespace import"
