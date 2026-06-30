@@ -3259,7 +3259,7 @@ function preserving_reduced(rf) {
 }
 
 export function cat(rf) {
-  rf = preserving_reduced(rf);
+  const rrf = preserving_reduced(rf);
   return (...args) => {
     switch (args.length) {
       case 0:
@@ -3267,7 +3267,7 @@ export function cat(rf) {
       case 1:
         return rf(args[0]);
       case 2:
-        return reduce(rf, args[0], args[1]);
+        return reduce(rrf, args[0], args[1]);
     }
   };
 }
