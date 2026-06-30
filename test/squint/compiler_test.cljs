@@ -3117,7 +3117,29 @@ new Foo();")
 (deftest sorted-set-test
   (is (eq -10 (first (jsv! '(sorted-set 1 2 3 -10)))))
   (is (eq -10 (first (jsv! '(sorted-set 1 2 3 -10)))))
-  (is (eq [-10000 -1000 1 100] (jsv! '(vec (conj (disj (sorted-set 1 -10 100 -1000) -10) -10000 -10000))))))
+  (is (eq [-10000 -1000 1 100] (jsv! '(vec (conj (disj (sorted-set 1 -10 100 -1000) -10) -10000 -10000)))))
+  (testing "sorted-set-by with a custom comparator, preserved through conj and disj"
+    (is (eq [5 4 3 2 1] (jsv! '(vec (sorted-set-by > 1 3 2 5 4)))))
+    (is (eq [5 4 1] (jsv! '(vec (conj (disj (sorted-set-by > 5 3 1) 3) 4)))))))
+
+(deftest sorted-map-test
+  (testing "keeps keys sorted"
+    (is (eq [1 2 3] (jsv! '(keys (sorted-map 3 :c 1 :a 2 :b)))))
+    (is (eq [1 2 3] (jsv! '(vec (keys (assoc (sorted-map 3 :c 1 :a) 2 :b)))))))
+  (testing "lookup and update"
+    (is (= 20 (jsv! '(get (sorted-map 1 10 2 20) 2))))
+    (is (= true (jsv! '(contains? (sorted-map 1 :a) 1))))
+    (is (= 2 (jsv! '(count (sorted-map 1 :a 2 :b)))))
+    (is (eq [1 3] (jsv! '(vec (keys (dissoc (sorted-map 1 :a 2 :b 3 :c) 2)))))))
+  (testing "is a map and compares by entries"
+    (is (= true (jsv! '(map? (sorted-map 1 :a)))))
+    (is (= true (jsv! '(= (sorted-map 1 :a 2 :b) (sorted-map 2 :b 1 :a)))))
+    (is (= true (jsv! '(= {:a 1 :b 2} (sorted-map :a 1 :b 2)))))
+    (is (= true (jsv! '(= (sorted-map :a 1 :b 2) {:a 1 :b 2})))))
+  (testing "prints with real keys, keeping the map tag"
+    (is (= "#js/Map {1 \"a\", 2 \"b\"}" (jsv! '(pr-str (sorted-map 2 :b 1 :a))))))
+  (testing "sorted-map-by with a custom comparator"
+    (is (eq [3 2 1] (jsv! '(vec (keys (sorted-map-by > 1 :a 3 :c 2 :b))))))))
 
 (deftest subseq-test
   (is (eq [1] (jsv! '(subseq (sorted-set 1 2 3 4) < 2))))
