@@ -68,7 +68,7 @@
    ;; conj must dispatch SortedSet by brand, not `instanceof SortedSet`. An
    ;; instanceof pins SortedSet + sort + compare (the "_elts" field is unique to
    ;; SortedSet) into every app that uses conj.
-   {:names ["conj"] :cap 3800 :absent ["_elts"]}])
+   {:names ["conj"] :cap 3900 :absent ["_elts"]}])
 
 (deftest no-dce-floor-regression
   (doseq [{:keys [names cap absent]} cases]

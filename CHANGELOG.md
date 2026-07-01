@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix a sorted set to compare equal by elements to a hash set or another sorted set, and give it a `count`
 - Fix `min` and `max` to propagate `NaN` like CLJS, correcting a regression in 0.14.199 where the 2-arg comparison dropped it. Also stop inlining the 2-arg call, since CLJS does not inline `min`/`max`
 
 ## 0.14.199

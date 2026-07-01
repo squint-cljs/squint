@@ -3136,7 +3136,13 @@ new Foo();")
   (is (eq [-10000 -1000 1 100] (jsv! '(vec (conj (disj (sorted-set 1 -10 100 -1000) -10) -10000 -10000)))))
   (testing "sorted-set-by with a custom comparator, preserved through conj and disj"
     (is (eq [5 4 3 2 1] (jsv! '(vec (sorted-set-by > 1 3 2 5 4)))))
-    (is (eq [5 4 1] (jsv! '(vec (conj (disj (sorted-set-by > 5 3 1) 3) 4)))))))
+    (is (eq [5 4 1] (jsv! '(vec (conj (disj (sorted-set-by > 5 3 1) 3) 4))))))
+  (testing "has a size and compares by elements across set types"
+    (is (= 3 (jsv! '(count (sorted-set 3 1 2)))))
+    (is (= true (jsv! '(= #{1 2 3} (sorted-set 3 1 2)))))
+    (is (= true (jsv! '(= (sorted-set 3 1 2) #{1 2 3}))))
+    (is (= true (jsv! '(= (sorted-set-by > 1 2) (sorted-set-by < 1 2)))))
+    (is (= false (jsv! '(= #{1 2} (sorted-set 1 2 3)))))))
 
 (deftest sorted-map-test
   (testing "keeps keys sorted"

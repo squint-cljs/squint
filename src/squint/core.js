@@ -23,6 +23,9 @@ function findKey(iter, tar, key) {
 function isSortedMap(m) {
   return m != null && m[SORTED_TAG] === true && m[TYPE_TAG] === MAP_TYPE;
 }
+function isSetLike(s) {
+  return s != null && (s instanceof Set || s[TYPE_TAG] === SET_TYPE);
+}
 function isMapLike(m) {
   return (
     m != null &&
@@ -62,6 +65,19 @@ function dequal(foo, bar) {
     return true;
   }
 
+  // Sets (hash or sorted) compare by elements, across concrete types.
+  if (isSetLike(foo) || isSetLike(bar)) {
+    if (!isSetLike(foo) || !isSetLike(bar) || foo.size !== bar.size) return false;
+    for (let e of foo) {
+      if (e && typeof e === 'object') {
+        e = findKey(bar, e);
+        if (!e) return false;
+      }
+      if (!bar.has(e)) return false;
+    }
+    return true;
+  }
+
   if (foo && bar && (ctor = foo.constructor) === bar.constructor) {
     if (ctor === Date) return foo.getTime() === bar.getTime();
 
@@ -70,21 +86,6 @@ function dequal(foo, bar) {
         while (len-- && dequal(foo[len], bar[len]));
       }
       return len === -1;
-    }
-
-    if (ctor === Set) {
-      if (foo.size !== bar.size) {
-        return false;
-      }
-      for (const elt of foo) {
-        tmp = elt;
-        if (tmp && typeof tmp === 'object') {
-          tmp = findKey(bar, tmp);
-          if (!tmp) return false;
-        }
-        if (!bar.has(tmp)) return false;
-      }
-      return true;
     }
 
     if (ctor === Map) {
@@ -3202,6 +3203,7 @@ class SortedSet {
     // we don't re-use xs since xs can contain duplicates
     this._elts = [...s];
     this._set = s;
+    this.size = this._elts.length;
   }
   add(x) {
     if (this._set.has(x)) return this;
