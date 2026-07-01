@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Fix `min` and `max` to propagate `NaN` like CLJS, correcting a regression in 0.14.199 where the 2-arg comparison dropped it. Also stop inlining the 2-arg call, since CLJS does not inline `min`/`max`
+
 ## 0.14.199
 
 - Fix [#886](https://github.com/squint-cljs/squint/issues/886): let a var shadow a same-named core macro. `:refer-clojure :exclude` now suppresses the core macro, and `declare` registers a forward reference so a core-macro-named var such as `exists?` resolves to the var
