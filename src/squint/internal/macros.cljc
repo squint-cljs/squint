@@ -490,8 +490,15 @@
      ret#))
 
 (defn core-declare
-  "No-op for now"
-  [_ _ _expr])
+  "Registers the declared names so forward references resolve to the vars
+  (and core-macro-named vars like exists? are not treated as core macros)."
+  [_ &env & names]
+  (swap! (:ns-state &env)
+         (fn [state]
+           (reduce (fn [st n] (assoc-in st [(:current st) n] {}))
+                   state
+                   names)))
+  nil)
 
 (defn core-letfn
   "fnspec ==> (fname [params*] exprs) or (fname ([params*] exprs)+)

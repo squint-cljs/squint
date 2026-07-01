@@ -240,8 +240,8 @@
                      ns-state @(:ns-state env)
                      current (:current ns-state)
                      current-ns (get ns-state current)
-                     ;; TODO: also check :excluded but right now it's not populated
-                     excluded? (contains? current-ns head*)
+                     excluded? (or (contains? current-ns head*)
+                                   (contains? (:excludes current-ns) head*))
                      head (let [s (strip-core-symbol head*)
                                 ns* (namespace head*)]
                             (if (and (= s head*) ns*

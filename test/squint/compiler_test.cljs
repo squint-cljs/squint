@@ -3664,6 +3664,15 @@ new Foo();")
     (is (eq false (jsv! '(realized? (with-meta (lazy-seq [1 2 3]) {:x 1})))))
     (is (eq [1 2 3] (jsv! '(vec (with-meta (lazy-seq [1 2 3]) {:x 1})))))))
 
+(deftest shadow-core-macro-test
+  ;; https://github.com/squint-cljs/squint/issues/886
+  (testing ":refer-clojure :exclude lets a var shadow a same-named core macro"
+    (is (= 42 (jsv! "(ns t (:refer-clojure :exclude [exists?])) (defn exists? [_] 42) (exists? 1)")))
+    (testing "even when the var is forward-referenced"
+      (is (= 42 (jsv! "(ns t1 (:refer-clojure :exclude [exists?])) (defn use-it [] (exists? 1)) (defn exists? [_] 42) (use-it)")))))
+  (testing "declare registers a forward reference so a core-macro-named var is not the macro"
+    (is (= 42 (jsv! "(ns t2) (declare exists?) (defn use-it [] (exists? 1)) (defn exists? [_] 42) (use-it)")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test
