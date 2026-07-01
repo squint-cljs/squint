@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+## 0.14.199
+
 - Fix [#886](https://github.com/squint-cljs/squint/issues/886): let a var shadow a same-named core macro. `:refer-clojure :exclude` now suppresses the core macro, and `declare` registers a forward reference so a core-macro-named var such as `exists?` resolves to the var
 - Fix `min` and `max` to compare with `<`/`>` and return one of the values, so `nil` acts like zero and `NaN` propagates, like CLJS, instead of `Math.min`/`Math.max` coercing `nil` to `0`
 - Inline the 2-arg `min`/`max` call with simple operands to a comparison, like CLJS
