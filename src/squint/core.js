@@ -2598,17 +2598,17 @@ export function reduce_kv(f, init, m) {
   return ret;
 }
 
+// CLJS reduce of (cond (NaN? x) x (NaN? y) y (> x y) x :else y): returns one of
+// the values, so nil acts like zero, and a NaN propagates. NaN? is js/isNaN.
 export function max(x, ...more) {
-  // (if (> a b) a b) reduce, like CLJS: returns one of the values, so nil acts
-  // like zero and NaN propagates, instead of Math.max coercing nil to 0.
   let m = x;
-  for (const y of more) m = m > y ? m : y;
+  for (const y of more) m = isNaN(m) ? m : isNaN(y) ? y : m > y ? m : y;
   return m;
 }
 
 export function min(x, ...more) {
   let m = x;
-  for (const y of more) m = m < y ? m : y;
+  for (const y of more) m = isNaN(m) ? m : isNaN(y) ? y : m < y ? m : y;
   return m;
 }
 

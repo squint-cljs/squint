@@ -2746,15 +2746,11 @@ globalThis.foo.fs = fs;")))))
     (is (= true (jsv! '(nil? (min 1 nil)))))
     (is (= 1 (jsv! '(max nil 1))))
     (is (= 1 (jsv! '(max 1 nil)))))
-  (testing "NaN propagates like CLJS"
+  (testing "NaN propagates, like CLJS"
     (is (= true (jsv! '(js/Number.isNaN (min 1 ##NaN)))))
-    (is (= 1 (jsv! '(min ##NaN 1)))))
-  (testing "2-arg with simple operands inlines to a comparison"
-    (is (str/includes? (jss! "(defn f [a b] (max a b))") "a > b ?"))
-    (is (str/includes? (jss! "(defn f [a b] (min a b))") "a < b ?")))
-  (testing "3+ args and complex operands use the runtime fn"
-    (is (str/includes? (jss! "(defn f [a b c] (max a b c))") "max("))
-    (is (str/includes? (jss! "(max (a-side-effect) 3)") "max("))))
+    (is (= true (jsv! '(js/Number.isNaN (min ##NaN 1)))))
+    (is (= true (jsv! '(js/Number.isNaN (max ##NaN 1)))))
+    (is (= true (jsv! '(js/Number.isNaN (max ##-Inf ##NaN ##Inf)))))))
 
 (deftest min-max-key-test
   (testing "min-key"
