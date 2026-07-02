@@ -36,7 +36,7 @@ changing `next`'s public result type.
 
 Smaller non-breaking subset: an `apply` array fast-path - index the fixed args +
 a single `slice(maxfa)` for the rest, keep `first`/`next` only for lazy seqs. See
-doc/adr/0001 for the variadic/multi-arity codegen + lazy apply this builds on.
+doc/ai/adr/0001 for the variadic/multi-arity codegen + lazy apply this builds on.
 
 ## Emit direct fixed-arity calls instead of the spread facade
 
@@ -49,5 +49,5 @@ the facade is pure overhead (allocation + dispatch).
 
 Idea: at a fixed-arity call site, target the specific arity directly. The
 runtime conj! 2-arg fast-path patch handles one fn; this is the general
-compiler-level fix across all variadic/multi-arity calls. See doc/adr/0001 for
+compiler-level fix across all variadic/multi-arity calls. See doc/ai/adr/0001 for
 the variadic/multi-arity codegen this builds on.
