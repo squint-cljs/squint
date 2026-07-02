@@ -475,7 +475,18 @@
     (let [ns-state @(:ns-state env)
           current (:current ns-state)
           current-ns (get ns-state current)
-          aliases (:aliases current-ns)]
+          aliases (:aliases current-ns)
+          ;; a dotted class ref like cljs.core.UUID resolves to the core
+          ;; module member, like in CLJS
+          expr (if (and (simple-symbol? expr)
+                        (or (str/starts-with? (str expr) "cljs.core.")
+                            (str/starts-with? (str expr) "clojure.core.")))
+                 (let [s (str expr)
+                       suffix (if (str/starts-with? s "cljs.core.")
+                                (subs s 10)
+                                (subs s 13))]
+                   (symbol "cljs.core" suffix))
+                 expr)]
       (if (and (simple-symbol? expr)
                (not (contains? aliases expr))
                (str/includes? (str expr) "."))

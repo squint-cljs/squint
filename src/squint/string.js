@@ -162,6 +162,10 @@ export function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
+export function reverse(s) {
+  return [...s].reverse().join('');
+}
+
 export function includes_QMARK_(s, substr) {
   return s.indexOf(substr) != -1;
 }

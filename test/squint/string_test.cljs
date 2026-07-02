@@ -92,3 +92,11 @@
   (do (ns foo (:require [squint.string :as str]
                         [cljs.test :refer [is]]))
       (is (str/includes? "foo" "o"))))
+
+(deftest-eval reverse-test
+  (do (ns foo (:require [squint.string :as str]
+                        [cljs.test :refer [is]]))
+      (is (= ["" "cba" "a֎"]
+             [(str/reverse "")
+              (str/reverse "abc")
+              (str/reverse "֎a")]))))
