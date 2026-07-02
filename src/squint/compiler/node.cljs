@@ -49,6 +49,99 @@
         (and (str/ends-with? path ".cljc")
              (str/includes? (slurp path) "defmacro"))))))
 
+;;;; Squint compile-time extraction (opt-in, additive to the loading above)
+;;
+;; A namespace flagged `(ns foo {:squint/compile-time true} ...)` has its
+;; compile-time part loaded into SCI as ns `foo`: every top-level defmacro plus
+;; forms marked `^:squint/compile-time`. The rest of the (possibly SCI-hostile)
+;; runtime namespace is never evaluated. Works the same for a .cljc or a .cljs
+;; runtime file. Non-flagged namespaces are untouched and keep the exact
+;; require-based behavior above.
+;;
+;; An emitted ref (put into the expansion) resolves at the consumer's runtime;
+;; the ns's require aliases are carried as :as-alias so an aliased emitted ref
+;; like `str/join` qualifies without loading the ns in SCI. A ref called at
+;; expansion time must be loadable in SCI: a built-in (clojure.string) or a
+;; same-ns marked helper works.
+
+(defn- lib-name [libspec]
+  (if (symbol? libspec) libspec (first libspec)))
+
+(defn- ns-flag
+  "The {:squint/compile-time ...} flag value of an ns form, read from the ns
+  name's metadata or the attr-map."
+  [ns-form]
+  (or (:squint/compile-time (meta (second ns-form)))
+      (some (fn [x] (and (map? x) (:squint/compile-time x))) (nnext ns-form))))
+
+(defn- lib-flag
+  "The compile-time flag value of a required lib's ns form, or nil."
+  [libspec]
+  (let [libname (lib-name libspec)]
+    (when (symbol? libname)
+      (when-let [path (utils/resolve-file libname)]
+        (let [ns-form (e/parse-next (e/reader (slurp path)) compiler/squint-parse-opts)]
+          (when (and (seq? ns-form) (= 'ns (first ns-form)))
+            (ns-flag ns-form)))))))
+
+(defn- ns-clause [ns-form kw]
+  (some (fn [c] (when (and (seq? c) (= kw (first c))) c)) (nnext ns-form)))
+
+(defn- as-alias-clause
+  "The ns's symbol `:require` aliases as `(:require [lib :as-alias a] ...)`, so an
+  aliased emitted ref (`str/join`) resolves when SCI reads the extracted source,
+  without loading the (possibly runtime-only) namespace."
+  [ns-form]
+  (let [aliases (some->> (ns-clause ns-form :require) rest
+                         (keep (fn [spec]
+                                 (when (vector? spec)
+                                   (let [[lib & {:keys [as]}] spec]
+                                     (when (and as (symbol? lib)) [lib :as-alias as])))))
+                         seq)]
+    (when aliases (cons :require aliases))))
+
+(defn- extraction-source
+  "Override source for a flagged .cljc/.cljs: `(ns foo <refer-clojure> <aliases>)`
+  plus the compile-time forms - every top-level defmacro and every
+  ^:squint/compile-time-marked form - as their verbatim source text (edamame
+  source logging), so SCI's own reader resolves syntax-quote (special forms stay,
+  core qualifies to clojure.core, bare same-ns refs qualify to this ns). Runtime
+  forms are dropped."
+  [src]
+  (let [rdr (e/source-reader src)
+        pairs (loop [acc []]
+                (let [[form form-src] (e/parse-next+string rdr compiler/squint-parse-opts)]
+                  (if (= ::e/eof form)
+                    acc
+                    (recur (conj acc [form form-src])))))
+        forms (map first pairs)
+        ns-form (some (fn [f] (when (and (seq? f) (= 'ns (first f))) f)) forms)
+        compile-time-text (keep (fn [[form form-src]]
+                                  (when (or (:squint/compile-time (meta form))
+                                            (and (seq? form) (= 'defmacro (first form))))
+                                    form-src))
+                                pairs)]
+    (str/join "\n"
+              (list* (pr-str (concat (list 'ns (second ns-form))
+                                     (when-let [rc (ns-clause ns-form :refer-clojure)] (list rc))
+                                     (when-let [al (as-alias-clause ns-form)] (list al))))
+                     compile-time-text))))
+
+(defn- source-flag
+  "The compile-time flag value of a source string's ns form, or nil."
+  [src]
+  (let [ns-form (e/parse-next (e/reader src) compiler/squint-parse-opts)]
+    (when (and (seq? ns-form) (= 'ns (first ns-form)))
+      (ns-flag ns-form))))
+
+(defn compile-time-source
+  "The compile-time source a flagged ns loads into SCI: the extracted
+  compile-time forms. nil when not flagged."
+  [src]
+  (case (source-flag src)
+    true (extraction-source src)
+    nil))
+
 (defn scan-macros [s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
     (when (and (seq? maybe-ns)
@@ -59,14 +152,17 @@
                                                        (= :require-macros (first clause)))
                                               [(rest clause) reload]))
                                           (partition-all 2 1 clauses))
-            ;; also scan :require clauses for .cljc files that may contain macros
-            require-cljc (some->> clauses
+            require-libs (some->> clauses
                                   (some (fn [clause]
                                           (when (and (seq? clause)
                                                      (= :require (first clause)))
-                                            (rest clause))))
-                                  (filter cljc-with-macros?))
-            all-macro-requires (concat require-macros require-cljc)]
+                                            (rest clause)))))
+            ;; flagged {:squint/compile-time ...} libs -> the SCI load-fn serves
+            ;; their compile-time source; other .cljc-with-defmacro libs ->
+            ;; whole-ns (legacy)
+            flagged (filter lib-flag require-libs)
+            require-cljc (->> require-libs (remove lib-flag) (filter cljc-with-macros?))
+            all-macro-requires (concat require-macros require-cljc flagged)]
         (when (seq all-macro-requires)
           (.then (esm/dynamic-import "./compiler.sci.js")
                  (fn [_]

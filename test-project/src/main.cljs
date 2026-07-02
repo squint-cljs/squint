@@ -2,6 +2,8 @@
   (:require [macros :as m :refer [debug with-add-100]]
             [macros2 :refer [also with-add-200]]
             [macros-transitive :refer [wrapper format-it]]
+            [compile-time :as ct :refer [shout doubled]]
+            [compile-time-cljs :as ctcljs]
             [other-ns]
             [my-other-src :as src]
             [greetlib.core :as greet]
@@ -36,3 +38,12 @@
 (wrapper 42)
 (println "transitive-rt:" (format-it 42))
 (println (greet/greeting "deps"))
+
+(println "ct-shout:" (ct/shout "hi"))
+(println "ct-shout-refer:" (shout "ho"))
+(println "ct-formatted:" (ct/formatted 5))
+(println "ct-doubled:" (doubled 21))
+(println "ct-const-upper:" (ct/const-upper "hi"))
+(println "ct-const-slug:" (ct/const-slug "Hello World"))
+(println "ct-cljs-yell:" (ctcljs/yell "hey"))
+(println "ct-cljs-runtime:" (ctcljs/runtime-fn 41))

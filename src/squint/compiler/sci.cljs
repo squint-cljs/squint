@@ -53,7 +53,8 @@
                                    {})
                                  (when-let [f (resolve-file namespace)]
                                    (let [fstr (slurp f)]
-                                     {:source fstr}))))
+                                     ;; flagged ns -> its compile-time part only
+                                     {:source (or (cn/compile-time-source fstr) fstr)}))))
                     :namespaces {'squint.analyzer.api analyzer-api-ns
                                  'cljs.analyzer.api analyzer-api-ns
                                  'cljs.test test-ns
