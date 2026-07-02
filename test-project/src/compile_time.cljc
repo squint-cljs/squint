@@ -15,6 +15,12 @@
 (defmacro doubled [x]
   `(double-it ~x))
 
+;; a defmacro inside #?(:clj ...) loads only when explicitly marked
+#?(:clj
+   ^:squint/compile-time
+   (defmacro tripled [x]
+     `(triple-it ~x)))
+
 ;; compile-time helper: runs during expansion, uses clojure.string at compile time
 ^:squint/compile-time
 (defn slugify [s]
@@ -29,3 +35,4 @@
   (slugify s))
 
 (defn double-it [x] (* 2 x))
+(defn triple-it [x] (* 3 x))
