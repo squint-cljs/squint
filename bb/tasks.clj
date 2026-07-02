@@ -150,6 +150,10 @@
       (assert (str/includes? output "transitive-rt: debug: 42"))
       ;; :deps with :local/root resolves to a source dir added to :paths
       (assert (str/includes? output "greetlib hello deps")))
+    ;; a defmacro is compile-time only: no runtime var, no export, and a :refer
+    ;; of it emits no runtime import (main.mjs above would fail to run otherwise)
+    (assert (zero? (count (re-seq #"with_add_100|debug"
+                                  (slurp "test-project/lib/macros.mjs")))))
     (assert (fs/exists? "test-project/lib/greetlib/core.mjs"))
     (assert (fs/exists? "test-project/lib/foo.json"))
     (assert (fs/exists? "test-project/lib/baz.css"))
