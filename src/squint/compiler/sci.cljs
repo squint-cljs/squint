@@ -62,8 +62,7 @@
                                  'squint.test test-ns}
                     :classes {:allow :all
                               'js js/globalThis}
-                    ;; :squint/compile-time is the compile-only reader feature, analogous to cljs's :clj: present in the macro reader, absent from the target reader.
-                    :features #{:squint :cljs :squint/compile-time}}))
+                    :features #{:squint :cljs}}))
 
 (ctx-store/reset-ctx! ctx)
 

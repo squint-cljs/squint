@@ -1,6 +1,7 @@
 (ns cljs-test-smoke-macros)
 
-#?(:squint/compile-time
+#?(:squint
+   ^:squint/compile-time
    (defmethod cljs.test/assert-expr 'smoke/throws?
      [_menv msg form]
      (let [body (rest form)]

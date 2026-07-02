@@ -32,3 +32,18 @@ loading only its squint compile-time parts using the special
 With the `:squint/compile-time` flag in the namespace's metadata, squint loads only the `defmacro`s and explicitly marked forms into SCI.
 The rest of the file is compiled to JS as usual, with the
 compile-time forms stripped.
+
+Compile-time forms may live inside a `#?(:clj ...)` branch, the place a `.cljc`
+namespace usually keeps them for JVM-hosted ClojureScript. Since the `:clj`
+branch often contains JVM-only code (a macro may read JVM config at expansion
+time), a form there needs the explicit marker:
+
+```clojure
+#?(:clj
+   ^:squint/compile-time
+   (defmacro shout [x]
+     `(str/upper-case ~x)))
+```
+
+Unmarked `#?(:clj ...)` code (JVM interop, registrations, macros with JVM-only
+bodies) is never evaluated by squint.

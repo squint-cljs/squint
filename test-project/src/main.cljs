@@ -2,7 +2,7 @@
   (:require [macros :as m :refer [debug with-add-100]]
             [macros2 :refer [also with-add-200]]
             [macros-transitive :refer [wrapper format-it]]
-            [compile-time :as ct :refer [shout doubled]]
+            [compile-time :as ct :refer [shout doubled tripled]]
             [compile-time-cljs :as ctcljs]
             [other-ns]
             [my-other-src :as src]
@@ -43,6 +43,7 @@
 (println "ct-shout-refer:" (shout "ho"))
 (println "ct-formatted:" (ct/formatted 5))
 (println "ct-doubled:" (doubled 21))
+(println "ct-tripled:" (tripled 14))
 (println "ct-const-upper:" (ct/const-upper "hi"))
 (println "ct-const-slug:" (ct/const-slug "Hello World"))
 (println "ct-cljs-yell:" (ctcljs/yell "hey"))

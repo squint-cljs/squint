@@ -31,13 +31,17 @@
           (pr-str {:paths ["src"] :output-dir "out" :extension "mjs"}))
     (spit (fs/file src "runtime.cljc")
           (str "(ns t.runtime {:squint/compile-time true} (:require [clojure.string :as str]))\n"
-               ;; defmacro needs no marker in a flagged ns
+               ;; a bare defmacro needs no marker; one in a #?(:clj ...) branch
+               ;; loads only when explicitly marked
                "(defmacro twice [x] `(double-it ~x))\n"
-               "(defmacro shout [x] `(str/upper-case ~x))\n"
+               "#?(:clj ^:squint/compile-time (defmacro shout [x] `(str/upper-case ~x)))\n"
+               ;; unmarked :clj code (JVM-only) is never loaded
+               "#?(:clj (defmacro jvm-macro [] (System/getProperty \"x\")))\n"
+               "#?(:clj (defn jvm-only [] (System/getenv \"HOME\")))\n"
                "(throw (js/Error. \"runtime ns evaluated - extraction leaked runtime\"))\n"
                "(defn double-it [x] (* 2 x))"))
     (spit (fs/file src "consumer.cljs")
-          "(ns t.consumer (:require [t.runtime :as rt])) (defn a [] (rt/twice 21)) (defn b [] (rt/shout \"hi\"))")
+          "(ns t.consumer (:require [t.runtime :as rt])) (defn a [] (rt/twice 21)) (defn b [] (rt/shout \"hi\")) (defn c [] (rt/jvm-macro))")
     (let [{:keys [exit out err]} (squint "compile")]
       (is (= 0 exit) (str "compile failed, runtime ns may have been evaluated: " err))
       (is (str/includes? out "Compiled sources: 2"))
@@ -46,6 +50,8 @@
         (is (str/includes? consumer "double_it(21)"))
         (is (str/includes? consumer "upper_case(\"hi\")"))
         (is (not (str/includes? consumer "twice(21)")))
+        ;; the unmarked :clj defmacro is not loaded: the call does not expand
+        (is (str/includes? consumer "jvm_macro()"))
         (is (not (str/includes? runtime "twice")))))))
 
 (defn run-tests [_]

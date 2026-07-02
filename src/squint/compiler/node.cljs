@@ -52,11 +52,15 @@
 ;;;; Squint compile-time extraction (opt-in, additive to the loading above)
 ;;
 ;; A namespace flagged `(ns foo {:squint/compile-time true} ...)` has its
-;; compile-time part loaded into SCI as ns `foo`: every top-level defmacro plus
-;; forms marked `^:squint/compile-time`. The rest of the (possibly SCI-hostile)
-;; runtime namespace is never evaluated. Works the same for a .cljc or a .cljs
-;; runtime file. Non-flagged namespaces are untouched and keep the exact
-;; require-based behavior above.
+;; compile-time part loaded into SCI as ns `foo`: every top-level defmacro
+;; squint's normal reader can see, plus forms marked `^:squint/compile-time` -
+;; including a marked form inside a #?(:clj ...) branch, the author's opt-in for
+;; code the target reader never sees. Unmarked :clj branches are elided, so
+;; JVM-only code (e.g. a macro reading JVM config at expansion time) never
+;; reaches SCI. The rest of the (possibly SCI-hostile) runtime namespace is
+;; never evaluated. Works the same for a .cljc or a .cljs runtime file.
+;; Non-flagged namespaces are untouched and keep the exact require-based
+;; behavior above.
 ;;
 ;; An emitted ref (put into the expansion) resolves at the consumer's runtime;
 ;; the ns's require aliases are carried as :as-alias so an aliased emitted ref
@@ -100,27 +104,65 @@
                          seq)]
     (when aliases (cons :require aliases))))
 
+(def ^:private extract-parse-opts
+  ;; squint's normal branch resolution (:squint/:cljs/:default, form order) plus
+  ;; one extension: a :clj branch explicitly marked ^:squint/compile-time wins.
+  ;; Unmarked :clj branches are elided, so JVM-only code never reaches SCI. The
+  ;; chosen branch's own source span is stashed (the parser re-attaches the outer
+  ;; conditional's location to the result), so extraction slices the inner form,
+  ;; without the #?(...) wrapper - the extracted source contains no :clj
+  ;; conditionals and loads in the normal SCI ctx.
+  (assoc compiler/squint-parse-opts
+         :end-location true
+         :read-cond
+         (fn [branches]
+           (loop [ps (partition 2 branches)]
+             (if (seq ps)
+               (let [[k v] (first ps)]
+                 (if (or (contains? #{:squint :cljs :default} k)
+                         (and (= :clj k) (:squint/compile-time (meta v))))
+                   (if (e/iobj? v)
+                     (vary-meta v (fn [m]
+                                    (assoc m :squint/inner-span
+                                           (select-keys m [:line :column :end-row :end-col]))))
+                     v)
+                   (recur (next ps))))
+               e/continue)))))
+
+(defn- slice
+  "The substring of `lines` from [sl sc] to [el ec], 0-based, ec exclusive."
+  [lines sl sc el ec]
+  (if (= sl el)
+    (subs (nth lines sl) sc ec)
+    (str/join "\n"
+              (concat [(subs (nth lines sl) sc)]
+                      (map #(nth lines %) (range (inc sl) el))
+                      [(subs (nth lines el) 0 ec)]))))
+
+(defn- form-text
+  "A top-level form's verbatim source: its stashed inner span when it came out
+  of a reader conditional, else its own location."
+  [lines form]
+  (let [m (meta form)
+        {:keys [line column end-row end-col]} (or (:squint/inner-span m) m)]
+    (slice lines (dec line) (dec column) (dec end-row) (dec end-col))))
+
 (defn- extraction-source
   "Override source for a flagged .cljc/.cljs: `(ns foo <refer-clojure> <aliases>)`
-  plus the compile-time forms - every top-level defmacro and every
-  ^:squint/compile-time-marked form - as their verbatim source text (edamame
-  source logging), so SCI's own reader resolves syntax-quote (special forms stay,
-  core qualifies to clojure.core, bare same-ns refs qualify to this ns). Runtime
-  forms are dropped."
+  plus the compile-time forms - top-level defmacros and ^:squint/compile-time
+  marked forms - as their verbatim source text, so SCI's own reader resolves
+  syntax-quote (special forms stay, core qualifies to clojure.core, bare same-ns
+  refs qualify to this ns). Runtime forms are dropped."
   [src]
-  (let [rdr (e/source-reader src)
-        pairs (loop [acc []]
-                (let [[form form-src] (e/parse-next+string rdr compiler/squint-parse-opts)]
-                  (if (= ::e/eof form)
-                    acc
-                    (recur (conj acc [form form-src])))))
-        forms (map first pairs)
+  (let [lines (str/split-lines src)
+        forms (e/parse-string-all src extract-parse-opts)
         ns-form (some (fn [f] (when (and (seq? f) (= 'ns (first f))) f)) forms)
-        compile-time-text (keep (fn [[form form-src]]
-                                  (when (or (:squint/compile-time (meta form))
-                                            (and (seq? form) (= 'defmacro (first form))))
-                                    form-src))
-                                pairs)]
+        compile-time-text (keep (fn [f]
+                                  (when (and (seq? f)
+                                             (or (:squint/compile-time (meta f))
+                                                 (= 'defmacro (first f))))
+                                    (form-text lines f)))
+                                forms)]
     (str/join "\n"
               (list* (pr-str (concat (list 'ns (second ns-form))
                                      (when-let [rc (ns-clause ns-form :refer-clojure)] (list rc))
