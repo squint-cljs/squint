@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `assoc!` regression on non-plain objects such as a class instance or a null-prototype object
 - `.indexOf` on a lazy seq now uses reference equality like a JS array, not value equality. This diverges from CLJS but keeps `=` out of any bundle that only builds lazy seqs, shrinking a `conj` bundle from 3801 to 2215 bytes
 - Add `:squint/compile-time` opt-in mechanism for macro/compile-time namespaces. See [doc/compile-time.md](doc/compile-time.md).
 - Fix: a macro used in the namespace that defines it (self `:require-macros`) now expands: the macro's own def no longer shadows the macro lookup or triggers an alias-collision rename

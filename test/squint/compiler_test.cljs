@@ -1217,11 +1217,14 @@ with `backticks`")))]
                      (assoc! x 3 4 5 6)
                      x)))))
   (testing "other types"
-    (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))
-    ;; non-vanilla objects are not collections; use aset/aget for raw properties
+    (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2)))))
+  (testing "a non-plain object is associative"
     (is (eq 1 (jsv! '(let [o (js/eval "class Foo { }; new Foo()")]
-                       (aset o :foo 1)
-                       (aget o :foo)))))))
+                       (assoc! o :foo 1)
+                       (get o :foo)))))
+    (is (eq 1 (jsv! '(let [o (js/Object.create nil)]
+                       (assoc! o :foo 1)
+                       (get o :foo)))))))
 
 (deftest assoc-in-test
   (testing "happy path"
