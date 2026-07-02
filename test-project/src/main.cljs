@@ -5,6 +5,7 @@
             [compile-time :as ct :refer [shout doubled tripled]]
             [compile-time-cljs :as ctcljs]
             [other-ns]
+            [macros-self :as ms]
             [my-other-src :as src]
             [greetlib.core :as greet]
             ["fs" :as fs]
@@ -48,3 +49,4 @@
 (println "ct-const-slug:" (ct/const-slug "Hello World"))
 (println "ct-cljs-yell:" (ctcljs/yell "hey"))
 (println "ct-cljs-runtime:" (ctcljs/runtime-fn 41))
+(println "self-require-macros:" ms/self-val (ms/twice-m 4))

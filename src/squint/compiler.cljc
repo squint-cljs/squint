@@ -240,7 +240,10 @@
                      ns-state @(:ns-state env)
                      current (:current ns-state)
                      current-ns (get ns-state current)
-                     excluded? (or (contains? current-ns head*)
+                     ;; a same-ns VAR shadows a macro (issue #886), but a same-ns
+                     ;; defmacro is no runtime var and must not shadow itself
+                     excluded? (or (and (contains? current-ns head*)
+                                        (not (:macro (get current-ns head*))))
                                    (contains? (:excludes current-ns) head*))
                      head (let [s (strip-core-symbol head*)
                                 ns* (namespace head*)]

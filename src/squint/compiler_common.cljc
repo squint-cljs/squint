@@ -810,8 +810,11 @@
     ;; Rename the var to a fresh gensym (a bare reference resolves to the var;
     ;; `<alias>/x` keeps using the alias) and record real->renamed so references
     ;; and the export follow. A plain gensym (G__N) is collision-proof: the
-    ;; counter is global and the G__ prefix is reserved.
+    ;; counter is global and the G__ prefix is reserved. A macro emits no JS
+    ;; binding, so it never collides: renaming it would poison bare references
+    ;; to a self-refer'd macro name.
     (when (and (not (:repl env))
+               (not (:macro (meta name)))
                (or (contains? (get-in st [current :aliases]) (symbol munged))
                    (contains? (get-in st [current :refers]) name)))
       (let [renamed (str ((:gensym env)))]
