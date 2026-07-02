@@ -400,6 +400,7 @@
                       :core-package "squint-cljs/core.js"
                       :top-level true
                       :core-vars core-vars
+                      :core-macros (set (keys built-in-macros))
                       :gensym (let [ctr (volatile! 0)]
                                 (fn gensym*
                                   ([] (gensym* nil))

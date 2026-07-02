@@ -24,18 +24,51 @@
 (defn analyzer-resolve
   "Compat shim for cljs.analyzer.api/resolve. Macros use it to probe whether
   a var exists at compile time. Returns a minimal {:name sym} map when sym
-  names a known squint.core var or a var defined in the current namespace,
-  else nil."
+  names a known squint.core var, a var defined in the current namespace, a
+  built-in macro or a user macro, else nil. Macros get :macro true. A name
+  that is both a core var and a built-in (inline) macro counts as a var,
+  like in CLJS. A name in :refer-clojure :exclude resolves to core neither
+  as var nor as macro. A local binding shadows all of these and gets
+  :local true, where CLJS reports the binding kind (:let, :arg). :name is
+  qualified like in CLJS: cljs.core for core, the current namespace for
+  user vars, bare for locals."
   [env sym]
   (let [nm (name sym)
+        nm-sym (symbol nm)
         munged (str (munge nm))
         ns-state (some-> (:ns-state env) deref)
         current (:current ns-state)
-        user-vars (get-in ns-state [current :vars])]
-    (when (or (contains? (:core-vars env) (symbol munged))
-              (contains? user-vars munged)
-              (contains? user-vars (symbol munged)))
-      {:name (symbol nm)})))
+        user-vars (get-in ns-state [current :vars])
+        excluded? (contains? (get-in ns-state [current :excludes]) nm-sym)
+        user-macro-ns (if-let [ns* (namespace sym)]
+                        (let [ns-sym (symbol ns*)]
+                          (or (when (get-in ns-state [:macros ns-sym nm-sym]) ns-sym)
+                              (let [aliased (get-in ns-state [current :aliases ns-sym])]
+                                (when (and (symbol? aliased)
+                                           (get-in ns-state [:macros aliased nm-sym]))
+                                  aliased))))
+                        (when-let [refer-ns (get-in ns-state [current :refers nm-sym])]
+                          (when (get-in ns-state [:macros refer-ns nm-sym])
+                            refer-ns)))]
+    (cond
+      (and (nil? (namespace sym))
+           (contains? (:var->ident env) nm-sym))
+      {:name nm-sym :local true}
+
+      (or (contains? user-vars munged)
+          (contains? user-vars (symbol munged)))
+      {:name (symbol (str (or current "user")) nm)}
+
+      (and (not excluded?)
+           (contains? (:core-vars env) (symbol munged)))
+      {:name (symbol "cljs.core" nm)}
+
+      (and (not excluded?)
+           (contains? (:core-macros env) nm-sym))
+      {:name (symbol "cljs.core" nm) :macro true}
+
+      user-macro-ns
+      {:name (symbol (str user-macro-ns) nm) :macro true})))
 
 (def analyzer-api-ns
   {'resolve analyzer-resolve})
