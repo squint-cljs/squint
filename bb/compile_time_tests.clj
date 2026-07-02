@@ -54,6 +54,65 @@
         (is (str/includes? consumer "jvm_macro()"))
         (is (not (str/includes? runtime "twice")))))))
 
+(deftest analyzer-resolve-test
+  ;; cljs.analyzer.api/resolve sees core vars, built-in macros and user
+  ;; macros, with :macro true on macros. A name that is both a core var and
+  ;; an inline macro (assoc) counts as a var, like in CLJS. Asserted on the
+  ;; evaluated program, not on compiled text.
+  (let [src (fs/file test-dir "src" "t")]
+    (fs/create-dirs src)
+    (spit (fs/file test-dir "squint.edn")
+          (pr-str {:paths ["src"] :output-dir "out" :extension "mjs"}))
+    (spit (fs/file src "macros.cljc")
+          (str "(ns t.macros {:squint/compile-time true})\n"
+               "(defmacro probe [sym] (pr-str ((resolve 'cljs.analyzer.api/resolve) &env sym)))\n"
+               "(defmacro my-macro [x] x)"))
+    (spit (fs/file src "consumer.cljs")
+          (str "(ns t.consumer (:require-macros [t.macros :as m :refer [probe my-macro]]))\n"
+               "(println (probe and))\n"
+               "(println (probe bit-and))\n"
+               "(println (probe when-let))\n"
+               "(println (probe assoc))\n"
+               "(println (probe inc))\n"
+               "(println (probe my-macro))\n"
+               "(println (probe m/my-macro))\n"
+               "(println (probe t.macros/my-macro))\n"
+               "(println (probe m/no-such-macro))\n"
+               "(println (probe no-such-thing))\n"
+               "(let [some-local 1 inc (fn [x] x)]\n"
+               "  (println (probe some-local))\n"
+               "  (println (probe inc)))\n"
+               "(defn g [param] (println (probe param)) param)\n"
+               "(g 1)"))
+    (spit (fs/file src "excludes.cljs")
+          (str "(ns t.excludes\n"
+               "  (:refer-clojure :exclude [and juxt])\n"
+               "  (:require-macros [t.macros :refer [probe]]))\n"
+               "(println (probe and))\n"
+               "(println (probe juxt))\n"
+               "(def and 1)\n"
+               "(println (probe and))"))
+    (let [{:keys [exit err]} (squint "compile")]
+      (is (= 0 exit) err)
+      (is (= ["{:name cljs.core/and, :macro true}"
+              "{:name cljs.core/bit-and, :macro true}"
+              "{:name cljs.core/when-let, :macro true}"
+              "{:name cljs.core/assoc}"
+              "{:name cljs.core/inc}"
+              "{:name t.macros/my-macro, :macro true}"
+              "{:name t.macros/my-macro, :macro true}"
+              "{:name t.macros/my-macro, :macro true}"
+              "nil"
+              "nil"
+              "{:name some-local, :local true}"
+              "{:name inc, :local true}"
+              "{:name param, :local true}"]
+             (str/split-lines
+              (:out (p/shell {:dir test-dir :out :string} "node" "out/t/consumer.mjs")))))
+      (is (= ["nil" "nil" "{:name t.excludes/and}"]
+             (str/split-lines
+              (:out (p/shell {:dir test-dir :out :string} "node" "out/t/excludes.mjs"))))))))
+
 (defn run-tests [_]
   (let [{:keys [fail error]} (t/run-tests 'compile-time-tests)]
     (when (pos? (+ fail error))

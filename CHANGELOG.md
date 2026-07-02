@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- `cljs.analyzer.api/resolve` at compile time now sees built-in macros such as `and`, `when-let` and `bit-and`, and user macros, returning `:macro true` for them, like CLJS. A name in `:refer-clojure :exclude` no longer resolves to core. A local binding shadows all of these and resolves with `:local true`
+
 ## 0.14.200
 
 - Fix `assoc!` regression on non-plain objects such as a class instance or a null-prototype object
