@@ -162,7 +162,11 @@
       (assert (str/includes? output "ct-const-upper: HI"))
       (assert (str/includes? output "ct-const-slug: hello-world"))
       (assert (str/includes? output "ct-cljs-yell: HEY"))
-      (assert (str/includes? output "ct-cljs-runtime: 42")))
+      (assert (str/includes? output "ct-cljs-runtime: 42"))
+      ;; a macro used in the ns that defines it (self :require-macros) expands:
+      ;; the macro's own def must not shadow the lookup or trigger a rename
+      (assert (str/includes? output "self-require-macros: 42 8")))
+    (assert (not (str/includes? (slurp "test-project/lib/macros_self.mjs") "G__")))
     ;; a defmacro is compile-time only: no runtime var, no export, and a :refer
     ;; of it emits no runtime import (main.mjs above would fail to run otherwise)
     (assert (zero? (count (re-seq #"with_add_100|debug"
