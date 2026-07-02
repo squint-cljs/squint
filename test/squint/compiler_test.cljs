@@ -3390,14 +3390,59 @@ new Foo();")
      (p/finally done))))
 
 (deftest range-test
-  (is (eq [0 1 2 3 4] (jsv! '(doall (range 5)))))
-  (is (eq [5 6 7 8 9] (jsv! '(doall (range 5 10)))))
-  (is (eq [0 2 4 6 8] (jsv! '(doall (range 0 10 2)))))
-  (is (eq [4 3 2 1 0] (jsv! '(doall (range 4 -1 -1)))))
-  (is (eq [5 5 5 5 5] (jsv! '(doall (take 5 (range 5 6 0)))))))
+  (is (eq [0 1 2 3 4] (jsv! '(vec (range 5)))))
+  (is (eq [5 6 7 8 9] (jsv! '(vec (range 5 10)))))
+  (is (eq [0 2 4 6 8] (jsv! '(vec (range 0 10 2)))))
+  (is (eq [4 3 2 1 0] (jsv! '(vec (range 4 -1 -1)))))
+  (is (eq [5 5 5 5 5] (jsv! '(vec (take 5 (range 5 6 0))))))
+  (testing "doall returns the realized seq itself"
+    (is (eq [0 1 2] (jsv! '(vec (doall (range 3))))))
+    (is (= true (jsv! '(realized? (doall (lazy-seq (cons 1 nil)))))))))
 
 (deftest throw-test
   (is (eq 2 (jsv! '(let [v (cond (true? (= 1 2)) (throw (ex-info "O no" {})) :else 2)] v)))))
+
+(deftest hash-set-test
+  (is (eq (js/Set. #js [1 2 3]) (jsv! '(hash-set 1 2 3))))
+  (is (eq (js/Set.) (jsv! '(hash-set)))))
+
+(deftest sorted?-test
+  (is (true? (jsv! '(sorted? (sorted-set 1 2)))))
+  (is (true? (jsv! '(sorted? (sorted-map :a 1)))))
+  (is (false? (jsv! '(sorted? #{1 2}))))
+  (is (false? (jsv! '(sorted? {:a 1}))))
+  (is (false? (jsv! '(sorted? nil)))))
+
+(deftest char?-test
+  (is (true? (jsv! '(char? "a"))))
+  (is (false? (jsv! '(char? "ab"))))
+  (is (false? (jsv! '(char? 1))))
+  (is (false? (jsv! '(char? nil)))))
+
+(deftest typed-array-test
+  (is (eq #js [1 2 3] (jsv! '(int-array [1 2 3]))))
+  (is (eq #js [0 0 0] (jsv! '(int-array 3 0))))
+  (is (eq #js [1 2] (jsv! '(int-array 2 [1 2 3]))))
+  (is (eq #js [1 2 3] (jsv! '(object-array [1 2 3]))))
+  (is (eq #js [1 2 3] (jsv! '(long-array [1 2 3]))))
+  (is (eq #js [1.5 2.5] (jsv! '(double-array [1.5 2.5]))))
+  (is (eq #js [1.5 2.5] (jsv! '(float-array [1.5 2.5])))))
+
+(deftest rseq-test
+  (is (eq #js [3 2 1] (jsv! '(rseq [1 2 3]))))
+  (is (nil? (jsv! '(rseq []))))
+  (is (= true (jsv! '(= [[:c 2] [:b 1] [:a 0]] (rseq (sorted-map :a 0 :b 1 :c 2))))))
+  (is (thrown? js/Error (jsv! '(rseq nil))))
+  (is (thrown? js/Error (jsv! '(rseq {:a :b})))))
+
+(deftest force-test
+  (is (eq 1 (jsv! '(force (delay 1)))))
+  (is (eq 1 (jsv! '(force 1))))
+  (is (= true (jsv! '(let [d (delay 1)] (force d) (realized? d))))))
+
+(deftest dotted-core-class-ref-test
+  (is (true? (jsv! '(instance? cljs.core.UUID (random-uuid)))))
+  (is (true? (jsv! '(instance? clojure.core.UUID (random-uuid))))))
 
 (deftest run!-test
   (is (eq [1 2 3] (jsv! '(let [x (atom [])] (run! #(swap! x conj %) [1 2 3]) @x)))))
@@ -3428,7 +3473,15 @@ new Foo();")
 (deftest random-uuid-test
   (let [s (jss! '(random-uuid))]
     (is (re-find #"[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}"
-                 (js/eval s)))))
+                 (str (js/eval s)))))
+  (testing "returns a UUID instance"
+    (is (true? (jsv! '(uuid? (random-uuid)))))))
+
+(deftest parse-uuid-test
+  (is (true? (jsv! "(uuid? (parse-uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\"))")))
+  (is (true? (jsv! "(= #uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\" (parse-uuid \"F81D4FAE-7DEC-11D0-A765-00A0C91E6BF6\"))")))
+  (is (nil? (jsv! "(parse-uuid \"nope\")")))
+  (is (thrown? js/Error (jsv! "(parse-uuid 1)"))))
 
 (deftest uuid-literal-test
   (is (true? (jsv! "(uuid? #uuid \"f81d4fae-7dec-11d0-a765-00a0c91e6bf6\")")))

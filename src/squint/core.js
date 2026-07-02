@@ -1529,6 +1529,18 @@ export function set_QMARK_(x) {
   return typeConst(x) === SET_TYPE;
 }
 
+export function hash_set(...xs) {
+  return new Set(xs);
+}
+
+export function sorted_QMARK_(x) {
+  return x != null && x[SORTED_TAG] === true;
+}
+
+export function char_QMARK_(x) {
+  return typeof x === 'string' && x.length === 1;
+}
+
 export function apply(f, ...args) {
   f = __toFn(f);
   const xs = args.slice(0, args.length - 1);
@@ -2295,6 +2307,18 @@ export function reverse(coll) {
   return toArray(coll).reverse();
 }
 
+export function rseq(x) {
+  // vectors and sorted maps/sets are reversible, like CLJS
+  if (isVectorArray(x)) {
+    return x.length === 0 ? null : [...x].reverse();
+  }
+  if (x != null && x[SORTED_TAG] === true) {
+    const xs = [...x].reverse();
+    return xs.length === 0 ? null : xs;
+  }
+  throw new Error('rseq not supported on: ' + typeof x);
+}
+
 export function sort(f, coll) {
   if (arguments.length === 1) {
     coll = f;
@@ -2581,13 +2605,47 @@ export function dorun(x) {
 }
 
 export function doall(x) {
-  // realize as concrete array
-  return vec(x);
+  // realize a lazy seq and return it, like CLJS; anything else is
+  // already concrete
+  if (x != null && x[TYPE_TAG] === LAZY_ITERABLE_TYPE) for (const _ of x);
+  return x;
 }
 
 export function aclone(arr) {
   const cloned = [...arr];
   return cloned;
+}
+
+function typed_array(sizeOrSeq, initValOrSeq) {
+  if (initValOrSeq !== undefined) {
+    const a = new Array(sizeOrSeq);
+    if (typeof initValOrSeq === 'number') return a.fill(initValOrSeq);
+    let i = 0;
+    for (const x of iterable(initValOrSeq)) {
+      if (i >= sizeOrSeq) break;
+      a[i++] = x;
+    }
+    return a;
+  }
+  if (typeof sizeOrSeq === 'number') return new Array(sizeOrSeq).fill(null);
+  return [...iterable(sizeOrSeq)];
+}
+
+// like CLJS: provided for compatibility, all make a plain array
+export function int_array(sizeOrSeq, initValOrSeq) {
+  return typed_array(sizeOrSeq, initValOrSeq);
+}
+export function long_array(sizeOrSeq, initValOrSeq) {
+  return typed_array(sizeOrSeq, initValOrSeq);
+}
+export function float_array(sizeOrSeq, initValOrSeq) {
+  return typed_array(sizeOrSeq, initValOrSeq);
+}
+export function double_array(sizeOrSeq, initValOrSeq) {
+  return typed_array(sizeOrSeq, initValOrSeq);
+}
+export function object_array(sizeOrSeq, initValOrSeq) {
+  return typed_array(sizeOrSeq, initValOrSeq);
 }
 
 export function add_watch(ref, key, fn) {
@@ -3528,7 +3586,7 @@ export function update_vals(m, f) {
 }
 
 export function random_uuid() {
-  return crypto.randomUUID();
+  return new UUID(crypto.randomUUID());
 }
 
 export class UUID {
@@ -3541,11 +3599,21 @@ export class UUID {
 }
 
 export function uuid(s) {
-  return new UUID(s);
+  // lowercased, like CLJS
+  return new UUID(s.toLowerCase());
 }
 
 export function uuid_QMARK_(x) {
   return x instanceof UUID;
+}
+
+const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+export function parse_uuid(s) {
+  if (typeof s !== 'string') {
+    throw new Error('Expected string, got: ' + (s === null ? 'nil' : typeof s));
+  }
+  return UUID_REGEX.test(s) ? uuid(s) : null;
 }
 
 export function inst_QMARK_(x) {
@@ -3572,6 +3640,10 @@ export function realized_QMARK_(x) {
     return x.realized === true;
   }
   throw new Error('realized? not supported on: ' + str(x));
+}
+
+export function force(x) {
+  return x instanceof Delay ? x._deref() : x;
 }
 
 function clj__GT_js_(x, seen) {

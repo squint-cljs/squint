@@ -39,6 +39,7 @@
   bounded_count
   butlast
   cat
+  char_QMARK_
   clj__GT_js
   coll_QMARK_
   comp
@@ -67,6 +68,7 @@
   dorun
   double$
   double_QMARK_
+  double_array
   drop
   drop_last
   drop_while
@@ -89,19 +91,23 @@
   first
   flatten
   float$
+  float_array
   fn_QMARK_
   fnil
+  force
   frequencies
   get
   get_in
   group_by
   hash_map
+  hash_set
   identical_QMARK_
   identity
   ifn_QMARK_
   inc
   inst_QMARK_
   int_QMARK_
+  int_array
   integer_QMARK_
   interleave
   interpose
@@ -124,6 +130,7 @@
   list_QMARK_
   list_STAR_
   long$
+  long_array
   map
   map_QMARK_
   map_entry_QMARK_
@@ -155,9 +162,11 @@
   nth
   number_QMARK_
   object_QMARK_
+  object_array
   odd_QMARK_
   parse_double
   parse_long
+  parse_uuid
   partial
   partition
   partition_all
@@ -202,6 +211,7 @@
   reset_vals_BANG_
   rest
   reverse
+  rseq
   run_BANG_
   satisfies_QMARK_
   second
@@ -219,6 +229,7 @@
   some_fn
   sort
   sort_by
+  sorted_QMARK_
   sorted_map
   sorted_map_by
   sorted_set

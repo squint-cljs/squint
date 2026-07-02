@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+- Add `hash-set`, `sorted?`, `char?`, `rseq`, `parse-uuid`, `force`, `clojure.string/reverse` and the typed array constructors `int-array`, `long-array`, `float-array`, `double-array` and `object-array`
+- Fix `random-uuid` to return a `UUID` instance, so `uuid?` is true for it, like CLJS
+- `uuid` lowercases its argument, like CLJS
+- `doall` returns the realized seq itself instead of a vector, like CLJS
+- A dotted class ref like `cljs.core.UUID` resolves to the core module member, like in CLJS
 - Fix `=` to compare a plain object map and a `js/Map` by entries, so the two map reps are equal when their contents are
 - `derive`, `underive`, `isa?`, `parents`, `ancestors` and `descendants` accept a hierarchy written as a plain map, like `{:parents {} :ancestors {} :descendants {}}`
 - BREAKING: `derive` and `underive` with an explicit hierarchy throw on a malformed one, and the global-hierarchy `derive` requires a namespace-qualified tag and parent, like CLJS
