@@ -1176,6 +1176,18 @@ with `backticks`")))]
             (jsv! '(let [m {:a 1} k :x v 5] (assoc m k v :y 6))))))
   (testing "object-literal spread fast path preserves metadata"
     (is (eq {:x 9} (jsv! '(let [m ^{:x 9} {:a 1}] (meta (assoc m :b 2)))))))
+  (testing "a vector index is validated, like CLJS"
+    (is (eq [9 0] (jsv! '(assoc [9] 1 0))))
+    (is (eq [9 0 5] (jsv! '(assoc [9] 1 0 2 5))))
+    (is (thrown? js/Error (jsv! '(assoc [] 1 0))))
+    (is (thrown? js/Error (jsv! '(assoc [] -1 0))))
+    (is (thrown? js/Error (jsv! '(assoc [] :a 1)))))
+  (testing "a missing value for the last key becomes nil, like CLJS"
+    (is (= true (jsv! '(= {:a nil} (apply assoc {} [:a])))))
+    (is (= true (jsv! '(= {:a 1 :b nil} (apply assoc {} [:a 1 :b]))))))
+  (testing "assoc on false throws, only nil puns to an empty map"
+    (is (eq #js {"a" 1} (jsv! '(assoc nil :a 1))))
+    (is (thrown? js/Error (jsv! '(assoc false :a 1)))))
   (testing "maps"
     (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
             (jsv! '(assoc (js/Map. [[1 2]]) 3 4))))
@@ -1766,7 +1778,11 @@ with `backticks`")))]
     (is (not (.has m "c"))))
   (is (eq #js {} (jsv! '(select-keys nil []))))
   ;; nil-valued keys are kept (present), missing keys dropped
-  (is (eq #js {:a nil :b 2} (jsv! '(select-keys {:a nil :b 2 :c 3} [:a :b :missing])))))
+  (is (eq #js {:a nil :b 2} (jsv! '(select-keys {:a nil :b 2 :c 3} [:a :b :missing]))))
+  (testing "nil ks and a non-map source both give an empty map, like CLJS"
+    (is (eq #js {} (jsv! '(select-keys {:a 1} nil))))
+    (is (eq #js {} (jsv! '(select-keys #{1} []))))
+    (is (eq #js {} (jsv! '(select-keys {} {}))))))
 
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 20))))))
@@ -1956,7 +1972,23 @@ with `backticks`")))]
     (is (= 5 (f 1 1 1)))))
 
 (deftest cycle-test
-  (is (eq (take 10 (cycle [1 2 3])) (vec (jsv! '(take 10 (cycle [1 2 3])))))))
+  (is (eq (take 10 (cycle [1 2 3])) (vec (jsv! '(take 10 (cycle [1 2 3]))))))
+  (testing "nil and empty cycle to an empty seq, like CLJS"
+    (is (eq #js [] (jsv! '(vec (cycle nil)))))
+    (is (eq #js [] (jsv! '(vec (cycle []))))))
+  (testing "a map cycles its entries and a non-iterable throws eagerly"
+    (is (eq [["a" 1] ["a" 1]] (jsv! '(vec (take 2 (cycle {:a 1}))))))
+    (is (thrown? js/Error (jsv! '(cycle 42))))))
+
+(deftest nan?-test
+  (is (true? (jsv! '(NaN? ##NaN))))
+  (testing "coercing, like CLJS js/isNaN"
+    (is (true? (jsv! '(NaN? "foo")))))
+  (is (false? (jsv! '(NaN? 1))))
+  (is (false? (jsv! '(NaN? nil)))))
+
+(deftest get-in-nil-path-test
+  (is (eq #js {"a" 1} (jsv! '(get-in {:a 1} nil)))))
 
 (deftest nth-test
   (is (nil? (jsv! '(nth nil 1))))
@@ -2556,7 +2588,11 @@ globalThis.foo.fs = fs;")))))
   (is (eq nil (jsv! '(dissoc nil "1"))))
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc {"1" 2 "3" 4}))))
   (is (eq #js {"3" 4} (jsv! '(dissoc {"1" 2 "3" 4} "1"))))
-  (is (eq #js {} (jsv! '(dissoc {"1" 2 "3" 4} "1" "3")))))
+  (is (eq #js {} (jsv! '(dissoc {"1" 2 "3" 4} "1" "3"))))
+  (testing "a non-map throws, like CLJS"
+    (is (thrown? js/Error (jsv! '(dissoc [] 0))))
+    (is (thrown? js/Error (jsv! '(dissoc #{"a"} "a"))))
+    (is (thrown? js/Error (jsv! '(dissoc (list 1) 0))))))
 
 (deftest dissoc-identity-test
   (testing "returns the same coll when no removed key is present (cljs parity)"
@@ -2628,7 +2664,19 @@ globalThis.foo.fs = fs;")))))
   (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (reset-vals! x 2)] (+ old new))")))
   (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (swap-vals! x inc)] (+ old new))")))
   (is (= true  (jsv! "(def x (atom 1)) (compare-and-set! x 1 2)")))
-  (is (= false (jsv! "(def x (atom 1)) (compare-and-set! x 2 3)"))))
+  (is (= false (jsv! "(def x (atom 1)) (compare-and-set! x 2 3)")))
+  (testing "reset! returns the new value"
+    (is (= 2 (jsv! "(reset! (atom 1) 2)"))))
+  (testing ":meta and :validator options, like CLJS"
+    (is (eq #js {"foo" 1} (jsv! "(meta (atom nil :meta {:foo 1}))")))
+    (is (= 3 (jsv! "(let [a (atom 1 :validator odd?)] (reset! a 3))")))
+    (is (thrown? js/Error (jsv! "(let [a (atom 1 :validator odd?)] (reset! a 2))")))
+    (is (thrown? js/Error (jsv! "(let [a (atom 1 :validator odd?)] (swap! a inc))")))
+    (is (= 2 (jsv! "@(atom 2 :validator odd?)"))))
+  (testing "satisfies IAtom"
+    (is (= true (jsv! "(satisfies? IAtom (atom nil))")))
+    (is (= true (jsv! "(satisfies? cljs.core/IAtom (atom nil))")))
+    (is (= true (jsv! "(satisfies? IDeref (atom nil))")))))
 
 (deftest override-core-var-test
   (is (= 1 (jsv! "(def count 1) (set! count (inc count)) (defn frequencies [x] (dec x)) (frequencies count)"))))

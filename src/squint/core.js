@@ -221,10 +221,8 @@ function getAssocMut(m) {
   }
 }
 
+// a missing value for the last key becomes nil, like CLJS
 export function assoc_BANG_(m, k, v, ...kvs) {
-  if (kvs.length % 2 !== 0) {
-    throw new Error('Illegal argument: assoc expects an odd number of arguments.');
-  }
   switch (typeConst(m)) {
     case MAP_TYPE:
       m.set(k, v);
@@ -282,8 +280,23 @@ function copy(o) {
 }
 
 export function assoc(o, k, v, ...kvs) {
-  if (!o) {
+  // only nil puns to an empty map; assoc on false throws, like CLJS
+  if (o == null) {
     o = {};
+  }
+  if (isVectorArray(o)) {
+    // like CLJS: a vector key is an index in [0, count], count appends
+    let len = o.length;
+    for (let i = 0; i < kvs.length + 2; i += 2) {
+      const key = i === 0 ? k : kvs[i - 2];
+      if (!Number.isInteger(key)) {
+        throw new Error("Vector's key for assoc must be a number.");
+      }
+      if (key < 0 || key > len) {
+        throw new Error(`Index ${key} out of bounds [0,${len}]`);
+      }
+      if (key === len) len++;
+    }
   }
   const ret = copy(o);
   assoc_BANG_(ret, k, v, ...kvs);
@@ -609,7 +622,11 @@ export function dissoc_BANG_(m, ...ks) {
 export function dissoc(m, ...ks) {
   if (!m) return;
   if (ks.length === 0) return m;
-  if (typeConst(m) === MAP_TYPE) {
+  const tc = typeConst(m);
+  if (tc !== MAP_TYPE && tc !== OBJECT_TYPE) {
+    throw new Error('dissoc expects a map, got: ' + typeof m);
+  }
+  if (tc === MAP_TYPE) {
     let present = false;
     for (const k of ks) if (m.has(k)) { present = true; break; }
     if (!present) return m;
@@ -1301,13 +1318,26 @@ export function nil_QMARK_(v) {
 
 export const PROTOCOL_SENTINEL = {};
 
+// marker protocols so (satisfies? IAtom x) works, like CLJS. Marked in the
+// constructor, not on the prototype, so no top-level mutation pins Atom
+// into bundles that do not use it.
+const IATOM_SYM = Symbol('squint.core.IAtom');
+const IDEREF_SYM = Symbol('squint.core.IDeref');
+export const IAtom = { __sym: IATOM_SYM };
+export const IDeref = { __sym: IDEREF_SYM };
+
 export class Atom {
   constructor(init) {
     this.val = init;
+    this[IATOM_SYM] = true;
+    this[IDEREF_SYM] = true;
     this._watches = {};
     this._deref = () => this.val;
     this._hasWatches = false;
     this._reset_BANG_ = (x) => {
+      if (this._validator && !truth_(this._validator(x))) {
+        throw new Error('Validator rejected reference state');
+      }
       const old_val = this.val;
       this.val = x;
       if (this._hasWatches) {
@@ -1329,8 +1359,13 @@ export class Atom {
   }
 }
 
-export function atom(init) {
-  return new Atom(init);
+export function atom(init, ...opts) {
+  const a = new Atom(init);
+  for (let i = 0; i < opts.length; i += 2) {
+    if (opts[i] === 'meta') a[_metaSym] = opts[i + 1];
+    else if (opts[i] === 'validator') a._validator = opts[i + 1];
+  }
+  return a;
 }
 
 export function deref(ref) {
@@ -1338,7 +1373,7 @@ export function deref(ref) {
 }
 
 export function reset_BANG_(atm, v) {
-  atm._reset_BANG_(v);
+  return atm._reset_BANG_(v);
 }
 
 export function swap_BANG_(atm, f, ...args) {
@@ -1719,9 +1754,10 @@ export function interpose(sep, coll) {
 
 export function select_keys(o, ks) {
   const type = typeConst(o);
-  // ret could be object or array, but in the future, maybe we'll have an IEmpty protocol
-  const ret = emptyOfType(type) || {};
-  for (const k of ks) {
+  // always a map, like CLJS; a js/Map source keeps its rep
+  const ret = type === MAP_TYPE ? new Map() : {};
+  // iterable puns nil to no keys and a map to its entries, like CLJS seq
+  for (const k of iterable(ks)) {
     const v = get(o, k);
     if (v !== undefined) {
       assoc_BANG_(ret, k, v);
@@ -2135,8 +2171,18 @@ export function partial(f, ...xs) {
 }
 
 export function cycle(coll) {
+  // seq the coll eagerly: nil or empty cycles to an empty seq and a
+  // non-iterable throws, like the seq call in CLJS cycle
+  const it = iterable(coll);
   return lazy(function* () {
-    while (true) yield* coll;
+    let any = false;
+    do {
+      any = false;
+      for (const x of it) {
+        any = true;
+        yield x;
+      }
+    } while (any);
   });
 }
 
@@ -2242,7 +2288,8 @@ export function update(coll, k, f, ...args) {
 
 export function get_in(coll, path, orElse) {
   let entry = coll;
-  for (const item of path) {
+  // iterable puns a nil path to an empty path, like CLJS
+  for (const item of iterable(path)) {
     entry = get(entry, item);
   }
   if (entry === undefined) return orElse;
@@ -2859,7 +2906,8 @@ export function re_seq(re, s) {
 }
 
 export function NaN_QMARK_(x) {
-  return Number.isNaN(x);
+  // coercing, like CLJS js/isNaN: (NaN? "foo") is true
+  return isNaN(x);
 }
 
 export function number_QMARK_(x) {

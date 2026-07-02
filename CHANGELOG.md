@@ -4,6 +4,15 @@
 
 ## Unreleased
 
+- Support the `:meta` and `:validator` options of `atom`, and make the atom satisfy the new `IAtom` and `IDeref` marker protocols, like CLJS
+- Fix `reset!` to return the new value
+- Fix `(cycle nil)` and `(cycle [])` to give an empty seq instead of throwing or looping, cycle a map by its entries, and throw eagerly on a non-iterable, like CLJS
+- Fix `get-in` and `select-keys` to treat a `nil` path or key seq as empty, like CLJS, and `select-keys` to always return a map
+- Fix `assoc` on a vector to validate the index, like CLJS: out of bounds or a non-number key throws, index `count` appends
+- `assoc` with a missing value for the last key stores `nil` instead of throwing, like CLJS
+- `assoc` on `false` throws instead of building a fresh map: only `nil` puns to an empty map, like CLJS
+- Fix `dissoc` to throw on a non-map collection such as a vector, set or list, like CLJS
+- Fix `NaN?` to coerce its argument like CLJS `js/isNaN`, so `(NaN? "foo")` is true
 - Add `hash-set`, `sorted?`, `char?`, `rseq`, `parse-uuid`, `force`, `clojure.string/reverse` and the typed array constructors `int-array`, `long-array`, `float-array`, `double-array` and `object-array`
 - Fix `random-uuid` to return a `UUID` instance, so `uuid?` is true for it, like CLJS
 - `uuid` lowercases its argument, like CLJS

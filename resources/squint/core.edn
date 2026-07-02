@@ -1,6 +1,8 @@
 #{Atom
   Cons
   Delay
+  IAtom
+  IDeref
   IIterable
   IIterable__iterator
   LazySeq
