@@ -2640,8 +2640,8 @@ globalThis.foo.fs = fs;")))))
 (deftest lazy-seq-index-of-test
   (is (= 2 (jsv! "(.indexOf (concat [1 2] [3 4]) 3)")))
   (is (= -1 (jsv! "(.indexOf (concat [1 2] [3 4]) 9)")))
-  (testing "value equality, like cljs.core"
-    (is (= 1 (jsv! "(.indexOf (concat [[1]] [[2]]) [2])"))))
+  (testing "reference equality, like a JS array"
+    (is (= -1 (jsv! "(.indexOf (concat [[1]] [[2]]) [2])"))))
   (testing "fromIndex"
     (is (= 2 (jsv! "(.indexOf (concat [1 2] [1 2]) 1 1)")))))
 

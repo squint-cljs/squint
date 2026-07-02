@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- `.indexOf` on a lazy seq now uses reference equality like a JS array, not value equality. This diverges from CLJS but keeps `=` out of any bundle that only builds lazy seqs, shrinking a `conj` bundle from 3801 to 2215 bytes
 - Add `:squint/compile-time` opt-in mechanism for macro/compile-time namespaces. See [doc/compile-time.md](doc/compile-time.md).
 - Fix: a macro used in the namespace that defines it (self `:require-macros`) now expands: the macro's own def no longer shadows the macro lookup or triggers an alias-collision rename
 - A `defmacro` is compile-time only: no longer emitted to the runtime module, and `:refer`ing a macro no longer emits a runtime import for it, matching CLJS
