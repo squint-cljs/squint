@@ -1521,7 +1521,7 @@ export function apply(f, ...args) {
   f = __toFn(f);
   const xs = args.slice(0, args.length - 1);
   const last = args[args.length - 1];
-  // variadic impl hint; see doc/adr/0001
+  // variadic impl hint; see doc/ai/adr/0001
   const v = f.squint$lang$variadic;
   if (v) {
     // pull maxfa fixed args (bounded, lazy-safe); more left -> variadic, else fixed

@@ -136,7 +136,7 @@ unexported module-locals.
 
 The apply hint (`squint$lang$variadic`, set by `withApply` and by variadic/
 multi-arity codegen) is a string property, not a symbol or export. See
-doc/adr/0001-variadic-fn-native-rest.md for the variadic/multi-arity codegen and
+doc/ai/adr/0001-variadic-fn-native-rest.md for the variadic/multi-arity codegen and
 lazy apply that build on this.
 
 Results, esbuild 0.28 minified, importing from `squint-cljs/core.js`:
