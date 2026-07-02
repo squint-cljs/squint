@@ -3495,6 +3495,14 @@ new Foo();")
                    "(true? (= #inst \"2020-01-01\" #inst \"2020-01-01\"))"
                    "(false? (= #inst \"2020-01-01\" #inst \"2021-01-01\"))"]]
     (is (true? (jsv! example)) (str "should return true: " example)))
+  (testing "a plain object and a js/Map compare by entries"
+    (doseq [example ["(true? (= {:a 1} (js/Map. [[\"a\" 1]])))"
+                     "(true? (= (js/Map. [[\"a\" 1]]) {:a 1}))"
+                     "(true? (= {:a {:b 1}} (js/Map. [[\"a\" {\"b\" 1}]])))"
+                     "(false? (= {:a 1} (js/Map. [[\"a\" 2]])))"
+                     "(false? (= {:a 1 :b 2} (js/Map. [[\"a\" 1]])))"
+                     "(true? (= {} (js/Map.)))"]]
+      (is (true? (jsv! example)) (str "should return true: " example))))
   (testing "optimization, bypass _EQ_ function when comparing with primitive literal"
     (let [res (jss! "(let [f (fn [x] (= 1 x))] f)" {:context :expression})]
       (is (str/includes? res "1 === x"))

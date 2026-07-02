@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `=` to compare a plain object map and a `js/Map` by entries, so the two map reps are equal when their contents are
 - `cljs.analyzer.api/resolve` at compile time now sees built-in macros such as `and`, `when-let` and `bit-and`, and user macros, returning `:macro true` for them, like CLJS. A name in `:refer-clojure :exclude` no longer resolves to core. A local binding shadows all of these and resolves with `:local true`
 
 ## 0.14.200

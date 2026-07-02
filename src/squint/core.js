@@ -65,6 +65,16 @@ function dequal(foo, bar) {
     return true;
   }
 
+  // A plain object and a js/Map are both map reps; compare by entries.
+  // Same-type pairs skip this and keep their fast paths below.
+  if (isMapLike(foo) && isMapLike(bar) && foo.constructor !== bar.constructor) {
+    if (mapCount(foo) !== mapCount(bar)) return false;
+    for (const k of foo instanceof Map ? foo.keys() : Object.keys(foo)) {
+      if (!mapHas(bar, k) || !dequal(mapGet(foo, k), mapGet(bar, k))) return false;
+    }
+    return true;
+  }
+
   // Sets (hash or sorted) compare by elements, across concrete types.
   if (isSetLike(foo) || isSetLike(bar)) {
     if (!isSetLike(foo) || !isSetLike(bar) || foo.size !== bar.size) return false;
