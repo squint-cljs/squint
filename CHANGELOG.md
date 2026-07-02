@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+- Fix `=` to compare a plain object map and a `js/Map` by entries, so the two map reps are equal when their contents are
+- `derive`, `underive`, `isa?`, `parents`, `ancestors` and `descendants` accept a hierarchy written as a plain map, like `{:parents {} :ancestors {} :descendants {}}`
+- BREAKING: `derive` and `underive` with an explicit hierarchy throw on a malformed one, and the global-hierarchy `derive` requires a namespace-qualified tag and parent, like CLJS
 - `cljs.analyzer.api/resolve` at compile time now sees built-in macros such as `and`, `when-let` and `bit-and`, and user macros, returning `:macro true` for them, like CLJS. A name in `:refer-clojure :exclude` no longer resolves to core. A local binding shadows all of these and resolves with `:local true`
 
 ## 0.14.200

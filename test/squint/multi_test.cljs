@@ -35,25 +35,25 @@
 (deftest hierarchy-test
   (t/async done
     (-> (eval-repl "
-(derive :rect :shape)
-(derive :square :rect)
+(derive :geo/rect :geo/shape)
+(derive :geo/square :geo/rect)
 (defmulti k identity)
-(defmethod k :shape [_] :shape)
-(defmethod k :square [_] :square)
-[(k :square) (k :rect) (isa? :square :shape)]")
+(defmethod k :geo/shape [_] :shape)
+(defmethod k :geo/square [_] :square)
+[(k :geo/square) (k :geo/rect) (isa? :geo/square :geo/shape)]")
         (.then (fn [v] (is (= ["square" "shape" true] (vec v)))))
         (.finally done))))
 
 (deftest prefer-method-test
   (t/async done
     (-> (eval-repl "
-(derive :dog :animal)
-(derive :dog :pet)
+(derive :zoo/dog :zoo/animal)
+(derive :zoo/dog :zoo/pet)
 (defmulti describe identity)
-(defmethod describe :animal [_] :animal)
-(defmethod describe :pet [_] :pet)
-(prefer-method describe :pet :animal)
-(describe :dog)")
+(defmethod describe :zoo/animal [_] :animal)
+(defmethod describe :zoo/pet [_] :pet)
+(prefer-method describe :zoo/pet :zoo/animal)
+(describe :zoo/dog)")
         (.then (fn [v] (is (= "pet" v))))
         (.finally done))))
 
@@ -212,4 +212,26 @@
 (try (f {:t :b}) (catch :default e (.-message e)))")
         (.then (fn [msg]
                  (is (str/includes? msg "No method"))))
+        (.finally done))))
+
+(deftest plain-map-hierarchy-test
+  (t/async done
+    (-> (eval-repl "
+(let [thrown? (fn [f] (try (f) false (catch :default _ true)))]
+  [;; a hierarchy written as a plain map literal works
+   (= (derive (make-hierarchy) :pm/rect :pm/shape)
+      (derive {:parents {} :descendants {} :ancestors {}} :pm/rect :pm/shape))
+   (contains? (parents (derive {:parents {} :descendants {} :ancestors {}} :pm/rect :pm/shape) :pm/rect) :pm/shape)
+   (isa? (derive {:parents {} :descendants {} :ancestors {}} :pm/rect :pm/shape) :pm/rect :pm/shape)
+   ;; malformed hierarchies throw
+   (thrown? #(derive {} :pm/a :pm/b))
+   (thrown? #(derive {:parents {} :descendants {}} :pm/a :pm/b))
+   (thrown? #(derive 42 :pm/a :pm/b))
+   (thrown? #(underive {} :pm/a :pm/b))
+   ;; global derive validates like CLJS
+   (thrown? #(derive :pm/tag nil))
+   (thrown? #(derive :a :b))
+   (thrown? #(derive :pm/tag 42))])")
+        (.then (fn [v]
+                 (is (= [true true true true true true true true true true] (vec v)))))
         (.finally done))))
