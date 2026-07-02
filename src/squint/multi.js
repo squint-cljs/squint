@@ -46,6 +46,46 @@ function gh() {
   return _globalHierarchy ?? (_globalHierarchy = make_hierarchy());
 }
 
+// A hierarchy may also be a plain map literal like
+// {:parents {} :ancestors {} :descendants {}} with set values, as in CLJS.
+// Normalize such a rep to the Map-based one the internals expect.
+function fieldMap(m) {
+  if (m instanceof Map) return m;
+  const out = new Map();
+  if (m) for (const k of Object.keys(m)) out.set(k, new Set(m[k]));
+  return out;
+}
+function toHierarchy(h) {
+  if (h.parents instanceof Map && h.ancestors instanceof Map && h.descendants instanceof Map) {
+    return h;
+  }
+  return {
+    parents: fieldMap(h.parents),
+    ancestors: fieldMap(h.ancestors),
+    descendants: fieldMap(h.descendants),
+  };
+}
+
+// derive/underive with an explicit hierarchy throw on a malformed one,
+// like CLJS. A field is a map: a js/Map or a plain object.
+function checkHierarchy(h) {
+  const ok =
+    h != null &&
+    typeof h === 'object' &&
+    ['parents', 'ancestors', 'descendants'].every((f) => {
+      const m = h[f];
+      return m instanceof Map || (m != null && typeof m === 'object' && m.constructor === Object);
+    });
+  if (!ok) throw new Error('Invalid hierarchy: expected map with :parents, :ancestors and :descendants');
+  return h;
+}
+
+// keywords and symbols are strings in squint; namespaced means a '/' past
+// position 0, the same threshold as `namespace`
+function namespaced(x) {
+  return typeof x === 'string' && x.indexOf('/') > 0;
+}
+
 function _isa(h, child, parent) {
   if (_EQ_(child, parent)) return true;
   if (typeof child === 'function' && typeof parent === 'function') {
@@ -64,7 +104,7 @@ function _isa(h, child, parent) {
 
 export function isa_QMARK_(a, b, c) {
   if (c === undefined) return _isa(gh(), a, b);
-  return _isa(a, b, c);
+  return _isa(toHierarchy(a), b, c);
 }
 
 function _deriveInto(h, tag, parent) {
@@ -102,6 +142,11 @@ function _deriveInto(h, tag, parent) {
 
 export function derive(a, b, c) {
   if (c === undefined) {
+    // validation matches the CLJS asserts
+    if (!namespaced(b)) throw new Error('Parent must be a namespace-qualified keyword or symbol');
+    if (!(typeof a === 'function' || namespaced(a))) {
+      throw new Error('Tag must be a namespace-qualified keyword or symbol, or a class');
+    }
     // Rebuild-and-swap the global hierarchy so its identity changes;
     // MultiFn's cache compares hierarchy identity to decide when to
     // invalidate, so in-place mutation would leave stale cached
@@ -110,6 +155,14 @@ export function derive(a, b, c) {
     _globalHierarchy = cloneHierarchy(gh());
     _deriveInto(_globalHierarchy, a, b);
     return null;
+  }
+  checkHierarchy(a);
+  // vectors are allowed as compound dispatch tags, beyond CLJS
+  if (!(typeof b === 'function' || typeof b === 'string' || Array.isArray(b))) {
+    throw new Error('Tag must be a keyword or symbol, or a class');
+  }
+  if (!(typeof c === 'string' || Array.isArray(c))) {
+    throw new Error('Parent must be a keyword or symbol');
   }
   const next = cloneHierarchy(a);
   _deriveInto(next, b, c);
@@ -125,15 +178,15 @@ function rebuildFromPairs(pairs) {
 function cloneHierarchy(h) {
   const out = make_hierarchy();
   for (const f of ['parents', 'ancestors', 'descendants']) {
-    for (const [k, s] of h[f]) out[f].set(k, new Set(s));
+    for (const [k, s] of fieldMap(h[f])) out[f].set(k, new Set(s));
   }
   return out;
 }
 
 export function underive(a, b, c) {
-  const [h, tag, parent] = c === undefined ? [gh(), a, b] : [a, b, c];
+  const [h, tag, parent] = c === undefined ? [gh(), a, b] : [checkHierarchy(a), b, c];
   const pairs = [];
-  for (const [child, parents] of h.parents) {
+  for (const [child, parents] of fieldMap(h.parents)) {
     for (const p of parents) {
       if (!(_EQ_(child, tag) && _EQ_(p, parent))) pairs.push([child, p]);
     }
@@ -155,9 +208,10 @@ export function underive(a, b, c) {
 // internally holds the entry but .get misses on reference equality.
 function hAnd(a, b, field) {
   const [h, tag] = b === undefined ? [gh(), a] : [a, b];
-  const key = findKeyByEquiv(h[field], tag);
+  const m = fieldMap(h[field]);
+  const key = findKeyByEquiv(m, tag);
   if (key === undefined) return null;
-  const s = h[field].get(key);
+  const s = m.get(key);
   return s && s.size ? new Set(s) : null;
 }
 export function parents(a, b)     { return hAnd(a, b, 'parents'); }
@@ -220,7 +274,8 @@ class MultiFn {
     this.resetCache();
   }
   findBest(val) {
-    const h = this.hierarchy.deref();
+    // an atom-held hierarchy can hold the plain-map rep
+    const h = toHierarchy(this.hierarchy.deref());
     let best = null;
     for (const [dv, fn] of this.methodTable) {
       if (_isa(h, val, dv)) {
@@ -279,7 +334,7 @@ export function defmulti(name, dispatchFn, opts) {
   let hierarchy;
   if (opts.hierarchy == null) hierarchy = { deref: gh };
   else if (typeof opts.hierarchy.deref === 'function') hierarchy = opts.hierarchy;
-  else { const h = opts.hierarchy; hierarchy = { deref: () => h }; }
+  else { const h = toHierarchy(opts.hierarchy); hierarchy = { deref: () => h }; }
   const mf = new MultiFn(name, dispatchFn, defaultVal, hierarchy);
   const call = function (...args) { return mf.invoke(args); };
   call.multiFn = mf;
