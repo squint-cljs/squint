@@ -816,7 +816,7 @@
                    (contains? (get-in st [current :refers]) name)))
       (let [renamed (str ((:gensym env)))]
         (swap! (:ns-state env) assoc-in [current :var-renames munged] renamed)))
-    (when-not (:private (meta name))
+    (when-not (or (:private (meta name)) (:macro (meta name)))
       (swap! (:ns-state env)
              (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))
     (swap! (:ns-state env) (fn [state]
@@ -832,8 +832,11 @@
                                          (cond-> (select-keys (meta name)
                                                               [:arglists :doc :line :file :private :macro])
                                            coll-tag (assoc :tag coll-tag))))))
-    (let [skip-var? (:squint.compiler/skip-var (meta expr))]
-      (emit-var more skip-var? env))))
+    (if (:macro (meta name))
+      ;; a macro is compile-time only; emit no runtime var (like CLJS)
+      ""
+      (let [skip-var? (:squint.compiler/skip-var (meta expr))]
+        (emit-var more skip-var? env)))))
 
 (defn js-await [env more]
   (emit-return
@@ -965,7 +968,10 @@
                                                                        (get rename refer refer)) refer)
                                                                (repeat (if (symbol? original-libname)
                                                                          original-libname libname)))))))))
-                  (let [runtime-refer (remove #(builtin-refer-is-macro? original-libname %) refer)]
+                  (let [macro-names (get-in @(:ns-state env) [:macros original-libname])
+                        runtime-refer (remove #(or (builtin-refer-is-macro? original-libname %)
+                                                   (contains? macro-names %))
+                                              refer)]
                     (str
                       (when (seq runtime-refer)
                         (let [referred+renamed (str/join ", "
