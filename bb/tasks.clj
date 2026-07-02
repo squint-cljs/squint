@@ -5,6 +5,7 @@
    [cheshire.core :as json]
    [node-repl-tests]
    [node-cli-tests]
+   [compile-time-tests]
    [clojure.string :as str]))
 
 (def test-config
@@ -149,11 +150,25 @@
       (assert (str/includes? output "real-debug: 42"))
       (assert (str/includes? output "transitive-rt: debug: 42"))
       ;; :deps with :local/root resolves to a source dir added to :paths
-      (assert (str/includes? output "greetlib hello deps")))
+      (assert (str/includes? output "greetlib hello deps"))
+      ;; {:squint/compile-time true} extraction: macros expand and run,
+      ;; exercising aliasing to core (str) and to a local ns (ct-helper), a bare
+      ;; same-ns ref, :refer, a marked expansion helper, and a .cljs variant
+      (assert (str/includes? output "ct-shout: HI-!!"))
+      (assert (str/includes? output "ct-shout-refer: HO-!!"))
+      (assert (str/includes? output "ct-formatted: ct-helper: 5"))
+      (assert (str/includes? output "ct-doubled: 42"))
+      (assert (str/includes? output "ct-const-upper: HI"))
+      (assert (str/includes? output "ct-const-slug: hello-world"))
+      (assert (str/includes? output "ct-cljs-yell: HEY"))
+      (assert (str/includes? output "ct-cljs-runtime: 42")))
     ;; a defmacro is compile-time only: no runtime var, no export, and a :refer
     ;; of it emits no runtime import (main.mjs above would fail to run otherwise)
     (assert (zero? (count (re-seq #"with_add_100|debug"
                                   (slurp "test-project/lib/macros.mjs")))))
+    ;; compile-time forms (macros and marked helpers) are never emitted
+    (assert (zero? (count (re-seq #"shout|formatted|doubled|slugify|const_upper|const_slug"
+                                  (slurp "test-project/lib/compile_time.mjs")))))
     (assert (fs/exists? "test-project/lib/greetlib/core.mjs"))
     (assert (fs/exists? "test-project/lib/foo.json"))
     (assert (fs/exists? "test-project/lib/baz.css"))
@@ -191,6 +206,7 @@
   (shell "node --expose-gc lib/squint_tests.js")
   (node-repl-tests/run-tests {})
   (node-cli-tests/run-tests {})
+  (compile-time-tests/run-tests {})
   (test-project {})
   (test-run {})
   (test-cljs-test {}))

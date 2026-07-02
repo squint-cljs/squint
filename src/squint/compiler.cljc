@@ -483,8 +483,11 @@
                    env)]
          (if (= ::e/eof next-form)
            transpiled
-           (let [next-t (-> (transpile-form next-form env)
-                            not-empty)
+           (let [next-t (when-not (true? (:squint/compile-time (meta next-form)))
+                          ;; compile-time forms run in SCI, never emitted to JS;
+                          ;; marker value :both emits too
+                          (-> (transpile-form next-form env)
+                              not-empty))
                  next-js
                  (cc/save-pragma env next-t)]
              (recur (str transpiled next-js)
