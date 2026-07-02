@@ -356,6 +356,8 @@ function typeConst(obj) {
   const tag = obj[TYPE_TAG];
   if (tag !== undefined) return tag;
   if (isVectorArray(obj)) return ARRAY_TYPE;
+  // any remaining object (class instance, null-proto) is associative
+  if (typeof obj === 'object') return OBJECT_TYPE;
 
   return undefined;
 }
