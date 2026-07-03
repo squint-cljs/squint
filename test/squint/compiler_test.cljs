@@ -1956,7 +1956,16 @@ with `backticks`")))]
     (is (= 5 (f 1 1 1)))))
 
 (deftest cycle-test
-  (is (eq (take 10 (cycle [1 2 3])) (vec (jsv! '(take 10 (cycle [1 2 3])))))))
+  (is (eq (take 10 (cycle [1 2 3])) (vec (jsv! '(take 10 (cycle [1 2 3]))))))
+  (testing "nil and empty cycle to an empty seq, like CLJS"
+    (is (eq #js [] (jsv! '(vec (cycle nil)))))
+    (is (eq #js [] (jsv! '(vec (cycle []))))))
+  (testing "a map cycles its entries and a non-iterable throws eagerly"
+    (is (eq [["a" 1] ["a" 1]] (jsv! '(vec (take 2 (cycle {:a 1}))))))
+    (is (thrown? js/Error (jsv! '(cycle 42)))))
+  (testing "a one-shot iterator cycles via the cached first lap"
+    (is (eq ["a" "b" "a" "b"]
+            (jsv! '(vec (take 4 (cycle (.values (js/Map. [[1 "a"] [2 "b"]]))))))))))
 
 (deftest nan?-test
   (is (true? (jsv! '(NaN? ##NaN))))

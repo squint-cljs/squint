@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `(cycle nil)` and `(cycle [])` to give an empty seq instead of throwing or looping, cycle a map by its entries, and throw eagerly on a non-iterable, like CLJS
 - Fix `NaN?` to coerce its argument like CLJS `js/isNaN`, so `(NaN? "foo")` is true
 - Add `hash-set`, `sorted?`, `char?`, `rseq`, `parse-uuid`, `force`, `clojure.string/reverse` and the typed array constructors `int-array`, `long-array`, `float-array`, `double-array` and `object-array`
 - Fix `random-uuid` to return a `UUID` instance, so `uuid?` is true for it, like CLJS
