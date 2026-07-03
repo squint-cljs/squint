@@ -1813,6 +1813,11 @@ with `backticks`")))]
   (is (eq "foo" (jsv! '(merge "foo"))))
   (is (thrown? js/Error (jsv! '(merge "foo" {:a 1})))))
 
+(deftest some-fn-test
+  (is (false? (jsv! '((some-fn odd?) 2))))
+  (is (true? (jsv! '((some-fn odd?) 2 3))))
+  (is (= 0 (jsv! '((some-fn identity) 0)))))
+
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 20))))))
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 22))))))
