@@ -1176,6 +1176,15 @@ with `backticks`")))]
             (jsv! '(let [m {:a 1} k :x v 5] (assoc m k v :y 6))))))
   (testing "object-literal spread fast path preserves metadata"
     (is (eq {:x 9} (jsv! '(let [m ^{:x 9} {:a 1}] (meta (assoc m :b 2)))))))
+  (testing "a vector index is validated, like CLJS"
+    (is (eq [9 0] (jsv! '(assoc [9] 1 0))))
+    (is (eq [9 0 5] (jsv! '(assoc [9] 1 0 2 5))))
+    (is (thrown? js/Error (jsv! '(assoc [] 1 0))))
+    (is (thrown? js/Error (jsv! '(assoc [] -1 0))))
+    (is (thrown? js/Error (jsv! '(assoc [] :a 1)))))
+  (testing "assoc on false throws, only nil puns to an empty map"
+    (is (eq #js {"a" 1} (jsv! '(assoc nil :a 1))))
+    (is (thrown? js/Error (jsv! '(assoc false :a 1)))))
   (testing "maps"
     (is (eq (js/Map. #js [#js [1 2] #js [3 4]])
             (jsv! '(assoc (js/Map. [[1 2]]) 3 4))))
