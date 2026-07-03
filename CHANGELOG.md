@@ -2,6 +2,13 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix `assoc` and `assoc!` called without a value for the last key: throws at runtime, and at compile time for a literal call
+- Add `get-validator` and `set-validator!`
+- Fix a `def` or `deftype` inside a function being added to the module exports, which made the module fail to load
+- Fix `take-nth` to throw on a non-number step instead of looping forever
+
 ## 0.14.201
 
 - The built-in protocols can be extended to `nil` and to base types such as `number` and `string` via `extend-type`

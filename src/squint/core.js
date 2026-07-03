@@ -224,7 +224,7 @@ function getAssocMut(m) {
 }
 
 export function assoc_BANG_(m, k, v, ...kvs) {
-  if (kvs.length % 2 !== 0) {
+  if (arguments.length < 3 || kvs.length % 2 !== 0) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
   }
   switch (typeConst(m)) {
@@ -284,6 +284,9 @@ function copy(o) {
 }
 
 export function assoc(o, k, v, ...kvs) {
+  if (arguments.length < 3 || kvs.length % 2 !== 0) {
+    throw new Error('Illegal argument: assoc expects an odd number of arguments.');
+  }
   // only nil puns to an empty map; assoc on false throws, like CLJS
   if (o == null) {
     o = {};
@@ -1476,6 +1479,18 @@ export function atom(init, ...opts) {
   return a;
 }
 
+export function get_validator(ref) {
+  return ref._validator ?? null;
+}
+
+export function set_validator_BANG_(ref, f) {
+  if (f != null && !truth_(f(deref(ref)))) {
+    throw new Error('Validator rejected reference state');
+  }
+  ref._validator = f;
+  return null;
+}
+
 // the CLJS missing-protocol error, used by every protocol dispatch miss
 export function missing_protocol(proto, obj) {
   let ty;
@@ -2296,6 +2311,7 @@ function take_nth1(n) {
 }
 
 export function take_nth(n, coll) {
+  assertNumber(n);
   if (arguments.length === 1) return take_nth1(n);
   if (n <= 0) {
     return repeat(first(coll));

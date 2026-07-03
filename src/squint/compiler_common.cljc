@@ -830,7 +830,10 @@
                    (contains? (get-in st [current :refers]) name)))
       (let [renamed (str ((:gensym env)))]
         (swap! (:ns-state env) assoc-in [current :var-renames munged] renamed)))
-    (when-not (or (:private (meta name)) (:macro (meta name)))
+    ;; a def inside a fn emits a function-scoped var: exporting it would
+    ;; reference a binding that does not exist at module level
+    (when-not (or (:private (meta name)) (:macro (meta name))
+                  (:fn-scope env))
       (swap! (:ns-state env)
              (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))
     (swap! (:ns-state env) (fn [state]
@@ -1246,7 +1249,8 @@
 (defn emit-function [env _name sig body & [elide-function?]]
   ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
-  (let [arrow? (:arrow env)
+  (let [env (assoc env :fn-scope true)
+        arrow? (:arrow env)
         single-expr-arrow? (and arrow? (= 1 (count body)))
         [env sig] (->sig env sig)
         env (assoc env :recur-targets sig)
@@ -1663,8 +1667,9 @@ break;}" body)
 
 (defmethod emit-special 'squint.defclass/defclass* [_ env form]
   (let [name (second form)]
-    (swap! (:ns-state env)
-           (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name))))
+    (when-not (:fn-scope env)
+      (swap! (:ns-state env)
+             (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))
     (defclass/emit-class env
       emit
       ;; async flows through env (emit-object-fn sets :async); callback just emits
