@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+- `cljs.analyzer.api/resolve` at compile time now sees vars of built-in library namespaces such as `clojure.string`, through an alias or fully qualified
+- Add `clojure.string/escape`
+- Fix `clojure.string/blank?` to return false on a non-string instead of throwing, like CLJS
 - Fix `peek` to throw on a non-stack such as a set or map, like CLJS
 - Fix `=` to compare regexes by identity, like CLJS, so two equal regex literals are not equal
 - Fix `cons` to throw eagerly on a non-seqable tail such as a number, like CLJS. `seq` throws the same `is not ISeqable` error on non-seqables such as a class instance without iterator

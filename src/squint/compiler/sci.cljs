@@ -49,11 +49,22 @@
                                   aliased))))
                         (when-let [refer-ns (get-in ns-state [current :refers nm-sym])]
                           (when (get-in ns-state [:macros refer-ns nm-sym])
-                            refer-ns)))]
+                            refer-ns)))
+        lib-var-ns (when-let [ns* (namespace sym)]
+                     (let [ns-sym (symbol ns*)
+                           lib-vars (:lib-vars env)
+                           target (if (contains? lib-vars ns-sym)
+                                    ns-sym
+                                    (get-in ns-state [current :ns-aliases ns-sym]))]
+                       (when (contains? (get lib-vars target) (symbol munged))
+                         target)))]
     (cond
       (and (nil? (namespace sym))
            (contains? (:var->ident env) nm-sym))
       {:name nm-sym :local true}
+
+      lib-var-ns
+      {:name (symbol (str lib-var-ns) nm)}
 
       (or (contains? user-vars munged)
           (contains? user-vars (symbol munged)))

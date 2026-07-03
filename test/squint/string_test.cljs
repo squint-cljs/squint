@@ -100,3 +100,20 @@
              [(str/reverse "")
               (str/reverse "abc")
               (str/reverse "֎a")]))))
+
+(deftest-eval escape-test
+  (do (ns foo (:require [squint.string :as str]
+                        [cljs.test :refer [is]]))
+      (is (= ["" "A_AbC_C" "xbc"]
+             [(str/escape "" {})
+              (str/escape "abc" {"a" "A_A" "c" "C_C"})
+              (str/escape "abc" {"a" "x"})]))))
+
+(deftest-eval blank?-non-string-test
+  (do (ns foo (:require [squint.string :as str]
+                        [cljs.test :refer [is]]))
+      (is (= [false true true false]
+             [(str/blank? 123)
+              (str/blank? nil)
+              (str/blank? "  ")
+              (str/blank? "x")]))))

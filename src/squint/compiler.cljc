@@ -138,6 +138,8 @@
 
 (def core-vars (conj (:vars core-config) 'goog_typeOf))
 
+(def lib-vars (edn-resource "squint/lib_vars.edn"))
+
 (defn special-form? [expr]
   (or
    (contains? cc/special-forms expr)
@@ -401,6 +403,7 @@
                       :top-level true
                       :core-vars core-vars
                       :core-macros (set (keys built-in-macros))
+                      :lib-vars lib-vars
                       :gensym (let [ctr (volatile! 0)]
                                 (fn gensym*
                                   ([] (gensym* nil))
