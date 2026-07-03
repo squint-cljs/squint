@@ -2822,15 +2822,15 @@ export function every_pred(...preds) {
 
 export function some_fn(...fns) {
   return (...args) => {
+    let res;
     for (const f of fns) {
       for (const a of args) {
-        const res = f(a);
-        if (res) {
-          return res;
-        }
+        res = f(a);
+        // truth_, not JS truthiness: 0 and "" are truthy in CLJS
+        if (truth_(res)) return res;
       }
     }
-    return undefined;
+    return res;
   };
 }
 
