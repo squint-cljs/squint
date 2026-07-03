@@ -1123,6 +1123,13 @@ with `backticks`")))]
   (testing "other types"
     (is (thrown? js/Error (jsv! '(conj! "foo"))))))
 
+(deftest disj-meta-test
+  (testing "disj preserves metadata"
+    (is (eq {:m 1} (jsv! '(meta (disj (with-meta #{1 2 3} {:m 1}) 1 2 3))))))
+  (testing "membership of compound elements is by reference, only = is deep"
+    (is (= false (jsv! '(contains? #{[1 2]} [1 2]))))
+    (is (= true (jsv! '(let [v [1 2]] (contains? #{v} v)))))))
+
 (deftest contains?-test
   (testing "corner cases"
     (is (= false (jsv! '(contains? nil nil))))
