@@ -2109,7 +2109,15 @@ function take1(n) {
   });
 }
 
+function assertNumber(n) {
+  if (typeof n !== 'number') {
+    throw new Error('Assert failed: (number? n)');
+  }
+  return n;
+}
+
 export function take(n, coll) {
+  assertNumber(n);
   if (arguments.length === 1) {
     return take1(n);
   }
@@ -2127,6 +2135,7 @@ export function take(n, coll) {
 }
 
 export function take_last(n, coll) {
+  assertNumber(n);
   if (n <= 0) {
     return null;
   }
@@ -2222,6 +2231,7 @@ function drop1(n) {
 }
 
 export function drop(n, xs) {
+  assertNumber(n);
   if (arguments.length === 1) return drop1(n);
   return lazyIter(xs, function* (iter) {
     for (let x = 0; x < n; x++) {

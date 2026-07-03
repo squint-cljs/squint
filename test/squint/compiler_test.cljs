@@ -1784,6 +1784,14 @@ with `backticks`")))]
 (deftest get-in-nil-path-test
   (is (eq {"a" 1} (jsv! '(get-in {:a 1} nil)))))
 
+(deftest seq-fns-number-assert-test
+  (testing "take, drop, take-last and drop-last assert a number count, like CLJS"
+    (is (thrown? js/Error (jsv! '(take nil (range 3)))))
+    (is (thrown? js/Error (jsv! '(into [] (take nil) (range 3)))))
+    (is (thrown? js/Error (jsv! '(drop nil (range 3)))))
+    (is (thrown? js/Error (jsv! '(drop-last nil (range 3)))))
+    (is (thrown? js/Error (jsv! '(take-last nil (range 3)))))))
+
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 20))))))
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 22))))))
