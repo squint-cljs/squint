@@ -1800,6 +1800,7 @@ with `backticks`")))]
   (testing "non-collection arguments throw, like CLJS"
     (is (thrown? js/Error (jsv! '(nth [0 1 2] nil))))
     (is (thrown-with-msg? js/Error #"IStack.-pop" (jsv! '(pop {}))))
+    (is (thrown-with-msg? js/Error #"IStack.-peek" (jsv! '(peek #{1}))))
     (is (thrown? js/Error (jsv! '(keys 0))))
     (is (thrown-with-msg? js/Error #"No value supplied for key" (jsv! '(hash-map :a))))
     (is (thrown? js/Error (jsv! '(seq (fn []))))))
