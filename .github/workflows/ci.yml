@@ -49,6 +49,7 @@ jobs:
         bb -e '(babashka.process/shell "npx -v")'
 
     - name: Run tests
+      if: matrix.os != 'windows-latest'
       shell: bash
       run: |
         npx -v
@@ -56,6 +57,17 @@ jobs:
         bb test:node
         bb test:bb
         bb test:clj
+
+    # retried once: Windows runners sometimes kill a spawned process at
+    # startup with STATUS_DLL_INIT_FAILED (exit -1073741502)
+    - name: Run tests (Windows, retried once)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      run: |
+        npx -v
+        npm install
+        run_tests() { bb test:node && bb test:bb && bb test:clj; }
+        run_tests || { echo "Retrying after transient Windows failure"; run_tests; }
 
     - name: Run library tests
       if: matrix.os != 'windows-latest'
