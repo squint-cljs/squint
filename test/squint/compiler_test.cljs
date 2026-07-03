@@ -1805,7 +1805,9 @@ with `backticks`")))]
     (is (thrown? js/Error (jsv! '(seq (fn []))))))
   (testing "conj on a map takes entries or seqables of entries"
     (is (eq #js {"a" 0 "b" 1} (jsv! '(conj {:a 0} (list [:b 1])))))
-    (is (thrown-with-msg? js/Error #"map entries" (jsv! '(conj {:a 0} (list :b 1)))))))
+    (is (thrown-with-msg? js/Error #"map entries" (jsv! '(conj {:a 0} (list :b 1)))))
+    (is (thrown-with-msg? js/Error #"must be a pair" (jsv! '(conj {} []))))
+    (is (thrown-with-msg? js/Error #"must be a pair" (jsv! '(merge {} [:foo]))))))
 
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 20))))))
