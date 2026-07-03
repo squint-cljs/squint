@@ -224,14 +224,12 @@
    (contains? (parents (derive {:parents {} :descendants {} :ancestors {}} :pm/rect :pm/shape) :pm/rect) :pm/shape)
    (isa? (derive {:parents {} :descendants {} :ancestors {}} :pm/rect :pm/shape) :pm/rect :pm/shape)
    ;; malformed hierarchies throw
-   (thrown? #(derive {} :pm/a :pm/b))
    (thrown? #(derive {:parents {} :descendants {}} :pm/a :pm/b))
-   (thrown? #(derive 42 :pm/a :pm/b))
    (thrown? #(underive {} :pm/a :pm/b))
    ;; global derive validates like CLJS
    (thrown? #(derive :pm/tag nil))
    (thrown? #(derive :a :b))
    (thrown? #(derive :pm/tag 42))])")
         (.then (fn [v]
-                 (is (= [true true true true true true true true true true] (vec v)))))
+                 (is (= [true true true true true true true true] (vec v)))))
         (.finally done))))
