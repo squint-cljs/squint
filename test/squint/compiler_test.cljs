@@ -1809,6 +1809,10 @@ with `backticks`")))]
     (is (thrown-with-msg? js/Error #"must be a pair" (jsv! '(conj {} []))))
     (is (thrown-with-msg? js/Error #"must be a pair" (jsv! '(merge {} [:foo]))))))
 
+(deftest merge-non-coll-test
+  (is (eq "foo" (jsv! '(merge "foo"))))
+  (is (thrown? js/Error (jsv! '(merge "foo" {:a 1})))))
+
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 20))))))
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 22))))))

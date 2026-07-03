@@ -2019,6 +2019,9 @@ export function merge(...args) {
   let obj;
   if (firstArg === null || firstArg === undefined) {
     obj = {};
+  } else if (typeConst(firstArg) === undefined) {
+    // a non-collection passes through; conj! throws when maps follow, like CLJS
+    obj = firstArg;
   } else {
     obj = into(empty(firstArg), firstArg);
   }
