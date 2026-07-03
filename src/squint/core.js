@@ -2135,8 +2135,18 @@ export function partial(f, ...xs) {
 }
 
 export function cycle(coll) {
+  // seq the coll eagerly: nil or empty cycles to an empty seq and a
+  // non-iterable throws, like the seq call in CLJS cycle. The first lap
+  // is cached and replayed, like the retained seq in CLJS Cycle, so a
+  // one-shot iterator source cycles instead of ending after one lap.
+  const it = iterable(coll);
   return lazy(function* () {
-    while (true) yield* coll;
+    const cache = [];
+    for (const x of it) {
+      cache.push(x);
+      yield x;
+    }
+    while (cache.length) yield* cache;
   });
 }
 
