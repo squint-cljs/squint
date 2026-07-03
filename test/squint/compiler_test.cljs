@@ -2850,6 +2850,10 @@ globalThis.foo.fs = fs;")))))
     (is (eq {:foo 1} (jsv! "(min-key #(:foo %) {:foo 2} {:foo 1})")))
     (is (eq {:foo 1} (jsv! "(min-key #(:foo %) {:foo 10} {:foo 1} {:foo 2})")))
     (is (eq {:foo 1} (jsv! "(min-key #(:foo %) {:foo 10} {:foo 2} {:foo 1})"))))
+  (testing "NaN keys resolve pairwise, like CLJS"
+    (is (= 1 (jsv! '(apply min-key identity [##NaN 1]))))
+    (is (true? (jsv! '(NaN? (apply min-key identity [1 ##NaN])))))
+    (is (= ##-Inf (jsv! '(apply min-key identity [##NaN ##-Inf 1])))))
   (testing "max-key"
     (is (eq {:foo 1} (jsv! "(max-key #(:foo %) {:foo 1})")))
     (is (eq {:foo 2} (jsv! "(max-key #(:foo %) {:foo 1} {:foo 2})")))

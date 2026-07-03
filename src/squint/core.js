@@ -3218,34 +3218,22 @@ export function mod(x, y) {
 }
 
 export function min_key(k, x, ...more) {
-  if (more.length == 0) {
-    return x;
+  k = __toFn(k);
+  // pairwise (if (< (k x) (k y)) x y), like CLJS, so NaN propagates right
+  let min = x;
+  for (const y of more) {
+    if (!(k(min) < k(y))) min = y;
   }
-  var kx = k(x);
-  var min = x;
-  more.forEach((y) => {
-    var ky = k(y);
-    if (ky <= kx) {
-      kx = ky;
-      min = y;
-    }
-  });
   return min;
 }
 
 export function max_key(k, x, ...more) {
-  if (more.length == 0) {
-    return x;
+  k = __toFn(k);
+  // pairwise (if (> (k x) (k y)) x y), like CLJS, so NaN propagates right
+  let max = x;
+  for (const y of more) {
+    if (!(k(max) > k(y))) max = y;
   }
-  var kx = k(x);
-  var max = x;
-  more.forEach((y) => {
-    var ky = k(y);
-    if (ky >= kx) {
-      kx = ky;
-      max = y;
-    }
-  });
   return max;
 }
 
