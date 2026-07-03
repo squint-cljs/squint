@@ -4,8 +4,8 @@
 
 ## Unreleased
 
+- Fix `dissoc` to throw on a non-map collection such as a vector, set or list, like CLJS
 - Fix `assoc` on a vector to validate the index, like CLJS: out of bounds or a non-number key throws, index `count` appends. `assoc` on `false` also throws: only `nil` puns to an empty map
-- Fix `get-in` and `select-keys` to treat a `nil` path or key seq as empty, like CLJS, and `select-keys` to always return a map
 - Add `hash-set`, `sorted?`, `char?`, `rseq`, `parse-uuid`, `force`, `clojure.string/reverse` and the typed array constructors `int-array`, `long-array`, `float-array`, `double-array` and `object-array`
 - Fix `random-uuid` to return a `UUID` instance, so `uuid?` is true for it, like CLJS
 - `uuid` lowercases its argument, like CLJS
