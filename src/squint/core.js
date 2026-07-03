@@ -816,8 +816,7 @@ export function iterable(x) {
     return x;
   }
   // a type extended to ISeqable seqs through its -seq method
-  const s = x[ISeqable__seq];
-  if (s !== undefined) return iterable(s(x));
+  if (x[ISeqable__seq] !== undefined) return iterable(x[ISeqable__seq](x));
   if (x instanceof Object) return Object.entries(x).map(tagMapEntry);
   throw new TypeError(`${x} is not iterable`);
 }
@@ -895,13 +894,13 @@ export function rest(coll) {
   return cell._rest; // first chunk had one element; the next cell is the rest
 }
 
+const REDUCED_DEREF = (self) => self.value;
+
 class Reduced {
   value;
   constructor(x) {
     this.value = x;
-  }
-  _deref() {
-    return this.value;
+    this[IDeref__deref] = REDUCED_DEREF;
   }
 }
 
@@ -1367,45 +1366,104 @@ export const IDeref = { __sym: IDEREF_SYM };
 // (extend-type T IDeref (-deref [x] ...)) fills it
 export const IDeref__deref = Symbol('IDeref_-deref');
 export function _deref(o) {
-  return o[IDeref__deref](o);
+  if (o != null && o[IDeref__deref] !== undefined) return o[IDeref__deref](o);
+  return nilImpl(_deref, 'IDeref.-deref', o)(o);
 }
 export const ISeqable = { __sym: ISEQABLE_SYM };
 export const ISeqable__seq = Symbol('ISeqable_-seq');
 export function _seq(o) {
-  return o[ISeqable__seq](o);
+  if (o != null && o[ISeqable__seq] !== undefined) return o[ISeqable__seq](o);
+  return nilImpl(_seq, 'ISeqable.-seq', o)(o);
 }
+
+// an extend-type on nil stores the impl on the dispatch fn under null,
+// the same convention the generated protocol dispatch fns use
+function nilImpl(dispatchFn, protoMethod, o) {
+  const f = dispatchFn[null];
+  if (f === undefined) throw missing_protocol(protoMethod, o);
+  return f;
+}
+export const IReset = { __sym: Symbol('squint.core.IReset') };
+export const IReset__reset_BANG_ = Symbol('IReset_-reset!');
+export function _reset_BANG_(o, v) {
+  if (o != null && o[IReset__reset_BANG_] !== undefined) return o[IReset__reset_BANG_](o, v);
+  return nilImpl(_reset_BANG_, 'IReset.-reset!', o)(o, v);
+}
+export const ISwap = { __sym: Symbol('squint.core.ISwap') };
+export const ISwap__swap_BANG_ = Symbol('ISwap_-swap!');
+export function _swap_BANG_(o, f, ...args) {
+  if (o != null && o[ISwap__swap_BANG_] !== undefined) return o[ISwap__swap_BANG_](o, f, ...args);
+  return nilImpl(_swap_BANG_, 'ISwap.-swap!', o)(o, f, ...args);
+}
+export const IWatchable = { __sym: Symbol('squint.core.IWatchable') };
+export const IWatchable__add_watch = Symbol('IWatchable_-add-watch');
+export const IWatchable__remove_watch = Symbol('IWatchable_-remove-watch');
+export const IWatchable__notify_watches = Symbol('IWatchable_-notify-watches');
+export function _add_watch(o, k, f) {
+  if (o != null && o[IWatchable__add_watch] !== undefined) return o[IWatchable__add_watch](o, k, f);
+  return nilImpl(_add_watch, 'IWatchable.-add-watch', o)(o, k, f);
+}
+export function _remove_watch(o, k) {
+  if (o != null && o[IWatchable__remove_watch] !== undefined) return o[IWatchable__remove_watch](o, k);
+  return nilImpl(_remove_watch, 'IWatchable.-remove-watch', o)(o, k);
+}
+export function _notify_watches(o, oldv, newv) {
+  if (o != null && o[IWatchable__notify_watches] !== undefined) return o[IWatchable__notify_watches](o, oldv, newv);
+  return nilImpl(_notify_watches, 'IWatchable.-notify-watches', o)(o, oldv, newv);
+}
+
+// shared protocol impls: one fn per operation, a pointer per instance
+const ATOM_DEREF = (self) => self.val;
+const ATOM_RESET = (self, x) => {
+  if (self._validator && !truth_(self._validator(x))) {
+    throw new Error('Validator rejected reference state');
+  }
+  const old_val = self.val;
+  self.val = x;
+  if (self._hasWatches) {
+    for (const [k, f] of Object.entries(self._watches)) f(k, self, old_val, x);
+  }
+  return x;
+};
+const ATOM_SWAP = function (self, f, a, b, xs) {
+  switch (arguments.length) {
+    case 2:
+      return ATOM_RESET(self, f(self.val));
+    case 3:
+      return ATOM_RESET(self, f(self.val, a));
+    case 4:
+      return ATOM_RESET(self, f(self.val, a, b));
+    default:
+      return ATOM_RESET(self, f(self.val, a, b, ...xs));
+  }
+};
+const ATOM_ADD_WATCH = (self, k, f) => {
+  self._watches[k] = f;
+  self._hasWatches = true;
+};
+const ATOM_REMOVE_WATCH = (self, k) => {
+  delete self._watches[k];
+};
+const ATOM_NOTIFY = (self, oldv, newv) => {
+  for (const [k, f] of Object.entries(self._watches)) f(k, self, oldv, newv);
+};
 
 export class Atom {
   constructor(init) {
     this.val = init;
+    this._watches = {};
+    this._hasWatches = false;
     this[IATOM_SYM] = true;
     this[IDEREF_SYM] = true;
-    this[IDeref__deref] = (self) => self.val;
-    this._watches = {};
-    this._deref = () => this.val;
-    this._hasWatches = false;
-    this._reset_BANG_ = (x) => {
-      if (this._validator && !truth_(this._validator(x))) {
-        throw new Error('Validator rejected reference state');
-      }
-      const old_val = this.val;
-      this.val = x;
-      if (this._hasWatches) {
-        for (const entry of Object.entries(this._watches)) {
-          const k = entry[0];
-          const f = entry[1];
-          f(k, this, old_val, x);
-        }
-      }
-      return x;
-    };
-    this._add_watch = (k, fn) => {
-      this._watches[k] = fn;
-      this._hasWatches = true;
-    };
-    this._remove_watch = (k) => {
-      delete this._watches[k];
-    };
+    this[IDeref__deref] = ATOM_DEREF;
+    this[IReset.__sym] = true;
+    this[IReset__reset_BANG_] = ATOM_RESET;
+    this[ISwap.__sym] = true;
+    this[ISwap__swap_BANG_] = ATOM_SWAP;
+    this[IWatchable.__sym] = true;
+    this[IWatchable__add_watch] = ATOM_ADD_WATCH;
+    this[IWatchable__remove_watch] = ATOM_REMOVE_WATCH;
+    this[IWatchable__notify_watches] = ATOM_NOTIFY;
   }
 }
 
@@ -1433,20 +1491,30 @@ export function missing_protocol(proto, obj) {
 }
 
 export function deref(ref) {
-  // the IDeref method slot first: measured faster than the ._deref
-  // closure, which stays as the compatibility fallback for Delay etc.
-  const m = ref?.[IDeref__deref];
-  if (m !== undefined) return m(ref);
-  if (ref?._deref) return ref._deref();
-  throw missing_protocol('IDeref.-deref', ref);
+  if (ref?.[IDeref__deref] !== undefined) return ref[IDeref__deref](ref);
+  return nilImpl(_deref, 'IDeref.-deref', ref)(ref);
 }
 
 export function reset_BANG_(atm, v) {
-  return atm._reset_BANG_(v);
+  if (atm?.[IReset__reset_BANG_] !== undefined) return atm[IReset__reset_BANG_](atm, v);
+  return nilImpl(_reset_BANG_, 'IReset.-reset!', atm)(atm, v);
 }
 
 export function swap_BANG_(atm, f, ...args) {
   f = __toFn(f);
+  if (atm?.[ISwap__swap_BANG_] !== undefined) {
+    // the CLJS -swap! contract: up to two positional args, the rest packed
+    switch (args.length) {
+      case 0:
+        return atm[ISwap__swap_BANG_](atm, f);
+      case 1:
+        return atm[ISwap__swap_BANG_](atm, f, args[0]);
+      case 2:
+        return atm[ISwap__swap_BANG_](atm, f, args[0], args[1]);
+      default:
+        return atm[ISwap__swap_BANG_](atm, f, args[0], args[1], args.slice(2));
+    }
+  }
   const v = f(deref(atm), ...args);
   reset_BANG_(atm, v);
   return v;
@@ -1456,19 +1524,19 @@ export function swap_vals_BANG_(atm, f, ...args) {
   const oldv = deref(atm);
   f = __toFn(f);
   const newv = f(oldv, ...args);
-  atm._reset_BANG_(newv);
+  reset_BANG_(atm, newv);
   return [oldv, newv];
 }
 
 export function reset_vals_BANG_(atm, newv) {
   const oldv = deref(atm);
-  atm._reset_BANG_(newv);
+  reset_BANG_(atm, newv);
   return [oldv, newv];
 }
 
 export function compare_and_set_BANG_(atm, oldv, newv) {
   if (deref(atm) === oldv) {
-    atm._reset_BANG_(newv);
+    reset_BANG_(atm, newv);
     return true;
   } else {
     return false;
@@ -2778,12 +2846,20 @@ export function object_array(sizeOrSeq, initValOrSeq) {
 }
 
 export function add_watch(ref, key, fn) {
-  ref._add_watch(key, fn);
+  if (ref?.[IWatchable__add_watch] !== undefined) {
+    ref[IWatchable__add_watch](ref, key, fn);
+    return ref;
+  }
+  nilImpl(_add_watch, 'IWatchable.-add-watch', ref)(ref, key, fn);
   return ref;
 }
 
 export function remove_watch(ref, key) {
-  ref._remove_watch(key);
+  if (ref?.[IWatchable__remove_watch] !== undefined) {
+    ref[IWatchable__remove_watch](ref, key);
+    return ref;
+  }
+  nilImpl(_remove_watch, 'IWatchable.-remove-watch', ref)(ref, key);
   return ref;
 }
 
@@ -3749,9 +3825,13 @@ export function inst_QMARK_(x) {
   return x instanceof Date;
 }
 
+const DELAY_DEREF = (self) => self._deref();
+
 export class Delay {
   constructor(f) {
     this.f = f;
+    this[IDEREF_SYM] = true;
+    this[IDeref__deref] = DELAY_DEREF;
   }
   _deref() {
     if (this.realized) {
@@ -3802,12 +3882,12 @@ export function not_EQ_(...more) {
   return not(_EQ_(...more));
 }
 
+const VOLATILE_DEREF = (self) => self.v;
+
 class Volatile {
   constructor(v) {
     this.v = v;
-  }
-  _deref() {
-    return this.v;
+    this[IDeref__deref] = VOLATILE_DEREF;
   }
 }
 

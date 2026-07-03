@@ -74,21 +74,25 @@
                                 fmeta)])
                            methods)
         arg-refs (fn [n] (map (fn [i] `(aget ~args-sym ~i)) (range n)))
+        this-sym (gensym "self")
+        ;; forward `this` via .call so deftype protocol methods, whose
+        ;; bodies bind self__ from `this`, work with multiple arities
         fixed-cases (mapcat (fn [m]
                               (let [c (count (:fixed m))]
-                                [c `(~(:impl-sym m) ~@(arg-refs c))]))
+                                [c `(.call ~(:impl-sym m) ~this-sym ~@(arg-refs c))]))
                             (remove :variadic? methods))
         default-case (if variadic
                        `(let [~rest-sym (.slice ~args-sym ~maxfa)]
-                          (~(:impl-sym variadic) ~@(arg-refs maxfa)
-                           (if (zero? (.-length ~rest-sym)) nil ~rest-sym)))
+                          (.call ~(:impl-sym variadic) ~this-sym ~@(arg-refs maxfa)
+                                 (if (zero? (.-length ~rest-sym)) nil ~rest-sym)))
                        `(throw (js/Error. (str "Invalid arity: " (.-length ~args-sym)))))]
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
        (let [~@impl-binds
              ~name (fn [~(symbol (str "..." args-sym))]
-                     (case (.-length ~args-sym)
-                       ~@fixed-cases
-                       ~default-case))]
+                     (this-as ~this-sym
+                       (case (.-length ~args-sym)
+                         ~@fixed-cases
+                         ~default-case)))]
          ~@(when variadic
              [`(unchecked-set ~name "squint$lang$variadic" ~(:impl-sym variadic))])
          ~name))))
@@ -121,8 +125,9 @@
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
        (let [~impl ~(with-meta `(fn [~@fixed ~rest-target] ~@body) fmeta)
              ~name (fn [~@fixed-syms ~(symbol (str "..." rest-sym))]
-                     (~impl ~@fixed-syms
-                      (if (zero? (.-length ~rest-sym)) nil ~rest-sym)))]
+                     (this-as self#
+                       (.call ~impl self# ~@fixed-syms
+                              (if (zero? (.-length ~rest-sym)) nil ~rest-sym))))]
          (unchecked-set ~name "squint$lang$variadic" ~impl)
          ~name))))
 

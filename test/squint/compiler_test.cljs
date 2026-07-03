@@ -1823,6 +1823,64 @@ with `backticks`")))]
   (is (thrown? js/Error (jsv! '(cons 1 42))))
   (is (eq [1 "k"] (jsv! '(vec (cons 1 "k"))))))
 
+(deftest ref-protocols-test
+  (is (eq [true true true 5 2]
+          (jsv! '[(satisfies? IReset (atom 1)) (satisfies? ISwap (atom 1))
+                  (satisfies? IWatchable (atom 1)) (-reset! (atom 1) 5) (-swap! (atom 1) inc)])))
+  (testing "a deftype ref implements the full atom interface"
+    (is (eq [0 1 3 10 [3 10] 11]
+            (jsv! '(do (deftype RAtom [^:mutable val ^:mutable watches]
+                         IDeref (-deref [_] val)
+                         IReset (-reset! [this new-val]
+                                  (let [old val]
+                                    (set! val new-val)
+                                    (-notify-watches this old new-val)
+                                    new-val))
+                         ISwap
+                         (-swap! [this f] (-reset! this (f val)))
+                         (-swap! [this f a] (-reset! this (f val a)))
+                         (-swap! [this f a b] (-reset! this (f val a b)))
+                         (-swap! [this f a b xs] (-reset! this (apply f val a b xs)))
+                         IWatchable
+                         (-add-watch [this k f] (set! watches (assoc watches k f)) this)
+                         (-remove-watch [this k] (set! watches (dissoc watches k)) this)
+                         (-notify-watches [this oldv newv]
+                           (doseq [[k f] watches] (f k this oldv newv))
+                           this))
+                       (let [a (->RAtom 0 {})
+                             log (atom [])
+                             v0 @a]
+                         (add-watch a :w (fn [_ _ o n] (swap! log conj [o n])))
+                         (let [v1 (swap! a inc)
+                               v2 (swap! a + 2)
+                               _ (swap! a + 1 2 3 -6)
+                               v3 (reset! a 10)]
+                           (remove-watch a :w)
+                           (swap! a inc)
+                           [v0 v1 v2 v3 (last @log) @a]))))))))
+
+(deftest extend-base-types-protocol-test
+  (is (eq ["nil-deref" "nil-deref" true]
+          (jsv! '(do (extend-type nil IDeref (-deref [_] :nil-deref))
+                     (let [res [(-deref nil) @nil (satisfies? IDeref nil)]]
+                       (js-delete -deref "null")
+                       (js-delete IDeref "null")
+                       res)))))
+  (testing "a base type extends through its prototype"
+    (is (eq [42 true]
+            (jsv! '(do (extend-type number IDeref (-deref [x] (* 2 x)))
+                       (let [res [@21 (satisfies? IDeref 5)]]
+                         (js-delete (.-prototype js/Number) IDeref__deref)
+                         (js-delete (.-prototype js/Number) (.-__sym IDeref))
+                         res))))))
+  (testing "add-watch on nil via extension"
+    (is (eq "nil-watched"
+            (jsv! '(do (extend-type nil IWatchable (-add-watch [_ k f] :nil-watched))
+                       (let [res (-add-watch nil :k identity)]
+                         (js-delete -add-watch "null")
+                         (js-delete IWatchable "null")
+                         res)))))))
+
 (deftest iseqable-protocol-test
   (is (eq [true true [1 2] [0 1 2]]
           (jsv! '(do (deftype Box [])

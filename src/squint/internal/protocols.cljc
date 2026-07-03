@@ -119,7 +119,9 @@
 
 (core/defn core-extend-type
   [_&env _&form type-sym & impls]
-  (core/let [type-sym (get js-type-sym->type type-sym type-sym)
+  (core/let [type-sym (if (nil? type-sym)
+                        type-sym
+                        (get js-type-sym->type type-sym type-sym))
              impl-map (->impl-map impls)]
     `(do
        ~@(mapcat #(emit-type-methods type-sym %) impl-map))))
