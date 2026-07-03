@@ -1327,6 +1327,9 @@ export class Atom {
     this._deref = () => this.val;
     this._hasWatches = false;
     this._reset_BANG_ = (x) => {
+      if (this._validator && !truth_(this._validator(x))) {
+        throw new Error('Validator rejected reference state');
+      }
       const old_val = this.val;
       this.val = x;
       if (this._hasWatches) {
@@ -1348,8 +1351,13 @@ export class Atom {
   }
 }
 
-export function atom(init) {
-  return new Atom(init);
+export function atom(init, ...opts) {
+  const a = new Atom(init);
+  for (let i = 0; i < opts.length; i += 2) {
+    if (opts[i] === 'meta') a[_metaSym] = opts[i + 1];
+    else if (opts[i] === 'validator') a._validator = opts[i + 1];
+  }
+  return a;
 }
 
 export function deref(ref) {
@@ -1357,7 +1365,7 @@ export function deref(ref) {
 }
 
 export function reset_BANG_(atm, v) {
-  atm._reset_BANG_(v);
+  return atm._reset_BANG_(v);
 }
 
 export function swap_BANG_(atm, f, ...args) {

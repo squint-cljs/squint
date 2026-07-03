@@ -2664,7 +2664,15 @@ globalThis.foo.fs = fs;")))))
   (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (reset-vals! x 2)] (+ old new))")))
   (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (swap-vals! x inc)] (+ old new))")))
   (is (= true  (jsv! "(def x (atom 1)) (compare-and-set! x 1 2)")))
-  (is (= false (jsv! "(def x (atom 1)) (compare-and-set! x 2 3)"))))
+  (is (= false (jsv! "(def x (atom 1)) (compare-and-set! x 2 3)")))
+  (testing "reset! returns the new value"
+    (is (= 2 (jsv! "(reset! (atom 1) 2)"))))
+  (testing ":meta and :validator options, like CLJS"
+    (is (eq #js {"foo" 1} (jsv! "(meta (atom nil :meta {:foo 1}))")))
+    (is (= 3 (jsv! "(let [a (atom 1 :validator odd?)] (reset! a 3))")))
+    (is (thrown? js/Error (jsv! "(let [a (atom 1 :validator odd?)] (reset! a 2))")))
+    (is (thrown? js/Error (jsv! "(let [a (atom 1 :validator odd?)] (swap! a inc))")))
+    (is (= 2 (jsv! "@(atom 2 :validator odd?)")))))
 
 (deftest override-core-var-test
   (is (= 1 (jsv! "(def count 1) (set! count (inc count)) (defn frequencies [x] (dec x)) (frequencies count)"))))
