@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.14.201
 
 - The built-in protocols can be extended to `nil` and to base types such as `number` and `string` via `extend-type`
 - BREAKING: `deref`, `reset!`, `swap!`, `add-watch` and `remove-watch` dispatch only through the protocols. The internal `_deref` and `_reset_BANG_` props are no longer consulted: implement `IDeref`, `IReset`, `ISwap` or `IWatchable` instead
