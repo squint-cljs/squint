@@ -1064,7 +1064,6 @@ with `backticks`")))]
 (deftest conj!-test
   (testing "corner cases"
     (is (eq [], (jsv! '(conj!))))
-    (is (eq '(), (jsv! '(conj! nil))))
     (is (eq [1 2], (jsv! '(conj! nil 1 2)))))
   (testing "arrays"
     (is (eq [1 2 3 4] (jsv! '(conj! [1 2 3 4]))))
@@ -1120,8 +1119,8 @@ with `backticks`")))]
             (jsv! '(let [x (js/Map. [[1 2]])]
                      (conj! x [3 4] [5 6])
                      x)))))
-  (testing "other types"
-    (is (thrown? js/Error (jsv! '(conj! "foo"))))))
+  (testing "single arg returns the coll itself, like CLJS"
+    (is (true? (jsv! '(let [m {}] (identical? m (conj! m))))))))
 
 (deftest disj-meta-test
   (testing "disj preserves metadata"
@@ -1798,6 +1797,17 @@ with `backticks`")))]
     (is (thrown? js/Error (jsv! '(drop nil (range 3)))))
     (is (thrown? js/Error (jsv! '(drop-last nil (range 3)))))
     (is (thrown? js/Error (jsv! '(take-last nil (range 3)))))))
+
+(deftest shape-throws-test
+  (testing "non-collection arguments throw, like CLJS"
+    (is (thrown? js/Error (jsv! '(nth [0 1 2] nil))))
+    (is (thrown-with-msg? js/Error #"IStack.-pop" (jsv! '(pop {}))))
+    (is (thrown? js/Error (jsv! '(keys 0))))
+    (is (thrown-with-msg? js/Error #"No value supplied for key" (jsv! '(hash-map :a))))
+    (is (thrown? js/Error (jsv! '(seq (fn []))))))
+  (testing "conj on a map takes entries or seqables of entries"
+    (is (eq #js {"a" 0 "b" 1} (jsv! '(conj {:a 0} (list [:b 1])))))
+    (is (thrown-with-msg? js/Error #"map entries" (jsv! '(conj {:a 0} (list :b 1)))))))
 
 (deftest partition-test
   (is (eq [[0 1 2 3] [4 5 6 7] [8 9 10 11] [12 13 14 15] [16 17 18 19]] (jsv! '(vec (partition 4 (range 20))))))
