@@ -10,6 +10,7 @@
 - Fix `take-nth` to throw on a non-number step instead of looping forever
 - Fix `empty` to return nil on non-collections and class instances instead of throwing, like CLJS
 - Fix `assoc!` on a vector to validate the index like `assoc`, instead of writing a sparse array
+- Fix `parents`, `ancestors` and `descendants` to return nil on an invalid hierarchy instead of throwing
 
 ## 0.14.201
 

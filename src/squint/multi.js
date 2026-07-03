@@ -208,6 +208,8 @@ export function underive(a, b, c) {
 // internally holds the entry but .get misses on reference equality.
 function hAnd(a, b, field) {
   const [h, tag] = b === undefined ? [gh(), a] : [a, b];
+  // an invalid hierarchy gives nil instead of throwing
+  if (h == null || typeof h !== 'object') return null;
   const m = fieldMap(h[field]);
   const key = findKeyByEquiv(m, tag);
   if (key === undefined) return null;
