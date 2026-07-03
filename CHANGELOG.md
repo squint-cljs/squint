@@ -4,6 +4,16 @@
 
 ## Unreleased
 
+- Fix `assoc` and `assoc!` called without a value for the last key: throws at runtime, and at compile time for a literal call
+- Add `get-validator` and `set-validator!`
+- Fix a `def` or `deftype` inside a function being added to the module exports, which made the module fail to load
+- Fix `take-nth` to throw on a non-number step instead of looping forever
+- Fix `empty` to return nil on non-collections and class instances instead of throwing, like CLJS
+- Fix `assoc!` on a vector to validate the index like `assoc`, instead of writing a sparse array
+- Fix `parents`, `ancestors` and `descendants` to return nil on an invalid hierarchy instead of throwing
+
+## 0.14.201
+
 - The built-in protocols can be extended to `nil` and to base types such as `number` and `string` via `extend-type`
 - BREAKING: `deref`, `reset!`, `swap!`, `add-watch` and `remove-watch` dispatch only through the protocols. The internal `_deref` and `_reset_BANG_` props are no longer consulted: implement `IDeref`, `IReset`, `ISwap` or `IWatchable` instead
 - Add the `IReset`, `ISwap` and `IWatchable` protocols, satisfied by atoms. `reset!`, `swap!`, `add-watch` and `remove-watch` dispatch to them on custom types, so a reagent-style reactive atom can be a `deftype`

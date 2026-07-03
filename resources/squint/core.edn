@@ -118,6 +118,7 @@
   frequencies
   get
   get_in
+  get_validator
   group_by
   hash_map
   hash_set
@@ -243,6 +244,7 @@
   sequential_QMARK_
   set
   set_QMARK_
+  set_validator_BANG_
   shuffle
   simple_keyword_QMARK_
   some

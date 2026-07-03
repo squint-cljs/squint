@@ -32,6 +32,12 @@
         (.then (fn [v] (is (= [9 8 "dunno"] (vec v)))))
         (.finally done))))
 
+(deftest hierarchy-invalid-input-test
+  (t/async done
+    (-> (eval-repl "[(ancestors nil :x) (parents 42 :x) (descendants \"x\" :x)]")
+        (.then (fn [v] (is (= [nil nil nil] (vec v)))))
+        (.finally done))))
+
 (deftest hierarchy-test
   (t/async done
     (-> (eval-repl "

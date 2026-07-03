@@ -1199,6 +1199,22 @@ with `backticks`")))]
   (testing "other types"
     (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))))
 
+(deftest assoc-bang-index-test
+  (testing "assoc! validates a vector index, like assoc"
+    (is (eq [9 0] (jsv! "(assoc! [9] 1 0)")))
+    (is (thrown? js/Error (jsv! "(assoc! [] 1 0)")))
+    (is (thrown? js/Error (jsv! "(assoc! [] -1 0)")))
+    (is (thrown? js/Error (jsv! "(assoc! [0 1 2] 4 4)")))))
+
+(deftest assoc-arity-test
+  (testing "assoc without a value throws, like Clojure"
+    (is (thrown? js/Error (jsv! "(apply assoc {} [:a])")))
+    (is (thrown? js/Error (jsv! "(apply assoc! {} [:a])")))
+    (is (thrown? js/Error (jsv! "(apply assoc {:a 1} [:b 2 :c])"))))
+  (testing "assoc with an even argument count fails at compile time"
+    (is (thrown? js/Error (squint/compile-string "(assoc {} :b)")))
+    (is (thrown? js/Error (squint/compile-string "(assoc! {} :b)")))))
+
 (deftest assoc!-test
   (testing "arrays"
     (is (eq [1 2 8 4] (jsv! '(assoc! [1 2 3 4] 2 8))))
@@ -2046,7 +2062,10 @@ with `backticks`")))]
 
 (deftest take-nth-test
   (is (eq ["a" "a" "a"] (jsv! '(vec (take 3 (take-nth 0 ["a" "b"]))))))
-  (is (eq [1 4 7] (jsv! '(vec (take-nth 3 [1 2 3 4 5 6 7 8 9]))))))
+  (is (eq [1 4 7] (jsv! '(vec (take-nth 3 [1 2 3 4 5 6 7 8 9])))))
+  (testing "a non-number count throws instead of looping"
+    (is (thrown? js/Error (jsv! '(doall (take-nth nil [1 2 3])))))
+    (is (thrown? js/Error (jsv! '(transduce (take-nth nil) conj [] [1 2 3]))))))
 
 (deftest take-last-test
   (is (nil? (jsv! '(take-last 0 [1 2 3 4]))))
@@ -2721,6 +2740,26 @@ globalThis.foo.fs = fs;")))))
 (deftest fn-direct-invoke-test
   (is (eq 2 (jsv! '(#(inc %) 1)))))
 
+(deftest empty-test
+  (testing "non-collections and class instances give nil, like CLJS"
+    (is (= nil (jsv! "(empty \"foo\")")))
+    (is (= nil (jsv! "(empty 1)")))
+    (is (= nil (jsv! "(empty nil)")))
+    (is (= nil (jsv! "(empty inc)")))
+    (is (= nil (jsv! "(empty (js/Date.))"))))
+  (testing "collections still empty"
+    (is (eq #js [] (jsv! "(empty [1 2])")))
+    (is (eq #js {} (jsv! "(empty {:a 1})")))
+    (is (eq #js {} (jsv! "(empty (js/Object.create nil))")))))
+
+(deftest nested-def-not-exported-test
+  (testing "a def or deftype inside a fn emits a function-scoped var and is not exported"
+    (let [js (squint/compile-string "(ns foo) (defn f [] (def inner 1) inner) (defn g [] (deftype T [x]) (->T 1))")]
+      (is (str/includes? js "export { f, g }"))))
+  (testing "a def inside a top-level when is still exported"
+    (let [js (squint/compile-string "(ns foo) (when true (deftype T [x]) (defn h [] (->T 1)))")]
+      (is (str/includes? js "export { __GT_T, h }")))))
+
 (defn wrap-async [s]
   (str/replace "(async function () {\n%s\n})()" "%s" s))
 
@@ -2756,6 +2795,16 @@ globalThis.foo.fs = fs;")))))
                   v (js/eval (wrap-async javascript))
                   _ (is (eq ["foo" "bar"] v))])
           (p/finally done)))))
+
+(deftest validator-test
+  (is (= true (jsv! "(let [v odd? a (atom 1 :validator v)] (identical? v (get-validator a)))")))
+  (is (= nil (jsv! "(get-validator (atom 1))")))
+  (is (= 3 (jsv! "(let [a (atom 1)] (set-validator! a odd?) (reset! a 3))")))
+  (is (thrown? js/Error (jsv! "(let [a (atom 1)] (set-validator! a odd?) (reset! a 2))")))
+  (testing "a validator rejecting the current state throws, like CLJS"
+    (is (thrown? js/Error (jsv! "(set-validator! (atom 2) odd?)"))))
+  (testing "removing the validator"
+    (is (= 2 (jsv! "(let [a (atom 1 :validator odd?)] (set-validator! a nil) (reset! a 2))")))))
 
 (deftest atom-test
   (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y")))

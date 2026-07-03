@@ -223,8 +223,23 @@ function getAssocMut(m) {
   }
 }
 
+function validateArrayKeys(o, k, kvs) {
+  // like CLJS: a vector key is an index in [0, count], count appends
+  let len = o.length;
+  for (let i = 0; i < kvs.length + 2; i += 2) {
+    const key = i === 0 ? k : kvs[i - 2];
+    if (!Number.isInteger(key)) {
+      throw new Error("Vector's key for assoc must be a number.");
+    }
+    if (key < 0 || key > len) {
+      throw new Error(`Index ${key} out of bounds [0,${len}]`);
+    }
+    if (key === len) len++;
+  }
+}
+
 export function assoc_BANG_(m, k, v, ...kvs) {
-  if (kvs.length % 2 !== 0) {
+  if (arguments.length < 3 || kvs.length % 2 !== 0) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
   }
   switch (typeConst(m)) {
@@ -236,6 +251,13 @@ export function assoc_BANG_(m, k, v, ...kvs) {
       }
       break;
     case ARRAY_TYPE:
+      validateArrayKeys(m, k, kvs);
+      m[k] = v;
+
+      for (let i = 0; i < kvs.length; i += 2) {
+        m[kvs[i]] = kvs[i + 1];
+      }
+      break;
     case OBJECT_TYPE:
       m[k] = v;
 
@@ -284,23 +306,12 @@ function copy(o) {
 }
 
 export function assoc(o, k, v, ...kvs) {
+  if (arguments.length < 3 || kvs.length % 2 !== 0) {
+    throw new Error('Illegal argument: assoc expects an odd number of arguments.');
+  }
   // only nil puns to an empty map; assoc on false throws, like CLJS
   if (o == null) {
     o = {};
-  }
-  if (isVectorArray(o)) {
-    // like CLJS: a vector key is an index in [0, count], count appends
-    let len = o.length;
-    for (let i = 0; i < kvs.length + 2; i += 2) {
-      const key = i === 0 ? k : kvs[i - 2];
-      if (!Number.isInteger(key)) {
-        throw new Error("Vector's key for assoc must be a number.");
-      }
-      if (key < 0 || key > len) {
-        throw new Error(`Index ${key} out of bounds [0,${len}]`);
-      }
-      if (key === len) len++;
-    }
   }
   const ret = copy(o);
   assoc_BANG_(ret, k, v, ...kvs);
@@ -1476,6 +1487,18 @@ export function atom(init, ...opts) {
   return a;
 }
 
+export function get_validator(ref) {
+  return ref._validator ?? null;
+}
+
+export function set_validator_BANG_(ref, f) {
+  if (f != null && !truth_(f(deref(ref)))) {
+    throw new Error('Validator rejected reference state');
+  }
+  ref._validator = f;
+  return null;
+}
+
 // the CLJS missing-protocol error, used by every protocol dispatch miss
 export function missing_protocol(proto, obj) {
   let ty;
@@ -2087,10 +2110,13 @@ export function partition_by(f, coll) {
 export function empty(coll) {
   const type = typeConst(coll);
   if (type != null) {
+    // a class instance is not an emptyable collection, like CLJS;
+    // a plain or null-prototype object still empties to {}
+    if (type === OBJECT_TYPE && coll.constructor !== undefined && coll.constructor !== Object) return null;
     return copyMeta(coll, emptyOfType(type));
-  } else {
-    throw new Error(`Can't create empty of ${typeof coll}`);
   }
+  // non-collections give nil, like CLJS
+  return null;
 }
 
 export function merge(...args) {
@@ -2296,6 +2322,7 @@ function take_nth1(n) {
 }
 
 export function take_nth(n, coll) {
+  assertNumber(n);
   if (arguments.length === 1) return take_nth1(n);
   if (n <= 0) {
     return repeat(first(coll));
