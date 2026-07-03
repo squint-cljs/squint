@@ -509,13 +509,13 @@ export function conj_BANG_(...xs) {
       break;
     case MAP_TYPE:
       for (const x of rest) {
-        if (isVectorArray(x)) o.set(x[0], x[1]);
+        if (isVectorArray(x)) { asMapEntry(x); o.set(x[0], x[1]); }
         else for (const kv of mapEntriesOf(x)) o.set(kv[0], kv[1]);
       }
       break;
     case OBJECT_TYPE:
       for (const x of rest) {
-        if (isVectorArray(x)) o[x[0]] = x[1];
+        if (isVectorArray(x)) { asMapEntry(x); o[x[0]] = x[1]; }
         else for (const kv of mapEntriesOf(x)) o[kv[0]] = kv[1];
       }
       break;
@@ -541,6 +541,13 @@ function* mapEntriesOf(x) {
     }
     yield kv;
   }
+}
+
+function asMapEntry(x) {
+  if (x.length < 2) {
+    throw new Error('Vector arg to map conj must be a pair');
+  }
+  return x;
 }
 
 export function conj(...xs) {
@@ -574,7 +581,7 @@ export function conj(...xs) {
     case MAP_TYPE:
       m = new Map(o);
       for (const x of rest) {
-        if (isVectorArray(x)) m.set(x[0], x[1]);
+        if (isVectorArray(x)) { asMapEntry(x); m.set(x[0], x[1]); }
         else for (const kv of mapEntriesOf(x)) m.set(kv[0], kv[1]);
       }
 
@@ -588,7 +595,7 @@ export function conj(...xs) {
       o2 = { ...o };
 
       for (const x of rest) {
-        if (isVectorArray(x)) o2[x[0]] = x[1];
+        if (isVectorArray(x)) { asMapEntry(x); o2[x[0]] = x[1]; }
         else for (const kv of mapEntriesOf(x)) o2[kv[0]] = kv[1];
       }
 

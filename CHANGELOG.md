@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- `conj` and `merge` on a map throw when a vector arg is not a pair, like CLJS
 - Fix `nth` to throw on a non-number index, `pop` to throw on a non-stack, `keys` and `vals` to throw on a non-map, and `hash-map` to throw on a missing value, like CLJS
 - Fix `seq` to throw on a function, `(conj! coll)` to return the coll unchanged, and `conj` on a map to accept only map entries or seqables of map entries, like CLJS
 - Fix `disj` to preserve metadata
