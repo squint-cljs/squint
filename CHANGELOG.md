@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `disj` to preserve metadata
 - `take`, `drop`, `take-last` and `drop-last` assert a number count, like CLJS
 - Add the `IAtom` marker protocol and the `IDeref` protocol with `-deref`, both satisfied by atoms. `deref` and `@` dispatch to `-deref` on types extended via `extend-type`, like CLJS
 - Add `missing-protocol` and throw its clear error on every protocol dispatch miss, including custom protocols, like CLJS

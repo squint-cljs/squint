@@ -595,7 +595,7 @@ export function disj(s, ...xs) {
   if (s == null) return s;
   // pass s itself (not a spread) so a SortedSet keeps its comparator
   const s1 = new s.constructor(s);
-  return disj_BANG_(s1, ...xs);
+  return copyMeta(s, disj_BANG_(s1, ...xs));
 }
 
 export function contains_QMARK_(coll, v) {
