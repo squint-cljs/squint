@@ -1,6 +1,9 @@
 #{Atom
   Cons
   Delay
+  IAtom
+  IDeref
+  IDeref__deref
   IIterable
   IIterable__iterator
   LazySeq
@@ -18,6 +21,7 @@
   _STAR_print_err_fn_STAR_
   _STAR_print_fn_STAR_
   _STAR_print_newline_STAR_
+  _deref
   _iterator
   abs
   aclone
@@ -145,6 +149,7 @@
   meta
   min
   min_key
+  missing_protocol
   mod
   name
   namespace

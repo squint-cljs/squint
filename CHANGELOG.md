@@ -4,9 +4,10 @@
 
 ## Unreleased
 
+- Add the `IAtom` marker protocol and the `IDeref` protocol with `-deref`, both satisfied by atoms. `deref` and `@` dispatch to `-deref` on types extended via `extend-type`, like CLJS
+- Add `missing-protocol` and throw its clear error on every protocol dispatch miss, including custom protocols, like CLJS
 - Support the `:meta` and `:validator` options of `atom`, like CLJS. The validator runs on `reset!` and `swap!`, not at creation, matching current CLJS behavior
 - Fix `reset!` to return the new value
-- Fix `dissoc` to throw on a non-map collection such as a vector, set or list, like CLJS
 - Add `hash-set`, `sorted?`, `char?`, `rseq`, `parse-uuid`, `force`, `clojure.string/reverse` and the typed array constructors `int-array`, `long-array`, `float-array`, `double-array` and `object-array`
 - Fix `random-uuid` to return a `UUID` instance, so `uuid?` is true for it, like CLJS
 - `uuid` lowercases its argument, like CLJS

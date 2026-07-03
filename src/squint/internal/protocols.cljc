@@ -4,20 +4,28 @@
 (core/defn- emit-protocol-method-arity
   ;; NOTE: call (unchecked-get this sym) in head position so it compiles to a
   ;; bound method call this[sym](..) - deftype/reify bodies rely on `this`.
-  [mname method-sym qualified-name evm? args]
+  [proto-method mname method-sym qualified-name evm? args]
   (let [this (first args)
-        slot-call `((unchecked-get ~this ~method-sym) ~@args)]
+        slot-call `((unchecked-get ~this ~method-sym) ~@args)
+        miss `(throw (clojure.core/missing-protocol ~proto-method ~this))]
     `(~args
       (if (nil? ~this)
-        ((unchecked-get ~mname nil) ~@args)
+        (let [f# (unchecked-get ~mname nil)]
+          (if (undefined? f#)
+            ~miss
+            (f# ~@args)))
         ~(if evm?
            ;; :extend-via-metadata: fall back to the metadata impl, looked up
            ;; under the fully-qualified method name, when the slot is absent.
            ;; Pins get+meta, so only emitted on opt-in (CLJS parity).
            `(if (undefined? (unchecked-get ~this ~method-sym))
-              ((get (meta ~this) ~qualified-name) ~@args)
+              (if-let [f# (get (meta ~this) ~qualified-name)]
+                (f# ~@args)
+                ~miss)
               ~slot-call)
-           slot-call)))))
+           `(if (undefined? (unchecked-get ~this ~method-sym))
+              ~miss
+              ~slot-call))))))
 
 (core/defn- emit-protocol-method
   [ns-name p evm? method]
@@ -32,7 +40,7 @@
         (js/Symbol ~(str p "_" mname)))
       (defn ~mname
         ~@(when mdocs [mdocs])
-        ~@(map #(emit-protocol-method-arity mname method-sym qualified-name evm? %) margs)))))
+        ~@(map #(emit-protocol-method-arity (str p "." mname) mname method-sym qualified-name evm? %) margs)))))
 
 (core/defn core-defprotocol
   [_&form &env p & doc+methods]
