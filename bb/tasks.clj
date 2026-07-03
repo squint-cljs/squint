@@ -277,6 +277,10 @@
       (run! #(fs/copy % squint-local) (fs/glob "." "*.{js,json}"))
       (fs/copy-tree "lib" (fs/path squint-local "lib"))
       (fs/copy-tree "src" (fs/path squint-local "src"))
+      ;; TEMP debug
+      (p/shell {:dir dir :continue true} "npm" "ls" "vitest" "happy-dom" "jsdom" "--depth=0")
+      (p/shell {:dir dir :continue true} "node" "-e" "import('squint-cljs/core.js').then(m => console.log('SQUINT-SANITY', typeof m.blank_QMARK_, m.str({}), JSON.stringify(Object.keys(m).length)))")
+      (p/shell {:dir dir :continue true} "node" "--version")
       (shell "npm run test")
       (println "eucalypt tests successful!"))))
 
