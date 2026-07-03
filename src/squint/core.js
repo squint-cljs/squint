@@ -624,7 +624,11 @@ export function dissoc_BANG_(m, ...ks) {
 export function dissoc(m, ...ks) {
   if (!m) return;
   if (ks.length === 0) return m;
-  if (typeConst(m) === MAP_TYPE) {
+  const tc = typeConst(m);
+  if (tc !== MAP_TYPE && tc !== OBJECT_TYPE) {
+    throw new Error('dissoc expects a map, got: ' + typeof m);
+  }
+  if (tc === MAP_TYPE) {
     let present = false;
     for (const k of ks) if (m.has(k)) { present = true; break; }
     if (!present) return m;

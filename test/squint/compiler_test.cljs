@@ -2588,7 +2588,11 @@ globalThis.foo.fs = fs;")))))
   (is (eq nil (jsv! '(dissoc nil "1"))))
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc {"1" 2 "3" 4}))))
   (is (eq #js {"3" 4} (jsv! '(dissoc {"1" 2 "3" 4} "1"))))
-  (is (eq #js {} (jsv! '(dissoc {"1" 2 "3" 4} "1" "3")))))
+  (is (eq #js {} (jsv! '(dissoc {"1" 2 "3" 4} "1" "3"))))
+  (testing "a non-map throws, like CLJS"
+    (is (thrown? js/Error (jsv! '(dissoc [] 0))))
+    (is (thrown? js/Error (jsv! '(dissoc #{"a"} "a"))))
+    (is (thrown? js/Error (jsv! '(dissoc (list 1) 0))))))
 
 (deftest dissoc-identity-test
   (testing "returns the same coll when no removed key is present (cljs parity)"
