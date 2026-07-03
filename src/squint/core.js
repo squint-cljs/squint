@@ -1320,9 +1320,26 @@ export function nil_QMARK_(v) {
 
 export const PROTOCOL_SENTINEL = {};
 
+// marker protocols so (satisfies? IAtom x) works, like CLJS. Marked in the
+// constructor, not on the prototype, so no top-level mutation pins Atom
+// into bundles that do not use it.
+const IATOM_SYM = Symbol('squint.core.IAtom');
+const IDEREF_SYM = Symbol('squint.core.IDeref');
+export const IAtom = { __sym: IATOM_SYM };
+export const IDeref = { __sym: IDEREF_SYM };
+// method slot for (-deref x), named like the defprotocol emission so
+// (extend-type T IDeref (-deref [x] ...)) fills it
+export const IDeref__deref = Symbol('IDeref_-deref');
+export function _deref(o) {
+  return o[IDeref__deref](o);
+}
+
 export class Atom {
   constructor(init) {
     this.val = init;
+    this[IATOM_SYM] = true;
+    this[IDEREF_SYM] = true;
+    this[IDeref__deref] = (self) => self.val;
     this._watches = {};
     this._deref = () => this.val;
     this._hasWatches = false;
@@ -1360,8 +1377,27 @@ export function atom(init, ...opts) {
   return a;
 }
 
+// the CLJS missing-protocol error, used by every protocol dispatch miss
+export function missing_protocol(proto, obj) {
+  let ty;
+  if (obj === null) ty = 'null';
+  else if (obj === undefined) ty = 'undefined';
+  else if (Array.isArray(obj)) ty = 'array';
+  else if (typeof obj === 'object' && obj.constructor && obj.constructor !== Object) {
+    ty = obj.constructor.name;
+  } else ty = typeof obj;
+  return new Error(
+    `No protocol method ${proto} defined for type ${ty}: ${obj ?? ''}`
+  );
+}
+
 export function deref(ref) {
-  return ref._deref();
+  // the IDeref method slot first: measured faster than the ._deref
+  // closure, which stays as the compatibility fallback for Delay etc.
+  const m = ref?.[IDeref__deref];
+  if (m !== undefined) return m(ref);
+  if (ref?._deref) return ref._deref();
+  throw missing_protocol('IDeref.-deref', ref);
 }
 
 export function reset_BANG_(atm, v) {

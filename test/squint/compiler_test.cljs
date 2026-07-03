@@ -2672,7 +2672,26 @@ globalThis.foo.fs = fs;")))))
     (is (= 3 (jsv! "(let [a (atom 1 :validator odd?)] (reset! a 3))")))
     (is (thrown? js/Error (jsv! "(let [a (atom 1 :validator odd?)] (reset! a 2))")))
     (is (thrown? js/Error (jsv! "(let [a (atom 1 :validator odd?)] (swap! a inc))")))
-    (is (= 2 (jsv! "@(atom 2 :validator odd?)")))))
+    (is (= 2 (jsv! "@(atom 2 :validator odd?)"))))
+  (testing "satisfies IAtom and IDeref"
+    (is (= true (jsv! "(satisfies? IAtom (atom nil))")))
+    (is (= true (jsv! "(satisfies? cljs.core/IAtom (atom nil))")))
+    (is (= true (jsv! "(satisfies? IDeref (atom nil))")))
+    (is (not (jsv! "(satisfies? IAtom 1)"))))
+  (testing "a custom protocol dispatch miss throws the same clear error"
+    (is (thrown-with-msg? js/Error #"No protocol method IFoo.-bar defined for type number: 42"
+                          (jsv! "(defprotocol IFoo (-bar [x])) (-bar 42)")))
+    (is (thrown-with-msg? js/Error #"No protocol method IFoo.-bar defined for type null"
+                          (jsv! "(defprotocol IFoo (-bar [x])) (-bar nil)"))))
+  (testing "deref without IDeref or _deref throws a clear error"
+    (is (thrown-with-msg? js/Error #"No protocol method IDeref.-deref"
+                          (jsv! "(deref 1)")))
+    (is (thrown-with-msg? js/Error #"No protocol method IDeref.-deref"
+                          (jsv! "(deref nil)"))))
+  (testing "IDeref is extensible: -deref backs deref and @"
+    (is (= 7 (jsv! "(-deref (atom 7))")))
+    (is (= [42 9 true]
+           (js->clj (jsv! "(deftype Box [v]) (extend-type Box IDeref (-deref [x] (.-v x))) [@(->Box 42) (-deref (->Box 9)) (satisfies? IDeref (->Box 1))]"))))))
 
 (deftest override-core-var-test
   (is (= 1 (jsv! "(def count 1) (set! count (inc count)) (defn frequencies [x] (dec x)) (frequencies count)"))))
