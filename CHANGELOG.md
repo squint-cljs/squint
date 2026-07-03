@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- Fix `nth` to throw on a non-number index, `pop` to throw on a non-stack, `keys` and `vals` to throw on a non-map, and `hash-map` to throw on a missing value, like CLJS
+- Fix `seq` to throw on a function, `(conj! coll)` to return the coll unchanged, and `conj` on a map to accept only map entries or seqables of map entries, like CLJS
 - Fix `disj` to preserve metadata
 - `take`, `drop`, `take-last` and `drop-last` assert a number count, like CLJS
 - Add the `IAtom` marker protocol and the `IDeref` protocol with `-deref`, both satisfied by atoms. `deref` and `@` dispatch to `-deref` on types extended via `extend-type`, like CLJS

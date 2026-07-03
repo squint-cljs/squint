@@ -308,6 +308,9 @@ export function assoc(o, k, v, ...kvs) {
 // squint has no distinct hash-map or array-map type; both build a plain object.
 export function hash_map(...kvs) {
   if (kvs.length === 0) return {};
+  if (kvs.length % 2 !== 0) {
+    throw new Error('No value supplied for key: ' + kvs[kvs.length - 1]);
+  }
   return assoc({}, ...kvs);
 }
 
@@ -469,6 +472,10 @@ export function conj_BANG_(...xs) {
   if (n === 0) {
     return vector();
   }
+  // single arg: return the coll unchanged, including nil, like CLJS
+  if (n === 1) {
+    return xs[0];
+  }
 
   let o = xs[0];
   if (o === null || o === undefined) {
@@ -502,17 +509,14 @@ export function conj_BANG_(...xs) {
       break;
     case MAP_TYPE:
       for (const x of rest) {
-        if (!Array.isArray(x))
-          iterable(x).forEach((kv) => {
-            o.set(kv[0], kv[1]);
-          });
-        else o.set(x[0], x[1]);
+        if (isVectorArray(x)) o.set(x[0], x[1]);
+        else for (const kv of mapEntriesOf(x)) o.set(kv[0], kv[1]);
       }
       break;
     case OBJECT_TYPE:
       for (const x of rest) {
-        if (!Array.isArray(x)) Object.assign(o, x);
-        else o[x[0]] = x[1];
+        if (isVectorArray(x)) o[x[0]] = x[1];
+        else for (const kv of mapEntriesOf(x)) o[kv[0]] = kv[1];
       }
       break;
     default:
@@ -522,6 +526,21 @@ export function conj_BANG_(...xs) {
   }
 
   return o;
+}
+
+// entries carried by a non-entry conj arg onto a map: a map merges, a
+// seqable must contain entry vectors, like CLJS
+function* mapEntriesOf(x) {
+  if (isMapLike(x)) {
+    yield* iterable(x);
+    return;
+  }
+  for (const kv of iterable(x)) {
+    if (!isVectorArray(kv)) {
+      throw new Error('conj on a map takes map entries or seqables of map entries');
+    }
+    yield kv;
+  }
 }
 
 export function conj(...xs) {
@@ -555,11 +574,8 @@ export function conj(...xs) {
     case MAP_TYPE:
       m = new Map(o);
       for (const x of rest) {
-        if (!Array.isArray(x))
-          iterable(x).forEach((kv) => {
-            m.set(kv[0], kv[1]);
-          });
-        else m.set(x[0], x[1]);
+        if (isVectorArray(x)) m.set(x[0], x[1]);
+        else for (const kv of mapEntriesOf(x)) m.set(kv[0], kv[1]);
       }
 
       return copyMeta(o, m);
@@ -572,8 +588,8 @@ export function conj(...xs) {
       o2 = { ...o };
 
       for (const x of rest) {
-        if (!Array.isArray(x)) Object.assign(o2, x);
-        else o2[x[0]] = x[1];
+        if (isVectorArray(x)) o2[x[0]] = x[1];
+        else for (const kv of mapEntriesOf(x)) o2[kv[0]] = kv[1];
       }
 
       return copyMeta(o, o2);
@@ -670,6 +686,9 @@ export function pr(...xs) {
 }
 
 export function nth(coll, idx, orElse) {
+  if (typeof idx !== 'number') {
+    throw new Error('Index argument to nth must be a number');
+  }
   const hasDefault = arguments.length > 2;
   // nil coll puns to nil, like Clojure
   if (coll == null) return hasDefault ? orElse : null;
@@ -802,6 +821,7 @@ export const es6_iterator = _iterator;
 
 export function seq(x) {
   if (x == null) return x;
+  if (typeof x === 'function') throw new TypeError(x + ' is not ISeqable');
   // a string seqs into its characters, like CLJS.
   if (typeof x === 'string') return x.length ? [...x] : null;
   const iter = iterable(x);
@@ -2953,7 +2973,7 @@ export function number_QMARK_(x) {
 }
 
 export function keys(obj) {
-  if (obj == null) return;
+  if (obj == null) return null;
   const t = typeConst(obj);
   switch (t) {
     case OBJECT_TYPE: {
@@ -2965,6 +2985,11 @@ export function keys(obj) {
       if (obj.size) return Array.from(obj.keys());
       return;
   }
+  // not a map: nil when empty, like seq in CLJS, else throw
+  for (const _ of iterable(obj)) {
+    throw new TypeError(obj + ' is not a map');
+  }
+  return null;
 }
 
 export function js_keys(obj) {
@@ -2972,7 +2997,7 @@ export function js_keys(obj) {
 }
 
 export function vals(obj) {
-  if (obj == null) return;
+  if (obj == null) return null;
   const t = typeConst(obj);
   switch (t) {
     case OBJECT_TYPE: {
@@ -2984,6 +3009,11 @@ export function vals(obj) {
       if (obj.size) return Array.from(obj.values());
       return;
   }
+  // not a map: nil when empty, like seq in CLJS, else throw
+  for (const _ of iterable(obj)) {
+    throw new TypeError(obj + ' is not a map');
+  }
+  return null;
 }
 
 export function string_QMARK_(s) {
@@ -3641,7 +3671,7 @@ export function pop(vec) {
     ret.pop();
     return ret;
   } else {
-    return rest(vec);
+    throw missing_protocol('IStack.-pop', vec);
   }
 }
 
