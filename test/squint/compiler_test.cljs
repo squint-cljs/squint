@@ -2733,6 +2733,18 @@ globalThis.foo.fs = fs;")))))
 (deftest fn-direct-invoke-test
   (is (eq 2 (jsv! '(#(inc %) 1)))))
 
+(deftest empty-test
+  (testing "non-collections and class instances give nil, like CLJS"
+    (is (= nil (jsv! "(empty \"foo\")")))
+    (is (= nil (jsv! "(empty 1)")))
+    (is (= nil (jsv! "(empty nil)")))
+    (is (= nil (jsv! "(empty inc)")))
+    (is (= nil (jsv! "(empty (js/Date.))"))))
+  (testing "collections still empty"
+    (is (eq #js [] (jsv! "(empty [1 2])")))
+    (is (eq #js {} (jsv! "(empty {:a 1})")))
+    (is (eq #js {} (jsv! "(empty (js/Object.create nil))")))))
+
 (deftest nested-def-not-exported-test
   (testing "a def or deftype inside a fn emits a function-scoped var and is not exported"
     (let [js (squint/compile-string "(ns foo) (defn f [] (def inner 1) inner) (defn g [] (deftype T [x]) (->T 1))")]

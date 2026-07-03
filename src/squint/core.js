@@ -2102,10 +2102,13 @@ export function partition_by(f, coll) {
 export function empty(coll) {
   const type = typeConst(coll);
   if (type != null) {
+    // a class instance is not an emptyable collection, like CLJS;
+    // a plain or null-prototype object still empties to {}
+    if (type === OBJECT_TYPE && coll.constructor !== undefined && coll.constructor !== Object) return null;
     return copyMeta(coll, emptyOfType(type));
-  } else {
-    throw new Error(`Can't create empty of ${typeof coll}`);
   }
+  // non-collections give nil, like CLJS
+  return null;
 }
 
 export function merge(...args) {
