@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.14.202
 
 - Fix `assoc` and `assoc!` called without a value for the last key: throws at runtime, and at compile time for a literal call
 - Add `get-validator` and `set-validator!`
