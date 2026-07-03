@@ -90,6 +90,8 @@ function dequal(foo, bar) {
 
   if (foo && bar && (ctor = foo.constructor) === bar.constructor) {
     if (ctor === Date) return foo.getTime() === bar.getTime();
+    // regexes only compare by identity, like CLJS
+    if (ctor === RegExp) return false;
 
     if (ctor === Array) {
       if ((len = foo.length) === bar.length) {
