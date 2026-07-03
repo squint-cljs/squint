@@ -782,7 +782,8 @@ export function seqable_QMARK_(x) {
     object_QMARK_(x) ||
     // we used to check instanceof Object but this returns false for TC39 Records
     // also we used to write `Symbol.iterator in` but this does not work for strings and some other types
-    !!x[Symbol.iterator]
+    !!x[Symbol.iterator] ||
+    !!x[ISEQABLE_SYM]
   );
 }
 
@@ -812,6 +813,9 @@ export function iterable(x) {
   if (x[Symbol.iterator]) {
     return x;
   }
+  // a type extended to ISeqable seqs through its -seq method
+  const s = x[ISeqable__seq];
+  if (s !== undefined) return iterable(s(x));
   if (x instanceof Object) return Object.entries(x).map(tagMapEntry);
   throw new TypeError(`${x} is not iterable`);
 }
@@ -828,7 +832,7 @@ export const es6_iterator = _iterator;
 
 export function seq(x) {
   if (x == null) return x;
-  if (typeof x === 'function') throw new TypeError(x + ' is not ISeqable');
+  if (!seqable_QMARK_(x)) throw new TypeError(x + ' is not ISeqable');
   // a string seqs into its characters, like CLJS.
   if (typeof x === 'string') return x.length ? [...x] : null;
   const iter = iterable(x);
@@ -1184,6 +1188,8 @@ class Cons {
 );
 
 export function cons(x, coll) {
+  // like CLJS cons, which seqs a non-ISeq tail
+  if (!seqable_QMARK_(coll)) throw new TypeError(coll + ' is not ISeqable');
   return new Cons(x, coll);
 }
 
@@ -1352,6 +1358,7 @@ export const PROTOCOL_SENTINEL = {};
 // into bundles that do not use it.
 const IATOM_SYM = Symbol('squint.core.IAtom');
 const IDEREF_SYM = Symbol('squint.core.IDeref');
+const ISEQABLE_SYM = Symbol('squint.core.ISeqable');
 export const IAtom = { __sym: IATOM_SYM };
 export const IDeref = { __sym: IDEREF_SYM };
 // method slot for (-deref x), named like the defprotocol emission so
@@ -1359,6 +1366,11 @@ export const IDeref = { __sym: IDEREF_SYM };
 export const IDeref__deref = Symbol('IDeref_-deref');
 export function _deref(o) {
   return o[IDeref__deref](o);
+}
+export const ISeqable = { __sym: ISEQABLE_SYM };
+export const ISeqable__seq = Symbol('ISeqable_-seq');
+export function _seq(o) {
+  return o[ISeqable__seq](o);
 }
 
 export class Atom {

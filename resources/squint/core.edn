@@ -6,6 +6,8 @@
   IDeref__deref
   IIterable
   IIterable__iterator
+  ISeqable
+  ISeqable__seq
   LazySeq
   NaN_QMARK_
   PROTOCOL_SENTINEL
@@ -23,6 +25,7 @@
   _STAR_print_newline_STAR_
   _deref
   _iterator
+  _seq
   abs
   aclone
   add_watch
