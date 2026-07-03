@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- The built-in protocols can be extended to `nil` and to base types such as `number` and `string` via `extend-type`
+- BREAKING: `deref`, `reset!`, `swap!`, `add-watch` and `remove-watch` dispatch only through the protocols. The internal `_deref` and `_reset_BANG_` props are no longer consulted: implement `IDeref`, `IReset`, `ISwap` or `IWatchable` instead
+- Add the `IReset`, `ISwap` and `IWatchable` protocols, satisfied by atoms. `reset!`, `swap!`, `add-watch` and `remove-watch` dispatch to them on custom types, so a reagent-style reactive atom can be a `deftype`
+- Fix multi-arity and variadic `deftype` methods to receive `this`, so protocol methods with more than one arity work
 - `cljs.analyzer.api/resolve` at compile time now sees vars of built-in library namespaces such as `clojure.string`, through an alias or fully qualified
 - Add `clojure.string/escape`
 - Fix `clojure.string/blank?` to return false on a non-string instead of throwing, like CLJS

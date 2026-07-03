@@ -6,8 +6,16 @@
   IDeref__deref
   IIterable
   IIterable__iterator
+  IReset
+  IReset__reset_BANG_
   ISeqable
   ISeqable__seq
+  ISwap
+  ISwap__swap_BANG_
+  IWatchable
+  IWatchable__add_watch
+  IWatchable__notify_watches
+  IWatchable__remove_watch
   LazySeq
   NaN_QMARK_
   PROTOCOL_SENTINEL
@@ -23,9 +31,14 @@
   _STAR_print_err_fn_STAR_
   _STAR_print_fn_STAR_
   _STAR_print_newline_STAR_
+  _add_watch
   _deref
   _iterator
+  _notify_watches
+  _remove_watch
+  _reset_BANG_
   _seq
+  _swap_BANG_
   abs
   aclone
   add_watch

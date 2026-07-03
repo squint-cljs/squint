@@ -61,7 +61,8 @@
 ;; brittle to small changes.
 (def ^:private cases
   [{:names ["identity"] :cap 800}
-   {:names ["atom" "deref" "reset_BANG_" "swap_BANG_"] :cap 2200}
+   ;; includes the IAtom/IDeref/IReset/ISwap/IWatchable slots on Atom
+   {:names ["atom" "deref" "reset_BANG_" "swap_BANG_"] :cap 3600}
    ;; get/assoc/str/keyword use no lazy seqs: the lazy machinery (marked by
    ;; concat1's "concat-done" symbol) must not be pulled in.
    {:names ["atom" "get" "assoc" "str" "keyword"] :cap 4000 :absent ["concat-done"]}
