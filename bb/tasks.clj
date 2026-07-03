@@ -32,6 +32,30 @@
                                         ((requiring-resolve 'clojure.pprint/pprint)
                                          parsed)))))
 
+(def ^:private lib-modules
+  ;; mirrors library-imports in compiler_common for the :squint target
+  '{"src/squint/string.js" [squint.string clojure.string]
+    "src/squint/set.js" [squint.set clojure.set]
+    "src/squint/math.js" [squint.math clojure.math cljs.math]
+    "src/squint/walk.js" [squint.walk clojure.walk cljs.walk]
+    "src/squint/test.js" [squint.test cljs.test clojure.test]
+    "src/squint/edn.js" [squint.edn clojure.edn cljs.reader]})
+
+(defn bump-lib-vars []
+  (let [entries (for [[path nses] lib-modules
+                      :let [out (:out (shell {:out :string}
+                                             (str "node --input-type=module -e 'import * as m from \"./" path "\";console.log(JSON.stringify(Object.keys(m)))'")))
+                            vars (into (sorted-set)
+                                       (comp (remove #(str/starts-with? % "__"))
+                                             (map symbol))
+                                       (json/parse-string out))]
+                      ns* nses]
+                  [ns* vars])]
+    (spit "resources/squint/lib_vars.edn"
+          (with-out-str
+            ((requiring-resolve 'clojure.pprint/pprint)
+             (into (sorted-map) entries))))))
+
 (defn compile-test-runtime
   "Pre-compile the cljs.test runtime from its .cljs source so it ships in
   the npm package and is available to local tests. Skips the compile
@@ -53,6 +77,7 @@
   (fs/delete-tree "lib")
   (fs/delete-tree ".shadow-cljs")
   (bump-core-vars)
+  (bump-lib-vars)
   (spit ".work/config-merge.edn" "{}")
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn release squint")
   (compile-test-runtime))

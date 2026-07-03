@@ -1,12 +1,25 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
-import { iterable, string_QMARK_ } from './core.js';
+import { get, iterable, string_QMARK_ } from './core.js';
 
 export function blank_QMARK_(s) {
-  if (!s) return true;
+  if (s == null) return true;
+  // a non-string is not blank, like CLJS
+  if (typeof s !== 'string') return false;
   if (s.length === 0) return true;
-  if (s.trimLeft().length === 0) return true;
+  if (s.trimStart().length === 0) return true;
   return false;
+}
+
+export function escape(s, cmap) {
+  let buffer = '';
+  const length = s.length;
+  for (let i = 0; i < length; i++) {
+    const ch = s.charAt(i);
+    const replacement = get(cmap, ch);
+    buffer += replacement != null ? String(replacement) : ch;
+  }
+  return buffer;
 }
 
 export function join(sep, coll) {
@@ -32,11 +45,11 @@ export function trim(s) {
 }
 
 export function triml(s) {
-  return s.trimLeft();
+  return s.trimStart();
 }
 
 export function trimr(s) {
-  return s.trimRight();
+  return s.trimEnd();
 }
 
 function discardTrailingIfNeeded(limit, v) {

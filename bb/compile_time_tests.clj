@@ -68,7 +68,11 @@
                "(defmacro probe [sym] (pr-str ((resolve 'cljs.analyzer.api/resolve) &env sym)))\n"
                "(defmacro my-macro [x] x)"))
     (spit (fs/file src "consumer.cljs")
-          (str "(ns t.consumer (:require-macros [t.macros :as m :refer [probe my-macro]]))\n"
+          (str "(ns t.consumer (:require [clojure.string :as str])\n"
+               "  (:require-macros [t.macros :as m :refer [probe my-macro]]))\n"
+               "(println (probe str/blank?))\n"
+               "(println (probe clojure.string/blank?))\n"
+               "(println (probe str/no-such-fn))\n"
                "(println (probe and))\n"
                "(println (probe bit-and))\n"
                "(println (probe when-let))\n"
@@ -94,7 +98,10 @@
                "(println (probe and))"))
     (let [{:keys [exit err]} (squint "compile")]
       (is (= 0 exit) err)
-      (is (= ["{:name cljs.core/and, :macro true}"
+      (is (= ["{:name clojure.string/blank?}"
+              "{:name clojure.string/blank?}"
+              "nil"
+              "{:name cljs.core/and, :macro true}"
               "{:name cljs.core/bit-and, :macro true}"
               "{:name cljs.core/when-let, :macro true}"
               "{:name cljs.core/assoc}"
