@@ -9,6 +9,7 @@
 - Fix a `def` or `deftype` inside a function being added to the module exports, which made the module fail to load
 - Fix `take-nth` to throw on a non-number step instead of looping forever
 - Fix `empty` to return nil on non-collections and class instances instead of throwing, like CLJS
+- Fix `assoc!` on a vector to validate the index like `assoc`, instead of writing a sparse array
 
 ## 0.14.201
 

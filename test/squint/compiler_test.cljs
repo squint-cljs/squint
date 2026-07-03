@@ -1199,6 +1199,13 @@ with `backticks`")))]
   (testing "other types"
     (is (thrown? js/Error (jsv! '(assoc! "foo" 1 2))))))
 
+(deftest assoc-bang-index-test
+  (testing "assoc! validates a vector index, like assoc"
+    (is (eq [9 0] (jsv! "(assoc! [9] 1 0)")))
+    (is (thrown? js/Error (jsv! "(assoc! [] 1 0)")))
+    (is (thrown? js/Error (jsv! "(assoc! [] -1 0)")))
+    (is (thrown? js/Error (jsv! "(assoc! [0 1 2] 4 4)")))))
+
 (deftest assoc-arity-test
   (testing "assoc without a value throws, like Clojure"
     (is (thrown? js/Error (jsv! "(apply assoc {} [:a])")))

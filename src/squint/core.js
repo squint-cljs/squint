@@ -223,6 +223,21 @@ function getAssocMut(m) {
   }
 }
 
+function validateArrayKeys(o, k, kvs) {
+  // like CLJS: a vector key is an index in [0, count], count appends
+  let len = o.length;
+  for (let i = 0; i < kvs.length + 2; i += 2) {
+    const key = i === 0 ? k : kvs[i - 2];
+    if (!Number.isInteger(key)) {
+      throw new Error("Vector's key for assoc must be a number.");
+    }
+    if (key < 0 || key > len) {
+      throw new Error(`Index ${key} out of bounds [0,${len}]`);
+    }
+    if (key === len) len++;
+  }
+}
+
 export function assoc_BANG_(m, k, v, ...kvs) {
   if (arguments.length < 3 || kvs.length % 2 !== 0) {
     throw new Error('Illegal argument: assoc expects an odd number of arguments.');
@@ -236,6 +251,13 @@ export function assoc_BANG_(m, k, v, ...kvs) {
       }
       break;
     case ARRAY_TYPE:
+      validateArrayKeys(m, k, kvs);
+      m[k] = v;
+
+      for (let i = 0; i < kvs.length; i += 2) {
+        m[kvs[i]] = kvs[i + 1];
+      }
+      break;
     case OBJECT_TYPE:
       m[k] = v;
 
@@ -290,20 +312,6 @@ export function assoc(o, k, v, ...kvs) {
   // only nil puns to an empty map; assoc on false throws, like CLJS
   if (o == null) {
     o = {};
-  }
-  if (isVectorArray(o)) {
-    // like CLJS: a vector key is an index in [0, count], count appends
-    let len = o.length;
-    for (let i = 0; i < kvs.length + 2; i += 2) {
-      const key = i === 0 ? k : kvs[i - 2];
-      if (!Number.isInteger(key)) {
-        throw new Error("Vector's key for assoc must be a number.");
-      }
-      if (key < 0 || key > len) {
-        throw new Error(`Index ${key} out of bounds [0,${len}]`);
-      }
-      if (key === len) len++;
-    }
   }
   const ret = copy(o);
   assoc_BANG_(ret, k, v, ...kvs);
