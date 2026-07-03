@@ -1958,6 +1958,13 @@ with `backticks`")))]
 (deftest cycle-test
   (is (eq (take 10 (cycle [1 2 3])) (vec (jsv! '(take 10 (cycle [1 2 3])))))))
 
+(deftest nan?-test
+  (is (true? (jsv! '(NaN? ##NaN))))
+  (testing "coercing, like CLJS js/isNaN"
+    (is (true? (jsv! '(NaN? "foo")))))
+  (is (false? (jsv! '(NaN? 1))))
+  (is (false? (jsv! '(NaN? nil)))))
+
 (deftest nth-test
   (is (nil? (jsv! '(nth nil 1))))
   (is (eq :default (jsv! '(nth nil 1 :default))))

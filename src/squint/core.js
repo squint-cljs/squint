@@ -2859,7 +2859,8 @@ export function re_seq(re, s) {
 }
 
 export function NaN_QMARK_(x) {
-  return Number.isNaN(x);
+  // coercing, like CLJS js/isNaN: (NaN? "foo") is true
+  return isNaN(x);
 }
 
 export function number_QMARK_(x) {
