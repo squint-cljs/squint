@@ -1719,9 +1719,10 @@ export function interpose(sep, coll) {
 
 export function select_keys(o, ks) {
   const type = typeConst(o);
-  // ret could be object or array, but in the future, maybe we'll have an IEmpty protocol
-  const ret = emptyOfType(type) || {};
-  for (const k of ks) {
+  // always a map, like CLJS; a js/Map source keeps its rep
+  const ret = type === MAP_TYPE ? new Map() : {};
+  // iterable puns nil to no keys and a map to its entries, like CLJS seq
+  for (const k of iterable(ks)) {
     const v = get(o, k);
     if (v !== undefined) {
       assoc_BANG_(ret, k, v);
@@ -2252,7 +2253,8 @@ export function update(coll, k, f, ...args) {
 
 export function get_in(coll, path, orElse) {
   let entry = coll;
-  for (const item of path) {
+  // iterable puns a nil path to an empty path, like CLJS
+  for (const item of iterable(path)) {
     entry = get(entry, item);
   }
   if (entry === undefined) return orElse;
