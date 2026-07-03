@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `=` to compare regexes by identity, like CLJS, so two equal regex literals are not equal
 - Fix `cons` to throw eagerly on a non-seqable tail such as a number, like CLJS. `seq` throws the same `is not ISeqable` error on non-seqables such as a class instance without iterator
 - Add the `ISeqable` protocol with `-seq`: a type extended to it seqs through its `-seq` method in `seq`, `vec`, `cons` and everything built on them, and `seqable?` returns true for it
 - Fix `some-fn` to return the last predicate result such as `false` instead of `nil`, and to treat `0` and `""` as truthy, like CLJS

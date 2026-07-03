@@ -3649,7 +3649,9 @@ new Foo();")
                    "(false? (= {:a 1} {:a 1 :b 2}))"
                    "(true? (= [1 2 3] [1 2 3] [1 2 3]))"
                    "(true? (= #inst \"2020-01-01\" #inst \"2020-01-01\"))"
-                   "(false? (= #inst \"2020-01-01\" #inst \"2021-01-01\"))"]]
+                   "(false? (= #inst \"2020-01-01\" #inst \"2021-01-01\"))"
+                   "(false? (= #\"re\" #\"re\"))"
+                   "(true? (let [r #\"re\"] (= r r)))"]]
     (is (true? (jsv! example)) (str "should return true: " example)))
   (testing "a plain object and a js/Map compare by entries"
     (doseq [example ["(true? (= {:a 1} (js/Map. [[\"a\" 1]])))"
