@@ -2290,17 +2290,23 @@ export function into(...args) {
       if (isVectorArray(to)) {
         return pushAll(copy(to), args[1]);
       }
+      // a type with -conj is immutable: reduce conj instead of mutating a copy
+      if (to[ICollection__conj] !== undefined) {
+        return reduce(conj, to, args[1]);
+      }
       return reduce(conj_BANG_, copy(to), args[1]);
     case 3:
       to = args[0];
       xform = args[1];
       from = args[2];
-      c = copy(to);
+      c = to != null && to[ICollection__conj] !== undefined ? to : copy(to);
       rf = (coll, v) => {
         if (v === undefined) {
           return coll;
         }
-        return conj_BANG_(coll, v);
+        return coll != null && coll[ICollection__conj] !== undefined
+          ? coll[ICollection__conj](coll, v)
+          : conj_BANG_(coll, v);
       };
       return transduce(xform, rf, c, from);
     default:
