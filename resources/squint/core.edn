@@ -1,11 +1,28 @@
 #{Atom
   Cons
   Delay
+  IAssociative
+  IAssociative__assoc
+  IAssociative__contains_key_QMARK_
   IAtom
+  ICollection
+  ICollection__conj
+  ICounted
+  ICounted__count
   IDeref
   IDeref__deref
+  IEmptyableCollection
+  IEmptyableCollection__empty
+  IEquiv
+  IEquiv__equiv
   IIterable
   IIterable__iterator
+  IKVReduce
+  IKVReduce__kv_reduce
+  ILookup
+  ILookup__lookup
+  IMap
+  IMap__dissoc
   IReset
   IReset__reset_BANG_
   ISeqable
@@ -32,8 +49,17 @@
   _STAR_print_fn_STAR_
   _STAR_print_newline_STAR_
   _add_watch
+  _assoc
+  _conj
+  _contains_key_QMARK_
+  _count
   _deref
+  _dissoc
+  _empty
+  _equiv
   _iterator
+  _kv_reduce
+  _lookup
   _notify_watches
   _remove_watch
   _reset_BANG_
