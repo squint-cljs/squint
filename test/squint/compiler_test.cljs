@@ -1881,6 +1881,17 @@ with `backticks`")))]
     (is (= 99 (my-map "(get-in (assoc-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y] 99) [:x :y])")))
     (is (= true (my-map "(instance? MyMap (get (assoc-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y] 99) :x))")))
     (is (= 2 (my-map "(get-in (update-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y] inc) [:x :y])"))))
+  (testing "merge goes through -conj on an ICollection target"
+    (is (= 3 (my-map "(count (merge x {:c 3}))")))
+    (is (= true (my-map "(instance? MyMap (merge x {:c 3}))")))
+    (is (= 3 (my-map "(get (merge-with + x {:b 1}) :b)"))))
+  (testing "keys and vals go through -kv-reduce instead of Object.keys"
+    (is (eq ["a" "b"] (my-map "(vec (sort (keys x)))")))
+    (is (eq [1 2] (my-map "(vec (sort (vals x)))"))))
+  (testing "update-keys and update-vals rebuild through -assoc"
+    (is (= 2 (my-map "(get (update-vals x inc) :a)")))
+    (is (= true (my-map "(instance? MyMap (update-vals x inc))")))
+    (is (= 1 (my-map "(get (update-keys x (fn [k] (str k \"!\"))) \"a!\")"))))
   (testing "into reduces through -conj instead of mutating a copy"
     (is (= 3 (my-map "(count (into x {:c 3}))")))
     (is (= true (my-map "(instance? MyMap (into x {:c 3}))")))
