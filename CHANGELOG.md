@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `into` to reduce through `-conj` on a type implementing `ICollection` instead of mutating a plain copy
 - Add the `ILookup`, `IAssociative`, `IMap`, `ICounted`, `IKVReduce`, `ICollection`, `IEmptyableCollection` and `IEquiv` protocols. `get`, `assoc`, `contains?`, `find`, `dissoc`, `count`, `reduce-kv`, `conj`, `empty` and `=` dispatch to them on custom types. Plain objects and arrays keep their fast paths
 
 ## 0.14.202

@@ -1876,6 +1876,10 @@ with `backticks`")))]
     (is (eq ["a" "b"] (my-map "(vec (map first (seq x)))")))
     (is (= true (my-map "(boolean (satisfies? ILookup x))")))
     (is (= false (my-map "(boolean (satisfies? ILookup {}))"))))
+  (testing "into reduces through -conj instead of mutating a copy"
+    (is (= 3 (my-map "(count (into x {:c 3}))")))
+    (is (= true (my-map "(instance? MyMap (into x {:c 3}))")))
+    (is (= 3 (my-map "(count (into x (map identity) {:c 3}))"))))
   (testing "plain collections keep their behavior"
     (is (= 1 (jsv! "(get {:a 1} :a)")))
     (is (= false (jsv! "(= {:a 1} (js/Date.))")))
