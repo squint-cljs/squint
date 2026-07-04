@@ -1451,6 +1451,9 @@ export const IEmptyableCollection__empty = Symbol('IEmptyableCollection_-empty')
 export const IEquiv = { __sym: Symbol('squint.core.IEquiv') };
 export const IEquiv__equiv = Symbol('IEquiv_-equiv');
 
+// The protocol-method fns below share one shape but stay hand-written on
+// purpose: a shared factory makes V8 share type feedback across all of them,
+// turning every slot access megamorphic (measured 1.8 -> 11 ns per call).
 export function _lookup(o, k, nf) {
   if (o != null && o[ILookup__lookup] !== undefined) return o[ILookup__lookup](o, k, nf);
   return nilImpl(_lookup, 'ILookup.-lookup', o)(o, k, nf);
@@ -2243,7 +2246,12 @@ export function merge(...args) {
   }
   // an ICollection target merges through -conj instead of mutation
   if (obj != null && obj[ICollection__conj] !== undefined) {
-    return conj(obj, ...args.slice(1));
+    for (let i = 1; i < args.length; i++) {
+      obj = obj != null && obj[ICollection__conj] !== undefined
+        ? obj[ICollection__conj](obj, args[i])
+        : conj_BANG_(obj, args[i]);
+    }
+    return obj;
   }
   return conj_BANG_(obj, ...args.slice(1));
 }
@@ -2302,9 +2310,17 @@ export function into(...args) {
       if (isVectorArray(to)) {
         return pushAll(copy(to), args[1]);
       }
-      // a type with -conj is immutable: reduce conj instead of mutating a copy
+      // a type with -conj is immutable: fold through the slot instead of
+      // mutating a copy. Direct slot calls keep conj out of the bundle.
       if (to[ICollection__conj] !== undefined) {
-        return reduce(conj, to, args[1]);
+        return reduce(
+          (acc, x) =>
+            acc != null && acc[ICollection__conj] !== undefined
+              ? acc[ICollection__conj](acc, x)
+              : conj_BANG_(acc, x),
+          to,
+          args[1]
+        );
       }
       return reduce(conj_BANG_, copy(to), args[1]);
     case 3:
