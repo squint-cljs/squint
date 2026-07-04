@@ -1839,6 +1839,48 @@ with `backticks`")))]
   (is (thrown? js/Error (jsv! '(cons 1 42))))
   (is (eq [1 "k"] (jsv! '(vec (cons 1 "k"))))))
 
+(def ^:private my-map-prelude
+  "(deftype MyMap [m]
+     ILookup (-lookup [this k nf] (get m k nf))
+     IAssociative (-assoc [this k v] (MyMap. (assoc m k v)))
+                  (-contains-key? [this k] (contains? m k))
+     IMap (-dissoc [this k] (MyMap. (dissoc m k)))
+     ICounted (-count [this] (count m))
+     IKVReduce (-kv-reduce [this f init] (reduce-kv f init m))
+     ICollection (-conj [this x] (MyMap. (conj m x)))
+     IEmptyableCollection (-empty [this] (MyMap. {}))
+     IEquiv (-equiv [this other] (and (instance? MyMap other) (= m (.-m other))))
+     ISeqable (-seq [this] (seq m)))
+   (def x (MyMap. {:a 1 :b 2}))\n")
+
+(defn- my-map [expr]
+  (jsv! (str my-map-prelude expr)))
+
+(deftest map-protocols-test
+  (testing "a type implementing the map-facing protocols works with the core fns"
+    (is (= 1 (my-map "(get x :a)")))
+    (is (= "nf" (my-map "(get x :zz :nf)")))
+    (is (= 2 (my-map "(:b x)")))
+    (is (= true (my-map "(let [y (assoc x :c 3)] (and (instance? MyMap y) (= 3 (get y :c))))")))
+    (is (= 4 (my-map "(get (assoc x :c 3 :d 4) :d)")))
+    (is (= true (my-map "(contains? x :a)")))
+    (is (= false (my-map "(contains? x :zz)")))
+    (is (= true (my-map "(let [y (dissoc x :a)] (and (instance? MyMap y) (nil? (get y :a)) (= 1 (count y))))")))
+    (is (= 2 (my-map "(count x)")))
+    (is (= 3 (my-map "(reduce-kv (fn [acc _ v] (+ acc v)) 0 x)")))
+    (is (= 5 (my-map "(get (conj x [:e 5]) :e)")))
+    (is (= 0 (my-map "(count (empty x))")))
+    (is (= true (my-map "(= x (MyMap. {:a 1 :b 2}))")))
+    (is (= false (my-map "(= x (MyMap. {:a 9}))")))
+    (is (= false (my-map "(= x {:a 1 :b 2})")))
+    (is (eq ["a" "b"] (my-map "(vec (map first (seq x)))")))
+    (is (= true (my-map "(boolean (satisfies? ILookup x))")))
+    (is (= false (my-map "(boolean (satisfies? ILookup {}))"))))
+  (testing "plain collections keep their behavior"
+    (is (= 1 (jsv! "(get {:a 1} :a)")))
+    (is (= false (jsv! "(= {:a 1} (js/Date.))")))
+    (is (eq #js {"a" 1, "b" 2} (jsv! "(assoc {:a 1} :b 2)")))))
+
 (deftest ref-protocols-test
   (is (eq [true true true 5 2]
           (jsv! '[(satisfies? IReset (atom 1)) (satisfies? ISwap (atom 1))

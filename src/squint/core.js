@@ -51,6 +51,9 @@ function dequal(foo, bar) {
   if (foo === bar) return true;
   // null and undefined are both nil in CLJS, so they compare equal
   if (foo == null) return bar == null;
+  if (bar == null) return false;
+  // -equiv dispatches on the left argument, like CLJS =
+  if (typeof foo === 'object' && foo[IEquiv__equiv] !== undefined) return !!foo[IEquiv__equiv](foo, bar);
   var ctor, len, tmp;
 
   // A sorted map compares by entries against any map type (object, Map, sorted).
@@ -219,6 +222,7 @@ function getAssocMut(m) {
       return mapAssocMut;
     case ARRAY_TYPE:
     case OBJECT_TYPE:
+    case INSTANCE_TYPE:
       return objAssocMut;
   }
 }
@@ -258,6 +262,7 @@ export function assoc_BANG_(m, k, v, ...kvs) {
         m[kvs[i]] = kvs[i + 1];
       }
       break;
+    case INSTANCE_TYPE:
     case OBJECT_TYPE:
       m[k] = v;
 
@@ -296,6 +301,7 @@ function copy(o) {
       return copyMeta(o, new o.constructor(o));
     case ARRAY_TYPE:
       return copyMeta(o, [...o]);
+    case INSTANCE_TYPE:
     case OBJECT_TYPE:
       return copyMeta(o, { ...o });
     case LIST_TYPE:
@@ -312,6 +318,13 @@ export function assoc(o, k, v, ...kvs) {
   // only nil puns to an empty map; assoc on false throws, like CLJS
   if (o == null) {
     o = {};
+  }
+  if (o[IAssociative__assoc] !== undefined) {
+    let ret = o[IAssociative__assoc](o, k, v);
+    for (let i = 0; i < kvs.length; i += 2) {
+      ret = ret[IAssociative__assoc](ret, kvs[i], kvs[i + 1]);
+    }
+    return ret;
   }
   const ret = copy(o);
   assoc_BANG_(ret, k, v, ...kvs);
@@ -335,6 +348,9 @@ const OBJECT_TYPE = 3;
 const LIST_TYPE = 4;
 const SET_TYPE = 5;
 const LAZY_ITERABLE_TYPE = 6;
+// a class instance or null-prototype object: the extension point for the
+// map-facing protocols. Plain objects keep the OBJECT_TYPE fast path.
+const INSTANCE_TYPE = 7;
 
 // type tag set in each collection ctor, read by typeConst (DCE: no instanceof).
 const TYPE_TAG = Symbol('squint.lang.type');
@@ -398,7 +414,7 @@ function typeConst(obj) {
   if (tag !== undefined) return tag;
   if (isVectorArray(obj)) return ARRAY_TYPE;
   // any remaining object (class instance, null-proto) is associative
-  if (typeof obj === 'object') return OBJECT_TYPE;
+  if (typeof obj === 'object') return INSTANCE_TYPE;
 
   return undefined;
 }
@@ -407,7 +423,7 @@ function assoc_in_with(f, fname, o, keys, value) {
   keys = vec(keys);
   o = o || {}; // default nil behavior is JS object
   const baseType = typeConst(o);
-  if (baseType !== MAP_TYPE && baseType !== ARRAY_TYPE && baseType !== OBJECT_TYPE)
+  if (baseType !== MAP_TYPE && baseType !== ARRAY_TYPE && baseType !== OBJECT_TYPE && baseType !== INSTANCE_TYPE)
     throw new Error(
       `Illegal argument: ${fname} expects the first argument to be a Map, Array, or Object.`
     );
@@ -526,6 +542,7 @@ export function conj_BANG_(...xs) {
         else for (const kv of mapEntriesOf(x)) o.set(kv[0], kv[1]);
       }
       break;
+    case INSTANCE_TYPE:
     case OBJECT_TYPE:
       for (const x of rest) {
         if (isVectorArray(x)) { asMapEntry(x); o[x[0]] = x[1]; }
@@ -604,6 +621,13 @@ export function conj(...xs) {
         yield* rest;
         yield* o;
       });
+    case INSTANCE_TYPE:
+      if (o[ICollection__conj] !== undefined) {
+        o2 = o;
+        for (const x of rest) o2 = o2[ICollection__conj](o2, x);
+        return o2;
+      }
+    // fall through: an instance without -conj keeps the object behavior
     case OBJECT_TYPE:
       o2 = { ...o };
 
@@ -644,6 +668,11 @@ export function contains_QMARK_(coll, v) {
       return coll.has(v);
     case undefined:
       return false;
+    case INSTANCE_TYPE:
+      if (coll[IAssociative__contains_key_QMARK_] !== undefined) {
+        return coll[IAssociative__contains_key_QMARK_](coll, v);
+      }
+    // fall through
     default:
       return v in coll;
   }
@@ -661,8 +690,13 @@ export function dissoc(m, ...ks) {
   if (!m) return;
   if (ks.length === 0) return m;
   const tc = typeConst(m);
-  if (tc !== MAP_TYPE && tc !== OBJECT_TYPE) {
+  if (tc !== MAP_TYPE && tc !== OBJECT_TYPE && tc !== INSTANCE_TYPE) {
     throw new Error('dissoc expects a map, got: ' + typeof m);
+  }
+  if (tc === INSTANCE_TYPE && m[IMap__dissoc] !== undefined) {
+    let ret = m;
+    for (const k of ks) ret = ret[IMap__dissoc] !== undefined ? ret[IMap__dissoc](ret, k) : dissoc(ret, k);
+    return ret;
   }
   if (tc === MAP_TYPE) {
     let present = false;
@@ -760,6 +794,10 @@ export function get(coll, key, otherwise = undefined) {
       v = coll[key];
       break;
     default:
+      if (coll[ILookup__lookup] !== undefined) {
+        v = coll[ILookup__lookup](coll, key, otherwise);
+        return v === undefined ? otherwise : v;
+      }
       // we choose .get as the default implementation, e.g. fetch Headers are not Maps, but do implement a .get method
       g = coll['get'];
       if (typeof g === 'function') {
@@ -1382,6 +1420,65 @@ export function _deref(o) {
 }
 export const ISeqable = { __sym: ISEQABLE_SYM };
 export const ISeqable__seq = Symbol('ISeqable_-seq');
+
+// map-facing protocols. Each dispatches through its slot in the extension
+// path (INSTANCE_TYPE) of the corresponding core fn, so plain objects and
+// arrays never pay for them. Slot symbols are separate consts so a bundle
+// using only e.g. conj pulls one symbol, not the whole protocol set.
+export const ILookup = { __sym: Symbol('squint.core.ILookup') };
+export const ILookup__lookup = Symbol('ILookup_-lookup');
+export const IAssociative = { __sym: Symbol('squint.core.IAssociative') };
+export const IAssociative__assoc = Symbol('IAssociative_-assoc');
+export const IAssociative__contains_key_QMARK_ = Symbol('IAssociative_-contains-key?');
+export const IMap = { __sym: Symbol('squint.core.IMap') };
+export const IMap__dissoc = Symbol('IMap_-dissoc');
+export const ICounted = { __sym: Symbol('squint.core.ICounted') };
+export const ICounted__count = Symbol('ICounted_-count');
+export const IKVReduce = { __sym: Symbol('squint.core.IKVReduce') };
+export const IKVReduce__kv_reduce = Symbol('IKVReduce_-kv-reduce');
+export const ICollection = { __sym: Symbol('squint.core.ICollection') };
+export const ICollection__conj = Symbol('ICollection_-conj');
+export const IEmptyableCollection = { __sym: Symbol('squint.core.IEmptyableCollection') };
+export const IEmptyableCollection__empty = Symbol('IEmptyableCollection_-empty');
+export const IEquiv = { __sym: Symbol('squint.core.IEquiv') };
+export const IEquiv__equiv = Symbol('IEquiv_-equiv');
+
+export function _lookup(o, k, nf) {
+  if (o != null && o[ILookup__lookup] !== undefined) return o[ILookup__lookup](o, k, nf);
+  return nilImpl(_lookup, 'ILookup.-lookup', o)(o, k, nf);
+}
+export function _assoc(o, k, v) {
+  if (o != null && o[IAssociative__assoc] !== undefined) return o[IAssociative__assoc](o, k, v);
+  return nilImpl(_assoc, 'IAssociative.-assoc', o)(o, k, v);
+}
+export function _contains_key_QMARK_(o, k) {
+  if (o != null && o[IAssociative__contains_key_QMARK_] !== undefined) return o[IAssociative__contains_key_QMARK_](o, k);
+  return nilImpl(_contains_key_QMARK_, 'IAssociative.-contains-key?', o)(o, k);
+}
+export function _dissoc(o, k) {
+  if (o != null && o[IMap__dissoc] !== undefined) return o[IMap__dissoc](o, k);
+  return nilImpl(_dissoc, 'IMap.-dissoc', o)(o, k);
+}
+export function _count(o) {
+  if (o != null && o[ICounted__count] !== undefined) return o[ICounted__count](o);
+  return nilImpl(_count, 'ICounted.-count', o)(o);
+}
+export function _kv_reduce(o, f, init) {
+  if (o != null && o[IKVReduce__kv_reduce] !== undefined) return o[IKVReduce__kv_reduce](o, f, init);
+  return nilImpl(_kv_reduce, 'IKVReduce.-kv-reduce', o)(o, f, init);
+}
+export function _conj(o, x) {
+  if (o != null && o[ICollection__conj] !== undefined) return o[ICollection__conj](o, x);
+  return nilImpl(_conj, 'ICollection.-conj', o)(o, x);
+}
+export function _empty(o) {
+  if (o != null && o[IEmptyableCollection__empty] !== undefined) return o[IEmptyableCollection__empty](o);
+  return nilImpl(_empty, 'IEmptyableCollection.-empty', o)(o);
+}
+export function _equiv(o, other) {
+  if (o != null && o[IEquiv__equiv] !== undefined) return o[IEquiv__equiv](o, other);
+  return nilImpl(_equiv, 'IEquiv.-equiv', o)(o, other);
+}
 export function _seq(o) {
   if (o != null && o[ISeqable__seq] !== undefined) return o[ISeqable__seq](o);
   return nilImpl(_seq, 'ISeqable.-seq', o)(o);
@@ -2110,9 +2207,12 @@ export function partition_by(f, coll) {
 export function empty(coll) {
   const type = typeConst(coll);
   if (type != null) {
-    // a class instance is not an emptyable collection, like CLJS;
-    // a plain or null-prototype object still empties to {}
-    if (type === OBJECT_TYPE && coll.constructor !== undefined && coll.constructor !== Object) return null;
+    if (type === INSTANCE_TYPE) {
+      if (coll[IEmptyableCollection__empty] !== undefined) return coll[IEmptyableCollection__empty](coll);
+      // a null-prototype object is a map rep; any other instance is not an
+      // emptyable collection, like CLJS
+      return coll.constructor === undefined ? copyMeta(coll, {}) : null;
+    }
     return copyMeta(coll, emptyOfType(type));
   }
   // non-collections give nil, like CLJS
@@ -2744,6 +2844,7 @@ export function count(coll) {
   if (typeof len === 'number') {
     return len;
   }
+  if (coll[ICounted__count] !== undefined) return coll[ICounted__count](coll);
   // sum chunk lengths instead of counting elements one by one
   const next = chunkCursor(coll);
   let ret = 0;
@@ -2894,6 +2995,7 @@ export function reduce_kv(f, init, m) {
   if (!m) {
     return init;
   }
+  if (m[IKVReduce__kv_reduce] !== undefined) return m[IKVReduce__kv_reduce](m, f, init);
   var ret = init;
   for (const o of iterable(m)) {
     ret = f(ret, o[0], o[1]);
@@ -3103,6 +3205,7 @@ export function keys(obj) {
   if (obj == null) return null;
   const t = typeConst(obj);
   switch (t) {
+    case INSTANCE_TYPE:
     case OBJECT_TYPE: {
       const ks = Object.keys(obj);
       if (ks.length) return ks;
@@ -3127,6 +3230,7 @@ export function vals(obj) {
   if (obj == null) return null;
   const t = typeConst(obj);
   switch (t) {
+    case INSTANCE_TYPE:
     case OBJECT_TYPE: {
       const vs = Object.values(obj);
       if (vs.length) return vs;
@@ -3308,6 +3412,7 @@ export function counted_QMARK_(x) {
     case ARRAY_TYPE:
     case MAP_TYPE:
     case OBJECT_TYPE:
+    case INSTANCE_TYPE:
     case LIST_TYPE:
     case SET_TYPE:
       return true;
@@ -3891,7 +3996,7 @@ function clj__GT_js_(x, seen) {
   }
 
   const tc = typeConst(x);
-  if (tc && tc != OBJECT_TYPE) {
+  if (tc && tc != OBJECT_TYPE && tc != INSTANCE_TYPE) {
     return mapv((x) => clj__GT_js_(x, seen), x);
   }
   return x;
