@@ -3,6 +3,7 @@
                             dt->et])
   (:require
    [clojure.core :as core]
+   [clojure.string :as str]
    [squint.internal.protocols :as p]))
 
 (def fast-path-protocols
@@ -91,6 +92,125 @@
        ~docstring
        [~@fields]
        (new ~rname ~@field-values))))
+
+(core/defn- build-map-factory
+  [rsym rname fields]
+  (core/let [fn-name (with-meta (symbol (core/str 'map-> rsym))
+                       (assoc (meta rsym) :factory :map))
+             docstring (core/str "Factory function for " rname ", taking a map of keywords to field values.")
+             ms 'm]
+    `(defn ~fn-name ~docstring [~ms]
+       (reduce-kv (fn [r# k# v#] (unchecked-set r# k# v#) r#)
+                  (new ~rname ~@(map (core/fn [f] `(get ~ms ~(core/name f))) fields))
+                  ~ms))))
+
+(core/defn- wrap-record-fields
+  "Prefixes each method body with a let binding the record fields read off
+  this, so bodies can use bare field names like in CLJS. Params shadow fields."
+  [fields specs]
+  (core/let [wrap-arity
+             (core/fn [[params & body :as arity]]
+               (core/let [this-sym (first params)
+                          shadowed (into #{} (comp (filter core/symbol?) (map core/name)) params)
+                          binds (mapcat (core/fn [f]
+                                          (core/when-not (contains? shadowed (core/name f))
+                                            [f `(unchecked-get ~this-sym ~(core/name f))]))
+                                        fields)]
+                 (if (core/and this-sym (seq binds))
+                   `(~params (let [~@binds] ~@body))
+                   arity)))]
+    (map (core/fn [spec]
+           (if (seq? spec)
+             (core/let [[mname & tail] spec]
+               (if (vector? (first tail))
+                 `(~mname ~@(wrap-arity tail))
+                 `(~mname ~@(map wrap-arity tail))))
+             spec))
+         specs)))
+
+(core/defn- record-impls
+  "The generated protocol implementations that make a record behave as a map."
+  [t fields]
+  (core/let [basis (mapv core/name fields)]
+    `(~'IRecord
+      ~'ILookup
+      (~'-lookup [this# k# nf#]
+        (let [v# (unchecked-get this# k#)]
+          (if (~'js* "~{} === undefined" v#) nf# v#)))
+      ~'IAssociative
+      (~'-assoc [this# k# v#]
+        (let [r# (~'js* "Object.assign(Object.create(Object.getPrototypeOf(~{})), ~{})" this# this#)]
+          (unchecked-set r# k# v#)
+          r#))
+      (~'-contains-key? [this# k#]
+        (~'js* "Object.prototype.hasOwnProperty.call(~{}, ~{})" this# k#))
+      ~'IMap
+      (~'-dissoc [this# k#]
+        (if (~'js* "~{}.includes(~{})" ~basis k#)
+          ;; removing a basis field demotes to a plain map, like CLJS
+          (let [m# (~'js* "({...~{}})" this#)]
+            (js-delete m# k#)
+            m#)
+          (let [r# (~'js* "Object.assign(Object.create(Object.getPrototypeOf(~{})), ~{})" this# this#)]
+            (js-delete r# k#)
+            r#)))
+      ~'ICounted
+      (~'-count [this#] (.-length (js/Object.keys this#)))
+      ~'IKVReduce
+      (~'-kv-reduce [this# f# init#]
+        (reduce (fn [acc# kv#] (f# acc# (aget kv# 0) (aget kv# 1)))
+                init#
+                (js/Object.entries this#)))
+      ~'ICollection
+      (~'-conj [this# x#]
+        (if (vector? x#)
+          (assoc this# (nth x# 0) (nth x# 1))
+          (reduce (fn [acc# e#] (assoc acc# (nth e# 0) (nth e# 1))) this# (seq x#))))
+      ~'IEquiv
+      (~'-equiv [this# other#]
+        (and (instance? ~t other#)
+             (let [ka# (js/Object.keys this#)
+                   kb# (js/Object.keys other#)]
+               (and (= (.-length ka#) (.-length kb#))
+                    (every? (fn [k#]
+                              (and (~'js* "Object.prototype.hasOwnProperty.call(~{}, ~{})" other# k#)
+                                   (= (unchecked-get this# k#) (unchecked-get other# k#))))
+                            ka#)))))
+      ~'ISeqable
+      (~'-seq [this#] (seq (js/Object.entries this#))))))
+
+(core/defn core-defrecord
+  "(defrecord name [fields*] specs*)
+  Like CLJS defrecord: defines a positional ->name and a map->name factory
+  and instances behave as maps of the fields. Squint records store the
+  fields as own string-keyed properties and implement the map-facing
+  protocols, so keyword lookup, keys, seq, assoc, conj and = work through
+  the regular core functions. assoc and dissoc of a non-basis key keep the
+  record type, dissoc of a basis field gives a plain map."
+  [&env _&form t fields & impls]
+  (core/let [env &env
+             r t
+             [fpps _pmasks] (prepare-protocol-masks env impls)
+             protocols (collect-protocols impls env)
+             t (vary-meta t assoc
+                          :protocols protocols
+                          :skip-protocol-flag fpps)
+             params (map (core/comp core/munge core/name) fields)
+             ctor-js (core/str "function " (core/munge (core/str t))
+                               " (" (str/join ", " params) ") {\n"
+                               (apply core/str
+                                      (map (core/fn [f p]
+                                             (core/str "this[" (pr-str (core/name f)) "] = " p ";\n"))
+                                           fields params))
+                               "}")]
+    `(do
+       (def ~t (~'js* ~ctor-js))
+       (extend-type ~t
+         ~@(record-impls t fields)
+         ~@(wrap-record-fields fields (dt->et t impls fields)))
+       ~(build-positional-factory t r fields)
+       ~(build-map-factory t r fields)
+       ~t)))
 
 (core/defn core-deftype
   "(deftype name [fields*]  options* specs*)

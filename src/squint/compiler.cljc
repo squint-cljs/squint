@@ -90,6 +90,7 @@
                              'extend-protocol protocols/core-extend-protocol
                              'reify protocols/core-reify
                              'deftype deftype/core-deftype
+                             'defrecord deftype/core-defrecord
                              'defn core-defn
                              'defn- core-defn-
                              'instance? macros/core-instance?

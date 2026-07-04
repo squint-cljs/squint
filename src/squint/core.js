@@ -1450,6 +1450,12 @@ export const IEmptyableCollection = { __sym: Symbol('squint.core.IEmptyableColle
 export const IEmptyableCollection__empty = Symbol('IEmptyableCollection_-empty');
 export const IEquiv = { __sym: Symbol('squint.core.IEquiv') };
 export const IEquiv__equiv = Symbol('IEquiv_-equiv');
+// marker protocol set by defrecord
+export const IRecord = { __sym: Symbol('squint.core.IRecord') };
+
+export function record_QMARK_(x) {
+  return x != null && x[IRecord.__sym] === true;
+}
 
 // The protocol-method fns below share one shape but stay hand-written on
 // purpose: a shared factory makes V8 share type feedback across all of them,
@@ -4125,6 +4131,11 @@ function toEDN(value, seen = new WeakSet(), readably = true) {
         result = `(${mapv((v) => `${toEDN(v, seen, readably)}`, value).join(', ')})`;
         break;
       default:
+        if (value[IRecord.__sym] === true) {
+          keys = Object.keys(value);
+          result = `#${value.constructor.name}{${keys.map((k) => `:${k} ${toEDN(value[k], seen, readably)}`).join(', ')}}`;
+          break;
+        }
         // Non-plain objects (Promise, Error, Date, class instances, ...) have a
         // constructor other than Object. Print them as #<Name> rather than {}
         // (which is what Object.keys would yield for opaque values like a

@@ -23,6 +23,7 @@
   ILookup__lookup
   IMap
   IMap__dissoc
+  IRecord
   IReset
   IReset__reset_BANG_
   ISeqable
@@ -243,6 +244,7 @@
   re_pattern
   re_seq
   realized_QMARK_
+  record_QMARK_
   reduce
   reduce_kv
   reduced
