@@ -2247,6 +2247,10 @@ export function merge(...args) {
   } else if (typeConst(firstArg) === undefined) {
     // a non-collection passes through; conj! throws when maps follow, like CLJS
     obj = firstArg;
+  } else if (firstArg[ICollection__conj] !== undefined) {
+    // a -conj type is immutable: no defensive copy needed, and a record has
+    // no empty to rebuild from
+    obj = firstArg;
   } else {
     obj = into(empty(firstArg), firstArg);
   }

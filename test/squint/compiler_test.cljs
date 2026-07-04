@@ -1886,6 +1886,9 @@ with `backticks`")))]
   (testing "printing and empty"
     (is (= "#Foo{:a 1, :first-name \"Rich\"}" (foo-rec "(pr-str f)")))
     (is (= nil (foo-rec "(empty f)"))))
+  (testing "merge and into keep the record type"
+    (is (= true (foo-rec "(let [g (merge f {:b 2})] (and (record? g) (= 2 (:b g))))")))
+    (is (= true (foo-rec "(let [g (into f {:b 2})] (and (record? g) (= 2 (:b g))))"))))
   (testing "munged field names keep their map keys"
     (is (= true (jsv! "(defrecord B [x-y]) (= 1 (:x-y (->B 1)))")))))
 
