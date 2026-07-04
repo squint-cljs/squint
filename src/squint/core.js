@@ -435,9 +435,12 @@ function assoc_in_with(f, fname, o, keys, value) {
     const k = keys[i];
     let chainValue;
     if (lastInChain instanceof Map) chainValue = lastInChain.get(k);
-    else chainValue = lastInChain[k];
+    else if (lastInChain != null && lastInChain[ILookup__lookup] !== undefined) {
+      chainValue = lastInChain[ILookup__lookup](lastInChain, k, undefined);
+    } else chainValue = lastInChain[k];
     if (!chainValue) {
-      chainValue = emptyOfType(baseType);
+      // an instance root has no empty-of-type: missing levels become plain maps
+      chainValue = emptyOfType(baseType) ?? {};
     }
     chain.push(chainValue);
     lastInChain = chainValue;
