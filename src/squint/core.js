@@ -626,8 +626,9 @@ export function conj(...xs) {
       });
     case INSTANCE_TYPE:
       if (o[ICollection__conj] !== undefined) {
-        o2 = o;
-        for (const x of rest) o2 = o2[ICollection__conj](o2, x);
+        // re-dispatch per element: a -conj impl may return a different type
+        o2 = o[ICollection__conj](o, rest[0]);
+        for (let i = 1; i < rest.length; i++) o2 = conj(o2, rest[i]);
         return o2;
       }
     // fall through: an instance without -conj keeps the object behavior
@@ -698,7 +699,11 @@ export function dissoc(m, ...ks) {
   }
   if (tc === INSTANCE_TYPE && m[IMap__dissoc] !== undefined) {
     let ret = m;
-    for (const k of ks) ret = ret[IMap__dissoc] !== undefined ? ret[IMap__dissoc](ret, k) : dissoc(ret, k);
+    // re-dispatch per key: a -dissoc impl may return a different type
+    for (const k of ks) {
+      if (ret == null) return ret;
+      ret = ret[IMap__dissoc] !== undefined ? ret[IMap__dissoc](ret, k) : dissoc(ret, k);
+    }
     return ret;
   }
   if (tc === MAP_TYPE) {
