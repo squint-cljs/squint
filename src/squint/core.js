@@ -2236,6 +2236,10 @@ export function merge(...args) {
   } else {
     obj = into(empty(firstArg), firstArg);
   }
+  // an ICollection target merges through -conj instead of mutation
+  if (obj != null && obj[ICollection__conj] !== undefined) {
+    return conj(obj, ...args.slice(1));
+  }
   return conj_BANG_(obj, ...args.slice(1));
 }
 
@@ -3215,6 +3219,13 @@ export function keys(obj) {
   const t = typeConst(obj);
   switch (t) {
     case INSTANCE_TYPE:
+      // Object.keys on an instance would leak internals: go through -kv-reduce
+      if (obj[IKVReduce__kv_reduce] !== undefined) {
+        const ks = obj[IKVReduce__kv_reduce](obj, (acc, k, _) => (acc.push(k), acc), []);
+        if (ks.length) return ks;
+        return;
+      }
+    // fall through
     case OBJECT_TYPE: {
       const ks = Object.keys(obj);
       if (ks.length) return ks;
@@ -3240,6 +3251,12 @@ export function vals(obj) {
   const t = typeConst(obj);
   switch (t) {
     case INSTANCE_TYPE:
+      if (obj[IKVReduce__kv_reduce] !== undefined) {
+        const vs = obj[IKVReduce__kv_reduce](obj, (acc, _, v) => (acc.push(v), acc), []);
+        if (vs.length) return vs;
+        return;
+      }
+    // fall through
     case OBJECT_TYPE: {
       const vs = Object.values(obj);
       if (vs.length) return vs;
@@ -3907,6 +3924,9 @@ export function pop(vec) {
 
 export function update_keys(m, f) {
   const m2 = empty(m);
+  if (m2 != null && m2[IAssociative__assoc] !== undefined) {
+    return reduce_kv((acc, k, v) => acc[IAssociative__assoc](acc, f(k), v), m2, m);
+  }
   const assocFn = getAssocMut(m) || assoc_BANG_;
   reduce_kv(
     (acc, k, v) => {
@@ -3920,6 +3940,9 @@ export function update_keys(m, f) {
 
 export function update_vals(m, f) {
   const m2 = empty(m);
+  if (m2 != null && m2[IAssociative__assoc] !== undefined) {
+    return reduce_kv((acc, k, v) => acc[IAssociative__assoc](acc, k, f(v)), m2, m);
+  }
   const assocFn = getAssocMut(m) || assoc_BANG_;
   reduce_kv(
     (acc, k, v) => {

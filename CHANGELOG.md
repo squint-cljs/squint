@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `merge`, `keys`, `vals`, `update-keys` and `update-vals` to dispatch through the map protocols on custom types, instead of mutating copies or reading internal properties
 - Fix `into` to reduce through `-conj` on a type implementing `ICollection` instead of mutating a plain copy
 - Fix `assoc-in` and `update-in` to read intermediate levels through `-lookup`, so nested updates work on types implementing the map protocols
 - Add the `ILookup`, `IAssociative`, `IMap`, `ICounted`, `IKVReduce`, `ICollection`, `IEmptyableCollection` and `IEquiv` protocols. `get`, `assoc`, `contains?`, `find`, `dissoc`, `count`, `reduce-kv`, `conj`, `empty` and `=` dispatch to them on custom types. Plain objects and arrays keep their fast paths
