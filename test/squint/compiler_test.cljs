@@ -1876,6 +1876,11 @@ with `backticks`")))]
     (is (eq ["a" "b"] (my-map "(vec (map first (seq x)))")))
     (is (= true (my-map "(boolean (satisfies? ILookup x))")))
     (is (= false (my-map "(boolean (satisfies? ILookup {}))"))))
+  (testing "assoc-in and update-in walk through -lookup and rebuild through -assoc"
+    (is (= 2 (my-map "(get-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y :zz] 2)")))
+    (is (= 99 (my-map "(get-in (assoc-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y] 99) [:x :y])")))
+    (is (= true (my-map "(instance? MyMap (get (assoc-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y] 99) :x))")))
+    (is (= 2 (my-map "(get-in (update-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y] inc) [:x :y])"))))
   (testing "into reduces through -conj instead of mutating a copy"
     (is (= 3 (my-map "(count (into x {:c 3}))")))
     (is (= true (my-map "(instance? MyMap (into x {:c 3}))")))
