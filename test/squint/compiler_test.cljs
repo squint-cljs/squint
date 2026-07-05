@@ -1839,6 +1839,63 @@ with `backticks`")))]
   (is (thrown? js/Error (jsv! '(cons 1 42))))
   (is (eq [1 "k"] (jsv! '(vec (cons 1 "k"))))))
 
+(def ^:private foo-prelude
+  "(defprotocol IGreet (-greet [x]))
+   (defrecord Foo [a first-name] IGreet (-greet [this] (str \"hi \" first-name \" a=\" a)))
+   (def f (->Foo 1 \"Rich\"))\n")
+
+(defn- foo-rec [expr]
+  (jsv! (str foo-prelude expr)))
+
+(deftest defrecord-test
+  (testing "fields are map entries"
+    (is (= 1 (foo-rec "(:a f)")))
+    (is (= "Rich" (foo-rec "(:first-name f)")))
+    (is (= "nf" (foo-rec "(get f :zz :nf)")))
+    (is (= 2 (foo-rec "(count f)")))
+    (is (= true (foo-rec "(contains? f :a)")))
+    (is (= false (foo-rec "(contains? f :zz)")))
+    (is (eq ["a" "first-name"] (foo-rec "(vec (sort (keys f)))")))
+    (is (eq ["a" 1] (foo-rec "(vec (find f :a))"))))
+  (testing "protocol methods see bare fields, params shadow"
+    (is (= "hi Rich a=1" (foo-rec "(-greet f)"))))
+  (testing "value equality per type"
+    (is (= true (foo-rec "(= f (->Foo 1 \"Rich\"))")))
+    (is (= false (foo-rec "(= f (->Foo 2 \"Rich\"))")))
+    (is (= false (foo-rec "(= f {:a 1 :first-name \"Rich\"})")))
+    (is (= false (foo-rec "(= {:a 1 :first-name \"Rich\"} f)"))))
+  (testing "assoc keeps the record type"
+    (is (= true (foo-rec "(let [g (assoc f :a 5)] (and (record? g) (instance? Foo g) (= \"hi Rich a=5\" (-greet g))))")))
+    (is (= true (foo-rec "(let [g (assoc f :extra 9)] (and (record? g) (= 9 (:extra g)) (not= g f)))"))))
+  (testing "dissoc of a basis field demotes to a plain map"
+    (is (= true (foo-rec "(let [g (dissoc f :a)] (and (not (record? g)) (map? g) (= \"Rich\" (:first-name g))))")))
+    (is (= true (foo-rec "(let [g (dissoc (assoc f :extra 9) :extra)] (and (record? g) (= g f)))"))))
+  (testing "factories"
+    (is (= true (foo-rec "(let [g (map->Foo {:a 3 :first-name \"Bob\" :extra 7})] (and (record? g) (= 3 (:a g)) (= 7 (:extra g))))"))))
+  (testing "conj, into, seq, reduce-kv"
+    (is (= true (foo-rec "(record? (conj f [:b 2]))")))
+    (is (= 2 (foo-rec "(:b (conj f [:b 2]))")))
+    (is (= 1 (foo-rec "(:x (into f {:x 1}))")))
+    (is (eq [["a" 1] ["first-name" "Rich"]] (foo-rec "(vec (sort-by first (map vec (seq f))))")))
+    (is (eq ["a" "first-name"] (foo-rec "(vec (sort (reduce-kv (fn [acc k _] (conj acc k)) [] f)))"))))
+  (testing "record? and the IRecord marker"
+    (is (= true (foo-rec "(record? f)")))
+    (is (= false (jsv! "(record? {})")))
+    (is (= false (jsv! "(record? nil)")))
+    (is (= true (foo-rec "(boolean (satisfies? IRecord f))"))))
+  (testing "printing and empty"
+    (is (= "#Foo{:a 1, :first-name \"Rich\"}" (foo-rec "(pr-str f)")))
+    (is (= nil (foo-rec "(empty f)"))))
+  (testing "merge and into keep the record type"
+    (is (= true (foo-rec "(let [g (merge f {:b 2})] (and (record? g) (= 2 (:b g))))")))
+    (is (= true (foo-rec "(let [g (into f {:b 2})] (and (record? g) (= 2 (:b g))))"))))
+  (testing "munged field names keep their map keys"
+    (is (= true (jsv! "(defrecord B [x-y]) (= 1 (:x-y (->B 1)))")))
+    (is (= 1 (jsv! "(defrecord B [x-y]) (.-x-y (->B 1))")))
+    (is (eq ["x-y"] (jsv! "(defrecord B [x-y]) (vec (keys (->B 1)))")))
+    (is (= true (jsv! "(defrecord B [x-y]) (= (->B 1) (->B 1))")))
+    (is (= 1 (jsv! "(defrecord B [x-y]) (.-x-y (assoc (->B 1) :other 2))")))))
+
 (def ^:private my-map-prelude
   "(deftype MyMap [m]
      ILookup (-lookup [this k nf] (get m k nf))

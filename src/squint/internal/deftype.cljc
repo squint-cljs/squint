@@ -3,6 +3,7 @@
                             dt->et])
   (:require
    [clojure.core :as core]
+   [clojure.string :as str]
    [squint.internal.protocols :as p]))
 
 (def fast-path-protocols
@@ -91,6 +92,55 @@
        ~docstring
        [~@fields]
        (new ~rname ~@field-values))))
+
+(core/defn- build-map-factory
+  [rsym rname fields]
+  (core/let [fn-name (with-meta (symbol (core/str 'map-> rsym))
+                       (assoc (meta rsym) :factory :map))
+             docstring (core/str "Factory function for " rname ", taking a map of keywords to field values.")
+             ms 'm]
+    `(defn ~fn-name ~docstring [~ms]
+       (reduce-kv (fn [r# k# v#] (unchecked-set r# k# v#) r#)
+                  (new ~rname ~@(map (core/fn [f] `(get ~ms ~(core/name f))) fields))
+                  ~ms))))
+
+(core/defn core-defrecord
+  "(defrecord name [fields*] specs*)
+  Like CLJS defrecord: defines a positional ->name and a map->name factory
+  and instances behave as maps of the fields. Squint records store the
+  fields as own string-keyed properties and implement the map-facing
+  protocols, so keyword lookup, keys, seq, assoc, conj and = work through
+  the regular core functions. assoc and dissoc of a non-basis key keep the
+  record type, dissoc of a basis field gives a plain map."
+  [_&form env t fields & impls]
+  (core/when-let [atm (:need-record-import env)]
+    (reset! atm true))
+  (core/let [r t
+             params (map (core/comp core/munge core/name) fields)
+             ctor-js (core/str "function " (core/munge (core/str t))
+                               " (" (str/join ", " params) ") {\n"
+                               (apply core/str
+                                      (map (core/fn [f p]
+                                             (core/str "this[" (pr-str (core/name f)) "] = " p ";\n"))
+                                           fields params))
+                               "}")
+             aliases (into {} (core/keep (core/fn [f]
+                                            (core/let [n (core/name f)
+                                                       m (core/str (core/munge n))]
+                                              (core/when-not (= m n)
+                                                [m n])))
+                                          fields))]
+    `(do
+       (def ~t (~'js* ~ctor-js))
+       ~(if (seq aliases)
+          `(~'js* "squint_record.attach(~{}.prototype, ~{}, ~{})" ~t ~(mapv core/name fields) ~aliases)
+          `(~'js* "squint_record.attach(~{}.prototype, ~{})" ~t ~(mapv core/name fields)))
+       ~(core/when (seq impls)
+          `(~'record-methods* ~fields
+            (extend-type ~t ~@(dt->et t impls fields))))
+       ~(build-positional-factory t r fields)
+       ~(build-map-factory t r fields)
+       ~t)))
 
 (core/defn core-deftype
   "(deftype name [fields*]  options* specs*)

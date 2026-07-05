@@ -1450,6 +1450,12 @@ export const IEmptyableCollection = { __sym: Symbol('squint.core.IEmptyableColle
 export const IEmptyableCollection__empty = Symbol('IEmptyableCollection_-empty');
 export const IEquiv = { __sym: Symbol('squint.core.IEquiv') };
 export const IEquiv__equiv = Symbol('IEquiv_-equiv');
+// marker protocol set by defrecord
+export const IRecord = { __sym: Symbol('squint.core.IRecord') };
+
+export function record_QMARK_(x) {
+  return x != null && x[IRecord.__sym] !== undefined;
+}
 
 // The protocol-method fns below share one shape but stay hand-written on
 // purpose: a shared factory makes V8 share type feedback across all of them,
@@ -2240,6 +2246,10 @@ export function merge(...args) {
     obj = {};
   } else if (typeConst(firstArg) === undefined) {
     // a non-collection passes through; conj! throws when maps follow, like CLJS
+    obj = firstArg;
+  } else if (firstArg[ICollection__conj] !== undefined) {
+    // a -conj type is immutable: no defensive copy needed, and a record has
+    // no empty to rebuild from
     obj = firstArg;
   } else {
     obj = into(empty(firstArg), firstArg);
@@ -4125,6 +4135,11 @@ function toEDN(value, seen = new WeakSet(), readably = true) {
         result = `(${mapv((v) => `${toEDN(v, seen, readably)}`, value).join(', ')})`;
         break;
       default:
+        if (value[IRecord.__sym] !== undefined) {
+          keys = Object.keys(value);
+          result = `#${value.constructor.name}{${keys.map((k) => `:${k} ${toEDN(value[k], seen, readably)}`).join(', ')}}`;
+          break;
+        }
         // Non-plain objects (Promise, Error, Date, class instances, ...) have a
         // constructor other than Object. Print them as #<Name> rather than {}
         // (which is what Object.keys would yield for opaque values like a
