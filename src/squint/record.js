@@ -82,6 +82,15 @@ export function attach(proto, basis, aliases) {
   proto[IEquiv__equiv] = recordEquiv;
   proto[ISeqable__seq] = recordSeq;
   proto[ISeqable.__sym] = true;
+  proto[Symbol.iterator] = function* () {
+    for (const k of Object.keys(this)) yield [k, this[k]];
+  };
+  Object.defineProperty(proto, Symbol.toStringTag, {
+    get() { return this.constructor.name; },
+  });
+  proto[Symbol.for('nodejs.util.inspect.custom')] = function (_depth, opts, inspect) {
+    return '#' + this.constructor.name + ' ' + inspect({ ...this }, opts);
+  };
   if (aliases !== undefined) {
     for (const munged of Object.keys(aliases)) {
       const field = aliases[munged];

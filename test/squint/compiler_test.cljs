@@ -226,9 +226,9 @@
   (is (false? (jsv! "(zero? \"0\")"))))
 
 (deftest even?-odd?-test
-  (is (= true (jsv! '(even? 4))))
-  (is (= false (jsv! '(even? 3))))
-  (is (= true (jsv! '(odd? 3))))
+  (is (true? (jsv! '(even? 4))))
+  (is (false? (jsv! '(even? 3))))
+  (is (true? (jsv! '(odd? 3))))
   (testing "throws on a non-integer, like CLJS"
     (is (thrown? js/Error (jsv! '(even? 1.5))))
     (is (thrown? js/Error (jsv! '(even? nil))))
@@ -908,14 +908,14 @@
 (deftest coll-call-binding-test
   ;; a set or map literal bound to a local is callable as a function
   (is (= 2 (jsv! '(let [s #{1 2 3}] (s 2)))))
-  (is (= nil (jsv! '(let [s #{1 2 3}] (s 9)))))
+  (is (nil? (jsv! '(let [s #{1 2 3}] (s 9)))))
   (is (= 1 (jsv! '(let [m {:a 1 :b 2}] (m :a)))))
   (is (= "d" (jsv! '(let [m {:a 1}] (m :z :d)))))
   ;; tag carries through aliasing
   (is (= 2 (jsv! '(let [a #{1 2} b a] (b 2)))))
   ;; a set or map literal bound to a var is callable as a function
   (is (= "foo" (jsv! "(def s #{:foo :bar}) (s :foo)")))
-  (is (= nil (jsv! "(def s #{:foo :bar}) (s :nope)")))
+  (is (nil? (jsv! "(def s #{:foo :bar}) (s :nope)")))
   (is (= 1 (jsv! "(def m {:a 1 :b 2}) (m :a)")))
   (is (= "d" (jsv! "(def m {:a 1}) (m :z :d)")))
   ;; a def with a docstring still tags the init collection
@@ -924,7 +924,7 @@
   (is (= 20 (jsv! '(let [v [10 20 30]] (v 1)))))
   ;; a collection-returning core fn makes its binding callable
   (is (= 2 (jsv! '(let [s (set [1 2 3])] (s 2)))))
-  (is (= nil (jsv! '(let [s (set [1 2 3])] (s 9)))))
+  (is (nil? (jsv! '(let [s (set [1 2 3])] (s 9)))))
   (is (= 2 (jsv! '(let [m (zipmap [:a :b] [1 2])] (m :b)))))
   (is (= 1 (jsv! "(def planned (set [1 2])) (planned 1)")))
   (is (= 1 (jsv! "(def m (select-keys {:a 1 :b 2} [:a])) (m :a)")))
@@ -1024,8 +1024,8 @@ with `backticks`")))]
 (deftest conj-test
   (testing "corner cases"
     (is (eq [], (jsv! '(conj))))
-    (is (= true, (jsv! '(vector? (conj)))))
-    (is (= true (jsv! '(nil? (conj nil)))))
+    (is (true? (jsv! '(vector? (conj)))))
+    (is (true? (jsv! '(nil? (conj nil)))))
     (is (eq [2 1] (jsv! '(conj nil 1 2)))))
   (testing "arrays"
     (is (eq [1 2 3 4] (jsv! '(conj [1 2 3 4]))))
@@ -1126,46 +1126,46 @@ with `backticks`")))]
   (testing "disj preserves metadata"
     (is (eq {:m 1} (jsv! '(meta (disj (with-meta #{1 2 3} {:m 1}) 1 2 3))))))
   (testing "membership of compound elements is by reference, only = is deep"
-    (is (= false (jsv! '(contains? #{[1 2]} [1 2]))))
-    (is (= true (jsv! '(let [v [1 2]] (contains? #{v} v)))))))
+    (is (false? (jsv! '(contains? #{[1 2]} [1 2]))))
+    (is (true? (jsv! '(let [v [1 2]] (contains? #{v} v)))))))
 
 (deftest contains?-test
   (testing "corner cases"
-    (is (= false (jsv! '(contains? nil nil))))
-    (is (= false (jsv! '(contains? 1 nil))))
-    (is (= false (jsv! '(contains? 1 1))))
-    (is (= false (jsv! '(contains? "foo" "foo"))))
-    (is (= false (jsv! '(contains? "foo" nil)))))
+    (is (false? (jsv! '(contains? nil nil))))
+    (is (false? (jsv! '(contains? 1 nil))))
+    (is (false? (jsv! '(contains? 1 1))))
+    (is (false? (jsv! '(contains? "foo" "foo"))))
+    (is (false? (jsv! '(contains? "foo" nil)))))
   (testing "arrays"
-    (is (= true (jsv! '(contains? [1 2 3] 0))))
-    (is (= true (jsv! '(contains? [1 2 3] 1))))
-    (is (= true (jsv! '(contains? [1 2 3] 2))))
-    (is (= false (jsv! '(contains? [1 2 3] 3)))))
+    (is (true? (jsv! '(contains? [1 2 3] 0))))
+    (is (true? (jsv! '(contains? [1 2 3] 1))))
+    (is (true? (jsv! '(contains? [1 2 3] 2))))
+    (is (false? (jsv! '(contains? [1 2 3] 3)))))
   (testing "sets"
-    (is (= false (jsv! '(contains? #{1 2 3} 0))))
-    (is (= true (jsv! '(contains? #{1 2 3} 1))))
-    (is (= true (jsv! '(contains? #{1 2 3} 2))))
-    (is (= true (jsv! '(contains? #{1 2 3} 3))))
-    (is (= true (jsv! '(contains? #{1 2 3 nil} nil)))))
+    (is (false? (jsv! '(contains? #{1 2 3} 0))))
+    (is (true? (jsv! '(contains? #{1 2 3} 1))))
+    (is (true? (jsv! '(contains? #{1 2 3} 2))))
+    (is (true? (jsv! '(contains? #{1 2 3} 3))))
+    (is (true? (jsv! '(contains? #{1 2 3 nil} nil)))))
   (testing "objects"
-    (is (= true (jsv! '(contains? {:a 1} :a))))
-    (is (= false (jsv! '(contains? {:a 1} :b)))))
+    (is (true? (jsv! '(contains? {:a 1} :a))))
+    (is (false? (jsv! '(contains? {:a 1} :b)))))
   (testing "maps"
-    (is (= true (jsv! '(contains? (js/Map. [[:a 1]]) :a))))
-    (is (= false (jsv! '(contains? (js/Map. [[:a 1]]) :b)))))
+    (is (true? (jsv! '(contains? (js/Map. [[:a 1]]) :a))))
+    (is (false? (jsv! '(contains? (js/Map. [[:a 1]]) :b)))))
   (testing "strings are indexed by integer"
-    (is (= true (jsv! '(contains? "abc" 0))))
-    (is (= true (jsv! '(contains? "abc" 2))))
-    (is (= false (jsv! '(contains? "abc" 3))))
-    (is (= false (jsv! '(contains? "abc" -1))))
-    (is (= false (jsv! '(contains? "abc" 1.5))))
-    (is (= false (jsv! '(contains? "abc" "a"))))))
+    (is (true? (jsv! '(contains? "abc" 0))))
+    (is (true? (jsv! '(contains? "abc" 2))))
+    (is (false? (jsv! '(contains? "abc" 3))))
+    (is (false? (jsv! '(contains? "abc" -1))))
+    (is (false? (jsv! '(contains? "abc" 1.5))))
+    (is (false? (jsv! '(contains? "abc" "a"))))))
 
 (deftest hash-map-test
   (is (eq {} (jsv! '(hash-map))))
   (is (eq {:a 1 :b 2} (jsv! '(hash-map :a 1 :b 2))))
   (is (eq {:x 10} (jsv! '(array-map :x 10))))
-  (is (= true (jsv! '(= {:a 1 :b 2} (hash-map :a 1 :b 2)))))
+  (is (true? (jsv! '(= {:a 1 :b 2} (hash-map :a 1 :b 2)))))
   (is (eq {:a 1 :b 2} (jsv! '(apply hash-map [:a 1 :b 2])))))
 
 (deftest assoc-test
@@ -1303,12 +1303,12 @@ with `backticks`")))]
 
 (deftest get-test
   (testing "corner cases"
-    (is (= nil (jsv! '(get nil nil))))
-    (is (= nil (jsv! '(get nil 0))))
-    (is (= nil (jsv! '(get 1 nil))))
-    (is (= nil (jsv! '(get "1" nil))))
-    (is (= nil (jsv! '(get true nil))))
-    (is (= nil (jsv! '(get :foo nil)))))
+    (is (nil? (jsv! '(get nil nil))))
+    (is (nil? (jsv! '(get nil 0))))
+    (is (nil? (jsv! '(get 1 nil))))
+    (is (nil? (jsv! '(get "1" nil))))
+    (is (nil? (jsv! '(get true nil))))
+    (is (nil? (jsv! '(get :foo nil)))))
   (testing "maps"
     (is (eq nil (jsv! '(get (js/Map. [["my-key" 1]]) nil))))
     (is (eq 1 (jsv! '(get (js/Map. [["my-key" 1]]) "my-key"))))
@@ -1337,11 +1337,11 @@ with `backticks`")))]
     (is (eq 1 (jsv! '(get (js/eval "class Foo { get() { return 1;} }; new Foo()") :foo))))))
 
 (deftest first-test
-  (is (= nil (jsv! '(first nil))))
-  (is (= nil (jsv! '(first []))))
-  (is (= nil (jsv! '(first #{}))))
-  (is (= nil (jsv! '(first {}))))
-  (is (= nil (jsv! '(first (js/Map. [])))))
+  (is (nil? (jsv! '(first nil))))
+  (is (nil? (jsv! '(first []))))
+  (is (nil? (jsv! '(first #{}))))
+  (is (nil? (jsv! '(first {}))))
+  (is (nil? (jsv! '(first (js/Map. [])))))
   (is (= 1 (jsv! '(first [1 2 3]))))
   (is (= 1 (jsv! '(first #{1 2 3}))))
   (is (eq #js [1 2] (jsv! '(first (js/Map. [[1 2] [3 4]])))))
@@ -1367,12 +1367,12 @@ with `backticks`")))]
 
 
 (deftest last-test
-  (is (= nil (jsv! '(last nil))))
-  (is (= nil (jsv! '(last []))))
-  (is (= nil (jsv! '(last {}))))
-  (is (= nil (jsv! '(last #{}))))
-  (is (= nil (jsv! '(last (js/Map.)))))
-  (is (= nil (jsv! '(last (map inc nil)))) "lazy iterable")
+  (is (nil? (jsv! '(last nil))))
+  (is (nil? (jsv! '(last []))))
+  (is (nil? (jsv! '(last {}))))
+  (is (nil? (jsv! '(last #{}))))
+  (is (nil? (jsv! '(last (js/Map.)))))
+  (is (nil? (jsv! '(last (map inc nil)))) "lazy iterable")
   (is (= 4 (jsv! '(last [1 2 3 4]))))
   (is (eq ["d" 4] (jsv! '(last {:a 1 :b 2 :c 3 :d 4}))))
   (is (#{1 2 3 4} (jsv! '(last #{1 2 3 4}))))
@@ -1535,19 +1535,19 @@ with `backticks`")))]
 
 (deftest sequential?-test
   (testing "vectors, lists and seqs are sequential"
-    (is (= true (jsv! '(sequential? [1 2]))))
-    (is (= true (jsv! '(sequential? '(1 2)))))
-    (is (= true (jsv! '(sequential? (range 3)))))
-    (is (= true (jsv! '(sequential? (seq "ab")))))
-    (is (= true (jsv! '(sequential? (cons 1 [2]))))))
+    (is (true? (jsv! '(sequential? [1 2]))))
+    (is (true? (jsv! '(sequential? '(1 2)))))
+    (is (true? (jsv! '(sequential? (range 3)))))
+    (is (true? (jsv! '(sequential? (seq "ab")))))
+    (is (true? (jsv! '(sequential? (cons 1 [2]))))))
   (testing "sets, maps, strings and scalars are not sequential"
-    (is (= false (jsv! '(sequential? #{1 2}))))
-    (is (= false (jsv! '(sequential? (sorted-set 1 2)))))
-    (is (= false (jsv! '(sequential? {:a 1}))))
-    (is (= false (jsv! '(sequential? "ab"))))
-    (is (= false (jsv! '(sequential? :a))))
-    (is (= false (jsv! '(sequential? 1))))
-    (is (= false (jsv! '(sequential? nil))))))
+    (is (false? (jsv! '(sequential? #{1 2}))))
+    (is (false? (jsv! '(sequential? (sorted-set 1 2)))))
+    (is (false? (jsv! '(sequential? {:a 1}))))
+    (is (false? (jsv! '(sequential? "ab"))))
+    (is (false? (jsv! '(sequential? :a))))
+    (is (false? (jsv! '(sequential? 1))))
+    (is (false? (jsv! '(sequential? nil))))))
 
 (deftest seq-test
   (is (eq '("a" "b" "c") (jsv! '(seq "abc"))))
@@ -1558,12 +1558,12 @@ with `backticks`")))]
   (is (eq (js/Map. #js[#js[1 2] #js[3 4]])
           (jsv! '(seq (js/Map. [[1 2] [3 4]])))))
   (testing "empty"
-    (is (= nil (jsv! '(seq nil))))
-    (is (= nil (jsv! '(seq []))))
-    (is (= nil (jsv! '(seq {}))))
-    (is (= nil (jsv! '(seq #{}))))
-    (is (= nil (jsv! '(seq (js/Map.)))))
-    (is (= nil (jsv! '(seq (map inc []))))))
+    (is (nil? (jsv! '(seq nil))))
+    (is (nil? (jsv! '(seq []))))
+    (is (nil? (jsv! '(seq {}))))
+    (is (nil? (jsv! '(seq #{}))))
+    (is (nil? (jsv! '(seq (js/Map.)))))
+    (is (nil? (jsv! '(seq (map inc []))))))
   (is (eq #js [0 2 4 6 8]
           (jsv! '(loop [evens []
                         nums (range 10)]
@@ -1622,7 +1622,7 @@ with `backticks`")))]
             (jsv! '(transduce (map inc) + 0 [1 2 3]))))))
 
 (deftest mapv-test
-  (is (= true (jsv! '(vector? (mapv inc [0 1 2 3 4])))))
+  (is (true? (jsv! '(vector? (mapv inc [0 1 2 3 4])))))
   (is (eq ["A" "B" "C"]
           (jsv! '(mapv #(.toUpperCase %) "abc"))))
   (is (eq ["A" "B" "C"]
@@ -1646,7 +1646,7 @@ with `backticks`")))]
     (is (eq #js [1 3 5 7 9] (jsv! '(into [] (filter odd?) (range 10)))))))
 
 (deftest filterv-test
-  (is (= true (jsv! '(vector? (filterv even? [1 2 3 4 5 6 7 8 9])))))
+  (is (true? (jsv! '(vector? (filterv even? [1 2 3 4 5 6 7 8 9])))))
   (is (eq [[:a 1]] (jsv! '(filterv #(= :a (first %)) {:a 1 :b 2})))))
 
 (deftest remove-test
@@ -1683,39 +1683,39 @@ with `backticks`")))]
             (jsv! "(into [] (map-indexed vector) (range 10 20))")))))
 
 (deftest complement-test
-  (is (= false (jsv! '((complement (constantly true))))))
-  (is (= true (jsv! '((complement (constantly false))))))
-  (is (= true (jsv! '((complement (constantly false)) "with some" "args" 1 :a))))
-  (is (= true (jsv! '(let [not-contains? (complement contains?)]
+  (is (false? (jsv! '((complement (constantly true))))))
+  (is (true? (jsv! '((complement (constantly false))))))
+  (is (true? (jsv! '((complement (constantly false)) "with some" "args" 1 :a))))
+  (is (true? (jsv! '(let [not-contains? (complement contains?)]
                        (not-contains? [2 3 4] 5)))))
-  (is (= false (jsv! '(let [not-contains? (complement contains?)]
+  (is (false? (jsv! '(let [not-contains? (complement contains?)]
                         (not-contains? [2 3 4] 2)))))
-  (is (= true (jsv! '(let [first-elem-not-1? (complement (fn [x] (= 1 (first x))))]
+  (is (true? (jsv! '(let [first-elem-not-1? (complement (fn [x] (= 1 (first x))))]
                        (first-elem-not-1? [2 3])))))
-  (is (= false (jsv! '(let [first-elem-not-1? (complement (fn [x] (= 1 (first x))))]
+  (is (false? (jsv! '(let [first-elem-not-1? (complement (fn [x] (= 1 (first x))))]
                         (first-elem-not-1? [1 2]))))))
 
 (deftest constantly-test
   (is (= "abc" (jsv! '((constantly "abc")))))
   (is (= 10 (jsv! '((constantly 10)))))
-  (is (= true (jsv! '((constantly true)))))
+  (is (true? (jsv! '((constantly true)))))
   (is (nil? (jsv! '((constantly nil)))))
   (is (nil? (jsv! '((constantly nil) "with some" "args" 1 :a)))))
 
 (deftest list?-test
-  (is (= true (jsv! '(list? '(1 2 3 4)))))
-  (is (= true (jsv! '(list? (list 1 2 3)))))
-  (is (= false (jsv! '(list? nil))))
-  (is (= false (jsv! '(list? [1 2 3]))))
-  (is (= false (jsv! '(list? {:a :b}))))
-  (is (= false (jsv! '(list? #{:a :b})))))
+  (is (true? (jsv! '(list? '(1 2 3 4)))))
+  (is (true? (jsv! '(list? (list 1 2 3)))))
+  (is (false? (jsv! '(list? nil))))
+  (is (false? (jsv! '(list? [1 2 3]))))
+  (is (false? (jsv! '(list? {:a :b}))))
+  (is (false? (jsv! '(list? #{:a :b})))))
 
 (deftest vector?-test
-  (is (= false (jsv! '(vector? '(1 2 3 4)))))
-  (is (= false (jsv! '(vector? nil))))
-  (is (= true (jsv! '(vector? [1 2 3]))))
-  (is (= false (jsv! '(vector? {:a :b}))))
-  (is (= false (jsv! '(vector? #{:a :b})))))
+  (is (false? (jsv! '(vector? '(1 2 3 4)))))
+  (is (false? (jsv! '(vector? nil))))
+  (is (true? (jsv! '(vector? [1 2 3]))))
+  (is (false? (jsv! '(vector? {:a :b}))))
+  (is (false? (jsv! '(vector? #{:a :b})))))
 
 (deftest vec-test
   (is (eq [] (jsv! '(vec))))
@@ -1853,48 +1853,62 @@ with `backticks`")))]
     (is (= "Rich" (foo-rec "(:first-name f)")))
     (is (= "nf" (foo-rec "(get f :zz :nf)")))
     (is (= 2 (foo-rec "(count f)")))
-    (is (= true (foo-rec "(contains? f :a)")))
-    (is (= false (foo-rec "(contains? f :zz)")))
+    (is (true? (foo-rec "(contains? f :a)")))
+    (is (false? (foo-rec "(contains? f :zz)")))
     (is (eq ["a" "first-name"] (foo-rec "(vec (sort (keys f)))")))
     (is (eq ["a" 1] (foo-rec "(vec (find f :a))"))))
   (testing "protocol methods see bare fields, params shadow"
     (is (= "hi Rich a=1" (foo-rec "(-greet f)"))))
   (testing "value equality per type"
-    (is (= true (foo-rec "(= f (->Foo 1 \"Rich\"))")))
-    (is (= false (foo-rec "(= f (->Foo 2 \"Rich\"))")))
-    (is (= false (foo-rec "(= f {:a 1 :first-name \"Rich\"})")))
-    (is (= false (foo-rec "(= {:a 1 :first-name \"Rich\"} f)"))))
+    (is (true? (foo-rec "(= f (->Foo 1 \"Rich\"))")))
+    (is (false? (foo-rec "(= f (->Foo 2 \"Rich\"))")))
+    (is (false? (foo-rec "(= f {:a 1 :first-name \"Rich\"})")))
+    (is (false? (foo-rec "(= {:a 1 :first-name \"Rich\"} f)"))))
   (testing "assoc keeps the record type"
-    (is (= true (foo-rec "(let [g (assoc f :a 5)] (and (record? g) (instance? Foo g) (= \"hi Rich a=5\" (-greet g))))")))
-    (is (= true (foo-rec "(let [g (assoc f :extra 9)] (and (record? g) (= 9 (:extra g)) (not= g f)))"))))
+    (is (true? (foo-rec "(let [g (assoc f :a 5)] (and (record? g) (instance? Foo g) (= \"hi Rich a=5\" (-greet g))))")))
+    (is (true? (foo-rec "(let [g (assoc f :extra 9)] (and (record? g) (= 9 (:extra g)) (not= g f)))"))))
   (testing "dissoc of a basis field demotes to a plain map"
-    (is (= true (foo-rec "(let [g (dissoc f :a)] (and (not (record? g)) (map? g) (= \"Rich\" (:first-name g))))")))
-    (is (= true (foo-rec "(let [g (dissoc (assoc f :extra 9) :extra)] (and (record? g) (= g f)))"))))
+    (is (true? (foo-rec "(let [g (dissoc f :a)] (and (not (record? g)) (map? g) (= \"Rich\" (:first-name g))))")))
+    (is (true? (foo-rec "(let [g (dissoc (assoc f :extra 9) :extra)] (and (record? g) (= g f)))"))))
   (testing "factories"
-    (is (= true (foo-rec "(let [g (map->Foo {:a 3 :first-name \"Bob\" :extra 7})] (and (record? g) (= 3 (:a g)) (= 7 (:extra g))))"))))
+    (is (true? (foo-rec "(let [g (map->Foo {:a 3 :first-name \"Bob\" :extra 7})] (and (record? g) (= 3 (:a g)) (= 7 (:extra g))))"))))
   (testing "conj, into, seq, reduce-kv"
-    (is (= true (foo-rec "(record? (conj f [:b 2]))")))
+    (is (true? (foo-rec "(record? (conj f [:b 2]))")))
     (is (= 2 (foo-rec "(:b (conj f [:b 2]))")))
     (is (= 1 (foo-rec "(:x (into f {:x 1}))")))
     (is (eq [["a" 1] ["first-name" "Rich"]] (foo-rec "(vec (sort-by first (map vec (seq f))))")))
     (is (eq ["a" "first-name"] (foo-rec "(vec (sort (reduce-kv (fn [acc k _] (conj acc k)) [] f)))"))))
   (testing "record? and the IRecord marker"
-    (is (= true (foo-rec "(record? f)")))
-    (is (= false (jsv! "(record? {})")))
-    (is (= false (jsv! "(record? nil)")))
-    (is (= true (foo-rec "(boolean (satisfies? IRecord f))"))))
+    (is (true? (foo-rec "(record? f)")))
+    (is (false? (jsv! "(record? {})")))
+    (is (false? (jsv! "(record? nil)")))
+    (is (true? (foo-rec "(boolean (satisfies? IRecord f))"))))
   (testing "printing and empty"
     (is (= "#Foo{:a 1, :first-name \"Rich\"}" (foo-rec "(pr-str f)")))
-    (is (= nil (foo-rec "(empty f)"))))
+    (is (nil? (foo-rec "(empty f)"))))
   (testing "merge and into keep the record type"
-    (is (= true (foo-rec "(let [g (merge f {:b 2})] (and (record? g) (= 2 (:b g))))")))
-    (is (= true (foo-rec "(let [g (into f {:b 2})] (and (record? g) (= 2 (:b g))))"))))
+    (is (true? (foo-rec "(let [g (merge f {:b 2})] (and (record? g) (= 2 (:b g))))")))
+    (is (true? (foo-rec "(let [g (into f {:b 2})] (and (record? g) (= 2 (:b g))))"))))
   (testing "munged field names keep their map keys"
-    (is (= true (jsv! "(defrecord B [x-y]) (= 1 (:x-y (->B 1)))")))
+    (is (true? (jsv! "(defrecord B [x-y]) (= 1 (:x-y (->B 1)))")))
     (is (= 1 (jsv! "(defrecord B [x-y]) (.-x-y (->B 1))")))
     (is (eq ["x-y"] (jsv! "(defrecord B [x-y]) (vec (keys (->B 1)))")))
-    (is (= true (jsv! "(defrecord B [x-y]) (= (->B 1) (->B 1))")))
+    (is (true? (jsv! "(defrecord B [x-y]) (= (->B 1) (->B 1))")))
     (is (= 1 (jsv! "(defrecord B [x-y]) (.-x-y (assoc (->B 1) :other 2))")))))
+
+(deftest record-js-interop-test
+  (testing "JS iteration"
+    (is (eq [["a" 1] ["b" 2]] (jsv! "(defrecord P [a b]) (vec (js/Array.from (->P 1 2)))"))))
+  (testing "keys unpolluted"
+    (is (eq ["a" "b"] (jsv! "(defrecord P [a b]) (vec (sort (keys (->P 1 2))))"))))
+  (testing "count unaffected"
+    (is (= 2 (jsv! "(defrecord P [a b]) (count (->P 1 2))"))))
+  (testing "equality unaffected"
+    (is (true? (jsv! "(defrecord P [a b]) (= (->P 1 2) (->P 1 2))"))))
+  (testing "seq still works, now via the iterator"
+    (is (true? (jsv! "(defrecord P [a b]) (boolean (seq (->P 1 2)))"))))
+  (testing "printing unchanged"
+    (is (= "#P{:a 1, :b 2}" (jsv! "(defrecord P [a b]) (pr-str (->P 1 2))")))))
 
 (def ^:private my-map-prelude
   "(deftype MyMap [m]
@@ -1918,44 +1932,44 @@ with `backticks`")))]
     (is (= 1 (my-map "(get x :a)")))
     (is (= "nf" (my-map "(get x :zz :nf)")))
     (is (= 2 (my-map "(:b x)")))
-    (is (= true (my-map "(let [y (assoc x :c 3)] (and (instance? MyMap y) (= 3 (get y :c))))")))
+    (is (true? (my-map "(let [y (assoc x :c 3)] (and (instance? MyMap y) (= 3 (get y :c))))")))
     (is (= 4 (my-map "(get (assoc x :c 3 :d 4) :d)")))
-    (is (= true (my-map "(contains? x :a)")))
-    (is (= false (my-map "(contains? x :zz)")))
-    (is (= true (my-map "(let [y (dissoc x :a)] (and (instance? MyMap y) (nil? (get y :a)) (= 1 (count y))))")))
+    (is (true? (my-map "(contains? x :a)")))
+    (is (false? (my-map "(contains? x :zz)")))
+    (is (true? (my-map "(let [y (dissoc x :a)] (and (instance? MyMap y) (nil? (get y :a)) (= 1 (count y))))")))
     (is (= 2 (my-map "(count x)")))
     (is (= 3 (my-map "(reduce-kv (fn [acc _ v] (+ acc v)) 0 x)")))
     (is (= 5 (my-map "(get (conj x [:e 5]) :e)")))
     (is (= 0 (my-map "(count (empty x))")))
-    (is (= true (my-map "(= x (MyMap. {:a 1 :b 2}))")))
-    (is (= false (my-map "(= x (MyMap. {:a 9}))")))
-    (is (= false (my-map "(= x {:a 1 :b 2})")))
+    (is (true? (my-map "(= x (MyMap. {:a 1 :b 2}))")))
+    (is (false? (my-map "(= x (MyMap. {:a 9}))")))
+    (is (false? (my-map "(= x {:a 1 :b 2})")))
     (is (eq ["a" "b"] (my-map "(vec (map first (seq x)))")))
-    (is (= true (my-map "(boolean (satisfies? ILookup x))")))
-    (is (= false (my-map "(boolean (satisfies? ILookup {}))"))))
+    (is (true? (my-map "(boolean (satisfies? ILookup x))")))
+    (is (false? (my-map "(boolean (satisfies? ILookup {}))"))))
   (testing "assoc-in and update-in walk through -lookup and rebuild through -assoc"
     (is (= 2 (my-map "(get-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y :zz] 2)")))
     (is (= 99 (my-map "(get-in (assoc-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y] 99) [:x :y])")))
-    (is (= true (my-map "(instance? MyMap (get (assoc-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y] 99) :x))")))
+    (is (true? (my-map "(instance? MyMap (get (assoc-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y] 99) :x))")))
     (is (= 2 (my-map "(get-in (update-in (MyMap. {:x (MyMap. {:y 1})}) [:x :y] inc) [:x :y])"))))
   (testing "merge goes through -conj on an ICollection target"
     (is (= 3 (my-map "(count (merge x {:c 3}))")))
-    (is (= true (my-map "(instance? MyMap (merge x {:c 3}))")))
+    (is (true? (my-map "(instance? MyMap (merge x {:c 3}))")))
     (is (= 3 (my-map "(get (merge-with + x {:b 1}) :b)"))))
   (testing "keys and vals go through -kv-reduce instead of Object.keys"
     (is (eq ["a" "b"] (my-map "(vec (sort (keys x)))")))
     (is (eq [1 2] (my-map "(vec (sort (vals x)))"))))
   (testing "update-keys and update-vals rebuild through -assoc"
     (is (= 2 (my-map "(get (update-vals x inc) :a)")))
-    (is (= true (my-map "(instance? MyMap (update-vals x inc))")))
+    (is (true? (my-map "(instance? MyMap (update-vals x inc))")))
     (is (= 1 (my-map "(get (update-keys x (fn [k] (str k \"!\"))) \"a!\")"))))
   (testing "into reduces through -conj instead of mutating a copy"
     (is (= 3 (my-map "(count (into x {:c 3}))")))
-    (is (= true (my-map "(instance? MyMap (into x {:c 3}))")))
+    (is (true? (my-map "(instance? MyMap (into x {:c 3}))")))
     (is (= 3 (my-map "(count (into x (map identity) {:c 3}))"))))
   (testing "plain collections keep their behavior"
     (is (= 1 (jsv! "(get {:a 1} :a)")))
-    (is (= false (jsv! "(= {:a 1} (js/Date.))")))
+    (is (false? (jsv! "(= {:a 1} (js/Date.))")))
     (is (eq #js {"a" 1, "b" 2} (jsv! "(assoc {:a 1} :b 2)")))))
 
 (def ^:private set-transient-prelude
@@ -1981,15 +1995,15 @@ with `backticks`")))]
 
 (deftest set-transient-protocols-test
   (testing "ISet -disjoin through disj"
-    (is (= true (set-transient "(let [d (disj ms 1)] (and (instance? MySet d) (= 2 (count d))))")))
-    (is (= true (set-transient "(let [d (disj ms 1 2)] (and (instance? MySet d) (= 1 (count d))))")))
-    (is (= true (set-transient "(identical? ms (disj ms))"))))
+    (is (true? (set-transient "(let [d (disj ms 1)] (and (instance? MySet d) (= 2 (count d))))")))
+    (is (true? (set-transient "(let [d (disj ms 1 2)] (and (instance? MySet d) (= 1 (count d))))")))
+    (is (true? (set-transient "(identical? ms (disj ms))"))))
   (testing "IEditableCollection/ITransientCollection/ITransientSet roundtrip"
     (is (= 3 (set-transient "(-> (transient ms) (conj! 4) (disj! 1) persistent! count)")))
-    (is (= true (set-transient "(instance? MySet (persistent! (transient ms)))"))))
+    (is (true? (set-transient "(instance? MySet (persistent! (transient ms)))"))))
   (testing "IEditableCollection/ITransientAssociative/ITransientMap roundtrip"
     (is (= 2 (set-transient "(-> (transient mt) (assoc! :c 3) (dissoc! :a) persistent! count)")))
-    (is (= true (set-transient "(instance? MyTMap (persistent! (transient mt)))"))))
+    (is (true? (set-transient "(instance? MyTMap (persistent! (transient mt)))"))))
   (testing "plain collections keep their behavior"
     (is (eq (js/Set. #js [2]) (jsv! "(disj #{1 2} 1)")))
     (is (eq #js [1] (jsv! "(persistent! (conj! (transient []) 1))")))
@@ -2108,10 +2122,10 @@ with `backticks`")))]
     (is (eq '(1) (jsv! '(merge (list) 1))))
     (is (thrown? js/Error (jsv! '(merge 1 1)))))
   (testing "no truthy maps return nil"
-    (is (= true (jsv! '(nil? (merge)))))
-    (is (= true (jsv! '(nil? (merge nil)))))
-    (is (= true (jsv! '(nil? (merge nil nil)))))
-    (is (= true (jsv! '(nil? (merge false)))))
+    (is (true? (jsv! '(nil? (merge)))))
+    (is (true? (jsv! '(nil? (merge nil)))))
+    (is (true? (jsv! '(nil? (merge nil nil)))))
+    (is (true? (jsv! '(nil? (merge false)))))
     (is (eq {} (jsv! '(merge {} nil)))))
   (is (eq {:a 1} (jsv! '(merge nil {:a 1}))))
   (is (eq {:a 1} (jsv! '(merge {:a 2} {:a 1}))))
@@ -2127,7 +2141,7 @@ with `backticks`")))]
 (deftest into-test
   (testing "corner cases"
     (is (eq [], (jsv! '(into))))
-    (is (= true, (jsv! '(vector? (into nil [1])))))
+    (is (true? (jsv! '(vector? (into nil [1])))))
     (is (eq nil, (jsv! '(into nil))))      ; same as clojure, but clojureScript throws error for arity 1
     (is (eq [1 2] (jsv! '(into nil [1 2])))))
   (testing "arrays"
@@ -2180,7 +2194,7 @@ with `backticks`")))]
   (is (eq [1 "a" 1 "b" 1 "c"] (jsv! '(vec (interleave (repeat 1) ["a" "b" "c"])))))
   (is (eq [1 "a" 1 "b"] (jsv! '(vec (interleave (repeat 2 1) ["a" "b" "c"])))))
   (testing "satisfies IIterable"
-    (is (= true (jsv! '(satisfies? IIterable (repeat 1))))))
+    (is (true? (jsv! '(satisfies? IIterable (repeat 1))))))
   (testing "compares equal to a vector or list of the same elements"
     (is (true? (jsv! '(= (repeat 3 :x) [:x :x :x]))))
     (is (true? (jsv! "(= (repeat 3 :x) '(:x :x :x))")))
@@ -2234,9 +2248,9 @@ with `backticks`")))]
   (is (eq [[:a 1] [:b 2] [:c 3] [:d 4]] (jsv! '(vec (take-last 5 {:a 1 :b 2 :c 3 :d 4})))))
   (is (eq [1 2 3 4] (jsv! '(vec (take-last 5 [1 2 3 4])))))
   (testing "empty or nil coll returns nil"
-    (is (= true (jsv! '(nil? (take-last 2 nil)))))
-    (is (= true (jsv! '(nil? (take-last 2 [])))))
-    (is (= true (jsv! '(nil? (take-last 2 '())))))))
+    (is (true? (jsv! '(nil? (take-last 2 nil)))))
+    (is (true? (jsv! '(nil? (take-last 2 [])))))
+    (is (true? (jsv! '(nil? (take-last 2 '())))))))
 
 (deftest +-test
   (is (zero? (jsv! '(apply + []))))
@@ -2375,17 +2389,17 @@ with `backticks`")))]
     (is (eq false (jsv! '(instance? LazySeq 5))))))
 
 (deftest every?-test
-  (is (= true (jsv! '(every? odd? nil))))
-  (is (= true (jsv! '(every? odd? []))))
-  (is (= true (jsv! '(every? odd? [1 3 5]))))
-  (is (= false (jsv! '(every? odd? [1 3 6]))))
-  (is (= true (jsv! '(every? str [1 3 6]))))
-  (is (= true (jsv! '(every? str [0 1 3 6]))))
-  (is (= false (jsv! '(every? identity [0 1 3 6])))))
+  (is (true? (jsv! '(every? odd? nil))))
+  (is (true? (jsv! '(every? odd? []))))
+  (is (true? (jsv! '(every? odd? [1 3 5]))))
+  (is (false? (jsv! '(every? odd? [1 3 6]))))
+  (is (true? (jsv! '(every? str [1 3 6]))))
+  (is (true? (jsv! '(every? str [0 1 3 6]))))
+  (is (false? (jsv! '(every? identity [0 1 3 6])))))
 
 (deftest not-every?-test
-  (is (= false (jsv! '(not-every? odd? []))))
-  (is (= false (jsv! '(not-every? odd? [1 3 5])))))
+  (is (false? (jsv! '(not-every? odd? []))))
+  (is (false? (jsv! '(not-every? odd? [1 3 5])))))
 
 (deftest keep-test
   (is (eq (keep #(when (odd? %) (inc %)) [1 2 3])
@@ -2449,14 +2463,14 @@ with `backticks`")))]
   (let [shuffled (jsv! '(shuffle [1 2 3 4]))]
     (doseq [i shuffled]
       (is (contains? #{1 2 3 4} i))))
-  (is (= false (jsv! '(= (vec (range 100)) (shuffle (range 100)))))))
+  (is (false? (jsv! '(= (vec (range 100)) (shuffle (range 100)))))))
 
 (deftest some-test
   (is (= 1 (jsv! '(some #(when (odd? %) %) [2 1 2 1])))))
 
 (deftest not-any?-test
-  (is (= true (jsv! '(not-any? odd? [2 2 6 4]))))
-  (is (= true (jsv! '(not-any? odd? [])))))
+  (is (true? (jsv! '(not-any? odd? [2 2 6 4]))))
+  (is (true? (jsv! '(not-any? odd? [])))))
 
 (deftest replacement-test
   (is (eq (replace {:a :b} [:a :a :c :c :a :c])
@@ -2898,11 +2912,11 @@ globalThis.foo.fs = fs;")))))
 
 (deftest empty-test
   (testing "non-collections and class instances give nil, like CLJS"
-    (is (= nil (jsv! "(empty \"foo\")")))
-    (is (= nil (jsv! "(empty 1)")))
-    (is (= nil (jsv! "(empty nil)")))
-    (is (= nil (jsv! "(empty inc)")))
-    (is (= nil (jsv! "(empty (js/Date.))"))))
+    (is (nil? (jsv! "(empty \"foo\")")))
+    (is (nil? (jsv! "(empty 1)")))
+    (is (nil? (jsv! "(empty nil)")))
+    (is (nil? (jsv! "(empty inc)")))
+    (is (nil? (jsv! "(empty (js/Date.))"))))
   (testing "collections still empty"
     (is (eq #js [] (jsv! "(empty [1 2])")))
     (is (eq #js {} (jsv! "(empty {:a 1})")))
@@ -2953,8 +2967,8 @@ globalThis.foo.fs = fs;")))))
           (p/finally done)))))
 
 (deftest validator-test
-  (is (= true (jsv! "(let [v odd? a (atom 1 :validator v)] (identical? v (get-validator a)))")))
-  (is (= nil (jsv! "(get-validator (atom 1))")))
+  (is (true? (jsv! "(let [v odd? a (atom 1 :validator v)] (identical? v (get-validator a)))")))
+  (is (nil? (jsv! "(get-validator (atom 1))")))
   (is (= 3 (jsv! "(let [a (atom 1)] (set-validator! a odd?) (reset! a 3))")))
   (is (thrown? js/Error (jsv! "(let [a (atom 1)] (set-validator! a odd?) (reset! a 2))")))
   (testing "a validator rejecting the current state throws, like CLJS"
@@ -2965,12 +2979,12 @@ globalThis.foo.fs = fs;")))))
 (deftest atom-test
   (is (= 1 (jsv! "(def x (atom 1)) (def y (atom 0)) (add-watch x :foo (fn [k r o n] (swap! y inc))) (reset! x 2) (remove-watch x :foo) (reset! x 3) @y")))
   (testing "add-watch and remove-watch return the reference"
-    (is (= true (jsv! "(def x (atom 1)) (identical? x (add-watch x :foo (fn [k r o n])))")))
-    (is (= true (jsv! "(def x (atom 1)) (add-watch x :foo (fn [k r o n])) (identical? x (remove-watch x :foo))"))))
+    (is (true? (jsv! "(def x (atom 1)) (identical? x (add-watch x :foo (fn [k r o n])))")))
+    (is (true? (jsv! "(def x (atom 1)) (add-watch x :foo (fn [k r o n])) (identical? x (remove-watch x :foo))"))))
   (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (reset-vals! x 2)] (+ old new))")))
   (is (= 3 (jsv! "(def x (atom 1)) (let [[old new] (swap-vals! x inc)] (+ old new))")))
-  (is (= true  (jsv! "(def x (atom 1)) (compare-and-set! x 1 2)")))
-  (is (= false (jsv! "(def x (atom 1)) (compare-and-set! x 2 3)")))
+  (is (true? (jsv! "(def x (atom 1)) (compare-and-set! x 1 2)")))
+  (is (false? (jsv! "(def x (atom 1)) (compare-and-set! x 2 3)")))
   (testing "reset! returns the new value"
     (is (= 2 (jsv! "(reset! (atom 1) 2)"))))
   (testing ":meta and :validator options, like CLJS"
@@ -2979,9 +2993,9 @@ globalThis.foo.fs = fs;")))))
     (is (thrown? js/Error (jsv! "(let [a (atom 1 :validator odd?)] (reset! a 2))")))
     (is (thrown? js/Error (jsv! "(let [a (atom 1 :validator odd?)] (swap! a inc))"))))
   (testing "satisfies IAtom and IDeref"
-    (is (= true (jsv! "(satisfies? IAtom (atom nil))")))
-    (is (= true (jsv! "(satisfies? cljs.core/IAtom (atom nil))")))
-    (is (= true (jsv! "(satisfies? IDeref (atom nil))")))
+    (is (true? (jsv! "(satisfies? IAtom (atom nil))")))
+    (is (true? (jsv! "(satisfies? cljs.core/IAtom (atom nil))")))
+    (is (true? (jsv! "(satisfies? IDeref (atom nil))")))
     (is (not (jsv! "(satisfies? IAtom 1)"))))
   (testing "a custom protocol dispatch miss throws the same clear error"
     (is (thrown-with-msg? js/Error #"No protocol method IFoo.-bar defined for type number: 42"
@@ -3113,15 +3127,15 @@ globalThis.foo.fs = fs;")))))
   (is (= 1.5 (jsv! '(min 1.5 2))))
   (is (= 5 (jsv! '(min 5))))
   (testing "nil acts like zero, returning the value, like CLJS"
-    (is (= true (jsv! '(nil? (min nil 1)))))
-    (is (= true (jsv! '(nil? (min 1 nil)))))
+    (is (true? (jsv! '(nil? (min nil 1)))))
+    (is (true? (jsv! '(nil? (min 1 nil)))))
     (is (= 1 (jsv! '(max nil 1))))
     (is (= 1 (jsv! '(max 1 nil)))))
   (testing "NaN propagates, like CLJS"
-    (is (= true (jsv! '(js/Number.isNaN (min 1 ##NaN)))))
-    (is (= true (jsv! '(js/Number.isNaN (min ##NaN 1)))))
-    (is (= true (jsv! '(js/Number.isNaN (max ##NaN 1)))))
-    (is (= true (jsv! '(js/Number.isNaN (max ##-Inf ##NaN ##Inf)))))))
+    (is (true? (jsv! '(js/Number.isNaN (min 1 ##NaN)))))
+    (is (true? (jsv! '(js/Number.isNaN (min ##NaN 1)))))
+    (is (true? (jsv! '(js/Number.isNaN (max ##NaN 1)))))
+    (is (true? (jsv! '(js/Number.isNaN (max ##-Inf ##NaN ##Inf)))))))
 
 (deftest min-max-key-test
   (testing "min-key"
@@ -3514,10 +3528,10 @@ new Foo();")
     (is (eq [5 4 1] (jsv! '(vec (conj (disj (sorted-set-by > 5 3 1) 3) 4))))))
   (testing "has a size and compares by elements across set types"
     (is (= 3 (jsv! '(count (sorted-set 3 1 2)))))
-    (is (= true (jsv! '(= #{1 2 3} (sorted-set 3 1 2)))))
-    (is (= true (jsv! '(= (sorted-set 3 1 2) #{1 2 3}))))
-    (is (= true (jsv! '(= (sorted-set-by > 1 2) (sorted-set-by < 1 2)))))
-    (is (= false (jsv! '(= #{1 2} (sorted-set 1 2 3)))))))
+    (is (true? (jsv! '(= #{1 2 3} (sorted-set 3 1 2)))))
+    (is (true? (jsv! '(= (sorted-set 3 1 2) #{1 2 3}))))
+    (is (true? (jsv! '(= (sorted-set-by > 1 2) (sorted-set-by < 1 2)))))
+    (is (false? (jsv! '(= #{1 2} (sorted-set 1 2 3)))))))
 
 (deftest sorted-map-test
   (testing "keeps keys sorted"
@@ -3525,14 +3539,14 @@ new Foo();")
     (is (eq [1 2 3] (jsv! '(vec (keys (assoc (sorted-map 3 :c 1 :a) 2 :b)))))))
   (testing "lookup and update"
     (is (= 20 (jsv! '(get (sorted-map 1 10 2 20) 2))))
-    (is (= true (jsv! '(contains? (sorted-map 1 :a) 1))))
+    (is (true? (jsv! '(contains? (sorted-map 1 :a) 1))))
     (is (= 2 (jsv! '(count (sorted-map 1 :a 2 :b)))))
     (is (eq [1 3] (jsv! '(vec (keys (dissoc (sorted-map 1 :a 2 :b 3 :c) 2)))))))
   (testing "is a map and compares by entries"
-    (is (= true (jsv! '(map? (sorted-map 1 :a)))))
-    (is (= true (jsv! '(= (sorted-map 1 :a 2 :b) (sorted-map 2 :b 1 :a)))))
-    (is (= true (jsv! '(= {:a 1 :b 2} (sorted-map :a 1 :b 2)))))
-    (is (= true (jsv! '(= (sorted-map :a 1 :b 2) {:a 1 :b 2})))))
+    (is (true? (jsv! '(map? (sorted-map 1 :a)))))
+    (is (true? (jsv! '(= (sorted-map 1 :a 2 :b) (sorted-map 2 :b 1 :a)))))
+    (is (true? (jsv! '(= {:a 1 :b 2} (sorted-map :a 1 :b 2)))))
+    (is (true? (jsv! '(= (sorted-map :a 1 :b 2) {:a 1 :b 2})))))
   (testing "prints with real keys, keeping the map tag"
     (is (= "#js/Map {1 \"a\", 2 \"b\"}" (jsv! '(pr-str (sorted-map 2 :b 1 :a))))))
   (testing "sorted-map-by with a custom comparator"
@@ -3597,8 +3611,8 @@ new Foo();")
     (is (= 1 (jsv! '(peek '(1 2 3)))))
     (is (eq [2 3] (jsv! '(vec (pop '(1 2 3)))))))
   (testing "peek and pop on nil"
-    (is (= true (jsv! '(nil? (peek nil)))))
-    (is (= true (jsv! '(nil? (pop nil))))))
+    (is (true? (jsv! '(nil? (peek nil)))))
+    (is (true? (jsv! '(nil? (pop nil))))))
   (testing "pop on an empty collection throws, like CLJS"
     (is (thrown? js/Error (jsv! '(pop []))))
     (is (thrown? js/Error (jsv! '(pop '()))))))
@@ -3769,7 +3783,7 @@ new Foo();")
   (is (eq [5 5 5 5 5] (jsv! '(vec (take 5 (range 5 6 0))))))
   (testing "doall returns the realized seq itself"
     (is (eq [0 1 2] (jsv! '(vec (doall (range 3))))))
-    (is (= true (jsv! '(realized? (doall (lazy-seq (cons 1 nil)))))))))
+    (is (true? (jsv! '(realized? (doall (lazy-seq (cons 1 nil)))))))))
 
 (deftest throw-test
   (is (eq 2 (jsv! '(let [v (cond (true? (= 1 2)) (throw (ex-info "O no" {})) :else 2)] v)))))
@@ -3798,14 +3812,14 @@ new Foo();")
 (deftest rseq-test
   (is (eq #js [3 2 1] (jsv! '(rseq [1 2 3]))))
   (is (nil? (jsv! '(rseq []))))
-  (is (= true (jsv! '(= [[:c 2] [:b 1] [:a 0]] (rseq (sorted-map :a 0 :b 1 :c 2))))))
+  (is (true? (jsv! '(= [[:c 2] [:b 1] [:a 0]] (rseq (sorted-map :a 0 :b 1 :c 2))))))
   (is (thrown? js/Error (jsv! '(rseq nil))))
   (is (thrown? js/Error (jsv! '(rseq {:a :b})))))
 
 (deftest force-test
   (is (eq 1 (jsv! '(force (delay 1)))))
   (is (eq 1 (jsv! '(force 1))))
-  (is (= true (jsv! '(let [d (delay 1)] (force d) (realized? d))))))
+  (is (true? (jsv! '(let [d (delay 1)] (force d) (realized? d))))))
 
 (deftest dotted-core-class-ref-test
   (is (true? (jsv! '(instance? cljs.core.UUID (random-uuid)))))
@@ -3936,11 +3950,11 @@ new Foo();")
   (is (eq [1 2 3] (jsv! "(vals {:a 1 :b 2 :c 3})")))
   (is (eq [1 2 3] (jsv! "(vals (assoc (js/Map.) :a 1 :b 2 :c 3))")))
   (testing "empty or nil returns nil, like CLJS"
-    (is (= true (jsv! "(nil? (keys {}))")))
-    (is (= true (jsv! "(nil? (keys (js/Map.)))")))
-    (is (= true (jsv! "(nil? (keys nil))")))
-    (is (= true (jsv! "(nil? (vals {}))")))
-    (is (= true (jsv! "(nil? (vals nil))"))))
+    (is (true? (jsv! "(nil? (keys {}))")))
+    (is (true? (jsv! "(nil? (keys (js/Map.)))")))
+    (is (true? (jsv! "(nil? (keys nil))")))
+    (is (true? (jsv! "(nil? (vals {}))")))
+    (is (true? (jsv! "(nil? (vals nil))"))))
   (testing "js-keys still returns an array for empty input"
     (is (eq [] (jsv! "(js-keys {})")))))
 

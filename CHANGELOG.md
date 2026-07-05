@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Add the `ISet`, `IEditableCollection`, `ITransientCollection`, `ITransientAssociative`, `ITransientMap` and `ITransientSet` protocols. `disj`, `transient`, `conj!`, `assoc!`, `dissoc!`, `disj!` and `persistent!` dispatch to them on custom types
+- Records are JS-iterable over their entries and print readably in the Node console
 - Add `defrecord`, `record?` and the `IRecord` marker protocol. Records store their fields as own string-keyed properties and implement the map-facing protocols, so keyword lookup, `keys`, `seq`, `assoc`, `conj` and `=` work through the regular core functions. `assoc` keeps the record type, `dissoc` of a basis field gives a plain map, printing gives `#TypeName{:a 1}`
 - The generated record implementations are shared runtime functions in squint-cljs/src/squint/record.js, imported only by files that use defrecord: each defrecord emits one attach call instead of nine method bodies
 - Fix `merge` on a record or other -conj type without an empty representation
