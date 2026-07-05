@@ -123,10 +123,18 @@
                                       (map (core/fn [f p]
                                              (core/str "this[" (pr-str (core/name f)) "] = " p ";\n"))
                                            fields params))
-                               "}")]
+                               "}")
+             aliases (into {} (core/keep (core/fn [f]
+                                            (core/let [n (core/name f)
+                                                       m (core/str (core/munge n))]
+                                              (core/when-not (= m n)
+                                                [m n])))
+                                          fields))]
     `(do
        (def ~t (~'js* ~ctor-js))
-       (~'js* "squint_record.attach(~{}.prototype, ~{})" ~t ~(mapv core/name fields))
+       ~(if (seq aliases)
+          `(~'js* "squint_record.attach(~{}.prototype, ~{}, ~{})" ~t ~(mapv core/name fields) ~aliases)
+          `(~'js* "squint_record.attach(~{}.prototype, ~{})" ~t ~(mapv core/name fields)))
        ~(core/when (seq impls)
           `(~'record-methods* ~fields
             (extend-type ~t ~@(dt->et t impls fields))))

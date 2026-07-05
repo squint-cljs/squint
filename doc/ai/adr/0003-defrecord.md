@@ -38,9 +38,10 @@ the shared impls read fields with no translation.
 
 Consequences: fields live as own enumerable props, so the extmap needs no
 separate structure and an extra `assoc`'d key is just one more own property.
-JS dot interop on dashed fields differs from CLJS: `rec.first_name` works
-there, squint needs `rec["first-name"]`. Undashed fields dot-access the same
-in both.
+For dot interop, `attach` defines non-enumerable prototype getters aliasing
+each munged name to its field (`rec.first_name` reads `rec["first-name"]`),
+so `(.-first-name rec)` works as in CLJS. The getters are invisible to
+keys, count, equality and spread copies.
 
 ## Decision: behavior through the shared protocols, not special cases
 

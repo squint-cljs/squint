@@ -70,7 +70,7 @@ function recordSeq(rec) {
   return seq(Object.entries(rec));
 }
 
-export function attach(proto, basis) {
+export function attach(proto, basis, aliases) {
   proto[IRecord.__sym] = basis;
   proto[ILookup__lookup] = recordLookup;
   proto[IAssociative__assoc] = recordAssoc;
@@ -82,5 +82,13 @@ export function attach(proto, basis) {
   proto[IEquiv__equiv] = recordEquiv;
   proto[ISeqable__seq] = recordSeq;
   proto[ISeqable.__sym] = true;
+  if (aliases !== undefined) {
+    for (const munged of Object.keys(aliases)) {
+      const field = aliases[munged];
+      Object.defineProperty(proto, munged, {
+        get() { return this[field]; },
+      });
+    }
+  }
   return null;
 }

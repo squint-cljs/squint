@@ -1890,7 +1890,11 @@ with `backticks`")))]
     (is (= true (foo-rec "(let [g (merge f {:b 2})] (and (record? g) (= 2 (:b g))))")))
     (is (= true (foo-rec "(let [g (into f {:b 2})] (and (record? g) (= 2 (:b g))))"))))
   (testing "munged field names keep their map keys"
-    (is (= true (jsv! "(defrecord B [x-y]) (= 1 (:x-y (->B 1)))")))))
+    (is (= true (jsv! "(defrecord B [x-y]) (= 1 (:x-y (->B 1)))")))
+    (is (= 1 (jsv! "(defrecord B [x-y]) (.-x-y (->B 1))")))
+    (is (eq ["x-y"] (jsv! "(defrecord B [x-y]) (vec (keys (->B 1)))")))
+    (is (= true (jsv! "(defrecord B [x-y]) (= (->B 1) (->B 1))")))
+    (is (= 1 (jsv! "(defrecord B [x-y]) (.-x-y (assoc (->B 1) :other 2))")))))
 
 (def ^:private my-map-prelude
   "(deftype MyMap [m]
