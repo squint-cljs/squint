@@ -105,15 +105,19 @@
                   ~ms))))
 
 (core/defn- wrap-record-fields
-  "Prefixes each method body with a let binding the record fields read off
-  this, so bodies can use bare field names like in CLJS. Params shadow fields."
+  "Prefixes each method body with a let binding the record fields the body
+  references, read off this, so bodies can use bare field names like in
+  CLJS. Params shadow fields, unused fields are not read."
   [fields specs]
   (core/let [wrap-arity
              (core/fn [[params & body :as arity]]
                (core/let [this-sym (first params)
                           shadowed (into #{} (comp (filter core/symbol?) (map core/name)) params)
+                          body-syms (into #{} (comp (filter core/symbol?) (map core/name))
+                                          (tree-seq coll? seq body))
                           binds (mapcat (core/fn [f]
-                                          (core/when-not (contains? shadowed (core/name f))
+                                          (core/when (core/and (not (contains? shadowed (core/name f)))
+                                                               (contains? body-syms (core/name f)))
                                             [f `(unchecked-get ~this-sym ~(core/name f))]))
                                         fields)]
                  (if (core/and this-sym (seq binds))
@@ -128,56 +132,75 @@
              spec))
          specs)))
 
+(core/defn- bool-form
+  "Tags a form as boolean so an if test on it skips truth_."
+  [form]
+  (with-meta form {:tag 'boolean}))
+
 (core/defn- record-impls
   "The generated protocol implementations that make a record behave as a map."
   [t fields]
-  (core/let [basis (mapv core/name fields)]
+  ;; fixed binding names: the generated bodies contain no user code, so
+  ;; nothing can capture them, and the emission stays deterministic
+  (core/let [basis (mapv core/name fields)
+             this-s 'this-rec k-s 'k-rec nf-s 'nf-rec
+             v-s 'v-rec x-s 'x-rec f-s 'f-rec
+             init-s 'init-rec acc-s 'acc-rec e-s 'e-rec
+             m-s 'm-rec r-s 'r-rec other-s 'other-rec
+             ka-s 'ka-rec kb-s 'kb-rec kv-s 'kv-rec
+             own-copy (core/fn [s]
+                        (list 'js* "Object.assign(Object.create(Object.getPrototypeOf(~{})), ~{})" s s))
+             has-own (core/fn [o k]
+                       (bool-form (list 'js* "Object.prototype.hasOwnProperty.call(~{}, ~{})" o k)))]
     `(~'IRecord
       ~'ILookup
-      (~'-lookup [this# k# nf#]
-        (let [v# (unchecked-get this# k#)]
-          (if (~'js* "~{} === undefined" v#) nf# v#)))
+      (~'-lookup [~this-s ~k-s ~nf-s]
+        (let [~v-s (unchecked-get ~this-s ~k-s)]
+          (if ~(bool-form (list 'js* "~{} === undefined" v-s)) ~nf-s ~v-s)))
       ~'IAssociative
-      (~'-assoc [this# k# v#]
-        (let [r# (~'js* "Object.assign(Object.create(Object.getPrototypeOf(~{})), ~{})" this# this#)]
-          (unchecked-set r# k# v#)
-          r#))
-      (~'-contains-key? [this# k#]
-        (~'js* "Object.prototype.hasOwnProperty.call(~{}, ~{})" this# k#))
+      (~'-assoc [~this-s ~k-s ~v-s]
+        (let [~r-s ~(own-copy this-s)]
+          (unchecked-set ~r-s ~k-s ~v-s)
+          ~r-s))
+      (~'-contains-key? [~this-s ~k-s]
+        ~(has-own this-s k-s))
       ~'IMap
-      (~'-dissoc [this# k#]
-        (if (~'js* "~{}.includes(~{})" ~basis k#)
+      (~'-dissoc [~this-s ~k-s]
+        (if ~(bool-form (list 'js* "~{}.includes(~{})" basis k-s))
           ;; removing a basis field demotes to a plain map, like CLJS
-          (let [m# (~'js* "({...~{}})" this#)]
-            (js-delete m# k#)
-            m#)
-          (let [r# (~'js* "Object.assign(Object.create(Object.getPrototypeOf(~{})), ~{})" this# this#)]
-            (js-delete r# k#)
-            r#)))
+          (let [~m-s (~'js* "({...~{}})" ~this-s)]
+            (js-delete ~m-s ~k-s)
+            ~m-s)
+          (let [~r-s ~(own-copy this-s)]
+            (js-delete ~r-s ~k-s)
+            ~r-s)))
       ~'ICounted
-      (~'-count [this#] (.-length (js/Object.keys this#)))
+      (~'-count [~this-s] (.-length (js/Object.keys ~this-s)))
       ~'IKVReduce
-      (~'-kv-reduce [this# f# init#]
-        (reduce (fn [acc# kv#] (f# acc# (aget kv# 0) (aget kv# 1)))
-                init#
-                (js/Object.entries this#)))
+      (~'-kv-reduce [~this-s ~f-s ~init-s]
+        (reduce (fn [~acc-s ~kv-s] (~f-s ~acc-s (aget ~kv-s 0) (aget ~kv-s 1)))
+                ~init-s
+                (js/Object.entries ~this-s)))
       ~'ICollection
-      (~'-conj [this# x#]
-        (if (vector? x#)
-          (assoc this# (nth x# 0) (nth x# 1))
-          (reduce (fn [acc# e#] (assoc acc# (nth e# 0) (nth e# 1))) this# (seq x#))))
+      (~'-conj [~this-s ~x-s]
+        (if ~(bool-form `(vector? ~x-s))
+          (assoc ~this-s (nth ~x-s 0) (nth ~x-s 1))
+          (reduce (fn [~acc-s ~e-s] (assoc ~acc-s (nth ~e-s 0) (nth ~e-s 1))) ~this-s (seq ~x-s))))
       ~'IEquiv
-      (~'-equiv [this# other#]
-        (and (instance? ~t other#)
-             (let [ka# (js/Object.keys this#)
-                   kb# (js/Object.keys other#)]
-               (and (= (.-length ka#) (.-length kb#))
-                    (every? (fn [k#]
-                              (and (~'js* "Object.prototype.hasOwnProperty.call(~{}, ~{})" other# k#)
-                                   (= (unchecked-get this# k#) (unchecked-get other# k#))))
-                            ka#)))))
+      (~'-equiv [~this-s ~other-s]
+        (if ~(bool-form `(instance? ~t ~other-s))
+          (let [~ka-s (js/Object.keys ~this-s)
+                ~kb-s (js/Object.keys ~other-s)]
+            (if ~(bool-form (list 'js* "~{} === ~{}" `(.-length ~ka-s) `(.-length ~kb-s)))
+              (every? (fn [~k-s]
+                        (if ~(has-own other-s k-s)
+                          (= (unchecked-get ~this-s ~k-s) (unchecked-get ~other-s ~k-s))
+                          false))
+                      ~ka-s)
+              false))
+          false))
       ~'ISeqable
-      (~'-seq [this#] (seq (js/Object.entries this#))))))
+      (~'-seq [~this-s] (seq (js/Object.entries ~this-s))))))
 
 (core/defn core-defrecord
   "(defrecord name [fields*] specs*)
