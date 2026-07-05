@@ -140,7 +140,9 @@
   protocols, so keyword lookup, keys, seq, assoc, conj and = work through
   the regular core functions. assoc and dissoc of a non-basis key keep the
   record type, dissoc of a basis field gives a plain map."
-  [_&env _&form t fields & impls]
+  [_&form env t fields & impls]
+  (core/when-let [atm (:need-record-import env)]
+    (reset! atm true))
   (core/let [r t
              params (map (core/comp core/munge core/name) fields)
              ctor-js (core/str "function " (core/munge (core/str t))
@@ -152,7 +154,7 @@
                                "}")]
     `(do
        (def ~t (~'js* ~ctor-js))
-       (cljs.core/attach-record-impls! (.-prototype ~t) ~(mapv core/name fields))
+       (~'js* "squint_record.attach(~{}.prototype, ~{})" ~t ~(mapv core/name fields))
        ~(core/when (seq impls)
           `(extend-type ~t ~@(wrap-record-fields fields (dt->et t impls fields))))
        ~(build-positional-factory t r fields)

@@ -3,6 +3,7 @@
    ["lodash$default" :as ld]
    ["squint-cljs/core.js" :as cl]
    ["squint-cljs/string.js" :as clstr]
+   ["squint-cljs/src/squint/record.js" :as clrecord]
    [clojure.test :as t]
    [squint.compiler :as squint]))
 
@@ -27,6 +28,11 @@
   (aset js/globalThis "squint.string" mut)
   (doseq [k (js/Object.keys clstr)]
     (aset mut k (aget clstr k))))
+
+(let [mut #js {}]
+  (aset js/globalThis "squint_record" mut)
+  (doseq [k (js/Object.keys clrecord)]
+    (aset mut k (aget clrecord k))))
 
 (defn eq
   ([a b]

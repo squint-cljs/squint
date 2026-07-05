@@ -516,6 +516,7 @@
              core-package (get import-maps "squint-cljs/core.js" "squint-cljs/core.js")
              need-html-import (atom false)
              need-multi-import (atom false)
+             need-record-import (atom false)
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
              jsx-runtime (:jsx-runtime opts)
@@ -537,7 +538,8 @@
                                                         :jsx false
                                                         :pragmas pragmas
                                                         :need-html-import need-html-import
-                                                        :need-multi-import need-multi-import))
+                                                        :need-multi-import need-multi-import
+                                                        :need-record-import need-record-import))
                  jsx (:jsx @(:ns-state opts))
                  _ (when (and jsx jsx-runtime)
                      (let [jsx-name (str "jsx" (if jsx-dev "DEV" ""))
@@ -568,6 +570,13 @@
                                 (if repl?
                                   (format "var squint_multi = await import('%s');\n" multi-pkg)
                                   (format "import * as squint_multi from '%s';\n" multi-pkg)))))
+                 _ (when @need-record-import
+                     (swap! imports str
+                            (let [record-pkg "squint-cljs/src/squint/record.js"
+                                  record-pkg (get import-maps record-pkg record-pkg)]
+                              (if repl?
+                                (format "var squint_record = await import('%s');\n" record-pkg)
+                                (format "import * as squint_record from '%s';\n" record-pkg)))))
                  pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
                  public-vars (get-in @(:ns-state opts) [(cc/current-ns opts) :vars] #{})
