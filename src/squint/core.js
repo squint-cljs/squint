@@ -263,6 +263,16 @@ export function assoc_BANG_(m, k, v, ...kvs) {
       }
       break;
     case INSTANCE_TYPE:
+      if (m[ITransientAssociative__assoc_BANG_] !== undefined) {
+        // re-read the slot off the current value: an -assoc! impl may return a
+        // different handle
+        let ret = m[ITransientAssociative__assoc_BANG_](m, k, v);
+        for (let i = 0; i < kvs.length; i += 2) {
+          ret = ret[ITransientAssociative__assoc_BANG_](ret, kvs[i], kvs[i + 1]);
+        }
+        return ret;
+      }
+    // fall through: an instance without -assoc! keeps the object behavior
     case OBJECT_TYPE:
       m[k] = v;
 
@@ -546,6 +556,13 @@ export function conj_BANG_(...xs) {
       }
       break;
     case INSTANCE_TYPE:
+      if (o[ITransientCollection__conj_BANG_] !== undefined) {
+        // re-dispatch per element: a -conj! impl may return a different handle
+        let acc = o[ITransientCollection__conj_BANG_](o, rest[0]);
+        for (let i = 1; i < rest.length; i++) acc = conj_BANG_(acc, rest[i]);
+        return acc;
+      }
+    // fall through: an instance without -conj! keeps the object behavior
     case OBJECT_TYPE:
       for (const x of rest) {
         if (isVectorArray(x)) { asMapEntry(x); o[x[0]] = x[1]; }
@@ -649,6 +666,13 @@ export function conj(...xs) {
 }
 
 export function disj_BANG_(s, ...xs) {
+  if (s != null && s[ITransientSet__disjoin_BANG_] !== undefined) {
+    let ret = s;
+    for (const x of xs) {
+      ret = ret != null && ret[ITransientSet__disjoin_BANG_] !== undefined ? ret[ITransientSet__disjoin_BANG_](ret, x) : disj_BANG_(ret, x);
+    }
+    return ret;
+  }
   for (const x of xs) {
     s.delete(x);
   }
@@ -657,6 +681,12 @@ export function disj_BANG_(s, ...xs) {
 
 export function disj(s, ...xs) {
   if (s == null) return s;
+  if (xs.length === 0) return s;
+  if (s[ISet__disjoin] !== undefined) {
+    let ret = s[ISet__disjoin](s, xs[0]);
+    for (let i = 1; i < xs.length; i++) ret = disj(ret, xs[i]);
+    return ret;
+  }
   // pass s itself (not a spread) so a SortedSet keeps its comparator
   const s1 = new s.constructor(s);
   return copyMeta(s, disj_BANG_(s1, ...xs));
@@ -683,6 +713,11 @@ export function contains_QMARK_(coll, v) {
 }
 
 export function dissoc_BANG_(m, ...ks) {
+  if (m != null && m[ITransientMap__dissoc_BANG_] !== undefined) {
+    let ret = m;
+    for (const k of ks) ret = ret != null && ret[ITransientMap__dissoc_BANG_] !== undefined ? ret[ITransientMap__dissoc_BANG_](ret, k) : dissoc_BANG_(ret, k);
+    return ret;
+  }
   for (const k of ks) {
     delete m[k];
   }
@@ -1450,6 +1485,21 @@ export const IEmptyableCollection = { __sym: Symbol('squint.core.IEmptyableColle
 export const IEmptyableCollection__empty = Symbol('IEmptyableCollection_-empty');
 export const IEquiv = { __sym: Symbol('squint.core.IEquiv') };
 export const IEquiv__equiv = Symbol('IEquiv_-equiv');
+// set and transient protocols, same extension-path dispatch as the map-facing
+// protocols above
+export const ISet = { __sym: Symbol('squint.core.ISet') };
+export const ISet__disjoin = Symbol('ISet_-disjoin');
+export const IEditableCollection = { __sym: Symbol('squint.core.IEditableCollection') };
+export const IEditableCollection__as_transient = Symbol('IEditableCollection_-as-transient');
+export const ITransientCollection = { __sym: Symbol('squint.core.ITransientCollection') };
+export const ITransientCollection__conj_BANG_ = Symbol('ITransientCollection_-conj!');
+export const ITransientCollection__persistent_BANG_ = Symbol('ITransientCollection_-persistent!');
+export const ITransientAssociative = { __sym: Symbol('squint.core.ITransientAssociative') };
+export const ITransientAssociative__assoc_BANG_ = Symbol('ITransientAssociative_-assoc!');
+export const ITransientMap = { __sym: Symbol('squint.core.ITransientMap') };
+export const ITransientMap__dissoc_BANG_ = Symbol('ITransientMap_-dissoc!');
+export const ITransientSet = { __sym: Symbol('squint.core.ITransientSet') };
+export const ITransientSet__disjoin_BANG_ = Symbol('ITransientSet_-disjoin!');
 // marker protocol set by defrecord
 export const IRecord = { __sym: Symbol('squint.core.IRecord') };
 
@@ -1499,6 +1549,34 @@ export function _equiv(o, other) {
 export function _seq(o) {
   if (o != null && o[ISeqable__seq] !== undefined) return o[ISeqable__seq](o);
   return nilImpl(_seq, 'ISeqable.-seq', o)(o);
+}
+export function _disjoin(o, x) {
+  if (o != null && o[ISet__disjoin] !== undefined) return o[ISet__disjoin](o, x);
+  return nilImpl(_disjoin, 'ISet.-disjoin', o)(o, x);
+}
+export function _as_transient(o) {
+  if (o != null && o[IEditableCollection__as_transient] !== undefined) return o[IEditableCollection__as_transient](o);
+  return nilImpl(_as_transient, 'IEditableCollection.-as-transient', o)(o);
+}
+export function _conj_BANG_(o, x) {
+  if (o != null && o[ITransientCollection__conj_BANG_] !== undefined) return o[ITransientCollection__conj_BANG_](o, x);
+  return nilImpl(_conj_BANG_, 'ITransientCollection.-conj!', o)(o, x);
+}
+export function _persistent_BANG_(o) {
+  if (o != null && o[ITransientCollection__persistent_BANG_] !== undefined) return o[ITransientCollection__persistent_BANG_](o);
+  return nilImpl(_persistent_BANG_, 'ITransientCollection.-persistent!', o)(o);
+}
+export function _assoc_BANG_(o, k, v) {
+  if (o != null && o[ITransientAssociative__assoc_BANG_] !== undefined) return o[ITransientAssociative__assoc_BANG_](o, k, v);
+  return nilImpl(_assoc_BANG_, 'ITransientAssociative.-assoc!', o)(o, k, v);
+}
+export function _dissoc_BANG_(o, k) {
+  if (o != null && o[ITransientMap__dissoc_BANG_] !== undefined) return o[ITransientMap__dissoc_BANG_](o, k);
+  return nilImpl(_dissoc_BANG_, 'ITransientMap.-dissoc!', o)(o, k);
+}
+export function _disjoin_BANG_(o, x) {
+  if (o != null && o[ITransientSet__disjoin_BANG_] !== undefined) return o[ITransientSet__disjoin_BANG_](o, x);
+  return nilImpl(_disjoin_BANG_, 'ITransientSet.-disjoin!', o)(o, x);
 }
 
 // an extend-type on nil stores the impl on the dispatch fn under null,
@@ -3643,10 +3721,12 @@ export function flatten(x) {
 }
 
 export function transient$(x) {
+  if (x != null && x[IEditableCollection__as_transient] !== undefined) return x[IEditableCollection__as_transient](x);
   return copy(x);
 }
 
 export function persistent_BANG_(x) {
+  if (x != null && x[ITransientCollection__persistent_BANG_] !== undefined) return x[ITransientCollection__persistent_BANG_](x);
   // no Object.freeze: persistent structures stay extensible so symbol-keyed
   // metadata can be attached
   return x;

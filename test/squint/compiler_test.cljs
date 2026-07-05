@@ -1958,6 +1958,43 @@ with `backticks`")))]
     (is (= false (jsv! "(= {:a 1} (js/Date.))")))
     (is (eq #js {"a" 1, "b" 2} (jsv! "(assoc {:a 1} :b 2)")))))
 
+(def ^:private set-transient-prelude
+  "(deftype MySet [s]
+     ISet (-disjoin [this x] (MySet. (doto (js/Set. s) (.delete x))))
+     ICounted (-count [this] (.-size s))
+     IEditableCollection (-as-transient [this] (MySet. (js/Set. s)))
+     ITransientSet (-disjoin! [this x] (.delete s x) this)
+     ITransientCollection
+     (-conj! [this x] (.add s x) this)
+     (-persistent! [this] (MySet. s)))
+   (deftype MyTMap [m]
+     ICounted (-count [this] (.-size m))
+     IEditableCollection (-as-transient [this] (MyTMap. (js/Map. m)))
+     ITransientAssociative (-assoc! [this k v] (.set m k v) this)
+     ITransientMap (-dissoc! [this k] (.delete m k) this)
+     ITransientCollection (-persistent! [this] (MyTMap. m)))
+   (def ms (MySet. (js/Set. #js [1 2 3])))
+   (def mt (MyTMap. (doto (js/Map.) (.set :a 1) (.set :b 2))))\n")
+
+(defn- set-transient [expr]
+  (jsv! (str set-transient-prelude expr)))
+
+(deftest set-transient-protocols-test
+  (testing "ISet -disjoin through disj"
+    (is (= true (set-transient "(let [d (disj ms 1)] (and (instance? MySet d) (= 2 (count d))))")))
+    (is (= true (set-transient "(let [d (disj ms 1 2)] (and (instance? MySet d) (= 1 (count d))))")))
+    (is (= true (set-transient "(identical? ms (disj ms))"))))
+  (testing "IEditableCollection/ITransientCollection/ITransientSet roundtrip"
+    (is (= 3 (set-transient "(-> (transient ms) (conj! 4) (disj! 1) persistent! count)")))
+    (is (= true (set-transient "(instance? MySet (persistent! (transient ms)))"))))
+  (testing "IEditableCollection/ITransientAssociative/ITransientMap roundtrip"
+    (is (= 2 (set-transient "(-> (transient mt) (assoc! :c 3) (dissoc! :a) persistent! count)")))
+    (is (= true (set-transient "(instance? MyTMap (persistent! (transient mt)))"))))
+  (testing "plain collections keep their behavior"
+    (is (eq (js/Set. #js [2]) (jsv! "(disj #{1 2} 1)")))
+    (is (eq #js [1] (jsv! "(persistent! (conj! (transient []) 1))")))
+    (is (eq #js {"a" 1} (jsv! "(persistent! (assoc! (transient {}) :a 1))")))))
+
 (deftest ref-protocols-test
   (is (eq [true true true 5 2]
           (jsv! '[(satisfies? IReset (atom 1)) (satisfies? ISwap (atom 1))
