@@ -96,20 +96,28 @@ code objects. Dedupe of dispatch code belongs at build or macro time.
 
 ## Decision: field access in method bodies via a filtered let
 
-CLJS resolves bare field names in method bodies per use site as `self__.a`
-property reads. Squint instead prefixes each user method body with a `let`
-binding every record field, read off this via `unchecked-get this "field"`.
-Params shadow fields. For immutable record fields a hoisted read is
-observationally identical to per-use reads.
+CLJS resolves bare field names in method bodies per use site: `deftype*` is
+a special form whose analyzer scopes the fields as locals over the method
+bodies and emits each use as a `self__.field` read, after macroexpansion.
+Squint does the same with its own machinery: `core-defrecord` wraps the
+user impls in a `record-methods*` special that merges each field into the
+emitter's `:var->ident` map as a `self__["field"]` ident (extend-type
+already prefixes every method with `const self__ = this;`). Fn params and
+let bindings merge into the same map later, so they shadow fields exactly
+like locals shadow anything else.
 
-All fields are bound, including ones a body never mentions. Which names a
-body uses is only knowable after macroexpansion, and the defrecord macro
-runs before it: any scan of the unexpanded body misreads code where a macro
-expands to a bare field name. A filtered variant was tried and rejected for
-exactly that reason. The cost is a few dead property reads per method call.
-Future work: resolve field symbols per use site in the compiler (a
-var->ident mapping to `this["field"]` accessors, the deftype mechanism),
-which removes the let entirely and matches CLJS semantics.
+Bracket idents would be destroyed by the emitter's `munge**`, so the
+var->ident hit honors the existing `:squint.compiler/no-rename` metadata
+and emits such idents verbatim. This is the one compiler change involved.
+
+Two designs were tried and rejected first: a `let` prefix binding every
+field per method (dead reads on every call), and a filtered variant binding
+only fields the unexpanded body mentions. The filter is unsound: which
+names a body uses is only knowable after macroexpansion, and a macro
+expanding to a bare field name defeats any syntactic scan. The var->ident
+mapping resolves at emission time, after expansion, so
+`(defmacro get-a [] 'a)` used inside a method body reads the field, exactly
+as in CLJS.
 
 Emission hygiene notes that came out of review:
 

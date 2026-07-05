@@ -39,7 +39,7 @@
                          'inc! 'dec! 'dec 'inc 'defined?
                          '? 'try 'break 'throw 'not
                          'const 'let 'let* 'ns 'def 'loop*
-                         'recur 'js* 'case* 'deftype* 'letfn*
+                         'recur 'js* 'case* 'deftype* 'record-methods* 'letfn*
                          ;; js
                          'js/await 'js-await 'await 'js/typeof
                          ;; prefixed to avoid conflicts

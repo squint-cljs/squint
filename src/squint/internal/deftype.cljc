@@ -104,32 +104,6 @@
                   (new ~rname ~@(map (core/fn [f] `(get ~ms ~(core/name f))) fields))
                   ~ms))))
 
-(core/defn- wrap-record-fields
-  "Prefixes each method body with a let binding the record fields read off
-  this, so bodies can use bare field names like in CLJS. Params shadow
-  fields. All fields are bound: which names a body uses is only knowable
-  after macroexpansion."
-  [fields specs]
-  (core/let [wrap-arity
-             (core/fn [[params & body :as arity]]
-               (core/let [this-sym (first params)
-                          shadowed (into #{} (comp (filter core/symbol?) (map core/name)) params)
-                          binds (mapcat (core/fn [f]
-                                          (core/when-not (contains? shadowed (core/name f))
-                                            [f `(unchecked-get ~this-sym ~(core/name f))]))
-                                        fields)]
-                 (if (core/and this-sym (seq binds))
-                   `(~params (let [~@binds] ~@body))
-                   arity)))]
-    (map (core/fn [spec]
-           (if (seq? spec)
-             (core/let [[mname & tail] spec]
-               (if (vector? (first tail))
-                 `(~mname ~@(wrap-arity tail))
-                 `(~mname ~@(map wrap-arity tail))))
-             spec))
-         specs)))
-
 (core/defn core-defrecord
   "(defrecord name [fields*] specs*)
   Like CLJS defrecord: defines a positional ->name and a map->name factory
@@ -154,7 +128,8 @@
        (def ~t (~'js* ~ctor-js))
        (~'js* "squint_record.attach(~{}.prototype, ~{})" ~t ~(mapv core/name fields))
        ~(core/when (seq impls)
-          `(extend-type ~t ~@(wrap-record-fields fields (dt->et t impls fields))))
+          `(~'record-methods* ~fields
+            (extend-type ~t ~@(dt->et t impls fields))))
        ~(build-positional-factory t r fields)
        ~(build-map-factory t r fields)
        ~t)))

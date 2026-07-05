@@ -571,7 +571,9 @@
                                  (str munged "." (munge (name expr))))))))
                      (if-let [renamed (get (:var->ident env) expr)]
                        (let [tag (:tag (meta renamed))]
-                         (cond-> (munge** (str renamed))
+                         (cond-> (if (:squint.compiler/no-rename (meta renamed))
+                                   (str renamed)
+                                   (munge** (str renamed)))
                            tag (tagged-expr tag)))
                        (let [alias (get aliases expr)]
                          (or
@@ -1859,3 +1861,15 @@ break;}" body)
                                                (symbol (str "self__." fld)))
                                              fields*))))))
                         (assoc :type true)))))))
+
+(defmethod emit-special 'record-methods* [_ env [_ fields form]]
+  (emit form
+        (update env :var->ident
+                (fn [vi]
+                  (merge vi
+                         (zipmap fields
+                                 (map (fn [f]
+                                        (with-meta
+                                          (symbol (str "self__[\"" f "\"]"))
+                                          {:squint.compiler/no-rename true}))
+                                      fields)))))))
