@@ -187,14 +187,8 @@
   protocols, so keyword lookup, keys, seq, assoc, conj and = work through
   the regular core functions. assoc and dissoc of a non-basis key keep the
   record type, dissoc of a basis field gives a plain map."
-  [&env _&form t fields & impls]
-  (core/let [env &env
-             r t
-             [fpps _pmasks] (prepare-protocol-masks env impls)
-             protocols (collect-protocols impls env)
-             t (vary-meta t assoc
-                          :protocols protocols
-                          :skip-protocol-flag fpps)
+  [_&env _&form t fields & impls]
+  (core/let [r t
              params (map (core/comp core/munge core/name) fields)
              ctor-js (core/str "function " (core/munge (core/str t))
                                " (" (str/join ", " params) ") {\n"
