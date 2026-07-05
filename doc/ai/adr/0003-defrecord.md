@@ -28,13 +28,19 @@ assigns `this["a"]` and `this["first-name"]`. Parameter names are munged,
 property keys are not.
 
 Why: squint map keys are strings, so `(:first-name rec)`, `keys`, `seq` and
-`reduce-kv` must see the exact field name as the key. Munging the property
-(CLJS stores `self__.first_name`) would break every map operation on the
-field. CLJS hides this behind generated `ILookup` cases per field; squint
-gets it for free by storing the honest key.
+`reduce-kv` must see the exact field name as the key. CLJS munges the
+property (`this.first_name = first_name`) and compensates with per-record
+generated code: `-lookup` carries a literal `case` mapping each keyword back
+to its munged accessor, and `-seq` rebuilds entries with the keyword keys.
+That per-type table generation is exactly what the shared-implementation
+design (below) removes, so squint stores the map key as the property key and
+the shared impls read fields with no translation.
 
-Consequence: fields live as own enumerable props, so the extmap needs no
-separate structure. An extra `assoc`'d key is just one more own property.
+Consequences: fields live as own enumerable props, so the extmap needs no
+separate structure and an extra `assoc`'d key is just one more own property.
+JS dot interop on dashed fields differs from CLJS: `rec.first_name` works
+there, squint needs `rec["first-name"]`. Undashed fields dot-access the same
+in both.
 
 ## Decision: behavior through the shared protocols, not special cases
 
