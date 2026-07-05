@@ -1896,6 +1896,20 @@ with `backticks`")))]
     (is (= true (jsv! "(defrecord B [x-y]) (= (->B 1) (->B 1))")))
     (is (= 1 (jsv! "(defrecord B [x-y]) (.-x-y (assoc (->B 1) :other 2))")))))
 
+(deftest record-js-interop-test
+  (testing "JS iteration"
+    (is (eq [["a" 1] ["b" 2]] (jsv! "(defrecord P [a b]) (vec (js/Array.from (->P 1 2)))"))))
+  (testing "keys unpolluted"
+    (is (eq ["a" "b"] (jsv! "(defrecord P [a b]) (vec (sort (keys (->P 1 2))))"))))
+  (testing "count unaffected"
+    (is (= 2 (jsv! "(defrecord P [a b]) (count (->P 1 2))"))))
+  (testing "equality unaffected"
+    (is (= true (jsv! "(defrecord P [a b]) (= (->P 1 2) (->P 1 2))"))))
+  (testing "seq still works, now via the iterator"
+    (is (= true (jsv! "(defrecord P [a b]) (boolean (seq (->P 1 2)))"))))
+  (testing "printing unchanged"
+    (is (= "#P{:a 1, :b 2}" (jsv! "(defrecord P [a b]) (pr-str (->P 1 2))")))))
+
 (def ^:private my-map-prelude
   "(deftype MyMap [m]
      ILookup (-lookup [this k nf] (get m k nf))
