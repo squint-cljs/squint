@@ -5,6 +5,7 @@
 ## Unreleased
 
 - Add `defrecord`, `record?` and the `IRecord` marker protocol. Records store their fields as own string-keyed properties and implement the map-facing protocols, so keyword lookup, `keys`, `seq`, `assoc`, `conj` and `=` work through the regular core functions. `assoc` keeps the record type, `dissoc` of a basis field gives a plain map, printing gives `#TypeName{:a 1}`
+- The generated record implementations are shared runtime functions: each defrecord emits one attach call instead of nine method bodies
 - Fix `merge` on a record or other -conj type without an empty representation
 - Fix `merge`, `keys`, `vals`, `update-keys` and `update-vals` to dispatch through the map protocols on custom types, instead of mutating copies or reading internal properties
 - Fix `into` to reduce through `-conj` on a type implementing `ICollection` instead of mutating a plain copy

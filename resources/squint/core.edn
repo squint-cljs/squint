@@ -81,6 +81,7 @@
   assoc_in
   assoc_in_BANG_
   atom
+  attach_record_impls_BANG_
   boolean$
   boolean_QMARK_
   bounded_count

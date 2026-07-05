@@ -132,76 +132,6 @@
              spec))
          specs)))
 
-(core/defn- bool-form
-  "Tags a form as boolean so an if test on it skips truth_."
-  [form]
-  (with-meta form {:tag 'boolean}))
-
-(core/defn- record-impls
-  "The generated protocol implementations that make a record behave as a map."
-  [t fields]
-  ;; fixed binding names: the generated bodies contain no user code, so
-  ;; nothing can capture them, and the emission stays deterministic
-  (core/let [basis (mapv core/name fields)
-             this-s 'this-rec k-s 'k-rec nf-s 'nf-rec
-             v-s 'v-rec x-s 'x-rec f-s 'f-rec
-             init-s 'init-rec acc-s 'acc-rec e-s 'e-rec
-             m-s 'm-rec r-s 'r-rec other-s 'other-rec
-             ka-s 'ka-rec kb-s 'kb-rec kv-s 'kv-rec
-             own-copy (core/fn [s]
-                        (list 'js* "Object.assign(Object.create(Object.getPrototypeOf(~{})), ~{})" s s))
-             has-own (core/fn [o k]
-                       (bool-form (list 'js* "Object.prototype.hasOwnProperty.call(~{}, ~{})" o k)))]
-    `(~'IRecord
-      ~'ILookup
-      (~'-lookup [~this-s ~k-s ~nf-s]
-        (let [~v-s (unchecked-get ~this-s ~k-s)]
-          (if ~(bool-form (list 'js* "~{} === undefined" v-s)) ~nf-s ~v-s)))
-      ~'IAssociative
-      (~'-assoc [~this-s ~k-s ~v-s]
-        (let [~r-s ~(own-copy this-s)]
-          (unchecked-set ~r-s ~k-s ~v-s)
-          ~r-s))
-      (~'-contains-key? [~this-s ~k-s]
-        ~(has-own this-s k-s))
-      ~'IMap
-      (~'-dissoc [~this-s ~k-s]
-        (if ~(bool-form (list 'js* "~{}.includes(~{})" basis k-s))
-          ;; removing a basis field demotes to a plain map, like CLJS
-          (let [~m-s (~'js* "({...~{}})" ~this-s)]
-            (js-delete ~m-s ~k-s)
-            ~m-s)
-          (let [~r-s ~(own-copy this-s)]
-            (js-delete ~r-s ~k-s)
-            ~r-s)))
-      ~'ICounted
-      (~'-count [~this-s] (.-length (js/Object.keys ~this-s)))
-      ~'IKVReduce
-      (~'-kv-reduce [~this-s ~f-s ~init-s]
-        (reduce (fn [~acc-s ~kv-s] (~f-s ~acc-s (aget ~kv-s 0) (aget ~kv-s 1)))
-                ~init-s
-                (js/Object.entries ~this-s)))
-      ~'ICollection
-      (~'-conj [~this-s ~x-s]
-        (if ~(bool-form `(vector? ~x-s))
-          (assoc ~this-s (nth ~x-s 0) (nth ~x-s 1))
-          (reduce (fn [~acc-s ~e-s] (assoc ~acc-s (nth ~e-s 0) (nth ~e-s 1))) ~this-s (seq ~x-s))))
-      ~'IEquiv
-      (~'-equiv [~this-s ~other-s]
-        (if ~(bool-form `(instance? ~t ~other-s))
-          (let [~ka-s (js/Object.keys ~this-s)
-                ~kb-s (js/Object.keys ~other-s)]
-            (if ~(bool-form (list 'js* "~{} === ~{}" `(.-length ~ka-s) `(.-length ~kb-s)))
-              (every? (fn [~k-s]
-                        (if ~(has-own other-s k-s)
-                          (= (unchecked-get ~this-s ~k-s) (unchecked-get ~other-s ~k-s))
-                          false))
-                      ~ka-s)
-              false))
-          false))
-      ~'ISeqable
-      (~'-seq [~this-s] (seq (js/Object.entries ~this-s))))))
-
 (core/defn core-defrecord
   "(defrecord name [fields*] specs*)
   Like CLJS defrecord: defines a positional ->name and a map->name factory
@@ -222,9 +152,9 @@
                                "}")]
     `(do
        (def ~t (~'js* ~ctor-js))
-       (extend-type ~t
-         ~@(record-impls t fields)
-         ~@(wrap-record-fields fields (dt->et t impls fields)))
+       (cljs.core/attach-record-impls! (.-prototype ~t) ~(mapv core/name fields))
+       ~(core/when (seq impls)
+          `(extend-type ~t ~@(wrap-record-fields fields (dt->et t impls fields))))
        ~(build-positional-factory t r fields)
        ~(build-map-factory t r fields)
        ~t)))
