@@ -1,4 +1,6 @@
-# ADR: defrecord
+# ADR 0003: defrecord
+
+Status: Accepted
 
 How squint implements `defrecord` and why. Decisions made across the
 protocol work of squint 0.14.201 through 0.14.203.
