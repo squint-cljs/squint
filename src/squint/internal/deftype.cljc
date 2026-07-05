@@ -105,19 +105,17 @@
                   ~ms))))
 
 (core/defn- wrap-record-fields
-  "Prefixes each method body with a let binding the record fields the body
-  references, read off this, so bodies can use bare field names like in
-  CLJS. Params shadow fields, unused fields are not read."
+  "Prefixes each method body with a let binding the record fields read off
+  this, so bodies can use bare field names like in CLJS. Params shadow
+  fields. All fields are bound: which names a body uses is only knowable
+  after macroexpansion."
   [fields specs]
   (core/let [wrap-arity
              (core/fn [[params & body :as arity]]
                (core/let [this-sym (first params)
                           shadowed (into #{} (comp (filter core/symbol?) (map core/name)) params)
-                          body-syms (into #{} (comp (filter core/symbol?) (map core/name))
-                                          (tree-seq coll? seq body))
                           binds (mapcat (core/fn [f]
-                                          (core/when (core/and (not (contains? shadowed (core/name f)))
-                                                               (contains? body-syms (core/name f)))
+                                          (core/when-not (contains? shadowed (core/name f))
                                             [f `(unchecked-get ~this-sym ~(core/name f))]))
                                         fields)]
                  (if (core/and this-sym (seq binds))
