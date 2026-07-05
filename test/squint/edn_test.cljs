@@ -25,9 +25,9 @@
       (is (= 1 (edn/read-string "1")))
       (is (= -1 (edn/read-string "-1")))
       (is (= -1.5 (edn/read-string "-1.5")))
-      (is (= nil (edn/read-string "nil")))
-      (is (= true (edn/read-string "true")))
-      (is (= false (edn/read-string "false")))
+      (is (nil? (edn/read-string "nil")))
+      (is (true? (edn/read-string "true")))
+      (is (false? (edn/read-string "false")))
       (is (= "foo" (edn/read-string "\"foo\"")))
       (is (= :hello (edn/read-string ":hello")))
       (is (= :foo/bar (edn/read-string ":foo/bar")))
@@ -105,7 +105,7 @@
 (deftest-eval eof-test
   (do (ns foo (:require [clojure.edn :as edn]
                         [cljs.test :refer [is]]))
-      (is (= nil (edn/read-string "")))
+      (is (nil? (edn/read-string "")))
       (is (= :end (edn/read-string {:eof :end} "")))))
 
 ;; edge cases adapted from edamame.core-test
@@ -137,7 +137,7 @@
   (do (ns foo (:require [clojure.edn :as edn]
                         [clojure.string :as str]
                         [cljs.test :refer [is]]))
-      (is (= nil (edn/read-string (str/join "\n" (repeat 100 ";;")))))))
+      (is (nil? (edn/read-string (str/join "\n" (repeat 100 ";;")))))))
 
 (deftest-eval reader-macro-test
   (do (ns foo (:require [clojure.edn :as edn]
