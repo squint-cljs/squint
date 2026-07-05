@@ -98,10 +98,20 @@ code objects. Dedupe of dispatch code belongs at build or macro time.
 
 CLJS resolves bare field names in method bodies per use site as `self__.a`
 property reads. Squint instead prefixes each user method body with a `let`
-binding only the fields the body actually references (params shadow, unused
-fields emit nothing). For immutable record fields a hoisted read is
-observationally identical to per-use reads. Bodies read the unmunged keys
-via `unchecked-get this "field"`.
+binding only the fields the body references (params shadow, unused fields
+emit nothing). For immutable record fields a hoisted read is observationally
+identical to per-use reads. Bodies read the unmunged keys via
+`unchecked-get this "field"`.
+
+"References" is a syntactic over-approximation: a tree-seq over the
+unexpanded body, matching symbol names against the field list. A field name
+in a quoted form or shadowed binding costs one dead read. The real
+limitation is the other direction: a macro call in the body that expands to
+a bare field symbol is not seen, so the field is not bound and compilation
+fails on an unresolved symbol. CLJS is immune since its analyzer resolves
+fields after expansion. Accepted: the failure is loud and compile-time, and
+the alternative (binding every field in every method) puts dead reads on
+every call.
 
 Emission hygiene notes that came out of review:
 
