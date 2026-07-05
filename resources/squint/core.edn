@@ -11,6 +11,8 @@
   ICounted__count
   IDeref
   IDeref__deref
+  IEditableCollection
+  IEditableCollection__as_transient
   IEmptyableCollection
   IEmptyableCollection__empty
   IEquiv
@@ -28,8 +30,19 @@
   IReset__reset_BANG_
   ISeqable
   ISeqable__seq
+  ISet
+  ISet__disjoin
   ISwap
   ISwap__swap_BANG_
+  ITransientAssociative
+  ITransientAssociative__assoc_BANG_
+  ITransientCollection
+  ITransientCollection__conj_BANG_
+  ITransientCollection__persistent_BANG_
+  ITransientMap
+  ITransientMap__dissoc_BANG_
+  ITransientSet
+  ITransientSet__disjoin_BANG_
   IWatchable
   IWatchable__add_watch
   IWatchable__notify_watches
@@ -50,18 +63,25 @@
   _STAR_print_fn_STAR_
   _STAR_print_newline_STAR_
   _add_watch
+  _as_transient
   _assoc
+  _assoc_BANG_
   _conj
+  _conj_BANG_
   _contains_key_QMARK_
   _count
   _deref
+  _disjoin
+  _disjoin_BANG_
   _dissoc
+  _dissoc_BANG_
   _empty
   _equiv
   _iterator
   _kv_reduce
   _lookup
   _notify_watches
+  _persistent_BANG_
   _remove_watch
   _reset_BANG_
   _seq
