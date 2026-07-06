@@ -3043,6 +3043,17 @@ globalThis.foo.fs = fs;")))))
 (deftest juxt-test
   (is (eq #js [2 0] (jsv! "((juxt inc dec) 1)"))))
 
+(deftest to-fn-callable-test
+  (testing "collections and keywords are callable as lookups in fn position"
+    (is (eq #js [20] (jsv! "((juxt [10 20]) 1)")))
+    (is (eq #js [5] (jsv! "((juxt {:a 5}) :a)")))
+    (is (eq #js [3] (jsv! "((juxt #{3}) 3)")))
+    (is (eq #js [9] (jsv! "((juxt :k) {:k 9})"))))
+  (testing "a seq, list or non-lookup value is not callable, like a non-IFn in CLJS"
+    (is (thrown? js/Error (jsv! "((juxt (range)))")))
+    (is (thrown? js/Error (jsv! "((juxt (list 1 2)) 0)")))
+    (is (thrown? js/Error (jsv! "((juxt 1)))")))))
+
 (deftest fn?-test
   (is (true? (jsv! "(fn? inc)"))))
 
