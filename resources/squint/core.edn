@@ -107,6 +107,7 @@
   boolean_QMARK_
   bounded_count
   butlast
+  byte$
   cat
   char$
   char_QMARK_
@@ -174,6 +175,7 @@
   group_by
   hash_map
   hash_set
+  ident_QMARK_
   identical_QMARK_
   identity
   ifn_QMARK_
@@ -237,6 +239,7 @@
   nth
   nthnext
   nthrest
+  num
   number_QMARK_
   object_QMARK_
   object_array
@@ -265,7 +268,9 @@
   println_str
   prn
   prn_str
+  qualified_ident_QMARK_
   qualified_keyword_QMARK_
+  qualified_symbol_QMARK_
   quot
   rand
   rand_int
@@ -308,8 +313,11 @@
   set
   set_QMARK_
   set_validator_BANG_
+  short$
   shuffle
+  simple_ident_QMARK_
   simple_keyword_QMARK_
+  simple_symbol_QMARK_
   some
   some_QMARK_
   some_fn

@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add `ident?`, `simple-ident?`, `qualified-ident?`, `simple-symbol?`, `qualified-symbol?`, `num`, `byte` and `short`
 - Add `fnext`, `nfirst`, `nthnext`, `nthrest`, `parse-boolean`, `char`, `pop!`, `print-str`, `println-str`, `prn-str`, `random-sample`, `float?`, `reversible?`, `/` as a value and `associative?` through the `IAssociative` protocol
 - Add the `ISet`, `IEditableCollection`, `ITransientCollection`, `ITransientAssociative`, `ITransientMap` and `ITransientSet` protocols. `disj`, `transient`, `conj!`, `assoc!`, `dissoc!`, `disj!` and `persistent!` dispatch to them on custom types
 - Records are JS-iterable over their entries and print readably in the Node console

@@ -4135,6 +4135,17 @@ new Foo();")
   (testing "nthrest"
     (is (eq [3 4 5] (jsv! '(vec (nthrest [1 2 3 4 5] 2)))))
     (is (= 0 (jsv! '(count (nthrest [1 2 3] 10))))))
+  (testing "ident?"
+    (is (true? (jsv! '(ident? :a))))
+    (is (false? (jsv! '(ident? 1)))))
+  (testing "simple-ident?/qualified-ident?"
+    (is (true? (jsv! '(simple-ident? :a))))
+    (is (true? (jsv! '(qualified-ident? :a/b))))
+    (is (false? (jsv! '(qualified-ident? :a)))))
+  (testing "simple-symbol?/qualified-symbol?"
+    (is (true? (jsv! '(simple-symbol? 'a))))
+    (is (true? (jsv! '(qualified-symbol? 'a/b))))
+    (is (false? (jsv! '(simple-symbol? 'a/b)))))
   (testing "parse-boolean"
     (is (true? (jsv! '(parse-boolean "true"))))
     (is (false? (jsv! '(parse-boolean "false"))))
@@ -4142,6 +4153,10 @@ new Foo();")
   (testing "char"
     (is (= "A" (jsv! '(char 65))))
     (is (= "A" (jsv! '(char \A)))))
+  (testing "num/byte/short"
+    (is (= 5 (jsv! '(num 5))))
+    (is (= 300 (jsv! '(byte 300))))
+    (is (= -1 (jsv! '(short -1)))))
   (testing "pop!"
     (is (eq [1 2] (jsv! '(persistent! (pop! (transient [1 2 3]))))))
     (is (jsv! '(try (pop! {}) false (catch :default _e true)))))
