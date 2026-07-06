@@ -3529,6 +3529,26 @@ export function qualified_keyword_QMARK_(x) {
   return typeof x === 'string' && x.includes('/');
 }
 
+export function ident_QMARK_(x) {
+  return typeof x === 'string';
+}
+
+export function simple_ident_QMARK_(x) {
+  return typeof x === 'string' && namespace(x) == null;
+}
+
+export function qualified_ident_QMARK_(x) {
+  return typeof x === 'string' && namespace(x) != null;
+}
+
+export function simple_symbol_QMARK_(x) {
+  return symbol_QMARK_(x) && namespace(x) == null;
+}
+
+export function qualified_symbol_QMARK_(x) {
+  return symbol_QMARK_(x) && namespace(x) != null;
+}
+
 export function coll_QMARK_(coll) {
   return typeConst(coll) != undefined;
 }
@@ -4042,6 +4062,18 @@ export function float$(x) {
 }
 
 export function double$(x) {
+  return x;
+}
+
+export function num(x) {
+  return x;
+}
+
+export function byte$(x) {
+  return x;
+}
+
+export function short$(x) {
   return x;
 }
 
