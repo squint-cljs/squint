@@ -4122,6 +4122,59 @@ new Foo();")
   (testing "declare registers a forward reference so a core-macro-named var is not the macro"
     (is (= 42 (jsv! "(ns t2) (declare exists?) (defn use-it [] (exists? 1)) (defn exists? [_] 42) (use-it)")))))
 
+(deftest missing-core-fns-test
+  (testing "fnext"
+    (is (= 2 (jsv! '(fnext [1 2 3]))))
+    (is (nil? (jsv! '(fnext [1])))))
+  (testing "nfirst"
+    (is (eq [2] (jsv! '(nfirst [[1 2] [3 4]]))))
+    (is (nil? (jsv! '(nfirst [])))))
+  (testing "nthnext"
+    (is (eq [3 4 5] (jsv! '(vec (nthnext [1 2 3 4 5] 2)))))
+    (is (nil? (jsv! '(nthnext [1 2 3] 10)))))
+  (testing "nthrest"
+    (is (eq [3 4 5] (jsv! '(vec (nthrest [1 2 3 4 5] 2)))))
+    (is (= 0 (jsv! '(count (nthrest [1 2 3] 10))))))
+  (testing "parse-boolean"
+    (is (true? (jsv! '(parse-boolean "true"))))
+    (is (false? (jsv! '(parse-boolean "false"))))
+    (is (nil? (jsv! '(parse-boolean "nope")))))
+  (testing "char"
+    (is (= "A" (jsv! '(char 65))))
+    (is (= "A" (jsv! '(char \A)))))
+  (testing "pop!"
+    (is (eq [1 2] (jsv! '(persistent! (pop! (transient [1 2 3]))))))
+    (is (jsv! '(try (pop! {}) false (catch :default _e true)))))
+  (testing "print-str/println-str/prn-str"
+    (is (= "1 a" (jsv! '(print-str 1 "a"))))
+    (is (= "1 a\n" (jsv! '(println-str 1 "a"))))
+    (is (= "1 \"a\"\n" (jsv! '(prn-str 1 "a")))))
+  (testing "random-sample"
+    (is (eq [1 2 3] (jsv! '(vec (random-sample 1 [1 2 3])))))
+    (is (eq [] (jsv! '(vec (random-sample 0 [1 2 3])))))
+    (is (eq [1 2 3] (jsv! '(vec (into [] (random-sample 1) [1 2 3])))))
+    (is (eq [] (jsv! '(vec (into [] (random-sample 0) [1 2 3])))))
+    (is (true? (jsv! '(every? #{1 2 3} (random-sample 0.5 [1 2 3]))))))
+  (testing "/ as a value"
+    (is (= 10 (jsv! '(reduce / [100 5 2])))))
+  (testing "float? and reversible?"
+    (is (true? (jsv! "(float? 1.5)")))
+    (is (true? (jsv! "(float? 1)")))
+    (is (false? (jsv! "(float? \"s\")")))
+    (is (true? (jsv! "(reversible? [1 2])")))
+    (is (true? (jsv! "(reversible? (sorted-set 1))")))
+    (is (false? (jsv! "(reversible? '(1))")))
+    (is (false? (jsv! "(reversible? nil)"))))
+  (testing "associative?"
+    (is (true? (jsv! "(associative? {})")))
+    (is (true? (jsv! "(associative? [])")))
+    (is (true? (jsv! "(associative? (js/Map.))")))
+    (is (false? (jsv! "(associative? #{})")))
+    (is (false? (jsv! "(associative? '(1))")))
+    (is (false? (jsv! "(associative? nil)")))
+    (is (false? (jsv! "(associative? \"s\")")))
+    (is (true? (jsv! "(defrecord AR [a]) (associative? (->AR 1))")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test

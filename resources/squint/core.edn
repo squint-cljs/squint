@@ -58,6 +58,7 @@
   _LT_
   _LT__EQ_
   _PLUS_
+  _SLASH_
   _STAR_
   _STAR_print_err_fn_STAR_
   _STAR_print_fn_STAR_
@@ -100,12 +101,14 @@
   assoc_BANG_
   assoc_in
   assoc_in_BANG_
+  associative_QMARK_
   atom
   boolean$
   boolean_QMARK_
   bounded_count
   butlast
   cat
+  char$
   char_QMARK_
   clj__GT_js
   coll_QMARK_
@@ -158,8 +161,10 @@
   first
   flatten
   float$
+  float_QMARK_
   float_array
   fn_QMARK_
+  fnext
   fnil
   force
   frequencies
@@ -221,6 +226,7 @@
   neg_QMARK_
   neg_int_QMARK_
   next
+  nfirst
   nil_QMARK_
   nnext
   not
@@ -229,10 +235,13 @@
   not_empty
   not_every_QMARK_
   nth
+  nthnext
+  nthrest
   number_QMARK_
   object_QMARK_
   object_array
   odd_QMARK_
+  parse_boolean
   parse_double
   parse_long
   parse_uuid
@@ -245,18 +254,23 @@
   peek
   persistent_BANG_
   pop
+  pop_BANG_
   pos_QMARK_
   pos_int_QMARK_
   pr
   pr_str
   print
+  print_str
   println
+  println_str
   prn
+  prn_str
   qualified_keyword_QMARK_
   quot
   rand
   rand_int
   rand_nth
+  random_sample
   random_uuid
   range
   re_find
@@ -281,6 +295,7 @@
   reset_vals_BANG_
   rest
   reverse
+  reversible_QMARK_
   rseq
   run_BANG_
   satisfies_QMARK_

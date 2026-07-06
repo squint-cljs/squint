@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add `fnext`, `nfirst`, `nthnext`, `nthrest`, `parse-boolean`, `char`, `pop!`, `print-str`, `println-str`, `prn-str`, `random-sample`, `float?`, `reversible?`, `/` as a value and `associative?` through the `IAssociative` protocol
 - Add the `ISet`, `IEditableCollection`, `ITransientCollection`, `ITransientAssociative`, `ITransientMap` and `ITransientSet` protocols. `disj`, `transient`, `conj!`, `assoc!`, `dissoc!`, `disj!` and `persistent!` dispatch to them on custom types
 - Records are JS-iterable over their entries and print readably in the Node console
 - Add `defrecord`, `record?` and the `IRecord` marker protocol. Records store their fields as own string-keyed properties and implement the map-facing protocols, so keyword lookup, `keys`, `seq`, `assoc`, `conj` and `=` work through the regular core functions. `assoc` keeps the record type, `dissoc` of a basis field gives a plain map, printing gives `#TypeName{:a 1}`
