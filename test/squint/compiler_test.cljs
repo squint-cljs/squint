@@ -1555,8 +1555,12 @@ with `backticks`")))]
   (is (eq '([:a 1] [:b 2]) (jsv! '(seq {:a 1 :b 2}))))
   (is (eq '(1 2 3) (jsv! '(sort (seq #{1 2 3})))))
   (is (eq '(-2.5 1 3 4) (jsv! '(seq (sorted-set 3.0 1.0 -2.5 4.0)))))
-  (is (eq (js/Map. #js[#js[1 2] #js[3 4]])
-          (jsv! '(seq (js/Map. [[1 2] [3 4]])))))
+  (is (eq '([1 2] [3 4]) (jsv! '(seq (js/Map. [[1 2] [3 4]])))))
+  (testing "seq of a map is a non-map sequence, whatever the map representation"
+    (is (false? (jsv! '(map? (seq {:a 1})))))
+    (is (false? (jsv! '(map? (seq (sorted-map :a 1))))))
+    (is (false? (jsv! '(map? (seq (js/Map. [[1 2]]))))))
+    (is (eq '(:a :b :c) (jsv! '(vec (map key (seq (sorted-map :c 3 :a 1 :b 2))))))))
   (testing "empty"
     (is (nil? (jsv! '(seq nil))))
     (is (nil? (jsv! '(seq []))))
