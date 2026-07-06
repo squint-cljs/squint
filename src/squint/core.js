@@ -196,6 +196,13 @@ export function _(...xs) {
   return xs.reduce((x, y) => x - y);
 }
 
+export function _SLASH_(...xs) {
+  if (xs.length === 1) {
+    return 1 / xs[0];
+  }
+  return xs.reduce((x, y) => x / y);
+}
+
 export const __protocol_satisfies = {};
 
 export function satisfies_QMARK_(protocol, x) {
@@ -778,6 +785,14 @@ export function println(...args) {
   if (_STAR_print_newline_STAR_.val) _STAR_print_fn_STAR_.val('\n');
 }
 
+export function print_str(...args) {
+  return args.map((v) => toEDN(v, undefined, false)).join(' ');
+}
+
+export function println_str(...args) {
+  return print_str(...args) + '\n';
+}
+
 export function pr(...xs) {
   _STAR_print_fn_STAR_.val(pr_str(...xs));
 }
@@ -967,6 +982,14 @@ export function second(coll) {
 
 export function ffirst(coll) {
   return first(first(coll));
+}
+
+export function fnext(coll) {
+  return first(next(coll));
+}
+
+export function nfirst(coll) {
+  return next(first(coll));
 }
 
 export function rest(coll) {
@@ -1364,6 +1387,13 @@ export function filter(pred, coll) {
 export function filterv(pred, coll) {
   // filter is chunked; vec bulk-appends its chunks
   return pushAll([], filter(pred, coll));
+}
+
+export function random_sample(prob, coll) {
+  if (arguments.length === 1) {
+    return filter((_) => rand() < prob);
+  }
+  return filter((_) => rand() < prob, coll);
 }
 
 export function remove(pred, coll) {
@@ -1926,6 +1956,12 @@ export function sorted_QMARK_(x) {
 
 export function char_QMARK_(x) {
   return typeof x === 'string' && x.length === 1;
+}
+
+export function char$(x) {
+  if (typeof x === 'string' && x.length === 1) return x;
+  if (typeof x === 'number') return String.fromCharCode(x);
+  throw new Error('Argument to char must be a character or number: ' + x);
 }
 
 export function apply(f, ...args) {
@@ -2753,6 +2789,10 @@ export function reverse(coll) {
   return toArray(coll).reverse();
 }
 
+export function reversible_QMARK_(x) {
+  return isVectorArray(x) || (x != null && x[SORTED_TAG] === true);
+}
+
 export function rseq(x) {
   // vectors and sorted maps/sets are reversible, like CLJS
   if (isVectorArray(x)) {
@@ -2991,6 +3031,15 @@ export function boolean$(x) {
   return truth_(x);
 }
 
+export function parse_boolean(s) {
+  if (typeof s !== 'string') {
+    throw new Error('Argument must be a string');
+  }
+  if (s === 'true') return true;
+  if (s === 'false') return false;
+  return null;
+}
+
 export function zero_QMARK_(x) {
   return x === 0;
 }
@@ -3139,6 +3188,19 @@ export function min(x, ...more) {
   return m;
 }
 
+export function associative_QMARK_(x) {
+  switch (typeConst(x)) {
+    case MAP_TYPE:
+    case ARRAY_TYPE:
+    case OBJECT_TYPE:
+      return true;
+    case INSTANCE_TYPE:
+      return x[IAssociative__assoc] !== undefined;
+    default:
+      return false;
+  }
+}
+
 export function map_QMARK_(coll) {
   if (coll == null) return false;
   if (isObj(coll)) return true;
@@ -3216,6 +3278,24 @@ export function next(x) {
 
 export function nnext(x) {
   return next(next(x));
+}
+
+export function nthnext(coll, n) {
+  let xs = seq(coll);
+  while (xs != null && n > 0) {
+    xs = next(xs);
+    n = n - 1;
+  }
+  return xs;
+}
+
+export function nthrest(coll, n) {
+  let xs = coll;
+  while (n > 0 && seq(xs) != null) {
+    xs = rest(xs);
+    n = n - 1;
+  }
+  return xs;
 }
 
 export function compare(x, y) {
@@ -3490,6 +3570,11 @@ export function int_QMARK_(x) {
 
 export function double_QMARK_(x) {
   return typeof x === 'number';
+}
+
+// like CLJS: every number is a float
+export function float_QMARK_(x) {
+  return double_QMARK_(x);
 }
 
 export const integer_QMARK_ = int_QMARK_;
@@ -4033,6 +4118,15 @@ export function pop(vec) {
   }
 }
 
+export function pop_BANG_(v) {
+  if (v != null && isVectorArray(v)) {
+    if (v.length === 0) throw new Error("Can't pop empty vector");
+    v.pop();
+    return v;
+  }
+  throw missing_protocol('ITransientVector.-pop!', v);
+}
+
 export function update_keys(m, f) {
   const m2 = empty(m);
   if (m2 != null && m2[IAssociative__assoc] !== undefined) {
@@ -4246,3 +4340,8 @@ export function prn(...xs) {
   _STAR_print_fn_STAR_.val(pr_str(...xs));
   if (_STAR_print_newline_STAR_.val) _STAR_print_fn_STAR_.val('\n');
 }
+
+export function prn_str(...xs) {
+  return pr_str(...xs) + '\n';
+}
+
