@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- A collection passed in function position is callable as a lookup only if it is a vector, map, set or a type implementing `ILookup`. A seq, list or opaque object now throws when called through `juxt`, `comp` and friends, like a non-IFn in CLJS
 - Fix `descendants` to throw on a constructor, like CLJS, instead of returning nil
 - Add `ident?`, `simple-ident?`, `qualified-ident?`, `simple-symbol?`, `qualified-symbol?`, `num`, `byte` and `short`
 - Add `fnext`, `nfirst`, `nthnext`, `nthrest`, `parse-boolean`, `char`, `pop!`, `print-str`, `println-str`, `prn-str`, `random-sample`, `float?`, `reversible?`, `/` as a value and `associative?` through the `IAssociative` protocol

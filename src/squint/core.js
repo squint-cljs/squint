@@ -5,9 +5,19 @@
 // (e.g. multi.js). Signature and semantics may change without notice.
 export function __toFn(x) {
   if (x == null || typeof x === 'function') return x;
-  const t = typeof x;
-  if (t === 'string') return (coll, d) => get(coll, x, d);
-  if (t === 'object') return (k, d) => get(x, k, d);
+  if (typeof x === 'string') return (coll, d) => get(coll, x, d);
+  // a value is callable as a lookup only if it is a collection or a custom
+  // type implementing ILookup; a seq, list or opaque object throws when
+  // called, like a non-IFn in CLJS
+  switch (typeConst(x)) {
+    case MAP_TYPE:
+    case ARRAY_TYPE:
+    case OBJECT_TYPE:
+    case SET_TYPE:
+      return (k, d) => get(x, k, d);
+    case INSTANCE_TYPE:
+      if (x[ILookup__lookup] !== undefined) return (k, d) => get(x, k, d);
+  }
   return x;
 }
 
