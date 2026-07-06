@@ -270,7 +270,8 @@
           shell (partial p/shell {:dir dir})
           squint-local (fs/path dir "node_modules/squint-cljs")]
       (fs/create-dirs dir)
-      (shell "npm install")
+      ;; eucalypt dev deps have a vitest peer conflict
+      (shell "npm install --legacy-peer-deps")
       (fs/delete-tree squint-local)
       (fs/create-dirs squint-local)
       (run! #(fs/copy % squint-local) (fs/glob "." "*.{js,json}"))
@@ -318,8 +319,7 @@
 
 (defn libtests []
   #_(build-squint-npm-package)
-  ;; temporarily disabled because of not= bug
-  #_(eucalypt-test)
+  (eucalypt-test)
   (clojure-mode-test)
   (replicant-test)
   (babashka-cli-test))
