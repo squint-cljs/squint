@@ -1549,6 +1549,14 @@ with `backticks`")))]
     (is (false? (jsv! '(sequential? 1))))
     (is (false? (jsv! '(sequential? nil))))))
 
+(deftest iterable-rejects-opaque-instance-test
+  (testing "a class instance without a native iterator or ISeqable is not iterable, and never leaks its fields"
+    (is (thrown? js/Error (jsv! '(into [] (atom 1)))))
+    (is (thrown? js/Error (jsv! '(reduce (fn [a _] a) 0 (atom 1)))))
+    (is (thrown? js/Error (jsv! '(vec (remove nil? (js/Date.))))))
+    (is (eq '([:a 1] [:b 2]) (jsv! '(seq {:a 1 :b 2}))))
+    (is (= 1 (jsv! '(do (defrecord R [x]) (count (into [] (->R 1)))))))))
+
 (deftest seq-test
   (is (eq '("a" "b" "c") (jsv! '(seq "abc"))))
   (is (eq '(1 2 3) (jsv! '(seq [1 2 3]))))
