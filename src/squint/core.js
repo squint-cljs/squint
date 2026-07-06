@@ -958,9 +958,13 @@ export function seq(x) {
   if (iter.length === 0 || iter.size === 0) {
     return null;
   }
-  // a set is iterable but not sequential; materialize its elements.
+  // a set or map is iterable but not a sequence; materialize its entries
+  // into a distinct seq so the result is not itself a set or map, like CLJS
   if (iter instanceof Set || iter[TYPE_TAG] === SET_TYPE) {
     return [...iter];
+  }
+  if (iter instanceof Map || iter[TYPE_TAG] === MAP_TYPE) {
+    return [...iter].map(tagMapEntry);
   }
   const _i = iter[Symbol.iterator]();
   if (_i.next().done) return null;
