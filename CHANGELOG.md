@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix `iterable` to reject a class instance that has no native iterator or `ISeqable`, so `reduce`, `into`, `remove` and friends no longer expose an object's internal fields, matching `seqable?` and CLJS
 - Fix `seq` of a `js/Map` or sorted-map to return a non-map sequence of entries, like a plain map and like CLJS, instead of the map itself
 - A collection passed in function position is callable as a lookup only if it is a vector, map, set or a type implementing `ILookup`. A seq, list or opaque object now throws when called through `juxt`, `comp` and friends, like a non-IFn in CLJS
 - Fix `descendants` to throw on a constructor, like CLJS, instead of returning nil

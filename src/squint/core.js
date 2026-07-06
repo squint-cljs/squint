@@ -934,7 +934,10 @@ export function iterable(x) {
   }
   // a type extended to ISeqable seqs through its -seq method
   if (x[ISeqable__seq] !== undefined) return iterable(x[ISeqable__seq](x));
-  if (x instanceof Object) return Object.entries(x).map(tagMapEntry);
+  // only a plain object is a squint map; a class instance without a native
+  // iterator or ISeqable is not iterable, matching seqable? and CLJS, and
+  // never leaks its internal fields
+  if (isObj(x)) return Object.entries(x).map(tagMapEntry);
   throw new TypeError(`${x} is not iterable`);
 }
 
