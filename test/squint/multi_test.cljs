@@ -38,6 +38,14 @@
         (.then (fn [v] (is (= [nil nil nil] (vec v)))))
         (.finally done))))
 
+(deftest descendants-constructor-throws-test
+  (t/async done
+    (-> (eval-repl "[(try (do (descendants js/String) false) (catch :default _ true))
+                     (try (do (descendants (make-hierarchy) js/String) false) (catch :default _ true))
+                     (contains? (descendants (derive (make-hierarchy) :a :b) :b) :a)]")
+        (.then (fn [v] (is (= [true true true] (vec v)))))
+        (.finally done))))
+
 (deftest hierarchy-test
   (t/async done
     (-> (eval-repl "

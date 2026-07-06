@@ -218,7 +218,13 @@ function hAnd(a, b, field) {
 }
 export function parents(a, b)     { return hAnd(a, b, 'parents'); }
 export function ancestors(a, b)   { return hAnd(a, b, 'ancestors'); }
-export function descendants(a, b) { return hAnd(a, b, 'descendants'); }
+export function descendants(a, b) {
+  // like CLJS: a constructor has no derive-based descendants, JS type
+  // inheritance is not tracked
+  const tag = b === undefined ? a : b;
+  if (typeof tag === 'function') throw new Error("Can't get descendants of constructors");
+  return hAnd(a, b, 'descendants');
+}
 
 function _prefers(prefer, a, b) {
   const key = findKeyByEquiv(prefer, a);
