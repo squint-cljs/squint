@@ -113,6 +113,43 @@ semantics and cost. Measured node v22, N=200k string keys, 50k vector keys.
   a bigger string-hash cache, and years of tuning. The composite-key case,
   the reason this module exists, already favors hamt.js.
 
+## ham-scripted (cnuernber) comparison
+
+github.com/cnuernber/ham-scripted ports the ham-fisted BitmapTrie design to
+JS (goog.module, driven from CLJS). Same 32-way bitmap trie, different trunk
+decisions worth stealing:
+
+- Owner tokens instead of dual method families. Every node carries `owner`;
+  ops copy only when `node.owner != nowner` (`setOwner`). One `assoc`
+  implementation serves both modes: persistent = `shallowClone` (new owner,
+  copy-on-write path), transient = repeated `mutAssoc` on one owner
+  (in-place). Clojure's edit-token, generalized. Adopting this would give our
+  transients real node editing without porting the CLJS `inode-assoc!`
+  duplicate family.
+- LeafNode per entry storing `{k, v, hashcode, nextNode}`. Key hash cached
+  per entry, so node splits never rehash keys (our spill path rehashes, which
+  walks composite keys deeply). Collisions are a `nextNode` chain in the
+  leaf, no HashCollisionNode class. The leaf doubles as the map entry during
+  iteration, zero per-entry allocation. Costs one object per entry vs CLJS
+  packed arrays.
+- Two node classes total (BitmapNode + LeafNode), no ArrayNode dense
+  upgrade. Node arrays over-allocate to the next power of two, so owned
+  in-place inserts often skip copying.
+- Hash provider ({hash, equals}) is a constructor parameter per map, not
+  module-global. Enables identity maps and custom key semantics cheaply.
+- Strings hash with cyrb53, single pass, uncached, vs our murmur3 plus
+  1024-entry cache that resets under churn. Numeric keys mix directly. His
+  README: moving the numeric case ahead of protocol dispatch in cljs.core/
+  hash is 5x on numbers. Our typeof switch already does this.
+- Ships a mapProxy (property-access Proxy facade), same idea as obj-view.
+- Also ships a mutable java-style HashTable behind the same interface: 5x
+  faster than the trie for build-heavy jobs (frequencies). Reduction-first
+  API throughout (reduceLeaves, group-by-reducer).
+
+Read: if transients start to matter, switch to owner tokens rather than
+porting CLJS inode-assoc!. If composite-key workloads dominate, per-leaf
+cached hashcodes pay for themselves at split time.
+
 ## Limitations / next steps
 
 - Transients do path copying (correct, not fast). Port node editing for
