@@ -79,20 +79,23 @@ gzip. The hash fns tree-shake independently of the map type. The hamt-only
 number includes the pr-str/toEDN chain pulled by the clj->js slot; an app
 that prints anything pays that once.
 
-## vs Immutable.js
+## vs Immutable.js and CLJS
 
 Immutable.js 5.1.9 is the same data structure (32-way HAMT) with different
 semantics and cost. Measured node v22, N=200k string keys, 50k vector keys.
+The CLJS column is planck 2.28 (JavaScriptCore, reduce-based loops), so it
+carries an engine difference on top of the library difference: read it as
+"what a plk user sees", not as a same-engine comparison.
 
-| | hamt.js | Immutable.js |
-|---|---|---|
-| bundle, Map only | 11.9KB min / 4.2KB gzip | 65.5KB min / 18.5KB gzip |
-| build (persistent set) | 106 ms | 53 ms |
-| build (batch) | 83 ms (path-copying) | 27 ms (withMutations) |
-| get hit | 30 ms | 15 ms |
-| get miss | 53 ms | 10 ms |
-| delete all | 75 ms | 55 ms |
-| composite key assoc+get | 23 ms (raw vectors) | 52 ms (I.List wrap) |
+| | squint hamt | Immutable.js | CLJS (plk) |
+|---|---|---|---|
+| bundle, Map only | 15.8KB min / 5.6KB gzip | 65.5KB min / 18.5KB gzip | n/a |
+| build (persistent) | 102 ms | 52 ms | 917 ms |
+| build (batch/transient) | 87 ms (path-copying) | 23 ms (withMutations) | 506 ms |
+| get hit | 33 ms | 15 ms | 367 ms |
+| get miss | 55 ms | 10 ms | 335 ms |
+| delete all | 76 ms | 56 ms | 844 ms |
+| composite key assoc+get | 27 ms (raw vectors) | 56 ms (I.List wrap) | 264 ms |
 
 - Immutable.js does not tree-shake: Map-only import pays the full 65KB class
   graph. hamt.js rides the package `sideEffects: false` + pure-annotation
@@ -146,9 +149,19 @@ decisions worth stealing:
   faster than the trie for build-heavy jobs (frequencies). Reduction-first
   API throughout (reduceLeaves, group-by-reducer).
 
-Read: if transients start to matter, switch to owner tokens rather than
-porting CLJS inode-assoc!. If composite-key workloads dominate, per-leaf
-cached hashcodes pay for themselves at split time.
+Tried it (July 2026): full owner-token + LeafNode rewrite, measured against
+the CLJS layout in one process, 200k string keys. Bundle shrank ~0.5KB and
+transient batch build won (55ms vs 83ms path-copying, beating Immutable.js
+withMutations at 67ms). Everything persistent lost: build 96 -> 202ms, get
+hit 34 -> 56ms, dissoc 84 -> 203ms. Causes: no dense ArrayNode tier (every
+level pays bitpos+popcount where CLJS indexes directly), a LeafNode pointer
+chase per entry, power-of-two slack enlarging every persistent path copy,
+and owner pointers retaining dead intermediate maps. The design is tuned for
+mutable-first workloads (his benches are frequencies/group-by over
+mutAssoc); squint usage is persistent-first, so the rewrite was reverted.
+Kept: the string-hash cache bump (1024 -> 8192 entries, resets under churn
+cost misses). Still open as CLJS-style ports: real transient node editing
+(inode-assoc! family), per-entry cached hashes for composite-key-heavy maps.
 
 ## Limitations / next steps
 
@@ -164,5 +177,6 @@ cached hashcodes pay for themselves at split time.
   a plain squint map held in a local.
 - No benchmarks yet against EncMap from `composite-map-keys.md` or CLJS.
 
-Demo: `node node_cli.js run doc/dev/hamt_demo.cljs`. Smoke assertions:
-`node doc/dev/hamt_smoke.js`, to be turned into real tests.
+Demo: `node node_cli.js run doc/dev/hamt_demo.cljs`. Tests:
+`test/squint/immutable_test.cljs` (deftest-eval programs, part of the main
+suite). Quick JS-level smoke: `node doc/dev/hamt_smoke.js`.

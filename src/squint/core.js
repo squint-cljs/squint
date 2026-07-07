@@ -1605,7 +1605,7 @@ function hashStringRaw(s) {
 }
 
 function hashString(s) {
-  if (stringHashCacheCount > 1024) {
+  if (stringHashCacheCount > 8192) {
     stringHashCache = Object.create(null);
     stringHashCacheCount = 0;
   }

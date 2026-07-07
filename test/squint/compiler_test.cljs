@@ -10,6 +10,7 @@
    [squint.dce-test]
    [squint.edn-test]
    [squint.html-test]
+   [squint.immutable-test]
    [squint.jsx-test]
    [squint.lazy-memory-test]
    [squint.math-test]
@@ -4223,4 +4224,5 @@ new Foo();")
                'squint.walk-test
                'squint.multi-test
                'squint.dce-test
-               'squint.edn-test))
+               'squint.edn-test
+               'squint.immutable-test))
