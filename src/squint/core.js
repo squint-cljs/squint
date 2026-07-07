@@ -1555,6 +1555,154 @@ export const ITransientMap = { __sym: Symbol('squint.core.ITransientMap') };
 export const ITransientMap__dissoc_BANG_ = Symbol('ITransientMap_-dissoc!');
 export const ITransientSet = { __sym: Symbol('squint.core.ITransientSet') };
 export const ITransientSet__disjoin_BANG_ = Symbol('ITransientSet_-disjoin!');
+// hashing (Murmur3, like CLJS). The contract: (= a b) implies (hash a) ===
+// (hash b), where = is dequal. None of this is referenced by =, so bundles
+// that only compare pay nothing.
+
+// IHash: a custom type opts into value hashing
+export const IHash = { __sym: Symbol('squint.core.IHash') };
+export const IHash__hash = Symbol('IHash_-hash');
+
+const imul = Math.imul;
+const M3_C1 = 0xcc9e2d51 | 0;
+const M3_C2 = 0x1b873593 | 0;
+
+function rotl(x, n) {
+  return (x << n) | (x >>> (32 - n));
+}
+
+function m3MixK1(k1) {
+  return imul(rotl(imul(k1 | 0, M3_C1), 15), M3_C2);
+}
+
+function m3MixH1(h1, k1) {
+  return (imul(rotl((h1 | 0) ^ (k1 | 0), 13), 5) + (0xe6546b64 | 0)) | 0;
+}
+
+function m3Fmix(h1, len) {
+  h1 = (h1 ^ len) | 0;
+  h1 = (h1 ^ (h1 >>> 16)) | 0;
+  h1 = imul(h1, 0x85ebca6b | 0);
+  h1 = (h1 ^ (h1 >>> 13)) | 0;
+  h1 = imul(h1, 0xc2b2ae35 | 0);
+  return (h1 ^ (h1 >>> 16)) | 0;
+}
+
+function m3HashInt(x) {
+  return x === 0 ? 0 : m3Fmix(m3MixH1(0, m3MixK1(x)), 4);
+}
+
+let stringHashCache = /* @__PURE__ */ Object.create(null);
+let stringHashCacheCount = 0;
+
+function hashStringRaw(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (imul(31, h) + s.charCodeAt(i)) | 0;
+  return h;
+}
+
+function hashString(s) {
+  if (stringHashCacheCount > 1024) {
+    stringHashCache = Object.create(null);
+    stringHashCacheCount = 0;
+  }
+  let h = stringHashCache[s];
+  if (typeof h !== 'number') {
+    h = hashStringRaw(s);
+    stringHashCache[s] = h;
+    stringHashCacheCount++;
+  }
+  return h;
+}
+
+// one IIFE, not two consts: `new Int32Array(F64.buffer)` reads a property,
+// which pins F64 into bundles even under a pure annotation
+const HASH_BUF = /* @__PURE__ */ (() => {
+  const f64 = new Float64Array(1);
+  return { f64, i32: new Int32Array(f64.buffer) };
+})();
+
+function hashDouble(n) {
+  HASH_BUF.f64[0] = n;
+  return (HASH_BUF.i32[0] ^ HASH_BUF.i32[1]) | 0;
+}
+
+function mixCollectionHash(hashBasis, count) {
+  return m3Fmix(m3MixH1(0, m3MixK1(hashBasis)), count);
+}
+
+export function hash_ordered_coll(coll) {
+  let n = 0;
+  let h = 1;
+  for (const x of coll) {
+    h = (imul(31, h) + hash(x)) | 0;
+    n++;
+  }
+  return mixCollectionHash(h, n);
+}
+
+export function hash_unordered_coll(coll) {
+  let n = 0;
+  let h = 0;
+  for (const x of coll) {
+    h = (h + hash(x)) | 0;
+    n++;
+  }
+  return mixCollectionHash(h, n);
+}
+
+// a map entry hashes as (hash-ordered-coll [k v])
+function hashEntry(k, v) {
+  return mixCollectionHash((imul(31, (imul(31, 1) + hash(k)) | 0) + hash(v)) | 0, 2);
+}
+
+function hashMapEntries(entries) {
+  let n = 0;
+  let h = 0;
+  for (const [k, v] of entries) {
+    h = (h + hashEntry(k, v)) | 0;
+    n++;
+  }
+  return mixCollectionHash(h, n);
+}
+
+export function hash(o) {
+  if (o == null) return 0;
+  switch (typeof o) {
+    case 'number':
+      if (Number.isFinite(o)) {
+        return Number.isSafeInteger(o) ? o % 2147483647 | 0 : hashDouble(o);
+      }
+      if (o === Infinity) return 2146435072;
+      if (o === -Infinity) return -1048576;
+      return 2146959360; // NaN
+    case 'boolean':
+      return o ? 1231 : 1237;
+    case 'string':
+      return m3HashInt(hashString(o));
+    case 'bigint':
+      return Number(o % 2147483647n) | 0;
+    case 'object':
+      break;
+    default:
+      // functions and JS symbols only compare by identity; a constant hash
+      // is consistent (all collide into one bucket, resolved by =)
+      return 0;
+  }
+  if (o[IHash__hash] !== undefined) return o[IHash__hash](o) | 0;
+  if (o instanceof Date) return o.valueOf() | 0;
+  // set rep (js/Set or SortedSet): unordered elements
+  if (isSetLike(o)) return hash_unordered_coll(o);
+  // map rep (js/Map or SortedMap): unordered entries, entry = ordered [k v]
+  if (o instanceof Map || o[TYPE_TAG] === MAP_TYPE) return hashMapEntries(o.entries());
+  if (isObj(o) || o.constructor === undefined) return hashMapEntries(Object.entries(o));
+  // any other iterable (vector, list, lazy seq, range): ordered, consistent
+  // with = treating them as sequences
+  if (o[Symbol.iterator]) return hash_ordered_coll(o);
+  // a class instance without IHash: own enumerable props, like ='s tail
+  return hashMapEntries(Object.entries(o));
+}
+
 // a type converts itself in clj->js through this slot, like CLJS IEncodeJS.
 // The impl receives (x, recur) where recur is cycle-safe clj->js.
 export const IEncodeJS = { __sym: Symbol('squint.core.IEncodeJS') };

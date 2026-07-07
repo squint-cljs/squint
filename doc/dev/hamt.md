@@ -6,18 +6,21 @@ HAMT map ported from CLJS PersistentHashMap. Follow-up to
 
 ## Shape
 
-- `hash-map`, `hash-map?`, `hash`, `hash-ordered-coll`, `hash-unordered-coll`,
-  `IHash`, `IHash__hash`, `obj-view` are the exports.
+- `hash-map`, `hash-map?`, `obj-view` are the exports. `hash`,
+  `hash-ordered-coll`, `hash-unordered-coll`, `IHash`, `IHash__hash` live in
+  core.js (re-exported here) so hash and `=` stay in one file and hash reads
+  the `TYPE_TAG`/`SORTED_TAG` brands directly instead of duck-typing sorted
+  collections. `(hash x)` is a core var. `=`-only bundles stay hash-free
+  (2169 bytes, no murmur constants, verified).
 - Instances carry no `TYPE_TAG`, so core dispatch routes them through the
   INSTANCE_TYPE extension path. The prototype fills the existing slots:
   ILookup, IAssociative, IMap, ICounted, IKVReduce, ICollection,
   IEmptyableCollection, IEquiv, IEditableCollection, plus transient slots on a
   handle type. `get`/`assoc`/`dissoc`/`conj`/`count`/`seq`/`contains?`/
   `reduce-kv`/`=`/`into`/`merge`/`merge-with` work from core unchanged.
-- `IHash` lives in hamt.js, not core: only hashed collections need it. The
-  slot symbol is named `IHash_-hash`, matching defprotocol emission, so
-  `(extend-type T IHash (-hash [x] ...))` fills it when `IHash` and
-  `IHash__hash` are both referred (see limitations).
+- The `IHash` slot symbol is named `IHash_-hash`, matching defprotocol
+  emission, so `(extend-type T IHash (-hash [x] ...))` fills it. As a core
+  protocol it resolves without any `:refer`.
 - Hashing is Murmur3 like CLJS: string hash cache, hash-ordered-coll for
   sequential iterables, hash-unordered-coll for sets and map entries. The
   contract is `(= a b)` implies `(hash a) === (hash b)` against core `dequal`:
@@ -115,8 +118,6 @@ semantics and cost. Measured node v22, N=200k string keys, 50k vector keys.
 - No metadata support (`_metaSym` is core-private).
 - `assoc!`/`conj!` on the persistent map (not a transient handle) fall through
   to the object mutation path in core and corrupt the instance.
-- Sorted map/set detection in `hash` duck-types on `add`/`set`/`has` methods
-  since `TYPE_TAG` is core-private.
 - `(m :k)` in function position compiles to a direct call and throws, same as
   a plain squint map held in a local.
 - No benchmarks yet against EncMap from `composite-map-keys.md` or CLJS.
