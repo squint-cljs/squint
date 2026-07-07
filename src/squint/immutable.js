@@ -2,6 +2,10 @@
 // Not part of core: import it explicitly. Instances plug into core's
 // INSTANCE_TYPE protocol slots, so get/assoc/dissoc/conj/count/seq/reduce-kv/
 // contains?/=/into/merge from core.js work unchanged.
+// The HAMT node structure and algorithms are ported from ClojureScript's
+// PersistentHashMap (cljs/core.cljs), Copyright (c) Rich Hickey and
+// contributors, Eclipse Public License 1.0, after Phil Bagwell's
+// "Ideal Hash Trees".
 import {
   ILookup,
   ILookup__lookup,

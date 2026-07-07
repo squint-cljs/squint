@@ -1558,6 +1558,9 @@ export const ITransientSet__disjoin_BANG_ = Symbol('ITransientSet_-disjoin!');
 // hashing (Murmur3, like CLJS). The contract: (= a b) implies (hash a) ===
 // (hash b), where = is dequal. None of this is referenced by =, so bundles
 // that only compare pay nothing.
+// Ported from ClojureScript (cljs/core.cljs), Copyright (c) Rich Hickey and
+// contributors, Eclipse Public License 1.0. MurmurHash3 by Austin Appleby
+// (public domain).
 
 // IHash: a custom type opts into value hashing
 export const IHash = { __sym: Symbol('squint.core.IHash') };
