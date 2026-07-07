@@ -14,6 +14,7 @@
     "src/squint/walk.js",
     "src/squint/multi.js",
     "src/squint/record.js",
+    "src/squint/hamt.js",
     "src/squint/test.js",
     "src/squint/edn.js",
     "lib",
@@ -71,6 +72,7 @@
     "./src/squint/html.js": "./src/squint/html.js",
     "./src/squint/multi.js": "./src/squint/multi.js",
     "./src/squint/record.js": "./src/squint/record.js",
+    "./src/squint/hamt.js": "./src/squint/hamt.js",
     "./src/squint/test.js": "./src/squint/test.js",
     "./src/squint/edn.js": "./src/squint/edn.js",
     "./lib/node.nrepl_server.js": "./lib/node.nrepl_server.js"

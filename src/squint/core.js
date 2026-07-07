@@ -64,6 +64,9 @@ function dequal(foo, bar) {
   if (bar == null) return false;
   // -equiv dispatches on the left argument, like CLJS =
   if (typeof foo === 'object' && foo[IEquiv__equiv] !== undefined) return !!foo[IEquiv__equiv](foo, bar);
+  // = is symmetric: when only the right side has -equiv (e.g. a plain object
+  // against a hamt map), dispatch on it instead
+  if (typeof bar === 'object' && bar[IEquiv__equiv] !== undefined) return !!bar[IEquiv__equiv](bar, foo);
   var ctor, len, tmp;
 
   // A sorted map compares by entries against any map type (object, Map, sorted).
@@ -968,6 +971,11 @@ export function seq(x) {
   }
   if (iter instanceof Map || iter[TYPE_TAG] === MAP_TYPE) {
     return [...iter].map(tagMapEntry);
+  }
+  // an instance with -dissoc is a map rep (e.g. hamt map): same distinct seq
+  if (iter[IMap__dissoc] !== undefined) {
+    const entries = [...iter].map(tagMapEntry);
+    return entries.length === 0 ? null : entries;
   }
   const _i = iter[Symbol.iterator]();
   if (_i.next().done) return null;
@@ -3223,6 +3231,7 @@ export function map_QMARK_(coll) {
   if (isObj(coll)) return true;
   if (coll instanceof Map) return true;
   if (coll[TYPE_TAG] === MAP_TYPE) return true;
+  if (coll[IMap.__sym] !== undefined) return true;
   return false;
 }
 
@@ -4358,6 +4367,11 @@ function toEDN(value, seen = new WeakSet(), readably = true) {
         result = `(${mapv((v) => `${toEDN(v, seen, readably)}`, value).join(', ')})`;
         break;
       default:
+        // a type can print itself through this hook (e.g. hamt map)
+        if (typeof value.squint$lang$edn === 'function') {
+          result = value.squint$lang$edn((v) => toEDN(v, seen, readably));
+          break;
+        }
         if (value[IRecord.__sym] !== undefined) {
           keys = Object.keys(value);
           result = `#${value.constructor.name}{${keys.map((k) => `:${k} ${toEDN(value[k], seen, readably)}`).join(', ')}}`;
