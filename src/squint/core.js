@@ -1555,6 +1555,10 @@ export const ITransientMap = { __sym: Symbol('squint.core.ITransientMap') };
 export const ITransientMap__dissoc_BANG_ = Symbol('ITransientMap_-dissoc!');
 export const ITransientSet = { __sym: Symbol('squint.core.ITransientSet') };
 export const ITransientSet__disjoin_BANG_ = Symbol('ITransientSet_-disjoin!');
+// a type converts itself in clj->js through this slot, like CLJS IEncodeJS.
+// The impl receives (x, recur) where recur is cycle-safe clj->js.
+export const IEncodeJS = { __sym: Symbol('squint.core.IEncodeJS') };
+export const IEncodeJS__clj__GT_js = Symbol('IEncodeJS_-clj->js');
 // marker protocol set by defrecord
 export const IRecord = { __sym: Symbol('squint.core.IRecord') };
 
@@ -4286,6 +4290,9 @@ function clj__GT_js_(x, seen) {
   // we need to protect against circular objects
   if (seen.has(x)) return x;
   seen.add(x);
+  if (x != null && x[IEncodeJS__clj__GT_js] !== undefined) {
+    return x[IEncodeJS__clj__GT_js](x, (v) => clj__GT_js_(v, seen));
+  }
   if (map_QMARK_(x)) {
     return update_vals(x, (x) => clj__GT_js_(x, seen));
   }

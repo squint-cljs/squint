@@ -7,7 +7,7 @@ HAMT map ported from CLJS PersistentHashMap. Follow-up to
 ## Shape
 
 - `hash-map`, `hash-map?`, `hash`, `hash-ordered-coll`, `hash-unordered-coll`,
-  `IHash`, `IHash__hash` are the exports.
+  `IHash`, `IHash__hash`, `obj-view` are the exports.
 - Instances carry no `TYPE_TAG`, so core dispatch routes them through the
   INSTANCE_TYPE extension path. The prototype fills the existing slots:
   ILookup, IAssociative, IMap, ICounted, IKVReduce, ICollection,
@@ -28,9 +28,21 @@ HAMT map ported from CLJS PersistentHashMap. Follow-up to
   arities only. The transient handle reuses the persistent ops, so
   `transient`/`assoc!`/`persistent!` are correct but do no node editing yet.
 
+## JS interop
+
+- `clj->js` dispatches through a new core `IEncodeJS` protocol
+  (`IEncodeJS__clj__GT_js` slot), like CLJS. The hamt impl snapshots to a
+  plain object, deep, with non-string keys stringified via `pr-str` like CLJS
+  `key->js`. The impl receives a cycle-safe recur fn as second arg.
+- `obj-view` wraps a map in a live read-only Proxy for JS APIs that expect a
+  plain object: property access, destructuring, spread, `Object.keys`,
+  `JSON.stringify`, `in` all work, writes throw. String keys only. Reads cost
+  ~1.5x a hamt `get`. Squint code should use the map itself, not the view.
+
 ## core.js changes
 
-Four internal edits, no new exports:
+`IEncodeJS` protocol added (two exports, in core.edn via bump-core-vars),
+`clj->js` checks its slot first. Four further internal edits, no new exports:
 
 - `dequal` dispatches `-equiv` on the right argument when only that side has
   it, so `(= {:a 1} (hamt/hash-map :a 1))` holds in both orders.
@@ -50,12 +62,14 @@ esbuild 0.28, `--bundle --minify --format=esm`:
 | entry                              | min bytes | gzip |
 |------------------------------------|-----------|------|
 | core 10-fn mix                     | 13631     | 4722 |
-| core 10-fn mix + hamt hash-map     | 22696     | 7606 |
-| hamt hash-map only                 | 11930     | 4193 |
+| core 10-fn mix + hamt hash-map     | 22879     | 7670 |
+| hamt hash-map only                 | 16368     | 5676 |
 | hamt hash fn only                  |  1716     |  858 |
 
-Marginal cost of the map for an app already on core: ~9.1KB min / ~2.9KB
-gzip. The hash fns tree-shake independently of the map type.
+Marginal cost of the map for an app already on core: ~9.2KB min / ~2.9KB
+gzip. The hash fns tree-shake independently of the map type. The hamt-only
+number includes the pr-str/toEDN chain pulled by the clj->js slot; an app
+that prints anything pays that once.
 
 ## vs Immutable.js
 

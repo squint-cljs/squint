@@ -20,6 +20,8 @@ import {
   IEmptyableCollection__empty,
   IEquiv,
   IEquiv__equiv,
+  IEncodeJS,
+  IEncodeJS__clj__GT_js,
   IEditableCollection,
   IEditableCollection__as_transient,
   ITransientCollection__conj_BANG_,
@@ -31,6 +33,7 @@ import {
   iterable,
   reduced,
   reduced_QMARK_,
+  pr_str,
 } from './core.js';
 
 // ---------------------------------------------------------------------------
@@ -567,8 +570,16 @@ const PersistentHashMap = /* @__PURE__ */ (() => {
     return m._hash;
   };
   p[IEditableCollection__as_transient] = (m) => new TransientHashMap(m);
+  // clj->js snapshot: plain object, non-string keys via pr-str like CLJS key->js
+  p[IEncodeJS__clj__GT_js] = (m, recur) => {
+    const o = {};
+    for (const [k, v] of m) {
+      o[typeof k === 'string' || typeof k === 'number' ? k : pr_str(k)] = recur(v);
+    }
+    return o;
+  };
   // satisfies? markers
-  for (const proto of [ILookup, IAssociative, IMap, ICounted, IKVReduce, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IHash]) {
+  for (const proto of [ILookup, IAssociative, IMap, ICounted, IKVReduce, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IEncodeJS, IHash]) {
     p[proto.__sym] = true;
   }
   return PersistentHashMap;
@@ -626,4 +637,35 @@ export function hash_map(...kvs) {
 
 export function hash_map_QMARK_(x) {
   return x instanceof PersistentHashMap;
+}
+
+// Live read-only plain-object facade for JS APIs that expect a normal object:
+// property access, destructuring, spread, Object.keys/entries, JSON.stringify.
+// Squint code should keep using the map itself. String keys only; writes throw.
+export function obj_view(m) {
+  const deny = () => {
+    throw new Error('hamt obj-view is read-only');
+  };
+  return new Proxy(
+    {},
+    {
+      get(_, prop) {
+        return typeof prop === 'string' ? mapLookup(m, prop, undefined) : undefined;
+      },
+      has(_, prop) {
+        return typeof prop === 'string' && mapContains(m, prop);
+      },
+      ownKeys() {
+        return mapKvReduce(m, (acc, k) => (typeof k === 'string' && acc.push(k), acc), []);
+      },
+      getOwnPropertyDescriptor(_, prop) {
+        const v = typeof prop === 'string' ? mapLookup(m, prop, SENTINEL) : SENTINEL;
+        if (v === SENTINEL) return undefined;
+        return { value: v, enumerable: true, configurable: true, writable: false };
+      },
+      set: deny,
+      deleteProperty: deny,
+      defineProperty: deny,
+    }
+  );
 }

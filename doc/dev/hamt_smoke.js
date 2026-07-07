@@ -142,5 +142,26 @@ for (const [k, v] of c.iterable(big)) { sum += v; cnt++; }
 is(cnt, N, 'iterator covers all entries');
 is(sum, (N * (N - 1)) / 2, 'iterator values sum');
 
+// clj->js via IEncodeJS: plain object snapshot, deep, pr-str'd composite keys
+const cm = c.clj__GT_js(h.hash_map('a', h.hash_map('b', [1, 2]), [3, 4], 'v'));
+is(cm.constructor === Object, true, 'clj->js gives plain object');
+is(cm.a.constructor === Object, true, 'clj->js converts nested hamt');
+is(cm.a.b, [1, 2], 'clj->js deep values');
+is(cm['[3 4]'], 'v', 'clj->js pr-strs composite key');
+is(c.satisfies_QMARK_(c.IEncodeJS, h.hash_map()), true, 'satisfies? IEncodeJS');
+
+// obj-view: live read-only facade for JS APIs
+const vm = h.hash_map('a', 1, 'b', 2);
+const view = h.obj_view(vm);
+is(view.a, 1, 'view prop access');
+is({ ...view }, { a: 1, b: 2 }, 'view spread');
+is(Object.keys(view).sort(), ['a', 'b'], 'view Object.keys');
+is(JSON.parse(JSON.stringify(view)), { a: 1, b: 2 }, 'view JSON.stringify');
+is('a' in view, true, 'view in operator');
+is('z' in view, false, 'view in operator miss');
+threw = false;
+try { view.x = 1; } catch (e) { threw = true; }
+is(threw, true, 'view write throws');
+
 console.log(fails === 0 ? 'ALL PASS' : fails + ' FAILURES');
 process.exit(fails === 0 ? 0 : 1);
