@@ -39,7 +39,8 @@
     "src/squint/math.js" [squint.math clojure.math cljs.math]
     "src/squint/walk.js" [squint.walk clojure.walk cljs.walk]
     "src/squint/test.js" [squint.test cljs.test clojure.test]
-    "src/squint/edn.js" [squint.edn clojure.edn cljs.reader]})
+    "src/squint/edn.js" [squint.edn clojure.edn cljs.reader]
+    "src/squint/immutable.js" [squint.immutable]})
 
 (defn bump-lib-vars []
   (let [entries (for [[path nses] lib-modules

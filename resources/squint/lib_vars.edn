@@ -267,6 +267,15 @@
    stringify_keys
    walk},
  squint.edn #{read_string},
+ squint.immutable
+ #{IHash
+   IHash__hash
+   hash
+   hash_map
+   hash_map_QMARK_
+   hash_ordered_coll
+   hash_unordered_coll
+   obj_view},
  squint.math
  #{DEGREES_TO_RADIANS
    E

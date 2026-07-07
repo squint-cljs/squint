@@ -1,8 +1,13 @@
-# hamt.js: optional persistent hash map
+# squint.immutable: optional persistent hash map
 
-Prototype notes. `src/squint/hamt.js` is an opt-in module with a persistent
+Prototype notes. `src/squint/immutable.js` is an opt-in module with a persistent
 HAMT map ported from CLJS PersistentHashMap. Follow-up to
 `composite-map-keys.md` (option 3: a real hashed map).
+
+Require as `(:require [squint.immutable :as i])`: the ns is registered in
+`library-imports` (compiler_common.cljc) and `lib-modules` (bb/tasks.clj,
+generates lib_vars.edn), like squint.string. String requires of the module
+path keep working.
 
 ## Shape
 

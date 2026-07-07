@@ -432,7 +432,8 @@
              clojure.test "squint-cljs/src/squint/test.js"
              squint.edn "squint-cljs/src/squint/edn.js"
              clojure.edn "squint-cljs/src/squint/edn.js"
-             cljs.reader "squint-cljs/src/squint/edn.js"}
+             cljs.reader "squint-cljs/src/squint/edn.js"
+             squint.immutable "squint-cljs/src/squint/immutable.js"}
     :cherry {cljs.string "cherry-cljs/lib/clojure.string.js"
              clojure.string "cherry-cljs/lib/clojure.string.js"
              cljs.walk "cherry-cljs/lib/clojure.walk.js"

@@ -1,5 +1,5 @@
 import * as c from '../../src/squint/core.js';
-import * as h from '../../src/squint/hamt.js';
+import * as h from '../../src/squint/immutable.js';
 
 let fails = 0;
 function is(actual, expected, msg) {

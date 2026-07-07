@@ -1,9 +1,9 @@
 ;; hamt map demo. Run with: node node_cli.js run doc/dev/hamt_demo.cljs
 ;; An optional persistent hash map (HAMT) with value-semantic keys, living in
-;; squint-cljs/src/squint/hamt.js. Core fns dispatch to it through the
-;; existing protocol slots; nothing here needs new compiler support.
+;; squint.immutable. Core fns dispatch to it through the existing protocol
+;; slots. hash and IHash are core vars.
 (ns hamt-demo
-  (:require ["squint-cljs/src/squint/hamt.js" :as hamt :refer [IHash IHash__hash]]))
+  (:require [squint.immutable :as hamt]))
 
 (println "-- basics --")
 (def m (hamt/hash-map :a 1 :b 2))
@@ -42,8 +42,8 @@
 
 (println)
 (println "-- hashing --")
-(println "hash [1 2 3] = hash (list 1 2 3):" (= (hamt/hash [1 2 3]) (hamt/hash (list 1 2 3))))
-(println "collision pair Aa/BB:" (= (hamt/hash "Aa") (hamt/hash "BB")))
+(println "hash [1 2 3] = hash (list 1 2 3):" (= (hash [1 2 3]) (hash (list 1 2 3))))
+(println "collision pair Aa/BB:" (= (hash "Aa") (hash "BB")))
 (println "both survive:        " (hamt/hash-map "Aa" 1 "BB" 2))
 (println "satisfies? IHash:    " (satisfies? IHash m))
 
@@ -54,7 +54,7 @@
 (deftype Wrapper [v])
 (extend-type Wrapper
   IHash
-  (-hash [w] (hamt/hash (.-v w))))
+  (-hash [w] (hash (.-v w))))
 (def wm (-> (hamt/hash-map)
             (assoc (->Wrapper [1 2]) :first)
             (assoc (->Wrapper [1 2]) :overwrites)))
