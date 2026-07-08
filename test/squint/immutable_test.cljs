@@ -411,6 +411,67 @@
       (is (= p (i/hash-set 2)))
       (is (thrown? js/Error (conj! t 3)))))
 
+(deftest-eval clojure-set-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [clojure.set :as cset]
+                        [cljs.test :refer [is]]))
+      ;; set ops preserve the persistent type and work across reps
+      (is (= (i/hash-set 1 2 3) (cset/union (i/hash-set 1 2) (i/hash-set 2 3))))
+      (is (i/hash-set? (cset/union (i/hash-set 1 2) (i/hash-set 3))))
+      (is (= (i/hash-set 2) (cset/intersection (i/hash-set 1 2) (i/hash-set 2 3))))
+      (is (i/hash-set? (cset/intersection (i/hash-set 1 2) (i/hash-set 2))))
+      (is (= (i/hash-set 1) (cset/difference (i/hash-set 1 2) (i/hash-set 2))))
+      (is (cset/subset? (i/hash-set 1) (i/hash-set 1 2)))
+      (is (cset/superset? (i/hash-set 1 2) (i/hash-set 1)))
+      (is (= (i/hash-set 1 2 3) (cset/union (i/hash-set 1 2) #{3})))
+      (is (= (i/hash-set 2) (cset/select even? (i/hash-set 1 2 3))))
+      (is (i/hash-set? (cset/select even? (i/hash-set 2))))
+      ;; composite elements
+      (is (= (i/hash-set [1 2]) (cset/intersection (i/hash-set [1 2] [3]) (i/hash-set [1 2]))))
+      ;; js sets keep the old behavior
+      (is (= #{1 2 3} (cset/union #{1 2} #{3})))
+      ;; map ops preserve the hamt type (previously corrupted via assoc!)
+      (def hm (i/hash-map :a 1 :b 2))
+      (is (= (i/hash-map :x 1 :b 2) (cset/rename-keys hm {:a :x})))
+      (is (i/hash-map? (cset/rename-keys hm {:a :x})))
+      (is (= (i/hash-map :a 1 :b 2) hm))
+      (is (= (i/hash-map 1 :a 2 :b) (cset/map-invert hm)))
+      (is (i/hash-map? (cset/map-invert hm)))
+      (is (= {:x 1} (cset/rename-keys {:a 1} {:a :x})))
+      ;; project/rename preserve the set type
+      (def rel (i/hash-set (i/hash-map :a 1 :b 2)))
+      (is (i/hash-set? (cset/project rel :a)))
+      (is (= (i/hash-set (i/hash-map :a 1)) (cset/project rel :a)))))
+
+(deftest-eval metadata-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [cljs.test :refer [is]]))
+      (def m (with-meta (i/hash-map :a 1) {:x 1}))
+      (is (= {:x 1} (meta m)))
+      (is (nil? (meta (i/hash-map :a 1))))
+      ;; value ops carry metadata, like CLJS
+      (is (= {:x 1} (meta (assoc m :b 2))))
+      (is (= {:x 1} (meta (dissoc m :a))))
+      (is (= {:x 1} (meta (conj m [:c 3]))))
+      (is (= {:x 1} (meta (empty m))))
+      (is (= {:x 1 :y 2} (meta (vary-meta m assoc :y 2))))
+      ;; equality and hashing ignore metadata
+      (is (= m (i/hash-map :a 1)))
+      (is (= (hash m) (hash (i/hash-map :a 1))))
+      ;; with-meta replaces, does not merge
+      (is (= {:z 9} (meta (with-meta m {:z 9}))))
+      ;; vector and set
+      (def v (with-meta (i/vector 1 2) {:v 1}))
+      (is (= {:v 1} (meta (conj v 3))))
+      (is (= {:v 1} (meta (assoc v 0 9))))
+      (is (= {:v 1} (meta (pop (pop v)))))
+      (def s (with-meta (i/hash-set 1) {:s 1}))
+      (is (= {:s 1} (meta (conj s 2))))
+      (is (= {:s 1} (meta (disj s 1))))
+      ;; plain collections still carry metadata through the instance scheme
+      (is (= {:p 1} (meta (with-meta {} {:p 1}))))
+      (is (= {:p 1} (meta (conj (with-meta [1] {:p 1}) 2))))))
+
 (deftest-eval scale-test
   (do (ns foo (:require [squint.immutable :as i]
                         [cljs.test :refer [is]]))

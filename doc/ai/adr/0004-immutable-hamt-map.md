@@ -92,6 +92,39 @@ recognizes the ISet marker. Set-only import: 17.9KB min / 6.0KB gzip (it
 carries the map). All three structures: 22.3KB / 7.2KB gzip. clojure.set
 (union/difference/...) still expects js/Set - convert at that boundary.
 
+### clojure.set is polymorphic
+
+set.js dispatches per collection kind: js/Set (and set-likes with
+reference .has/.add, e.g. SortedSet) keep the old fast paths and result
+types; persistent sets go through core slots (count/contains?/transient
+conj!/disj!) and results preserve the persistent type of the larger
+(union) or smaller (intersection) argument. Membership tests against a
+persistent side are value-based. rename-keys/map-invert previously
+corrupted hamt maps via assoc! instance fallthrough; they now use
+persistent assoc for slot-maps and keep the mutating fast path for plain
+objects. project/rename preserve the set type; join still returns a js
+Set (accumulator), documented.
+
+### Metadata via IMeta/IWithMeta protocols
+
+The `_metaSym` property scheme is gone (breaking). `meta`/`with-meta`
+dispatch through new core IMeta_-meta / IWithMeta_-with-meta slots, the
+only mechanism. The immutable types implement them type-level (a `meta`
+field, threaded through every value op like CLJS: assoc/dissoc/conj/pop/
+empty keep meta; equality and hashing ignore it; transients drop it).
+Plain values (objects, arrays, js Maps/Sets, fns, lazy seqs) get
+instance-level impls installed by with-meta: the meta value lives in a
+closure under the IMeta slot, copyMeta forwards the slots, so the old
+observable behavior (value ops carry meta) is unchanged and the whole
+test surface passes. Atoms implement IMeta only (like CLJS), which keeps
+the with-meta copy machinery out of atom-only bundles (caught by the dce
+floor test).
+
+### Persistent list: deliberately absent
+
+Squint's array-backed List, lazy Cons/seqs, and pvec-as-stack cover the
+use cases; CLJS PersistentList would only buy O(1) head-conj sharing.
+
 ### Hashing lives in core.js
 
 Murmur3 like CLJS: string hash cache (8192 entries, reset on overflow),

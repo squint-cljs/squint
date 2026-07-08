@@ -31,6 +31,8 @@
   ILookup__lookup
   IMap
   IMap__dissoc
+  IMeta
+  IMeta__meta
   IRecord
   IReset
   IReset__reset_BANG_
@@ -59,6 +61,8 @@
   IWatchable__add_watch
   IWatchable__notify_watches
   IWatchable__remove_watch
+  IWithMeta
+  IWithMeta__with_meta
   LazySeq
   NaN_QMARK_
   PROTOCOL_SENTINEL

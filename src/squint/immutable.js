@@ -26,6 +26,10 @@ import {
   IEquiv__equiv,
   IEncodeJS,
   IEncodeJS__clj__GT_js,
+  IMeta,
+  IMeta__meta,
+  IWithMeta,
+  IWithMeta__with_meta,
   IEditableCollection,
   IEditableCollection__as_transient,
   ITransientCollection__conj_BANG_,
@@ -90,6 +94,12 @@ function bitIndex(bitmap, bit) {
 
 function keyTest(key, other) {
   return key === other || _EQ_(key, other);
+}
+
+// value-producing ops carry metadata, like CLJS
+function keepMeta(src, dst) {
+  dst.meta = src.meta;
+  return dst;
 }
 
 function cloneAndSet(arr, i, a) {
@@ -341,20 +351,20 @@ function mapLookup(m, k, notFound) {
 function mapAssoc(m, k, v) {
   if (k == null) {
     if (m.hasNil && v === m.nilVal) return m;
-    return new PersistentHashMap(m.hasNil ? m.cnt : m.cnt + 1, m.root, true, v);
+    return keepMeta(m, new PersistentHashMap(m.hasNil ? m.cnt : m.cnt + 1, m.root, true, v));
   }
   const addedLeaf = { val: false };
   const newRoot = (m.root == null ? EMPTY_NODE : m.root).inodeAssoc(0, hash(k), k, v, addedLeaf);
   if (newRoot === m.root) return m;
-  return new PersistentHashMap(addedLeaf.val ? m.cnt + 1 : m.cnt, newRoot, m.hasNil, m.nilVal);
+  return keepMeta(m, new PersistentHashMap(addedLeaf.val ? m.cnt + 1 : m.cnt, newRoot, m.hasNil, m.nilVal));
 }
 
 function mapDissoc(m, k) {
-  if (k == null) return m.hasNil ? new PersistentHashMap(m.cnt - 1, m.root, false, null) : m;
+  if (k == null) return m.hasNil ? keepMeta(m, new PersistentHashMap(m.cnt - 1, m.root, false, null)) : m;
   if (m.root == null) return m;
   const newRoot = m.root.inodeWithout(0, hash(k), k);
   if (newRoot === m.root) return m;
-  return new PersistentHashMap(m.cnt - 1, newRoot, m.hasNil, m.nilVal);
+  return keepMeta(m, new PersistentHashMap(m.cnt - 1, newRoot, m.hasNil, m.nilVal));
 }
 
 function mapContains(m, k) {
@@ -421,6 +431,7 @@ const PersistentHashMap = /* @__PURE__ */ (() => {
       this.root = root;
       this.hasNil = hasNil;
       this.nilVal = nilVal;
+      this.meta = null;
       this._hash = null;
     }
     *[Symbol.iterator]() {
@@ -444,8 +455,15 @@ const PersistentHashMap = /* @__PURE__ */ (() => {
   p[ICounted__count] = (m) => m.cnt;
   p[IKVReduce__kv_reduce] = mapKvReduce;
   p[ICollection__conj] = mapConj;
-  p[IEmptyableCollection__empty] = () => EMPTY;
+  p[IEmptyableCollection__empty] = (m) => (m.meta == null ? EMPTY : p[IWithMeta__with_meta](EMPTY, m.meta));
   p[IEquiv__equiv] = mapEquiv;
+  p[IMeta__meta] = (m) => m.meta;
+  p[IWithMeta__with_meta] = (m, newMeta) => {
+    const c = new PersistentHashMap(m.cnt, m.root, m.hasNil, m.nilVal);
+    c._hash = m._hash;
+    c.meta = newMeta;
+    return c;
+  };
   // iterating yields [k v] entry arrays, whose ordered hash equals the map
   // entry hash, so the unordered hash over them matches core's map hashing
   p[IHash__hash] = (m) => {
@@ -462,7 +480,7 @@ const PersistentHashMap = /* @__PURE__ */ (() => {
     return o;
   };
   // satisfies? markers
-  for (const proto of [ILookup, IAssociative, IMap, ICounted, IKVReduce, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IEncodeJS, IHash]) {
+  for (const proto of [ILookup, IAssociative, IMap, ICounted, IKVReduce, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IEncodeJS, IHash, IMeta, IWithMeta]) {
     p[proto.__sym] = true;
   }
   return PersistentHashMap;
@@ -641,7 +659,7 @@ function vecConj(v, o) {
   if (v.cnt - tailOff(v) < 32) {
     const newTail = v.tail.slice();
     newTail.push(o);
-    return new PersistentVector(v.cnt + 1, v.shift, v.root, newTail);
+    return keepMeta(v, new PersistentVector(v.cnt + 1, v.shift, v.root, newTail));
   }
   const rootOverflow = (v.cnt >>> 5) > (1 << v.shift);
   const newShift = rootOverflow ? v.shift + 5 : v.shift;
@@ -653,7 +671,7 @@ function vecConj(v, o) {
   } else {
     newRoot = pushTail(v, v.shift, v.root, new VectorNode(v.tail));
   }
-  return new PersistentVector(v.cnt + 1, newShift, newRoot, [o]);
+  return keepMeta(v, new PersistentVector(v.cnt + 1, newShift, newRoot, [o]));
 }
 
 function vecNth(v, n, notFound) {
@@ -667,9 +685,9 @@ function vecAssocN(v, n, val) {
     if (n >= tailOff(v)) {
       const newTail = v.tail.slice();
       newTail[n & 0x01f] = val;
-      return new PersistentVector(v.cnt, v.shift, v.root, newTail);
+      return keepMeta(v, new PersistentVector(v.cnt, v.shift, v.root, newTail));
     }
-    return new PersistentVector(v.cnt, v.shift, doAssoc(v.shift, v.root, n, val), v.tail);
+    return keepMeta(v, new PersistentVector(v.cnt, v.shift, doAssoc(v.shift, v.root, n, val), v.tail));
   }
   if (n === v.cnt) return vecConj(v, val);
   throw new Error('Index ' + n + ' out of bounds  [0,' + v.cnt + ']');
@@ -677,17 +695,19 @@ function vecAssocN(v, n, val) {
 
 function vecPop(v) {
   if (v.cnt === 0) throw new Error("Can't pop empty vector");
-  if (v.cnt === 1) return EMPTY_VECTOR;
+  if (v.cnt === 1) {
+    return v.meta == null ? EMPTY_VECTOR : EMPTY_VECTOR[IWithMeta__with_meta](EMPTY_VECTOR, v.meta);
+  }
   if (v.cnt - tailOff(v) > 1) {
-    return new PersistentVector(v.cnt - 1, v.shift, v.root, v.tail.slice(0, -1));
+    return keepMeta(v, new PersistentVector(v.cnt - 1, v.shift, v.root, v.tail.slice(0, -1)));
   }
   const newTail = uncheckedArrayFor(v, v.cnt - 2);
   const nr = popTail(v, v.shift, v.root);
   const newRoot = nr == null ? EMPTY_VNODE : nr;
   if (v.shift > 5 && newRoot.arr[1] == null) {
-    return new PersistentVector(v.cnt - 1, v.shift - 5, newRoot.arr[0], newTail);
+    return keepMeta(v, new PersistentVector(v.cnt - 1, v.shift - 5, newRoot.arr[0], newTail));
   }
-  return new PersistentVector(v.cnt - 1, v.shift, newRoot, newTail);
+  return keepMeta(v, new PersistentVector(v.cnt - 1, v.shift, newRoot, newTail));
 }
 
 function vecKvReduce(v, f, init) {
@@ -738,6 +758,7 @@ const PersistentVector = /* @__PURE__ */ (() => {
       this.shift = shift;
       this.root = root;
       this.tail = tail;
+      this.meta = null;
       this._hash = null;
     }
     *[Symbol.iterator]() {
@@ -764,8 +785,15 @@ const PersistentVector = /* @__PURE__ */ (() => {
   p[ICounted__count] = (v) => v.cnt;
   p[IIndexed__nth] = vecNth;
   p[ICollection__conj] = vecConj;
-  p[IEmptyableCollection__empty] = () => EMPTY_VECTOR;
+  p[IEmptyableCollection__empty] = (v) => (v.meta == null ? EMPTY_VECTOR : p[IWithMeta__with_meta](EMPTY_VECTOR, v.meta));
   p[IEquiv__equiv] = vecEquiv;
+  p[IMeta__meta] = (v) => v.meta;
+  p[IWithMeta__with_meta] = (v, newMeta) => {
+    const c = new PersistentVector(v.cnt, v.shift, v.root, v.tail);
+    c._hash = v._hash;
+    c.meta = newMeta;
+    return c;
+  };
   p[IKVReduce__kv_reduce] = vecKvReduce;
   p[IStack__peek] = (v) => (v.cnt > 0 ? vecNth(v, v.cnt - 1) : null);
   p[IStack__pop] = vecPop;
@@ -780,7 +808,7 @@ const PersistentVector = /* @__PURE__ */ (() => {
     return out;
   };
   // satisfies? markers
-  for (const proto of [IVector, ILookup, IAssociative, ICounted, IIndexed, ICollection, IEmptyableCollection, IEquiv, IKVReduce, IStack, IEditableCollection, IEncodeJS, IHash]) {
+  for (const proto of [IVector, ILookup, IAssociative, ICounted, IIndexed, ICollection, IEmptyableCollection, IEquiv, IKVReduce, IStack, IEditableCollection, IEncodeJS, IHash, IMeta, IWithMeta]) {
     p[proto.__sym] = true;
   }
   return PersistentVector;
@@ -855,12 +883,12 @@ export function vector_QMARK_(x) {
 
 function setConj(s, x) {
   const nm = mapAssoc(s.m, x, x);
-  return nm === s.m ? s : new PersistentHashSet(nm);
+  return nm === s.m ? s : keepMeta(s, new PersistentHashSet(nm));
 }
 
 function setDisj(s, x) {
   const nm = mapDissoc(s.m, x);
-  return nm === s.m ? s : new PersistentHashSet(nm);
+  return nm === s.m ? s : keepMeta(s, new PersistentHashSet(nm));
 }
 
 function otherSetCount(other) {
@@ -885,6 +913,7 @@ const PersistentHashSet = /* @__PURE__ */ (() => {
   class PersistentHashSet {
     constructor(m) {
       this.m = m;
+      this.meta = null;
       this._hash = null;
     }
     *[Symbol.iterator]() {
@@ -904,8 +933,15 @@ const PersistentHashSet = /* @__PURE__ */ (() => {
   p[ICounted__count] = (s) => s.m.cnt;
   p[ICollection__conj] = setConj;
   p[ISet__disjoin] = setDisj;
-  p[IEmptyableCollection__empty] = () => EMPTY_SET;
+  p[IEmptyableCollection__empty] = (s) => (s.meta == null ? EMPTY_SET : p[IWithMeta__with_meta](EMPTY_SET, s.meta));
   p[IEquiv__equiv] = setEquiv;
+  p[IMeta__meta] = (s) => s.meta;
+  p[IWithMeta__with_meta] = (s, newMeta) => {
+    const c = new PersistentHashSet(s.m);
+    c._hash = s._hash;
+    c.meta = newMeta;
+    return c;
+  };
   p[IHash__hash] = (s) => {
     if (s._hash === null) s._hash = hash_unordered_coll(s);
     return s._hash;
@@ -917,7 +953,7 @@ const PersistentHashSet = /* @__PURE__ */ (() => {
     return out;
   };
   // satisfies? markers
-  for (const proto of [ISet, ILookup, ICounted, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IEncodeJS, IHash]) {
+  for (const proto of [ISet, ILookup, ICounted, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IEncodeJS, IHash, IMeta, IWithMeta]) {
     p[proto.__sym] = true;
   }
   return PersistentHashSet;
