@@ -100,6 +100,57 @@ view 35ms). Squint code keeps using the map itself; making `hash-map`
 return a proxy was rejected: every internal slot/field access would pay
 traps and protocol impls would read fields through the string trap.
 
+### Per-use immutability hint: the refer pattern
+
+Requirement: opt into hamt maps locally at the use site - never a namespace
+or global switch - writing CLJS-style code, portable to .cljs/.cljc on
+CLJS/JVM/bb with zero setup. Options considered:
+
+| | verdict |
+|---|---|
+| ns metadata / squint.edn flag | rejected: flips a whole ns or project |
+| `^:squint/immutable {}` metadata | rejected: becomes runtime metadata in CLJS/JVM (verified in planck; survives assoc) |
+| `#i {}` unqualified tag | rejected: CLJS does NOT ignore unknown tags (verified in analyzer.cljc: tools.reader + data_readers, no default-data-reader-fn), and unqualified user tags cannot be defined there - squint-only forever |
+| `#squint/i {}` qualified tag | rejected: needs a data_readers.cljc shim dep in every consumer |
+| compiler-known marker fn / literal-walking macro | workable, but new machinery; kept as a possible sugar layer later |
+| refer pattern (chosen) | zero new syntax, zero setup, zero residue |
+
+The chosen pattern:
+
+```clojure
+(ns foo
+  #?(:squint (:refer-clojure :exclude [hash-map]))
+  #?(:squint (:require [squint.immutable :refer [hash-map]])))
+
+(get (hash-map 1 2 3 4) 1)
+```
+
+The require IS the hint. Under CLJS/JVM the conditionals vanish and core
+hash-map already builds persistent maps: identical semantics on all
+platforms. Squint already supported everything needed (:squint reader
+feature, library ns registration, :refer).
+
+Making it sound required a compiler fix: return-tag inference
+(`fn-return-tags`) marked `(hash-map ...)` calls 'object without checking
+whether the symbol still resolves to core, so `(get (hash-map 1 2) 1)`
+inlined to property access (`hash_map(1, 2)[1]`) and returned undefined on
+a hamt map. Two bugs: the tag guards ignored refers, and `maybe-core-var`
+compared the munged name against the raw symbols stored by
+`:refer-clojure :exclude`, so excludes never applied there.
+`resolves-to-core?` now mirrors symbol-emission precedence (local shadow,
+current-ns var, refer, exclude) before any core tag applies. The core fast
+path (plain `(get (hash-map :a 1) :a)` -> `["a"]`) is unchanged and
+pinned by tests.
+
+Pitfall worth knowing: a bare vector ns clause
+(`#?(:squint [squint.immutable ...])`, missing the `(:require ...)`
+wrapper) is silently ignored by the ns handler.
+
+The playground compiles with the release pinned in its importmap
+("squint-cljs" -> unpkg), so branch features are invisible there until a
+release; local dev now loads the compiler from the squint-local symlink
+(playground/public/js/main_js.mjs), so `bb dev` serves the working tree.
+
 ## Measurements
 
 ### Bundle cost (esbuild 0.28, --bundle --minify --format=esm)

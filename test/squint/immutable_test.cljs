@@ -224,6 +224,24 @@
       (is (= 1 (count wm)))
       (is (= :second (get wm (->Wrapper [1 2]))))))
 
+;; the cljc-portable opt-in: refer hash-map from squint.immutable; on
+;; CLJS/JVM the conditionals vanish and core hash-map is already persistent.
+;; A string program: the :squint conditionals must not hit the CLJS reader
+;; compiling this file.
+(deftest-eval refer-pattern-test
+  "(ns foo
+     #?(:squint (:refer-clojure :exclude [hash-map]))
+     #?(:squint (:require [squint.immutable :as i :refer [hash-map]]))
+     (:require [cljs.test :refer [is]]))
+   (is (= 2 (get (hash-map 1 2 3 4) 1)))
+   (is (i/hash-map? (hash-map)))
+   (is (i/hash-map? (apply hash-map [1 2 3 4])))
+   (is (= 4 (get (apply hash-map [1 2 3 4]) 3)))
+   (is (map? (hash-map 1 2)))
+   (is (= 3 (count (assoc (hash-map 1 2) 3 4 5 6))))
+   (is (= (hash-map 1 2) (hash-map 1 2)))
+   (is (not (i/hash-map? {})))")
+
 (deftest-eval scale-test
   (do (ns foo (:require [squint.immutable :as i]
                         [cljs.test :refer [is]]))

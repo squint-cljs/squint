@@ -366,7 +366,9 @@ var dev = JSON.parse(urlParams.get('dev')) ?? location.hostname === 'localhost';
 var squintCompiler = squint;
 if (dev) {
   console.log('Loading development squint compiler');
-  // squintCompiler = await import('./squint-local/index.js');
+  // the squint-local symlink points at the repo root; lib/compiler.js is the
+  // shadow build the root `bb dev` watch keeps current
+  squintCompiler = await import('./squint-local/index.js');
 }
 
 var compileStringEx = squintCompiler.compileStringEx;
