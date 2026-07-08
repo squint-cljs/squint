@@ -33,6 +33,9 @@ import {
   ITransientAssociative__assoc_BANG_,
   ITransientMap__dissoc_BANG_,
   ITransientVector__pop_BANG_,
+  ISet,
+  ISet__disjoin,
+  ITransientSet__disjoin_BANG_,
   IStack,
   IStack__peek,
   IStack__pop,
@@ -41,6 +44,7 @@ import {
   IVector,
   _EQ_,
   vector_QMARK_ as core_vector_QMARK_,
+  set_QMARK_ as core_set_QMARK_,
   sequential_QMARK_,
   iterable,
   reduced,
@@ -841,4 +845,134 @@ export function vec(coll) {
 
 export function vector_QMARK_(x) {
   return x instanceof PersistentVector;
+}
+
+// ---------------------------------------------------------------------------
+// Persistent hash set: a wrapper over the persistent hash map (elements are
+// keys mapping to themselves), like ClojureScript's PersistentHashSet
+// (cljs/core.cljs), Copyright (c) Rich Hickey and contributors, Eclipse
+// Public License 1.0.
+
+function setConj(s, x) {
+  const nm = mapAssoc(s.m, x, x);
+  return nm === s.m ? s : new PersistentHashSet(nm);
+}
+
+function setDisj(s, x) {
+  const nm = mapDissoc(s.m, x);
+  return nm === s.m ? s : new PersistentHashSet(nm);
+}
+
+function otherSetCount(other) {
+  if (other instanceof PersistentHashSet) return other.m.cnt;
+  if (typeof other.size === 'number') return other.size;
+  return -1;
+}
+
+function setEquiv(s, other) {
+  if (s === other) return true;
+  if (other == null || !core_set_QMARK_(other)) return false;
+  if (s.m.cnt !== otherSetCount(other)) return false;
+  // iterate the other side, membership-test on this side: our contains is
+  // value-based (hash + =), a js/Set .has is reference-based
+  for (const x of other) {
+    if (!mapContains(s.m, x)) return false;
+  }
+  return true;
+}
+
+const PersistentHashSet = /* @__PURE__ */ (() => {
+  class PersistentHashSet {
+    constructor(m) {
+      this.m = m;
+      this._hash = null;
+    }
+    *[Symbol.iterator]() {
+      for (const e of this.m) yield e[0];
+    }
+    // core's toEDN print hook
+    squint$lang$edn(pr) {
+      const parts = [];
+      for (const x of this) parts.push(pr(x));
+      return '#{' + parts.join(' ') + '}';
+    }
+  }
+  const p = PersistentHashSet.prototype;
+  // (get s x) returns the stored element, like CLJS
+  p[ILookup__lookup] = (s, k, nf) => mapLookup(s.m, k, nf);
+  p[IAssociative__contains_key_QMARK_] = (s, k) => mapContains(s.m, k);
+  p[ICounted__count] = (s) => s.m.cnt;
+  p[ICollection__conj] = setConj;
+  p[ISet__disjoin] = setDisj;
+  p[IEmptyableCollection__empty] = () => EMPTY_SET;
+  p[IEquiv__equiv] = setEquiv;
+  p[IHash__hash] = (s) => {
+    if (s._hash === null) s._hash = hash_unordered_coll(s);
+    return s._hash;
+  };
+  p[IEditableCollection__as_transient] = (s) => new TransientHashSet(s.m);
+  p[IEncodeJS__clj__GT_js] = (s, recur) => {
+    const out = [];
+    for (const x of s) out.push(recur(x));
+    return out;
+  };
+  // satisfies? markers
+  for (const proto of [ISet, ILookup, ICounted, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IEncodeJS, IHash]) {
+    p[proto.__sym] = true;
+  }
+  return PersistentHashSet;
+})();
+
+// Transient handle wrapping the persistent ops, like the map's and vector's
+const TransientHashSet = /* @__PURE__ */ (() => {
+  class TransientHashSet {
+    constructor(m) {
+      this.m = m;
+    }
+    ensure() {
+      if (this.m === null) throw new Error('Transient used after persistent!');
+    }
+  }
+  const p = TransientHashSet.prototype;
+  p[ITransientCollection__conj_BANG_] = (t, x) => {
+    t.ensure();
+    t.m = mapAssoc(t.m, x, x);
+    return t;
+  };
+  p[ITransientSet__disjoin_BANG_] = (t, x) => {
+    t.ensure();
+    t.m = mapDissoc(t.m, x);
+    return t;
+  };
+  p[ITransientCollection__persistent_BANG_] = (t) => {
+    t.ensure();
+    const s = new PersistentHashSet(t.m);
+    t.m = null;
+    return s;
+  };
+  p[ICounted__count] = (t) => (t.ensure(), t.m.cnt);
+  p[ILookup__lookup] = (t, k, nf) => (t.ensure(), mapLookup(t.m, k, nf));
+  p[IAssociative__contains_key_QMARK_] = (t, k) => (t.ensure(), mapContains(t.m, k));
+  return TransientHashSet;
+})();
+
+const EMPTY_SET = /* @__PURE__ */ new PersistentHashSet(EMPTY);
+
+export function hash_set(...xs) {
+  if (xs.length === 0) return EMPTY_SET;
+  let m = EMPTY_SET.m;
+  for (const x of xs) m = mapAssoc(m, x, x);
+  return new PersistentHashSet(m);
+}
+
+export function set(coll) {
+  if (coll == null) return EMPTY_SET;
+  if (coll instanceof PersistentHashSet) return coll;
+  let m = EMPTY_SET.m;
+  for (const x of iterable(coll)) m = mapAssoc(m, x, x);
+  return new PersistentHashSet(m);
+}
+
+export function hash_set_QMARK_(x) {
+  return x instanceof PersistentHashSet;
 }

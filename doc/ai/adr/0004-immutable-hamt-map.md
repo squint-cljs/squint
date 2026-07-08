@@ -76,6 +76,22 @@ core's array-specific entry path and does not treat the pvec as an entry;
 hamt-map conj handles pvec entries. Subvec on pvec is O(n) conj, not a
 Subvec view type.
 
+### Persistent hash set
+
+`hash-set`, `set` (conversion), `hash-set?` in the same module: a wrapper
+over the persistent hash map (elements as keys mapping to themselves), like
+CLJS PersistentHashSet. Slots: ILookup (get returns the stored element),
+contains? slot without the IAssociative marker (sets are not associative),
+ICounted, ICollection, ISet (-disjoin, so core disj works), IEquiv, IHash
+(unordered, cached), IEmptyableCollection, IEncodeJS (array),
+IEditableCollection + transient handle (conj!/disj!), print hook (#{...}).
+Equality iterates the OTHER side and membership-tests on this side: our
+contains is value-based where js/Set .has is reference-based, so
+`(= (i/hash-set [1 2]) ...)` composite elements work. Core edit: `set?`
+recognizes the ISet marker. Set-only import: 17.9KB min / 6.0KB gzip (it
+carries the map). All three structures: 22.3KB / 7.2KB gzip. clojure.set
+(union/difference/...) still expects js/Set - convert at that boundary.
+
 ### Hashing lives in core.js
 
 Murmur3 like CLJS: string hash cache (8192 entries, reset on overflow),

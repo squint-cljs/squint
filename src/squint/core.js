@@ -2153,7 +2153,8 @@ export function set(coll) {
 }
 
 export function set_QMARK_(x) {
-  return typeConst(x) === SET_TYPE;
+  if (x == null) return false;
+  return typeConst(x) === SET_TYPE || x[ISet.__sym] !== undefined;
 }
 
 export function hash_set(...xs) {

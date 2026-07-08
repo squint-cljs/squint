@@ -350,6 +350,67 @@
       (is (= 0 (count shrunk)))
       (is (= shrunk (i/vector)))))
 
+(deftest-eval set-basics-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [cljs.test :refer [is]]))
+      (def s (i/hash-set 1 2 3))
+      (is (i/hash-set? s))
+      (is (set? s))
+      (is (= 3 (count s)))
+      (is (contains? s 2))
+      (is (not (contains? s 9)))
+      (is (= 2 (get s 2)))
+      (is (= :nf (get s 9 :nf)))
+      (is (= 2 (count (i/hash-set 1 1 2))))
+      ;; conj/disj persistence
+      (def s2 (conj s 4))
+      (is (= 3 (count s)))
+      (is (= 4 (count s2)))
+      (is (= 3 (count (conj s 2))))
+      (is (= 2 (count (disj s 1))))
+      (is (not (contains? (disj s 1) 1)))
+      ;; composite elements by value
+      (def cs (i/hash-set [1 2] {:a 1}))
+      (is (contains? cs [1 2]))
+      (is (contains? cs {:a 1}))
+      (is (contains? cs (list 1 2)))
+      (is (= 2 (count (conj cs [1 2]))))
+      ;; empty keeps the type
+      (is (i/hash-set? (empty s)))
+      (is (= 0 (count (empty s))))))
+
+(deftest-eval set-equality-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [cljs.test :refer [is]]))
+      (is (= (i/hash-set 1 2) (i/hash-set 2 1)))
+      (is (= (i/hash-set 1 2) #{1 2}))
+      (is (= #{1 2} (i/hash-set 1 2)))
+      (is (not= (i/hash-set 1 2) #{1}))
+      (is (not= (i/hash-set 1 2) [1 2]))
+      (is (= (hash (i/hash-set 1 2)) (hash #{2 1})))
+      ;; pset as a hamt map key, hit with a js Set
+      (is (= :v (get (assoc (i/hash-map) (i/hash-set 1 2) :v) #{2 1})))))
+
+(deftest-eval set-core-fns-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [cljs.test :refer [is]]))
+      (def s (i/hash-set 1 2 3))
+      (is (= 6 (reduce + 0 s)))
+      (is (= #{2 3 4} (set (map inc s))))
+      (is (= 3 (count (into (i/hash-set) [1 2 2 3]))))
+      (is (i/hash-set? (into (i/hash-set) [1])))
+      (is (= 2 (count (i/set [1 2 2]))))
+      (is (= "#{\"a\"}" (pr-str (i/hash-set "a"))))
+      (is (js/Array.isArray (clj->js (i/hash-set 1))))
+      ;; transient
+      (def t (transient (i/hash-set 1)))
+      (conj! t 2)
+      (disj! t 1)
+      (def p (persistent! t))
+      (is (i/hash-set? p))
+      (is (= p (i/hash-set 2)))
+      (is (thrown? js/Error (conj! t 3)))))
+
 (deftest-eval scale-test
   (do (ns foo (:require [squint.immutable :as i]
                         [cljs.test :refer [is]]))

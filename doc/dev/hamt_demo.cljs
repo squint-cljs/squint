@@ -70,3 +70,12 @@
 (println "subvec:      " (subvec pv 1))
 (println "= [1 2 3]:   " (= pv [1 2 3]))
 (println "as map key:  " (get (assoc (hamt/hash-map) (hamt/vector 1 2) :hit) [1 2]))
+
+(println)
+(println "-- persistent set --")
+(def ps (hamt/hash-set 1 2 3))
+(println "set:          " ps)
+(println "conj/disj:    " (conj ps 4) (disj ps 1))
+(println "composite:    " (contains? (hamt/hash-set [1 2]) [1 2]))
+(println "= #{2 1 3}:   " (= ps #{2 1 3}))
+(println "set as key:   " (get (assoc (hamt/hash-map) (hamt/hash-set 1 2) :hit) #{2 1}))

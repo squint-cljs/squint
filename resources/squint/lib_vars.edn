@@ -274,8 +274,11 @@
    hash_map
    hash_map_QMARK_
    hash_ordered_coll
+   hash_set
+   hash_set_QMARK_
    hash_unordered_coll
    obj_view
+   set
    vec
    vector
    vector_QMARK_},
