@@ -136,9 +136,91 @@ function nodeKvReduce(arr, f, init) {
 }
 
 class BitmapIndexedNode {
-  constructor(bitmap, arr) {
+  constructor(bitmap, arr, edit) {
     this.bitmap = bitmap;
     this.arr = arr;
+    this.edit = edit;
+  }
+  // transient path: reuse the node when owned by this edit token
+  ensureEditable(edit) {
+    if (this.edit === edit) return this;
+    return new BitmapIndexedNode(this.bitmap, this.arr.slice(), edit);
+  }
+  inodeAssocBang(edit, shift, h, key, val, addedLeaf) {
+    const bit = bitpos(h, shift);
+    const idx = bitIndex(this.bitmap, bit);
+    if ((this.bitmap & bit) === 0) {
+      const n = bitCount(this.bitmap);
+      if (n >= 16) {
+        const nodes = new Array(32).fill(null);
+        nodes[mask(h, shift)] = EMPTY_NODE.inodeAssocBang(edit, shift + 5, h, key, val, addedLeaf);
+        for (let i = 0, j = 0; i < 32; i++) {
+          if ((this.bitmap >>> i) & 1) {
+            nodes[i] =
+              this.arr[j] == null
+                ? this.arr[j + 1]
+                : EMPTY_NODE.inodeAssocBang(edit, shift + 5, hash(this.arr[j]), this.arr[j], this.arr[j + 1], addedLeaf);
+            j += 2;
+          }
+        }
+        return new ArrayNode(n + 1, nodes, edit);
+      }
+      const editable = this.ensureEditable(edit);
+      editable.arr.splice(2 * idx, 0, key, val);
+      editable.bitmap |= bit;
+      addedLeaf.val = true;
+      return editable;
+    }
+    const keyOrNull = this.arr[2 * idx];
+    const valOrNode = this.arr[2 * idx + 1];
+    if (keyOrNull == null) {
+      const n = valOrNode.inodeAssocBang(edit, shift + 5, h, key, val, addedLeaf);
+      if (n === valOrNode) return this;
+      const editable = this.ensureEditable(edit);
+      editable.arr[2 * idx + 1] = n;
+      return editable;
+    }
+    if (keyTest(key, keyOrNull)) {
+      if (val === valOrNode) return this;
+      const editable = this.ensureEditable(edit);
+      editable.arr[2 * idx + 1] = val;
+      return editable;
+    }
+    addedLeaf.val = true;
+    const editable = this.ensureEditable(edit);
+    editable.arr[2 * idx] = null;
+    editable.arr[2 * idx + 1] = createNodeBang(edit, shift + 5, keyOrNull, valOrNode, h, key, val);
+    return editable;
+  }
+  inodeWithoutBang(edit, shift, h, key, removedLeaf) {
+    const bit = bitpos(h, shift);
+    if ((this.bitmap & bit) === 0) return this;
+    const idx = bitIndex(this.bitmap, bit);
+    const keyOrNull = this.arr[2 * idx];
+    const valOrNode = this.arr[2 * idx + 1];
+    if (keyOrNull == null) {
+      const n = valOrNode.inodeWithoutBang(edit, shift + 5, h, key, removedLeaf);
+      if (n === valOrNode) return this;
+      if (n != null) {
+        const editable = this.ensureEditable(edit);
+        editable.arr[2 * idx + 1] = n;
+        return editable;
+      }
+      if (this.bitmap === bit) return null;
+      const editable = this.ensureEditable(edit);
+      editable.arr.splice(2 * idx, 2);
+      editable.bitmap ^= bit;
+      return editable;
+    }
+    if (keyTest(key, keyOrNull)) {
+      removedLeaf.val = true;
+      if (this.bitmap === bit) return null;
+      const editable = this.ensureEditable(edit);
+      editable.arr.splice(2 * idx, 2);
+      editable.bitmap ^= bit;
+      return editable;
+    }
+    return this;
   }
   inodeAssoc(shift, h, key, val, addedLeaf) {
     const bit = bitpos(h, shift);
@@ -226,9 +308,46 @@ class BitmapIndexedNode {
 const EMPTY_NODE = /* @__PURE__ */ new BitmapIndexedNode(0, []);
 
 class ArrayNode {
-  constructor(cnt, arr) {
+  constructor(cnt, arr, edit) {
     this.cnt = cnt;
     this.arr = arr;
+    this.edit = edit;
+  }
+  ensureEditable(edit) {
+    if (this.edit === edit) return this;
+    return new ArrayNode(this.cnt, this.arr.slice(), edit);
+  }
+  inodeAssocBang(edit, shift, h, key, val, addedLeaf) {
+    const idx = mask(h, shift);
+    const node = this.arr[idx];
+    if (node == null) {
+      const editable = this.ensureEditable(edit);
+      editable.arr[idx] = EMPTY_NODE.inodeAssocBang(edit, shift + 5, h, key, val, addedLeaf);
+      editable.cnt++;
+      return editable;
+    }
+    const n = node.inodeAssocBang(edit, shift + 5, h, key, val, addedLeaf);
+    if (n === node) return this;
+    const editable = this.ensureEditable(edit);
+    editable.arr[idx] = n;
+    return editable;
+  }
+  inodeWithoutBang(edit, shift, h, key, removedLeaf) {
+    const idx = mask(h, shift);
+    const node = this.arr[idx];
+    if (node == null) return this;
+    const n = node.inodeWithoutBang(edit, shift + 5, h, key, removedLeaf);
+    if (n === node) return this;
+    if (n == null) {
+      if (this.cnt <= 8) return this.packNode(idx, edit);
+      const editable = this.ensureEditable(edit);
+      editable.arr[idx] = n;
+      editable.cnt--;
+      return editable;
+    }
+    const editable = this.ensureEditable(edit);
+    editable.arr[idx] = n;
+    return editable;
   }
   inodeAssoc(shift, h, key, val, addedLeaf) {
     const idx = mask(h, shift);
@@ -253,7 +372,7 @@ class ArrayNode {
     return new ArrayNode(this.cnt, cloneAndSet(this.arr, idx, n));
   }
   // repack into a BitmapIndexedNode, dropping child idx
-  packNode(idx) {
+  packNode(idx, edit) {
     const newArr = new Array(2 * (this.cnt - 1)).fill(null);
     let j = 1;
     let bitmap = 0;
@@ -264,7 +383,7 @@ class ArrayNode {
         j += 2;
       }
     }
-    return new BitmapIndexedNode(bitmap, newArr);
+    return new BitmapIndexedNode(bitmap, newArr, edit);
   }
   inodeLookup(shift, h, key, notFound) {
     const node = this.arr[mask(h, shift)];
@@ -287,10 +406,42 @@ class ArrayNode {
 }
 
 class HashCollisionNode {
-  constructor(collisionHash, cnt, arr) {
+  constructor(collisionHash, cnt, arr, edit) {
     this.collisionHash = collisionHash;
     this.cnt = cnt;
     this.arr = arr;
+    this.edit = edit;
+  }
+  ensureEditable(edit) {
+    if (this.edit === edit) return this;
+    return new HashCollisionNode(this.collisionHash, this.cnt, this.arr.slice(), edit);
+  }
+  inodeAssocBang(edit, shift, h, key, val, addedLeaf) {
+    if (h !== this.collisionHash) {
+      return new BitmapIndexedNode(bitpos(this.collisionHash, shift), [null, this], edit).inodeAssocBang(edit, shift, h, key, val, addedLeaf);
+    }
+    const idx = this.findIndex(key);
+    if (idx === -1) {
+      addedLeaf.val = true;
+      const editable = this.ensureEditable(edit);
+      editable.arr.push(key, val);
+      editable.cnt++;
+      return editable;
+    }
+    if (this.arr[idx + 1] === val) return this;
+    const editable = this.ensureEditable(edit);
+    editable.arr[idx + 1] = val;
+    return editable;
+  }
+  inodeWithoutBang(edit, shift, h, key, removedLeaf) {
+    const idx = this.findIndex(key);
+    if (idx === -1) return this;
+    removedLeaf.val = true;
+    if (this.cnt === 1) return null;
+    const editable = this.ensureEditable(edit);
+    editable.arr.splice(idx, 2);
+    editable.cnt--;
+    return editable;
   }
   findIndex(key) {
     const lim = 2 * this.cnt;
@@ -335,6 +486,13 @@ function createNode(shift, key1, val1, key2hash, key2, val2) {
   if (key1hash === key2hash) return new HashCollisionNode(key1hash, 2, [key1, val1, key2, val2]);
   const box = { val: false };
   return EMPTY_NODE.inodeAssoc(shift, key1hash, key1, val1, box).inodeAssoc(shift, key2hash, key2, val2, box);
+}
+
+function createNodeBang(edit, shift, key1, val1, key2hash, key2, val2) {
+  const key1hash = hash(key1);
+  if (key1hash === key2hash) return new HashCollisionNode(key1hash, 2, [key1, val1, key2, val2], edit);
+  const box = { val: false };
+  return EMPTY_NODE.inodeAssocBang(edit, shift, key1hash, key1, val1, box).inodeAssocBang(edit, shift, key2hash, key2, val2, box);
 }
 
 // ---------------------------------------------------------------------------
@@ -486,42 +644,78 @@ const PersistentHashMap = /* @__PURE__ */ (() => {
   return PersistentHashMap;
 })();
 
-// Transient handle for assoc!/conj!/dissoc!/persistent!. Correctness-only for
-// now: it reuses the persistent ops (no node editing), so it invalidates the
-// handle like CLJS but does not yet avoid path copying.
+// Transient handle with real node editing: the handle object is the edit
+// token; nodes owned by it mutate in place, everything else copies once.
 const TransientHashMap = /* @__PURE__ */ (() => {
   class TransientHashMap {
     constructor(m) {
-      this.m = m;
+      this.edit = {};
+      this.root = m.root;
+      this.cnt = m.cnt;
+      this.hasNil = m.hasNil;
+      this.nilVal = m.nilVal;
     }
     ensure() {
-      if (this.m == null) throw new Error('Transient used after persistent!');
+      if (this.edit === null) throw new Error('Transient used after persistent!');
     }
   }
   const p = TransientHashMap.prototype;
   p[ITransientAssociative__assoc_BANG_] = (t, k, v) => {
     t.ensure();
-    t.m = mapAssoc(t.m, k, v);
+    if (k == null) {
+      if (!t.hasNil) t.cnt++;
+      t.hasNil = true;
+      t.nilVal = v;
+      return t;
+    }
+    const addedLeaf = { val: false };
+    t.root = (t.root == null ? EMPTY_NODE : t.root).inodeAssocBang(t.edit, 0, hash(k), k, v, addedLeaf);
+    if (addedLeaf.val) t.cnt++;
     return t;
   };
   p[ITransientMap__dissoc_BANG_] = (t, k) => {
     t.ensure();
-    t.m = mapDissoc(t.m, k);
+    if (k == null) {
+      if (t.hasNil) {
+        t.cnt--;
+        t.hasNil = false;
+        t.nilVal = null;
+      }
+      return t;
+    }
+    if (t.root == null) return t;
+    const removedLeaf = { val: false };
+    t.root = t.root.inodeWithoutBang(t.edit, 0, hash(k), k, removedLeaf);
+    if (removedLeaf.val) t.cnt--;
     return t;
   };
   p[ITransientCollection__conj_BANG_] = (t, x) => {
     t.ensure();
-    t.m = mapConj(t.m, x);
+    const assocBang = p[ITransientAssociative__assoc_BANG_];
+    if (core_vector_QMARK_(x)) {
+      if (Array.isArray(x)) {
+        if (x.length !== 2) throw new Error('conj on a map takes map entries or seqables of map entries');
+        return assocBang(t, x[0], x[1]);
+      }
+      if (x.cnt !== 2) throw new Error('conj on a map takes map entries or seqables of map entries');
+      return assocBang(t, x[IIndexed__nth](x, 0), x[IIndexed__nth](x, 1));
+    }
+    for (const e of iterable(x)) assocBang(t, e[0], e[1]);
     return t;
   };
   p[ITransientCollection__persistent_BANG_] = (t) => {
     t.ensure();
-    const m = t.m;
-    t.m = null;
-    return m;
+    t.edit = null;
+    return new PersistentHashMap(t.cnt, t.root, t.hasNil, t.nilVal);
   };
-  p[ICounted__count] = (t) => (t.ensure(), t.m.cnt);
-  p[ILookup__lookup] = (t, k, nf) => (t.ensure(), mapLookup(t.m, k, nf));
+  p[ICounted__count] = (t) => (t.ensure(), t.cnt);
+  p[ILookup__lookup] = (t, k, nf) => {
+    t.ensure();
+    if (k == null) return t.hasNil ? t.nilVal : nf;
+    if (t.root == null) return nf;
+    return t.root.inodeLookup(0, hash(k), k, nf);
+  };
+  p[IAssociative__contains_key_QMARK_] = (t, k) => p[ILookup__lookup](t, k, SENTINEL) !== SENTINEL;
   return TransientHashMap;
 })();
 
@@ -578,8 +772,13 @@ export function obj_view(m) {
 // only; the transient handle wraps the persistent ops like the map's.
 
 class VectorNode {
-  constructor(arr) {
+  constructor(arr, edit) {
     this.arr = arr;
+    this.edit = edit;
+  }
+  ensureEditable(edit) {
+    if (this.edit === edit) return this;
+    return new VectorNode(this.arr.slice(), edit);
   }
 }
 
@@ -593,13 +792,51 @@ function tailOff(v) {
   return v.cnt < 32 ? 0 : ((v.cnt - 1) >>> 5) << 5;
 }
 
-function newPath(level, node) {
+function newPath(level, node, edit) {
   let ret = node;
   for (let ll = level; ll > 0; ll -= 5) {
-    const r = new VectorNode(new Array(32));
+    const r = new VectorNode(new Array(32), edit);
     r.arr[0] = ret;
     ret = r;
   }
+  return ret;
+}
+
+// transient vector helpers: mutate nodes owned by the edit token in place
+function doAssocBang(edit, level, node, i, val) {
+  const ret = node.ensureEditable(edit);
+  if (level === 0) {
+    ret.arr[i & 0x01f] = val;
+    return ret;
+  }
+  const subidx = (i >>> level) & 0x01f;
+  ret.arr[subidx] = doAssocBang(edit, level - 5, node === ret ? ret.arr[subidx] : node.arr[subidx], i, val);
+  return ret;
+}
+
+function tvPushTail(edit, cnt, level, parent, tailnode) {
+  const ret = parent.ensureEditable(edit);
+  const subidx = ((cnt - 1) >>> level) & 0x01f;
+  if (level === 5) {
+    ret.arr[subidx] = tailnode;
+    return ret;
+  }
+  const child = ret.arr[subidx];
+  ret.arr[subidx] = child != null ? tvPushTail(edit, cnt, level - 5, child, tailnode) : newPath(level - 5, tailnode, edit);
+  return ret;
+}
+
+function tvPopTail(edit, cnt, level, node) {
+  const ret = node.ensureEditable(edit);
+  const subidx = ((cnt - 2) >>> level) & 0x01f;
+  if (level > 5) {
+    const newChild = tvPopTail(edit, cnt, level - 5, ret.arr[subidx]);
+    if (newChild == null && subidx === 0) return null;
+    ret.arr[subidx] = newChild;
+    return ret;
+  }
+  if (subidx === 0) return null;
+  ret.arr[subidx] = null;
   return ret;
 }
 
@@ -814,41 +1051,99 @@ const PersistentVector = /* @__PURE__ */ (() => {
   return PersistentVector;
 })();
 
-// Transient handle wrapping the persistent ops, like TransientHashMap
+// Transient vector with real node editing, like CLJS TransientVector: the
+// handle is the edit token; the tail is always an owned copy.
 const TransientVector = /* @__PURE__ */ (() => {
   class TransientVector {
     constructor(v) {
-      this.v = v;
+      this.edit = {};
+      this.cnt = v.cnt;
+      this.shift = v.shift;
+      this.root = v.root.ensureEditable(this.edit);
+      this.tail = v.tail.slice();
     }
     ensure() {
-      if (this.v === null) throw new Error('Transient used after persistent!');
+      if (this.edit === null) throw new Error('Transient used after persistent!');
     }
   }
   const p = TransientVector.prototype;
-  p[ITransientCollection__conj_BANG_] = (t, x) => {
+  p[ITransientCollection__conj_BANG_] = (t, o) => {
     t.ensure();
-    t.v = vecConj(t.v, x);
+    if (t.cnt - tailOff(t) < 32) {
+      t.tail.push(o);
+      t.cnt++;
+      return t;
+    }
+    const tailNode = new VectorNode(t.tail, t.edit);
+    t.tail = [o];
+    if ((t.cnt >>> 5) > (1 << t.shift)) {
+      const newRoot = new VectorNode(new Array(32), t.edit);
+      newRoot.arr[0] = t.root;
+      newRoot.arr[1] = newPath(t.shift, tailNode, t.edit);
+      t.root = newRoot;
+      t.shift += 5;
+    } else {
+      t.root = tvPushTail(t.edit, t.cnt, t.shift, t.root, tailNode);
+    }
+    t.cnt++;
     return t;
   };
-  p[ITransientAssociative__assoc_BANG_] = (t, k, val) => {
+  p[ITransientAssociative__assoc_BANG_] = (t, n, val) => {
     t.ensure();
-    if (typeof k !== 'number') throw new Error("Vector's key for assoc must be a number.");
-    t.v = vecAssocN(t.v, k, val);
-    return t;
+    if (typeof n !== 'number') throw new Error("Vector's key for assoc must be a number.");
+    if (n >= 0 && n < t.cnt) {
+      if (n >= tailOff(t)) {
+        t.tail[n & 0x01f] = val;
+      } else {
+        t.root = doAssocBang(t.edit, t.shift, t.root, n, val);
+      }
+      return t;
+    }
+    if (n === t.cnt) return p[ITransientCollection__conj_BANG_](t, val);
+    throw new Error('Index ' + n + ' out of bounds  [0,' + t.cnt + ']');
   };
   p[ITransientVector__pop_BANG_] = (t) => {
     t.ensure();
-    t.v = vecPop(t.v);
+    if (t.cnt === 0) throw new Error("Can't pop empty vector");
+    if (t.cnt === 1) {
+      t.cnt = 0;
+      t.tail = [];
+      return t;
+    }
+    if (((t.cnt - 1) & 0x01f) > 0) {
+      t.tail.pop();
+      t.cnt--;
+      return t;
+    }
+    const newTail = uncheckedArrayFor(t, t.cnt - 2).slice();
+    let newRoot = tvPopTail(t.edit, t.cnt, t.shift, t.root);
+    if (newRoot == null) newRoot = new VectorNode(new Array(32), t.edit);
+    if (t.shift > 5 && newRoot.arr[1] == null) {
+      newRoot = newRoot.arr[0].ensureEditable(t.edit);
+      t.shift -= 5;
+    }
+    t.root = newRoot;
+    t.tail = newTail;
+    t.cnt--;
     return t;
   };
   p[ITransientCollection__persistent_BANG_] = (t) => {
     t.ensure();
-    const v = t.v;
-    t.v = null;
-    return v;
+    t.edit = null;
+    return new PersistentVector(t.cnt, t.shift, t.root, t.tail.slice(0, t.cnt - tailOff(t)));
   };
-  p[ICounted__count] = (t) => (t.ensure(), t.v.cnt);
-  p[ILookup__lookup] = (t, k, nf) => (t.ensure(), typeof k === 'number' ? vecNth(t.v, k, nf) : nf);
+  p[ICounted__count] = (t) => (t.ensure(), t.cnt);
+  p[ILookup__lookup] = (t, k, nf) => {
+    t.ensure();
+    if (typeof k !== 'number' || k < 0 || k >= t.cnt) return nf;
+    return uncheckedArrayFor(t, k)[k & 0x01f];
+  };
+  p[IIndexed__nth] = function (t, n, nf) {
+    t.ensure();
+    if (n >= 0 && n < t.cnt) return uncheckedArrayFor(t, n)[n & 0x01f];
+    if (arguments.length >= 3) return nf;
+    throw new Error('No item ' + n + ' in vector of length ' + t.cnt);
+  };
   return TransientVector;
 })();
 
@@ -959,36 +1254,27 @@ const PersistentHashSet = /* @__PURE__ */ (() => {
   return PersistentHashSet;
 })();
 
-// Transient handle wrapping the persistent ops, like the map's and vector's
+// Transient set wrapping the real transient map
 const TransientHashSet = /* @__PURE__ */ (() => {
   class TransientHashSet {
     constructor(m) {
-      this.m = m;
-    }
-    ensure() {
-      if (this.m === null) throw new Error('Transient used after persistent!');
+      this.tm = new TransientHashMap(m);
     }
   }
   const p = TransientHashSet.prototype;
+  const tmp = TransientHashMap.prototype;
   p[ITransientCollection__conj_BANG_] = (t, x) => {
-    t.ensure();
-    t.m = mapAssoc(t.m, x, x);
+    tmp[ITransientAssociative__assoc_BANG_](t.tm, x, x);
     return t;
   };
   p[ITransientSet__disjoin_BANG_] = (t, x) => {
-    t.ensure();
-    t.m = mapDissoc(t.m, x);
+    tmp[ITransientMap__dissoc_BANG_](t.tm, x);
     return t;
   };
-  p[ITransientCollection__persistent_BANG_] = (t) => {
-    t.ensure();
-    const s = new PersistentHashSet(t.m);
-    t.m = null;
-    return s;
-  };
-  p[ICounted__count] = (t) => (t.ensure(), t.m.cnt);
-  p[ILookup__lookup] = (t, k, nf) => (t.ensure(), mapLookup(t.m, k, nf));
-  p[IAssociative__contains_key_QMARK_] = (t, k) => (t.ensure(), mapContains(t.m, k));
+  p[ITransientCollection__persistent_BANG_] = (t) => new PersistentHashSet(tmp[ITransientCollection__persistent_BANG_](t.tm));
+  p[ICounted__count] = (t) => tmp[ICounted__count](t.tm);
+  p[ILookup__lookup] = (t, k, nf) => tmp[ILookup__lookup](t.tm, k, nf);
+  p[IAssociative__contains_key_QMARK_] = (t, k) => tmp[ILookup__lookup](t.tm, k, SENTINEL) !== SENTINEL;
   return TransientHashSet;
 })();
 

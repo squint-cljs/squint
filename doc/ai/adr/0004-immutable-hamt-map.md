@@ -36,8 +36,14 @@ API that lives in core.
 
 CLJS PersistentHashMap port: BitmapIndexedNode (spills to a 32-way ArrayNode
 past 16 children), ArrayNode (packs back below 8), HashCollisionNode,
-nil-key slot on the map object. Persistent arities only; the transient
-handle wraps the persistent ops (correct, no node editing yet).
+nil-key slot on the map object. Transients do real node editing, CLJS
+style: the transient handle is the edit token, nodes owned by it mutate in
+place (inodeAssocBang/inodeWithoutBang; splice-based in-place inserts
+instead of CLJS's preallocated slack). Same for the vector
+(tvPushTail/tvPopTail/doAssocBang, owned tail) and the set (wraps the
+transient map). Measured: map transient build is ~2x the persistent fold
+in-process; vector transient build 200k = 21ms (path-copying was 87ms,
+Immutable.js withMutations 23ms).
 
 Instances carry no `TYPE_TAG`, so core dispatch routes them through the
 INSTANCE_TYPE extension path. The prototype fills the existing slots
@@ -232,13 +238,13 @@ release; local dev now loads the compiler from the squint-local symlink
 
 ### Bundle cost (esbuild 0.28, --bundle --minify --format=esm)
 
-| entry                              | min bytes | gzip |
+| entry (after vector/set/meta/transients) | min bytes | gzip |
 |------------------------------------|-----------|------|
-| core `identity` floor              |    16     |   56 |
-| core `=` only                      |  2169     |  912 |
-| core 10-fn mix                     | 13631     | 4722 |
-| core 10-fn mix + hamt hash-map     | 22265     | 7593 |
-| hamt hash-map only                 | 15765     | 5593 |
+| core `identity` floor              |    16     |   50 |
+| core 10-fn mix                     | 13688     | 4738 |
+| map only                           | 20513     | 6629 |
+| vector only                        | 11221     | 3964 |
+| map + vector + set                 | 28219     | 8635 |
 | hash fns only                      |  1739     |  898 |
 
 Marginal cost for an app already on core: ~8.6KB min / ~2.9KB gzip. Apps
@@ -330,8 +336,6 @@ HAMT subsumes it.
 
 ## Limitations / next steps
 
-- Transients do path copying (correct, not fast). Port CLJS node editing
-  for into-heavy builds.
 - `extend-type` with an alias-qualified protocol (`i/IHash`) mis-emits the
   slot key (`i._hash`). Unqualified core protocols work. Compiler bug,
   predates this module.
