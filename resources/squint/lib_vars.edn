@@ -275,7 +275,10 @@
    hash_map_QMARK_
    hash_ordered_coll
    hash_unordered_coll
-   obj_view},
+   obj_view
+   vec
+   vector
+   vector_QMARK_},
  squint.math
  #{DEGREES_TO_RADIANS
    E

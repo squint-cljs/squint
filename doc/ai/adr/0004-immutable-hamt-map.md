@@ -48,6 +48,34 @@ transient slots on the handle), so `get`/`assoc`/`dissoc`/`conj`/`count`/
 `select-keys` etc. work from core unchanged. Slot methods live behind pure
 IIFE wrappers for DCE (techniques in doc/dev/dce.md).
 
+### Persistent vector
+
+`vector`, `vec`, `vector?` (instance predicate) in the same module: CLJS
+PersistentVector port (32-way bit-partitioned trie + tail, root overflow
+and pop-with-shift-shrink included), persistent arities only, transient
+handle wrapping the persistent ops like the map's. Prototype fills
+ILookup (number keys), IAssociative (index assoc, append at cnt),
+ICounted, IIndexed, ICollection, IEmptyableCollection, IEquiv
+(sequential: pvec = array = list = lazy seq), IKVReduce (index/value),
+IStack, IHash (cached ordered), IEncodeJS (deep array), IEditableCollection
+plus transient slots, IVector marker, iterator and the print hook.
+
+New core protocols for it (same pattern as the map's): `IStack`
+(-peek/-pop), `IIndexed` (-nth), `IVector` marker,
+`ITransientVector_-pop!`. Core dispatch edits: `nth` checks the IIndexed
+slot before the iterable walk, `peek`/`pop`/`pop!` check slots before
+throwing, `vector?`/`sequential?`/`vec` recognize the IVector marker, and
+`subvec` slices an IVector generically through its slots (returns the same
+type). Non-users pay nothing: the core 10-fn mix bundle is byte-identical.
+
+Vector-only import: 9.2KB min / 3.4KB gzip - it tree-shakes independently
+of the map. Map+vector: 20.8KB / 6.9KB.
+
+Known edge: `(conj {:a 1} (i/vector :k 5))` on a PLAIN object goes through
+core's array-specific entry path and does not treat the pvec as an entry;
+hamt-map conj handles pvec entries. Subvec on pvec is O(n) conj, not a
+Subvec view type.
+
 ### Hashing lives in core.js
 
 Murmur3 like CLJS: string hash cache (8192 entries, reset on overflow),

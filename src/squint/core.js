@@ -823,6 +823,8 @@ export function nth(coll, idx, orElse) {
     if (idx >= 0 && idx < coll.length) {
       return coll[idx];
     }
+  } else if (coll[IIndexed__nth] !== undefined) {
+    return hasDefault ? coll[IIndexed__nth](coll, idx, orElse) : coll[IIndexed__nth](coll, idx);
   } else if (idx >= 0) {
     // non-array: skip whole chunks instead of counting elements (handles
     // infinite seqs since it stops once idx is reached)
@@ -892,7 +894,7 @@ export function seq_QMARK_(x) {
 export function sequential_QMARK_(x) {
   // vectors and lists are arrays; lazy seqs and cons carry the lazy brand.
   // Sets, maps and strings are iterable but not sequential.
-  return Array.isArray(x) || x?.[TYPE_TAG] === LAZY_ITERABLE_TYPE;
+  return Array.isArray(x) || x?.[TYPE_TAG] === LAZY_ITERABLE_TYPE || (x != null && x[IVector.__sym] !== undefined);
 }
 
 export function seqable_QMARK_(x) {
@@ -1706,6 +1708,17 @@ export function hash(o) {
   return hashMapEntries(Object.entries(o));
 }
 
+// vector-facing protocols, dispatched like the map-facing set above
+export const IStack = { __sym: Symbol('squint.core.IStack') };
+export const IStack__peek = Symbol('IStack_-peek');
+export const IStack__pop = Symbol('IStack_-pop');
+export const IIndexed = { __sym: Symbol('squint.core.IIndexed') };
+export const IIndexed__nth = Symbol('IIndexed_-nth');
+export const ITransientVector = { __sym: Symbol('squint.core.ITransientVector') };
+export const ITransientVector__pop_BANG_ = Symbol('ITransientVector_-pop!');
+// marker protocol: a non-array type that counts as a vector (vector?,
+// sequential?, vec, subvec route through it)
+export const IVector = { __sym: Symbol('squint.core.IVector') };
 // a type converts itself in clj->js through this slot, like CLJS IEncodeJS.
 // The impl receives (x, recur) where recur is cycle-safe clj->js.
 export const IEncodeJS = { __sym: Symbol('squint.core.IEncodeJS') };
@@ -2038,6 +2051,21 @@ export function re_pattern(s) {
 }
 
 export function subvec(arr, start, end) {
+  // an IVector type slices through its own slots (bounds-checked nth + conj)
+  if (arr != null && arr[IVector.__sym] !== undefined) {
+    if (end === undefined) end = _count(arr);
+    if (start == null || end == null) {
+      throw new Error('subvec: start and end must not be nil');
+    }
+    start = start | 0;
+    end = end | 0;
+    if (start < 0 || end < start || end > _count(arr)) {
+      throw new Error('subvec: index out of bounds');
+    }
+    let ret = arr[IEmptyableCollection__empty](arr);
+    for (let i = start; i < end; i++) ret = ret[ICollection__conj](ret, arr[IIndexed__nth](arr, i));
+    return ret;
+  }
   if (!isVectorArray(arr)) {
     throw new Error('subvec: argument must be a vector');
   }
@@ -2061,7 +2089,8 @@ export function vector(...args) {
 export const array = vector;
 
 export function vector_QMARK_(x) {
-  return isVectorArray(x);
+  if (x == null) return false;
+  return isVectorArray(x) || x[IVector.__sym] !== undefined;
 }
 
 export function mapv(...args) {
@@ -2115,6 +2144,7 @@ function toArray(coll) {
 
 export function vec(x) {
   if (isVectorArray(x)) return x;
+  if (x != null && x[IVector.__sym] !== undefined) return x;
   return pushAll([], x);
 }
 
@@ -4311,6 +4341,8 @@ export function peek(vec) {
     return first(vec);
   } else if (array_QMARK_(vec)) {
     return vec[vec.length - 1];
+  } else if (vec[IStack__peek] !== undefined) {
+    return vec[IStack__peek](vec);
   } else {
     throw missing_protocol('IStack.-peek', vec);
   }
@@ -4326,6 +4358,8 @@ export function pop(vec) {
     const ret = [...vec];
     ret.pop();
     return ret;
+  } else if (vec[IStack__pop] !== undefined) {
+    return vec[IStack__pop](vec);
   } else {
     throw missing_protocol('IStack.-pop', vec);
   }
@@ -4336,6 +4370,9 @@ export function pop_BANG_(v) {
     if (v.length === 0) throw new Error("Can't pop empty vector");
     v.pop();
     return v;
+  }
+  if (v != null && v[ITransientVector__pop_BANG_] !== undefined) {
+    return v[ITransientVector__pop_BANG_](v);
   }
   throw missing_protocol('ITransientVector.-pop!', v);
 }

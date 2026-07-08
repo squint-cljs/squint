@@ -242,6 +242,114 @@
    (is (= (hash-map 1 2) (hash-map 1 2)))
    (is (not (i/hash-map? {})))")
 
+(deftest-eval vector-basics-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [cljs.test :refer [is]]))
+      (def v (i/vector 1 2 3))
+      (is (i/vector? v))
+      (is (vector? v))
+      (is (sequential? v))
+      (is (= 3 (count v)))
+      (is (= 1 (nth v 0)))
+      (is (= :dflt (nth v 9 :dflt)))
+      (is (= 2 (get v 1)))
+      (is (= 42 (get v 9 42)))
+      (is (thrown? js/Error (nth v 9)))
+      ;; persistence
+      (def v2 (conj v 4))
+      (is (= 3 (count v)))
+      (is (= [1 2 3 4] v2))
+      (is (= [1 :x 3] (assoc v 1 :x)))
+      (is (= [1 2 3 :end] (assoc v 3 :end)))
+      (is (thrown? js/Error (assoc v 5 :oob)))
+      (is (contains? v 2))
+      (is (not (contains? v 3)))
+      ;; peek/pop/subvec
+      (is (= 3 (peek v)))
+      (is (= [1 2] (pop v)))
+      (is (= [2 3] (subvec v 1)))
+      (is (= [2] (subvec v 1 2)))
+      (is (i/vector? (subvec v 1)))
+      ;; empty keeps the type
+      (is (i/vector? (empty v)))
+      (is (= 0 (count (empty v))))))
+
+(deftest-eval vector-equality-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [cljs.test :refer [is]]))
+      (def v (i/vector 1 2 3))
+      (is (= v [1 2 3]))
+      (is (= [1 2 3] v))
+      (is (= v (i/vector 1 2 3)))
+      (is (= v (list 1 2 3)))
+      (is (= v (map inc [0 1 2])))
+      (is (not= v [1 2]))
+      (is (not= v #{1 2 3}))
+      (is (= (hash v) (hash [1 2 3])))
+      ;; pvec as a hamt map key, hit with a plain vector
+      (is (= :hit (get (assoc (i/hash-map) (i/vector 1 2) :hit) [1 2])))
+      ;; pvec entry conj on a hamt map
+      (is (= 9 (get (conj (i/hash-map) (i/vector :k 9)) :k)))
+      ;; nested equality across reps
+      (is (= (i/vector 1 (i/hash-map :a (i/vector 2))) [1 {:a [2]}]))))
+
+(deftest-eval vector-core-fns-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [cljs.test :refer [is]]))
+      (def v (i/vector 1 2 3))
+      (is (= [2 3 4] (mapv inc v)))
+      (is (= 6 (reduce + 0 v)))
+      (is (= 9 (reduce-kv (fn [acc i x] (+ acc i x)) 0 v)))
+      (is (= :early (reduce-kv (fn [_ _ _] (reduced :early)) 0 v)))
+      (is (= 1 (first v)))
+      (is (= [2 3] (vec (rest v))))
+      (is (= 3 (last v)))
+      (is (= [1 2 3] (into [] v)))
+      (is (i/vector? (into (i/vector) [1 2])))
+      (is (= 3 (count (into (i/vector 1) [2 3]))))
+      (is (= [[0 1] [1 2] [2 3]] (map-indexed vector v)))
+      (is (= [1 2] (filter (fn [x] (< x 3)) v)))
+      (is (= [1 :x 3] (update v 1 (fn [_] :x))))
+      (is (= "[1 2 3]" (pr-str v)))
+      (is (= "[[1] {:a 1}]" (pr-str (i/vector (i/vector 1) (i/hash-map :a 1)))))
+      ;; clj->js: deep array
+      (def a (clj->js (i/vector 1 (i/vector 2))))
+      (is (js/Array.isArray a))
+      (is (js/Array.isArray (aget a 1)))
+      ;; i/vec conversions
+      (is (i/vector? (i/vec [1 2])))
+      (is (= [1 2] (i/vec [1 2])))
+      (is (= 3 (count (i/vec (range 3)))))))
+
+(deftest-eval vector-transient-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [cljs.test :refer [is]]))
+      (def t (transient (i/vector 1)))
+      (conj! t 2)
+      (assoc! t 0 :x)
+      (pop! t)
+      (def p (persistent! t))
+      (is (i/vector? p))
+      (is (= [:x] p))
+      (is (thrown? js/Error (conj! t 3)))
+      (def src (i/vector 1))
+      (persistent! (conj! (transient src) 2))
+      (is (= [1] src))))
+
+(deftest-eval vector-scale-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [cljs.test :refer [is]]))
+      ;; through the tail, root overflow and back down
+      (def n 3000)
+      (def big (reduce conj (i/vector) (range n)))
+      (is (= n (count big)))
+      (is (every? (fn [x] (= x (nth big x))) (range n)))
+      (is (= :mid (nth (assoc big 1500 :mid) 1500)))
+      (is (= (/ (* n (dec n)) 2) (reduce + 0 big)))
+      (def shrunk (reduce (fn [v _] (pop v)) big (range n)))
+      (is (= 0 (count shrunk)))
+      (is (= shrunk (i/vector)))))
+
 (deftest-eval scale-test
   (do (ns foo (:require [squint.immutable :as i]
                         [cljs.test :refer [is]]))

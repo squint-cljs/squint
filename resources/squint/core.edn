@@ -21,6 +21,8 @@
   IEquiv__equiv
   IHash
   IHash__hash
+  IIndexed
+  IIndexed__nth
   IIterable
   IIterable__iterator
   IKVReduce
@@ -36,6 +38,9 @@
   ISeqable__seq
   ISet
   ISet__disjoin
+  IStack
+  IStack__peek
+  IStack__pop
   ISwap
   ISwap__swap_BANG_
   ITransientAssociative
@@ -47,6 +52,9 @@
   ITransientMap__dissoc_BANG_
   ITransientSet
   ITransientSet__disjoin_BANG_
+  ITransientVector
+  ITransientVector__pop_BANG_
+  IVector
   IWatchable
   IWatchable__add_watch
   IWatchable__notify_watches

@@ -32,14 +32,23 @@ import {
   ITransientCollection__persistent_BANG_,
   ITransientAssociative__assoc_BANG_,
   ITransientMap__dissoc_BANG_,
+  ITransientVector__pop_BANG_,
+  IStack,
+  IStack__peek,
+  IStack__pop,
+  IIndexed,
+  IIndexed__nth,
+  IVector,
   _EQ_,
-  vector_QMARK_,
+  vector_QMARK_ as core_vector_QMARK_,
+  sequential_QMARK_,
   iterable,
   reduced,
   reduced_QMARK_,
   pr_str,
   hash,
   hash_unordered_coll,
+  hash_ordered_coll,
   IHash,
   IHash__hash,
 } from './core.js';
@@ -362,9 +371,14 @@ function mapKvReduce(m, f, init) {
 
 function mapConj(m, x) {
   // a map entry vector assocs; a map/seq of entries folds in, like core conj
-  if (vector_QMARK_(x)) {
-    if (x.length !== 2) throw new Error('conj on a map takes map entries or seqables of map entries');
-    return mapAssoc(m, x[0], x[1]);
+  if (core_vector_QMARK_(x)) {
+    if (Array.isArray(x)) {
+      if (x.length !== 2) throw new Error('conj on a map takes map entries or seqables of map entries');
+      return mapAssoc(m, x[0], x[1]);
+    }
+    // a persistent vector entry
+    if (x.cnt !== 2) throw new Error('conj on a map takes map entries or seqables of map entries');
+    return mapAssoc(m, x[IIndexed__nth](x, 0), x[IIndexed__nth](x, 1));
   }
   let ret = m;
   for (const e of iterable(x)) ret = mapAssoc(ret, e[0], e[1]);
@@ -533,4 +547,298 @@ export function obj_view(m) {
       defineProperty: deny,
     }
   );
+}
+
+// ---------------------------------------------------------------------------
+// Persistent vector: a 32-way bit-partitioned trie with a tail, ported from
+// ClojureScript's PersistentVector (cljs/core.cljs), Copyright (c) Rich
+// Hickey and contributors, Eclipse Public License 1.0. Persistent arities
+// only; the transient handle wraps the persistent ops like the map's.
+
+class VectorNode {
+  constructor(arr) {
+    this.arr = arr;
+  }
+}
+
+const EMPTY_VNODE = /* @__PURE__ */ new VectorNode(/* @__PURE__ */ new Array(32));
+
+function cloneVNode(node) {
+  return new VectorNode(node.arr.slice());
+}
+
+function tailOff(v) {
+  return v.cnt < 32 ? 0 : ((v.cnt - 1) >>> 5) << 5;
+}
+
+function newPath(level, node) {
+  let ret = node;
+  for (let ll = level; ll > 0; ll -= 5) {
+    const r = new VectorNode(new Array(32));
+    r.arr[0] = ret;
+    ret = r;
+  }
+  return ret;
+}
+
+function pushTail(v, level, parent, tailnode) {
+  const ret = cloneVNode(parent);
+  const subidx = ((v.cnt - 1) >>> level) & 0x01f;
+  if (level === 5) {
+    ret.arr[subidx] = tailnode;
+    return ret;
+  }
+  const child = parent.arr[subidx];
+  ret.arr[subidx] = child != null ? pushTail(v, level - 5, child, tailnode) : newPath(level - 5, tailnode);
+  return ret;
+}
+
+function uncheckedArrayFor(v, i) {
+  if (i >= tailOff(v)) return v.tail;
+  let node = v.root;
+  for (let level = v.shift; level > 0; level -= 5) {
+    node = node.arr[(i >>> level) & 0x01f];
+  }
+  return node.arr;
+}
+
+function arrayFor(v, i) {
+  if (i >= 0 && i < v.cnt) return uncheckedArrayFor(v, i);
+  throw new Error('No item ' + i + ' in vector of length ' + v.cnt);
+}
+
+function doAssoc(level, node, i, val) {
+  const ret = cloneVNode(node);
+  if (level === 0) {
+    ret.arr[i & 0x01f] = val;
+    return ret;
+  }
+  const subidx = (i >>> level) & 0x01f;
+  ret.arr[subidx] = doAssoc(level - 5, node.arr[subidx], i, val);
+  return ret;
+}
+
+function popTail(v, level, node) {
+  const subidx = ((v.cnt - 2) >>> level) & 0x01f;
+  if (level > 5) {
+    const newChild = popTail(v, level - 5, node.arr[subidx]);
+    if (newChild == null && subidx === 0) return null;
+    const ret = cloneVNode(node);
+    ret.arr[subidx] = newChild;
+    return ret;
+  }
+  if (subidx === 0) return null;
+  const ret = cloneVNode(node);
+  ret.arr[subidx] = null;
+  return ret;
+}
+
+function vecConj(v, o) {
+  if (v.cnt - tailOff(v) < 32) {
+    const newTail = v.tail.slice();
+    newTail.push(o);
+    return new PersistentVector(v.cnt + 1, v.shift, v.root, newTail);
+  }
+  const rootOverflow = (v.cnt >>> 5) > (1 << v.shift);
+  const newShift = rootOverflow ? v.shift + 5 : v.shift;
+  let newRoot;
+  if (rootOverflow) {
+    newRoot = new VectorNode(new Array(32));
+    newRoot.arr[0] = v.root;
+    newRoot.arr[1] = newPath(v.shift, new VectorNode(v.tail));
+  } else {
+    newRoot = pushTail(v, v.shift, v.root, new VectorNode(v.tail));
+  }
+  return new PersistentVector(v.cnt + 1, newShift, newRoot, [o]);
+}
+
+function vecNth(v, n, notFound) {
+  if (arguments.length === 2) return arrayFor(v, n)[n & 0x01f];
+  if (n >= 0 && n < v.cnt) return uncheckedArrayFor(v, n)[n & 0x01f];
+  return notFound;
+}
+
+function vecAssocN(v, n, val) {
+  if (n >= 0 && n < v.cnt) {
+    if (n >= tailOff(v)) {
+      const newTail = v.tail.slice();
+      newTail[n & 0x01f] = val;
+      return new PersistentVector(v.cnt, v.shift, v.root, newTail);
+    }
+    return new PersistentVector(v.cnt, v.shift, doAssoc(v.shift, v.root, n, val), v.tail);
+  }
+  if (n === v.cnt) return vecConj(v, val);
+  throw new Error('Index ' + n + ' out of bounds  [0,' + v.cnt + ']');
+}
+
+function vecPop(v) {
+  if (v.cnt === 0) throw new Error("Can't pop empty vector");
+  if (v.cnt === 1) return EMPTY_VECTOR;
+  if (v.cnt - tailOff(v) > 1) {
+    return new PersistentVector(v.cnt - 1, v.shift, v.root, v.tail.slice(0, -1));
+  }
+  const newTail = uncheckedArrayFor(v, v.cnt - 2);
+  const nr = popTail(v, v.shift, v.root);
+  const newRoot = nr == null ? EMPTY_VNODE : nr;
+  if (v.shift > 5 && newRoot.arr[1] == null) {
+    return new PersistentVector(v.cnt - 1, v.shift - 5, newRoot.arr[0], newTail);
+  }
+  return new PersistentVector(v.cnt - 1, v.shift, newRoot, newTail);
+}
+
+function vecKvReduce(v, f, init) {
+  let i = 0;
+  while (i < v.cnt) {
+    const arr = uncheckedArrayFor(v, i);
+    for (let j = 0; j < arr.length && i < v.cnt; j++, i++) {
+      init = f(init, i, arr[j]);
+      if (reduced_QMARK_(init)) return init.value;
+    }
+  }
+  return init;
+}
+
+function vecEquiv(v, other) {
+  if (v === other) return true;
+  if (other == null) return false;
+  if (other instanceof PersistentVector) {
+    if (v.cnt !== other.cnt) return false;
+    for (let i = 0; i < v.cnt; i++) {
+      if (!_EQ_(vecNth(v, i), vecNth(other, i))) return false;
+    }
+    return true;
+  }
+  if (Array.isArray(other)) {
+    if (v.cnt !== other.length) return false;
+    for (let i = 0; i < v.cnt; i++) {
+      if (!_EQ_(vecNth(v, i), other[i])) return false;
+    }
+    return true;
+  }
+  // any other sequential (list, lazy seq): pairwise over iterators
+  if (!sequential_QMARK_(other)) return false;
+  const vi = v[Symbol.iterator]();
+  const oi = other[Symbol.iterator]();
+  for (;;) {
+    const a = vi.next();
+    const b = oi.next();
+    if (a.done || b.done) return a.done === b.done;
+    if (!_EQ_(a.value, b.value)) return false;
+  }
+}
+
+const PersistentVector = /* @__PURE__ */ (() => {
+  class PersistentVector {
+    constructor(cnt, shift, root, tail) {
+      this.cnt = cnt;
+      this.shift = shift;
+      this.root = root;
+      this.tail = tail;
+      this._hash = null;
+    }
+    *[Symbol.iterator]() {
+      let i = 0;
+      while (i < this.cnt) {
+        const arr = uncheckedArrayFor(this, i);
+        for (let j = 0; j < arr.length && i < this.cnt; j++, i++) yield arr[j];
+      }
+    }
+    // core's toEDN print hook
+    squint$lang$edn(pr) {
+      const parts = [];
+      for (const x of this) parts.push(pr(x));
+      return '[' + parts.join(' ') + ']';
+    }
+  }
+  const p = PersistentVector.prototype;
+  p[ILookup__lookup] = (v, k, nf) => (typeof k === 'number' ? vecNth(v, k, nf) : nf);
+  p[IAssociative__assoc] = (v, k, val) => {
+    if (typeof k !== 'number') throw new Error("Vector's key for assoc must be a number.");
+    return vecAssocN(v, k, val);
+  };
+  p[IAssociative__contains_key_QMARK_] = (v, k) => Number.isInteger(k) && k >= 0 && k < v.cnt;
+  p[ICounted__count] = (v) => v.cnt;
+  p[IIndexed__nth] = vecNth;
+  p[ICollection__conj] = vecConj;
+  p[IEmptyableCollection__empty] = () => EMPTY_VECTOR;
+  p[IEquiv__equiv] = vecEquiv;
+  p[IKVReduce__kv_reduce] = vecKvReduce;
+  p[IStack__peek] = (v) => (v.cnt > 0 ? vecNth(v, v.cnt - 1) : null);
+  p[IStack__pop] = vecPop;
+  p[IHash__hash] = (v) => {
+    if (v._hash === null) v._hash = hash_ordered_coll(v);
+    return v._hash;
+  };
+  p[IEditableCollection__as_transient] = (v) => new TransientVector(v);
+  p[IEncodeJS__clj__GT_js] = (v, recur) => {
+    const out = [];
+    for (const x of v) out.push(recur(x));
+    return out;
+  };
+  // satisfies? markers
+  for (const proto of [IVector, ILookup, IAssociative, ICounted, IIndexed, ICollection, IEmptyableCollection, IEquiv, IKVReduce, IStack, IEditableCollection, IEncodeJS, IHash]) {
+    p[proto.__sym] = true;
+  }
+  return PersistentVector;
+})();
+
+// Transient handle wrapping the persistent ops, like TransientHashMap
+const TransientVector = /* @__PURE__ */ (() => {
+  class TransientVector {
+    constructor(v) {
+      this.v = v;
+    }
+    ensure() {
+      if (this.v === null) throw new Error('Transient used after persistent!');
+    }
+  }
+  const p = TransientVector.prototype;
+  p[ITransientCollection__conj_BANG_] = (t, x) => {
+    t.ensure();
+    t.v = vecConj(t.v, x);
+    return t;
+  };
+  p[ITransientAssociative__assoc_BANG_] = (t, k, val) => {
+    t.ensure();
+    if (typeof k !== 'number') throw new Error("Vector's key for assoc must be a number.");
+    t.v = vecAssocN(t.v, k, val);
+    return t;
+  };
+  p[ITransientVector__pop_BANG_] = (t) => {
+    t.ensure();
+    t.v = vecPop(t.v);
+    return t;
+  };
+  p[ITransientCollection__persistent_BANG_] = (t) => {
+    t.ensure();
+    const v = t.v;
+    t.v = null;
+    return v;
+  };
+  p[ICounted__count] = (t) => (t.ensure(), t.v.cnt);
+  p[ILookup__lookup] = (t, k, nf) => (t.ensure(), typeof k === 'number' ? vecNth(t.v, k, nf) : nf);
+  return TransientVector;
+})();
+
+const EMPTY_VECTOR = /* @__PURE__ */ new PersistentVector(0, 5, EMPTY_VNODE, []);
+
+export function vector(...xs) {
+  if (xs.length === 0) return EMPTY_VECTOR;
+  if (xs.length <= 32) return new PersistentVector(xs.length, 5, EMPTY_VNODE, xs);
+  let ret = new PersistentVector(32, 5, EMPTY_VNODE, xs.slice(0, 32));
+  for (let i = 32; i < xs.length; i++) ret = vecConj(ret, xs[i]);
+  return ret;
+}
+
+export function vec(coll) {
+  if (coll == null) return EMPTY_VECTOR;
+  if (coll instanceof PersistentVector) return coll;
+  if (Array.isArray(coll)) return vector(...coll);
+  let ret = EMPTY_VECTOR;
+  for (const x of iterable(coll)) ret = vecConj(ret, x);
+  return ret;
+}
+
+export function vector_QMARK_(x) {
+  return x instanceof PersistentVector;
 }
