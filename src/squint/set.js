@@ -1,4 +1,12 @@
 import * as core from './core.js';
+import {
+  ICounted__count,
+  IAssociative__contains_key_QMARK_,
+  IEditableCollection__as_transient,
+  ITransientCollection__conj_BANG_,
+  ITransientCollection__persistent_BANG_,
+  ITransientSet__disjoin_BANG_,
+} from './core.js';
 
 function _bubble_max_key(k, coll) {
   const max = core.max_key(k, ...coll);
@@ -11,12 +19,15 @@ function jsSetLike(x) {
   return x instanceof Set || (x != null && typeof x.has === 'function' && typeof x.add === 'function');
 }
 
+// the persistent paths dispatch through the slot symbols directly: the
+// symbols are tiny consts, where the core wrapper fns (count, conj!, ...)
+// drag their whole dispatch chains into js-Set-only bundles
 function setSize(x) {
-  return typeof x.size === 'number' ? x.size : core.count(x);
+  return typeof x.size === 'number' ? x.size : x[ICounted__count](x);
 }
 
 function setHas(x, e) {
-  return jsSetLike(x) ? x.has(e) : core.contains_QMARK_(x, e);
+  return jsSetLike(x) ? x.has(e) : x[IAssociative__contains_key_QMARK_](x, e);
 }
 
 // fold elements into a copy of target, preserving its type: js/Set mutates a
@@ -24,12 +35,12 @@ function setHas(x, e) {
 function addAll(target, elems) {
   if (jsSetLike(target)) {
     const res = new Set(target);
-    for (const e of core.iterable(elems)) res.add(e);
+    for (const e of elems) res.add(e);
     return res;
   }
-  let t = core.transient$(target);
-  for (const e of core.iterable(elems)) t = core.conj_BANG_(t, e);
-  return core.persistent_BANG_(t);
+  let t = target[IEditableCollection__as_transient](target);
+  for (const e of elems) t = t[ITransientCollection__conj_BANG_](t, e);
+  return t[ITransientCollection__persistent_BANG_](t);
 }
 
 function _intersection2(x, y) {
@@ -48,11 +59,11 @@ function _intersection2(x, y) {
     return res;
   }
   // persistent: disj the non-members, keeping the type and sharing
-  let t = core.transient$(x);
+  let t = x[IEditableCollection__as_transient](x);
   for (const elem of x) {
-    if (!setHas(y, elem)) t = core.disj_BANG_(t, elem);
+    if (!setHas(y, elem)) t = t[ITransientSet__disjoin_BANG_](t, elem);
   }
-  return core.persistent_BANG_(t);
+  return t[ITransientCollection__persistent_BANG_](t);
 }
 
 export function intersection(...xs) {
@@ -74,9 +85,9 @@ function _difference2(x, y) {
     }
     return res;
   }
-  let t = core.transient$(x);
-  for (const elem of core.iterable(y)) t = core.disj_BANG_(t, elem);
-  return core.persistent_BANG_(t);
+  let t = x[IEditableCollection__as_transient](x);
+  for (const elem of y) t = t[ITransientSet__disjoin_BANG_](t, elem);
+  return t[ITransientCollection__persistent_BANG_](t);
 }
 
 export function difference(...xs) {
@@ -107,7 +118,7 @@ export function union(...xs) {
 }
 
 function _subset_QMARK_2(x, y) {
-  for (const elem of core.iterable(x)) {
+  for (const elem of x) {
     if (!setHas(y, elem)) {
       return false;
     }
@@ -154,11 +165,11 @@ export function select(pred, xset) {
     }
     return res;
   }
-  let t = core.transient$(xset);
+  let t = xset[IEditableCollection__as_transient](xset);
   for (const elem of xset) {
-    if (!core.truth_(pred(elem))) t = core.disj_BANG_(t, elem);
+    if (!core.truth_(pred(elem))) t = t[ITransientSet__disjoin_BANG_](t, elem);
   }
-  return core.persistent_BANG_(t);
+  return t[ITransientCollection__persistent_BANG_](t);
 }
 
 // true when m is an immutable slot-map: mutate-in-place helpers would corrupt it
