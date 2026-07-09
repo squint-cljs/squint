@@ -3445,6 +3445,7 @@ globalThis.foo.fs = fs;")))))
                         (and (= 1 (:a r)) (nil? (:x r))
                              (= 1 (:x renamed)) (= 2 (:b renamed))
                              (= {1 :a} inverted))" {:repl true
+                                                    :elide-exports true
                                                     :context :return})
                  v (js/eval (wrap-async js))]
            (is (true? v))))
@@ -3463,6 +3464,7 @@ globalThis.foo.fs = fs;")))))
                              (= 2 (count (set/intersection (ps 1 2 3) (ps 2 3 4))))
                              (= 2 (count (set/difference (ps 1 2 3) (ps 2))))
                              (set/subset? (ps [1 2]) (ps [1 2] [3])))" {:repl true
+                                                                        :elide-exports true
                                                                         :context :return})
                  v (js/eval (wrap-async js))]
            (is (true? v))))
