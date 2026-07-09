@@ -4135,7 +4135,7 @@ new Foo();")
                                  (= m {:a 1}) (= {:a 1} m) (not= {:a 2} m)
                                  (= \"#M {:a 1}\" (pr-str m)))))"))))
   (testing "set? recognizes an ISet type"
-    (is (true? (jsv! "(do (deftype S [] ISet (-disjoin [t _] t)) (and (set? (->S)) (not (set? [])))")))))
+    (is (true? (jsv! "(do (deftype S [] ISet (-disjoin [t _] t)) (and (set? (->S)) (not (set? []))))")))))
 
 (deftest hash-fn-test
   (testing "hash is consistent with ="
