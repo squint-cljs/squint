@@ -86,7 +86,8 @@
   (build-squint-npm-package)
   (run! fs/delete (fs/glob "lib" "*.map"))
   (shell "npx esbuild src/squint/core.js --minify --format=iife --global-name=squint.core --outfile=lib/squint.core.umd.js")
-  (shell "npm publish"))
+  (shell "npm publish")
+  (shell "clojure -T:build deploy"))
 
 (defn- watch-core-vars
   "core.edn is generated from core.js exports (bump-core-vars) and inlined into
