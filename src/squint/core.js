@@ -306,16 +306,14 @@ export function assoc_BANG_(m, k, v, ...kvs) {
   return m;
 }
 
-const _metaSym = Symbol('meta');
-
-// Copies metadata from `from` onto `to` (when present) and returns `to`. Used
-// to make value-producing operations (copy, empty, conj, into) carry metadata
-// like Clojure does, instead of dropping it on the freshly built structure.
-// Kept branch-light for the hot path: reads an absent symbol property (cheap,
-// no hidden-class change) and only writes when metadata is actually present.
+// value-producing ops (copy, empty, conj, into) carry metadata by
+// forwarding the instance-level meta slots onto the fresh structure
 function copyMeta(from, to) {
-  const m = from?.[_metaSym];
-  if (m !== undefined) to[_metaSym] = m;
+  const f = from?.[IMeta__meta];
+  if (f !== undefined) {
+    to[IMeta__meta] = f;
+    to[IWithMeta__with_meta] = from[IWithMeta__with_meta];
+  }
   return to;
 }
 
@@ -1547,6 +1545,12 @@ export const ITransientMap = { __sym: Symbol('squint.core.ITransientMap') };
 export const ITransientMap__dissoc_BANG_ = Symbol('ITransientMap_-dissoc!');
 export const ITransientSet = { __sym: Symbol('squint.core.ITransientSet') };
 export const ITransientSet__disjoin_BANG_ = Symbol('ITransientSet_-disjoin!');
+// metadata protocols, like CLJS: types implement the slots, plain values
+// get instance-level impls installed by with-meta
+export const IMeta = { __sym: Symbol('squint.core.IMeta') };
+export const IMeta__meta = Symbol('IMeta_-meta');
+export const IWithMeta = { __sym: Symbol('squint.core.IWithMeta') };
+export const IWithMeta__with_meta = Symbol('IWithMeta_-with-meta');
 // marker protocol set by defrecord
 export const IRecord = { __sym: Symbol('squint.core.IRecord') };
 
@@ -1720,7 +1724,11 @@ export class Atom {
 export function atom(init, ...opts) {
   const a = new Atom(init);
   for (let i = 0; i < opts.length; i += 2) {
-    if (opts[i] === 'meta') a[_metaSym] = opts[i + 1];
+    // IMeta only, like CLJS Atom: keeps with-meta's copy machinery out of atom-only bundles
+    if (opts[i] === 'meta') {
+      const mv = opts[i + 1];
+      a[IMeta__meta] = () => mv;
+    }
     else if (opts[i] === 'validator') a._validator = opts[i + 1];
   }
   return a;
@@ -3629,30 +3637,41 @@ export function neg_int_QMARK_(x) {
 }
 
 export function meta(x) {
-  if (x instanceof Object) {
-    return x[_metaSym];
-  } else return null;
+  if (x != null && x[IMeta__meta] !== undefined) {
+    return x[IMeta__meta](x);
+  }
+  return null;
 }
 
 export function with_meta(x, m) {
+  if (x != null && x[IWithMeta__with_meta] !== undefined) {
+    return x[IWithMeta__with_meta](x, m);
+  }
+  return with_meta_copy(x, m);
+}
+
+// instance-level impls for a plain value; the meta lives in the closure
+function installMeta(x, m) {
+  x[IMeta__meta] = () => m;
+  x[IWithMeta__with_meta] = with_meta_copy;
+  return x;
+}
+
+function with_meta_copy(x, m) {
   // For functions, wrap in a new callable that forwards to the original
   // so fn? stays true and the original isn't mutated. copy() can't handle
   // functions - a {...x} spread loses the call signature.
   if (typeof x === 'function') {
     const wrapped = function (...args) { return x.apply(this, args); };
-    wrapped[_metaSym] = m;
-    return wrapped;
+    return installMeta(wrapped, m);
   }
   // A lazy seq or cons is not copied element-wise: clone the head so the new
   // value carries its own metadata without forcing realization.
   if (x?.[TYPE_TAG] === LAZY_ITERABLE_TYPE) {
     const ret = Object.assign(Object.create(Object.getPrototypeOf(x)), x);
-    ret[_metaSym] = m;
-    return ret;
+    return installMeta(ret, m);
   }
-  const ret = copy(x);
-  ret[_metaSym] = m;
-  return ret;
+  return installMeta(copy(x), m);
 }
 
 export function vary_meta(x, f, ...args) {

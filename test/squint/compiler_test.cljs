@@ -4109,6 +4109,16 @@ new Foo();")
     (testing "no truth check"
       (is (str/includes? s "if (y1)")))))
 
+(deftest meta-protocol-test
+  (testing "a type can implement IMeta/IWithMeta"
+    (is (eq {:x 1} (jsv! '(do (deftype T [m]
+                                IMeta (-meta [t] (.-m t))
+                                IWithMeta (-with-meta [t m] (->T m)))
+                              (meta (with-meta (->T nil) {:x 1})))))))
+  (testing "ops carry metadata through the instance-level impls"
+    (is (eq {:x 1} (jsv! '(meta (conj (with-meta [1] {:x 1}) 2)))))
+    (is (eq {:x 1} (jsv! '(meta (assoc (with-meta {} {:x 1}) :a 1)))))))
+
 (deftest with-meta-on-fn-test
   (testing "with-meta on a fn returns a callable carrying meta"
     (is (true? (jsv! '(let [f (fn [] :ok)
