@@ -4109,6 +4109,12 @@ new Foo();")
     (testing "no truth check"
       (is (str/includes? s "if (y1)")))))
 
+(deftest encode-js-protocol-test
+  (testing "a type converts itself in clj->js via IEncodeJS"
+    (is (true? (jsv! "(do (deftype T [] IEncodeJS (-clj->js [_] {:custom 1}))
+                          (and (= 1 (.-custom (clj->js (->T))))
+                               (= 1 (.-custom (aget (clj->js [(->T)]) 0)))))")))))
+
 (deftest meta-protocol-test
   (testing "a type can implement IMeta/IWithMeta"
     (is (eq {:x 1} (jsv! '(do (deftype T [m]

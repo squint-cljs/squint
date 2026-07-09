@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add the `IEncodeJS` protocol; `clj->js` dispatches through it so a custom type controls its own conversion
 - Add the `IMeta` and `IWithMeta` protocols; `meta` and `with-meta` dispatch through them and the internal meta symbol property is gone
 - Add `:require-global` and `:refer-global` to `ns`, binding globals loaded via a script tag to consts without emitting an import
 - The CLI reports the file, line and column of a compile error and exits non-zero, instead of dumping the raw exception
