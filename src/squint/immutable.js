@@ -26,6 +26,10 @@ import {
   IEquiv__equiv,
   IEncodeJS,
   IEncodeJS__clj__GT_js,
+  IPrintWithWriter,
+  IPrintWithWriter__pr_writer,
+  IWriter__write,
+  write_all,
   IMeta,
   IMeta__meta,
   IWithMeta,
@@ -46,14 +50,13 @@ import {
   IIndexed,
   IIndexed__nth,
   IVector,
-  _EQ_,
+  equiv,
   vector_QMARK_ as core_vector_QMARK_,
-  set_QMARK_ as core_set_QMARK_,
-  sequential_QMARK_,
   iterable,
   reduced,
   reduced_QMARK_,
   pr_str,
+  print_str,
   hash,
   hash_unordered_coll,
   hash_ordered_coll,
@@ -93,7 +96,12 @@ function bitIndex(bitmap, bit) {
 }
 
 function keyTest(key, other) {
-  return key === other || _EQ_(key, other);
+  return equiv(key, other);
+}
+
+// print a nested value readably-aware through pr-str/print-str
+function prStrWith(x, opts) {
+  return opts && opts.readably === false ? print_str(x) : pr_str(x);
 }
 
 // value-producing ops carry metadata, like CLJS
@@ -557,28 +565,14 @@ function mapConj(m, x) {
   return ret;
 }
 
-function otherCount(other) {
-  if (other instanceof PersistentHashMap) return other.cnt;
-  if (other instanceof Map || typeof other.size === 'number') return other.size;
-  if (other.constructor === Object || other.constructor === undefined) return Object.keys(other).length;
-  return -1;
-}
-
-function otherLookup(other, k) {
-  if (other instanceof PersistentHashMap) return mapLookup(other, k, SENTINEL);
-  if (other instanceof Map || (typeof other.get === 'function' && typeof other.has === 'function')) {
-    return other.has(k) ? other.get(k) : SENTINEL;
-  }
-  return Object.prototype.hasOwnProperty.call(other, k) ? other[k] : SENTINEL;
-}
-
+// equiv is the equality: a persistent map only equals a persistent map,
+// like a CLJS map never equals a js object
 function mapEquiv(m, other) {
   if (m === other) return true;
-  if (other == null || typeof other !== 'object') return false;
-  if (m.cnt !== otherCount(other)) return false;
+  if (!(other instanceof PersistentHashMap) || m.cnt !== other.cnt) return false;
   return mapKvReduce(m, (acc, k, v) => {
-    const ov = otherLookup(other, k);
-    return ov !== SENTINEL && _EQ_(v, ov) ? acc : reduced(false);
+    const ov = mapLookup(other, k, SENTINEL);
+    return ov !== SENTINEL && equiv(v, ov) ? acc : reduced(false);
   }, true);
 }
 
@@ -596,16 +590,15 @@ const PersistentHashMap = /* @__PURE__ */ (() => {
       if (this.hasNil) yield [null, this.nilVal];
       if (this.root != null) yield* this.root.iter();
     }
-    // core's toEDN print hook
-    squint$lang$edn(pr) {
-      const parts = [];
-      for (const [k, v] of this) {
-        parts.push((typeof k === 'string' ? ':' + k : pr(k)) + ' ' + pr(v));
-      }
-      return '{' + parts.join(', ') + '}';
-    }
   }
   const p = PersistentHashMap.prototype;
+  p[IPrintWithWriter__pr_writer] = (m, writer, opts) => {
+    const parts = [];
+    for (const [k, v] of m) {
+      parts.push((typeof k === 'string' ? ':' + k : prStrWith(k, opts)) + ' ' + prStrWith(v, opts));
+    }
+    write_all(writer, '{' + parts.join(', ') + '}');
+  };
   p[ILookup__lookup] = mapLookup;
   p[IAssociative__assoc] = mapAssoc;
   p[IAssociative__contains_key_QMARK_] = mapContains;
@@ -638,7 +631,7 @@ const PersistentHashMap = /* @__PURE__ */ (() => {
     return o;
   };
   // satisfies? markers
-  for (const proto of [ILookup, IAssociative, IMap, ICounted, IKVReduce, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IEncodeJS, IHash, IMeta, IWithMeta]) {
+  for (const proto of [ILookup, IAssociative, IMap, ICounted, IKVReduce, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IEncodeJS, IHash, IMeta, IWithMeta, IPrintWithWriter]) {
     p[proto.__sym] = true;
   }
   return PersistentHashMap;
@@ -961,31 +954,11 @@ function vecKvReduce(v, f, init) {
 
 function vecEquiv(v, other) {
   if (v === other) return true;
-  if (other == null) return false;
-  if (other instanceof PersistentVector) {
-    if (v.cnt !== other.cnt) return false;
-    for (let i = 0; i < v.cnt; i++) {
-      if (!_EQ_(vecNth(v, i), vecNth(other, i))) return false;
-    }
-    return true;
+  if (!(other instanceof PersistentVector) || v.cnt !== other.cnt) return false;
+  for (let i = 0; i < v.cnt; i++) {
+    if (!equiv(vecNth(v, i), vecNth(other, i))) return false;
   }
-  if (Array.isArray(other)) {
-    if (v.cnt !== other.length) return false;
-    for (let i = 0; i < v.cnt; i++) {
-      if (!_EQ_(vecNth(v, i), other[i])) return false;
-    }
-    return true;
-  }
-  // any other sequential (list, lazy seq): pairwise over iterators
-  if (!sequential_QMARK_(other)) return false;
-  const vi = v[Symbol.iterator]();
-  const oi = other[Symbol.iterator]();
-  for (;;) {
-    const a = vi.next();
-    const b = oi.next();
-    if (a.done || b.done) return a.done === b.done;
-    if (!_EQ_(a.value, b.value)) return false;
-  }
+  return true;
 }
 
 const PersistentVector = /* @__PURE__ */ (() => {
@@ -1005,14 +978,13 @@ const PersistentVector = /* @__PURE__ */ (() => {
         for (let j = 0; j < arr.length && i < this.cnt; j++, i++) yield arr[j];
       }
     }
-    // core's toEDN print hook
-    squint$lang$edn(pr) {
-      const parts = [];
-      for (const x of this) parts.push(pr(x));
-      return '[' + parts.join(' ') + ']';
-    }
   }
   const p = PersistentVector.prototype;
+  p[IPrintWithWriter__pr_writer] = (v, writer, opts) => {
+    const parts = [];
+    for (const x of v) parts.push(prStrWith(x, opts));
+    write_all(writer, '[' + parts.join(' ') + ']');
+  };
   p[ILookup__lookup] = (v, k, nf) => (typeof k === 'number' ? vecNth(v, k, nf) : nf);
   p[IAssociative__assoc] = (v, k, val) => {
     if (typeof k !== 'number') throw new Error("Vector's key for assoc must be a number.");
@@ -1045,7 +1017,7 @@ const PersistentVector = /* @__PURE__ */ (() => {
     return out;
   };
   // satisfies? markers
-  for (const proto of [IVector, ILookup, IAssociative, ICounted, IIndexed, ICollection, IEmptyableCollection, IEquiv, IKVReduce, IStack, IEditableCollection, IEncodeJS, IHash, IMeta, IWithMeta]) {
+  for (const proto of [IVector, ILookup, IAssociative, ICounted, IIndexed, ICollection, IEmptyableCollection, IEquiv, IKVReduce, IStack, IEditableCollection, IEncodeJS, IHash, IMeta, IWithMeta, IPrintWithWriter]) {
     p[proto.__sym] = true;
   }
   return PersistentVector;
@@ -1186,18 +1158,9 @@ function setDisj(s, x) {
   return nm === s.m ? s : keepMeta(s, new PersistentHashSet(nm));
 }
 
-function otherSetCount(other) {
-  if (other instanceof PersistentHashSet) return other.m.cnt;
-  if (typeof other.size === 'number') return other.size;
-  return -1;
-}
-
 function setEquiv(s, other) {
   if (s === other) return true;
-  if (other == null || !core_set_QMARK_(other)) return false;
-  if (s.m.cnt !== otherSetCount(other)) return false;
-  // iterate the other side, membership-test on this side: our contains is
-  // value-based (hash + =), a js/Set .has is reference-based
+  if (!(other instanceof PersistentHashSet) || s.m.cnt !== other.m.cnt) return false;
   for (const x of other) {
     if (!mapContains(s.m, x)) return false;
   }
@@ -1214,14 +1177,13 @@ const PersistentHashSet = /* @__PURE__ */ (() => {
     *[Symbol.iterator]() {
       for (const e of this.m) yield e[0];
     }
-    // core's toEDN print hook
-    squint$lang$edn(pr) {
-      const parts = [];
-      for (const x of this) parts.push(pr(x));
-      return '#{' + parts.join(' ') + '}';
-    }
   }
   const p = PersistentHashSet.prototype;
+  p[IPrintWithWriter__pr_writer] = (s, writer, opts) => {
+    const parts = [];
+    for (const x of s) parts.push(prStrWith(x, opts));
+    write_all(writer, '#{' + parts.join(' ') + '}');
+  };
   // (get s x) returns the stored element, like CLJS
   p[ILookup__lookup] = (s, k, nf) => mapLookup(s.m, k, nf);
   p[IAssociative__contains_key_QMARK_] = (s, k) => mapContains(s.m, k);
@@ -1248,7 +1210,7 @@ const PersistentHashSet = /* @__PURE__ */ (() => {
     return out;
   };
   // satisfies? markers
-  for (const proto of [ISet, ILookup, ICounted, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IEncodeJS, IHash, IMeta, IWithMeta]) {
+  for (const proto of [ISet, ILookup, ICounted, ICollection, IEmptyableCollection, IEquiv, IEditableCollection, IEncodeJS, IHash, IMeta, IWithMeta, IPrintWithWriter]) {
     p[proto.__sym] = true;
   }
   return PersistentHashSet;
