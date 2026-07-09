@@ -3436,6 +3436,38 @@ globalThis.foo.fs = fs;")))))
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s)))))))
+       (testing "rename-keys and map-invert do not mutate a record (slot-map)"
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
+                        (defrecord R [a b])
+                        (def r (->R 1 2))
+                        (def renamed (set/rename-keys r {:a :x}))
+                        (def inverted (set/map-invert {:a 1}))
+                        (and (= 1 (:a r)) (nil? (:x r))
+                             (= 1 (:x renamed)) (= 2 (:b renamed))
+                             (= {1 :a} inverted))" {:repl true
+                                                    :elide-exports true
+                                                    :context :return})
+                 v (js/eval (wrap-async js))]
+           (is (true? v))))
+       (testing "a protocol set without transients works through the ops"
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
+                        (deftype PS [xs]
+                          ISet (-disjoin [_ x] (->PS (vec (remove (fn [e] (= e x)) xs))))
+                          ICollection (-conj [_ x] (if (some (fn [e] (= e x)) xs) (->PS xs) (->PS (conj xs x))))
+                          ICounted (-count [_] (count xs))
+                          ISeqable (-seq [_] (seq xs))
+                          IAssociative (-contains-key? [_ x] (boolean (some (fn [e] (= e x)) xs)))
+                          IEmptyableCollection (-empty [_] (->PS []))
+                          IEquiv (-equiv [_ other] (= (set xs) other)))
+                        (defn ps [& xs] (reduce conj (->PS []) xs))
+                        (and (= #{1 2 3} (set/union (ps 1 2) (ps 2 3)))
+                             (= 2 (count (set/intersection (ps 1 2 3) (ps 2 3 4))))
+                             (= 2 (count (set/difference (ps 1 2 3) (ps 2))))
+                             (set/subset? (ps [1 2]) (ps [1 2] [3])))" {:repl true
+                                                                        :elide-exports true
+                                                                        :context :return})
+                 v (js/eval (wrap-async js))]
+           (is (true? v))))
        (testing "project"
          (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                         [(set/project #{ {:a 1, :b 2, :c 3} {:a 4, :b 5, :c 6} } [:a :b])
