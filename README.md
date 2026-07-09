@@ -1,5 +1,7 @@
 <img src="./logo/logo.svg" width="100%">
 
+[![Clojars Project](https://img.shields.io/clojars/v/io.github.squint-cljs/squint.svg)](https://clojars.org/io.github.squint-cljs/squint)
+
 Squint is a light-weight dialect of ClojureScript with a compiler and standard
 library.
 
@@ -524,7 +526,10 @@ See [examples/babashka/index.clj](examples/babashka/index.clj).
 
 Buy the t-shirt [here](https://www.etsy.com/listing/1761522434/squint-cljs-t-shirt)!
 
-License
-=======
+## License
 
-Squint is licensed under the EPL. See epl-v10.html in the root directory for more information.
+Copyright © 2022 - 2026 Michiel Borkent
+
+Distributed under the Eclipse Public License 1.0. This project contains code
+from Clojure and ClojureScript which are also licensed under the EPL 1.0. See
+LICENSE.

@@ -1,10 +1,14 @@
 {:paths ["src" "resources" "compiler-common"]
- :deps {io.github.borkdude/edamame {:git/sha "cd392b2246acced63099ae605f7580942a9cd462"}
+ :deps {borkdude/edamame {:mvn/version "1.6.41"}
         babashka/process {:mvn/version "0.1.7"}
         org.babashka/cli {:mvn/version "0.11.72"}
-        io.github.babashka/sci {:git/sha "32d62a5136ad3dc148588752f5bcc4cc30b14752"}}
+        org.babashka/sci {:mvn/version "0.14.54"}}
  :aliases
  {:dev {}
+  :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.14"}
+                 slipset/deps-deploy {:mvn/version "0.2.5"}}
+          :extra-paths ["."]
+          :ns-default build}
   :cljs {:extra-paths ["test"]
          :extra-deps {org.clojure/clojure {:mvn/version "1.12.1"}
                       thheller/shadow-cljs {:mvn/version "3.4.11"}
