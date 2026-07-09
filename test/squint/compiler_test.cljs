@@ -1168,6 +1168,25 @@ with `backticks`")))]
   (is (true? (jsv! '(= {:a 1 :b 2} (hash-map :a 1 :b 2)))))
   (is (eq {:a 1 :b 2} (jsv! '(apply hash-map [:a 1 :b 2])))))
 
+(deftest refer-shadows-core-tag-test
+  (testing "a :refer that shadows a tagged-return core fn disables get inlining"
+    (is (str/includes?
+         (jss! "(ns foo (:require [\"my-maps\" :refer [hash-map]])) (get (hash-map 1 2) 1)")
+         "squint_core.get"))
+    (is (str/includes?
+         (jss! "(ns foo (:refer-clojure :exclude [hash-map]) (:require [\"my-maps\" :refer [hash-map]])) (get (hash-map 1 2) 1)")
+         "squint_core.get"))
+    (is (str/includes?
+         (jss! "(ns foo (:require [\"my-maps\" :refer [hash-map]])) (def m (hash-map 1 2)) (get m 1)")
+         "squint_core.get")))
+  (testing ":refer-clojure :exclude alone disables the core var"
+    (is (not (str/includes?
+              (jss! "(ns foo (:refer-clojure :exclude [hash-map])) (defn hash-map [] 1) (get (hash-map) 1)")
+              "squint_core.hash_map"))))
+  (testing "core hash-map keeps the property-access fast path"
+    (is (str/includes? (jss! "(get (hash-map :a 1) :a)") "[\"a\"]"))
+    (is (str/includes? (jss! "(let [m {:a 1}] (get m :a))") "[\"a\"]"))))
+
 (deftest assoc-test
   (testing "arrays"
     (is (eq [1 2 8 4] (jsv! '(assoc [1 2 3 4] 2 8))))
