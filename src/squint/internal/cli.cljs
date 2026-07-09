@@ -46,31 +46,18 @@
         (fs/copyFileSync path out-file)
         {:copied-out-file out-file}))))
 
-(defn- reported? [err]
-  (and (instance? js/Error err) (.-squintErrorReported ^js err)))
-
-(defn- compile-error-message [f err]
+(defn- print-compile-error [f err]
   ;; ex-data :file (set by the SCI load-fn) names a transitively loaded ns when
   ;; it differs from the file being compiled.
   (let [{:keys [file line column]} (ex-data err)
         loc (str (or file f) (when line (str ":" line (when column (str ":" column)))))
         where (if (and file (not= file f)) (str f " (loading " loc ")") loc)]
-    (str "[squint] Error while compiling " where ": " (.-message ^js err))))
+    (js/console.error (str "[squint] Error while compiling " where ": " (.-message ^js err)))))
 
-(defn- annotate-compile-error
-  ;; Print a friendly location line once, mark the error reported, rethrow.
-  [f err]
-  (when (and (instance? js/Error err) (not (.-squintErrorReported ^js err)))
-    (set! (.-squintErrorReported ^js err) true)
-    (js/console.error (compile-error-message f err)))
-  (throw err))
-
-(defn- exit-on-compile-error
-  ;; Exit non-zero. Print a fallback line for an error not already reported.
-  [err]
-  (when-not (reported? err)
-    (binding [*print-fn* *print-err-fn*]
-      (println (str "Error: " (if (instance? js/Error err) (.-message ^js err) err)))))
+(defn- exit-on-error [err]
+  ;; fallback for an unexpected error, not a per-file compile error
+  (binding [*print-fn* *print-err-fn*]
+    (println (str "Error: " (if (instance? js/Error err) (.-message ^js err) err))))
   (cli/*exit-fn* {:exit 1}))
 
 (defn compile-files
@@ -81,7 +68,7 @@
         files (if (empty? files)
                 (files-from-paths paths)
                 files)
-        counts (atom {:compiled 0 :copied 0})]
+        counts (atom {:compiled 0 :copied 0 :failed 0})]
     (-> (reduce (fn [prev f]
                   (-> (js/Promise.resolve prev)
                       (.then
@@ -92,7 +79,12 @@
                                                                   :in-file f
                                                                   :resolve-ns (fn [x]
                                                                                 (resolve-ns opts f x))))
-                                    (.catch (fn [err] (annotate-compile-error f err)))))
+                                    ;; report and record the failure, then keep
+                                    ;; going so the rest of the files still compile
+                                    (.catch (fn [err]
+                                              (print-compile-error f err)
+                                              (swap! counts update :failed inc)
+                                              nil))))
                             (copy-file copy-resources f output-dir paths))))
                       (.then (fn [{:keys [out-file copied-out-file]}]
                                (cond
@@ -136,13 +128,13 @@
   (println "[squint] Running" file)
   (-> (compiler/compile-file (assoc opts :in-file file :resolve-ns (fn [x]
                                                                      (resolve-ns opts file x))))
-      (.catch (fn [err] (annotate-compile-error file err)))
+      (.catch (fn [err] (print-compile-error file err) (cli/*exit-fn* {:exit 1})))
       (.then (fn [{:keys [out-file]}]
-               (let [path (if (path/isAbsolute out-file) out-file
-                              (path/resolve (js/process.cwd) out-file))
-                     path (str (url/pathToFileURL path))]
-                 (esm/dynamic-import path))))
-      (.catch exit-on-compile-error)))
+               (when out-file
+                 (let [path (if (path/isAbsolute out-file) out-file
+                                (path/resolve (js/process.cwd) out-file))
+                       path (str (url/pathToFileURL path))]
+                   (esm/dynamic-import path)))))))
 
 #_(defn compile-form [{:keys [opts]}]
     (let [e (:e opts)]
@@ -166,12 +158,10 @@
                                 (if (and (contains? #{"add" "change"} event)
                                          (contains? #{".cljs" ".cljc"} (path/extname path)))
                                   (-> (compile-files opts [path])
-                                      ;; a reported compile error already printed
-                                      ;; a friendly line; keep watching, only
-                                      ;; surface anything else.
+                                      ;; compile-files already reported per-file
+                                      ;; errors; surface only an unexpected one.
                                       (.catch (fn [e]
-                                                (when-not (reported? e)
-                                                  (js/console.error e)))))
+                                                (js/console.error e))))
                                   (copy-file copy-resources path output-dir paths)))))))))))))
 
 (defn start-nrepl [{:keys [opts]}]
@@ -292,13 +282,15 @@
           (let [opts (utils/expand-paths opts)]
             (utils/set-cfg! opts)
             (-> (compile-files opts (:file opts))
-              (.then (fn [{:keys [compiled copied]}]
+              (.then (fn [{:keys [compiled copied failed]}]
                        (println "[squint] Compiled sources:" compiled)
                        (when (:copy-resources opts)
                          (println "[squint] Copied resources:" copied))
-                       (when (zero? (+ compiled copied))
+                       (cond
+                         (pos? failed) (cli/*exit-fn* {:exit 1})
+                         (zero? (+ compiled copied))
                          (err-exit! "Compile processed no files"))))
-              (.catch exit-on-compile-error))))}
+              (.catch exit-on-error))))}
    {:cmds ["watch"]
     :doc "Watch and auto-recompile paths."
     :spec watch-spec
