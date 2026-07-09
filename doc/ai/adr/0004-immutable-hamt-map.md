@@ -126,6 +126,37 @@ test surface passes. Atoms implement IMeta only (like CLJS), which keeps
 the with-meta copy machinery out of atom-only bundles (caught by the dce
 floor test).
 
+### Context-dependent real keywords: considered and rejected
+
+Idea: keep `{:a 1}` literal keys as strings (the compiler knows the
+context) but emit an interned Keyword object with a precomputed hash for
+value positions like `(assoc {} :a 1)`, stringifying via
+toString/Symbol.toPrimitive so property access coerces; the hamt could
+then keep keywords apart from strings. Coercion does carry the write
+paths (`o[kw]` works, the `(:a json)` story survives), and interning
+would buy Immutable.js's string-key edge. Rejected on three seams:
+
+- Write/read asymmetry: object keys are irreversibly strings, so
+  Object.keys/iteration/seq return `"a"` with no memory of keywordness,
+  and every read boundary of the default rep erases the distinction.
+- The equality partition (the crux): `(= (i/hash-map :a 1) {:a 1})` and
+  ":a distinct from \"a\" inside the hamt" cannot both hold. Keyword
+  different from string makes the same literal syntax mean different keys
+  per collection type; keyword equal to string rebuilds
+  keywords-are-strings with extra allocations. Equality is a partition -
+  "distinct, but only in some collections" is a contradiction, not a
+  smaller feature.
+- Non-coercing JS: js/Map and js/Set use SameValueZero (keyword and
+  string keys silently diverge), `case` compiles keyword literals to
+  string cases, and `(= :a "a")` flips truth value under existing squint
+  code.
+
+Decomposed motivations have cheaper answers: hot-key hashing wants
+per-entry cached hashes (ham-scripted lesson, listed as headroom), not a
+second key type; `keyword?`/EDN round-trip fidelity is the cherry value
+proposition (real keywords everywhere, one equality universe). If real
+keywords ever happen it is an everywhere decision, not a per-context one.
+
 ### Persistent list: deliberately absent
 
 Squint's array-backed List, lazy Cons/seqs, and pvec-as-stack cover the
