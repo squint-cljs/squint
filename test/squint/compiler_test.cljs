@@ -4213,6 +4213,14 @@ new Foo();")
     (is (false? (jsv! "(associative? \"s\")")))
     (is (true? (jsv! "(defrecord AR [a]) (associative? (->AR 1))")))))
 
+(deftest as-alias-test
+  (testing ":as-alias emits no import, only registers a compile-time alias"
+    (let [s (jss! '(ns foo (:require [datastar :as-alias d])))]
+      (is (not (str/includes? s "datastar")))))
+  (testing "an :as-alias alias still resolves a namespaced keyword"
+    (is (= "datastar/x"
+           (jsv! "(do (ns foo (:require [datastar :as-alias d])) ::d/x)")))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test

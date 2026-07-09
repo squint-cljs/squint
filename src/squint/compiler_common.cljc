@@ -906,7 +906,9 @@
                                        (if with
                                          (str " with " (unwrap (emit with env)))
                                          "")))))
-                (when (and (not as) (not refer))
+                ;; :as-alias only registers a compile-time alias (below); it must
+                ;; not emit any runtime import.
+                (when (and (not as) (not refer) (not as-alias))
                   (if (symbol? original-libname)
                     ;; symbol require without :as or :refer - generate namespace
                     ;; import. A bare [some.ns] aliases the ns to itself, so in
