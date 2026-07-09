@@ -30,26 +30,28 @@ is(c.count(s3), 2, 'disj shrinks');
 is(c.contains_QMARK_(s3, 1), false, 'disj removes');
 is(c.count(c.disj(s, 99)), 3, 'disj absent no-op');
 
-// value semantics: composite elements
-const cs = h.hash_set([1, 2], { a: 1 });
-is(c.contains_QMARK_(cs, [1, 2]), true, 'vector element by value');
-is(c.contains_QMARK_(cs, { a: 1 }), true, 'object element by value');
-is(c.contains_QMARK_(cs, c.list(1, 2)), true, 'list hits vector element');
-is(c.count(c.conj(cs, [1, 2])), 2, 'value-equal conj dedupes');
-is(c.contains_QMARK_(c.conj(h.hash_set(), h.vector(1, 2)), [1, 2]), true, 'pvec element hit by array');
+// persistent elements are value-semantic, plain data is reference-semantic
+const iv = h.vector(1, 2);
+const cs = h.hash_set(iv);
+is(c.contains_QMARK_(cs, h.vector(1, 2)), true, 'pvec element by value');
+is(c.count(c.conj(cs, h.vector(1, 2))), 1, 'value-equal pvec conj dedupes');
+const ra = [1, 2];
+const rs = h.hash_set(ra);
+is(c.contains_QMARK_(rs, ra), true, 'plain array element by reference');
+is(c.contains_QMARK_(rs, [1, 2]), false, 'equal-value array misses');
+is(c.count(c.conj(rs, [1, 2])), 2, 'distinct arrays both stored');
 
 // equality both ways, vs js/Set and sorted-set
-is(c._EQ_(h.hash_set(1, 2), h.hash_set(2, 1)), true, 'set = set order-free');
-is(c._EQ_(h.hash_set(1, 2), new Set([1, 2])), true, 'pset = js Set');
-is(c._EQ_(new Set([1, 2]), h.hash_set(1, 2)), true, 'js Set = pset');
-is(c._EQ_(h.hash_set(1, 2), c.sorted_set(2, 1)), true, 'pset = sorted-set');
-is(c._EQ_(h.hash_set(1, 2), new Set([1])), false, 'size mismatch');
+is(c._EQ_(h.hash_set(1, 2), h.hash_set(2, 1)), true, 'pset = pset order-free');
+is(c._EQ_(h.hash_set(1, 2), new Set([1, 2])), false, 'pset != js Set');
+is(c._EQ_(new Set([1, 2]), h.hash_set(1, 2)), false, 'js Set != pset');
+is(c._EQ_(h.hash_set(1, 2), h.hash_set(1)), false, 'size mismatch');
 is(c._EQ_(h.hash_set(1, 2), [1, 2]), false, 'pset != vector');
-is(h.hash(h.hash_set(1, 2)) === h.hash(new Set([2, 1])), true, 'hash = js Set hash');
+is(h.hash(h.hash_set(1, 2)) === h.hash(h.hash_set(2, 1)), true, 'pset hash by value');
 
-// set as map key / map as set element
-is(c.get(c.assoc(h.hash_map(), h.hash_set(1, 2), 'v'), new Set([2, 1])), 'v', 'pset key hit by js Set');
-is(c.contains_QMARK_(h.hash_set(h.hash_map('a', 1)), { a: 1 }), true, 'map element by value');
+// set as map key / map as set element, by equal persistent values
+is(c.get(c.assoc(h.hash_map(), h.hash_set(1, 2), 'v'), h.hash_set(2, 1)), 'v', 'pset key hit by equal pset');
+is(c.contains_QMARK_(h.hash_set(h.hash_map('a', 1)), h.hash_map('a', 1)), true, 'hamt element by value');
 
 // seq ops
 is(new Set(c.vec(c.map((x) => x + 1, s))), new Set([2, 3, 4]), 'map over pset');

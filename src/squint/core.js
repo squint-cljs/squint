@@ -1661,7 +1661,7 @@ function hashDouble(n) {
   return (HASH_BUF.i32[0] ^ HASH_BUF.i32[1]) | 0;
 }
 
-function mixCollectionHash(hashBasis, count) {
+export function mix_collection_hash(hashBasis, count) {
   return m3Fmix(m3MixH1(0, m3MixK1(hashBasis)), count);
 }
 
@@ -1672,7 +1672,7 @@ export function hash_ordered_coll(coll) {
     h = (imul(31, h) + hash(x)) | 0;
     n++;
   }
-  return mixCollectionHash(h, n);
+  return mix_collection_hash(h, n);
 }
 
 export function hash_unordered_coll(coll) {
@@ -1682,12 +1682,12 @@ export function hash_unordered_coll(coll) {
     h = (h + hash(x)) | 0;
     n++;
   }
-  return mixCollectionHash(h, n);
+  return mix_collection_hash(h, n);
 }
 
 // a map entry hashes as (hash-ordered-coll [k v])
 function hashEntry(k, v) {
-  return mixCollectionHash((imul(31, (imul(31, 1) + hash(k)) | 0) + hash(v)) | 0, 2);
+  return mix_collection_hash((imul(31, (imul(31, 1) + hash(k)) | 0) + hash(v)) | 0, 2);
 }
 
 function hashMapEntries(entries) {
@@ -1697,7 +1697,7 @@ function hashMapEntries(entries) {
     h = (h + hashEntry(k, v)) | 0;
     n++;
   }
-  return mixCollectionHash(h, n);
+  return mix_collection_hash(h, n);
 }
 
 // (equiv a b) implies (hash a) === (hash b): plain mutable data hashes by
@@ -4618,7 +4618,8 @@ function toEDN(value, seen = new WeakSet(), readably = true) {
         if (value[IPrintWithWriter__pr_writer] !== undefined) {
           let buf = '';
           const writer = { [IWriter__write]: (_w, s) => (buf += s), [IWriter.__sym]: true };
-          value[IPrintWithWriter__pr_writer](value, writer, { readably: readably });
+          // opts carries the recursive printer under :pr, a squint extension
+          value[IPrintWithWriter__pr_writer](value, writer, { readably: readably, pr: (v) => toEDN(v, seen, readably) });
           result = buf;
           break;
         }

@@ -37,14 +37,20 @@ is(c.get(mn, 0), 'zeroval', 'zero key distinct from false');
 is(c.count(mn), 5, 'count with nil/false/zero keys');
 is(c.count(c.dissoc(mn, null)), 4, 'dissoc nil key');
 
-// composite (value-equal) keys: the whole point
-const mv = c.assoc(h.hash_map(), [1, 2], 'vec', { x: 1 }, 'obj');
-is(c.get(mv, [1, 2]), 'vec', 'vector key by value');
-is(c.get(mv, c.list(1, 2)), 'vec', 'list key equals vector key');
-is(c.get(mv, c.map(c.inc, [0, 1])), 'vec', 'lazy seq key equals vector key');
-is(c.get(mv, { x: 1 }), 'obj', 'object key by value');
-is(c.get(mv, [2, 1]), undefined, 'order matters');
-is(c.get(mv, ['1', 2]), undefined, 'no string/number key collision');
+// composite keys: persistent values key by value, plain data by reference
+const k1 = h.vector(1, 2);
+const mv = c.assoc(h.hash_map(), k1, 'vec');
+is(c.get(mv, h.vector(1, 2)), 'vec', 'pvec key by value');
+is(c.get(mv, h.vector(2, 1)), undefined, 'order matters');
+is(c.get(mv, k1), 'vec', 'same pvec instance hits');
+const ra = [1, 2];
+const mr = c.assoc(h.hash_map(), ra, 'ref');
+is(c.get(mr, ra), 'ref', 'plain array key by reference');
+is(c.get(mr, [1, 2]), undefined, 'equal-value array misses');
+ra.push(3);
+is(c.get(mr, ra), 'ref', 'mutation does not break a reference key');
+const ro = { x: 1 };
+is(c.get(c.assoc(h.hash_map(), ro, 'obj'), ro), 'obj', 'plain object key by reference');
 
 // known Java-hash collision pair: "Aa" and "BB"
 const mc = h.hash_map('Aa', 1, 'BB', 2);
@@ -68,28 +74,28 @@ is(h.hash_map_QMARK_(mm), true, 'merge keeps hamt type');
 is(c.get(mm, 'b'), 2, 'merge from object');
 is(c.get(mm, 'c'), 3, 'merge from js Map');
 
-// equality, both directions, and against plain object / js Map
+// equality: equiv-based, a persistent map only equals a persistent map
 is(c._EQ_(h.hash_map('a', 1), h.hash_map('a', 1)), true, 'hamt = hamt');
-is(c._EQ_(h.hash_map('a', 1), { a: 1 }), true, 'hamt = object');
-is(c._EQ_({ a: 1 }, h.hash_map('a', 1)), true, 'object = hamt (right dispatch)');
-is(c._EQ_(h.hash_map('a', 1), new Map([['a', 1]])), true, 'hamt = js Map');
-is(c._EQ_(h.hash_map('a', 1), { a: 2 }), false, 'value mismatch');
-is(c._EQ_(h.hash_map('a', 1, 'b', 2), { a: 1 }), false, 'count mismatch');
-is(c._EQ_(h.hash_map(), {}), true, 'empty = empty object');
+is(c._EQ_(h.hash_map('a', 1), { a: 1 }), false, 'hamt != plain object');
+is(c._EQ_({ a: 1 }, h.hash_map('a', 1)), false, 'plain object != hamt');
+is(c._EQ_(h.hash_map('a', 1), new Map([['a', 1]])), false, 'hamt != js Map');
+is(c._EQ_(h.hash_map('a', 1), h.hash_map('a', 2)), false, 'value mismatch');
+is(c._EQ_(h.hash_map('a', 1, 'b', 2), h.hash_map('a', 1)), false, 'count mismatch');
+is(c._EQ_(h.hash_map(), h.hash_map()), true, 'empty = empty');
 
-// hash consistency: = implies same hash
-is(h.hash([1, 2, 3]) === h.hash(c.list(1, 2, 3)), true, 'vector/list hash agree');
-is(h.hash([1, 2, 3]) === h.hash(c.map(c.inc, [0, 1, 2])), true, 'lazy seq hash agrees');
-is(h.hash({ a: 1, b: 2 }) === h.hash(new Map([['b', 2], ['a', 1]])), true, 'obj/Map hash agree, order-free');
-is(h.hash(new Set([1, 2])) === h.hash(new Set([2, 1])), true, 'set hash order-free');
-is(h.hash(h.hash_map('a', 1)) === h.hash({ a: 1 }), true, 'hamt hash = object hash');
+// hash follows equiv: persistent values by value, plain data by uid
+is(h.hash(h.hash_map('a', 1)) === h.hash(h.hash_map('a', 1)), true, 'hamt hash by value');
+is(h.hash(h.vector(1, 2)) === h.hash(h.vector(1, 2)), true, 'pvec hash by value');
+is(h.hash([1, 2]) !== h.hash([1, 2]), true, 'plain arrays hash by uid');
+const stab = [1];
+const h0 = h.hash(stab);
+stab.push(2);
+is(h.hash(stab) === h0, true, 'uid hash stable under mutation');
 is(h.hash('Aa') === h.hash('BB'), true, 'known collision pair collides');
-is(h.hash(c.sorted_map('a', 1)) === h.hash({ a: 1 }), true, 'sorted-map hash = object hash');
-is(h.hash(c.sorted_set(1, 2)) === h.hash(new Set([2, 1])), true, 'sorted-set hash = Set hash');
 
-// maps as keys of maps (needs hash + =)
+// persistent maps as keys of maps
 const mk = c.assoc(h.hash_map(), h.hash_map('a', 1), 'mapkey');
-is(c.get(mk, { a: 1 }), 'mapkey', 'plain-object key hits hamt-map key');
+is(c.get(mk, h.hash_map('a', 1)), 'mapkey', 'hamt key hit by equal hamt');
 
 // seq / first / reduce-kv / keys / vals
 const sm = h.hash_map('a', 1);

@@ -79,21 +79,25 @@
 (deftest-eval composite-keys-test
   (do (ns foo (:require [squint.immutable :as i]
                         [cljs.test :refer [is]]))
+      ;; persistent values key by value
       (def m (-> (i/hash-map)
-                 (assoc [1 2] :vec)
-                 (assoc {:x 1} :map)
-                 (assoc #{1 2} :set)))
-      (is (= :vec (get m [1 2])))
-      ;; a list and a lazy seq with equal elements hit the vector entry
-      (is (= :vec (get m (list 1 2))))
-      (is (= :vec (get m (map inc [0 1]))))
-      (is (= :map (get m {:x 1})))
-      (is (= :set (get m #{2 1})))
-      (is (nil? (get m [2 1])))
-      (is (= 2 (count (dissoc m [1 2]))))
-      ;; a hamt map as key, hit with a plain map
+                 (assoc (i/vector 1 2) :vec)
+                 (assoc (i/hash-map :x 1) :map)
+                 (assoc (i/hash-set 1 2) :set)))
+      (is (= :vec (get m (i/vector 1 2))))
+      (is (= :map (get m (i/hash-map :x 1))))
+      (is (= :set (get m (i/hash-set 2 1))))
+      (is (nil? (get m (i/vector 2 1))))
+      (is (= 2 (count (dissoc m (i/vector 1 2)))))
+      ;; plain data keys by reference, stable under mutation
+      (def ra [1 2])
+      (def mr (assoc (i/hash-map) ra :ref))
+      (is (= :ref (get mr ra)))
+      (is (nil? (get mr [1 2])))
+      (.push ra 3)
+      (is (= :ref (get mr ra)))
       (def mk (assoc (i/hash-map) (i/hash-map :a 1) :found))
-      (is (= :found (get mk {:a 1})))))
+      (is (= :found (get mk (i/hash-map :a 1))))))
 
 (deftest-eval hash-collision-test
   (do (ns foo (:require [squint.immutable :as i]
@@ -113,19 +117,22 @@
   (do (ns foo (:require [squint.immutable :as i]
                         [cljs.test :refer [is]]))
       (is (= (i/hash-map :a 1) (i/hash-map :a 1)))
-      (is (= (i/hash-map :a 1) {:a 1}))
-      (is (= {:a 1} (i/hash-map :a 1)))
-      (is (= (i/hash-map) {}))
-      (is (not= (i/hash-map :a 1) {:a 2}))
-      (is (not= (i/hash-map :a 1 :b 2) {:a 1}))
+      ;; equiv: a persistent map never equals plain data
+      (is (not= (i/hash-map :a 1) {:a 1}))
+      (is (not= {:a 1} (i/hash-map :a 1)))
+      (is (not= (i/hash-map) {}))
+      (is (not= (i/hash-map :a 1) (i/hash-map :a 2)))
+      (is (not= (i/hash-map :a 1 :b 2) (i/hash-map :a 1)))
       (is (not= (i/hash-map :a 1) nil))
-      (is (not= (i/hash-map :a 1) [[:a 1]]))
-      ;; nested
-      (is (= (i/hash-map :a {:b [1 2]}) {:a {:b [1 2]}}))
-      ;; = implies same hash
-      (is (= (hash (i/hash-map :a 1)) (hash {:a 1})))
-      (is (= (hash [1 2 3]) (hash (list 1 2 3))))
-      (is (= (hash {:a 1, :b 2}) (hash {:b 2, :a 1})))))
+      ;; nested persistent values compare by value, plain values by reference
+      (is (= (i/hash-map :a (i/vector 1)) (i/hash-map :a (i/vector 1))))
+      (let [o {:x 1}]
+        (is (= (i/hash-map :a o) (i/hash-map :a o)))
+        (is (not= (i/hash-map :a {:x 1}) (i/hash-map :a {:x 1}))))
+      ;; equiv implies same hash
+      (is (= (hash (i/hash-map :a 1)) (hash (i/hash-map :a 1))))
+      (is (= (hash (i/vector 1 2)) (hash (i/vector 1 2))))
+      (is (not= (hash [1 2]) (hash [1 2])))))
 
 (deftest-eval core-fns-test
   (do (ns foo (:require [squint.immutable :as i]
@@ -143,8 +150,8 @@
       ;; merge keeps the hamt type, takes objects and hamt maps
       (def mm (merge (i/hash-map :a 1) {:b 2} (i/hash-map :c 3)))
       (is (i/hash-map? mm))
-      (is (= {:a 1 :b 2 :c 3} mm))
-      (is (= {:a 4 :b 2} (merge-with + (i/hash-map :a 1) {:a 3 :b 2})))
+      (is (= (i/hash-map :a 1 :b 2 :c 3) mm))
+      (is (= (i/hash-map :a 4 :b 2) (merge-with + (i/hash-map :a 1) {:a 3 :b 2})))
       ;; update / assoc-in / update-in / get-in
       (is (= 2 (get (update m :a inc) :a)))
       (def nested (i/hash-map :x (i/hash-map :y 1)))
@@ -174,12 +181,12 @@
       (is (= 2 (get t :b)))
       (def p (persistent! t))
       (is (i/hash-map? p))
-      (is (= {:b 2 :c 3} p))
+      (is (= (i/hash-map :b 2 :c 3) p))
       (is (thrown? js/Error (assoc! t :d 4)))
       ;; the source map is untouched
       (def src (i/hash-map :a 1))
       (persistent! (assoc! (transient src) :b 2))
-      (is (= {:a 1} src))))
+      (is (= (i/hash-map :a 1) src))))
 
 (deftest-eval print-test
   (do (ns foo (:require [squint.immutable :as i]
@@ -258,17 +265,17 @@
       ;; persistence
       (def v2 (conj v 4))
       (is (= 3 (count v)))
-      (is (= [1 2 3 4] v2))
-      (is (= [1 :x 3] (assoc v 1 :x)))
-      (is (= [1 2 3 :end] (assoc v 3 :end)))
+      (is (= (i/vector 1 2 3 4) v2))
+      (is (= (i/vector 1 :x 3) (assoc v 1 :x)))
+      (is (= (i/vector 1 2 3 :end) (assoc v 3 :end)))
       (is (thrown? js/Error (assoc v 5 :oob)))
       (is (contains? v 2))
       (is (not (contains? v 3)))
       ;; peek/pop/subvec
       (is (= 3 (peek v)))
-      (is (= [1 2] (pop v)))
-      (is (= [2 3] (subvec v 1)))
-      (is (= [2] (subvec v 1 2)))
+      (is (= (i/vector 1 2) (pop v)))
+      (is (= (i/vector 2 3) (subvec v 1)))
+      (is (= (i/vector 2) (subvec v 1 2)))
       (is (i/vector? (subvec v 1)))
       ;; empty keeps the type
       (is (i/vector? (empty v)))
@@ -278,20 +285,21 @@
   (do (ns foo (:require [squint.immutable :as i]
                         [cljs.test :refer [is]]))
       (def v (i/vector 1 2 3))
-      (is (= v [1 2 3]))
-      (is (= [1 2 3] v))
       (is (= v (i/vector 1 2 3)))
-      (is (= v (list 1 2 3)))
-      (is (= v (map inc [0 1 2])))
-      (is (not= v [1 2]))
-      (is (not= v #{1 2 3}))
-      (is (= (hash v) (hash [1 2 3])))
-      ;; pvec as a hamt map key, hit with a plain vector
-      (is (= :hit (get (assoc (i/hash-map) (i/vector 1 2) :hit) [1 2])))
+      ;; equiv: a pvec never equals plain data
+      (is (not= v [1 2 3]))
+      (is (not= [1 2 3] v))
+      (is (not= v (list 1 2 3)))
+      (is (not= v (i/vector 1 2)))
+      (is (= (hash v) (hash (i/vector 1 2 3))))
+      (is (not= (hash v) (hash [1 2 3])))
+      ;; pvec as a hamt map key, hit with an equal pvec
+      (is (= :hit (get (assoc (i/hash-map) (i/vector 1 2) :hit) (i/vector 1 2))))
       ;; pvec entry conj on a hamt map
       (is (= 9 (get (conj (i/hash-map) (i/vector :k 9)) :k)))
-      ;; nested equality across reps
-      (is (= (i/vector 1 (i/hash-map :a (i/vector 2))) [1 {:a [2]}]))))
+      ;; nested persistent equality
+      (is (= (i/vector 1 (i/hash-map :a (i/vector 2)))
+             (i/vector 1 (i/hash-map :a (i/vector 2)))))))
 
 (deftest-eval vector-core-fns-test
   (do (ns foo (:require [squint.immutable :as i]

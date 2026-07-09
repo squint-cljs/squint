@@ -15,11 +15,37 @@ Constraints:
 
 - Core's public export surface stays additive-only and small.
 - Apps that do not use the module must pay ~nothing (tree-shaking).
-- Key equality must be core `=` (dequal), so hashing must satisfy
-  `(= a b)` implies `(hash a) === (hash b)` against dequal's equality
-  classes (vector = list = lazy seq, plain object = js/Map by entries).
+- Key equality is `equiv` (identical or -equiv), so hashing satisfies
+  `(equiv a b)` implies `(hash a) === (hash b)`: persistent values by value,
+  plain mutable data by reference (uid).
 
 ## Decision
+
+### Equiv keying (July 2026, supersedes earlier equality claims)
+
+Keys and elements compare by `equiv`, not `=`. Persistent values are
+value-semantic (their -equiv, cached value hashes); plain mutable data
+(arrays, objects, js Maps/Sets) is reference-semantic (uid hashes, stable
+under mutation - the mutable-key footgun is structurally gone). The
+consequences, matching CLJS's treatment of #js data:
+
+- a persistent collection never equals plain data: `(= (i/hash-map :a 1)
+  {:a 1})` and `(= (i/vector 1 2) [1 2])` are false, like
+  `(= [1 2] #js [1 2])` in CLJS
+- composite value keys are persistent values: `(assoc m (i/vector 1 2) :v)`
+  probed with an equal `(i/vector 1 2)`; a raw `[1 2]` key stores and
+  probes by reference
+- imm-collection equality is equiv all the way down: nested plain values
+  compare by reference
+- the map's own hash combines per-entry ordered [k v] hashes via
+  `mix-collection-hash` (entry pair arrays must not be hashed as plain
+  arrays, which would uid them)
+- printing goes through IPrintWithWriter; the recursive printer arrives in
+  opts under :pr (squint extension), keeping pr-str out of the module
+
+Any earlier statement in this ADR that hamt keys follow dequal, that raw
+arrays work as value keys, or that persistent and plain collections
+compare equal, is superseded by this section.
 
 ### Module
 
@@ -286,25 +312,36 @@ the way: `new Int32Array(f64.buffer)` as a top-level const pins the buffer
 into every bundle even under a pure annotation (the `.buffer` property read
 could be a getter); both views are built in one pure IIFE.
 
-### Performance (node v22, 200k string keys, 50k vector keys)
+### Performance (node v22, 200k string keys, 50k composite keys)
 
-All three columns same machine, same session. CLJS is ADVANCED-compiled to
-a node target (cljs.main -O advanced, loop/recur + aget loops mirroring the
-JS benches); the earlier planck numbers were an engine artifact (JSC +
-reduce overhead, 3-4x slower than advanced CLJS on V8 across the board).
+Same machine, same session, post-equiv. CLJS is advanced-compiled to a
+node target. Composite keys are `(i/vector i (inc i))` on the squint side,
+persistent vectors on the CLJS side, I.List on the Immutable side.
 
-| | squint hamt | CLJS advanced | Immutable.js 5.1.9 |
+| | squint | CLJS advanced | Immutable.js 5.1.9 |
 |---|---|---|---|
-| persistent build | 255 ms | ~275 ms | 157 ms |
-| transient build | 96 ms | ~91 ms | 69 ms |
-| get hit | 79 ms | ~69 ms | 40 ms |
-| get miss | 139 ms | ~144 ms | 28 ms |
-| dissoc all | 165 ms | ~195 ms | 126 ms |
-| composite key assoc+get | 62 ms | ~58 ms | 127 ms (I.List wrap) |
+| persistent build | 185 ms | 193 ms | 96 ms |
+| transient build | 68 ms | 61 ms | 35 ms |
+| get hit | 51 ms | 48 ms | 27 ms |
+| get miss | 98 ms | 106 ms | 15 ms |
+| dissoc all | 124 ms | 142 ms | 88 ms |
+| composite key assoc+get | 74 ms | 40 ms | 90 ms |
 
-Read: squint's hamt is at parity with advanced-compiled CLJS on every op.
-Immutable.js keeps a string-key lead (hash caching, tuning) and loses 2x on
-composite keys to both.
+Parity with advanced CLJS on the string-key ops and real transients now
+within 10%. Immutable.js keeps its string-key lead and stays behind both
+CLJS-family maps on composite keys.
+
+### Bundle cost (esbuild, min/gzip, post-equiv)
+
+| entry | min bytes | gzip |
+|---|---|---|
+| core identity floor | 16 | 48 |
+| core 10-fn mix | 13823 | 4798 |
+| map only | 18927 | 6217 |
+| vector only | 9385 | 3453 |
+| map + vector + set | 26171 | 8155 |
+
+Immutable.js Map-only import: 65.5KB min / 18.5KB gzip.
 
 ## Alternatives and prior art
 

@@ -44,23 +44,28 @@ is(c.contains_QMARK_(v, 3), false, 'contains? oob');
 is(c.peek(v), 3, 'peek');
 is(c.count(c.pop(v)), 2, 'pop');
 is(c.peek(c.pop(v)), 2, 'peek after pop');
-is(c.vec(c.subvec(v, 1)), [2, 3], 'subvec');
-is(c.vec(c.subvec(v, 1, 2)), [2], 'subvec range');
+is(c.subvec(v, 1), h.vector(2, 3), 'subvec');
+is(c.subvec(v, 1, 2), h.vector(2), 'subvec range');
 is(h.vector_QMARK_(c.subvec(v, 1)), true, 'subvec keeps type');
 
-// equality both ways, hash
-is(c._EQ_(v, [1, 2, 3]), true, 'pvec = array');
-is(c._EQ_([1, 2, 3], v), true, 'array = pvec');
+// equality: equiv-based, a pvec only equals a pvec
 is(c._EQ_(v, h.vector(1, 2, 3)), true, 'pvec = pvec');
-is(c._EQ_(v, c.list(1, 2, 3)), true, 'pvec = list');
-is(c._EQ_(v, c.map(c.inc, [0, 1, 2])), true, 'pvec = lazy seq');
-is(c._EQ_(v, [1, 2]), false, 'length mismatch');
+is(c._EQ_(v, [1, 2, 3]), false, 'pvec != plain array');
+is(c._EQ_([1, 2, 3], v), false, 'plain array != pvec');
+is(c._EQ_(v, c.list(1, 2, 3)), false, 'pvec != list');
+is(c._EQ_(v, h.vector(1, 2)), false, 'length mismatch');
 is(c._EQ_(v, new Set([1, 2, 3])), false, 'pvec != set');
-is(h.hash(v) === h.hash([1, 2, 3]), true, 'hash = array hash');
+is(h.hash(v) === h.hash(h.vector(1, 2, 3)), true, 'pvec hash by value');
+is(h.hash(v) !== h.hash([1, 2, 3]), true, 'plain array hashes by uid');
+// nested plain data compares by reference inside a pvec
+const shared = { x: 1 };
+is(c._EQ_(h.vector(shared), h.vector(shared)), true, 'shared plain element');
+is(c._EQ_(h.vector({ x: 1 }), h.vector({ x: 1 })), false, 'distinct plain elements');
 
-// pvec as map key, hit by array
+// pvec as map key, hit by an equal pvec
 const m = c.assoc(h.hash_map(), h.vector(1, 2), 'v');
-is(c.get(m, [1, 2]), 'v', 'pvec key hit by array');
+is(c.get(m, h.vector(1, 2)), 'v', 'pvec key hit by equal pvec');
+is(c.get(m, [1, 2]), undefined, 'plain array probe misses');
 // pvec as conj entry on hamt map
 is(c.get(c.conj(h.hash_map(), h.vector('k', 9)), 'k'), 9, 'pvec entry conj on hamt map');
 

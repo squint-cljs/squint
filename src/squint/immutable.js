@@ -28,7 +28,6 @@ import {
   IEncodeJS__clj__GT_js,
   IPrintWithWriter,
   IPrintWithWriter__pr_writer,
-  IWriter__write,
   write_all,
   IMeta,
   IMeta__meta,
@@ -56,10 +55,10 @@ import {
   reduced,
   reduced_QMARK_,
   pr_str,
-  print_str,
   hash,
   hash_unordered_coll,
   hash_ordered_coll,
+  mix_collection_hash,
   IHash,
   IHash__hash,
 } from './core.js';
@@ -99,9 +98,9 @@ function keyTest(key, other) {
   return equiv(key, other);
 }
 
-// print a nested value readably-aware through pr-str/print-str
+// the recursive printer arrives in opts under :pr (squint extension)
 function prStrWith(x, opts) {
-  return opts && opts.readably === false ? print_str(x) : pr_str(x);
+  return opts.pr(x);
 }
 
 // value-producing ops carry metadata, like CLJS
@@ -615,10 +614,13 @@ const PersistentHashMap = /* @__PURE__ */ (() => {
     c.meta = newMeta;
     return c;
   };
-  // iterating yields [k v] entry arrays, whose ordered hash equals the map
-  // entry hash, so the unordered hash over them matches core's map hashing
+  // unordered combine of per-entry ordered [k v] hashes, like CLJS
   p[IHash__hash] = (m) => {
-    if (m._hash === null) m._hash = hash_unordered_coll(m);
+    if (m._hash === null) {
+      let acc = 0;
+      for (const [k, v] of m) acc = (acc + hash_ordered_coll([k, v])) | 0;
+      m._hash = mix_collection_hash(acc, m.cnt);
+    }
     return m._hash;
   };
   p[IEditableCollection__as_transient] = (m) => new TransientHashMap(m);
