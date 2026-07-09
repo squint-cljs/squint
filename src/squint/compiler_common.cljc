@@ -1061,6 +1061,45 @@
         expr)
       #_nil))))
 
+(defn- register-global-alias! [env as]
+  ;; A global alias resolves to a same-named local const (bound below), so
+  ;; Alias/member emits Alias.member - the alias value equals its munged key.
+  (swap! (:ns-state env)
+         (fn [ns-state]
+           (let [current (:current ns-state)]
+             (update-in ns-state [current :aliases] (fnil assoc {}) as (alias-munge (str as)))))))
+
+(defn process-require-global-clause [env libspec]
+  ;; :require-global [maplibregl.Map :as Map] binds a global (loaded via a script
+  ;; tag) to a local const - no import. :refer/:rename pull members off it. A bare
+  ;; [maplibregl.Map] needs nothing: dotted globals already resolve directly.
+  (let [libspec (if (symbol? libspec) [libspec] libspec)
+        [libname & {:keys [as refer rename]}] libspec
+        path (str libname)]
+    (str
+     (when as
+       (register-global-alias! env as)
+       (statement (format "const %s = globalThis.%s" (alias-munge (str as)) path)))
+     (when refer
+       (str/join ""
+                 (map (fn [r]
+                        (let [local (get rename r r)]
+                          (statement (format "const %s = globalThis.%s.%s"
+                                             (munge local) path (munge r)))))
+                      refer))))))
+
+(defn process-refer-global-clause [_env exprs]
+  ;; :refer-global :only [Date] :rename {Date my-date} makes globals reachable
+  ;; without a js/ prefix. A non-renamed name is already a bare global, so only a
+  ;; :rename needs a binding: const my_date = globalThis.Date.
+  (let [{:keys [only rename]} (apply hash-map exprs)]
+    (str/join ""
+              (keep (fn [sym]
+                      (when-let [local (get rename sym)]
+                        (statement (format "const %s = globalThis.%s"
+                                           (munge local) (munge sym)))))
+                    only))))
+
 (defn ensure-global [mname]
   (let [split-name (str/split (str mname) #"\.")]
     (-> (reduce (fn [{:keys [js nk]} k]
@@ -1084,6 +1123,10 @@
                (cond
                  (= :require k)
                  (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
+                 (= :require-global k)
+                 (str acc (str/join "" (map #(process-require-global-clause env %) exprs)))
+                 (= :refer-global k)
+                 (str acc (process-refer-global-clause env exprs))
                  (= :refer-clojure k)
                  (let [{:keys [exclude]} exprs]
                    (swap! (:ns-state env)
