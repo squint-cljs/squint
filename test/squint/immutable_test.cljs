@@ -377,12 +377,15 @@
       (is (= 3 (count (conj s 2))))
       (is (= 2 (count (disj s 1))))
       (is (not (contains? (disj s 1) 1)))
-      ;; composite elements by value
-      (def cs (i/hash-set [1 2] {:a 1}))
-      (is (contains? cs [1 2]))
-      (is (contains? cs {:a 1}))
-      (is (contains? cs (list 1 2)))
-      (is (= 2 (count (conj cs [1 2]))))
+      ;; persistent elements by value, plain data by reference
+      (def cs (i/hash-set (i/vector 1 2)))
+      (is (contains? cs (i/vector 1 2)))
+      (is (= 1 (count (conj cs (i/vector 1 2)))))
+      (def ra [1 2])
+      (def rs (i/hash-set ra))
+      (is (contains? rs ra))
+      (is (not (contains? rs [1 2])))
+      (is (= 2 (count (conj rs [1 2]))))
       ;; empty keeps the type
       (is (i/hash-set? (empty s)))
       (is (= 0 (count (empty s))))))
@@ -391,13 +394,17 @@
   (do (ns foo (:require [squint.immutable :as i]
                         [cljs.test :refer [is]]))
       (is (= (i/hash-set 1 2) (i/hash-set 2 1)))
-      (is (= (i/hash-set 1 2) #{1 2}))
-      (is (= #{1 2} (i/hash-set 1 2)))
-      (is (not= (i/hash-set 1 2) #{1}))
+      ;; equiv: a pset never equals plain data
+      (is (not= (i/hash-set 1 2) #{1 2}))
+      (is (not= #{1 2} (i/hash-set 1 2)))
+      (is (not= (i/hash-set 1 2) (i/hash-set 1)))
       (is (not= (i/hash-set 1 2) [1 2]))
-      (is (= (hash (i/hash-set 1 2)) (hash #{2 1})))
-      ;; pset as a hamt map key, hit with a js Set
-      (is (= :v (get (assoc (i/hash-map) (i/hash-set 1 2) :v) #{2 1})))))
+      (is (= (hash (i/hash-set 1 2)) (hash (i/hash-set 2 1))))
+      ;; pset as a hamt map key, hit with an equal pset
+      (is (= :v (get (assoc (i/hash-map) (i/hash-set 1 2) :v) (i/hash-set 2 1))))
+      ;; seq of a pset is sequential, empty seqs to nil
+      (is (sequential? (seq (i/hash-set 1))))
+      (is (nil? (seq (i/hash-set))))))
 
 (deftest-eval set-core-fns-test
   (do (ns foo (:require [squint.immutable :as i]
@@ -405,6 +412,7 @@
       (def s (i/hash-set 1 2 3))
       (is (= 6 (reduce + 0 s)))
       (is (= #{2 3 4} (set (map inc s))))
+      (is (i/hash-set? (into (i/hash-set) (map inc) [1 2])))
       (is (= 3 (count (into (i/hash-set) [1 2 2 3]))))
       (is (i/hash-set? (into (i/hash-set) [1])))
       (is (= 2 (count (i/set [1 2 2]))))
@@ -434,8 +442,10 @@
       (is (= (i/hash-set 1 2 3) (cset/union (i/hash-set 1 2) #{3})))
       (is (= (i/hash-set 2) (cset/select even? (i/hash-set 1 2 3))))
       (is (i/hash-set? (cset/select even? (i/hash-set 2))))
-      ;; composite elements
-      (is (= (i/hash-set [1 2]) (cset/intersection (i/hash-set [1 2] [3]) (i/hash-set [1 2]))))
+      ;; persistent composite elements
+      (is (= (i/hash-set (i/vector 1 2))
+             (cset/intersection (i/hash-set (i/vector 1 2) (i/vector 3))
+                                (i/hash-set (i/vector 1 2)))))
       ;; js sets keep the old behavior
       (is (= #{1 2 3} (cset/union #{1 2} #{3})))
       ;; map ops preserve the hamt type (previously corrupted via assoc!)

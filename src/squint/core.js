@@ -977,6 +977,11 @@ export function seq(x) {
     const entries = [...iter].map(tagMapEntry);
     return entries.length === 0 ? null : entries;
   }
+  // an instance with -disjoin is a set rep: materialize like a js/Set
+  if (iter[ISet__disjoin] !== undefined) {
+    const xs = [...iter];
+    return xs.length === 0 ? null : xs;
+  }
   const _i = iter[Symbol.iterator]();
   if (_i.next().done) return null;
   return iter;
