@@ -1712,10 +1712,19 @@ export function hash(o) {
   return hashMapEntries(Object.entries(o));
 }
 
-// a type prints itself through this protocol; -edn receives (x, pr) where
-// pr is the recursive printer, and returns the printed string
-export const IEdn = { __sym: Symbol('squint.core.IEdn') };
-export const IEdn__edn = Symbol('IEdn_-edn');
+// printing protocols, like CLJS: a type prints itself through
+// (-pr-writer [obj writer opts]), writing strings via (-write writer s)
+export const IWriter = { __sym: Symbol('squint.core.IWriter') };
+export const IWriter__write = Symbol('IWriter_-write');
+export const IPrintWithWriter = { __sym: Symbol('squint.core.IPrintWithWriter') };
+export const IPrintWithWriter__pr_writer = Symbol('IPrintWithWriter_-pr-writer');
+export function _write(writer, s) {
+  if (writer != null && writer[IWriter__write] !== undefined) return writer[IWriter__write](writer, s);
+  return nilImpl(_write, 'IWriter.-write', writer)(writer, s);
+}
+export function write_all(writer, ...ss) {
+  for (const s of ss) _write(writer, s);
+}
 // vector-facing protocols, dispatched like the map-facing set above
 export const IStack = { __sym: Symbol('squint.core.IStack') };
 export const IStack__peek = Symbol('IStack_-peek');
@@ -4586,8 +4595,11 @@ function toEDN(value, seen = new WeakSet(), readably = true) {
         result = `(${mapv((v) => `${toEDN(v, seen, readably)}`, value).join(', ')})`;
         break;
       default:
-        if (value[IEdn__edn] !== undefined) {
-          result = value[IEdn__edn](value, (v) => toEDN(v, seen, readably));
+        if (value[IPrintWithWriter__pr_writer] !== undefined) {
+          let buf = '';
+          const writer = { [IWriter__write]: (_w, s) => (buf += s), [IWriter.__sym]: true };
+          value[IPrintWithWriter__pr_writer](value, writer, { readably: readably });
+          result = buf;
           break;
         }
         if (value[IRecord.__sym] !== undefined) {
