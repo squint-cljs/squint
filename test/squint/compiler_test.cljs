@@ -4109,6 +4109,34 @@ new Foo();")
     (testing "no truth check"
       (is (str/includes? s "if (y1)")))))
 
+(deftest custom-collection-protocols-test
+  (testing "a deftype can act as a vector through the protocol slots"
+    (is (true? (jsv! "(do (deftype V [xs]
+                            IVector
+                            ICounted (-count [_] (count xs))
+                            IEmptyableCollection (-empty [_] (->V []))
+                            ICollection (-conj [_ x] (->V (conj xs x)))
+                            IIndexed (-nth [_ n nf] (if (< n (count xs)) (nth xs n) nf))
+                            IStack (-peek [_] (last xs)) (-pop [_] (->V (vec (butlast xs)))))
+                          (let [v (->V [1 2 3])]
+                            (and (vector? v) (sequential? v) (not (vector? {}))
+                                 (= 2 (nth v 1)) (= :nf (nth v 9 :nf))
+                                 (= 3 (peek v)) (= 2 (count (pop v)))
+                                 (= 2 (count (subvec v 1)))
+                                 (= 3 (nth (subvec v 1) 1 nil)))))"))))
+  (testing "a deftype can act as a map: map?, symmetric = and IPrintWithWriter"
+    (is (true? (jsv! "(do (deftype M [o]
+                            IMap (-dissoc [_ k] (->M (dissoc o k)))
+                            ICounted (-count [_] (count o))
+                            IEquiv (-equiv [_ other] (= o other))
+                            IPrintWithWriter (-pr-writer [m writer _opts] (write-all writer \"#M \" (pr-str (.-o m)))))
+                          (let [m (->M {:a 1})]
+                            (and (map? m)
+                                 (= m {:a 1}) (= {:a 1} m) (not= {:a 2} m)
+                                 (= \"#M {:a 1}\" (pr-str m)))))"))))
+  (testing "set? recognizes an ISet type"
+    (is (true? (jsv! "(do (deftype S [] ISet (-disjoin [t _] t)) (and (set? (->S)) (not (set? []))))")))))
+
 (deftest hash-fn-test
   (testing "hash is consistent with ="
     (is (true? (jsv! "(= (hash [1 2 3]) (hash (list 1 2 3)) (hash (map inc [0 1 2])))")))
