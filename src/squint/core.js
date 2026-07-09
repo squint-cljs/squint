@@ -3637,7 +3637,7 @@ export function neg_int_QMARK_(x) {
 }
 
 export function meta(x) {
-  if (x instanceof Object && x[IMeta__meta] !== undefined) {
+  if (x != null && x[IMeta__meta] !== undefined) {
     return x[IMeta__meta](x);
   }
   return null;
