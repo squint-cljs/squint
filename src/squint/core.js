@@ -1572,10 +1572,8 @@ export const IWithMeta__with_meta = Symbol('IWithMeta_-with-meta');
 export const IHash = { __sym: Symbol('squint.core.IHash') };
 export const IHash__hash = Symbol('IHash_-hash');
 
-// equiv: the equality that hashed collections key by. Weaker than = (which
-// deep-compares plain JS data): identical, or -equiv when either side
-// implements it. Plain mutable objects and arrays compare by reference, so
-// they are stable hash keys.
+// the equality hashed collections key by: identical or -equiv, never a
+// deep compare like =
 export function equiv(x, y) {
   if (x === y) return true;
   if (x == null) return y == null;
@@ -1702,11 +1700,8 @@ function hashMapEntries(entries) {
   return mixCollectionHash(h, n);
 }
 
-// The contract: (equiv a b) implies (hash a) === (hash b). A plain mutable
-// object or array is equiv by reference, so it hashes by uid: stable under
-// mutation. A type with -equiv but no -hash gets a structural hash over its
-// own entries (matches a structural -equiv like a record's; a type with an
-// exotic -equiv must implement IHash itself).
+// (equiv a b) implies (hash a) === (hash b): plain mutable data hashes by
+// uid, a type with -equiv but no -hash gets a structural entry hash
 export function hash(o) {
   if (o == null) return 0;
   switch (typeof o) {
