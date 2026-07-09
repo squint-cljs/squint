@@ -306,13 +306,8 @@ export function assoc_BANG_(m, k, v, ...kvs) {
   return m;
 }
 
-// Copies metadata from `from` onto `to` (when present) and returns `to`. Used
-// to make value-producing operations (copy, empty, conj, into) carry metadata
-// like Clojure does, instead of dropping it on the freshly built structure.
-// Metadata lives behind the IMeta/IWithMeta slots; a plain value carries
-// instance-level impls (installed by with-meta), so copying forwards the
-// slots. Kept branch-light for the hot path: reads an absent symbol property
-// (cheap, no hidden-class change) and only writes when metadata is present.
+// value-producing ops (copy, empty, conj, into) carry metadata by
+// forwarding the instance-level meta slots onto the fresh structure
 function copyMeta(from, to) {
   const f = from?.[IMeta__meta];
   if (f !== undefined) {
@@ -1550,9 +1545,8 @@ export const ITransientMap = { __sym: Symbol('squint.core.ITransientMap') };
 export const ITransientMap__dissoc_BANG_ = Symbol('ITransientMap_-dissoc!');
 export const ITransientSet = { __sym: Symbol('squint.core.ITransientSet') };
 export const ITransientSet__disjoin_BANG_ = Symbol('ITransientSet_-disjoin!');
-// metadata protocols, like CLJS IMeta/IWithMeta: the only metadata
-// mechanism. Types implement the slots; plain values get instance-level
-// impls installed by with-meta.
+// metadata protocols, like CLJS: types implement the slots, plain values
+// get instance-level impls installed by with-meta
 export const IMeta = { __sym: Symbol('squint.core.IMeta') };
 export const IMeta__meta = Symbol('IMeta_-meta');
 export const IWithMeta = { __sym: Symbol('squint.core.IWithMeta') };
@@ -1730,8 +1724,7 @@ export class Atom {
 export function atom(init, ...opts) {
   const a = new Atom(init);
   for (let i = 0; i < opts.length; i += 2) {
-    // IMeta only, like CLJS Atom; no IWithMeta, which keeps the with-meta
-    // copy machinery out of atom-only bundles
+    // IMeta only, like CLJS Atom: keeps with-meta's copy machinery out of atom-only bundles
     if (opts[i] === 'meta') {
       const mv = opts[i + 1];
       a[IMeta__meta] = () => mv;
@@ -3651,16 +3644,13 @@ export function meta(x) {
 }
 
 export function with_meta(x, m) {
-  // a type-level impl (e.g. a custom collection) wins; a plain value gets a
-  // copy with instance-level impls installed
   if (x != null && x[IWithMeta__with_meta] !== undefined) {
     return x[IWithMeta__with_meta](x, m);
   }
   return with_meta_copy(x, m);
 }
 
-// instance-level IMeta/IWithMeta: the meta value lives in the closure, so
-// there is no separate meta property to manage
+// instance-level impls for a plain value; the meta lives in the closure
 function installMeta(x, m) {
   x[IMeta__meta] = () => m;
   x[IWithMeta__with_meta] = with_meta_copy;
