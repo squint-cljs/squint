@@ -5,7 +5,7 @@
 ## Unreleased
 
 - Add the `IStack`, `IIndexed`, `IVector`, `IWriter` and `IPrintWithWriter` protocols, `write-all`, and an `ITransientVector` `-pop!` slot; `nth`, `peek`, `pop`, `pop!`, `subvec`, `vec`, `vector?`, `sequential?`, `set?`, `map?`, `seq`, `=` and printing dispatch to custom collection types
-- Add `hash`, `hash-ordered-coll`, `hash-unordered-coll` and the `IHash` protocol, consistent with `=`
+- Add `hash`, `hash-ordered-coll`, `hash-unordered-coll`, the `IHash` protocol and `equiv`; `hash` correlates with `equiv` (identical or `-equiv`), so plain mutable objects and arrays hash by reference
 - Add the `IEncodeJS` protocol; `clj->js` dispatches through it so a custom type controls its own conversion
 - Add the `IMeta` and `IWithMeta` protocols; `meta` and `with-meta` dispatch through them and the internal meta symbol property is gone
 - Add `:require-global` and `:refer-global` to `ns`, binding globals loaded via a script tag to consts without emitting an import
