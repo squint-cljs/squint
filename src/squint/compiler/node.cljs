@@ -114,6 +114,7 @@
   ;; conditionals and loads in the normal SCI ctx.
   (assoc compiler/squint-parse-opts
          :end-location true
+         :auto-resolve-ns true
          :read-cond
          (fn [branches]
            (loop [ps (partition 2 branches)]
@@ -180,9 +181,14 @@
   "The compile-time source a flagged ns loads into SCI: the extracted
   compile-time forms. nil when not flagged."
   [src]
-  (case (source-flag src)
-    true (extraction-source src)
-    nil))
+  (when (source-flag src) (extraction-source src)))
+
+(defn as-alias? [libspec]
+  (and (sequential? libspec)
+       (some #{:as-alias} libspec)))
+
+(defn self-ref? [the-ns-name libspec]
+  (and (sequential? libspec) (= the-ns-name (first libspec))))
 
 (defn scan-macros [s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) compiler/squint-parse-opts)]
@@ -199,11 +205,14 @@
                                           (when (and (seq? clause)
                                                      (= :require (first clause)))
                                             (rest clause)))))
+            require-libs (remove #(self-ref? the-ns-name %) require-libs)
             ;; flagged {:squint/compile-time ...} libs -> the SCI load-fn serves
             ;; their compile-time source; other .cljc-with-defmacro libs ->
             ;; whole-ns (legacy)
             flagged (filter lib-flag require-libs)
-            require-cljc (->> require-libs (remove lib-flag) (filter cljc-with-macros?))
+            require-cljc (->> require-libs
+                              (remove as-alias?)
+                              (remove lib-flag) (filter cljc-with-macros?))
             all-macro-requires (concat require-macros require-cljc flagged)]
         (when (seq all-macro-requires)
           (.then (esm/dynamic-import "./compiler.sci.js")

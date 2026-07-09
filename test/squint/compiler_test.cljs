@@ -4233,6 +4233,34 @@ new Foo();")
     (is (false? (jsv! "(associative? \"s\")")))
     (is (true? (jsv! "(defrecord AR [a]) (associative? (->AR 1))")))))
 
+(deftest as-alias-test
+  (testing ":as-alias emits no import, only registers a compile-time alias"
+    (let [s (jss! '(ns foo (:require [datastar :as-alias d])))]
+      (is (not (str/includes? s "datastar")))))
+  (testing "an :as-alias alias still resolves a namespaced keyword"
+    (is (= "datastar/x"
+           (jsv! "(do (ns foo (:require [datastar :as-alias d])) ::d/x)")))))
+
+(deftest require-global-test
+  (testing ":require-global binds a global to a const, no import"
+    (let [s (jss! '(ns foo (:require-global [maplibregl.Map :as Map])))]
+      (is (str/includes? s "const Map = globalThis.maplibregl.Map"))
+      (is (not (str/includes? s "import")))))
+  (testing ":as alias resolves for construction and member access"
+    (let [s (jss! '(do (ns foo (:require-global [maplibregl.Map :as Map])) (Map. 1) (Map/foo 2)))]
+      (is (str/includes? s "new Map("))
+      (is (str/includes? s "Map.foo("))))
+  (testing ":refer pulls members off the global"
+    (let [s (jss! '(ns foo (:require-global [Idiomorph :refer [morph]])))]
+      (is (str/includes? s "const morph = globalThis.Idiomorph.morph")))))
+
+(deftest refer-global-test
+  (testing ":refer-global :rename binds a renamed global"
+    (let [s (jss! '(ns foo (:refer-global :only [Date] :rename {Date my-date})))]
+      (is (str/includes? s "const my_date = globalThis.Date")))
+    (is (= 1970 (jsv! '(do (ns foo (:refer-global :only [Date] :rename {Date my-date}))
+                           (.getFullYear (my-date. 0))))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test
