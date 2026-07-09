@@ -1,5 +1,7 @@
 <img src="./logo/logo.svg" width="100%">
 
+[![Clojars Project](https://img.shields.io/clojars/v/io.github.squint-cljs/squint.svg)](https://clojars.org/io.github.squint-cljs/squint)
+
 Squint is a light-weight dialect of ClojureScript with a compiler and standard
 library.
 
