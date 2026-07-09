@@ -4169,17 +4169,30 @@ new Foo();")
   (testing "set? recognizes an ISet type"
     (is (true? (jsv! "(do (deftype S [] ISet (-disjoin [t _] t)) (and (set? (->S)) (not (set? []))))")))))
 
+(deftest equiv-test
+  (testing "equiv is identity or -equiv; plain data compares by reference"
+    (is (true? (jsv! "(let [a [1] o {:x 1}]
+                        (and (equiv a a) (not (equiv a [1]))
+                             (equiv o o) (not (equiv o {:x 1}))
+                             (equiv 1 1) (equiv \"s\" \"s\") (equiv nil nil)
+                             (not (equiv ##NaN ##NaN))
+                             (equiv (js/Date. 5) (js/Date. 5))))")))
+    (is (true? (jsv! "(do (defrecord R [a])
+                          (and (equiv (->R 1) (->R 1))
+                               (not (equiv (->R 1) (->R 2)))))")))))
+
 (deftest hash-fn-test
-  (testing "hash is consistent with ="
-    (is (true? (jsv! "(= (hash [1 2 3]) (hash (list 1 2 3)) (hash (map inc [0 1 2])))")))
-    (is (true? (jsv! "(= (hash {:a 1 :b 2}) (hash {:b 2 :a 1}))")))
-    (is (true? (jsv! "(= (hash {:a 1}) (hash (js/Map. [[\"a\" 1]])))")))
-    (is (true? (jsv! "(= (hash #{1 2}) (hash #{2 1}) (hash (sorted-set 2 1)))")))
-    (is (true? (jsv! "(= (hash (sorted-map :a 1)) (hash {:a 1}))")))
-    (is (true? (jsv! "(not= (hash [\"1\"]) (hash [1]))")))
+  (testing "hash follows equiv: uid for plain data, stable under mutation"
+    (is (true? (jsv! "(let [a [1 2]] (= (hash a) (hash a)))")))
+    (is (true? (jsv! "(not= (hash [1 2]) (hash [1 2]))")))
+    (is (true? (jsv! "(let [a [1] h (hash a)] (.push a 2) (= h (hash a)))")))
+    (is (true? (jsv! "(let [m {:a 1}] (= (hash m) (hash m)))")))
+    (is (true? (jsv! "(= (hash \"Aa\") (hash \"BB\"))")))
     (is (true? (jsv! "(and (= 1231 (hash true)) (= 1237 (hash false)) (zero? (hash nil)))"))))
-  (testing "a type opts into hashing via IHash"
-    (is (true? (jsv! "(do (deftype W [v] IHash (-hash [_] (hash v))) (= (hash (->W [1 2])) (hash [1 2])))")))))
+  (testing "an -equiv type without -hash gets a structural hash"
+    (is (true? (jsv! "(do (defrecord R [a]) (= (hash (->R 1)) (hash (->R 1))))"))))
+  (testing "a type opts into value hashing via IHash"
+    (is (true? (jsv! "(do (deftype W [v] IHash (-hash [_] (hash v))) (let [x [1 2]] (= (hash (->W x)) (hash x))))")))))
 
 (deftest encode-js-protocol-test
   (testing "a type converts itself in clj->js via IEncodeJS"

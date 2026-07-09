@@ -1572,6 +1572,31 @@ export const IWithMeta__with_meta = Symbol('IWithMeta_-with-meta');
 export const IHash = { __sym: Symbol('squint.core.IHash') };
 export const IHash__hash = Symbol('IHash_-hash');
 
+// the equality hashed collections key by: identical or -equiv, never a
+// deep compare like =
+export function equiv(x, y) {
+  if (x === y) return true;
+  if (x == null) return y == null;
+  if (y == null) return false;
+  if (x[IEquiv__equiv] !== undefined) return !!x[IEquiv__equiv](x, y);
+  if (y[IEquiv__equiv] !== undefined) return !!y[IEquiv__equiv](y, x);
+  if (x instanceof Date && y instanceof Date) return x.getTime() === y.getTime();
+  return false;
+}
+
+// identity uid for reference-keyed values, like CLJS goog/getUid
+const UIDS = /* @__PURE__ */ new WeakMap();
+let uidCounter = 0;
+
+function uid(o) {
+  let id = UIDS.get(o);
+  if (id === undefined) {
+    id = ++uidCounter;
+    UIDS.set(o, id);
+  }
+  return id;
+}
+
 const imul = Math.imul;
 const M3_C1 = 0xcc9e2d51 | 0;
 const M3_C2 = 0x1b873593 | 0;
@@ -1675,6 +1700,8 @@ function hashMapEntries(entries) {
   return mixCollectionHash(h, n);
 }
 
+// (equiv a b) implies (hash a) === (hash b): plain mutable data hashes by
+// uid, a type with -equiv but no -hash gets a structural entry hash
 export function hash(o) {
   if (o == null) return 0;
   switch (typeof o) {
@@ -1691,25 +1718,18 @@ export function hash(o) {
       return m3HashInt(hashString(o));
     case 'bigint':
       return Number(o % 2147483647n) | 0;
+    case 'function':
+      return uid(o) | 0;
     case 'object':
       break;
     default:
-      // functions and JS symbols only compare by identity; a constant hash
-      // is consistent (all collide into one bucket, resolved by =)
+      // JS symbols compare by identity; a constant hash is consistent
       return 0;
   }
   if (o[IHash__hash] !== undefined) return o[IHash__hash](o) | 0;
   if (o instanceof Date) return o.valueOf() | 0;
-  // set rep (js/Set or SortedSet): unordered elements
-  if (isSetLike(o)) return hash_unordered_coll(o);
-  // map rep (js/Map or SortedMap): unordered entries, entry = ordered [k v]
-  if (o instanceof Map || o[TYPE_TAG] === MAP_TYPE) return hashMapEntries(o.entries());
-  if (isObj(o) || o.constructor === undefined) return hashMapEntries(Object.entries(o));
-  // any other iterable (vector, list, lazy seq, range): ordered, consistent
-  // with = treating them as sequences
-  if (o[Symbol.iterator]) return hash_ordered_coll(o);
-  // a class instance without IHash: own enumerable props, like ='s tail
-  return hashMapEntries(Object.entries(o));
+  if (o[IEquiv__equiv] !== undefined) return hashMapEntries(Object.entries(o));
+  return uid(o) | 0;
 }
 
 // printing protocols, like CLJS: a type prints itself through
