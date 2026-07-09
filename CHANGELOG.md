@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- Add the `IStack`, `IIndexed` and `IVector` protocols and an `ITransientVector` `-pop!` slot; `nth`, `peek`, `pop`, `pop!`, `subvec`, `vec`, `vector?`, `sequential?`, `set?`, `map?`, `seq`, `=` and printing dispatch to custom collection types
+- Add the `IStack`, `IIndexed`, `IVector` and `IEdn` protocols and an `ITransientVector` `-pop!` slot; `nth`, `peek`, `pop`, `pop!`, `subvec`, `vec`, `vector?`, `sequential?`, `set?`, `map?`, `seq`, `=` and printing dispatch to custom collection types
 - Add `hash`, `hash-ordered-coll`, `hash-unordered-coll` and the `IHash` protocol, consistent with `=`
 - Add the `IEncodeJS` protocol; `clj->js` dispatches through it so a custom type controls its own conversion
 - Add the `IMeta` and `IWithMeta` protocols; `meta` and `with-meta` dispatch through them and the internal meta symbol property is gone

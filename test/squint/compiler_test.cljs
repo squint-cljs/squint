@@ -4124,12 +4124,12 @@ new Foo();")
                                  (= 3 (peek v)) (= 2 (count (pop v)))
                                  (= 2 (count (subvec v 1)))
                                  (= 3 (nth (subvec v 1) 1 nil)))))"))))
-  (testing "a deftype can act as a map: map?, symmetric = and the print hook"
+  (testing "a deftype can act as a map: map?, symmetric = and IEdn printing"
     (is (true? (jsv! "(do (deftype M [o]
                             IMap (-dissoc [_ k] (->M (dissoc o k)))
                             ICounted (-count [_] (count o))
                             IEquiv (-equiv [_ other] (= o other))
-                            Object (squint$lang$edn [m pr] (str \"#M \" (pr (.-o m)))))
+                            IEdn (-edn [m pr] (str \"#M \" (pr (.-o m)))))
                           (let [m (->M {:a 1})]
                             (and (map? m)
                                  (= m {:a 1}) (= {:a 1} m) (not= {:a 2} m)

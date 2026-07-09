@@ -1712,6 +1712,10 @@ export function hash(o) {
   return hashMapEntries(Object.entries(o));
 }
 
+// a type prints itself through this protocol; -edn receives (x, pr) where
+// pr is the recursive printer, and returns the printed string
+export const IEdn = { __sym: Symbol('squint.core.IEdn') };
+export const IEdn__edn = Symbol('IEdn_-edn');
 // vector-facing protocols, dispatched like the map-facing set above
 export const IStack = { __sym: Symbol('squint.core.IStack') };
 export const IStack__peek = Symbol('IStack_-peek');
@@ -4582,9 +4586,8 @@ function toEDN(value, seen = new WeakSet(), readably = true) {
         result = `(${mapv((v) => `${toEDN(v, seen, readably)}`, value).join(', ')})`;
         break;
       default:
-        // a type can print itself through this hook, slot-style: (self, pr)
-        if (typeof value.squint$lang$edn === 'function') {
-          result = value.squint$lang$edn(value, (v) => toEDN(v, seen, readably));
+        if (value[IEdn__edn] !== undefined) {
+          result = value[IEdn__edn](value, (v) => toEDN(v, seen, readably));
           break;
         }
         if (value[IRecord.__sym] !== undefined) {

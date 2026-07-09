@@ -13,6 +13,8 @@
   IDeref__deref
   IEditableCollection
   IEditableCollection__as_transient
+  IEdn
+  IEdn__edn
   IEmptyableCollection
   IEmptyableCollection__empty
   IEncodeJS
