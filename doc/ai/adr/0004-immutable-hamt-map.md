@@ -257,21 +257,23 @@ could be a getter); both views are built in one pure IIFE.
 
 ### Performance (node v22, 200k string keys, 50k vector keys)
 
-plk column is planck 2.28 on JavaScriptCore with reduce-based loops: an
-engine difference rides on top of the library difference. Read it as "what
-a plk user sees", not a same-engine comparison.
+All three columns same machine, same session. CLJS is ADVANCED-compiled to
+a node target (cljs.main -O advanced, loop/recur + aget loops mirroring the
+JS benches); the earlier planck numbers were an engine artifact (JSC +
+reduce overhead, 3-4x slower than advanced CLJS on V8 across the board).
 
-| | squint hamt | Immutable.js 5.1.9 | CLJS (plk) |
+| | squint hamt | CLJS advanced | Immutable.js 5.1.9 |
 |---|---|---|---|
-| persistent build | 102 ms | 52 ms | 917 ms |
-| batch/transient build | 87 ms (path-copying) | 23 ms (withMutations) | 506 ms |
-| get hit | 33 ms | 15 ms | 367 ms |
-| get miss | 55 ms | 10 ms | 335 ms |
-| delete all | 76 ms | 56 ms | 844 ms |
-| composite key assoc+get | 27 ms (raw vectors) | 56 ms (I.List wrap) | 264 ms |
+| persistent build | 255 ms | ~275 ms | 157 ms |
+| transient build | 96 ms | ~91 ms | 69 ms |
+| get hit | 79 ms | ~69 ms | 40 ms |
+| get miss | 139 ms | ~144 ms | 28 ms |
+| dissoc all | 165 ms | ~195 ms | 126 ms |
+| composite key assoc+get | 62 ms | ~58 ms | 127 ms (I.List wrap) |
 
-Immutable's remaining edge is real transient node editing and string-hash
-tuning. The composite-key case, the module's reason to exist, wins outright.
+Read: squint's hamt is at parity with advanced-compiled CLJS on every op.
+Immutable.js keeps a string-key lead (hash caching, tuning) and loses 2x on
+composite keys to both.
 
 ## Alternatives and prior art
 
