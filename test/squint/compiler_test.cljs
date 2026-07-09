@@ -3436,6 +3436,18 @@ globalThis.foo.fs = fs;")))))
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s)))))))
+       (testing "rename-keys and map-invert do not mutate a record (slot-map)"
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
+                        (defrecord R [a b])
+                        (def r (->R 1 2))
+                        (def renamed (set/rename-keys r {:a :x}))
+                        (def inverted (set/map-invert {:a 1}))
+                        (and (= 1 (:a r)) (nil? (:x r))
+                             (= 1 (:x renamed)) (= 2 (:b renamed))
+                             (= {1 :a} inverted))" {:repl true
+                                                    :context :return})
+                 v (js/eval (wrap-async js))]
+           (is (true? v))))
        (testing "project"
          (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                         [(set/project #{ {:a 1, :b 2, :c 3} {:a 4, :b 5, :c 6} } [:a :b])

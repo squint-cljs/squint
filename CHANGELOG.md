@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- `clojure.set` dispatches through the collection protocols: results keep the input's type, membership tests against a protocol set are value-based, and `rename-keys`/`map-invert` no longer mutate a record
 - Add the `IStack`, `IIndexed`, `IVector`, `IWriter` and `IPrintWithWriter` protocols, `write-all`, and an `ITransientVector` `-pop!` slot; `nth`, `peek`, `pop`, `pop!`, `subvec`, `vec`, `vector?`, `sequential?`, `set?`, `map?`, `seq`, `=` and printing dispatch to custom collection types
 - Add `hash`, `hash-ordered-coll`, `hash-unordered-coll` and the `IHash` protocol, consistent with `=`
 - Add the `IEncodeJS` protocol; `clj->js` dispatches through it so a custom type controls its own conversion

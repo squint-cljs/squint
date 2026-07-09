@@ -1,44 +1,93 @@
 import * as core from './core.js';
+import {
+  ICounted__count,
+  IAssociative__contains_key_QMARK_,
+  IEditableCollection__as_transient,
+  ITransientCollection__conj_BANG_,
+  ITransientCollection__persistent_BANG_,
+  ITransientSet__disjoin_BANG_,
+} from './core.js';
 
 function _bubble_max_key(k, coll) {
   const max = core.max_key(k, ...coll);
   return [max, ...coll.filter(x => x !== max)];
 }
 
+// a js/Set or set-like with reference .has/.add (SortedSet); a persistent
+// set from squint.immutable dispatches through core instead
+function jsSetLike(x) {
+  return x instanceof Set || (x != null && typeof x.has === 'function' && typeof x.add === 'function');
+}
+
+// the persistent paths dispatch through the slot symbols directly: the
+// symbols are tiny consts, where the core wrapper fns (count, conj!, ...)
+// drag their whole dispatch chains into js-Set-only bundles
+function setSize(x) {
+  return typeof x.size === 'number' ? x.size : x[ICounted__count](x);
+}
+
+function setHas(x, e) {
+  return jsSetLike(x) ? x.has(e) : x[IAssociative__contains_key_QMARK_](x, e);
+}
+
+// fold elements into a copy of target, preserving its type: js/Set mutates a
+// copy, a persistent set goes through its transient
+function addAll(target, elems) {
+  if (jsSetLike(target)) {
+    const res = new Set(target);
+    for (const e of elems) res.add(e);
+    return res;
+  }
+  let t = target[IEditableCollection__as_transient](target);
+  for (const e of elems) t = t[ITransientCollection__conj_BANG_](t, e);
+  return t[ITransientCollection__persistent_BANG_](t);
+}
+
 function _intersection2(x, y) {
-  if (x.size > y.size) {
+  if (setSize(x) > setSize(y)) {
     const tmp = y;
     y = x;
     x = tmp;
   }
-  const res = new Set();
-  for (const elem of x) {
-    if (y.has(elem)) {
-      res.add(elem);
+  if (jsSetLike(x)) {
+    const res = new Set();
+    for (const elem of x) {
+      if (setHas(y, elem)) {
+        res.add(elem);
+      }
     }
+    return res;
   }
-  return res;
+  // persistent: disj the non-members, keeping the type and sharing
+  let t = x[IEditableCollection__as_transient](x);
+  for (const elem of x) {
+    if (!setHas(y, elem)) t = t[ITransientSet__disjoin_BANG_](t, elem);
+  }
+  return t[ITransientCollection__persistent_BANG_](t);
 }
 
 export function intersection(...xs) {
   switch (xs.length) {
     case 0: return null;
     case 1: return xs[0];
-    case 2: return xs[0].size > xs[1].size ?
-      _intersection2(xs[0], xs[1]) :
-      _intersection2(xs[1], xs[0]);
-    default: return _bubble_max_key((x) => 0 - x.size, xs).reduce(_intersection2);
+    case 2: return _intersection2(xs[0], xs[1]);
+    default: return _bubble_max_key((x) => 0 - setSize(x), xs).reduce(_intersection2);
   }
 }
 
 function _difference2(x, y) {
-  const res = new Set();
-  for (const elem of x) {
-    if (!y.has(elem)) {
-      res.add(elem);
+  if (jsSetLike(x)) {
+    const res = new Set();
+    for (const elem of x) {
+      if (!setHas(y, elem)) {
+        res.add(elem);
+      }
     }
+    return res;
   }
-  return res;
+  let t = x[IEditableCollection__as_transient](x);
+  for (const elem of y) t = t[ITransientSet__disjoin_BANG_](t, elem);
+  return t[ITransientCollection__persistent_BANG_](t);
 }
 
 export function difference(...xs) {
@@ -51,32 +100,31 @@ export function difference(...xs) {
 }
 
 function _union2(x, y) {
-  const res = new Set(x);
-  for (const elem of y) {
-    res.add(elem);
+  if (setSize(x) < setSize(y)) {
+    const tmp = y;
+    y = x;
+    x = tmp;
   }
-  return res;
+  return addAll(x, y);
 }
 
 export function union(...xs) {
   switch (xs.length) {
     case 0: return null;
     case 1: return xs[0];
-    case 2: return xs[0].size > xs[1].size ?
-      _union2(xs[0], xs[1]) :
-      _union2(xs[1], xs[0]);
-    default: return _bubble_max_key((x) => x.size, xs).reduce(_union2);
+    case 2: return _union2(xs[0], xs[1]);
+    default: return _bubble_max_key((x) => setSize(x), xs).reduce(_union2);
   }
 }
 
 function _subset_QMARK_2(x, y) {
   for (const elem of x) {
-    if (!y.has(elem)) {
+    if (!setHas(y, elem)) {
       return false;
     }
   }
   return true;
-} 
+}
 
 export function subset_QMARK_(x, y) {
   if (x === undefined) {
@@ -85,19 +133,10 @@ export function subset_QMARK_(x, y) {
   if (y === undefined) {
     return false;
   }
-  if (x.size > y.size) {
+  if (setSize(x) > setSize(y)) {
     return false;
   }
   return _subset_QMARK_2(x, y);
-}
-
-function _superset_QMARK_2(x, y) {
-  for (const elem of x) {
-    if (!y.has(elem)) {
-      return false;
-    }
-  }
-  return true;
 }
 
 export function superset_QMARK_(x, y) {
@@ -107,28 +146,48 @@ export function superset_QMARK_(x, y) {
   if (y === undefined) {
     return true;
   }
-  if (x.size < y.size) {
+  if (setSize(x) < setSize(y)) {
     return false;
   }
-  return _superset_QMARK_2(y, x);
+  return _subset_QMARK_2(y, x);
 }
 
 export function select(pred, xset) {
   if (xset === undefined) {
     return null;
   }
-  const res = new Set();
-  for (const elem of xset) {
-    if (core.truth_(pred(elem))) {
-      res.add(elem);
+  if (jsSetLike(xset)) {
+    const res = new Set();
+    for (const elem of xset) {
+      if (core.truth_(pred(elem))) {
+        res.add(elem);
+      }
     }
+    return res;
   }
-  return res;
+  let t = xset[IEditableCollection__as_transient](xset);
+  for (const elem of xset) {
+    if (!core.truth_(pred(elem))) t = t[ITransientSet__disjoin_BANG_](t, elem);
+  }
+  return t[ITransientCollection__persistent_BANG_](t);
+}
+
+// true when m is an immutable slot-map: mutate-in-place helpers would corrupt it
+function slotMap(m) {
+  return m != null && m[core.IAssociative__assoc] !== undefined;
 }
 
 export function rename_keys(map, kmap) {
   const ks = core.keys(kmap);
   let without = core.dissoc(map, ...ks);
+  if (slotMap(without)) {
+    return ks.reduce((m, k) => {
+      if (core.contains_QMARK_(map, k)) {
+        return core.assoc(m, core.get(kmap, k), core.get(map, k));
+      }
+      return m;
+    }, without);
+  }
   if (without === map) {
     without = {...map};
   }
@@ -142,18 +201,31 @@ export function rename_keys(map, kmap) {
 }
 
 export function rename(xrel, kmap) {
-  return core.set(core.map(x => rename_keys(x, kmap), xrel));
+  return into_set_like(xrel, core.map(x => rename_keys(x, kmap), xrel));
 }
 
 export function project(xrel, ...ks) {
-  return core.set(core.map(x => core.select_keys(x, ...ks), xrel));
+  return into_set_like(xrel, core.map(x => core.select_keys(x, ...ks), xrel));
+}
+
+// an empty set of the same kind as rel (a persistent set stays persistent),
+// filled from elems
+function into_set_like(rel, elems) {
+  const empty = rel != null && !jsSetLike(rel) && rel[core.ISet__disjoin] !== undefined
+    ? core.empty(rel)
+    : new Set();
+  return addAll(empty, elems);
 }
 
 export function map_invert(xmap) {
   if (xmap === undefined) {
     return {};
   }
-  return core.reduce_kv((m, k, v) => core.assoc_BANG_(m, v, k), core.empty(xmap), xmap);
+  const empty = core.empty(xmap);
+  if (slotMap(empty)) {
+    return core.reduce_kv((m, k, v) => core.assoc(m, v, k), empty, xmap);
+  }
+  return core.reduce_kv((m, k, v) => core.assoc_BANG_(m, v, k), empty, xmap);
 }
 
 export function join(xrel, yrel, kmap) {
