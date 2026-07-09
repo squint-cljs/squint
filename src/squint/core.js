@@ -1578,8 +1578,8 @@ export function equiv(x, y) {
   if (x === y) return true;
   if (x == null) return y == null;
   if (y == null) return false;
-  if (typeof x === 'object' && x[IEquiv__equiv] !== undefined) return !!x[IEquiv__equiv](x, y);
-  if (typeof y === 'object' && y[IEquiv__equiv] !== undefined) return !!y[IEquiv__equiv](y, x);
+  if (x[IEquiv__equiv] !== undefined) return !!x[IEquiv__equiv](x, y);
+  if (y[IEquiv__equiv] !== undefined) return !!y[IEquiv__equiv](y, x);
   if (x instanceof Date && y instanceof Date) return x.getTime() === y.getTime();
   return false;
 }
