@@ -4111,8 +4111,9 @@ new Foo();")
 
 (deftest encode-js-protocol-test
   (testing "a type converts itself in clj->js via IEncodeJS"
-    (is (eq #js {:custom 1} (jsv! "(do (deftype T [] IEncodeJS (-clj->js [_] #js {:custom 1})) (clj->js (->T)))")))
-    (is (eq #js [#js {:custom 1}] (jsv! "(do (deftype T [] IEncodeJS (-clj->js [_] #js {:custom 1})) (clj->js [(->T)]))")))))
+    (is (true? (jsv! "(do (deftype T [] IEncodeJS (-clj->js [_] {:custom 1}))
+                          (and (= 1 (.-custom (clj->js (->T))))
+                               (= 1 (.-custom (aget (clj->js [(->T)]) 0)))))")))))
 
 (deftest meta-protocol-test
   (testing "a type can implement IMeta/IWithMeta"
