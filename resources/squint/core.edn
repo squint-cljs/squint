@@ -19,6 +19,8 @@
   IEncodeJS__clj__GT_js
   IEquiv
   IEquiv__equiv
+  IHash
+  IHash__hash
   IIterable
   IIterable__iterator
   IKVReduce
@@ -179,8 +181,11 @@
   get_in
   get_validator
   group_by
+  hash
   hash_map
+  hash_ordered_coll
   hash_set
+  hash_unordered_coll
   ident_QMARK_
   identical_QMARK_
   identity
