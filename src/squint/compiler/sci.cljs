@@ -97,8 +97,11 @@
                                    {})
                                  (when-let [f (resolve-file namespace)]
                                    (let [fstr (slurp f)]
-                                     ;; flagged ns -> its compile-time part only
-                                     {:source (or (cn/compile-time-source fstr) fstr)}))))
+                                     ;; flagged ns -> its compile-time part only.
+                                     ;; :file lets SCI bind *file* so an error
+                                     ;; while loading this ns names its source.
+                                     {:file f
+                                      :source (or (cn/compile-time-source fstr) fstr)}))))
                     :namespaces {'squint.analyzer.api analyzer-api-ns
                                  'cljs.analyzer.api analyzer-api-ns
                                  'cljs.test test-ns

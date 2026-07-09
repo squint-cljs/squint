@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- The CLI reports the file, line and column of a compile error and exits non-zero, instead of dumping the raw exception
 - Support `:as-alias` in `ns` `:require` like CLJS: no runtime import, only a compile-time alias so a namespaced keyword such as `::alias/x` resolves
 - Fix `iterable` to reject a class instance that has no native iterator or `ISeqable`, so `reduce`, `into`, `remove` and friends no longer expose an object's internal fields, matching `seqable?` and CLJS
 - Fix `seq` of a `js/Map` or sorted-map to return a non-map sequence of entries, like a plain map and like CLJS, instead of the map itself

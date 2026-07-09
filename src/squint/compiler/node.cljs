@@ -181,9 +181,7 @@
   "The compile-time source a flagged ns loads into SCI: the extracted
   compile-time forms. nil when not flagged."
   [src]
-  (case (source-flag src)
-    true (extraction-source src)
-    nil))
+  (when (source-flag src) (extraction-source src)))
 
 (defn as-alias? [libspec]
   (and (sequential? libspec)

@@ -46,6 +46,38 @@
         (fs/copyFileSync path out-file)
         {:copied-out-file out-file}))))
 
+(defn- annotate-compile-error
+  ;; Report where a compile failed and why, then rethrow. Prints a single
+  ;; friendly line (stack is cached at throw time, so we print rather than mutate
+  ;; .message) and tags the error so the top-level catch exits without letting
+  ;; node dump the raw ExceptionInfo (its CLJS .data map is noise). The ex-data
+  ;; :file (set by the SCI load-fn) names the ns actually loading when the error
+  ;; hit - e.g. a transitive require of the macro ns being scanned - and the
+  ;; :line/:column belong to that file, not the top-level `f`.
+  [f err]
+  (when-not (and (instance? js/Error err) (.-squintCompileFile ^js err))
+    (when (instance? js/Error err)
+      (set! (.-squintCompileFile ^js err) f))
+    (let [{:keys [file line column]} (when (instance? js/Error err) (ex-data err))
+          err-file (or file f)
+          loc (str err-file (when line (str ":" line (when column (str ":" column)))))
+          msg (if (instance? js/Error err) (.-message err) (str err))
+          where (if (and file (not= file f))
+                  (str f " (loading " loc ")")
+                  loc)]
+      (js/console.error (str "[squint] Error while compiling " where ": " msg))))
+  (throw err))
+
+(defn- exit-on-compile-error
+  ;; Terminate a failed compile without node dumping the raw CLJS ExceptionInfo.
+  ;; annotate-compile-error already printed a friendly line and tagged the error;
+  ;; an untagged error (thrown outside the per-file catch) is printed here.
+  [err]
+  (when-not (and (instance? js/Error err) (.-squintCompileFile ^js err))
+    (binding [*print-fn* *print-err-fn*]
+      (println (str "Error: " (if (instance? js/Error err) (.-message err) err)))))
+  (cli/*exit-fn* {:exit 1}))
+
 (defn compile-files
   [opts files]
   (let [paths (:paths opts)
@@ -61,10 +93,11 @@
                         (fn []
                           (if (contains? #{".cljc" ".cljs"} (path/extname f))
                             (do (println "[squint] Compiling CLJS file:" f)
-                                (compiler/compile-file (assoc opts
-                                                              :in-file f
-                                                              :resolve-ns (fn [x]
-                                                                            (resolve-ns opts f x)))))
+                                (-> (compiler/compile-file (assoc opts
+                                                                  :in-file f
+                                                                  :resolve-ns (fn [x]
+                                                                                (resolve-ns opts f x))))
+                                    (.catch (fn [err] (annotate-compile-error f err)))))
                             (copy-file copy-resources f output-dir paths))))
                       (.then (fn [{:keys [out-file copied-out-file]}]
                                (cond
@@ -106,13 +139,15 @@
 
 (defn run [opts file]
   (println "[squint] Running" file)
-  (.then (compiler/compile-file (assoc opts :in-file file :resolve-ns (fn [x]
-                                                                        (resolve-ns opts file x))))
-         (fn [{:keys [out-file]}]
-           (let [path (if (path/isAbsolute out-file) out-file
-                          (path/resolve (js/process.cwd) out-file))
-                 path (str (url/pathToFileURL path))]
-             (esm/dynamic-import path)))))
+  (-> (compiler/compile-file (assoc opts :in-file file :resolve-ns (fn [x]
+                                                                     (resolve-ns opts file x))))
+      (.catch (fn [err] (annotate-compile-error file err)))
+      (.then (fn [{:keys [out-file]}]
+               (let [path (if (path/isAbsolute out-file) out-file
+                              (path/resolve (js/process.cwd) out-file))
+                     path (str (url/pathToFileURL path))]
+                 (esm/dynamic-import path))))
+      (.catch exit-on-compile-error)))
 
 #_(defn compile-form [{:keys [opts]}]
     (let [e (:e opts)]
@@ -136,8 +171,13 @@
                                 (if (and (contains? #{"add" "change"} event)
                                          (contains? #{".cljs" ".cljc"} (path/extname path)))
                                   (-> (compile-files opts [path])
+                                      ;; annotate-compile-error already printed a
+                                      ;; friendly line for a tagged compile error;
+                                      ;; keep watching, only surface anything else.
                                       (.catch (fn [e]
-                                                (js/console.error e))))
+                                                (when-not (and (instance? js/Error e)
+                                                               (.-squintCompileFile ^js e))
+                                                  (js/console.error e)))))
                                   (copy-file copy-resources path output-dir paths)))))))))))))
 
 (defn start-nrepl [{:keys [opts]}]
@@ -263,7 +303,8 @@
                        (when (:copy-resources opts)
                          (println "[squint] Copied resources:" copied))
                        (when (zero? (+ compiled copied))
-                         (err-exit! "Compile processed no files")))))))}
+                         (err-exit! "Compile processed no files"))))
+              (.catch exit-on-compile-error))))}
    {:cmds ["watch"]
     :doc "Watch and auto-recompile paths."
     :spec watch-spec
