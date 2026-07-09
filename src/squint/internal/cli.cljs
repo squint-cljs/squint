@@ -46,36 +46,31 @@
         (fs/copyFileSync path out-file)
         {:copied-out-file out-file}))))
 
+(defn- reported? [err]
+  (and (instance? js/Error err) (.-squintErrorReported ^js err)))
+
+(defn- compile-error-message [f err]
+  ;; ex-data :file (set by the SCI load-fn) names a transitively loaded ns when
+  ;; it differs from the file being compiled.
+  (let [{:keys [file line column]} (ex-data err)
+        loc (str (or file f) (when line (str ":" line (when column (str ":" column)))))
+        where (if (and file (not= file f)) (str f " (loading " loc ")") loc)]
+    (str "[squint] Error while compiling " where ": " (.-message ^js err))))
+
 (defn- annotate-compile-error
-  ;; Report where a compile failed and why, then rethrow. Prints a single
-  ;; friendly line (stack is cached at throw time, so we print rather than mutate
-  ;; .message) and tags the error so the top-level catch exits without letting
-  ;; node dump the raw ExceptionInfo (its CLJS .data map is noise). The ex-data
-  ;; :file (set by the SCI load-fn) names the ns actually loading when the error
-  ;; hit - e.g. a transitive require of the macro ns being scanned - and the
-  ;; :line/:column belong to that file, not the top-level `f`.
+  ;; Print a friendly location line once, mark the error reported, rethrow.
   [f err]
-  (when-not (and (instance? js/Error err) (.-squintCompileFile ^js err))
-    (when (instance? js/Error err)
-      (set! (.-squintCompileFile ^js err) f))
-    (let [{:keys [file line column]} (when (instance? js/Error err) (ex-data err))
-          err-file (or file f)
-          loc (str err-file (when line (str ":" line (when column (str ":" column)))))
-          msg (if (instance? js/Error err) (.-message err) (str err))
-          where (if (and file (not= file f))
-                  (str f " (loading " loc ")")
-                  loc)]
-      (js/console.error (str "[squint] Error while compiling " where ": " msg))))
+  (when (and (instance? js/Error err) (not (.-squintErrorReported ^js err)))
+    (set! (.-squintErrorReported ^js err) true)
+    (js/console.error (compile-error-message f err)))
   (throw err))
 
 (defn- exit-on-compile-error
-  ;; Terminate a failed compile without node dumping the raw CLJS ExceptionInfo.
-  ;; annotate-compile-error already printed a friendly line and tagged the error;
-  ;; an untagged error (thrown outside the per-file catch) is printed here.
+  ;; Exit non-zero. Print a fallback line for an error not already reported.
   [err]
-  (when-not (and (instance? js/Error err) (.-squintCompileFile ^js err))
+  (when-not (reported? err)
     (binding [*print-fn* *print-err-fn*]
-      (println (str "Error: " (if (instance? js/Error err) (.-message err) err)))))
+      (println (str "Error: " (if (instance? js/Error err) (.-message ^js err) err)))))
   (cli/*exit-fn* {:exit 1}))
 
 (defn compile-files
@@ -171,12 +166,11 @@
                                 (if (and (contains? #{"add" "change"} event)
                                          (contains? #{".cljs" ".cljc"} (path/extname path)))
                                   (-> (compile-files opts [path])
-                                      ;; annotate-compile-error already printed a
-                                      ;; friendly line for a tagged compile error;
-                                      ;; keep watching, only surface anything else.
+                                      ;; a reported compile error already printed
+                                      ;; a friendly line; keep watching, only
+                                      ;; surface anything else.
                                       (.catch (fn [e]
-                                                (when-not (and (instance? js/Error e)
-                                                               (.-squintCompileFile ^js e))
+                                                (when-not (reported? e)
                                                   (js/console.error e)))))
                                   (copy-file copy-resources path output-dir paths)))))))))))))
 
