@@ -73,6 +73,9 @@ need the extra performance, startup time and/or small bundle size.
   and `js/await` are still accepted.
 - `assoc!`, `dissoc!`, `conj!`, etc. perform in place mutation on objects
 - `assoc`, `dissoc`, `conj`, etc. return a new shallow copy of objects
+- `equiv` compares by identity or `-equiv`, unlike `=`, which deep-compares
+  plain data. `hash` follows `equiv`: plain mutable objects and arrays hash
+  by reference
 - `pr-str` and `prn` print EDN with the idea that you can paste the output back into your programs
   - JavaScript `Map`s are printed like maps with a `#js/Map` prefix
 - Since JavaScript only supports strings for keys in maps, any data structures used as keys will be stringified

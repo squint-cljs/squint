@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+- `clojure.set` dispatches through the collection protocols: results keep the input's type, membership tests against a protocol set are value-based, and `rename-keys`/`map-invert` no longer mutate a record
+- Add the `IStack`, `IIndexed`, `IVector`, `IWriter` and `IPrintWithWriter` protocols, `write-all`, and an `ITransientVector` `-pop!` slot; `nth`, `peek`, `pop`, `pop!`, `subvec`, `vec`, `vector?`, `sequential?`, `set?`, `map?`, `seq`, `=` and printing dispatch to custom collection types
+- Add `equiv`, `hash`, `hash-ordered-coll`, `hash-unordered-coll` and the `IHash` protocol. `hash` follows `equiv`: plain mutable objects and arrays hash by reference
+- Add the `IEncodeJS` protocol; `clj->js` dispatches through it so a custom type controls its own conversion
+- Add the `IMeta` and `IWithMeta` protocols; `meta` and `with-meta` dispatch through them and the internal meta symbol property is gone
 - Add `:require-global` and `:refer-global` to `ns`, binding globals loaded via a script tag to consts without emitting an import
 - The CLI reports the file, line and column of a compile error and exits non-zero, instead of dumping the raw exception
 - Support `:as-alias` in `ns` `:require` like CLJS: no runtime import, only a compile-time alias so a namespaced keyword such as `::alias/x` resolves

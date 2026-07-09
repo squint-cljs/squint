@@ -64,8 +64,8 @@ function dequal(foo, bar) {
   if (bar == null) return false;
   // -equiv dispatches on the left argument, like CLJS =
   if (typeof foo === 'object' && foo[IEquiv__equiv] !== undefined) return !!foo[IEquiv__equiv](foo, bar);
-  // = is symmetric: when only the right side has -equiv (e.g. a plain object
-  // against a hamt map), dispatch on it instead
+  // when only the right side has -equiv (the left is e.g. a plain object),
+  // dispatch on it so = stays symmetric
   if (typeof bar === 'object' && bar[IEquiv__equiv] !== undefined) return !!bar[IEquiv__equiv](bar, foo);
   var ctor, len, tmp;
 
@@ -309,13 +309,8 @@ export function assoc_BANG_(m, k, v, ...kvs) {
   return m;
 }
 
-// Copies metadata from `from` onto `to` (when present) and returns `to`. Used
-// to make value-producing operations (copy, empty, conj, into) carry metadata
-// like Clojure does, instead of dropping it on the freshly built structure.
-// Metadata lives behind the IMeta/IWithMeta slots; a plain value carries
-// instance-level impls (installed by with-meta), so copying forwards the
-// slots. Kept branch-light for the hot path: reads an absent symbol property
-// (cheap, no hidden-class change) and only writes when metadata is present.
+// value-producing ops (copy, empty, conj, into) carry metadata by
+// forwarding the instance-level meta slots onto the fresh structure
 function copyMeta(from, to) {
   const f = from?.[IMeta__meta];
   if (f !== undefined) {
@@ -977,7 +972,7 @@ export function seq(x) {
   if (iter instanceof Map || iter[TYPE_TAG] === MAP_TYPE) {
     return [...iter].map(tagMapEntry);
   }
-  // an instance with -dissoc is a map rep (e.g. hamt map): same distinct seq
+  // an instance with -dissoc is a map rep: same distinct entry seq
   if (iter[IMap__dissoc] !== undefined) {
     const entries = [...iter].map(tagMapEntry);
     return entries.length === 0 ? null : entries;
@@ -1560,6 +1555,12 @@ export const ITransientMap = { __sym: Symbol('squint.core.ITransientMap') };
 export const ITransientMap__dissoc_BANG_ = Symbol('ITransientMap_-dissoc!');
 export const ITransientSet = { __sym: Symbol('squint.core.ITransientSet') };
 export const ITransientSet__disjoin_BANG_ = Symbol('ITransientSet_-disjoin!');
+// metadata protocols, like CLJS: types implement the slots, plain values
+// get instance-level impls installed by with-meta
+export const IMeta = { __sym: Symbol('squint.core.IMeta') };
+export const IMeta__meta = Symbol('IMeta_-meta');
+export const IWithMeta = { __sym: Symbol('squint.core.IWithMeta') };
+export const IWithMeta__with_meta = Symbol('IWithMeta_-with-meta');
 // hashing (Murmur3, like CLJS). The contract: (= a b) implies (hash a) ===
 // (hash b), where = is dequal. None of this is referenced by =, so bundles
 // that only compare pay nothing.
@@ -1570,6 +1571,31 @@ export const ITransientSet__disjoin_BANG_ = Symbol('ITransientSet_-disjoin!');
 // IHash: a custom type opts into value hashing
 export const IHash = { __sym: Symbol('squint.core.IHash') };
 export const IHash__hash = Symbol('IHash_-hash');
+
+// the equality hashed collections key by: identical or -equiv, never a
+// deep compare like =
+export function equiv(x, y) {
+  if (x === y) return true;
+  if (x == null) return y == null;
+  if (y == null) return false;
+  if (x[IEquiv__equiv] !== undefined) return !!x[IEquiv__equiv](x, y);
+  if (y[IEquiv__equiv] !== undefined) return !!y[IEquiv__equiv](y, x);
+  if (x instanceof Date && y instanceof Date) return x.getTime() === y.getTime();
+  return false;
+}
+
+// identity uid for reference-keyed values, like CLJS goog/getUid
+const UIDS = /* @__PURE__ */ new WeakMap();
+let uidCounter = 0;
+
+function uid(o) {
+  let id = UIDS.get(o);
+  if (id === undefined) {
+    id = ++uidCounter;
+    UIDS.set(o, id);
+  }
+  return id;
+}
 
 const imul = Math.imul;
 const M3_C1 = 0xcc9e2d51 | 0;
@@ -1674,6 +1700,8 @@ function hashMapEntries(entries) {
   return mixCollectionHash(h, n);
 }
 
+// (equiv a b) implies (hash a) === (hash b): plain mutable data hashes by
+// uid, a type with -equiv but no -hash gets a structural entry hash
 export function hash(o) {
   if (o == null) return 0;
   switch (typeof o) {
@@ -1690,34 +1718,33 @@ export function hash(o) {
       return m3HashInt(hashString(o));
     case 'bigint':
       return Number(o % 2147483647n) | 0;
+    case 'function':
+      return uid(o) | 0;
     case 'object':
       break;
     default:
-      // functions and JS symbols only compare by identity; a constant hash
-      // is consistent (all collide into one bucket, resolved by =)
+      // JS symbols compare by identity; a constant hash is consistent
       return 0;
   }
   if (o[IHash__hash] !== undefined) return o[IHash__hash](o) | 0;
   if (o instanceof Date) return o.valueOf() | 0;
-  // set rep (js/Set or SortedSet): unordered elements
-  if (isSetLike(o)) return hash_unordered_coll(o);
-  // map rep (js/Map or SortedMap): unordered entries, entry = ordered [k v]
-  if (o instanceof Map || o[TYPE_TAG] === MAP_TYPE) return hashMapEntries(o.entries());
-  if (isObj(o) || o.constructor === undefined) return hashMapEntries(Object.entries(o));
-  // any other iterable (vector, list, lazy seq, range): ordered, consistent
-  // with = treating them as sequences
-  if (o[Symbol.iterator]) return hash_ordered_coll(o);
-  // a class instance without IHash: own enumerable props, like ='s tail
-  return hashMapEntries(Object.entries(o));
+  if (o[IEquiv__equiv] !== undefined) return hashMapEntries(Object.entries(o));
+  return uid(o) | 0;
 }
 
-// metadata protocols, like CLJS IMeta/IWithMeta: the only metadata
-// mechanism. Types implement the slots; plain values get instance-level
-// impls installed by with-meta.
-export const IMeta = { __sym: Symbol('squint.core.IMeta') };
-export const IMeta__meta = Symbol('IMeta_-meta');
-export const IWithMeta = { __sym: Symbol('squint.core.IWithMeta') };
-export const IWithMeta__with_meta = Symbol('IWithMeta_-with-meta');
+// printing protocols, like CLJS: a type prints itself through
+// (-pr-writer [obj writer opts]), writing strings via (-write writer s)
+export const IWriter = { __sym: Symbol('squint.core.IWriter') };
+export const IWriter__write = Symbol('IWriter_-write');
+export const IPrintWithWriter = { __sym: Symbol('squint.core.IPrintWithWriter') };
+export const IPrintWithWriter__pr_writer = Symbol('IPrintWithWriter_-pr-writer');
+export function _write(writer, s) {
+  if (writer != null && writer[IWriter__write] !== undefined) return writer[IWriter__write](writer, s);
+  return nilImpl(_write, 'IWriter.-write', writer)(writer, s);
+}
+export function write_all(writer, ...ss) {
+  for (const s of ss) _write(writer, s);
+}
 // vector-facing protocols, dispatched like the map-facing set above
 export const IStack = { __sym: Symbol('squint.core.IStack') };
 export const IStack__peek = Symbol('IStack_-peek');
@@ -1729,8 +1756,8 @@ export const ITransientVector__pop_BANG_ = Symbol('ITransientVector_-pop!');
 // marker protocol: a non-array type that counts as a vector (vector?,
 // sequential?, vec, subvec route through it)
 export const IVector = { __sym: Symbol('squint.core.IVector') };
-// a type converts itself in clj->js through this slot, like CLJS IEncodeJS.
-// The impl receives (x, recur) where recur is cycle-safe clj->js.
+// a type converts itself in clj->js through this slot, like CLJS IEncodeJS;
+// the impl receives (x, recur) with recur a cycle-safe clj->js
 export const IEncodeJS = { __sym: Symbol('squint.core.IEncodeJS') };
 export const IEncodeJS__clj__GT_js = Symbol('IEncodeJS_-clj->js');
 // marker protocol set by defrecord
@@ -1906,8 +1933,7 @@ export class Atom {
 export function atom(init, ...opts) {
   const a = new Atom(init);
   for (let i = 0; i < opts.length; i += 2) {
-    // IMeta only, like CLJS Atom; no IWithMeta, which keeps the with-meta
-    // copy machinery out of atom-only bundles
+    // IMeta only, like CLJS Atom: keeps with-meta's copy machinery out of atom-only bundles
     if (opts[i] === 'meta') {
       const mv = opts[i + 1];
       a[IMeta__meta] = () => mv;
@@ -3839,23 +3865,20 @@ export function neg_int_QMARK_(x) {
 }
 
 export function meta(x) {
-  if (x instanceof Object && x[IMeta__meta] !== undefined) {
+  if (x != null && x[IMeta__meta] !== undefined) {
     return x[IMeta__meta](x);
   }
   return null;
 }
 
 export function with_meta(x, m) {
-  // a type-level impl (e.g. an immutable collection) wins; a plain value
-  // gets a copy with instance-level impls installed
   if (x != null && x[IWithMeta__with_meta] !== undefined) {
     return x[IWithMeta__with_meta](x, m);
   }
   return with_meta_copy(x, m);
 }
 
-// instance-level IMeta/IWithMeta: the meta value lives in the closure, so
-// there is no separate meta property to manage
+// instance-level impls for a plain value; the meta lives in the closure
 function installMeta(x, m) {
   x[IMeta__meta] = () => m;
   x[IWithMeta__with_meta] = with_meta_copy;
@@ -4592,9 +4615,11 @@ function toEDN(value, seen = new WeakSet(), readably = true) {
         result = `(${mapv((v) => `${toEDN(v, seen, readably)}`, value).join(', ')})`;
         break;
       default:
-        // a type can print itself through this hook (e.g. hamt map)
-        if (typeof value.squint$lang$edn === 'function') {
-          result = value.squint$lang$edn((v) => toEDN(v, seen, readably));
+        if (value[IPrintWithWriter__pr_writer] !== undefined) {
+          let buf = '';
+          const writer = { [IWriter__write]: (_w, s) => (buf += s), [IWriter.__sym]: true };
+          value[IPrintWithWriter__pr_writer](value, writer, { readably: readably });
+          result = buf;
           break;
         }
         if (value[IRecord.__sym] !== undefined) {

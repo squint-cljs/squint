@@ -10,7 +10,6 @@
    [squint.dce-test]
    [squint.edn-test]
    [squint.html-test]
-   [squint.immutable-test]
    [squint.jsx-test]
    [squint.lazy-memory-test]
    [squint.math-test]
@@ -1172,13 +1171,13 @@ with `backticks`")))]
 (deftest refer-shadows-core-tag-test
   (testing "a :refer that shadows a tagged-return core fn disables get inlining"
     (is (str/includes?
-         (jss! "(ns foo (:require [squint.immutable :refer [hash-map]])) (get (hash-map 1 2) 1)")
+         (jss! "(ns foo (:require [\"my-maps\" :refer [hash-map]])) (get (hash-map 1 2) 1)")
          "squint_core.get"))
     (is (str/includes?
-         (jss! "(ns foo #?(:squint (:refer-clojure :exclude [hash-map])) #?(:squint (:require [squint.immutable :refer [hash-map]]))) (get (hash-map 1 2) 1)")
+         (jss! "(ns foo (:refer-clojure :exclude [hash-map]) (:require [\"my-maps\" :refer [hash-map]])) (get (hash-map 1 2) 1)")
          "squint_core.get"))
     (is (str/includes?
-         (jss! "(ns foo (:require [squint.immutable :refer [hash-map]])) (def m (hash-map 1 2)) (get m 1)")
+         (jss! "(ns foo (:require [\"my-maps\" :refer [hash-map]])) (def m (hash-map 1 2)) (get m 1)")
          "squint_core.get")))
   (testing ":refer-clojure :exclude alone disables the core var"
     (is (not (str/includes?
@@ -3437,6 +3436,38 @@ globalThis.foo.fs = fs;")))))
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s)))))))
+       (testing "rename-keys and map-invert do not mutate a record (slot-map)"
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
+                        (defrecord R [a b])
+                        (def r (->R 1 2))
+                        (def renamed (set/rename-keys r {:a :x}))
+                        (def inverted (set/map-invert {:a 1}))
+                        (and (= 1 (:a r)) (nil? (:x r))
+                             (= 1 (:x renamed)) (= 2 (:b renamed))
+                             (= {1 :a} inverted))" {:repl true
+                                                    :elide-exports true
+                                                    :context :return})
+                 v (js/eval (wrap-async js))]
+           (is (true? v))))
+       (testing "a protocol set without transients works through the ops"
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
+                        (deftype PS [xs]
+                          ISet (-disjoin [_ x] (->PS (vec (remove (fn [e] (= e x)) xs))))
+                          ICollection (-conj [_ x] (if (some (fn [e] (= e x)) xs) (->PS xs) (->PS (conj xs x))))
+                          ICounted (-count [_] (count xs))
+                          ISeqable (-seq [_] (seq xs))
+                          IAssociative (-contains-key? [_ x] (boolean (some (fn [e] (= e x)) xs)))
+                          IEmptyableCollection (-empty [_] (->PS []))
+                          IEquiv (-equiv [_ other] (= (set xs) other)))
+                        (defn ps [& xs] (reduce conj (->PS []) xs))
+                        (and (= #{1 2 3} (set/union (ps 1 2) (ps 2 3)))
+                             (= 2 (count (set/intersection (ps 1 2 3) (ps 2 3 4))))
+                             (= 2 (count (set/difference (ps 1 2 3) (ps 2))))
+                             (set/subset? (ps [1 2]) (ps [1 2] [3])))" {:repl true
+                                                                        :elide-exports true
+                                                                        :context :return})
+                 v (js/eval (wrap-async js))]
+           (is (true? v))))
        (testing "project"
          (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                         [(set/project #{ {:a 1, :b 2, :c 3} {:a 4, :b 5, :c 6} } [:a :b])
@@ -4110,6 +4141,75 @@ new Foo();")
     (testing "no truth check"
       (is (str/includes? s "if (y1)")))))
 
+(deftest custom-collection-protocols-test
+  (testing "a deftype can act as a vector through the protocol slots"
+    (is (true? (jsv! "(do (deftype V [xs]
+                            IVector
+                            ICounted (-count [_] (count xs))
+                            IEmptyableCollection (-empty [_] (->V []))
+                            ICollection (-conj [_ x] (->V (conj xs x)))
+                            IIndexed (-nth [_ n nf] (if (< n (count xs)) (nth xs n) nf))
+                            IStack (-peek [_] (last xs)) (-pop [_] (->V (vec (butlast xs)))))
+                          (let [v (->V [1 2 3])]
+                            (and (vector? v) (sequential? v) (not (vector? {}))
+                                 (= 2 (nth v 1)) (= :nf (nth v 9 :nf))
+                                 (= 3 (peek v)) (= 2 (count (pop v)))
+                                 (= 2 (count (subvec v 1)))
+                                 (= 3 (nth (subvec v 1) 1 nil)))))"))))
+  (testing "a deftype can act as a map: map?, symmetric = and IPrintWithWriter"
+    (is (true? (jsv! "(do (deftype M [o]
+                            IMap (-dissoc [_ k] (->M (dissoc o k)))
+                            ICounted (-count [_] (count o))
+                            IEquiv (-equiv [_ other] (= o other))
+                            IPrintWithWriter (-pr-writer [m writer _opts] (write-all writer \"#M \" (pr-str (.-o m)))))
+                          (let [m (->M {:a 1})]
+                            (and (map? m)
+                                 (= m {:a 1}) (= {:a 1} m) (not= {:a 2} m)
+                                 (= \"#M {:a 1}\" (pr-str m)))))"))))
+  (testing "set? recognizes an ISet type"
+    (is (true? (jsv! "(do (deftype S [] ISet (-disjoin [t _] t)) (and (set? (->S)) (not (set? []))))")))))
+
+(deftest equiv-test
+  (testing "equiv is identity or -equiv; plain data compares by reference"
+    (is (true? (jsv! "(let [a [1] o {:x 1}]
+                        (and (equiv a a) (not (equiv a [1]))
+                             (equiv o o) (not (equiv o {:x 1}))
+                             (equiv 1 1) (equiv \"s\" \"s\") (equiv nil nil)
+                             (not (equiv ##NaN ##NaN))
+                             (equiv (js/Date. 5) (js/Date. 5))))")))
+    (is (true? (jsv! "(do (defrecord R [a])
+                          (and (equiv (->R 1) (->R 1))
+                               (not (equiv (->R 1) (->R 2)))))")))))
+
+(deftest hash-fn-test
+  (testing "hash follows equiv: uid for plain data, stable under mutation"
+    (is (true? (jsv! "(let [a [1 2]] (= (hash a) (hash a)))")))
+    (is (true? (jsv! "(not= (hash [1 2]) (hash [1 2]))")))
+    (is (true? (jsv! "(let [a [1] h (hash a)] (.push a 2) (= h (hash a)))")))
+    (is (true? (jsv! "(let [m {:a 1}] (= (hash m) (hash m)))")))
+    (is (true? (jsv! "(= (hash \"Aa\") (hash \"BB\"))")))
+    (is (true? (jsv! "(and (= 1231 (hash true)) (= 1237 (hash false)) (zero? (hash nil)))"))))
+  (testing "an -equiv type without -hash gets a structural hash"
+    (is (true? (jsv! "(do (defrecord R [a]) (= (hash (->R 1)) (hash (->R 1))))"))))
+  (testing "a type opts into value hashing via IHash"
+    (is (true? (jsv! "(do (deftype W [v] IHash (-hash [_] (hash v))) (let [x [1 2]] (= (hash (->W x)) (hash x))))")))))
+
+(deftest encode-js-protocol-test
+  (testing "a type converts itself in clj->js via IEncodeJS"
+    (is (true? (jsv! "(do (deftype T [] IEncodeJS (-clj->js [_] {:custom 1}))
+                          (and (= 1 (.-custom (clj->js (->T))))
+                               (= 1 (.-custom (aget (clj->js [(->T)]) 0)))))")))))
+
+(deftest meta-protocol-test
+  (testing "a type can implement IMeta/IWithMeta"
+    (is (eq {:x 1} (jsv! '(do (deftype T [m]
+                                IMeta (-meta [t] (.-m t))
+                                IWithMeta (-with-meta [t m] (->T m)))
+                              (meta (with-meta (->T nil) {:x 1})))))))
+  (testing "ops carry metadata through the instance-level impls"
+    (is (eq {:x 1} (jsv! '(meta (conj (with-meta [1] {:x 1}) 2)))))
+    (is (eq {:x 1} (jsv! '(meta (assoc (with-meta {} {:x 1}) :a 1)))))))
+
 (deftest with-meta-on-fn-test
   (testing "with-meta on a fn returns a callable carrying meta"
     (is (true? (jsv! '(let [f (fn [] :ok)
@@ -4271,5 +4371,4 @@ new Foo();")
                'squint.walk-test
                'squint.multi-test
                'squint.dce-test
-               'squint.edn-test
-               'squint.immutable-test))
+               'squint.edn-test))

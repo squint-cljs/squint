@@ -33,6 +33,8 @@
   IMap__dissoc
   IMeta
   IMeta__meta
+  IPrintWithWriter
+  IPrintWithWriter__pr_writer
   IRecord
   IReset
   IReset__reset_BANG_
@@ -63,6 +65,8 @@
   IWatchable__remove_watch
   IWithMeta
   IWithMeta__with_meta
+  IWriter
+  IWriter__write
   LazySeq
   NaN_QMARK_
   PROTOCOL_SENTINEL
@@ -103,6 +107,7 @@
   _reset_BANG_
   _seq
   _swap_BANG_
+  _write
   abs
   aclone
   add_watch
@@ -162,6 +167,7 @@
   empty
   empty_QMARK_
   ensure_reduced
+  equiv
   es6_iterator
   even_QMARK_
   every_QMARK_
@@ -395,5 +401,6 @@
   vreset_BANG_
   warn_on_lazy_reusage_BANG_
   with_meta
+  write_all
   zero_QMARK_
   zipmap}

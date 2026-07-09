@@ -2,6 +2,8 @@ import * as core from './core.js';
 import {
   ICounted__count,
   IAssociative__contains_key_QMARK_,
+  ICollection__conj,
+  ISet__disjoin,
   IEditableCollection__as_transient,
   ITransientCollection__conj_BANG_,
   ITransientCollection__persistent_BANG_,
@@ -31,16 +33,40 @@ function setHas(x, e) {
 }
 
 // fold elements into a copy of target, preserving its type: js/Set mutates a
-// copy, a persistent set goes through its transient
+// copy, a protocol set goes through its transient when it has one and folds
+// persistent -conj otherwise (a set type need not implement transients)
 function addAll(target, elems) {
   if (jsSetLike(target)) {
     const res = new Set(target);
     for (const e of elems) res.add(e);
     return res;
   }
-  let t = target[IEditableCollection__as_transient](target);
-  for (const e of elems) t = t[ITransientCollection__conj_BANG_](t, e);
-  return t[ITransientCollection__persistent_BANG_](t);
+  const es = core.iterable(elems);
+  if (target[IEditableCollection__as_transient] !== undefined) {
+    let t = target[IEditableCollection__as_transient](target);
+    for (const e of es) t = t[ITransientCollection__conj_BANG_](t, e);
+    return t[ITransientCollection__persistent_BANG_](t);
+  }
+  let res = target;
+  for (const e of es) res = res[ICollection__conj](res, e);
+  return res;
+}
+
+// remove each elem for which pred is true, preserving the set's type
+function removeWhere(xset, pred) {
+  const es = core.iterable(xset);
+  if (xset[IEditableCollection__as_transient] !== undefined) {
+    let t = xset[IEditableCollection__as_transient](xset);
+    for (const e of es) {
+      if (pred(e)) t = t[ITransientSet__disjoin_BANG_](t, e);
+    }
+    return t[ITransientCollection__persistent_BANG_](t);
+  }
+  let res = xset;
+  for (const e of es) {
+    if (pred(e)) res = res[ISet__disjoin](res, e);
+  }
+  return res;
 }
 
 function _intersection2(x, y) {
@@ -58,12 +84,8 @@ function _intersection2(x, y) {
     }
     return res;
   }
-  // persistent: disj the non-members, keeping the type and sharing
-  let t = x[IEditableCollection__as_transient](x);
-  for (const elem of x) {
-    if (!setHas(y, elem)) t = t[ITransientSet__disjoin_BANG_](t, elem);
-  }
-  return t[ITransientCollection__persistent_BANG_](t);
+  // protocol set: disj the non-members, keeping the type and sharing
+  return removeWhere(x, (elem) => !setHas(y, elem));
 }
 
 export function intersection(...xs) {
@@ -85,9 +107,15 @@ function _difference2(x, y) {
     }
     return res;
   }
-  let t = x[IEditableCollection__as_transient](x);
-  for (const elem of y) t = t[ITransientSet__disjoin_BANG_](t, elem);
-  return t[ITransientCollection__persistent_BANG_](t);
+  const ys = core.iterable(y);
+  if (x[IEditableCollection__as_transient] !== undefined) {
+    let t = x[IEditableCollection__as_transient](x);
+    for (const elem of ys) t = t[ITransientSet__disjoin_BANG_](t, elem);
+    return t[ITransientCollection__persistent_BANG_](t);
+  }
+  let res = x;
+  for (const elem of ys) res = res[ISet__disjoin](res, elem);
+  return res;
 }
 
 export function difference(...xs) {
@@ -118,7 +146,7 @@ export function union(...xs) {
 }
 
 function _subset_QMARK_2(x, y) {
-  for (const elem of x) {
+  for (const elem of core.iterable(x)) {
     if (!setHas(y, elem)) {
       return false;
     }
@@ -165,11 +193,7 @@ export function select(pred, xset) {
     }
     return res;
   }
-  let t = xset[IEditableCollection__as_transient](xset);
-  for (const elem of xset) {
-    if (!core.truth_(pred(elem))) t = t[ITransientSet__disjoin_BANG_](t, elem);
-  }
-  return t[ITransientCollection__persistent_BANG_](t);
+  return removeWhere(xset, (elem) => !core.truth_(pred(elem)));
 }
 
 // true when m is an immutable slot-map: mutate-in-place helpers would corrupt it
@@ -211,7 +235,7 @@ export function project(xrel, ...ks) {
 // an empty set of the same kind as rel (a persistent set stays persistent),
 // filled from elems
 function into_set_like(rel, elems) {
-  const empty = rel != null && !jsSetLike(rel) && rel[core.ISet__disjoin] !== undefined
+  const empty = rel != null && !jsSetLike(rel) && rel[ISet__disjoin] !== undefined
     ? core.empty(rel)
     : new Set();
   return addAll(empty, elems);
