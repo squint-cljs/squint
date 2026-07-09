@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add `hash`, `hash-ordered-coll`, `hash-unordered-coll` and the `IHash` protocol, consistent with `=`
 - Add the `IEncodeJS` protocol; `clj->js` dispatches through it so a custom type controls its own conversion
 - Add the `IMeta` and `IWithMeta` protocols; `meta` and `with-meta` dispatch through them and the internal meta symbol property is gone
 - Add `:require-global` and `:refer-global` to `ns`, binding globals loaded via a script tag to consts without emitting an import

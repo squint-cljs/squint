@@ -4109,6 +4109,18 @@ new Foo();")
     (testing "no truth check"
       (is (str/includes? s "if (y1)")))))
 
+(deftest hash-fn-test
+  (testing "hash is consistent with ="
+    (is (true? (jsv! "(= (hash [1 2 3]) (hash (list 1 2 3)) (hash (map inc [0 1 2])))")))
+    (is (true? (jsv! "(= (hash {:a 1 :b 2}) (hash {:b 2 :a 1}))")))
+    (is (true? (jsv! "(= (hash {:a 1}) (hash (js/Map. [[\"a\" 1]])))")))
+    (is (true? (jsv! "(= (hash #{1 2}) (hash #{2 1}) (hash (sorted-set 2 1)))")))
+    (is (true? (jsv! "(= (hash (sorted-map :a 1)) (hash {:a 1}))")))
+    (is (true? (jsv! "(not= (hash [\"1\"]) (hash [1]))")))
+    (is (true? (jsv! "(and (= 1231 (hash true)) (= 1237 (hash false)) (zero? (hash nil)))"))))
+  (testing "a type opts into hashing via IHash"
+    (is (true? (jsv! "(do (deftype W [v] IHash (-hash [_] (hash v))) (= (hash (->W [1 2])) (hash [1 2])))")))))
+
 (deftest encode-js-protocol-test
   (testing "a type converts itself in clj->js via IEncodeJS"
     (is (true? (jsv! "(do (deftype T [] IEncodeJS (-clj->js [_] {:custom 1}))
