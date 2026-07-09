@@ -351,13 +351,28 @@
 (defn maybe-core-var [sym env]
   (let [m (munge sym)
         ns-state @(:ns-state env)
+        ;; :excludes holds the raw symbols from (:refer-clojure :exclude ...)
         excluded (get-in ns-state [(:current ns-state) :excludes])]
     (when (and (contains? (:core-vars env) m)
-               (not (contains? excluded m)))
+               (not (contains? excluded sym)))
       (str
        (when-let [core-alias (:core-alias env)]
          (str core-alias "."))
        m))))
+
+(defn resolves-to-core?
+  "True when `sym` in this env really resolves to the squint core var: not
+  locally shadowed, not a var or refer of the current ns, not excluded.
+  Mirrors the precedence of symbol emission, which checks all of those
+  before falling back to the core var."
+  [env sym]
+  (and (symbol? sym)
+       (not (contains? (:var->ident env) sym))
+       (let [ns-state @(:ns-state env)
+             current-ns (get ns-state (:current ns-state))]
+         (and (not (contains? current-ns sym))
+              (not (contains? (:refers current-ns) sym))
+              (some? (maybe-core-var sym env))))))
 
 (defn munge-unicode
   "Replace chars host munge leaves intact but JS rejects in an identifier
@@ -808,9 +823,7 @@
         (set? init) 'set
         (vector? init) 'array
         (keyword? init) 'string
-        (and (seq? init) (symbol? (first init))
-             (not (contains? (:var->ident env) (first init)))
-             (maybe-core-var (first init) env))
+        (and (seq? init) (resolves-to-core? env (first init)))
         (fn-return-tags (first init))))
 
 (defmethod emit-special 'def [_type env [_const & more :as expr]]
@@ -1451,9 +1464,7 @@ break;}" body)
         kw? (= 'string callee-tag)
         ;; tag the result of a tagged-return core fn so a binding of it carries
         ;; the tag onward
-        ret-tag (when (and sym?
-                           (not (contains? (:var->ident env) fname))
-                           (maybe-core-var fname env))
+        ret-tag (when (and sym? (resolves-to-core? env fname))
                   (fn-return-tags fname))]
    (if (or coll? kw?)
     (emit (if coll?
