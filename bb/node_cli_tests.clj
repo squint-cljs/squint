@@ -146,6 +146,29 @@
       (is (fs/exists? (str (fs/file test-dir f)))))
     (is (not (fs/exists? (str (fs/file test-dir "other-lib/foo.json")))))))
 
+(deftest compile-error-reports-location-test
+  (fs/create-dirs (fs/file test-dir "src"))
+  (spit (fs/file test-dir "src/bad.cljs") "(ns bad)\n(defn f [)\n")
+  (let [{:keys [exit err]} (squint "compile" "src/bad.cljs")]
+    (is (= 1 exit))
+    (is (re-find #"Error while compiling .*bad\.cljs:2:\d+" err))
+    (is (str/includes? err "Unmatched delimiter"))
+    ;; friendly line only, no raw ExceptionInfo or node stack dump
+    (is (not (str/includes? err "ExceptionInfo")))
+    (is (not (str/includes? err "cljs-runtime")))))
+
+(deftest compile-error-reports-transitive-macro-location-test
+  (fs/create-dirs (fs/file test-dir "src"))
+  (spit (fs/file test-dir "src/badmac.cljc")
+        "(ns badmac)\n(defmacro m [x] (list 'inc x))\n(defn boom [ )\n")
+  (spit (fs/file test-dir "src/main.cljs")
+        "(ns main (:require [badmac :refer [m]]))\n(m 1)\n")
+  (let [{:keys [exit err]} (squint "compile" "src/main.cljs")]
+    (is (= 1 exit))
+    ;; the failure is inside the transitively loaded macro ns, not the compiled file
+    (is (re-find #"Error while compiling .*main\.cljs \(loading .*badmac\.cljc:3:\d+\)" err))
+    (is (str/includes? err "Unmatched delimiter"))))
+
 (defn run-tests [_]
   (let [{:keys [fail error]}
         (t/run-tests 'node-cli-tests)]
