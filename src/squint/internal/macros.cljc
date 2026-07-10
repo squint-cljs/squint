@@ -838,3 +838,25 @@
 
 (core/defmacro core-some? [x]
   `(not (nil? ~x)))
+
+(defn- imm-call [js-name args]
+  (let [tmpl (str "squint_imm." js-name "("
+                  (str/join ", " (repeat (count args) "~{}"))
+                  ")")]
+    `(~'js* ~tmpl ~@args)))
+
+;; deep: nested collection literals convert too, expressions stay values
+(defn- imm-expand [form]
+  (cond
+    (map? form) (imm-call "hash_map" (mapcat (fn [[k v]] [(imm-expand k) (imm-expand v)]) form))
+    (vector? form) (imm-call "vector" (map imm-expand form))
+    (set? form) (imm-call "hash_set" (map imm-expand form))
+    :else form))
+
+(defn core-imm
+  [_&form env form]
+  (when-not (or (map? form) (vector? form) (set? form))
+    (throw (ex-info "imm expects a map, vector or set literal" {:form form})))
+  (when-let [atm (:need-imm-import env)]
+    (reset! atm true))
+  (imm-expand form))

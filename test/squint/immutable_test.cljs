@@ -61,6 +61,26 @@
       (is (map-entry? (first (seq (i/hash-map :a 1)))))
       (is (= [:a 1] (first (i/hash-map :a 1))))))
 
+(deftest-eval imm-literal-test
+  (do (ns foo (:require [squint.immutable :as i]
+                        [cljs.test :refer [is]]))
+      (def m (imm {:a 1 :b {:x [1 2]} [3 4] :composite}))
+      (is (i/hash-map? m))
+      (is (= 1 (:a m)))
+      (is (i/hash-map? (:b m)))
+      (is (i/vector? (:x (:b m))))
+      (is (= :composite (get m (imm [3 4]))))
+      (is (nil? (get m [3 4])))
+      (is (= (imm {:a 1 :b [2]}) (imm {:b [2] :a 1})))
+      (is (not (= {:a 1} (imm {:a 1}))))
+      (is (i/hash-set? (imm #{1 2})))
+      (is (contains? (imm #{[1 2]}) (imm [1 2])))))
+
+(deftest-eval imm-no-require-test
+  (do (ns foo (:require [cljs.test :refer [is]]))
+      (is (= 1 (get (imm {:a 1}) :a)))
+      (is (= 3 (count (imm [1 2 3]))))))
+
 (deftest-eval key-edge-cases-test
   (do (ns foo (:require [squint.immutable :as i]
                         [cljs.test :refer [is]]))

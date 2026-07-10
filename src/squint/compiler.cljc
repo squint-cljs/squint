@@ -108,6 +108,7 @@
                              'assoc! macros/assoc!-inline
                              'get macros/get-inline
                              'vswap! macros/vswap!
+                             'imm macros/core-imm
                              'defmulti multi/core-defmulti
                              'defmethod multi/core-defmethod
                              'get-method multi/core-get-method
@@ -517,6 +518,7 @@
              need-html-import (atom false)
              need-multi-import (atom false)
              need-record-import (atom false)
+             need-imm-import (atom false)
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
              jsx-runtime (:jsx-runtime opts)
@@ -539,7 +541,8 @@
                                                         :pragmas pragmas
                                                         :need-html-import need-html-import
                                                         :need-multi-import need-multi-import
-                                                        :need-record-import need-record-import))
+                                                        :need-record-import need-record-import
+                                                        :need-imm-import need-imm-import))
                  jsx (:jsx @(:ns-state opts))
                  _ (when (and jsx jsx-runtime)
                      (let [jsx-name (str "jsx" (if jsx-dev "DEV" ""))
@@ -577,6 +580,13 @@
                               (if repl?
                                 (format "var squint_record = await import('%s');\n" record-pkg)
                                 (format "import * as squint_record from '%s';\n" record-pkg)))))
+                 _ (when @need-imm-import
+                     (swap! imports str
+                            (let [imm-pkg "squint-cljs/src/squint/immutable.js"
+                                  imm-pkg (get import-maps imm-pkg imm-pkg)]
+                              (if repl?
+                                (format "var squint_imm = await import('%s');\n" imm-pkg)
+                                (format "import * as squint_imm from '%s';\n" imm-pkg)))))
                  pragmas (:js @pragmas)
                  imports (when-not elide-imports @imports)
                  public-vars (get-in @(:ns-state opts) [(cc/current-ns opts) :vars] #{})

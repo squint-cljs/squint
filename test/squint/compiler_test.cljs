@@ -1372,6 +1372,16 @@ with `backticks`")))]
   (is (eq [1 "b"] (jsv! '(find ["a" "b"] 1))))
   (is (nil? (jsv! '(find ["a" "b"] 5)))))
 
+(deftest imm-macro-test
+  (is (str/includes? (jss! "(imm {:a 1})") "squint_imm.hash_map"))
+  (is (str/includes? (jss! "(imm [1 (inc 1) {:a #{1}}])") "squint_imm.vector"))
+  (testing "get on an imm form stays a runtime call"
+    (is (str/includes? (jss! "(get (imm {:a 1}) :a)") "squint_core.get")))
+  (is (jsv! "(= 1 (get (imm {:a 1}) :a))"))
+  (is (jsv! "(= (imm {:a [1]}) (imm {:a [1]}))"))
+  (is (thrown? js/Error (jss! "(imm 1)")))
+  (is (thrown? js/Error (jss! "(imm (foo))"))))
+
 (deftest first-test
   (is (nil? (jsv! '(first nil))))
   (is (nil? (jsv! '(first []))))

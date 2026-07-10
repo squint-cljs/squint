@@ -4,6 +4,7 @@
    ["squint-cljs/core.js" :as cl]
    ["squint-cljs/string.js" :as clstr]
    ["squint-cljs/src/squint/record.js" :as clrecord]
+   ["squint-cljs/src/squint/immutable.js" :as climm]
    [clojure.test :as t]
    [squint.compiler :as squint]))
 
@@ -33,6 +34,11 @@
   (aset js/globalThis "squint_record" mut)
   (doseq [k (js/Object.keys clrecord)]
     (aset mut k (aget clrecord k))))
+
+(let [mut #js {}]
+  (aset js/globalThis "squint_imm" mut)
+  (doseq [k (js/Object.keys climm)]
+    (aset mut k (aget climm k))))
 
 (defn eq
   ([a b]
