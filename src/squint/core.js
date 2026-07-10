@@ -17,14 +17,28 @@ class Keyword {
   }
 }
 
+// interning holds keywords weakly, like Clojure's keyword table: identity is
+// only needed among live instances (a collected keyword cannot sit in any
+// live collection or switch dispatch), so a dead entry may be re-interned as
+// a fresh instance later
 const keywordCache = new Map();
+
+const keywordRegistry = new FinalizationRegistry((fqn) => {
+  const ref = keywordCache.get(fqn);
+  // the same fqn may have been re-interned by the time this fires
+  if (ref !== undefined && ref.deref() === undefined) keywordCache.delete(fqn);
+});
+
+function internedKeyword(fqn) {
+  return keywordCache.get(fqn)?.deref();
+}
 
 // the other representation of a keyword/string key, for Set/Map lookups that
 // must follow = (a keyword equals its name string): a string maps to its
-// interned keyword (if none was ever interned, no collection can hold it), a
-// keyword to its fqn string
+// interned keyword (if none is live, no collection can hold it), a keyword
+// to its fqn string
 function altKey(k) {
-  if (typeof k === 'string') return keywordCache.get(k);
+  if (typeof k === 'string') return internedKeyword(k);
   if (k instanceof Keyword) return k.fqn;
   return undefined;
 }
@@ -3814,10 +3828,11 @@ export function keyword(arg1, arg2) {
   if (arg1 instanceof Keyword) return arg1;
   const fqn = arg2 !== undefined ? (arg1 != null ? arg1 + '/' : '') + arg2 : arg1;
   if (fqn == null) return null;
-  let kw = keywordCache.get(fqn);
+  let kw = internedKeyword(fqn);
   if (kw === undefined) {
     kw = new Keyword(fqn);
-    keywordCache.set(fqn, kw);
+    keywordCache.set(fqn, new WeakRef(kw));
+    keywordRegistry.register(kw, fqn);
   }
   return kw;
 }
