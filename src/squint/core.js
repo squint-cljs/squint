@@ -17,6 +17,18 @@ class Keyword {
   }
 }
 
+const keywordCache = new Map();
+
+// the other representation of a keyword/string key, for Set/Map lookups that
+// must follow = (a keyword equals its name string): a string maps to its
+// interned keyword (if none was ever interned, no collection can hold it), a
+// keyword to its fqn string
+function altKey(k) {
+  if (typeof k === 'string') return keywordCache.get(k);
+  if (k instanceof Keyword) return k.fqn;
+  return undefined;
+}
+
 // __toFn is not public API - the leading underscores mark it as an
 // implementation helper shared with other squint runtime modules
 // (e.g. multi.js). Signature and semantics may change without notice.
@@ -738,8 +750,11 @@ export function contains_QMARK_(coll, v) {
   }
   switch (typeConst(coll)) {
     case SET_TYPE:
-    case MAP_TYPE:
-      return coll.has(v);
+    case MAP_TYPE: {
+      if (coll.has(v)) return true;
+      const a = altKey(v);
+      return a !== undefined && coll.has(a);
+    }
     case undefined:
       return false;
     case INSTANCE_TYPE:
@@ -877,12 +892,22 @@ export function get(coll, key, otherwise = undefined) {
   }
   let g;
   switch (typeConst(coll)) {
-    case SET_TYPE:
+    case SET_TYPE: {
       if (coll.has(key)) v = key;
+      else {
+        const a = altKey(key);
+        if (a !== undefined && coll.has(a)) v = a;
+      }
       break;
-    case MAP_TYPE:
+    }
+    case MAP_TYPE: {
       v = coll.get(key);
+      if (v === undefined) {
+        const a = altKey(key);
+        if (a !== undefined) v = coll.get(a);
+      }
       break;
+    }
     case ARRAY_TYPE:
       v = coll[key];
       break;
@@ -3782,8 +3807,6 @@ Keyword.prototype[IHash__hash] = (self) => m3HashInt(hashString(self.fqn));
 
 Keyword.prototype[IPrintWithWriter__pr_writer] = (self, writer, _opts) =>
   writer[IWriter__write](writer, ':' + self.fqn);
-
-const keywordCache = new Map();
 
 // (keyword name), (keyword ns name) or (keyword kw); interns so identical
 // keywords are reference-equal (===, native Map/Set keys, switch labels)
