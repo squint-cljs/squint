@@ -899,6 +899,16 @@
   (is (false? (jsv! '(coll? "s"))))
   (is (false? (jsv! '(coll? 1)))))
 
+(deftest keyword-set-string-key-test
+  ;; replicant render-attrs pattern: string keys from an object probed
+  ;; against a keyword set literal
+  (is (true? (jsv! "(contains? #{:on :innerHTML} (first (js/Object.keys #js {:on 1})))")))
+  (is (false? (jsv! "(contains? #{:on :innerHTML} (first (js/Object.keys #js {:class \"x\"})))")))
+  (is (eq ["on"] (jsv! "(vec (filter #{:on :innerHTML} (js/Object.keys #js {:on 1 :class \"x\"})))")))
+  (is (eq ["a"] (jsv! '(vec (filter #{:a} (keys {:a 1 :b 2}))))))
+  ;; and the reverse: keyword probe against string members
+  (is (true? (jsv! "(contains? (set (js/Object.keys #js {:on 1})) :on)"))))
+
 (deftest coll-call-test
   (is (eq :bar (jsv! '({:foo :bar} :foo))))
   (is (eq :the-default (jsv! '({:foo :bar} :default :the-default))))
