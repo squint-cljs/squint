@@ -108,7 +108,7 @@ destructuring on a JS object work, `(get m :type)` indexes by name. What
 breaks is comparison: a squint fn doing `(= (:type m) :click)` or a `case`
 on it gets the JS string `"click"` and misses, where the old
 representation matched. Squint code consumed from JS must normalize at the
-boundary (`(keyword (:type m))`) or compare with strings.
+boundary (`(keyword (:type m))`) or compare with strings. NOTE MB: not great
 
 Squint data out to JS. A keyword value reaching JS is an object, not a
 string: `v === "click"` and `switch (v) { case "click": ... }` miss.
