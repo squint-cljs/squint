@@ -35,8 +35,18 @@
     (emit (subs (str expr) 1) env)
     ;; an interned keyword object, tagged 'keyword so = goes through _EQ_
     ;; (the equiv shim also matches the name string)
-    (-> (str (when-let [ca (:core-alias env)] (str ca "."))
-             "kw(" (pr-str (subs (str expr) 1)) ")")
+    (-> (let [fqn (subs (str expr) 1)]
+          ;; a module hoists each distinct keyword literal into one
+          ;; module-level const; the REPL keeps inline interning calls
+          (if-let [st (and (:hoist-keywords env) (:ns-state env))]
+            (let [st* (swap! st update :keyword-consts
+                             (fn [m]
+                               (if (contains? m fqn)
+                                 m
+                                 (assoc m fqn (str "_kw_" (inc (count m)))))))]
+              (get-in st* [:keyword-consts fqn]))
+            (str (when-let [ca (:core-alias env)] (str ca "."))
+                 "kw(" (pr-str fqn) ")")))
         (emit-return env)
         (cc/tagged-expr 'keyword))))
 
@@ -539,9 +549,13 @@
            ;; :current must be set before the first form (e.g. a REPL eval in ns
            ;; X, or the next form in a session). A leading (ns ..) form updates it.
            (swap! (:ns-state opts) assoc :current (:ns opts 'user))
+           ;; keyword consts are per compiled module: reset so ids hoisted in a
+           ;; previously compiled file are not assumed present in this one
+           (swap! (:ns-state opts) assoc :keyword-consts {})
            (let [transpiled (transpile* s (assoc opts
                                                         :core-alias core-alias
                                                         :imports imports
+                                                        :hoist-keywords (not repl?)
                                                         :jsx false
                                                         :pragmas pragmas
                                                         :need-html-import need-html-import
@@ -607,7 +621,15 @@
                                                              v))
                                                          vars))))))
                             (when (contains? public-vars "default$")
-                              "export default default$\n")))]
+                              "export default default$\n")))
+                 kw-consts (when-let [ks (not-empty (:keyword-consts @(:ns-state opts)))]
+                             (str (str/join "\n"
+                                            (map (fn [[fqn id]]
+                                                   (str "const " id " = " core-alias
+                                                        ".kw(" (pr-str fqn) ");"))
+                                                 (sort-by val ks)))
+                                  "\n"))
+                 transpiled (str kw-consts transpiled)]
              (assoc opts
                     :pragmas pragmas
                     :imports imports

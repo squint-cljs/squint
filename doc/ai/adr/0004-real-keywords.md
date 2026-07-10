@@ -293,7 +293,7 @@ and taxes whichever module runs second).
 | `contains?` `#{:on :x}` with `:on` (hit) | 5.6 ns | 5.4 ns |
 | `contains?` `#{:on :x}` with `:absent` (miss) | 4.5 ns | 8.9 ns |
 | `contains?` `#{:on :x}` probed with object keys (cross-rep) | 8.4 ns | 24.4 ns |
-| torture loop (1M x map literal + get + = + case + keys) | 30 ms | 151 ms |
+| torture loop (1M x map literal + get + = + case + keys) | 30 ms | 82 ms |
 | reagami render benchmark | ~253 ms | ~255 ms |
 
 `get(m, :type)` was 25ns before the cached-name fast path: property
@@ -314,11 +314,13 @@ terms a render-shaped loop doing 1.6M attr passes (filter check plus a
 cross-representation js/Map get) takes 56ms, ~35ns per attribute:
 sub-microsecond per rendered frame at replicant scale.
 
-The torture-loop gap is dominated by inline `kw("a")` interning calls
-per literal evaluation (~17ns each, several per iteration): the
-module-const hoisting built on the POC branch is not ported yet and
-removes most of it. The reagami row is the real-workload
-counter-evidence: DOM diffing amortizes keyword ops to nothing.
+Each distinct keyword literal hoists to one module-level
+`const _kw_1 = squint_core.kw("a");`, so a literal in a hot path is a
+const reference (the REPL keeps inline calls, top-level consts do not
+survive re-eval). That took the torture loop from 151ms to 82ms. The
+remaining gap over main is `keys` allocation and `_EQ_` routing. The
+reagami row is the real-workload counter-evidence: DOM diffing amortizes
+keyword ops to nothing.
 
 Other costs, honestly: `=` against a string literal routes through `_EQ_`
 when the other side is untagged (~20ns against ~1ns for `===`). JS
