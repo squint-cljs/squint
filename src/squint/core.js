@@ -9,7 +9,7 @@ function internedKeyword(fqn) {
 // (e.g. multi.js). Signature and semantics may change without notice.
 export function __toFn(x) {
   if (x == null || typeof x === 'function') return x;
-  if (typeof x === 'string' || x instanceof Keyword) return (coll, d) => get(coll, x, d);
+  if (typeof x === 'string' || isKw(x)) return (coll, d) => get(coll, x, d);
   // a value is callable as a lookup only if it is a collection or a custom
   // type implementing ILookup; a seq, list or opaque object throws when
   // called, like a non-IFn in CLJS
@@ -383,9 +383,16 @@ const LAZY_ITERABLE_TYPE = 6;
 // a class instance or null-prototype object: the extension point for the
 // map-facing protocols. Plain objects keep the OBJECT_TYPE fast path.
 const INSTANCE_TYPE = 7;
+const KEYWORD_TYPE = 8;
 
 // type tag set in each collection ctor, read by typeConst (DCE: no instanceof).
 const TYPE_TAG = Symbol('squint.lang.type');
+
+// brand check, not instanceof: generic fns (get, typeConst, compare, ...)
+// must not reference the Keyword class or every bundle would retain it
+function isKw(x) {
+  return x != null && x[TYPE_TAG] === KEYWORD_TYPE;
+}
 const SORTED_TAG = Symbol('squint.lang.sorted');
 
 // @__NO_SIDE_EFFECTS__ lets a bundler drop unused defclass/withApply calls; see doc/dev/dce.md
@@ -435,11 +442,6 @@ function typeConst(obj) {
   if (obj == null) {
     return undefined;
   }
-  // keywords are scalars, not collections (assoc/conj/seq on one throws,
-  // like the old keywords-are-strings representation)
-  if (obj instanceof Keyword) {
-    return undefined;
-  }
   // optimize for object
   if (isObj(obj)) {
     return OBJECT_TYPE;
@@ -448,6 +450,8 @@ function typeConst(obj) {
   if (obj instanceof Set) return SET_TYPE;
   // brand, not instanceof, so dispatch does not reference the classes
   const tag = obj[TYPE_TAG];
+  // keywords are scalars, not collections (assoc/conj/seq on one throws)
+  if (tag === KEYWORD_TYPE) return undefined;
   if (tag !== undefined) return tag;
   if (isVectorArray(obj)) return ARRAY_TYPE;
   // any remaining object (class instance, null-proto) is associative
@@ -856,7 +860,7 @@ export function get(coll, key, otherwise = undefined) {
   // optimize for getting values out of objects. Indexing with the fqn
   // directly skips the ToPropertyKey toString call on a Keyword key.
   if (isObj(coll)) {
-    v = coll[key instanceof Keyword ? key.fqn : key];
+    v = coll[isKw(key) ? key.fqn : key];
     if (v === undefined) {
       return otherwise;
     } else {
@@ -1493,7 +1497,7 @@ export function str(...xs) {
 }
 
 export function name(x) {
-  if (x instanceof Keyword) x = x.fqn;
+  if (isKw(x)) x = x.fqn;
   if (typeof x === 'string') {
     // keywords/symbols are strings in squint; name is the part after the "/"
     // ns separator (consistent with `namespace`, which returns the part before)
@@ -3575,7 +3579,7 @@ export function compare(x, y) {
       return 1;
     }
     // keywords sort by fqn, also against plain strings (compat)
-    if (x instanceof Keyword || y instanceof Keyword) {
+    if (isKw(x) || isKw(y)) {
       return compare(String(x), String(y));
     }
     const tx = typeof x;
@@ -3757,7 +3761,7 @@ export function namespace(x) {
   // namespace is the part before the "/" ns separator (consistent with
   // `name`, which returns the part after).
   // i >= 1 so a leading "/" yields a nil namespace rather than an empty one.
-  if (x instanceof Keyword) x = x.fqn;
+  if (isKw(x)) x = x.fqn;
   const i = x.indexOf('/');
   return i >= 1 ? x.slice(0, i) : null;
 }
@@ -3788,6 +3792,7 @@ const Keyword = /* @__PURE__ */ (() => {
   Keyword.prototype[IHash__hash] = (self) => m3HashInt(hashString(self.fqn));
   Keyword.prototype[IPrintWithWriter__pr_writer] = (self, writer, _opts) =>
     writer[IWriter__write](writer, ':' + self.fqn);
+  Keyword.prototype[TYPE_TAG] = KEYWORD_TYPE;
   return Keyword;
 })();
 
