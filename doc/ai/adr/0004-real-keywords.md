@@ -388,3 +388,32 @@ flagging string interop methods invoked on keyword-typed values, which
 turns the silent 2-3x into an editor warning. Note the failure mode
 ladder: the plain-class variant crashed outright on this pattern,
 extends-String degrades it to slower-but-correct.
+
+### js-framework-benchmark: the full account
+
+Full keyed run, 10 iterations, standard methodology, reagami entry.
+Geomean of the nine ops: main 59.1ms, keywords-global 63.3ms (+7.2%),
+dominated by select1k at +46%. Two mechanisms, now separated:
+
+1. Boxed String methods in stock reagami's tag parsing (previous section).
+   The `(name tag)` adaptation removes it: 2x in a jsdom micro.
+2. JIT warmup depth. With the adapted reagami the select gap barely moved
+   under jfb's standard window (5 warmup clicks, then one timed, 4x CPU
+   throttle, fresh page per iteration). Raising warmup to 25 drops the
+   branch from 76.0 to 59.8ms while main stays flat (52.0 to 53.0):
+   the keyword paths (Keyword-vs-string inline caches, `_EQ_` routing)
+   need more iterations to tier up than string-only code. Fully warm,
+   per-click in-page timing shows +5-10%, and jsdom parity.
+
+| select1k median | main | keywords-global, adapted reagami |
+|---|---|---|
+| jfb standard, 5 warmups | 52.0 | 76.0 |
+| 25 warmups | 53.0 | 59.8 |
+| fully warm (in-page per-click) | ~23 | ~24 |
+
+Honest reading: the steady-state cost of typed keywords on the most
+keyword-sensitive DOM benchmark is 5-13%, concentrated in warmup, and
+invisible in bulk operations (create/replace/clear were flat). But the
+public jfb methodology measures the mid-warmup window, so a published
+table would show the +46% number. Bundle: 10039 to 10874 bytes gzip
+(+835, the keyword floor plus hoisted consts).
