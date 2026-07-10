@@ -550,7 +550,7 @@
   ;; a protocol declared :extend-via-metadata dispatches to an impl stored on the
   ;; receiver's metadata, keyed by the (syntax-quote-resolved) fully-qualified
   ;; method name
-  (is (= "via-meta"
+  (is (eq :via-meta
          (jsv! "(ns my.app)
 (defprotocol IFoo :extend-via-metadata true (foo [_]))
 (foo (with-meta {} {`foo (fn [_] :via-meta)}))")))
@@ -563,7 +563,7 @@
 (deftest keyword-pred-test
   ;; keywords are strings in squint, so keyword? is string?
   (is (jsv! '(keyword? :foo)))
-  (is (jsv! '(keyword? "foo")))
+  (is (not (jsv! '(keyword? "foo"))))
   (is (not (jsv! '(keyword? 1))))
   (is (jsv! '(simple-keyword? :foo)))
   (is (not (jsv! '(simple-keyword? :foo/bar))))
@@ -585,8 +585,8 @@
 
 (deftest keyword-symbol-fn-test
   ;; keywords/symbols are strings in squint
-  (is (= "foo" (jsv! '(keyword "foo"))))
-  (is (= "a/b" (jsv! '(keyword "a" "b"))))
+  (is (eq :foo (jsv! '(keyword "foo"))))
+  (is (= "a/b" (str (jsv! '(keyword "a" "b")))))
   (is (jsv! '(symbol? 'foo)))
   (is (not (jsv! '(symbol? 1))))
   (is (= "foo" (jsv! '(symbol "foo"))))
@@ -681,7 +681,7 @@
   (is (= 2 (jsv! '(case 1 1 2 3 4))))
   (is (= 5 (jsv! '(case 6 1 2 3 4 (inc 4)))))
   (is (= 2 (jsv! '(case 1 :foo :bar 1 2))))
-  (is (= "bar" (jsv! '(case :foo :foo :bar))))
+  (is (eq :bar (jsv! '(case :foo :foo :bar))))
   (let [s (jss! '(let [x (case 1 1 2 3 4)]
                    (inc x)))]
     (is (= 3 (js/eval s))))
@@ -838,7 +838,7 @@
 
                        (bar)))
             (fn [v]
-              (is (= "hello" v))))
+              (is (eq :hello v))))
      (.catch (fn [err]
                (is false (.-message err))))
      (.finally #(done)))))
@@ -884,9 +884,9 @@
   (is (= 1 (jsv! "(aget  #js [1 2 3] 0)"))))
 
 (deftest keyword-call-test
-  (is (= "bar" (jsv! '(:foo {:foo :bar}))))
-  (is (= "bar" (jsv! '(:foo nil :bar))))
-  (is (= "bar" (jsv! '(let [{:keys [foo] :or {foo :bar}} nil]
+  (is (eq :bar (jsv! '(:foo {:foo :bar}))))
+  (is (eq :bar (jsv! '(:foo nil :bar))))
+  (is (eq :bar (jsv! '(let [{:keys [foo] :or {foo :bar}} nil]
                         foo)))))
 
 (deftest coll?-test
@@ -900,24 +900,24 @@
   (is (false? (jsv! '(coll? 1)))))
 
 (deftest coll-call-test
-  (is (= "bar" (jsv! '({:foo :bar} :foo))))
-  (is (= "the-default" (jsv! '({:foo :bar} :default :the-default))))
-  (is (= "foo" (jsv! '(#{:foo :bar} :foo))))
-  (is (= "the-default" (jsv! '(#{:foo :bar} :dude :the-default)))))
+  (is (eq :bar (jsv! '({:foo :bar} :foo))))
+  (is (eq :the-default (jsv! '({:foo :bar} :default :the-default))))
+  (is (eq :foo (jsv! '(#{:foo :bar} :foo))))
+  (is (eq :the-default (jsv! '(#{:foo :bar} :dude :the-default)))))
 
 (deftest coll-call-binding-test
   ;; a set or map literal bound to a local is callable as a function
   (is (= 2 (jsv! '(let [s #{1 2 3}] (s 2)))))
   (is (nil? (jsv! '(let [s #{1 2 3}] (s 9)))))
   (is (= 1 (jsv! '(let [m {:a 1 :b 2}] (m :a)))))
-  (is (= "d" (jsv! '(let [m {:a 1}] (m :z :d)))))
+  (is (eq :d (jsv! '(let [m {:a 1}] (m :z :d)))))
   ;; tag carries through aliasing
   (is (= 2 (jsv! '(let [a #{1 2} b a] (b 2)))))
   ;; a set or map literal bound to a var is callable as a function
-  (is (= "foo" (jsv! "(def s #{:foo :bar}) (s :foo)")))
+  (is (eq :foo (jsv! "(def s #{:foo :bar}) (s :foo)")))
   (is (nil? (jsv! "(def s #{:foo :bar}) (s :nope)")))
   (is (= 1 (jsv! "(def m {:a 1 :b 2}) (m :a)")))
-  (is (= "d" (jsv! "(def m {:a 1}) (m :z :d)")))
+  (is (eq :d (jsv! "(def m {:a 1}) (m :z :d)")))
   ;; a def with a docstring still tags the init collection
   (is (= 1 (jsv! "(def m \"doc\" {:a 1}) (m :a)")))
   ;; a vector literal bound to a local is callable: index lookup
@@ -937,7 +937,7 @@
   ;; a keyword bound to a local or var is callable as a function: (k m) is
   ;; (get m k), arguments swapped relative to a collection callee
   (is (= 1 (jsv! '(let [k :a] (k {:a 1 :b 2})))))
-  (is (= "d" (jsv! '(let [k :z] (k {:a 1} :d)))))
+  (is (eq :d (jsv! '(let [k :z] (k {:a 1} :d)))))
   (is (= 1 (jsv! '(let [m {:a 1} k :a] (k m)))))
   (is (= 42 (jsv! "(def kk :x) (kk {:x 42})")))
   ;; a string-returning core fn makes its binding callable as a key
@@ -954,7 +954,7 @@
 (deftest pr-str-test
   (doseq [coll [#{"a" "b" "c"} {:a 1 :b 2}]]
     (is (eq (pr-str coll) (jsv! `(pr-str ~coll)))))
-  (is (eq "#js/Map {\"a\" 1}" (jsv! "(pr-str #js/Map {:a 1})")))
+  (is (eq "#js/Map {:a 1}" (jsv! "(pr-str #js/Map {:a 1})")))
   (is (eq "nil" (jsv! "(pr-str js/undefined)")))
   ;; Infinity / -Infinity / NaN print as ##Inf / ##-Inf / ##NaN, like CLJS
   (is (eq "##Inf" (jsv! "(pr-str js/Infinity)")))
@@ -962,9 +962,9 @@
   (is (eq "##NaN" (jsv! "(pr-str js/NaN)")))
   (is (eq "[##Inf ##NaN]" (jsv! "(pr-str [js/Infinity js/NaN])")))
   ;; shared (DAG) references are not circular, each occurrence prints in full
-  (is (eq "{:x [\"a\" \"b\"], :y [\"a\" \"b\"]}"
+  (is (eq "{:x [:a \"b\"], :y [:a \"b\"]}"
           (jsv! "(let [shared [:a \"b\"]] (pr-str {:x shared :y shared}))")))
-  (is (eq "[[\"a\" \"b\"] [\"a\" \"b\"]]"
+  (is (eq "[[:a \"b\"] [:a \"b\"]]"
           (jsv! "(let [shared [:a \"b\"]] (pr-str [shared shared]))")))
   ;; genuine cycles are still reported
   (is (eq "[1 2 #object[circular]]"
@@ -1365,8 +1365,8 @@ with `backticks`")))]
   (is (= 1 (jsv! '(first #{1 2 3}))))
   (is (eq #js [1 2] (jsv! '(first (js/Map. [[1 2] [3 4]])))))
   (is (eq "a" (jsv! '(first "abc"))))
-  ;; keywords are translated to strings
-  (is (eq "a" (jsv! '(first :abd)))))
+  ;; keywords are not char-seqable
+  (is (thrown? js/Error (jsv! '(first :abd)))))
 
 (deftest ffirst-test
   (is (= "f" (jsv! '(ffirst ["foo"]))))
@@ -1823,8 +1823,8 @@ with `backticks`")))]
   (is (eq {:a 1 :b 2} (jsv! '(select-keys {:a 1 :b 2 :c 3} [:a :b]))))
   (let [m (jsv! '(select-keys (js/Map. [[:a 1] [:b 2] [:c 3]]) [:a :b]))]
     (is (instance? js/Map m))
-    (is (= 1 (.get m "a")))
-    (is (= 2 (.get m "b")))
+    (is (= 1 (jsv! '(.get (select-keys (js/Map. [[:a 1] [:b 2] [:c 3]]) [:a :b]) :a))))
+    (is (= 2 (jsv! '(.get (select-keys (js/Map. [[:a 1] [:b 2] [:c 3]]) [:a :b]) :b))))
     (is (not (.has m "c"))))
   (is (eq #js {} (jsv! '(select-keys nil []))))
   ;; nil-valued keys are kept (present), missing keys dropped
@@ -1882,7 +1882,7 @@ with `backticks`")))]
   (testing "fields are map entries"
     (is (= 1 (foo-rec "(:a f)")))
     (is (= "Rich" (foo-rec "(:first-name f)")))
-    (is (= "nf" (foo-rec "(get f :zz :nf)")))
+    (is (eq :nf (foo-rec "(get f :zz :nf)")))
     (is (= 2 (foo-rec "(count f)")))
     (is (true? (foo-rec "(contains? f :a)")))
     (is (false? (foo-rec "(contains? f :zz)")))
@@ -1961,7 +1961,7 @@ with `backticks`")))]
 (deftest map-protocols-test
   (testing "a type implementing the map-facing protocols works with the core fns"
     (is (= 1 (my-map "(get x :a)")))
-    (is (= "nf" (my-map "(get x :zz :nf)")))
+    (is (eq :nf (my-map "(get x :zz :nf)")))
     (is (= 2 (my-map "(:b x)")))
     (is (true? (my-map "(let [y (assoc x :c 3)] (and (instance? MyMap y) (= 3 (get y :c))))")))
     (is (= 4 (my-map "(get (assoc x :c 3 :d 4) :d)")))
@@ -2884,7 +2884,7 @@ globalThis.foo.fs = fs;")))))
   (is (= 20 (jsv! '(do (defn foo [] (letfn [(g [x] (f x)) (f [x] (* 2 x))] (g 10))) (foo))))))
 
 (deftest refer-clojure-exclude-test
-  (is (= "yolo" (jsv! '(do (ns foo (:refer-clojure :exclude [assoc])) (defn assoc [m x y] :yolo) (assoc {} :foo :bar))))))
+  (is (eq :yolo (jsv! '(do (ns foo (:refer-clojure :exclude [assoc])) (defn assoc [m x y] :yolo) (assoc {} :foo :bar))))))
 
 (deftest double-names-in-sig-test
   (is (= 2 (jsv! '(do (defn foo [x x] x) (foo 1 2))))))
@@ -3622,7 +3622,7 @@ new Foo();")
     (is (true? (jsv! '(= {:a 1 :b 2} (sorted-map :a 1 :b 2)))))
     (is (true? (jsv! '(= (sorted-map :a 1 :b 2) {:a 1 :b 2})))))
   (testing "prints with real keys, keeping the map tag"
-    (is (= "#js/Map {1 \"a\", 2 \"b\"}" (jsv! '(pr-str (sorted-map 2 :b 1 :a))))))
+    (is (= "#js/Map {1 :a, 2 :b}" (jsv! '(pr-str (sorted-map 2 :b 1 :a))))))
   (testing "sorted-map-by with a custom comparator"
     (is (eq [3 2 1] (jsv! '(vec (keys (sorted-map-by > 1 :a 3 :c 2 :b))))))))
 
@@ -4079,7 +4079,7 @@ new Foo();")
                        (assoc (-> (assoc x :b 2) (assoc :c :d)) :e :f)))]
         (is (= 1 (count (re-seq #"\.\.\." s))))
         (is (not (str/includes? s "assoc")))
-        (is (str/includes? s "[\"e\"] = \"f\""))
+        (is (str/includes? s "[\"e\"] = squint_core.kw(\"f\")"))
         (is (eq {:a 1 :b 2 :c :d :e :f} (js/eval s))))
       (let [s (jss! '(assoc (let [x 1 o {}] (assoc o :x x)) :b 2))]
         (is (= 1 (count (re-seq #"\.\.\." s))))
@@ -4339,7 +4339,7 @@ new Foo();")
       (is (not (str/includes? s "datastar")))))
   (testing "an :as-alias alias still resolves a namespaced keyword"
     (is (= "datastar/x"
-           (jsv! "(do (ns foo (:require [datastar :as-alias d])) ::d/x)")))))
+           (str (jsv! "(do (ns foo (:require [datastar :as-alias d])) ::d/x)"))))))
 
 (deftest require-global-test
   (testing ":require-global binds a global to a const, no import"

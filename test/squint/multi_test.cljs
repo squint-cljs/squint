@@ -3,7 +3,7 @@
    [clojure.string :as str]
    [clojure.test :as t :refer [deftest is]]
    [squint.compiler :as squint]
-   [squint.test-utils :refer [jss!]]))
+   [squint.test-utils :refer [eq jss!]]))
 
 (defn- eval-repl [src]
   (let [js (squint/compile-string src {:repl true :elide-exports true :context :return})
@@ -29,7 +29,7 @@
 [(area {:shape :square :side 3})
  (area {:shape :circle :r 2})
  (area {:shape :triangle})]")
-        (.then (fn [v] (is (= [9 8 "dunno"] (vec v)))))
+        (.then (fn [v] (is (eq [9 8 :dunno] (vec v)))))
         (.finally done))))
 
 (deftest hierarchy-invalid-input-test
@@ -55,7 +55,7 @@
 (defmethod k :geo/shape [_] :shape)
 (defmethod k :geo/square [_] :square)
 [(k :geo/square) (k :geo/rect) (isa? :geo/square :geo/shape)]")
-        (.then (fn [v] (is (= ["square" "shape" true] (vec v)))))
+        (.then (fn [v] (is (eq [:square :shape true] (vec v)))))
         (.finally done))))
 
 (deftest prefer-method-test
@@ -68,7 +68,7 @@
 (defmethod describe :zoo/pet [_] :pet)
 (prefer-method describe :zoo/pet :zoo/animal)
 (describe :zoo/dog)")
-        (.then (fn [v] (is (= "pet" v))))
+        (.then (fn [v] (is (eq :pet v))))
         (.finally done))))
 
 (deftest hierarchy-accessors-equiv-on-vector-tags-test
@@ -111,7 +111,7 @@
       pref-map (prefers conv)
       seen? (boolean (some (fn [[k _]] (= k [:pref/a])) pref-map))]
   [cycle seen?])")
-        (.then (fn [v] (is (= ["threw" true] (vec v)))))
+        (.then (fn [v] (is (eq [:threw true] (vec v)))))
         (.finally done))))
 
 (deftest vector-dispatch-and-remove-test
@@ -201,7 +201,7 @@
       second-call (try (k-cache :cache/x) (catch :default e :threw))]
   [first-call second-call])")
         (.then (fn [v]
-                 (is (= ["a-fn" "threw"] (vec v))
+                 (is (eq [:a-fn :threw] (vec v))
                      "2nd call must re-resolve and hit the ambiguity, not return cached :a-fn")))
         (.finally done))))
 
@@ -215,7 +215,7 @@
   (defmulti mm identity :hierarchy h)
   (defmethod mm :a [_] :a-fn)
   (mm :x))")
-        (.then (fn [v] (is (= "a-fn" v))))
+        (.then (fn [v] (is (eq :a-fn v))))
         (.finally done))))
 
 (deftest no-matching-method-test

@@ -184,7 +184,7 @@
       (-> (js/eval js)
           (.then
            (fn [v]
-             (is (= "<button data-click=\"[&quot;inc&quot;]\"></button>" v))))
+             (is (= "<button data-click=\"[:inc]\"></button>" v))))
           (.catch #(is false "nooooo"))
           (.finally done)))))
 
