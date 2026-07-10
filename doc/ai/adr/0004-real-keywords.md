@@ -267,10 +267,17 @@ printing changes (`pr-str` emits `:a`, the point of the change), js/Map
 literals holding keyword keys, `(first :abd)` now throwing (keywords are
 not char-seqable, CLJS parity), one DCE cap.
 
-Tree-shaking: identity +0B, conj +19B, the atom set +271B, importing
-`keyword` itself +1504B (the class and interning, reachable only then).
-No read-back means seq does not construct keywords, so collection fns
-stay free of the class.
+Tree-shaking, honestly framed: the identity bundle shakes to +0B, but
+that only proves keyword-free code pays nothing, and no real program is
+keyword-free. Since every keyword literal emits `kw("...")`, the
+realistic floor is what a program with any keyword pays: +1518B raw,
++656B gzip, once per app (class, interning, protocol wiring). Collection
+fns carry +262B raw / +107B gzip even in keyword-free bundles (isKw and
+the representation-resolving lookups). Dropping weak interning for a
+strong Map saves only 66B gzip and trades away GC of dynamically created
+keywords: not worth it. For scale: the DCE suite's own caps moved, a
+realistic app bundle grows 2-4%, and the alternative wire solution
+(transit-js) costs an order of magnitude more.
 
 ### Performance report
 
