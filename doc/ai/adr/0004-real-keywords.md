@@ -283,3 +283,19 @@ the one deliberate predicate change.
 
 Remaining before landing: port literal hoisting, decide `(str :a)`
 (stays `"a"`), sweep the suite's recorded-semantics assertions, changelog.
+
+### altKey is load-bearing (measured)
+
+The Set/js Map alternate-representation lookup reads as a hack, so it was
+removed and measured. Without it: replicant fails 3 (its
+`(#{:on :innerHTML} k)` attr filter takes string keys from an object map
+against a keyword set literal, so event handlers leak into rendered HTML),
+babashka/cli fails 16 with 3 errors (completion trees are keyword-keyed
+js/Maps probed with argv strings), and `set/rename-keys` corrupts a js/Map
+(the string keys of the rename map no longer match, and the `{...map}`
+fallback spreads the Map into a plain object). With it, everything is
+green. altKey is the membership face of name-equivalent `=`: native
+collections compare keys with SameValueZero, which cannot be overridden,
+so the bridge lives in `get`/`contains?`/`dissoc` as one O(1) intern-table
+probe on the miss path. Its known wart stays: a Map holding both `:a` and
+`"a"` entries answers by whichever representation matches first.
