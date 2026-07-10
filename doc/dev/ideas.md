@@ -51,3 +51,23 @@ Idea: at a fixed-arity call site, target the specific arity directly. The
 runtime conj! 2-arg fast-path patch handles one fn; this is the general
 compiler-level fix across all variadic/multi-arity calls. See doc/ai/adr/0001 for
 the variadic/multi-arity codegen this builds on.
+
+## Registry symbols for type brands (duplicated-runtime interop)
+
+Squint brands its types with module-local symbols: `TYPE_TAG` in core.js
+marks lists, lazy seqs, sorted collections (and keyword objects on the
+keywords-global branch), and the protocol slots (`IEquiv__equiv`, ...) are
+module-local too. Two separately evaluated copies of core.js (a dependency
+that bundles or vendors squint) therefore produce values that do not
+recognize each other: a list from copy A is an opaque object to copy B,
+`=` and the predicates fail across the boundary.
+
+Idea: create the brand and protocol symbols with `Symbol.for` (the global
+symbol registry) so branding survives runtime duplication. Cross-copy
+`instanceof` still fails, but everything brand-dispatched (typeConst,
+protocol lookups, keyword equiv) starts working. Interning tables stay
+per-copy, so cross-copy keyword identity would rely on equiv, not `===`.
+
+Not a concern for apps with one core.js (the normal case). Surfaced by the
+keywords-global review; the hazard predates keywords and applies to every
+branded type, so this is worth doing on main independent of that branch.
