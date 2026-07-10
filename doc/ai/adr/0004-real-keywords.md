@@ -2,124 +2,142 @@
 
 Status: Proposed
 
-Branch `poc-real-keywords`, commits 36c56ef, 9d5fa49, 4b9d2c8. Revisits the
-keywords-are-strings representation that ADR 0003 builds on. Byte counts are
-esbuild `--bundle --minify` output. Benchmarks are node 22, 10M iterations,
-per-call figures.
+Branch `poc-real-keywords`. Revisits the keywords-are-strings representation
+that ADR 0003 builds on. Byte counts are esbuild `--bundle --minify` output.
+Benchmarks are node 22, 10M iterations, per-call figures.
 
 ## Context
 
 Squint keywords are plain strings: `:foo/bar` is `"foo/bar"`. That makes
 `keyword?` meaningless, prints keywords as strings, and cannot distinguish
-`:a` from `"a"` in sets, js Maps or case dispatch. This POC measures what a
-real keyword type costs and what it breaks, with backward compatibility as
-the primary constraint.
+`:a` from `"a"` in equality, sets, js Maps or case dispatch. This POC
+measures what a real keyword type costs and what it breaks.
 
-## Decision: interned Keyword objects with a string-compatible surface
+## Decision: interned Keyword objects, CLJS equality
 
 `Keyword` is a module-local class in core.js holding one `fqn` field.
 `toString` and `toJSON` return the fqn without the leading colon, so object
 property access, `str`, template interpolation and `JSON.stringify` behave
-exactly like the string representation.
+like the string representation. `(str :a)` stays `"a"`: returning `":a"`
+would break property keys and templates, the main JS interop surfaces.
+`pr-str` prints `:a`. Protocol slots supply behavior: IEquiv (keyword-only
+equality), IHash (hashes like the name string), IPrintWithWriter.
 
 Interning uses `Map<string, WeakRef<Keyword>>` plus a `FinalizationRegistry`
 that prunes dead entries, like Clojure's keyword table. Identity is only
 needed among live instances: a collected keyword cannot sit in any live
 collection or switch dispatch, so re-interning as a fresh instance is safe.
-Interning makes `===`, native Set/Map membership and switch labels work.
 
-TODO: stale? Behavior plugs into the existing protocol slots. `IEquiv`: a keyword equals
-another keyword or its own name string (the compat shim). `IHash`: hashes
-like the name string, consistent with equiv. `IPrintWithWriter`: `pr-str`
-prints `:foo`.
+Equality is strict, like CLJS: a keyword equals only another keyword.
+`(= :a "a")` is false. `(keyword? "foo")` is false. `case` follows `=`.
+Sets and js Maps follow `=` exactly. An earlier draft made Set/Map lookups
+accept both representations, rejected for non-local behavior:
+`(get (js/Map. [[:a 1]]) "a")` returned 1 until an unrelated `["a" 2]`
+entry was added, then returned 2.
 
-The compiler emits `squint_core.keyword("foo")` for a keyword literal,
-tagged `'keyword`. Everything that must stay a string still emits a string:
-object map literal keys, destructuring, the object fast paths (`get-inline`
-and `assoc-inline` still emit `m["a"]`), JSX and html attributes, import
-attributes. Object maps keep string keys throughout.
+A `Keyword extends String` variant was tried to keep string-method interop
+working (`(.toUpperCase :div)`). Rejected: inherited String behavior makes
+keywords char-iterable, so walk/seq recurse into them (4 new suite
+failures), and libraries still break at their `string?` checks.
 
-`case` on a keyword test emits two labels, `case keyword("x"): case "x":`,
-so string data keeps matching keyword branches. The macro-level duplicate
-constant check already rejects `:x` and `"x"` in one case form.
+## Decision: object maps store names, read back keywords
 
-`=` emits `===` only when both sides have primitive tags or either side is a
-known number or boolean. A known string against an unknown side goes through
-`_EQ_` because the unknown side can hold a keyword.
+Object maps are the one place the representations meet. `{:a 1}` and
+`{"a" 1}` are the same JS object, so the key representation is lossy by
+construction. The POC stores names (string property keys, unchanged) and
+reads keywords back: `keys`, `seq`, entries, `reduce-kv` and record
+seq/kv-reduce yield keyword keys, like CLJS. The edn reader yields
+keywords. Lookups accept both forms on object maps only: `(get m :a)`
+indexes by the fqn, `(get m "a")` hits the same entry.
 
-TODO: this feels wrong? `get` and `contains?` on Set and js Map retry a miss with the alternate
-representation (string to live interned keyword, keyword to fqn), so
-membership follows `=`. Replicant's `(#{:on :innerHTML} k)` over string map
-keys depends on this.
+Measured both directions of the lossy representation. With string
+read-back and strict `=`, replicant failed 16 assertions (`:click`
+literals compared against string keys) and six suite groups failed the
+same way. With keyword read-back, replicant fails 2 (deliberately
+string-keyed CSS maps like `{"--bg" "red"}`) and babashka/cli fails 3 plus
+1 error (command tables keyed by command-name strings). Keyword read-back
+wins on numbers and matches CLJS idiom. Maps used as string-keyed
+dictionaries need a js/Map (exact keys) or upstream adaptation.
 
-`typeConst` treats a keyword as a scalar: `assoc`, `conj` and `seq` on a
-keyword throw instead of treating it as an associative instance.
+## Compiler
+
+A keyword literal compiles to one module-level
+`const _kw_1 = squint_core.keyword("a");` hoisted after the imports, so a
+literal in a hot path is a const reference, not a call. The REPL keeps
+inline `keyword("a")` calls since top-level consts do not survive re-eval.
+Emissions that must stay strings still do: object map literal keys,
+destructuring, the object fast paths (`get-inline` and `assoc-inline` emit
+`m["a"]`), JSX and html attributes, import attributes.
+
+Keyword literals are tagged `'keyword`, which counts as primitive for `=`:
+interning makes `===` a correct equality on keywords, so `(= x :a)` emits
+`x === _kw_1`. The pregenerated runtimes were recompiled (test.js,
+walk.js) and multi.js's default dispatch value is `(keyword "default")`.
+`typeConst` brands keywords as scalars: `assoc`, `conj` and `seq` on a
+keyword throw.
 
 ## Compatibility
 
-Squint suite: 470 tests, 2504 assertions, 42 failures, none silent user-code
-breakage. Breakdown: about 30 assert the old semantics directly, comparing
-squint results to strings with CLJS `=` or asserting emission strings. Five
-are printing changes (`pr-str` now prints `:a`, not `"a"`). TODO: CONCERNING Four are the
-tree-shaking floor below. Two are js Map literals now holding keyword keys,
-so `.get "a"` interop misses. One is `(first :abd)` now throwing, which is
-CLJS parity.
+Squint suite: 470 tests, 2504 assertions, 40 failures, none silent
+user-code breakage. About 29 assert the old semantics directly (CLJS-side
+`=` against strings, emission strings). Four are printing changes
+(`pr-str` prints `:a`). Four are js/Map representation changes
+(`select-keys` and `merge` onto a js/Map now produce keyword keys). Two
+are the remaining tree-shaking floors below. One is `(first :abd)` now
+throwing, CLJS parity.
 
-Libtests all pass: eucalypt 112, clojure-mode 164, replicant 256,
-babashka/cli 472 assertions. Replicant needed the Set/Map alternate-key
-lookup, the other three passed unmodified.
+Libtests (reagami added to the set in this branch):
 
-Preserved: `(= :a "a")` is true in every position <- TODO: this feels wrong, `(str :a)` is `"a"`,
-`(keys {:a 1})` returns strings, `(:a m)` and destructuring on string-keyed
-data, `(map :a xs)`, case in both directions, sorting mixed keywords and
-strings. Deviations: `(keyword? "foo")` is now false, keywords are not
-seqable, js Map literals hold keyword keys.
+- eucalypt 112, clojure-mode 164: pass
+- replicant 254 of 256: the two string-keyed CSS cases above
+- babashka/cli: 3 failures, 1 error, string command tables, adapt upstream
+- reagami: fails wholesale, it calls string methods straight on hiccup
+  tags (`(.toUpperCase tag)`). Needs `(name tag)` at the boundary, the
+  same normalization replicant already does. Adapt upstream.
 
 ## Performance
 
-- interned `keyword("hot")` hit: 17ns
-- `===`: 1.2ns, `_EQ_` string/string: 22ns, keyword/string: 30ns,
-  keyword/keyword: 38ns including the intern call
-- `get(m, kw)` on an object: 31ns against 6ns for `get(m, "foo")` and 0.7ns
-  for inlined `m["a"]` (property key coercion calls toString per lookup)
+Torture loop, 1M iterations of map literal + `get` + `=` + `case` + `keys`
+per iteration, main vs POC: 30ms vs 115ms. Before literal hoisting it was
+181ms. The remaining gap is `keys` interning two keywords per iteration,
+not a typical profile.
 
-Costs: every keyword literal outside an inlined position is a function call
-where it used to be a string constant. `=` between a string literal and an
-untagged expression dropped from `===` to `_EQ_`. The object fast path is
-unaffected since it still emits `m["a"]`. None of this is visible in the
-libtest suites but no hot-loop application was measured.
+Per-call: hoisted `kw === kw` 1.1ns (plain `===`), `_EQ_` kw/kw 22ns,
+dynamic `(keyword s)` intern hit 17ns, `get(m, kw)` on an object 2.6ns via
+the fqn index against 1.7ns with a string key. Inlined `m["a"]` paths
+unchanged. No `=` deopt remains: keyword literals keep the `===` path via
+the `'keyword` tag.
 
-TODO: we need performance tests before and after. 
+Pending: a real-app measurement, reagami (once adapted) under
+https://github.com/borkdude/js-framework-benchmark, main vs branch.
 
 ## Tree-shaking
 
-Bundle deltas, main against POC:
+Two fixes. The class and its protocol wiring sit in a `/* @__PURE__ */`
+IIFE and the interning table carries the same annotation, so the
+definition is side-effect free. Generic fns (typeConst, `__toFn`, get,
+compare, name, namespace) test keywords by a `TYPE_TAG` brand integer on
+the prototype instead of `instanceof`, so they do not reference the class.
 
 | imports | main | POC | delta |
 |---|---|---|---|
-| identity | 39B | 1073B | +1034B |
-| atom, deref, reset!, swap! | 3177B | 4499B | +1322B |
-| atom, get, assoc, str, keyword | 3856B | 5305B | +1449B |
-| conj | 2842B | 3903B | +1061B |
+| identity | 39B | 39B | 0 |
+| atom, deref, reset!, swap! | 3177B | 3262B | +85B |
+| atom, get, assoc, str, keyword | 3856B | 5188B | +1332B |
+| conj | 2842B | 4170B | +1328B |
 
-Every bundle pays roughly 1.0 to 1.4KB. Two causes. The prototype wiring
-(`Keyword.prototype[IEquiv__equiv] = ...`) is top-level side effects, which
-retains the class, cache, WeakRef and registry in every bundle including
-keyword-free ones. And `typeConst`, `__toFn` and `get` reference `Keyword`
-directly, pinning it into anything that touches collections. The first cause
-is fixable with a `@__PURE__` wrapper or static block so the wiring shakes
-out of keyword-free bundles. The second is a floor for any bundle that uses
-collection functions.
+The remaining ~1.3KB applies where keyword construction is semantically
+reachable: importing `keyword` itself, or anything that seqs an object map
+(read-back must construct keywords). That floor is the read-back feature,
+not an accident.
 
 ## Open questions
 
-- Keep `(= :a "a")` true? CLJS says false. Dropping the shim breaks all code
-  that compares `(keys m)` output against keyword literals.
-- `(str :a)` stays `"a"` here, CLJS says `":a"`. Changing it breaks property
-  access and templates.
-- `(keyword? "foo")` false: how much code in the wild feeds strings to
-  keyword predicates.
-- js Map literal keys: keyword keys are consistent with real keywords but
-  break `.get "a"` interop.
-- The `_EQ_` deopt for string-literal comparisons on hot paths.
-- Recovering the tree-shaking floor for keyword-free bundles.
+- Upstream adaptations: babashka/cli (js/Map or `name` at boundaries),
+  reagami (`name` on hiccup tags).
+- `#js/Map {:a 1}` literals hold keyword keys: correct under the model,
+  but raw `.get "a"` interop misses. Callers own the key type.
+- Whether `keys` read-back allocation matters in real profiles. The
+  js-framework-benchmark run above should answer this.
+- The two suite DCE caps (get, conj) sit above their old caps because of
+  the read-back floor: caps need updating if this lands.
