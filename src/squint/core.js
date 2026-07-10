@@ -782,11 +782,21 @@ export function dissoc(m, ...ks) {
     return ret;
   }
   if (tc === MAP_TYPE) {
+    // resolve each key to the representation the Map actually holds,
+    // consistent with get/contains? (a keyword equals its name string)
+    const keyIn = (mm, k) => {
+      if (mm.has(k)) return k;
+      const a = altKey(k);
+      return a !== undefined && mm.has(a) ? a : undefined;
+    };
     let present = false;
-    for (const k of ks) if (m.has(k)) { present = true; break; }
+    for (const k of ks) if (keyIn(m, k) !== undefined) { present = true; break; }
     if (!present) return m;
     const m2 = copy(m);
-    for (const k of ks) m2.delete(k);
+    for (const k of ks) {
+      const kk = keyIn(m2, k);
+      if (kk !== undefined) m2.delete(kk);
+    }
     return m2;
   }
   let present = false;
