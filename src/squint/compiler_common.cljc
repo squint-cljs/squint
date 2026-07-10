@@ -734,12 +734,7 @@
                      (str/join (map (fn [test then]
                                       (str/join
                                        (map (fn [test]
-                                              (str ;; a keyword test also matches its name
-                                                   ;; string (compat with string data)
-                                                   (when (and (= :squint (:target env))
-                                                              (keyword? test))
-                                                     (str "case " (emit (subs (str test) 1) eenv) ":\n"))
-                                                   "case " (emit test eenv) ":\n"
+                                              (str "case " (emit test eenv) ":\n"
                                                    (if expr?
                                                      (str gs " = " then)
                                                      (statement (emit then env)))
