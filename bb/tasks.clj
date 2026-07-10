@@ -89,27 +89,48 @@
   (shell "npm publish")
   (shell "clojure -T:build deploy"))
 
+;; the same list playground/bb.edn init copies into public/public/src/squint
+(def ^:private runtime-js-files
+  ["core.js" "string.js" "set.js" "html.js" "math.js" "multi.js" "record.js"
+   "test.js" "edn.js"])
+
+(defn- refresh-playground-runtime
+  "The playground serves its own copies of the runtime .js files (made by
+  playground init). Refresh a copy so a running playground picks up edits."
+  [file]
+  (let [target (fs/file "playground" "public" "public" "src" "squint")]
+    (when (fs/exists? target)
+      (fs/copy (fs/file "src" "squint" file) target {:replace-existing true})
+      (println "[runtime-js] refreshed playground copy of" file))))
+
 (defn- watch-core-vars
   "core.edn is generated from core.js exports (bump-core-vars) and inlined into
   compiler.cljc at compile time via edn-resource. shadow does not track that
   dependency, so adding a core var would otherwise need a dev restart. Polls
-  core.js; on change regenerates core.edn and, if it changed, touches
-  compiler.cljc so shadow recompiles and re-inlines the fresh vars."
+  the runtime .js files; on change refreshes the playground copy, and for
+  core.js regenerates core.edn and, if it changed, touches compiler.cljc so
+  shadow recompiles and re-inlines the fresh vars."
   []
-  (let [core-js "src/squint/core.js"
-        compiler "src/squint/compiler.cljc"]
-    (println "[core-vars] watching" core-js)
-    (loop [prev (fs/last-modified-time core-js)]
+  (let [compiler "src/squint/compiler.cljc"
+        mtimes (fn []
+                 (into {}
+                       (map (fn [f] [f (fs/last-modified-time (fs/file "src" "squint" f))]))
+                       runtime-js-files))]
+    (println "[core-vars] watching src/squint runtime js files")
+    (loop [prev (mtimes)]
       (Thread/sleep 1000)
-      (let [cur (fs/last-modified-time core-js)]
-        (when (not= prev cur)
-          (println "[core-vars] core.js changed; regenerating core.edn")
-          (let [before (slurp "resources/squint/core.edn")]
-            (bump-core-vars)
-            (when (not= before (slurp "resources/squint/core.edn"))
-              (println "[core-vars] core.edn updated; touching compiler.cljc")
-              (fs/set-last-modified-time compiler (System/currentTimeMillis)))))
-        (recur (fs/last-modified-time core-js))))))
+      (let [cur (mtimes)]
+        (doseq [f runtime-js-files
+                :when (not= (prev f) (cur f))]
+          (refresh-playground-runtime f)
+          (when (= "core.js" f)
+            (println "[core-vars] core.js changed; regenerating core.edn")
+            (let [before (slurp "resources/squint/core.edn")]
+              (bump-core-vars)
+              (when (not= before (slurp "resources/squint/core.edn"))
+                (println "[core-vars] core.edn updated; touching compiler.cljc")
+                (fs/set-last-modified-time compiler (System/currentTimeMillis))))))
+        (recur cur)))))
 
 (defn watch-squint []
   (fs/create-dirs ".work")
