@@ -417,3 +417,47 @@ invisible in bulk operations (create/replace/clear were flat). But the
 public jfb methodology measures the mid-warmup window, so a published
 table would show the +46% number. Bundle: 10039 to 10874 bytes gzip
 (+835, the keyword floor plus hoisted consts).
+
+## Reversal: global loses to opt-in on its own measurements
+
+An external review weighed the recorded costs against squint's identity
+and recommended per-namespace opt-in. Accepted. The reasoning, so the
+reversal is as documented as the variants:
+
+The costs it weighed are this document's own numbers: the bundle floor is
+unconditional in practice (+656B gzip per app with any keyword, +107B on
+keyword-free collection bundles), the boxed-String trap degrades
+unadapted libraries with a lint as mitigation rather than a fix, the
+js-framework-benchmark's standard window publishes the mid-warmup +46%
+regardless of the 5-13% steady state, the altKey non-locality is a wart
+by construction, and the JS boundary regressed from "just worked" to
+"lower at the boundary". The win, wire-boundary type fidelity, is real
+but narrow: most squint code is JS-interop-heavy, where keywords-as-
+strings is the feature. Where the review overstates: the torture loop's
+2.7x is synthetic density, not steady state, and name-equivalent `=` is
+not a new CLJS fork, it is current squint behavior made observable.
+
+The earlier argument against the per-namespace flag ("the flag scopes
+source, keywords are data, so plain namespaces need defensive compilation
+and the tax is global anyway") fails on an implementation fact this
+branch established: the runtime shims are inert without keyword
+instances. A never-opted app creates zero keywords, so the equiv shim
+never fires, altKey probes an empty intern table, `kw()` is unreachable
+and the class tree-shakes out. Non-opted apps compile byte-identical to
+main with near-main bundles. The residual hole, a plain namespace
+comparing a string literal with `===` against a keyword that leaked from
+an opted dependency, is bounded and documentable, and smaller than the
+measured ambient costs of global.
+
+The review also caught real drift: the `kw()` docstring still describes
+the opt-in design from before the global pivot. The archaeology reads
+correctly, the code half-remembers the better idea.
+
+Decision: convert to opt-in. `{:squint/keywords true}` ns metadata, plus
+a squint.edn project-wide default for hermetic apps (the offworld case).
+Runtime stays as built, inert unless used. One correction against the
+strict-predicate choice made under global: `keyword?` must remain the
+union (`typeof string || isKw`), the runtime is shared and non-opted
+apps must keep `(keyword? "a")` true. Emission gating (`emit-keyword`,
+case labels, `=` tag rule, ns-meta capture) existed flag-shaped in this
+branch's history before the pivot and comes back from there.

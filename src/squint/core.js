@@ -78,6 +78,11 @@ function dequal(foo, bar) {
   // null and undefined are both nil in CLJS, so they compare equal
   if (foo == null) return bar == null;
   if (bar == null) return false;
+  // fast exit for strings, the common operands since = with a string
+  // literal against an untagged side compiles to _EQ_: an unequal
+  // string only equals a keyword with that name
+  if (typeof foo === 'string') return isKw(bar) && bar._name === foo;
+  if (typeof bar === 'string') return isKw(foo) && foo._name === bar;
   // -equiv dispatches on the left argument, like CLJS =
   if (typeof foo === 'object' && foo[IEquiv__equiv] !== undefined) return !!foo[IEquiv__equiv](foo, bar);
   // when only the right side has -equiv (the left is e.g. a plain object),
@@ -3809,11 +3814,11 @@ export function keyword(arg1, arg2) {
   return kw(arg1, arg2);
 }
 
-// Opt-in keyword objects ({:squint/keywords true} ns metadata): interned,
-// extends String so string ops, property access, str and JSON behave like
-// the default representation, but the type survives to a wire boundary
-// (e.g. a transit or edn write handler emitting a real keyword). The pure
-// IIFE keeps the class out of bundles that never construct one.
+// Keyword objects: interned, extends String so string ops, property
+// access, str and JSON behave like the string representation, but the
+// type survives to a wire boundary (e.g. a transit or edn write handler
+// emitting a real keyword). The pure IIFE keeps the class out of bundles
+// that never construct one.
 const Keyword = /* @__PURE__ */ (() => {
   class Keyword extends String {
     constructor(fqn) {
