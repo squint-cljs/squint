@@ -1,0 +1,534 @@
+# ADR 0004: real keywords at runtime
+
+Status: Rejected. Squint keeps string keywords. This document is the
+measured record of five runtime-keyword variants, kept so a future
+attempt starts from evidence instead of intuition. Implementation
+branches: `poc-real-keywords` (strict =), `poc-loose-eq`
+(name-equivalent =), `keywords-global` (String-subclass, the best
+variant, still rejected).
+
+## Why this was rejected
+
+The costs are ambient, paid by every squint user, while the benefit
+(wire-boundary type fidelity) turned out to be application-boundary
+shaped. In decreasing order of weight:
+
+- Framework performance is the showstopper. Under js-framework-benchmark's
+  standard methodology the reagami select1k op regresses +46% (52 to
+  76ms). The steady state behind it is 5-13% on keyword-sensitive DOM
+  ops plus a JIT warmup cliff the public methodology measures, so
+  published squint framework numbers get visibly worse even though bulk
+  operations are flat. This alone kills it.
+- Unadapted libraries hit a silent perf trap: string interop methods on
+  a keyword lose V8's primitive fast paths (indexOf 33ns vs 1.2,
+  toUpperCase 120ns vs 1.1). Stock reagami shipped it. The mitigation is
+  a lint rule and library patches, i.e. an ecosystem chore, not a fix.
+- Bundle floor against squint's tiny-bundle identity: +1518B raw /
+  +656B gzip once per app for any program containing a keyword (all of
+  them), +262B/+107B even in keyword-free bundles that use collection
+  fns. Mostly irreducible: it is the class, interning and lookup
+  machinery itself.
+- JS interop regresses from "just worked" to "lower at the boundary":
+  keyword objects fail === and switch in JS, native Set/Map probes miss
+  them silently, structuredClone corrupts them to boxed strings. Squint
+  being thin over JS is the product; this thickens it.
+- The altKey bridge is load-bearing (removing it breaks replicant and
+  babashka/cli, measured) but non-local by construction: a js/Map
+  holding both :a and "a" answers by whichever representation matches
+  first.
+- Name-equivalent = ((= :a "a") is true) is old-squint behavior made
+  observable, permanently divergent from CLJS in shared .cljc code.
+
+Branch `poc-real-keywords`. Revisits the keywords-are-strings representation
+that ADR 0003 builds on. Byte counts are esbuild `--bundle --minify` output.
+Benchmarks are node 22, 10M iterations, per-call figures.
+
+## Context
+
+Squint keywords are plain strings: `:foo/bar` is `"foo/bar"`. That makes
+`keyword?` meaningless, prints keywords as strings, and cannot distinguish
+`:a` from `"a"` in equality, sets, js Maps or case dispatch. This POC
+measures what a real keyword type costs and what it breaks.
+
+## Decision: interned Keyword objects, CLJS equality
+
+`Keyword` is a module-local class in core.js holding one `fqn` field.
+`toString` and `toJSON` return the fqn without the leading colon, so object
+property access, `str`, template interpolation and `JSON.stringify` behave
+like the string representation. `(str :a)` stays `"a"`: returning `":a"`
+would break property keys and templates, the main JS interop surfaces.
+`pr-str` prints `:a`. Protocol slots supply behavior: IEquiv (keyword-only
+equality), IHash (hashes like the name string), IPrintWithWriter.
+
+Interning uses `Map<string, WeakRef<Keyword>>` plus a `FinalizationRegistry`
+that prunes dead entries, like Clojure's keyword table. Identity is only
+needed among live instances: a collected keyword cannot sit in any live
+collection or switch dispatch, so re-interning as a fresh instance is safe.
+
+Equality is strict, like CLJS: a keyword equals only another keyword.
+`(= :a "a")` is false. `(keyword? "foo")` is false. `case` follows `=`.
+Sets and js Maps follow `=` exactly. An earlier draft made Set/Map lookups
+accept both representations, rejected for non-local behavior:
+`(get (js/Map. [[:a 1]]) "a")` returned 1 until an unrelated `["a" 2]`
+entry was added, then returned 2.
+
+A `Keyword extends String` variant was tried to keep string-method interop
+working (`(.toUpperCase :div)`). Rejected: inherited String behavior makes
+keywords char-iterable, so walk/seq recurse into them (4 new suite
+failures), and libraries still break at their `string?` checks.
+
+## Alternative measured: name-equivalent = (branch poc-loose-eq)
+
+The other equality on the table: `(= :a "a")` is true, a keyword and its
+name string are one value everywhere `=` reaches. Implemented on branch
+`poc-loose-eq` on top of everything else here: the equiv shim compares
+fqn against strings, `=` routes a known string against an unknown side
+through `_EQ_` (two keyword literals still emit `===`, interning), `case`
+emits a string label next to each keyword label, and Set/js Map lookups
+retry the other representation so membership follows `=`.
+
+Regression inventory, stock library code, against the strict variant:
+
+| suite/lib | strict = | name-equivalent = |
+|---|---|---|
+| squint suite | 40 failures | 40 failures, same groups |
+| eucalypt | pass | pass |
+| clojure-mode | pass | pass |
+| replicant | 254/256 | 256/256 |
+| babashka/cli | 3 failures, 1 error | 0 failures, 1 error |
+| reagami (stock) | 21 errors | 21 errors |
+| torture loop | 115ms | 141ms |
+
+Name-equivalence absorbs every comparison-shaped break: replicant's
+string-keyed CSS maps pass, babashka/cli's command-table comparisons pass.
+What survives it is operation-shaped breakage, string ops on a keyword:
+babashka/cli's remaining error seqs a key's characters ("outdated is not
+iterable"), reagami's `(.toUpperCase tag)` fails identically under both.
+The perf cost is the `_EQ_` routing for string-vs-unknown comparisons
+(141ms vs 115ms on the torture loop, both against 30ms on main).
+
+The semantic wounds. Equality diverges from CLJS and JVM Clojure, a
+portability trap in .cljc code. Collections can hold `=`-duplicates:
+`(set [:a "a"])` has two elements that compare equal, `(distinct [:a "a"])`
+keeps both, yet `(= #{:a} #{"a"})` is true. And the js/Map lookup
+non-locality returns by design: `(get (js/Map. [[:a 1]]) "a")` is 1 until
+an unrelated `["a" 2]` entry shadows it. Hashes stay consistent (a keyword
+hashes as its name).
+
+So the two variants trade failure shapes: strict `=` is CLJS-correct and
+keeps collections coherent but breaks every keyword-against-string
+comparison over boundary data. Name-equivalence keeps existing squint
+code and string data flowing but is a third equality semantics, neither
+old squint (where the question could not arise) nor CLJS.
+
+## Decision: object maps store names, read back keywords
+
+Object maps are the one place the representations meet. `{:a 1}` and
+`{"a" 1}` are the same JS object, so the key representation is lossy by
+construction. The POC stores names (string property keys, unchanged) and
+reads keywords back: `keys`, `seq`, entries, `reduce-kv` and record
+seq/kv-reduce yield keyword keys, like CLJS. The edn reader yields
+keywords. Lookups accept both forms on object maps only: `(get m :a)`
+indexes by the fqn, `(get m "a")` hits the same entry.
+
+Measured both directions of the lossy representation. With string
+read-back and strict `=`, replicant failed 16 assertions (`:click`
+literals compared against string keys) and six suite groups failed the
+same way. With keyword read-back, replicant fails 2 (deliberately
+string-keyed CSS maps like `{"--bg" "red"}`) and babashka/cli fails 3 plus
+1 error (command tables keyed by command-name strings). Keyword read-back
+wins on numbers and matches CLJS idiom. Maps used as string-keyed
+dictionaries need a js/Map (exact keys) or upstream adaptation.
+
+## Compiler
+
+A keyword literal compiles to one module-level
+`const _kw_1 = squint_core.keyword("a");` hoisted after the imports, so a
+literal in a hot path is a const reference, not a call. The REPL keeps
+inline `keyword("a")` calls since top-level consts do not survive re-eval.
+Emissions that must stay strings still do: object map literal keys,
+destructuring, the object fast paths (`get-inline` and `assoc-inline` emit
+`m["a"]`), JSX and html attributes, import attributes.
+
+Keyword literals are tagged `'keyword`, which counts as primitive for `=`:
+interning makes `===` a correct equality on keywords, so `(= x :a)` emits
+`x === _kw_1`. The pregenerated runtimes were recompiled (test.js,
+walk.js) and multi.js's default dispatch value is `(keyword "default")`.
+`typeConst` brands keywords as scalars: `assoc`, `conj` and `seq` on a
+keyword throw.
+
+## Compatibility
+
+Squint suite: 470 tests, 2504 assertions, 40 failures, none silent
+user-code breakage. About 29 assert the old semantics directly (CLJS-side
+`=` against strings, emission strings). Four are printing changes
+(`pr-str` prints `:a`). Four are js/Map representation changes
+(`select-keys` and `merge` onto a js/Map now produce keyword keys). Two
+are the remaining tree-shaking floors below. One is `(first :abd)` now
+throwing, CLJS parity.
+
+Libtests (reagami added to the set in this branch):
+
+- eucalypt 112, clojure-mode 164: pass
+- replicant 254 of 256: the two string-keyed CSS cases above
+- babashka/cli: 3 failures, 1 error, string command tables, adapt upstream
+- reagami: failed wholesale at first, it called string methods straight
+  on hiccup tags (`(.toUpperCase tag)`). Adapted on reagami branch
+  `real-keywords`: unconditional `(name tag)` (deleting the squint-only
+  reader conditionals), plain string constants for the internal vnode
+  property keys, and two test-side normalizations. 70 of 70 assertions
+  pass, and the adapted code is also green on stock squint 0.14.203.
+
+## JS interop
+
+Calling squint-compiled functions from JS, and passing JS data in. All
+verified on the branch.
+
+JS data into squint. Property-style access is unchanged: `(:type m)` and
+destructuring on a JS object work, `(get m :type)` indexes by name. What
+breaks is comparison: a squint fn doing `(= (:type m) :click)` or a `case`
+on it gets the JS string `"click"` and misses, where the old
+representation matched. Squint code consumed from JS must normalize at the
+boundary (`(keyword (:type m))`) or compare with strings. NOTE MB: not great
+
+Squint data out to JS. A keyword value reaching JS is an object, not a
+string: `v === "click"` and `switch (v) { case "click": ... }` miss.
+`String(v)`, template interpolation and `JSON.stringify` all produce the
+name (toString/toJSON), so string sinks (DOM attributes, URLs, logs) keep
+working. Frameworks that type-check children reject plain objects (React
+throws on objects as children), where the old representation rendered.
+`(keys m)` handed to JS is an array of Keyword objects: fine as property
+keys (`obj[k]` coerces), wrong for `k === "a"`.
+
+`structuredClone` (postMessage, workers, IndexedDB) is the sharpest edge:
+it clones the instance as a plain `{fqn: "click"}` object, losing the
+prototype and interning. The clone is not a keyword, does not equal one,
+and stringifies as `{"fqn":"click"}`. The old representation cloned
+losslessly. Data crossing a clone boundary must be lowered first.
+
+The canonical boundary tool is `clj->js`, which now lowers keywords to
+their name strings recursively, like CLJS. `js->clj` is unchanged: strings
+stay strings, and map read-back keywordizes keys on the squint side.
+
+## Performance
+
+Torture loop, 1M iterations of map literal + `get` + `=` + `case` + `keys`
+per iteration, main vs POC: 30ms vs 115ms. Before literal hoisting it was
+181ms. The remaining gap is `keys` interning two keywords per iteration,
+not a typical profile.
+
+Per-call: hoisted `kw === kw` 1.1ns (plain `===`), `_EQ_` kw/kw 22ns,
+dynamic `(keyword s)` intern hit 17ns, `get(m, kw)` on an object 2.6ns via
+the fqn index against 1.7ns with a string key. Inlined `m["a"]` paths
+unchanged. No `=` deopt remains: keyword literals keep the `===` path via
+the `'keyword` tag.
+
+Reagami's own render benchmark, adapted code, stock squint 0.14.203 vs
+POC: ~253ms vs ~255ms per trial, equal within noise. Real keywords cost
+nothing on a DOM-heavy path. The adaptation itself sped reagami up (~283ms
+before, keyword property keys became string constants). Still pending: a
+js-framework-benchmark run (https://github.com/borkdude/js-framework-benchmark),
+main vs branch.
+
+## Tree-shaking
+
+Two fixes. The class and its protocol wiring sit in a `/* @__PURE__ */`
+IIFE and the interning table carries the same annotation, so the
+definition is side-effect free. Generic fns (typeConst, `__toFn`, get,
+compare, name, namespace) test keywords by a `TYPE_TAG` brand integer on
+the prototype instead of `instanceof`, so they do not reference the class.
+
+| imports | main | POC | delta |
+|---|---|---|---|
+| identity | 39B | 39B | 0 |
+| atom, deref, reset!, swap! | 3177B | 3262B | +85B |
+| atom, get, assoc, str, keyword | 3856B | 5188B | +1332B |
+| conj | 2842B | 4170B | +1328B |
+
+The remaining ~1.3KB applies where keyword construction is semantically
+reachable: importing `keyword` itself, or anything that seqs an object map
+(read-back must construct keywords). That floor is the read-back feature,
+not an accident.
+
+## Open questions
+
+- Upstream adaptations: babashka/cli (js/Map or `name` at boundaries),
+  reagami (`name` on hiccup tags).
+- `#js/Map {:a 1}` literals hold keyword keys: correct under the model,
+  but raw `.get "a"` interop misses. Callers own the key type.
+- Whether `keys` read-back allocation matters in real profiles. The
+  js-framework-benchmark run above should answer this.
+- The two suite DCE caps (get, conj) sit above their old caps because of
+  the read-back floor: caps need updating if this lands.
+
+## Best variant: global interned String-subclass keywords (branch keywords-global)
+
+The synthesis of everything measured above, and the only variant where
+every libtest passed with stock code. Rejected anyway, for the costs
+summarized at the top. A keyword literal compiles to
+an interned `Keyword extends String` instance, everywhere, no flag. The
+subclass keeps every string behavior of the old representation: string
+methods (`.toUpperCase`, `subs`, regex), property access, `str`, templates,
+`JSON.stringify` (the spec unwraps String objects), and `string?` stays
+true for keywords. `keyword?` is now the subtype test: true only for
+keyword objects, false for plain strings. `=`, `case` and Set/js Map
+membership are name-equivalent (a keyword equals its name string), which
+is the old semantics where the question could not arise. Collection
+behavior is untouched: object maps keep string keys, `keys`/`seq` read
+back strings, no read-back keywordization.
+
+What the wire gains: the type survives to a boundary. `pr-str` emits
+`:foo`, so squint can print true EDN, and a JVM Clojure `read-string`
+sees keywords and strings as distinct types. Verified round trip:
+`[:ns/scans "NL-AS-1829" {:type :scanned}]` prints, reads and re-prints
+byte-identically against a real Clojure runtime. A transit write handler
+can dispatch on the type the same way.
+
+Regression inventory, stock library code, zero migration:
+
+| suite/lib | result |
+|---|---|
+| squint suite | 39 failures, all recorded-semantics or printing |
+| eucalypt | 112/112 |
+| clojure-mode | 164/164 |
+| replicant | 256/256 |
+| babashka/cli | 480/480 |
+| reagami | 70/70 |
+
+First variant where every libtest passes unmodified. The pregenerated
+runtimes (test.js, walk.js) were deliberately left stale to simulate
+published libraries with string literals baked in: the mixed world works
+through the equiv shim and dual case labels.
+
+The suite's 39: CLJS-side harness comparisons against strings (~25),
+printing changes (`pr-str` emits `:a`, the point of the change), js/Map
+literals holding keyword keys, `(first :abd)` now throwing (keywords are
+not char-seqable, CLJS parity), one DCE cap.
+
+Tree-shaking, honestly framed: the identity bundle shakes to +0B, but
+that only proves keyword-free code pays nothing, and no real program is
+keyword-free. Since every keyword literal emits `kw("...")`, the
+realistic floor is what a program with any keyword pays: +1518B raw,
++656B gzip, once per app (class, interning, protocol wiring). Collection
+fns carry +262B raw / +107B gzip even in keyword-free bundles (isKw and
+the representation-resolving lookups). Dropping weak interning for a
+strong Map saves only 66B gzip and trades away GC of dynamically created
+keywords: not worth it. For scale: the DCE suite's own caps moved, a
+realistic app bundle grows 2-4%, and the alternative wire solution
+(transit-js) costs an order of magnitude more.
+
+### Performance report
+
+Node 22, per-call figures from 16-40M-iteration loops, each core measured
+in its own process (sharing one process makes V8 call sites polymorphic
+and taxes whichever module runs second).
+
+| operation | main | keywords-global |
+|---|---|---|
+| inline `m["type"]` (emission unchanged) | 1.1 ns | 1.1 ns |
+| `get(m, "type")` | 2.9 ns | 3.1 ns |
+| `get(m, :type)` | 3.1 ns | 5.2 ns |
+| `contains?` `#{:on :x}` with `:on` (hit) | 5.6 ns | 5.4 ns |
+| `contains?` `#{:on :x}` with `:absent` (miss) | 4.5 ns | 8.9 ns |
+| `contains?` `#{:on :x}` probed with object keys (cross-rep) | 8.4 ns | 24.4 ns |
+| torture loop (1M x map literal + get + = + case + keys) | 30 ms | 82 ms |
+| reagami render benchmark | ~253 ms | ~255 ms |
+
+`get(m, :type)` was 25ns before the cached-name fast path: property
+access with a String-subclass key pays ~22ns in ToPropertyKey coercion,
+so the Keyword constructor caches its primitive name in an own `_name`
+field and `get` indexes with that. The same field feeds `name`,
+`namespace`, `compare`, equiv, hash and altKey.
+
+The `contains?` row is the replicant attr-filter shape (keyword set
+literal, string probes from an object's keys, 2 hits / 6 misses per
+pass) and is the worst case for altKey: on this branch every probe
+misses the first `.has` (members are keywords, probes are strings) and
+takes the intern-table retry, tripling the per-probe cost. The hit row shows the interned
+instance resolving in the first `.has`, altKey never runs. The miss row
+pays the wasted retry. Cost model: hit free, miss 2x, cross-rep
+resolution 3x where the alternative is a wrong answer, not a faster one. In wall-clock
+terms a render-shaped loop doing 1.6M attr passes (filter check plus a
+cross-representation js/Map get) takes 56ms, ~35ns per attribute:
+sub-microsecond per rendered frame at replicant scale.
+
+Each distinct keyword literal hoists to one module-level
+`const _kw_1 = squint_core.kw("a");`, so a literal in a hot path is a
+const reference (the REPL keeps inline calls, top-level consts do not
+survive re-eval). That took the torture loop from 151ms to 82ms. The
+remaining gap over main is `keys` allocation and `_EQ_` routing. The
+reagami row is the real-workload counter-evidence: DOM diffing amortizes
+keyword ops to nothing.
+
+Other costs, honestly: `=` against a string literal routes through `_EQ_`
+when the other side is untagged (~20ns against ~1ns for `===`). JS
+consumers receiving keyword objects see `===` and `switch` misses (`==`
+works, String subclass), and `structuredClone` demotes a keyword to a
+boxed string. `(keyword? "foo")` flips to false, the one deliberate
+predicate change.
+
+Remaining before landing: port literal hoisting, decide `(str :a)`
+(stays `"a"`), sweep the suite's recorded-semantics assertions, changelog.
+
+### Collections crossing the JS boundary
+
+The altKey bridge only exists inside squint's own access functions. A Set
+or js/Map containing keywords handed to a JS library is probed with the
+library's own `.has("a")`/`.get("a")`, which is SameValueZero on native
+internal slots: the string probe misses the keyword entry, silently. On
+the string representation this worked, so it is a real interop regression
+class, the collection-shaped version of the scalar rule (keywords fail
+`===` and `switch` in JS). The rule is the same: lower at the boundary.
+`clj->js` lowers keywords to name strings recursively (ported here), and
+`(js/Set. (map name s))` preserves the Set shape.
+
+### altKey is load-bearing (measured)
+
+The Set/js Map alternate-representation lookup reads as a hack, so it was
+removed and measured. Without it: replicant fails 3 (its
+`(#{:on :innerHTML} k)` attr filter takes string keys from an object map
+against a keyword set literal, so event handlers leak into rendered HTML),
+babashka/cli fails 16 with 3 errors (completion trees are keyword-keyed
+js/Maps probed with argv strings), and `set/rename-keys` corrupts a js/Map
+(the string keys of the rename map no longer match, and the `{...map}`
+fallback spreads the Map into a plain object). With it, everything is
+green. altKey is the membership face of name-equivalent `=`: native
+collections compare keys with SameValueZero, which cannot be overridden,
+so the bridge lives in `get`/`contains?`/`dissoc` as one O(1) intern-table
+probe on the miss path. Its known wart stays: a Map holding both `:a` and
+`"a"` entries answers by whichever representation matches first.
+
+### The boxed String method trap (measured, js-framework-benchmark)
+
+The full keyed benchmark against stock npm reagami found the one real perf
+trap: geomean +7.2%, select1k +49%. Root cause is not squint code at all
+but interop: reagami's tag parsing calls String methods directly on the
+keyword object (`(.toUpperCase tag)`, `.indexOf`), and inherited String
+methods on a boxed receiver lose the primitive fast paths (indexOf 33ns vs
+1.2, toUpperCase 120ns vs 1.1). Select re-renders 1000 rows of vnodes with
+little DOM work, so this dominates; bulk creation amortizes it away.
+
+The fix is the CLJS-alignment change the library wants anyway: normalize
+with `(name tag)` once at the boundary, deleting the squint-only reader
+conditional. Verified in a jsdom select-shaped micro (ms per re-render of
+a 1000-row table):
+
+| configuration | ms |
+|---|---|
+| stock reagami, main squint | 10.7 |
+| stock reagami, keywords-global | 19.9 |
+| `(name tag)` reagami, keywords-global | 9.8 |
+
+Adding delegating String methods to the Keyword prototype (measured ~9ns
+against 33 boxed) was considered and rejected: no more runtime code for a
+problem that is a library idiom. The systemic answer is a clj-kondo rule
+flagging string interop methods invoked on keyword-typed values, which
+turns the silent 2-3x into an editor warning. Note the failure mode
+ladder: the plain-class variant crashed outright on this pattern,
+extends-String degrades it to slower-but-correct.
+
+### js-framework-benchmark: the full account
+
+Full keyed run, 10 iterations, standard methodology, reagami entry.
+Geomean of the nine ops: main 59.1ms, keywords-global 63.3ms (+7.2%),
+dominated by select1k at +46%. Two mechanisms, now separated:
+
+1. Boxed String methods in stock reagami's tag parsing (previous section).
+   The `(name tag)` adaptation removes it: 2x in a jsdom micro.
+2. JIT warmup depth. With the adapted reagami the select gap barely moved
+   under jfb's standard window (5 warmup clicks, then one timed, 4x CPU
+   throttle, fresh page per iteration). Raising warmup to 25 drops the
+   branch from 76.0 to 59.8ms while main stays flat (52.0 to 53.0):
+   the keyword paths (Keyword-vs-string inline caches, `_EQ_` routing)
+   need more iterations to tier up than string-only code. Fully warm,
+   per-click in-page timing shows +5-10%, and jsdom parity.
+
+| select1k median | main | keywords-global, adapted reagami |
+|---|---|---|
+| jfb standard, 5 warmups | 52.0 | 76.0 |
+| 25 warmups | 53.0 | 59.8 |
+| fully warm (in-page per-click) | ~23 | ~24 |
+
+Honest reading: the steady-state cost of typed keywords on the most
+keyword-sensitive DOM benchmark is 5-13%, concentrated in warmup, and
+invisible in bulk operations (create/replace/clear were flat). But the
+public jfb methodology measures the mid-warmup window, so a published
+table would show the +46% number. Bundle: 10039 to 10874 bytes gzip
+(+835, the keyword floor plus hoisted consts).
+
+## Reversal: global loses to opt-in on its own measurements
+
+An external review weighed the recorded costs against squint's identity
+and recommended per-namespace opt-in. Accepted. The reasoning, so the
+reversal is as documented as the variants:
+
+The costs it weighed are this document's own numbers: the bundle floor is
+unconditional in practice (+656B gzip per app with any keyword, +107B on
+keyword-free collection bundles), the boxed-String trap degrades
+unadapted libraries with a lint as mitigation rather than a fix, the
+js-framework-benchmark's standard window publishes the mid-warmup +46%
+regardless of the 5-13% steady state, the altKey non-locality is a wart
+by construction, and the JS boundary regressed from "just worked" to
+"lower at the boundary". The win, wire-boundary type fidelity, is real
+but narrow: most squint code is JS-interop-heavy, where keywords-as-
+strings is the feature. Where the review overstates: the torture loop's
+2.7x is synthetic density, not steady state, and name-equivalent `=` is
+not a new CLJS fork, it is current squint behavior made observable.
+
+The earlier argument against the per-namespace flag ("the flag scopes
+source, keywords are data, so plain namespaces need defensive compilation
+and the tax is global anyway") fails on an implementation fact this
+branch established: the runtime shims are inert without keyword
+instances. A never-opted app creates zero keywords, so the equiv shim
+never fires, altKey probes an empty intern table, `kw()` is unreachable
+and the class tree-shakes out. Non-opted apps compile byte-identical to
+main with near-main bundles. The residual hole, a plain namespace
+comparing a string literal with `===` against a keyword that leaked from
+an opted dependency, is bounded and documentable, and smaller than the
+measured ambient costs of global.
+
+The review also caught real drift: the `kw()` docstring still describes
+the opt-in design from before the global pivot. The archaeology reads
+correctly, the code half-remembers the better idea.
+
+Decision: convert to opt-in. `{:squint/keywords true}` ns metadata, plus
+a squint.edn project-wide default for hermetic apps (the offworld case).
+Runtime stays as built, inert unless used. One correction against the
+strict-predicate choice made under global: `keyword?` must remain the
+union (`typeof string || isKw`), the runtime is shared and non-opted
+apps must keep `(keyword? "a")` true. Emission gating (`emit-keyword`,
+case labels, `=` tag rule, ns-meta capture) existed flag-shaped in this
+branch's history before the pivot and comes back from there.
+
+## Resolution: encode at the application boundary, in userland
+
+The driving use case (offworld sending events like `[::scans plate]`
+over transit to a JVM Clojure server that needs the keyword/string
+distinction) does not need a runtime type; it needs the boundary to know
+which strings are keywords. Sketched options, none implemented here:
+
+- Namespace convention: every wire-crossing keyword is namespaced, and
+  the transit write handler converts strings that parse as qualified
+  idents under a whitelist of app namespace prefixes. Reads lower JVM
+  keywords back to plain strings. One renaming pass (`:scanned` to
+  `::scanned`), no per-site annotation, dev-mode assert for unqualified
+  leaks.
+- Explicit marker: a one-token wrapper (`transit.keyword`) at each
+  construction site that must arrive typed. Precise and greppable; the
+  framework DSL can auto-wrap structural positions it owns (effect
+  vector heads).
+- Declared schema: the sync layer already declares state paths; extend
+  the declarations with key/value types and convert by schema in both
+  directions.
+- Inverted polarity: on this wire keywords are the rule, so default
+  leaf encoding is keyword and a three-line schema names the string
+  positions (plate-id map keys, label fields). Marking must stay
+  positional, not a wrapper type on strings: strings are the unbounded
+  runtime class (wrapping burden lands on every ingestion point), the
+  forgotten case corrupts user data silently into keywords, and a
+  String-ish wrapper object replays the boxed-method trap on the
+  client's hottest surface.
+
+The per-namespace opt-in conversion sketched in the reversal section was
+also dropped: hassle exceeds value once the boundary encoding exists.
+The sketch stays valid if a future attempt wants it.
