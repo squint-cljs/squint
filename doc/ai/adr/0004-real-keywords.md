@@ -40,6 +40,50 @@ working (`(.toUpperCase :div)`). Rejected: inherited String behavior makes
 keywords char-iterable, so walk/seq recurse into them (4 new suite
 failures), and libraries still break at their `string?` checks.
 
+## Alternative measured: name-equivalent = (branch poc-loose-eq)
+
+The other equality on the table: `(= :a "a")` is true, a keyword and its
+name string are one value everywhere `=` reaches. Implemented on branch
+`poc-loose-eq` on top of everything else here: the equiv shim compares
+fqn against strings, `=` routes a known string against an unknown side
+through `_EQ_` (two keyword literals still emit `===`, interning), `case`
+emits a string label next to each keyword label, and Set/js Map lookups
+retry the other representation so membership follows `=`.
+
+Regression inventory, stock library code, against the strict variant:
+
+| suite/lib | strict = | name-equivalent = |
+|---|---|---|
+| squint suite | 40 failures | 40 failures, same groups |
+| eucalypt | pass | pass |
+| clojure-mode | pass | pass |
+| replicant | 254/256 | 256/256 |
+| babashka/cli | 3 failures, 1 error | 0 failures, 1 error |
+| reagami (stock) | 21 errors | 21 errors |
+| torture loop | 115ms | 141ms |
+
+Name-equivalence absorbs every comparison-shaped break: replicant's
+string-keyed CSS maps pass, babashka/cli's command-table comparisons pass.
+What survives it is operation-shaped breakage, string ops on a keyword:
+babashka/cli's remaining error seqs a key's characters ("outdated is not
+iterable"), reagami's `(.toUpperCase tag)` fails identically under both.
+The perf cost is the `_EQ_` routing for string-vs-unknown comparisons
+(141ms vs 115ms on the torture loop, both against 30ms on main).
+
+The semantic wounds. Equality diverges from CLJS and JVM Clojure, a
+portability trap in .cljc code. Collections can hold `=`-duplicates:
+`(set [:a "a"])` has two elements that compare equal, `(distinct [:a "a"])`
+keeps both, yet `(= #{:a} #{"a"})` is true. And the js/Map lookup
+non-locality returns by design: `(get (js/Map. [[:a 1]]) "a")` is 1 until
+an unrelated `["a" 2]` entry shadows it. Hashes stay consistent (a keyword
+hashes as its name).
+
+So the two variants trade failure shapes: strict `=` is CLJS-correct and
+keeps collections coherent but breaks every keyword-against-string
+comparison over boundary data. Name-equivalence keeps existing squint
+code and string data flowing but is a third equality semantics, neither
+old squint (where the question could not arise) nor CLJS.
+
 ## Decision: object maps store names, read back keywords
 
 Object maps are the one place the representations meet. `{:a 1}` and
