@@ -532,3 +532,43 @@ which strings are keywords. Sketched options, none implemented here:
 The per-namespace opt-in conversion sketched in the reversal section was
 also dropped: hassle exceeds value once the boundary encoding exists.
 The sketch stays valid if a future attempt wants it.
+
+## Reconstruction appendix
+
+Implementation lives on pushed branches, also tagged for durability:
+`poc-real-keywords` (strict =, keyword read-back, hoisting original),
+`poc-loose-eq` (name-equivalent = on top of it), `keywords-global`
+(String-subclass, final form). If rebuilding without them, the
+non-obvious mechanics:
+
+- Runtime: `Keyword extends String` inside a `/* @__PURE__ */` IIFE
+  (a bare class with computed method keys defeats esbuild shaking, the
+  IIFE restores it), prototype-branded via the TYPE_TAG symbol so
+  generic fns avoid `instanceof` retention, `Symbol.iterator` shadowed
+  to undefined (inherited String iterator makes walk/seq recurse into
+  characters), and an own `_name` field caching the primitive
+  (ToPropertyKey on a String object costs ~25ns; `get` indexes with
+  `_name`). Interning: `Map<string, WeakRef>` plus FinalizationRegistry
+  whose callback re-checks `deref()` before deleting (re-intern race).
+- altKey (the representation bridge) must cover, consistently: `get`
+  and `contains?` Set/Map branches, `dissoc` and `disj`/`disj!`,
+  `dequal`'s set branch AND same-constructor Map branch (one-sided
+  coverage makes `=` asymmetric), `distinct`'s seen-set, `mapHas`/
+  `mapGet` used by cross-representation map equality, and clojure.set's
+  membership helper (delegate to `contains?`).
+- Compiler: literals hoist to per-module `const _kw_N = kw("...")` via
+  a `:keyword-consts` map in ns-state, reset per compiled module,
+  emitted after imports, disabled under `:repl` (top-level consts do
+  not survive re-eval). Keyword literals tag `'keyword`; `=` emits
+  `===` only for number/boolean one-sided, both-primitive, or
+  both-keyword tags. Keyword case tests emit a dual string label.
+  Object fast paths (get-inline/assoc-inline), map literal keys, JSX
+  and html attrs, import attributes all keep emitting plain strings.
+- Test harness: `eq` compares via lodash isEqualWith lowering keywords
+  to name strings on both sides; the customizer must return JS
+  undefined to fall through, CLJS nil is null and lodash treats null as
+  a definite false.
+- Benchmarking traps: never load two core.js copies in one process
+  (polymorphic call sites tax whichever runs second), and
+  js-framework-benchmark's select measures the mid-warmup window
+  (warmupCount 5), which is where the +46% lives.
