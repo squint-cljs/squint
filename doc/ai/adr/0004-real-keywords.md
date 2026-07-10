@@ -274,45 +274,39 @@ stay free of the class.
 
 ### Performance report
 
-All numbers node 22, per-call figures from 16-40M-iteration loops.
+Node 22, per-call figures from 16-40M-iteration loops, each core measured
+in its own process (sharing one process makes V8 call sites polymorphic
+and taxes whichever module runs second).
 
-Object map lookup, `{type: "click"}`:
+| operation | main | keywords-global |
+|---|---|---|
+| inline `m["type"]` (emission unchanged) | 1.1 ns | 1.1 ns |
+| `get(m, "type")` | 2.9 ns | 3.1 ns |
+| `get(m, :type)` | 3.1 ns | 5.2 ns |
+| `contains?` `#{:on :innerHTML}` probed with object keys | 8.4 ns | 24.4 ns |
+| torture loop (1M x map literal + get + = + case + keys) | 30 ms | 151 ms |
+| reagami render benchmark | ~253 ms | ~255 ms |
 
-| operation | ns/op |
-|---|---|
-| inline `m["type"]` (emission unchanged) | 1.0 |
-| `get(m, "type")` | 3.1 |
-| `get(m, :type)` | 4.9 |
-| `get(m, :type)` before the cached-name fast path | 25.2 |
+`get(m, :type)` was 25ns before the cached-name fast path: property
+access with a String-subclass key pays ~22ns in ToPropertyKey coercion,
+so the Keyword constructor caches its primitive name in an own `_name`
+field and `get` indexes with that. The same field feeds `name`,
+`namespace`, `compare`, equiv, hash and altKey.
 
-Property access with a String-subclass key pays ~25ns in ToPropertyKey
-coercion, so the Keyword constructor caches its primitive name in an own
-`_name` field and `get` indexes with that: keyword lookup lands within
-2ns of a string key. The same field feeds `name`, `namespace`, `compare`,
-equiv, hash and altKey, replacing `String()` calls.
+The `contains?` row is the replicant attr-filter shape (keyword set
+literal, string probes from an object's keys, 2 hits / 6 misses per
+pass) and is the worst case for altKey: on this branch every probe
+misses the first `.has` (members are keywords, probes are strings) and
+takes the intern-table retry, tripling the per-probe cost. In wall-clock
+terms a render-shaped loop doing 1.6M attr passes (filter check plus a
+cross-representation js/Map get) takes 56ms, ~35ns per attribute:
+sub-microsecond per rendered frame at replicant scale.
 
-Set/js Map membership, the replicant attr-filter shape (keyword set
-literal, string probes from an object's keys, 2 hits / 6 misses per pass):
-
-| operation | ns/probe |
-|---|---|
-| native `Set.has(string)`, string members (main equivalent) | 5.0 |
-| `contains?`, string members | 19.7 |
-| `contains?`, keyword members, altKey path | 24.5 |
-
-altKey adds ~5ns and only on the miss path: squint's own dispatch
-overhead (~15ns over native) dominates it. A render-shaped loop doing
-1.6M attr passes (filter check plus a cross-representation js/Map get)
-takes 56ms, ~35ns per attribute: sub-microsecond per rendered frame at
-replicant scale.
-
-The keyword-torture loop (1M iterations of map literal + `get` + `=` +
-`case` + `keys`, every operation touching keywords): main 30ms, this
-branch 151ms. The remaining gap is inline `kw("a")` interning calls per
-literal evaluation (~17ns each, several per iteration): the module-const
-hoisting built on the POC branch is not ported yet and removes most of
-it. Real-workload counter-evidence: reagami's render benchmark measured
-equal (~253 vs ~255ms) between main and typed keywords.
+The torture-loop gap is dominated by inline `kw("a")` interning calls
+per literal evaluation (~17ns each, several per iteration): the
+module-const hoisting built on the POC branch is not ported yet and
+removes most of it. The reagami row is the real-workload
+counter-evidence: DOM diffing amortizes keyword ops to nothing.
 
 Other costs, honestly: `=` against a string literal routes through `_EQ_`
 when the other side is untagged (~20ns against ~1ns for `===`). JS
