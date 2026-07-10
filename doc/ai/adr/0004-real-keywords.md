@@ -283,7 +283,9 @@ and taxes whichever module runs second).
 | inline `m["type"]` (emission unchanged) | 1.1 ns | 1.1 ns |
 | `get(m, "type")` | 2.9 ns | 3.1 ns |
 | `get(m, :type)` | 3.1 ns | 5.2 ns |
-| `contains?` `#{:on :innerHTML}` probed with object keys | 8.4 ns | 24.4 ns |
+| `contains?` `#{:on :x}` with `:on` (hit) | 5.6 ns | 5.4 ns |
+| `contains?` `#{:on :x}` with `:absent` (miss) | 4.5 ns | 8.9 ns |
+| `contains?` `#{:on :x}` probed with object keys (cross-rep) | 8.4 ns | 24.4 ns |
 | torture loop (1M x map literal + get + = + case + keys) | 30 ms | 151 ms |
 | reagami render benchmark | ~253 ms | ~255 ms |
 
@@ -297,11 +299,9 @@ The `contains?` row is the replicant attr-filter shape (keyword set
 literal, string probes from an object's keys, 2 hits / 6 misses per
 pass) and is the worst case for altKey: on this branch every probe
 misses the first `.has` (members are keywords, probes are strings) and
-takes the intern-table retry, tripling the per-probe cost. Same
-representation on both sides pays nothing on a hit (keyword member,
-keyword probe: 5.4ns against main's 5.6ns, the interned instance
-resolves in the first `.has`) and ~2x on a miss (8.9 against 4.5ns, the
-retry runs and also misses). Cost model: hit free, miss 2x, cross-rep
+takes the intern-table retry, tripling the per-probe cost. The hit row shows the interned
+instance resolving in the first `.has`, altKey never runs. The miss row
+pays the wasted retry. Cost model: hit free, miss 2x, cross-rep
 resolution 3x where the alternative is a wrong answer, not a faster one. In wall-clock
 terms a render-shaped loop doing 1.6M attr passes (filter check plus a
 cross-representation js/Map get) takes 56ms, ~35ns per attribute:
