@@ -95,6 +95,37 @@ Libtests (reagami added to the set in this branch):
   tags (`(.toUpperCase tag)`). Needs `(name tag)` at the boundary, the
   same normalization replicant already does. Adapt upstream.
 
+## JS interop
+
+Calling squint-compiled functions from JS, and passing JS data in. All
+verified on the branch.
+
+JS data into squint. Property-style access is unchanged: `(:type m)` and
+destructuring on a JS object work, `(get m :type)` indexes by name. What
+breaks is comparison: a squint fn doing `(= (:type m) :click)` or a `case`
+on it gets the JS string `"click"` and misses, where the old
+representation matched. Squint code consumed from JS must normalize at the
+boundary (`(keyword (:type m))`) or compare with strings.
+
+Squint data out to JS. A keyword value reaching JS is an object, not a
+string: `v === "click"` and `switch (v) { case "click": ... }` miss.
+`String(v)`, template interpolation and `JSON.stringify` all produce the
+name (toString/toJSON), so string sinks (DOM attributes, URLs, logs) keep
+working. Frameworks that type-check children reject plain objects (React
+throws on objects as children), where the old representation rendered.
+`(keys m)` handed to JS is an array of Keyword objects: fine as property
+keys (`obj[k]` coerces), wrong for `k === "a"`.
+
+`structuredClone` (postMessage, workers, IndexedDB) is the sharpest edge:
+it clones the instance as a plain `{fqn: "click"}` object, losing the
+prototype and interning. The clone is not a keyword, does not equal one,
+and stringifies as `{"fqn":"click"}`. The old representation cloned
+losslessly. Data crossing a clone boundary must be lowered first.
+
+The canonical boundary tool is `clj->js`, which now lowers keywords to
+their name strings recursively, like CLJS. `js->clj` is unchanged: strings
+stay strings, and map read-back keywordizes keys on the squint side.
+
 ## Performance
 
 Torture loop, 1M iterations of map literal + `get` + `=` + `case` + `keys`
