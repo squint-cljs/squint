@@ -64,7 +64,7 @@ need the extra performance, startup time and/or small bundle size.
 ## Differences with ClojureScript
 
 - The CLJS standard library is replaced with `"squint-cljs/core.js"`, a smaller re-implemented subset
-- Keywords are translated into strings
+- Keywords are interned objects that behave like their name string, see [Keywords](#keywords)
 - Maps, sequences and vectors are represented as mutable objects and arrays
 - Standard library functions never mutate arguments if the CLJS counterpart do
   not do so. Instead, shallow cloning is used to produce new values, a pattern that JS developers
@@ -83,6 +83,59 @@ need the extra performance, startup time and/or small bundle size.
 - Since JavaScript only supports strings for keys in maps, any data structures used as keys will be stringified
 
 If you are looking for closer ClojureScript semantics, take a look at [Cherry 🍒](https://github.com/squint-cljs/cherry).
+
+## Keywords
+
+A keyword is an interned object that extends `String`. It behaves like its
+name string in every string position:
+
+```clojure
+(str :foo)           ;;=> "foo"
+(name :foo/bar)      ;;=> "bar"
+(.toUpperCase :div)  ;;=> "DIV"
+(:a {:a 1})          ;;=> 1
+(= :a "a")           ;;=> true
+(case "a" :a 1 2)    ;;=> 1
+```
+
+Unlike a string, the type survives to a wire boundary:
+
+```clojure
+(pr-str [:order/id "abc123"]) ;;=> "[:order/id \"abc123\"]"
+```
+
+A Clojure server reads that back with the keyword and the string as
+distinct types, and `clojure.edn/read-string` on the squint side yields
+keywords again. `keyword?` is true only for keywords. `string?` is true
+for both, since a keyword is a `String` subclass.
+
+Map literals still compile to plain JS objects with string property keys,
+so `(keys {:a 1})` returns `["a"]` and `{:a 1}` and `{"a" 1}` are the same
+object. Sets and `js/Map`s do hold keyword elements and keys. Squint's
+`get`, `contains?` and `dissoc` look keys up by name in both
+representations, so `(contains? #{:a} "a")` is true. A `js/Map` built with
+both `:a` and `"a"` keys holds two entries, and lookups resolve the exact
+representation first.
+
+### Keywords and JS interop
+
+JavaScript compares objects by identity, so a keyword that crosses into JS
+code is not a string there:
+
+- `kw === "a"` is false and `switch` on string cases misses (`kw == "a"`
+  is true)
+- native `.has`/`.get` on a Set or Map miss when JS probes a keyword
+  entry with a string
+- `structuredClone` (workers, `postMessage`, IndexedDB) turns a keyword
+  into a plain boxed string
+- string sinks are fine: template literals, `+`, property access,
+  `JSON.stringify` all produce the name
+
+Rule of thumb: lower keyword-bearing data at the boundary when JS code
+consumes it. `clj->js` converts keywords to name strings recursively. For
+collections that keep their shape use e.g. `(js/Set. (map name s))`, or
+use strings instead of keywords for Set elements and `js/Map` keys that JS
+users will probe.
 
 ## Articles
 
