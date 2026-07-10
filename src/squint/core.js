@@ -4,16 +4,6 @@ function internedKeyword(fqn) {
   return keywordCache.get(fqn)?.deref();
 }
 
-// the other representation of a keyword/string key, for Set/Map lookups that
-// must follow = (a keyword equals its name string): a string maps to its
-// interned keyword (if none is live, no collection can hold it), a keyword
-// to its fqn string
-function altKey(k) {
-  if (typeof k === 'string') return internedKeyword(k);
-  if (k instanceof Keyword) return k.fqn;
-  return undefined;
-}
-
 // __toFn is not public API - the leading underscores mark it as an
 // implementation helper shared with other squint runtime modules
 // (e.g. multi.js). Signature and semantics may change without notice.
@@ -58,21 +48,10 @@ function isMapLike(m) {
   );
 }
 function mapHas(m, k) {
-  if (m instanceof Map || m[TYPE_TAG] === MAP_TYPE) {
-    if (m.has(k)) return true;
-    const a = altKey(k);
-    return a !== undefined && m.has(a);
-  }
-  return has.call(m, k);
+  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE ? m.has(k) : has.call(m, k);
 }
 function mapGet(m, k) {
-  if (m instanceof Map || m[TYPE_TAG] === MAP_TYPE) {
-    const v = m.get(k);
-    if (v !== undefined) return v;
-    const a = altKey(k);
-    return a !== undefined ? m.get(a) : undefined;
-  }
-  return m[k];
+  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE ? m.get(k) : m[k];
 }
 function mapCount(m) {
   return m instanceof Map || m[TYPE_TAG] === MAP_TYPE
@@ -746,11 +725,8 @@ export function contains_QMARK_(coll, v) {
   }
   switch (typeConst(coll)) {
     case SET_TYPE:
-    case MAP_TYPE: {
-      if (coll.has(v)) return true;
-      const a = altKey(v);
-      return a !== undefined && coll.has(a);
-    }
+    case MAP_TYPE:
+      return coll.has(v);
     case undefined:
       return false;
     case INSTANCE_TYPE:
@@ -877,9 +853,10 @@ export function get(coll, key, otherwise = undefined) {
     return otherwise;
   }
   let v;
-  // optimize for getting values out of objects
+  // optimize for getting values out of objects. Indexing with the fqn
+  // directly skips the ToPropertyKey toString call on a Keyword key.
   if (isObj(coll)) {
-    v = coll[key];
+    v = coll[key instanceof Keyword ? key.fqn : key];
     if (v === undefined) {
       return otherwise;
     } else {
@@ -888,22 +865,12 @@ export function get(coll, key, otherwise = undefined) {
   }
   let g;
   switch (typeConst(coll)) {
-    case SET_TYPE: {
+    case SET_TYPE:
       if (coll.has(key)) v = key;
-      else {
-        const a = altKey(key);
-        if (a !== undefined && coll.has(a)) v = a;
-      }
       break;
-    }
-    case MAP_TYPE: {
+    case MAP_TYPE:
       v = coll.get(key);
-      if (v === undefined) {
-        const a = altKey(key);
-        if (a !== undefined) v = coll.get(a);
-      }
       break;
-    }
     case ARRAY_TYPE:
       v = coll[key];
       break;
