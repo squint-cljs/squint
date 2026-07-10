@@ -35,6 +35,9 @@
       (is (not (contains? m :zz)))
       (is (= [:a 1] (find m :a)))
       (is (nil? (find m :zz)))
+      ;; nil values do not hide entries from find
+      (is (= [:n nil] (find (i/hash-map :n nil) :n)))
+      (is (some? (find (i/hash-map :n js/undefined) :n)))
       ;; persistence
       (def m2 (assoc m :c 3))
       (is (= 2 (count m)))

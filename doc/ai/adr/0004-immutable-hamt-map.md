@@ -451,7 +451,7 @@ Plain-data seam:
 
 | item | importance | expected DCE cost | note |
 |---|---|---|---|
-| find with nil value (IFind or core fix) | high (correctness) | ~0.1KB core | small find edit or slot |
+| find with nil value (core fix) | done (July 2026) | +0.3KB find-only, ~0 real bundles | get with sentinel, contains? only for undefined values |
 | PersistentArrayMap tier | high (perf: most maps are small) | ~1-1.5KB map bundle | semantics-invisible, promote at 8 |
 | producer-fn type policy (select-keys etc.) | high (API coherence) | ~0.3KB core | one decision, several fns |
 | collections as functions | high (usability) | ~0 lib (compiler) | needs call-position support |

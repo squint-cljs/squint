@@ -3937,10 +3937,16 @@ export function bounded_count(n, coll) {
   }
 }
 
+const NOT_FOUND = Symbol();
+
 export function find(m, k) {
-  const v = get(m, k);
-  if (v !== undefined) {
+  const v = get(m, k, NOT_FOUND);
+  if (v !== NOT_FOUND) {
     return tagMapEntry([k, v]);
+  }
+  // get folds undefined values into not-found; contains? disambiguates
+  if (contains_QMARK_(m, k)) {
+    return tagMapEntry([k, undefined]);
   }
 }
 

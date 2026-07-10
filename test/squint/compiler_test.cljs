@@ -1356,6 +1356,17 @@ with `backticks`")))]
   (testing "arbitrary get method"
     (is (eq 1 (jsv! '(get (js/eval "class Foo { get() { return 1;} }; new Foo()") :foo))))))
 
+(deftest find-test
+  (is (eq ["a" 1] (jsv! '(find {:a 1} :a))))
+  (is (nil? (jsv! '(find {:a 1} :b))))
+  (is (nil? (jsv! '(find nil :a))))
+  (is (jsv! "(= [:a nil] (vec (find {:a nil} :a)))"))
+  ;; present-but-undefined values are found
+  (is (jsv! "(some? (find (doto {} (aset :a js/undefined)) :a))"))
+  (is (jsv! "(some? (find (js/Map. [[:a js/undefined]]) :a))"))
+  (is (eq [1 "b"] (jsv! '(find ["a" "b"] 1))))
+  (is (nil? (jsv! '(find ["a" "b"] 5)))))
+
 (deftest first-test
   (is (nil? (jsv! '(first nil))))
   (is (nil? (jsv! '(first []))))
