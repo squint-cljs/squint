@@ -654,8 +654,7 @@
       (boolean? x)))
 
 (defn primitive? [tag]
-  ;; keywords are interned, so === is a correct = on them
-  (contains? #{'number 'string 'boolean 'keyword} tag))
+  (contains? #{'number 'string 'boolean} tag))
 
 (core/defmacro equals
   ([_] true)
@@ -672,7 +671,13 @@
          y (with-meta (list 'js* (str y-emitted))
              {:tag y-tag})]
      (with-meta
-       (if (or (primitive? x-tag) (primitive? y-tag))
+       ;; name-equivalent =: a known string against an unknown side must go
+       ;; through _EQ_, the unknown side can hold a keyword. Two keyword
+       ;; literals are interned so === stays correct for them.
+       (if (or (and (primitive? x-tag) (primitive? y-tag))
+               (contains? #{'number 'boolean} x-tag)
+               (contains? #{'number 'boolean} y-tag)
+               (and (= 'keyword x-tag) (= 'keyword y-tag)))
          (core/list 'js* "(~{} === ~{})" x y)
          `(cljs.core/_EQ_ ~x ~y))
        {:tag 'boolean})))

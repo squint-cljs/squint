@@ -4,6 +4,14 @@ function internedKeyword(fqn) {
   return keywordCache.get(fqn)?.deref();
 }
 
+// the other representation of a keyword/string key, so Set/js Map
+// membership follows name-equivalent =
+function altKey(k) {
+  if (typeof k === 'string') return internedKeyword(k);
+  if (isKw(k)) return k.fqn;
+  return undefined;
+}
+
 // __toFn is not public API - the leading underscores mark it as an
 // implementation helper shared with other squint runtime modules
 // (e.g. multi.js). Signature and semantics may change without notice.
@@ -48,10 +56,21 @@ function isMapLike(m) {
   );
 }
 function mapHas(m, k) {
-  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE ? m.has(k) : has.call(m, k);
+  if (m instanceof Map || m[TYPE_TAG] === MAP_TYPE) {
+    if (m.has(k)) return true;
+    const a = altKey(k);
+    return a !== undefined && m.has(a);
+  }
+  return has.call(m, k);
 }
 function mapGet(m, k) {
-  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE ? m.get(k) : m[k];
+  if (m instanceof Map || m[TYPE_TAG] === MAP_TYPE) {
+    const v = m.get(k);
+    if (v !== undefined) return v;
+    const a = altKey(k);
+    return a !== undefined ? m.get(a) : undefined;
+  }
+  return m[k];
 }
 function mapCount(m) {
   return m instanceof Map || m[TYPE_TAG] === MAP_TYPE
@@ -729,8 +748,11 @@ export function contains_QMARK_(coll, v) {
   }
   switch (typeConst(coll)) {
     case SET_TYPE:
-    case MAP_TYPE:
-      return coll.has(v);
+    case MAP_TYPE: {
+      if (coll.has(v)) return true;
+      const a = altKey(v);
+      return a !== undefined && coll.has(a);
+    }
     case undefined:
       return false;
     case INSTANCE_TYPE:
@@ -869,12 +891,22 @@ export function get(coll, key, otherwise = undefined) {
   }
   let g;
   switch (typeConst(coll)) {
-    case SET_TYPE:
+    case SET_TYPE: {
       if (coll.has(key)) v = key;
+      else {
+        const a = altKey(key);
+        if (a !== undefined && coll.has(a)) v = a;
+      }
       break;
-    case MAP_TYPE:
+    }
+    case MAP_TYPE: {
       v = coll.get(key);
+      if (v === undefined) {
+        const a = altKey(key);
+        if (a !== undefined) v = coll.get(a);
+      }
       break;
+    }
     case ARRAY_TYPE:
       v = coll[key];
       break;
@@ -3784,10 +3816,10 @@ const Keyword = /* @__PURE__ */ (() => {
       return this.fqn;
     }
   }
-  // a keyword equals only another keyword, like CLJS. Lookups (get,
-  // contains?, case) stay name-based across keyword/string, equality not.
+  // name-equivalence: a keyword equals another keyword or its own name
+  // string, so keyword and string data mix freely
   Keyword.prototype[IEquiv__equiv] = (self, other) =>
-    other instanceof Keyword && self.fqn === other.fqn;
+    other instanceof Keyword ? self.fqn === other.fqn : typeof other === 'string' && self.fqn === other;
   // hash like the name string, consistent with maps read back either way
   Keyword.prototype[IHash__hash] = (self) => m3HashInt(hashString(self.fqn));
   Keyword.prototype[IPrintWithWriter__pr_writer] = (self, writer, _opts) =>
