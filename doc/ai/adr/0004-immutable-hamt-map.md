@@ -404,6 +404,66 @@ See doc/dev/composite-map-keys.md: canonical-string encoding over a native
 Map. Competitive on build, loses on miss (always pays a full encode). The
 HAMT subsumes it.
 
+## Divergences from compiled CLJS (July 2026 audit)
+
+Compared against the compiled CLJS standard library the squint compiler
+itself runs on (lib/cljs-runtime/cljs.core.js). Facts cited from that
+output.
+
+Intentional (the equiv design, settled):
+
+- CLJS equiv-map accepts any non-record map (count + reduce-kv with a
+  never-equiv sentinel); ours is same-type-only. Same for sequential
+  equality (CLJS vectors equal lists/lazy seqs).
+- CLJS hashes plain JS objects by goog/getUid; same mechanism as our uid.
+
+Structural / performance:
+
+- No PersistentArrayMap tier. CLJS small maps are flat arrays with linear
+  scans, promoting to PHM at HASHMAP_THRESHOLD = 8. Every squint map pays
+  HAMT machinery from the first entry.
+- seq/keys/vals materialize eager arrays; CLJS returns lazy node-walking
+  seq types (NodeSeq, ChunkedSeq, KeySeq/ValSeq) with O(1) first/rest.
+- Iterators are generators; CLJS ships handwritten iterator classes
+  (RangedIterator). Generators cost ~2-3x per element.
+- No direct IReduce; reduce goes through the iterator per element where
+  CLJS runs chunked 32-wide array loops.
+- String-hash cache: CLJS 1024 entries, ours 8192.
+
+Missing surface:
+
+- Collections are not callable ((v 1), (m :k), (s x) throw); CLJS types
+  implement call/apply. Compiler work, not library work.
+- No Subvec view (subvec copies O(n)), no MapEntry type (tagged arrays),
+  no IFind: `find` on a map with a nil value misses (core find tests get
+  against undefined) - a correctness bug, not a feature gap.
+- No RSeq/IReversible, no IComparable on vectors (CLJS vectors sort), no
+  PersistentQueue, no persistent sorted map/set (squint's sorted-map/set
+  are mutable, outside the equiv value world).
+
+Plain-data seam:
+
+- select-keys/zipmap/frequencies/group-by return plain objects from
+  persistent inputs (type loss); clojure.set/join accumulates a js Set.
+  Should be one policy decision, not per-fn drift.
+
+### Follow-up priorities (importance x expected DCE cost)
+
+| item | importance | expected DCE cost | note |
+|---|---|---|---|
+| find with nil value (IFind or core fix) | high (correctness) | ~0.1KB core | small find edit or slot |
+| PersistentArrayMap tier | high (perf: most maps are small) | ~1-1.5KB map bundle | semantics-invisible, promote at 8 |
+| producer-fn type policy (select-keys etc.) | high (API coherence) | ~0.3KB core | one decision, several fns |
+| collections as functions | high (usability) | ~0 lib (compiler) | needs call-position support |
+| direct IReduce with chunked loops | medium (perf) | ~0.5KB | biggest for reduce-heavy code |
+| handwritten iterators over generators | medium (perf) | ~0, possibly smaller | measure first |
+| lazy seq types (NodeSeq/ChunkedSeq/KeySeq/ValSeq) | medium | +2-3KB | only wins on partial consumption of big colls |
+| MapEntry type + IFind | medium | ~0.5KB | interacts with core map-entry? |
+| Subvec view | low (on demand) | ~0.8KB | subvec correctness is fine today |
+| RSeq/IReversible, IComparable on vectors | low | ~0.7KB | demand-driven |
+| PersistentQueue, persistent sorted map/set | low | large | separate efforts |
+| string-hash cache tuning | done (8192) | 0 | revisit only with data |
+
 ## Limitations / next steps
 
 - `extend-type` with an alias-qualified protocol (`i/IHash`) mis-emits the
