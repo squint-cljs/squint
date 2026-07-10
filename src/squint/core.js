@@ -876,9 +876,10 @@ export function get(coll, key, otherwise = undefined) {
     return otherwise;
   }
   let v;
-  // optimize for getting values out of objects
+  // optimize for getting values out of objects. Indexing with the cached
+  // primitive name skips the ToPropertyKey coercion on a keyword key.
   if (isObj(coll)) {
-    v = coll[key];
+    v = coll[isKw(key) ? key._name : key];
     if (v === undefined) {
       return otherwise;
     } else {
@@ -1524,7 +1525,7 @@ export function str(...xs) {
 }
 
 export function name(x) {
-  if (isKw(x)) x = String(x);
+  if (isKw(x)) x = x._name;
   if (typeof x === 'string') {
     // keywords/symbols are strings in squint; name is the part after the "/"
     // ns separator (consistent with `namespace`, which returns the part before)
@@ -3607,7 +3608,7 @@ export function compare(x, y) {
     }
     // keywords sort by name, also against plain strings
     if (isKw(x) || isKw(y)) {
-      return compare(String(x), String(y));
+      return compare(isKw(x) ? x._name : x, isKw(y) ? y._name : y);
     }
     const tx = typeof x;
     const ty = typeof y;
@@ -3806,15 +3807,21 @@ export function keyword(arg1, arg2) {
 // IIFE keeps the class out of bundles that never construct one.
 const Keyword = /* @__PURE__ */ (() => {
   class Keyword extends String {
+    constructor(fqn) {
+      super(fqn);
+      // the primitive name: property access via ToPropertyKey on a String
+      // object costs ~25ns, indexing with the cached primitive ~1ns
+      this._name = fqn;
+    }
   }
   // a keyword equals another keyword or its own name string, so opted-in
   // data mixes with the default representation
   Keyword.prototype[IEquiv__equiv] = (self, other) =>
-    isKw(other) ? String(self) === String(other) : typeof other === 'string' && String(self) === other;
+    isKw(other) ? self._name === other._name : typeof other === 'string' && self._name === other;
   // hash like the name string, consistent with equiv
-  Keyword.prototype[IHash__hash] = (self) => m3HashInt(hashString(String(self)));
+  Keyword.prototype[IHash__hash] = (self) => m3HashInt(hashString(self._name));
   Keyword.prototype[IPrintWithWriter__pr_writer] = (self, writer, _opts) =>
-    writer[IWriter__write](writer, ':' + self);
+    writer[IWriter__write](writer, ':' + self._name);
   // not char-seqable, unlike a string; String's inherited iterator would
   // make seq/walk recurse into the characters
   Keyword.prototype[Symbol.iterator] = undefined;
@@ -3837,7 +3844,7 @@ const keywordRegistry = /* @__PURE__ */ new FinalizationRegistry((fqn) => {
 // membership follows = (a keyword equals its name string)
 function altKey(k) {
   if (typeof k === 'string') return keywordCache.get(k)?.deref();
-  if (isKw(k)) return String(k);
+  if (isKw(k)) return k._name;
   return undefined;
 }
 

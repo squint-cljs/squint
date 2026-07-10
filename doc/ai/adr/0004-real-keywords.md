@@ -272,14 +272,54 @@ Tree-shaking: identity +0B, conj +19B, the atom set +271B, importing
 No read-back means seq does not construct keywords, so collection fns
 stay free of the class.
 
-Costs, honestly: the torture loop is 190ms against main's 30ms, keyword
-literals are inline interning calls (the module-const hoisting from the
-POC branch is not ported yet and should roughly halve that), and `=`
-against a string literal routes through `_EQ_` when the other side is
-untagged. JS consumers receiving keyword objects still see `===` and
-`switch` misses (`==` works, String subclass), and `structuredClone`
-demotes a keyword to a boxed string. `(keyword? "foo")` flips to false,
-the one deliberate predicate change.
+### Performance report
+
+All numbers node 22, per-call figures from 16-40M-iteration loops.
+
+Object map lookup, `{type: "click"}`:
+
+| operation | ns/op |
+|---|---|
+| inline `m["type"]` (emission unchanged) | 1.0 |
+| `get(m, "type")` | 3.1 |
+| `get(m, :type)` | 4.9 |
+| `get(m, :type)` before the cached-name fast path | 25.2 |
+
+Property access with a String-subclass key pays ~25ns in ToPropertyKey
+coercion, so the Keyword constructor caches its primitive name in an own
+`_name` field and `get` indexes with that: keyword lookup lands within
+2ns of a string key. The same field feeds `name`, `namespace`, `compare`,
+equiv, hash and altKey, replacing `String()` calls.
+
+Set/js Map membership, the replicant attr-filter shape (keyword set
+literal, string probes from an object's keys, 2 hits / 6 misses per pass):
+
+| operation | ns/probe |
+|---|---|
+| native `Set.has(string)`, string members (main equivalent) | 5.0 |
+| `contains?`, string members | 19.7 |
+| `contains?`, keyword members, altKey path | 24.5 |
+
+altKey adds ~5ns and only on the miss path: squint's own dispatch
+overhead (~15ns over native) dominates it. A render-shaped loop doing
+1.6M attr passes (filter check plus a cross-representation js/Map get)
+takes 56ms, ~35ns per attribute: sub-microsecond per rendered frame at
+replicant scale.
+
+The keyword-torture loop (1M iterations of map literal + `get` + `=` +
+`case` + `keys`, every operation touching keywords): main 30ms, this
+branch 151ms. The remaining gap is inline `kw("a")` interning calls per
+literal evaluation (~17ns each, several per iteration): the module-const
+hoisting built on the POC branch is not ported yet and removes most of
+it. Real-workload counter-evidence: reagami's render benchmark measured
+equal (~253 vs ~255ms) between main and typed keywords.
+
+Other costs, honestly: `=` against a string literal routes through `_EQ_`
+when the other side is untagged (~20ns against ~1ns for `===`). JS
+consumers receiving keyword objects see `===` and `switch` misses (`==`
+works, String subclass), and `structuredClone` demotes a keyword to a
+boxed string. `(keyword? "foo")` flips to false, the one deliberate
+predicate change.
 
 Remaining before landing: port literal hoisting, decide `(str :a)`
 (stays `"a"`), sweep the suite's recorded-semantics assertions, changelog.
