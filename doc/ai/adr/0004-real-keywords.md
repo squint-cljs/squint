@@ -359,3 +359,32 @@ collections compare keys with SameValueZero, which cannot be overridden,
 so the bridge lives in `get`/`contains?`/`dissoc` as one O(1) intern-table
 probe on the miss path. Its known wart stays: a Map holding both `:a` and
 `"a"` entries answers by whichever representation matches first.
+
+### The boxed String method trap (measured, js-framework-benchmark)
+
+The full keyed benchmark against stock npm reagami found the one real perf
+trap: geomean +7.2%, select1k +49%. Root cause is not squint code at all
+but interop: reagami's tag parsing calls String methods directly on the
+keyword object (`(.toUpperCase tag)`, `.indexOf`), and inherited String
+methods on a boxed receiver lose the primitive fast paths (indexOf 33ns vs
+1.2, toUpperCase 120ns vs 1.1). Select re-renders 1000 rows of vnodes with
+little DOM work, so this dominates; bulk creation amortizes it away.
+
+The fix is the CLJS-alignment change the library wants anyway: normalize
+with `(name tag)` once at the boundary, deleting the squint-only reader
+conditional. Verified in a jsdom select-shaped micro (ms per re-render of
+a 1000-row table):
+
+| configuration | ms |
+|---|---|
+| stock reagami, main squint | 10.7 |
+| stock reagami, keywords-global | 19.9 |
+| `(name tag)` reagami, keywords-global | 9.8 |
+
+Adding delegating String methods to the Keyword prototype (measured ~9ns
+against 33 boxed) was considered and rejected: no more runtime code for a
+problem that is a library idiom. The systemic answer is a clj-kondo rule
+flagging string interop methods invoked on keyword-typed values, which
+turns the silent 2-3x into an editor warning. Note the failure mode
+ladder: the plain-class variant crashed outright on this pattern,
+extends-String degrades it to slower-but-correct.
