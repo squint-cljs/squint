@@ -6,6 +6,9 @@ import analyze from "rollup-plugin-analyzer";
 
 export default defineConfig({
   base: './',
+  // js/squint-local symlinks back to the repo root, which contains this
+  // playground: following it recurses until ENAMETOOLONG kills the watcher
+  server: {watch: {followSymlinks: false}},
   build: {target: "esnext",
           rollupOptions: {
             plugins: [analyze()]
