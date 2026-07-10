@@ -4630,6 +4630,8 @@ export function force(x) {
 }
 
 function clj__GT_js_(x, seen) {
+  // keywords lower to their name string, like CLJS clj->js
+  if (isKw(x)) return String(x);
   // we need to protect against circular objects
   if (seen.has(x)) return x;
   seen.add(x);

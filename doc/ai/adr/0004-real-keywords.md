@@ -284,6 +284,18 @@ the one deliberate predicate change.
 Remaining before landing: port literal hoisting, decide `(str :a)`
 (stays `"a"`), sweep the suite's recorded-semantics assertions, changelog.
 
+### Collections crossing the JS boundary
+
+The altKey bridge only exists inside squint's own access functions. A Set
+or js/Map containing keywords handed to a JS library is probed with the
+library's own `.has("a")`/`.get("a")`, which is SameValueZero on native
+internal slots: the string probe misses the keyword entry, silently. On
+the string representation this worked, so it is a real interop regression
+class, the collection-shaped version of the scalar rule (keywords fail
+`===` and `switch` in JS). The rule is the same: lower at the boundary.
+`clj->js` lowers keywords to name strings recursively (ported here), and
+`(js/Set. (map name s))` preserves the Set shape.
+
 ### altKey is load-bearing (measured)
 
 The Set/js Map alternate-representation lookup reads as a hack, so it was
