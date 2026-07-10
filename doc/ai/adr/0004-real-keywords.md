@@ -91,9 +91,12 @@ Libtests (reagami added to the set in this branch):
 - eucalypt 112, clojure-mode 164: pass
 - replicant 254 of 256: the two string-keyed CSS cases above
 - babashka/cli: 3 failures, 1 error, string command tables, adapt upstream
-- reagami: fails wholesale, it calls string methods straight on hiccup
-  tags (`(.toUpperCase tag)`). Needs `(name tag)` at the boundary, the
-  same normalization replicant already does. Adapt upstream.
+- reagami: failed wholesale at first, it called string methods straight
+  on hiccup tags (`(.toUpperCase tag)`). Adapted on reagami branch
+  `real-keywords`: unconditional `(name tag)` (deleting the squint-only
+  reader conditionals), plain string constants for the internal vnode
+  property keys, and two test-side normalizations. 70 of 70 assertions
+  pass, and the adapted code is also green on stock squint 0.14.203.
 
 ## JS interop
 
@@ -139,8 +142,12 @@ the fqn index against 1.7ns with a string key. Inlined `m["a"]` paths
 unchanged. No `=` deopt remains: keyword literals keep the `===` path via
 the `'keyword` tag.
 
-Pending: a real-app measurement, reagami (once adapted) under
-https://github.com/borkdude/js-framework-benchmark, main vs branch.
+Reagami's own render benchmark, adapted code, stock squint 0.14.203 vs
+POC: ~253ms vs ~255ms per trial, equal within noise. Real keywords cost
+nothing on a DOM-heavy path. The adaptation itself sped reagami up (~283ms
+before, keyword property keys became string constants). Still pending: a
+js-framework-benchmark run (https://github.com/borkdude/js-framework-benchmark),
+main vs branch.
 
 ## Tree-shaking
 
