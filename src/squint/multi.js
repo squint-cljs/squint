@@ -2,7 +2,7 @@
 // defmethod (or related ops) appear in user code. Keeping this out of
 // core.js means programs that don't use multimethods pay zero bundle cost.
 
-import { _EQ_, __toFn, keyword_QMARK_ } from 'squint-cljs/core.js';
+import { _EQ_, __toFn, keyword, keyword_QMARK_ } from 'squint-cljs/core.js';
 
 function isPrimitive(x) {
   const t = typeof x;
@@ -336,7 +336,7 @@ class MultiFn {
 
 export function defmulti(name, dispatchFn, opts) {
   opts = opts || {};
-  const defaultVal = 'default' in opts ? opts.default : 'default';
+  const defaultVal = 'default' in opts ? opts.default : keyword('default');
   // Accept three shapes for :hierarchy -
   //   (a) omitted     -> defer to the global hierarchy
   //   (b) a deref-able ref (atom/var-like) -> use as-is

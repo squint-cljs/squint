@@ -28,7 +28,7 @@ needed among live instances: a collected keyword cannot sit in any live
 collection or switch dispatch, so re-interning as a fresh instance is safe.
 Interning makes `===`, native Set/Map membership and switch labels work.
 
-Behavior plugs into the existing protocol slots. `IEquiv`: a keyword equals
+TODO: stale? Behavior plugs into the existing protocol slots. `IEquiv`: a keyword equals
 another keyword or its own name string (the compat shim). `IHash`: hashes
 like the name string, consistent with equiv. `IPrintWithWriter`: `pr-str`
 prints `:foo`.
@@ -47,7 +47,7 @@ constant check already rejects `:x` and `"x"` in one case form.
 known number or boolean. A known string against an unknown side goes through
 `_EQ_` because the unknown side can hold a keyword.
 
-`get` and `contains?` on Set and js Map retry a miss with the alternate
+TODO: this feels wrong? `get` and `contains?` on Set and js Map retry a miss with the alternate
 representation (string to live interned keyword, keyword to fqn), so
 membership follows `=`. Replicant's `(#{:on :innerHTML} k)` over string map
 keys depends on this.
@@ -60,7 +60,7 @@ keyword throw instead of treating it as an associative instance.
 Squint suite: 470 tests, 2504 assertions, 42 failures, none silent user-code
 breakage. Breakdown: about 30 assert the old semantics directly, comparing
 squint results to strings with CLJS `=` or asserting emission strings. Five
-are printing changes (`pr-str` now prints `:a`, not `"a"`). Four are the
+are printing changes (`pr-str` now prints `:a`, not `"a"`). TODO: CONCERNING Four are the
 tree-shaking floor below. Two are js Map literals now holding keyword keys,
 so `.get "a"` interop misses. One is `(first :abd)` now throwing, which is
 CLJS parity.
@@ -69,7 +69,7 @@ Libtests all pass: eucalypt 112, clojure-mode 164, replicant 256,
 babashka/cli 472 assertions. Replicant needed the Set/Map alternate-key
 lookup, the other three passed unmodified.
 
-Preserved: `(= :a "a")` is true in every position, `(str :a)` is `"a"`,
+Preserved: `(= :a "a")` is true in every position <- TODO: this feels wrong, `(str :a)` is `"a"`,
 `(keys {:a 1})` returns strings, `(:a m)` and destructuring on string-keyed
 data, `(map :a xs)`, case in both directions, sorting mixed keywords and
 strings. Deviations: `(keyword? "foo")` is now false, keywords are not
@@ -88,6 +88,8 @@ where it used to be a string constant. `=` between a string literal and an
 untagged expression dropped from `===` to `_EQ_`. The object fast path is
 unaffected since it still emits `m["a"]`. None of this is visible in the
 libtest suites but no hot-loop application was measured.
+
+TODO: we need performance tests before and after. 
 
 ## Tree-shaking
 

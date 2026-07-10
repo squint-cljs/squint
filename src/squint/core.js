@@ -87,10 +87,21 @@ function isMapLike(m) {
   );
 }
 function mapHas(m, k) {
-  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE ? m.has(k) : has.call(m, k);
+  if (m instanceof Map || m[TYPE_TAG] === MAP_TYPE) {
+    if (m.has(k)) return true;
+    const a = altKey(k);
+    return a !== undefined && m.has(a);
+  }
+  return has.call(m, k);
 }
 function mapGet(m, k) {
-  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE ? m.get(k) : m[k];
+  if (m instanceof Map || m[TYPE_TAG] === MAP_TYPE) {
+    const v = m.get(k);
+    if (v !== undefined) return v;
+    const a = altKey(k);
+    return a !== undefined ? m.get(a) : undefined;
+  }
+  return m[k];
 }
 function mapCount(m) {
   return m instanceof Map || m[TYPE_TAG] === MAP_TYPE
@@ -1001,7 +1012,8 @@ export function iterable(x) {
   // only a plain object is a squint map; a class instance without a native
   // iterator or ISeqable is not iterable, matching seqable? and CLJS, and
   // never leaks its internal fields
-  if (isObj(x)) return Object.entries(x).map(tagMapEntry);
+  // entries read back with keyword keys, like CLJS map seqs
+  if (isObj(x)) return Object.entries(x).map(([k, v]) => tagMapEntry([keyword(k), v]));
   throw new TypeError(`${x} is not iterable`);
 }
 
@@ -3737,7 +3749,7 @@ export function keys(obj) {
     // fall through
     case OBJECT_TYPE: {
       const ks = Object.keys(obj);
-      if (ks.length) return ks;
+      if (ks.length) return ks.map((k) => keyword(k));
       return;
     }
     case MAP_TYPE:
@@ -3812,9 +3824,10 @@ export function namespace(x) {
   return i >= 1 ? x.slice(0, i) : null;
 }
 
-// a keyword equals another keyword or its own name string (compat)
+// a keyword equals only another keyword, like CLJS. Lookups (get, contains?,
+// case) stay name-based across keyword/string, equality does not.
 Keyword.prototype[IEquiv__equiv] = (self, other) =>
-  other instanceof Keyword ? self.fqn === other.fqn : typeof other === 'string' && self.fqn === other;
+  other instanceof Keyword && self.fqn === other.fqn;
 
 // hash like the name string, consistent with equiv
 Keyword.prototype[IHash__hash] = (self) => m3HashInt(hashString(self.fqn));

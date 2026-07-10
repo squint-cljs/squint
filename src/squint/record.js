@@ -11,6 +11,7 @@ import {
   ISeqable__seq,
   ISeqable,
   _EQ_,
+  keyword,
   vector_QMARK_,
   seq,
 } from './core.js';
@@ -50,7 +51,7 @@ function recordCount(rec) {
 }
 function recordKvReduce(rec, f, init) {
   let acc = init;
-  for (const k of Object.keys(rec)) acc = f(acc, k, rec[k]);
+  for (const k of Object.keys(rec)) acc = f(acc, keyword(k), rec[k]);
   return acc;
 }
 function recordConj(rec, x) {
@@ -69,7 +70,7 @@ function recordEquiv(rec, other) {
   return true;
 }
 function recordSeq(rec) {
-  return seq(Object.entries(rec));
+  return seq(Object.entries(rec).map(([k, v]) => [keyword(k), v]));
 }
 
 export function attach(proto, basis, aliases) {

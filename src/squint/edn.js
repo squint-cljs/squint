@@ -117,7 +117,7 @@ function parseKeyword(rdr) {
   if (token === '') throw new Error('Invalid token: :');
   // ::foo auto-resolved keywords are not valid edn
   if (token[0] === ':') throw new Error('Invalid token: :' + token);
-  return token;
+  return core.keyword(token);
 }
 
 const stringEscapes = { t: '\t', r: '\r', n: '\n', '\\': '\\', '"': '"', b: '\b', f: '\f' };
@@ -205,6 +205,7 @@ function parseSet(rdr, opts) {
 }
 
 function qualifyKey(ns, k) {
+  if (core.keyword_QMARK_(k)) return core.keyword(qualifyKey(ns, String(k)));
   if (typeof k !== 'string') return k;
   const i = k.indexOf('/');
   if (i === -1) return ns + '/' + k;

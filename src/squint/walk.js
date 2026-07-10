@@ -9,14 +9,14 @@ return outer(squint_core.into(squint_core.empty(form), squint_core.map(inner, fo
 if (squint_core.truth_(squint_core.set_QMARK_(form))) {
 return outer(squint_core.into(squint_core.empty(form), squint_core.map(inner, form)))} else {
 if (squint_core.truth_((() => {
-const and__28252__auto__1 = squint_core.seq_QMARK_(form);
-if (squint_core.truth_(and__28252__auto__1)) {
+const and__30488__auto__1 = squint_core.seq_QMARK_(form);
+if (squint_core.truth_(and__30488__auto__1)) {
 return squint_core.not(squint_core.string_QMARK_(form))} else {
-return and__28252__auto__1};
+return and__30488__auto__1};
 
 })())) {
 return outer(squint_core.with_meta(squint_core.vec(squint_core.map(inner, form)), squint_core.meta(form)))} else {
-if ("else") {
+if (squint_core.keyword("else")) {
 return outer(form)} else {
 return null}}}}}};
 
