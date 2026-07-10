@@ -847,27 +847,25 @@ export function get(coll, key, otherwise = undefined) {
   // optimize for getting values out of objects
   if (isObj(coll)) {
     v = coll[key];
-    if (v === undefined) {
-      return otherwise;
-    } else {
-      return v;
-    }
+    if (v !== undefined) return v;
+    // undefined is a value like any other: only absent keys give otherwise
+    return key in coll ? v : otherwise;
   }
   let g;
   switch (typeConst(coll)) {
     case SET_TYPE:
-      if (coll.has(key)) v = key;
-      break;
+      return coll.has(key) ? key : otherwise;
     case MAP_TYPE:
       v = coll.get(key);
-      break;
+      if (v !== undefined) return v;
+      return coll.has(key) ? v : otherwise;
     case ARRAY_TYPE:
       v = coll[key];
-      break;
+      if (v !== undefined) return v;
+      return key in coll ? v : otherwise;
     default:
       if (coll[ILookup__lookup] !== undefined) {
-        v = coll[ILookup__lookup](coll, key, otherwise);
-        return v === undefined ? otherwise : v;
+        return coll[ILookup__lookup](coll, key, otherwise);
       }
       // we choose .get as the default implementation, e.g. fetch Headers are not Maps, but do implement a .get method
       g = coll['get'];
@@ -3943,10 +3941,6 @@ export function find(m, k) {
   const v = get(m, k, NOT_FOUND);
   if (v !== NOT_FOUND) {
     return tagMapEntry([k, v]);
-  }
-  // get folds undefined values into not-found; contains? disambiguates
-  if (contains_QMARK_(m, k)) {
-    return tagMapEntry([k, undefined]);
   }
 }
 

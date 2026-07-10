@@ -246,6 +246,7 @@
   min
   min_key
   missing_protocol
+  mix_collection_hash
   mod
   name
   namespace

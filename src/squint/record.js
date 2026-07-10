@@ -19,7 +19,8 @@ import {
 // slots at these, so call sites stay monomorphic across record types
 function recordLookup(rec, k, nf) {
   const v = rec[k];
-  return v === undefined ? nf : v;
+  if (v !== undefined) return v;
+  return Object.prototype.hasOwnProperty.call(rec, k) ? v : nf;
 }
 function recordCopy(rec) {
   return Object.assign(Object.create(Object.getPrototypeOf(rec)), rec);

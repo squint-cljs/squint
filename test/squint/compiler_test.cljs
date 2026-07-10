@@ -1354,7 +1354,12 @@ with `backticks`")))]
     (is (eq 3 (jsv! '(get {"my-key" 1} "bad-key" 3))))
     (is (identical? nil (jsv! '(get {"my-key" nil} "my-key")))))
   (testing "arbitrary get method"
-    (is (eq 1 (jsv! '(get (js/eval "class Foo { get() { return 1;} }; new Foo()") :foo))))))
+    (is (eq 1 (jsv! '(get (js/eval "class Foo { get() { return 1;} }; new Foo()") :foo)))))
+  (testing "undefined values are present, defaults only apply to absent keys"
+    (is (identical? js/undefined (jsv! "(get (doto {} (aset :a js/undefined)) :a 42)")))
+    (is (identical? js/undefined (jsv! "(get (js/Map. [[:a js/undefined]]) :a 42)")))
+    (is (identical? js/undefined (jsv! "(get [js/undefined] 0 42)")))
+    (is (identical? js/undefined (jsv! "(do (defrecord F [a]) (get (->F js/undefined) :a 42))")))))
 
 (deftest find-test
   (is (eq ["a" 1] (jsv! '(find {:a 1} :a))))
