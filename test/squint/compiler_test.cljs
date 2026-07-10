@@ -899,6 +899,16 @@
   (is (false? (jsv! '(coll? "s"))))
   (is (false? (jsv! '(coll? 1)))))
 
+(deftest keyword-string-equality-consistency-test
+  ;; = is symmetric across keyword/string members, and membership ops agree
+  (is (true? (jsv! '(= #{:a} #{"a"}))))
+  (is (true? (jsv! '(= #{"a"} #{:a}))))
+  (is (true? (jsv! "(= (js/Map. [[:a 1]]) (js/Map. [[\"a\" 1]]))")))
+  (is (true? (jsv! "(= (js/Map. [[\"a\" 1]]) (js/Map. [[:a 1]]))")))
+  (is (zero? (jsv! '(count (disj #{:a} "a")))))
+  (is (zero? (jsv! '(count (disj #{"a"} :a)))))
+  (is (eq [:a :b] (jsv! '(vec (distinct [:a "a" :b]))))))
+
 (deftest keyword-set-string-key-test
   ;; replicant render-attrs pattern: string keys from an object probed
   ;; against a keyword set literal

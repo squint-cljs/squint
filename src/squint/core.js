@@ -60,6 +60,11 @@ function mapGet(m, k) {
   }
   return m[k];
 }
+function setHasAlt(s, v) {
+  if (s.has(v)) return true;
+  const a = altKey(v);
+  return a !== undefined && s.has(a);
+}
 function mapCount(m) {
   return m instanceof Map || m[TYPE_TAG] === MAP_TYPE
     ? m.size
@@ -106,11 +111,12 @@ function dequal(foo, bar) {
   if (isSetLike(foo) || isSetLike(bar)) {
     if (!isSetLike(foo) || !isSetLike(bar) || foo.size !== bar.size) return false;
     for (let e of foo) {
-      if (e && typeof e === 'object') {
+      if (setHasAlt(bar, e)) continue;
+      if (e && typeof e === 'object' && !isKw(e)) {
         e = findKey(bar, e);
-        if (!e) return false;
+        if (e) continue;
       }
-      if (!bar.has(e)) return false;
+      return false;
     }
     return true;
   }
@@ -133,11 +139,11 @@ function dequal(foo, bar) {
       }
       for (const kv of foo) {
         tmp = kv[0];
-        if (tmp && typeof tmp === 'object') {
+        if (tmp && typeof tmp === 'object' && !isKw(tmp)) {
           tmp = findKey(bar, tmp);
           if (!tmp) return false;
         }
-        if (!dequal(kv[1], bar.get(tmp))) {
+        if (!mapHas(bar, tmp) || !dequal(kv[1], mapGet(bar, tmp))) {
           return false;
         }
       }
@@ -481,7 +487,7 @@ function assoc_in_with(f, fname, o, keys, value) {
   for (let i = 0; i < keys.length - 1; i += 1) {
     const k = keys[i];
     let chainValue;
-    if (lastInChain instanceof Map) chainValue = lastInChain.get(k);
+    if (lastInChain instanceof Map) chainValue = mapGet(lastInChain, k);
     else if (lastInChain != null && lastInChain[ILookup__lookup] !== undefined) {
       chainValue = lastInChain[ILookup__lookup](lastInChain, k, undefined);
     } else chainValue = lastInChain[k];
@@ -711,7 +717,10 @@ export function disj_BANG_(s, ...xs) {
     return ret;
   }
   for (const x of xs) {
-    s.delete(x);
+    if (!s.delete(x)) {
+      const a = altKey(x);
+      if (a !== undefined) s.delete(a);
+    }
   }
   return s;
 }
@@ -2969,7 +2978,7 @@ function distinct1() {
   return transducer((rf) => {
     const seen = new Set();
     return (r, x) => {
-      if (seen.has(x)) return r;
+      if (setHasAlt(seen, x)) return r;
       seen.add(x);
       return rf(r, x);
     };
@@ -2981,7 +2990,7 @@ export function distinct(coll) {
   return lazyIter(coll, function* (it) {
     const seen = new Set();
     for (const x of it) {
-      if (!seen.has(x)) yield x;
+      if (!setHasAlt(seen, x)) yield x;
       seen.add(x);
     }
     return;

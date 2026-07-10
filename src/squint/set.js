@@ -29,7 +29,8 @@ function setSize(x) {
 }
 
 function setHas(x, e) {
-  return jsSetLike(x) ? x.has(e) : x[IAssociative__contains_key_QMARK_](x, e);
+  // contains? resolves keyword/string representations, consistent with =
+  return jsSetLike(x) ? core.contains_QMARK_(x, e) : x[IAssociative__contains_key_QMARK_](x, e);
 }
 
 // fold elements into a copy of target, preserving its type: js/Set mutates a

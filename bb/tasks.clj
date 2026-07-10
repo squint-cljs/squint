@@ -191,7 +191,7 @@
       (assert (str/includes? output "my-other-src 1 2"))
       (assert (str/includes? output "json!"))
       (assert (str/includes? output "{ a: 1 }"))
-      (assert (str/includes? output "\"emit!\""))
+      (assert (str/includes? output ":emit!"))
       (assert (str/includes? output "qualified test: 142"))
       (assert (str/includes? output "refer-only qualified: 242"))
       (assert (str/includes? output "real-debug: 42"))
