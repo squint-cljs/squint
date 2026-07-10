@@ -297,7 +297,12 @@ The `contains?` row is the replicant attr-filter shape (keyword set
 literal, string probes from an object's keys, 2 hits / 6 misses per
 pass) and is the worst case for altKey: on this branch every probe
 misses the first `.has` (members are keywords, probes are strings) and
-takes the intern-table retry, tripling the per-probe cost. In wall-clock
+takes the intern-table retry, tripling the per-probe cost. Same
+representation on both sides pays nothing on a hit (keyword member,
+keyword probe: 5.4ns against main's 5.6ns, the interned instance
+resolves in the first `.has`) and ~2x on a miss (8.9 against 4.5ns, the
+retry runs and also misses). Cost model: hit free, miss 2x, cross-rep
+resolution 3x where the alternative is a wrong answer, not a faster one. In wall-clock
 terms a render-shaped loop doing 1.6M attr passes (filter check plus a
 cross-representation js/Map get) takes 56ms, ~35ns per attribute:
 sub-microsecond per rendered frame at replicant scale.
