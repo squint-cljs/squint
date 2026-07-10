@@ -30,8 +30,17 @@
 
 
 (defn emit-keyword [expr env]
-  ;; emitting string already emits return
-  (emit (subs (str expr) 1) env))
+  ;; POC real keywords: emit an interned Keyword object. JSX/html contexts
+  ;; keep the old string emission (tag/attribute positions).
+  (if (:jsx env)
+    ;; emitting string already emits return
+    (emit (subs (str expr) 1) env)
+    ;; tagged 'keyword, not 'string: = must go through _EQ_ so the
+    ;; keyword/string equality shim applies
+    (-> (str (when-let [ca (:core-alias env)] (str ca "."))
+             "keyword(" (pr-str (subs (str expr) 1)) ")")
+        (emit-return env)
+        (cc/tagged-expr 'keyword))))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do

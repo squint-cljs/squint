@@ -1,11 +1,28 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
+// POC real keywords: interned Keyword objects. toString() returns the fqn
+// WITHOUT the leading colon so object-map property access, str and template
+// interpolation behave like the old keywords-are-strings representation.
+// Protocol wiring (equiv/hash/print) lives next to `keyword` further down,
+// after the protocol symbols exist.
+class Keyword {
+  constructor(fqn) {
+    this.fqn = fqn;
+  }
+  toString() {
+    return this.fqn;
+  }
+  toJSON() {
+    return this.fqn;
+  }
+}
+
 // __toFn is not public API - the leading underscores mark it as an
 // implementation helper shared with other squint runtime modules
 // (e.g. multi.js). Signature and semantics may change without notice.
 export function __toFn(x) {
   if (x == null || typeof x === 'function') return x;
-  if (typeof x === 'string') return (coll, d) => get(coll, x, d);
+  if (typeof x === 'string' || x instanceof Keyword) return (coll, d) => get(coll, x, d);
   // a value is callable as a lookup only if it is a collection or a custom
   // type implementing ILookup; a seq, list or opaque object throws when
   // called, like a non-IFn in CLJS
@@ -429,6 +446,11 @@ export function object_QMARK_(coll) {
 
 function typeConst(obj) {
   if (obj == null) {
+    return undefined;
+  }
+  // keywords are scalars, not collections (assoc/conj/seq on one throws,
+  // like the old keywords-are-strings representation)
+  if (obj instanceof Keyword) {
     return undefined;
   }
   // optimize for object
@@ -1482,6 +1504,7 @@ export function str(...xs) {
 }
 
 export function name(x) {
+  if (x instanceof Keyword) x = x.fqn;
   if (typeof x === 'string') {
     // keywords/symbols are strings in squint; name is the part after the "/"
     // ns separator (consistent with `namespace`, which returns the part before)
@@ -1934,11 +1957,12 @@ export function atom(init, ...opts) {
   const a = new Atom(init);
   for (let i = 0; i < opts.length; i += 2) {
     // IMeta only, like CLJS Atom: keeps with-meta's copy machinery out of atom-only bundles
-    if (opts[i] === 'meta') {
+    const opt = String(opts[i]);
+    if (opt === 'meta') {
       const mv = opts[i + 1];
       a[IMeta__meta] = () => mv;
     }
-    else if (opts[i] === 'validator') a._validator = opts[i + 1];
+    else if (opt === 'validator') a._validator = opts[i + 1];
   }
   return a;
 }
@@ -3561,6 +3585,10 @@ export function compare(x, y) {
     if (y == null) {
       return 1;
     }
+    // keywords sort by fqn, also against plain strings (compat)
+    if (x instanceof Keyword || y instanceof Keyword) {
+      return compare(String(x), String(y));
+    }
     const tx = typeof x;
     const ty = typeof y;
     if ((tx === 'number' && ty === 'number') || (tx === 'string' && ty === 'string') ||
@@ -3737,20 +3765,38 @@ export function unchecked_add_int(x, y) {
 
 // keywords/symbols are strings in squint; namespace is the part before "/"
 export function namespace(x) {
-  // keywords/symbols are strings in squint; namespace is the part before the
-  // "/" ns separator (consistent with `name`, which returns the part after).
+  // namespace is the part before the "/" ns separator (consistent with
+  // `name`, which returns the part after).
   // i >= 1 so a leading "/" yields a nil namespace rather than an empty one.
+  if (x instanceof Keyword) x = x.fqn;
   const i = x.indexOf('/');
   return i >= 1 ? x.slice(0, i) : null;
 }
 
-// squint has no keyword type; keywords are strings, so keyword/keyword? are
-// string-based. (keyword name) or (keyword ns name).
+// a keyword equals another keyword or its own name string (compat)
+Keyword.prototype[IEquiv__equiv] = (self, other) =>
+  other instanceof Keyword ? self.fqn === other.fqn : typeof other === 'string' && self.fqn === other;
+
+// hash like the name string, consistent with equiv
+Keyword.prototype[IHash__hash] = (self) => m3HashInt(hashString(self.fqn));
+
+Keyword.prototype[IPrintWithWriter__pr_writer] = (self, writer, _opts) =>
+  writer[IWriter__write](writer, ':' + self.fqn);
+
+const keywordCache = new Map();
+
+// (keyword name), (keyword ns name) or (keyword kw); interns so identical
+// keywords are reference-equal (===, native Map/Set keys, switch labels)
 export function keyword(arg1, arg2) {
-  if (arg2 !== undefined) {
-    return (arg1 != null ? arg1 + '/' : '') + arg2;
+  if (arg1 instanceof Keyword) return arg1;
+  const fqn = arg2 !== undefined ? (arg1 != null ? arg1 + '/' : '') + arg2 : arg1;
+  if (fqn == null) return null;
+  let kw = keywordCache.get(fqn);
+  if (kw === undefined) {
+    kw = new Keyword(fqn);
+    keywordCache.set(fqn, kw);
   }
-  return arg1;
+  return kw;
 }
 
 export function symbol(arg1, arg2) {
@@ -3761,7 +3807,7 @@ export function symbol(arg1, arg2) {
 }
 
 export function keyword_QMARK_(x) {
-  return typeof x === 'string';
+  return x instanceof Keyword;
 }
 
 // squint has no symbol type either; symbols are strings
@@ -3775,23 +3821,23 @@ export function var_QMARK_(_x) {
 }
 
 export function simple_keyword_QMARK_(x) {
-  return typeof x === 'string' && !x.includes('/');
+  return x instanceof Keyword && !x.fqn.includes('/');
 }
 
 export function qualified_keyword_QMARK_(x) {
-  return typeof x === 'string' && x.includes('/');
+  return x instanceof Keyword && x.fqn.includes('/');
 }
 
 export function ident_QMARK_(x) {
-  return typeof x === 'string';
+  return typeof x === 'string' || x instanceof Keyword;
 }
 
 export function simple_ident_QMARK_(x) {
-  return typeof x === 'string' && namespace(x) == null;
+  return ident_QMARK_(x) && namespace(x) == null;
 }
 
 export function qualified_ident_QMARK_(x) {
-  return typeof x === 'string' && namespace(x) != null;
+  return ident_QMARK_(x) && namespace(x) != null;
 }
 
 export function simple_symbol_QMARK_(x) {

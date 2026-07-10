@@ -2,7 +2,7 @@
 // defmethod (or related ops) appear in user code. Keeping this out of
 // core.js means programs that don't use multimethods pay zero bundle cost.
 
-import { _EQ_, __toFn } from 'squint-cljs/core.js';
+import { _EQ_, __toFn, keyword_QMARK_ } from 'squint-cljs/core.js';
 
 function isPrimitive(x) {
   const t = typeof x;
@@ -80,10 +80,14 @@ function checkHierarchy(h) {
   return h;
 }
 
-// keywords and symbols are strings in squint; namespaced means a '/' past
-// position 0, the same threshold as `namespace`
+// symbols are strings in squint, keywords are Keyword objects; namespaced
+// means a '/' past position 0, the same threshold as `namespace`
+function identLike(x) {
+  return typeof x === 'string' || keyword_QMARK_(x);
+}
+
 function namespaced(x) {
-  return typeof x === 'string' && x.indexOf('/') > 0;
+  return identLike(x) && String(x).indexOf('/') > 0;
 }
 
 function _isa(h, child, parent) {
@@ -158,10 +162,10 @@ export function derive(a, b, c) {
   }
   checkHierarchy(a);
   // vectors are allowed as compound dispatch tags, beyond CLJS
-  if (!(typeof b === 'function' || typeof b === 'string' || Array.isArray(b))) {
+  if (!(typeof b === 'function' || identLike(b) || Array.isArray(b))) {
     throw new Error('Tag must be a keyword or symbol, or a class');
   }
-  if (!(typeof c === 'string' || Array.isArray(c))) {
+  if (!(identLike(c) || Array.isArray(c))) {
     throw new Error('Parent must be a keyword or symbol');
   }
   const next = cloneHierarchy(a);
