@@ -3754,7 +3754,9 @@ export function vals(obj) {
 }
 
 export function string_QMARK_(s) {
-  return typeof s === 'string';
+  // a keyword is a String subclass: string? stays true for it, like the
+  // string representation. keyword? identifies the subtype.
+  return typeof s === 'string' || isKw(s);
 }
 
 export function unchecked_int(x) {

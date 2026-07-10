@@ -671,11 +671,14 @@
          y (with-meta (list 'js* (str y-emitted))
              {:tag y-tag})]
      (with-meta
-       ;; a keyword-object side goes through _EQ_: its equiv also matches the
-       ;; name string, which === would miss
-       (if (and (or (primitive? x-tag) (primitive? y-tag))
-                (not (contains? #{'keyword} x-tag))
-                (not (contains? #{'keyword} y-tag)))
+       ;; a known string against an unknown side goes through _EQ_: the
+       ;; unknown side can hold a keyword, which equals its name string only
+       ;; through the equiv shim. Numbers and booleans keep the one-sided
+       ;; === fast path, and two keyword literals are interned so === holds.
+       (if (or (and (primitive? x-tag) (primitive? y-tag))
+               (contains? #{'number 'boolean} x-tag)
+               (contains? #{'number 'boolean} y-tag)
+               (and (= 'keyword x-tag) (= 'keyword y-tag)))
          (core/list 'js* "(~{} === ~{})" x y)
          `(cljs.core/_EQ_ ~x ~y))
        {:tag 'boolean})))
