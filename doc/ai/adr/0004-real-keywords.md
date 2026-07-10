@@ -1,7 +1,43 @@
-# ADR 0004: real keywords at runtime (POC)
+# ADR 0004: real keywords at runtime
 
-Status: Superseded by the String-subclass variant below (branch
-keywords-global), which is the landing candidate.
+Status: Rejected. Squint keeps string keywords. This document is the
+measured record of five runtime-keyword variants, kept so a future
+attempt starts from evidence instead of intuition. Implementation
+branches: `poc-real-keywords` (strict =), `poc-loose-eq`
+(name-equivalent =), `keywords-global` (String-subclass, the best
+variant, still rejected).
+
+## Why this was rejected
+
+The costs are ambient, paid by every squint user, while the benefit
+(wire-boundary type fidelity) turned out to be application-boundary
+shaped. In decreasing order of weight:
+
+- Framework performance is the showstopper. Under js-framework-benchmark's
+  standard methodology the reagami select1k op regresses +46% (52 to
+  76ms). The steady state behind it is 5-13% on keyword-sensitive DOM
+  ops plus a JIT warmup cliff the public methodology measures, so
+  published squint framework numbers get visibly worse even though bulk
+  operations are flat. This alone kills it.
+- Unadapted libraries hit a silent perf trap: string interop methods on
+  a keyword lose V8's primitive fast paths (indexOf 33ns vs 1.2,
+  toUpperCase 120ns vs 1.1). Stock reagami shipped it. The mitigation is
+  a lint rule and library patches, i.e. an ecosystem chore, not a fix.
+- Bundle floor against squint's tiny-bundle identity: +1518B raw /
+  +656B gzip once per app for any program containing a keyword (all of
+  them), +262B/+107B even in keyword-free bundles that use collection
+  fns. Mostly irreducible: it is the class, interning and lookup
+  machinery itself.
+- JS interop regresses from "just worked" to "lower at the boundary":
+  keyword objects fail === and switch in JS, native Set/Map probes miss
+  them silently, structuredClone corrupts them to boxed strings. Squint
+  being thin over JS is the product; this thickens it.
+- The altKey bridge is load-bearing (removing it breaks replicant and
+  babashka/cli, measured) but non-local by construction: a js/Map
+  holding both :a and "a" answers by whichever representation matches
+  first.
+- Name-equivalent = ((= :a "a") is true) is old-squint behavior made
+  observable, permanently divergent from CLJS in shared .cljc code.
 
 Branch `poc-real-keywords`. Revisits the keywords-are-strings representation
 that ADR 0003 builds on. Byte counts are esbuild `--bundle --minify` output.
@@ -225,9 +261,11 @@ not an accident.
 - The two suite DCE caps (get, conj) sit above their old caps because of
   the read-back floor: caps need updating if this lands.
 
-## Chosen: global interned String-subclass keywords (branch keywords-global)
+## Best variant: global interned String-subclass keywords (branch keywords-global)
 
-The synthesis of everything measured above. A keyword literal compiles to
+The synthesis of everything measured above, and the only variant where
+every libtest passed with stock code. Rejected anyway, for the costs
+summarized at the top. A keyword literal compiles to
 an interned `Keyword extends String` instance, everywhere, no flag. The
 subclass keeps every string behavior of the old representation: string
 methods (`.toUpperCase`, `subs`, regex), property access, `str`, templates,
@@ -461,3 +499,36 @@ union (`typeof string || isKw`), the runtime is shared and non-opted
 apps must keep `(keyword? "a")` true. Emission gating (`emit-keyword`,
 case labels, `=` tag rule, ns-meta capture) existed flag-shaped in this
 branch's history before the pivot and comes back from there.
+
+## Resolution: encode at the application boundary, in userland
+
+The driving use case (offworld sending events like `[::scans plate]`
+over transit to a JVM Clojure server that needs the keyword/string
+distinction) does not need a runtime type; it needs the boundary to know
+which strings are keywords. Sketched options, none implemented here:
+
+- Namespace convention: every wire-crossing keyword is namespaced, and
+  the transit write handler converts strings that parse as qualified
+  idents under a whitelist of app namespace prefixes. Reads lower JVM
+  keywords back to plain strings. One renaming pass (`:scanned` to
+  `::scanned`), no per-site annotation, dev-mode assert for unqualified
+  leaks.
+- Explicit marker: a one-token wrapper (`transit.keyword`) at each
+  construction site that must arrive typed. Precise and greppable; the
+  framework DSL can auto-wrap structural positions it owns (effect
+  vector heads).
+- Declared schema: the sync layer already declares state paths; extend
+  the declarations with key/value types and convert by schema in both
+  directions.
+- Inverted polarity: on this wire keywords are the rule, so default
+  leaf encoding is keyword and a three-line schema names the string
+  positions (plate-id map keys, label fields). Marking must stay
+  positional, not a wrapper type on strings: strings are the unbounded
+  runtime class (wrapping burden lands on every ingestion point), the
+  forgotten case corrupts user data silently into keywords, and a
+  String-ish wrapper object replays the boxed-method trap on the
+  client's hottest surface.
+
+The per-namespace opt-in conversion sketched in the reversal section was
+also dropped: hassle exceeds value once the boundary encoding exists.
+The sketch stays valid if a future attempt wants it.
