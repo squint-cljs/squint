@@ -33,6 +33,8 @@ function recordContains(rec, k) {
   return Object.prototype.hasOwnProperty.call(rec, k);
 }
 function recordDissoc(rec, k) {
+  // basis is a list of string keys; a keyword key coerces via String
+  k = String(k);
   // removing a basis field demotes to a plain map, like CLJS
   if (rec[IRecord.__sym].includes(k)) {
     const m = { ...rec };

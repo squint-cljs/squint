@@ -734,7 +734,12 @@
                      (str/join (map (fn [test then]
                                       (str/join
                                        (map (fn [test]
-                                              (str "case " (emit test eenv) ":\n"
+                                              (str ;; a keyword test also matches its name
+                                                   ;; string, consistent with =
+                                                   (when (and (= :squint (:target env))
+                                                              (keyword? test))
+                                                     (str "case " (emit (subs (str test) 1) eenv) ":\n"))
+                                                   "case " (emit test eenv) ":\n"
                                                    (if expr?
                                                      (str gs " = " then)
                                                      (statement (emit then env)))
@@ -822,7 +827,7 @@
   (cond (map? init) 'object
         (set? init) 'set
         (vector? init) 'array
-        (keyword? init) 'string
+        (keyword? init) 'keyword
         (and (seq? init) (resolves-to-core? env (first init)))
         (fn-return-tags (first init))))
 
@@ -893,7 +898,10 @@
 
 (defn process-require-clause [env current-ns-name libspec]
   (let [libspec (if (symbol? libspec) [libspec] libspec)
-        [libname & {:keys [rename refer as with as-alias]}] libspec]
+        [libname & {:keys [rename refer as with as-alias]}] libspec
+        ;; import attributes must be string literals; keyword values like
+        ;; {:type :json} stringify at compile time
+        with (when with (update-vals with #(if (keyword? %) (name %) %)))]
   (when-not (contains? '#{squint.core cherry.core} libname)
     (let [env (expr-env env)
           original-libname libname
@@ -1129,6 +1137,7 @@
         ensure-obj (ensure-global mname)
         ns-obj (str "globalThis." mname)]
     (swap! (:ns-state env) assoc :current name)
+
     (str
      (when (:repl env)
        ensure-obj)
@@ -1461,7 +1470,7 @@ break;}" body)
         ;; a collection callee calls as (get coll k); a keyword callee, repped
         ;; as a string, calls as (get coll k) with coll and key swapped
         coll? (#{'object 'set 'array 'coll} callee-tag)
-        kw? (= 'string callee-tag)
+        kw? (contains? #{'string 'keyword} callee-tag)
         ;; tag the result of a tagged-return core fn so a binding of it carries
         ;; the tag onward
         ret-tag (when (and sym? (resolves-to-core? env fname))
@@ -1597,7 +1606,8 @@ break;}" body)
     (f sym env expr)))
 
 (defn skip-truth? [tag]
-  (contains? #{'boolean 'string} tag))
+  ;; a keyword object is always truthy
+  (contains? #{'boolean 'string 'keyword} tag))
 
 (defmethod emit-special 'if [_type env [_if test then else :as expr]]
   ;; NOTE: I tried making the output smaller if the if is in return position
@@ -1684,9 +1694,12 @@ break;}" body)
              (str/join " "
                        (map
                         (fn [[k v]]
-                          (let [str? (or (string? v)
-                                         (when (= :squint (:target env))
-                                           (keyword? v)))]
+                          ;; keyword attr values stringify at compile time
+                          (let [v (if (and (= :squint (:target env))
+                                           (keyword? v))
+                                    (subs (str v) 1)
+                                    v)
+                                str? (string? v)]
                             (cond
                               (= :& k)
                               (str "{..." (emit v (dissoc env :jsx)) "}")

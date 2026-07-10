@@ -34,9 +34,21 @@
   (doseq [k (js/Object.keys clrecord)]
     (aset mut k (aget clrecord k))))
 
+(defn- kw-str
+  "Squint keywords are objects; clj->js already lowers CLJS keywords to name
+  strings, so lower squint keywords the same way before comparing."
+  [x]
+  (if (cl/keyword_QMARK_ x) (str x) x))
+
 (defn eq
   ([a b]
-   (ld/isEqual (clj->js a) (clj->js b)))
+   (ld/isEqualWith (clj->js a) (clj->js b)
+                   (fn [x y]
+                     (if (or (cl/keyword_QMARK_ x) (cl/keyword_QMARK_ y))
+                       (ld/isEqual (kw-str x) (kw-str y))
+                       ;; lodash falls back to default comparison only on
+                       ;; undefined; CLJS nil is null
+                       js/undefined))))
   ([a b & more]
    (and (eq a b)
         (apply eq b (rest more)))))

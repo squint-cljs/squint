@@ -5,7 +5,7 @@
 // (e.g. multi.js). Signature and semantics may change without notice.
 export function __toFn(x) {
   if (x == null || typeof x === 'function') return x;
-  if (typeof x === 'string') return (coll, d) => get(coll, x, d);
+  if (typeof x === 'string' || isKw(x)) return (coll, d) => get(coll, x, d);
   // a value is callable as a lookup only if it is a collection or a custom
   // type implementing ILookup; a seq, list or opaque object throws when
   // called, like a non-IFn in CLJS
@@ -44,10 +44,21 @@ function isMapLike(m) {
   );
 }
 function mapHas(m, k) {
-  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE ? m.has(k) : has.call(m, k);
+  if (m instanceof Map || m[TYPE_TAG] === MAP_TYPE) {
+    if (m.has(k)) return true;
+    const a = altKey(k);
+    return a !== undefined && m.has(a);
+  }
+  return has.call(m, k);
 }
 function mapGet(m, k) {
-  return m instanceof Map || m[TYPE_TAG] === MAP_TYPE ? m.get(k) : m[k];
+  if (m instanceof Map || m[TYPE_TAG] === MAP_TYPE) {
+    const v = m.get(k);
+    if (v !== undefined) return v;
+    const a = altKey(k);
+    return a !== undefined ? m.get(a) : undefined;
+  }
+  return m[k];
 }
 function mapCount(m) {
   return m instanceof Map || m[TYPE_TAG] === MAP_TYPE
@@ -379,9 +390,15 @@ const LAZY_ITERABLE_TYPE = 6;
 // a class instance or null-prototype object: the extension point for the
 // map-facing protocols. Plain objects keep the OBJECT_TYPE fast path.
 const INSTANCE_TYPE = 7;
+const KEYWORD_TYPE = 8;
 
 // type tag set in each collection ctor, read by typeConst (DCE: no instanceof).
 const TYPE_TAG = Symbol('squint.lang.type');
+
+// brand check, not instanceof, so generic fns don't retain the Keyword class
+function isKw(x) {
+  return x != null && x[TYPE_TAG] === KEYWORD_TYPE;
+}
 const SORTED_TAG = Symbol('squint.lang.sorted');
 
 // @__NO_SIDE_EFFECTS__ lets a bundler drop unused defclass/withApply calls; see doc/dev/dce.md
@@ -439,6 +456,8 @@ function typeConst(obj) {
   if (obj instanceof Set) return SET_TYPE;
   // brand, not instanceof, so dispatch does not reference the classes
   const tag = obj[TYPE_TAG];
+  // a keyword object is a scalar, not a collection
+  if (tag === KEYWORD_TYPE) return undefined;
   if (tag !== undefined) return tag;
   if (isVectorArray(obj)) return ARRAY_TYPE;
   // any remaining object (class instance, null-proto) is associative
@@ -716,8 +735,11 @@ export function contains_QMARK_(coll, v) {
   }
   switch (typeConst(coll)) {
     case SET_TYPE:
-    case MAP_TYPE:
-      return coll.has(v);
+    case MAP_TYPE: {
+      if (coll.has(v)) return true;
+      const a = altKey(v);
+      return a !== undefined && coll.has(a);
+    }
     case undefined:
       return false;
     case INSTANCE_TYPE:
@@ -855,12 +877,22 @@ export function get(coll, key, otherwise = undefined) {
   }
   let g;
   switch (typeConst(coll)) {
-    case SET_TYPE:
+    case SET_TYPE: {
       if (coll.has(key)) v = key;
+      else {
+        const a = altKey(key);
+        if (a !== undefined && coll.has(a)) v = a;
+      }
       break;
-    case MAP_TYPE:
+    }
+    case MAP_TYPE: {
       v = coll.get(key);
+      if (v === undefined) {
+        const a = altKey(key);
+        if (a !== undefined) v = coll.get(a);
+      }
       break;
+    }
     case ARRAY_TYPE:
       v = coll[key];
       break;
@@ -1482,6 +1514,7 @@ export function str(...xs) {
 }
 
 export function name(x) {
+  if (isKw(x)) x = String(x);
   if (typeof x === 'string') {
     // keywords/symbols are strings in squint; name is the part after the "/"
     // ns separator (consistent with `namespace`, which returns the part before)
@@ -1934,11 +1967,12 @@ export function atom(init, ...opts) {
   const a = new Atom(init);
   for (let i = 0; i < opts.length; i += 2) {
     // IMeta only, like CLJS Atom: keeps with-meta's copy machinery out of atom-only bundles
-    if (opts[i] === 'meta') {
+    const opt = String(opts[i]);
+    if (opt === 'meta') {
       const mv = opts[i + 1];
       a[IMeta__meta] = () => mv;
     }
-    else if (opts[i] === 'validator') a._validator = opts[i + 1];
+    else if (opt === 'validator') a._validator = opts[i + 1];
   }
   return a;
 }
@@ -3561,6 +3595,10 @@ export function compare(x, y) {
     if (y == null) {
       return 1;
     }
+    // keywords sort by name, also against plain strings
+    if (isKw(x) || isKw(y)) {
+      return compare(String(x), String(y));
+    }
     const tx = typeof x;
     const ty = typeof y;
     if ((tx === 'number' && ty === 'number') || (tx === 'string' && ty === 'string') ||
@@ -3744,13 +3782,65 @@ export function namespace(x) {
   return i >= 1 ? x.slice(0, i) : null;
 }
 
-// squint has no keyword type; keywords are strings, so keyword/keyword? are
-// string-based. (keyword name) or (keyword ns name).
+// (keyword name) or (keyword ns name): the interned keyword object
 export function keyword(arg1, arg2) {
-  if (arg2 !== undefined) {
-    return (arg1 != null ? arg1 + '/' : '') + arg2;
+  return kw(arg1, arg2);
+}
+
+// Opt-in keyword objects ({:squint/keywords true} ns metadata): interned,
+// extends String so string ops, property access, str and JSON behave like
+// the default representation, but the type survives to a wire boundary
+// (e.g. a transit or edn write handler emitting a real keyword). The pure
+// IIFE keeps the class out of bundles that never construct one.
+const Keyword = /* @__PURE__ */ (() => {
+  class Keyword extends String {
   }
-  return arg1;
+  // a keyword equals another keyword or its own name string, so opted-in
+  // data mixes with the default representation
+  Keyword.prototype[IEquiv__equiv] = (self, other) =>
+    isKw(other) ? String(self) === String(other) : typeof other === 'string' && String(self) === other;
+  // hash like the name string, consistent with equiv
+  Keyword.prototype[IHash__hash] = (self) => m3HashInt(hashString(String(self)));
+  Keyword.prototype[IPrintWithWriter__pr_writer] = (self, writer, _opts) =>
+    writer[IWriter__write](writer, ':' + self);
+  // not char-seqable, unlike a string; String's inherited iterator would
+  // make seq/walk recurse into the characters
+  Keyword.prototype[Symbol.iterator] = undefined;
+  Keyword.prototype[TYPE_TAG] = KEYWORD_TYPE;
+  return Keyword;
+})();
+
+// interning holds keywords weakly, like Clojure's keyword table: identity is
+// only needed among live instances, so a dead entry may be re-interned as a
+// fresh instance later
+const keywordCache = /* @__PURE__ */ new Map();
+
+const keywordRegistry = /* @__PURE__ */ new FinalizationRegistry((fqn) => {
+  const ref = keywordCache.get(fqn);
+  // the same fqn may have been re-interned by the time this fires
+  if (ref !== undefined && ref.deref() === undefined) keywordCache.delete(fqn);
+});
+
+// the other representation of a keyword/string key, so Set/js Map
+// membership follows = (a keyword equals its name string)
+function altKey(k) {
+  if (typeof k === 'string') return keywordCache.get(k)?.deref();
+  if (isKw(k)) return String(k);
+  return undefined;
+}
+
+// (kw name), (kw ns name) or (kw k): the interned keyword object for a name
+export function kw(arg1, arg2) {
+  if (isKw(arg1)) return arg1;
+  const fqn = arg2 !== undefined ? (arg1 != null ? arg1 + '/' : '') + arg2 : arg1;
+  if (fqn == null) return null;
+  let k = keywordCache.get(fqn)?.deref();
+  if (k === undefined) {
+    k = new Keyword(fqn);
+    keywordCache.set(fqn, new WeakRef(k));
+    keywordRegistry.register(k, fqn);
+  }
+  return k;
 }
 
 export function symbol(arg1, arg2) {
@@ -3761,7 +3851,7 @@ export function symbol(arg1, arg2) {
 }
 
 export function keyword_QMARK_(x) {
-  return typeof x === 'string';
+  return isKw(x);
 }
 
 // squint has no symbol type either; symbols are strings
@@ -3775,23 +3865,23 @@ export function var_QMARK_(_x) {
 }
 
 export function simple_keyword_QMARK_(x) {
-  return typeof x === 'string' && !x.includes('/');
+  return isKw(x) && !x.includes('/');
 }
 
 export function qualified_keyword_QMARK_(x) {
-  return typeof x === 'string' && x.includes('/');
+  return isKw(x) && x.includes('/');
 }
 
 export function ident_QMARK_(x) {
-  return typeof x === 'string';
+  return typeof x === 'string' || isKw(x);
 }
 
 export function simple_ident_QMARK_(x) {
-  return typeof x === 'string' && namespace(x) == null;
+  return ident_QMARK_(x) && namespace(x) == null;
 }
 
 export function qualified_ident_QMARK_(x) {
-  return typeof x === 'string' && namespace(x) != null;
+  return ident_QMARK_(x) && namespace(x) != null;
 }
 
 export function simple_symbol_QMARK_(x) {

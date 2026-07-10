@@ -671,7 +671,11 @@
          y (with-meta (list 'js* (str y-emitted))
              {:tag y-tag})]
      (with-meta
-       (if (or (primitive? x-tag) (primitive? y-tag))
+       ;; a keyword-object side goes through _EQ_: its equiv also matches the
+       ;; name string, which === would miss
+       (if (and (or (primitive? x-tag) (primitive? y-tag))
+                (not (contains? #{'keyword} x-tag))
+                (not (contains? #{'keyword} y-tag)))
          (core/list 'js* "(~{} === ~{})" x y)
          `(cljs.core/_EQ_ ~x ~y))
        {:tag 'boolean})))
@@ -690,16 +694,27 @@
                              tag (or (:tag emitted)
                                      (:tag (meta expr)))
                              const? (constant? expr)]
-                         (if (primitive? tag)
+                         (cond
+                           ;; a keyword is never nil, no ??'' needed
+                           (= 'keyword tag)
+                           (str "${" emitted "}")
+                           (primitive? tag)
                            (if (or
                                 ;; escape literal strings that may contain backticks, newlines etc
                                 (and const? (= 'string tag))
                                 (not const?))
                              (str "${" emitted "}")
                              emitted)
+                           :else
                            (str "${" emitted "??''}"))))) xs)]
     (with-meta `(~'js* ~(str "`" (str/join args) "`"))
       {:tag 'string})))
+
+(defn- kw->str
+  "Object maps keep string keys: a keyword literal key lowers to its name
+  string in inlined property access."
+  [k]
+  (if (keyword? k) (subs (str k) 1) k))
 
 (core/defmacro assoc-inline [x & xs]
   (cc/when-not (and (even? (count xs)) (seq xs))
@@ -730,7 +745,7 @@
                              (str/join ","
                                        (repeat (/ (count xs) 2) "[~{}]:~{}"))
                              "})")
-                   x xs)
+                   x (map-indexed (fn [i el] (if (even? i) (kw->str el) el)) xs))
             {:tag 'object
              :transient true}))
         (let [[fn _ & tail] &form]
@@ -766,7 +781,7 @@
                            ")")
                  (concat
                   (map (fn [[k v]]
-                         `(aset ~x ~k ~v))
+                         `(aset ~x ~(kw->str k) ~v))
                        (partition 2 xs))
                   [x]))
           {:tag 'object :transient transient}))
@@ -785,7 +800,7 @@
          x (with-meta (list 'js* (str emitted))
              {:tag tag})]
      (if (= 'object tag)
-       `(cljs.core/aget ~x ~b)
+       `(cljs.core/aget ~x ~(kw->str b))
        (let [[fn _ & tail] &form]
          (with-meta
            (list* fn x tail)
@@ -803,11 +818,12 @@
        (if (and (symbol? x*)
                 (or (constant? b)
                     (symbol? b)))
-         (list 'js* "(~{} in ~{} ? ~{} : ~{})"
-               b
-               x
-               `(cljs.core/aget ~x ~b)
-               not-found)
+         (let [b (kw->str b)]
+           (list 'js* "(~{} in ~{} ? ~{} : ~{})"
+                 b
+                 x
+                 `(cljs.core/aget ~x ~b)
+                 not-found))
          (let [obj-sym (with-meta (gensym)
                          {:tag tag})
                key-sym (gensym)]
@@ -816,7 +832,7 @@
                            key-sym
                            obj-sym
                            `(cljs.core/aget ~obj-sym ~key-sym)
-                           not-found)) ~x ~b)))
+                           not-found)) ~x ~(kw->str b))))
        (let [[fn _ & tail] &form]
          (with-meta
            (list* fn x tail)

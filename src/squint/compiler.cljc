@@ -30,8 +30,15 @@
 
 
 (defn emit-keyword [expr env]
-  ;; emitting string already emits return
-  (emit (subs (str expr) 1) env))
+  (if (:jsx env)
+    ;; emitting string already emits return
+    (emit (subs (str expr) 1) env)
+    ;; an interned keyword object, tagged 'keyword so = goes through _EQ_
+    ;; (the equiv shim also matches the name string)
+    (-> (str (when-let [ca (:core-alias env)] (str ca "."))
+             "kw(" (pr-str (subs (str expr) 1)) ")")
+        (emit-return env)
+        (cc/tagged-expr 'keyword))))
 
 (def special-forms (set ['var '. 'if 'funcall 'fn 'fn* 'quote 'set!
                          'return 'delete 'new 'do
