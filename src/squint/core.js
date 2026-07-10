@@ -1,34 +1,5 @@
 /*eslint no-unused-vars: ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "destructuredArrayIgnorePattern": "^_"}]*/
 
-// POC real keywords: interned Keyword objects. toString() returns the fqn
-// WITHOUT the leading colon so object-map property access, str and template
-// interpolation behave like the old keywords-are-strings representation.
-// Protocol wiring (equiv/hash/print) lives next to `keyword` further down,
-// after the protocol symbols exist.
-class Keyword {
-  constructor(fqn) {
-    this.fqn = fqn;
-  }
-  toString() {
-    return this.fqn;
-  }
-  toJSON() {
-    return this.fqn;
-  }
-}
-
-// interning holds keywords weakly, like Clojure's keyword table: identity is
-// only needed among live instances (a collected keyword cannot sit in any
-// live collection or switch dispatch), so a dead entry may be re-interned as
-// a fresh instance later
-const keywordCache = new Map();
-
-const keywordRegistry = new FinalizationRegistry((fqn) => {
-  const ref = keywordCache.get(fqn);
-  // the same fqn may have been re-interned by the time this fires
-  if (ref !== undefined && ref.deref() === undefined) keywordCache.delete(fqn);
-});
-
 function internedKeyword(fqn) {
   return keywordCache.get(fqn)?.deref();
 }
@@ -3824,16 +3795,46 @@ export function namespace(x) {
   return i >= 1 ? x.slice(0, i) : null;
 }
 
-// a keyword equals only another keyword, like CLJS. Lookups (get, contains?,
-// case) stay name-based across keyword/string, equality does not.
-Keyword.prototype[IEquiv__equiv] = (self, other) =>
-  other instanceof Keyword && self.fqn === other.fqn;
+// POC real keywords: interned Keyword objects. toString() returns the fqn
+// WITHOUT the leading colon so object-map property access, str and template
+// interpolation behave like the old keywords-are-strings representation.
+// The class and interning table live down here so the definition is pure
+// (methods in the class body, @__PURE__ on the table): a bundle that never
+// references keywords tree-shakes all of it.
+const Keyword = /* @__PURE__ */ (() => {
+  class Keyword {
+    constructor(fqn) {
+      this.fqn = fqn;
+    }
+    toString() {
+      return this.fqn;
+    }
+    toJSON() {
+      return this.fqn;
+    }
+  }
+  // a keyword equals only another keyword, like CLJS. Lookups (get,
+  // contains?, case) stay name-based across keyword/string, equality not.
+  Keyword.prototype[IEquiv__equiv] = (self, other) =>
+    other instanceof Keyword && self.fqn === other.fqn;
+  // hash like the name string, consistent with maps read back either way
+  Keyword.prototype[IHash__hash] = (self) => m3HashInt(hashString(self.fqn));
+  Keyword.prototype[IPrintWithWriter__pr_writer] = (self, writer, _opts) =>
+    writer[IWriter__write](writer, ':' + self.fqn);
+  return Keyword;
+})();
 
-// hash like the name string, consistent with equiv
-Keyword.prototype[IHash__hash] = (self) => m3HashInt(hashString(self.fqn));
+// interning holds keywords weakly, like Clojure's keyword table: identity is
+// only needed among live instances (a collected keyword cannot sit in any
+// live collection or switch dispatch), so a dead entry may be re-interned as
+// a fresh instance later
+const keywordCache = /* @__PURE__ */ new Map();
 
-Keyword.prototype[IPrintWithWriter__pr_writer] = (self, writer, _opts) =>
-  writer[IWriter__write](writer, ':' + self.fqn);
+const keywordRegistry = /* @__PURE__ */ new FinalizationRegistry((fqn) => {
+  const ref = keywordCache.get(fqn);
+  // the same fqn may have been re-interned by the time this fires
+  if (ref !== undefined && ref.deref() === undefined) keywordCache.delete(fqn);
+});
 
 // (keyword name), (keyword ns name) or (keyword kw); interns so identical
 // keywords are reference-equal (===, native Map/Set keys, switch labels)
