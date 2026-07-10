@@ -318,9 +318,29 @@
       (shell "node" ".squint-out/babashka/run_tests.mjs")
       (println "babashka.cli tests successful!"))))
 
+(defn reagami-test []
+  (let [dir "libtests"]
+    (fs/delete-tree dir)
+    (fs/create-dir dir)
+    (shell {:dir dir} "git clone https://github.com/borkdude/reagami")
+    (let [dir (fs/path dir "reagami")
+          shell (partial p/shell {:dir dir})
+          squint-local (fs/path dir "node_modules/squint-cljs")]
+      (fs/create-dirs dir)
+      (shell "npm install --legacy-peer-deps")
+      (fs/delete-tree squint-local)
+      (fs/create-dirs squint-local)
+      (run! #(fs/copy % squint-local) (fs/glob "." "*.{js,json}"))
+      (fs/copy-tree "lib" (fs/path squint-local "lib"))
+      (fs/copy-tree "src" (fs/path squint-local "src"))
+      (shell "node_modules/.bin/squint" "compile")
+      (shell "node" "lib/run_tests.mjs")
+      (println "reagami tests successful!"))))
+
 (defn libtests []
   #_(build-squint-npm-package)
   (eucalypt-test)
   (clojure-mode-test)
   (replicant-test)
+  (reagami-test)
   (babashka-cli-test))
