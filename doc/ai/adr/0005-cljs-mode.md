@@ -38,9 +38,11 @@ In cljs mode:
   interning makes `===` correct. Symbols get the same treatment.
 - Map, vector and set literals compile to persistent constructors.
 - `(= :a "a")` is false. No name-equivalent equality anywhere.
-- Interning uses registry brands (the Symbol.for idea in
-  doc/dev/ideas.md) so two evaluated runtime copies still intern to the
-  same instances.
+- Keywords intern in a global table reachable through the Symbol.for
+  registry, and protocol brands use registry symbols too (the idea in
+  doc/dev/ideas.md). Two evaluated runtime copies hand out the same
+  instances, so `===` and `case` work across copies. Weak references
+  keep the table from pinning keywords, as in the POC's weak interning.
 
 ## Core function reuse
 
@@ -60,35 +62,39 @@ imports keep tree-shaking intact. Note core.edn is inlined at
 macroexpand by `edn-resource`, the second table gets the same treatment
 and the same rebuild footgun.
 
-## cljs+: name-keyed JS object access
+## cljs+: string access on JS objects
 
-Pure CLJS semantics would make `(get js-obj :foo)` return nil. This mode
-deliberately diverges, keeping squint's interop ergonomics:
+Pure CLJS `get` ignores JS objects entirely. This mode keeps squint's
+string access and drops only the keyword side:
 
-- Plain JS objects are name-keyed. `get` with a keyword reads
-  `obj[name(k)]`, so keywords and strings both address the property.
-  One `keyword?` check in the OBJECT_TYPE branch of `get`.
-  `contains?`, `get-in`, `select-keys`, `update`, `assoc` and map
-  destructuring bottom out there and work for free. Destructuring
-  interop data directly, without `js->clj`, is the point.
+- `(get js-obj "foo")` reads the property, unlike CLJS. `assoc`,
+  `contains?`, `get-in`, `select-keys` and `update` with string keys
+  work through the same OBJECT_TYPE branch. `{:strs [a b]}`
+  destructuring is the interop idiom.
+- `(get js-obj :foo)` is nil, like CLJS. Keywords never coerce to
+  property names. Crossing is explicit: `(name k)`, `js->clj`,
+  `clj->js`. A keyword miss doubles as a signal that the value is JS
+  data, not clj data.
 - Persistent maps are value-keyed, real CLJS semantics.
   `(get {:a 1} "a")` is nil.
-- The rule fits one sentence: object world is name-keyed, persistent
-  world is value-keyed, the representation of the collection decides.
+- The object world is purely string-keyed: `(keys js-obj)` returns
+  strings and `(get o (first (keys o)))` works, fully symmetric.
+- The rule fits one sentence: JS objects are string-keyed maps, keywords
+  only key clj data.
 
 Why this does not reopen the altKey mess: in 0004 one representation
 (objects) served both worlds, so every lookup was ambiguous and needed
-double probing. Here the worlds are separate representations and
-dispatch resolves the ambiguity before any lookup happens.
+double probing. Here nothing coerces at all, each key type addresses the
+collection kinds it natively fits.
 
 Documented edges, not solved ones:
 
-- `(keys js-obj)` returns strings, because property names are strings.
-  Comparisons on object-world keys are string comparisons.
-- js/Map and js/Set stay identity-keyed, no coercion. Interned keyword
-  keys work (same instance every time) but `(.get m "a")` does not find
-  `:a`. Real CLJS behaves the same. Declining to coerce SameValueZero
-  collections is what keeps altKey dead.
+- js/Map and js/Set stay identity-keyed. Interned keyword keys work
+  (same instance every time) but `(.get m "a")` does not find `:a`.
+  Real CLJS behaves the same.
+- Migration from default squint: `(:foo js-obj)` works today because
+  keywords are strings, and under the mode it silently returns nil
+  instead of erroring. The biggest porting trap in the design.
 
 ## What this costs
 
