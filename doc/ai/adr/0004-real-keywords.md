@@ -427,6 +427,31 @@ turns the silent 2-3x into an editor warning. Note the failure mode
 ladder: the plain-class variant crashed outright on this pattern,
 extends-String degrades it to slower-but-correct.
 
+### The typeof gate trap (observed in the wild, post-rejection)
+
+Found after this ADR was accepted, while building the userland String
+subclass in offworld (see Resolution below), and it is the sneakiest
+failure in the family: `typeof new String("x")` is `"object"`, and the
+JS ecosystem's idiomatic string check is a typeof gate. maplibre's Map
+constructor does literally
+
+    typeof container === "string" ? document.getElementById(container)
+                                  : container
+
+so a boxed String falls into the else branch and is treated as an
+HTMLElement. No throw, no coercion, silent misrouting: the map just never
+renders. Coercion sinks (string concat, setAttribute, property keys,
+JSON.stringify) all keep working, so the value survives nine boundaries
+and dies at the tenth.
+
+This is a correctness sibling of the boxed method perf trap above, and
+it would have hit every keyword crossing into any typeof-gating library,
+per library, silently, unfixable from the squint side. Userland gets
+away with it because the marked string lives in a narrow corridor
+(created at explicit mark sites, consumed by the encoder) and is
+unwrapped at the one boundary where values escape to JS libraries. A
+core keyword type is ambient and has no such corridor.
+
 ### js-framework-benchmark: the full account
 
 Full keyed run, 10 iterations, standard methodology, reagami entry.
