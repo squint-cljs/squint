@@ -124,3 +124,12 @@ ambient surprises.
   default mode too, or only under the flag.
 - Metadata on interned keywords (CLJS does not support it either).
 - REPL and playground story when two dialects share one session.
+- Reader conditional support for dual-target libraries, for example a
+  `:squint/cljs` feature. A lib's existing `:squint` branch assumes
+  strings and objects, so in cljs mode it is the wrong branch to take.
+  The mode's feature list could be `[:squint/cljs :cljs :default]`,
+  skipping bare `:squint`: under real keywords and persistent
+  collections a lib's `:cljs` branch is usually the more correct code,
+  so untouched CLJS libraries might compile as-is. Counterweight: `:cljs`
+  branches can lean on hosts squint lacks (goog, cljs.core internals).
+  Needs more thought.
