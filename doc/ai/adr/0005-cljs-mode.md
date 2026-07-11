@@ -38,9 +38,9 @@ In cljs mode:
   interning makes `===` correct. Symbols get the same treatment.
 - Map, vector and set literals compile to persistent constructors.
 - `(= :a "a")` is false. No name-equivalent equality anywhere.
-- Interning uses registry brands (the Symbol.for idea from the
-  keywords-global branch, doc/dev/ideas.md) so two evaluated runtime
-  copies still intern to the same instances.
+- Interning uses registry brands (the Symbol.for idea in
+  doc/dev/ideas.md) so two evaluated runtime copies still intern to the
+  same instances.
 
 ## Core function reuse
 
