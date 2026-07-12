@@ -26,17 +26,32 @@ the constraint that generated most of 0004's pain.
 
 ## Decision (proposed)
 
-A dialect resolved per namespace, with the consuming project's
-squint.edn `:dialect` as the default. `:squint/dialect` ns metadata pins
-a namespace to a dialect and travels with the source, so a library
-compiled from a git dep or a jar keeps its dialect inside a consumer
-running the other one. Ns metadata is the only channel that survives
-every packaging: squint compiles dependencies from source directories
-and jars, where out-of-band config like the library's own squint.edn is
-not present. Unannotated namespaces inherit the consumer's setting. A
-library's own squint.edn still sets the dialect for its own development,
-and a check can warn when it declares a dialect that some namespace does
-not pin, so published libraries stay fully annotated.
+A dialect resolved per namespace. `:squint/dialect` ns metadata pins a
+namespace and travels with the source, so a library compiled from a git
+dep or a jar keeps its dialect inside a consumer running the other one.
+Ns metadata is the only channel that survives every packaging: squint
+compiles dependencies from source directories and jars, where
+out-of-band config like the library's own squint.edn is not present.
+
+Initially ns pinning is the only mechanism: every namespace without
+metadata is `:squint`, project and dependency alike. Explicit per file,
+no inheritance rules to misread, and everything published before the
+mode keeps the semantics it was written against. Inheriting the
+consumer's mode would hand old libraries new semantics silently, the
+ambient surprise 0004 rejected, moved to the dependency boundary.
+
+Possible later conveniences, in rough order:
+
+- Project-owned namespaces inherit the project's squint.edn `:dialect`,
+  so an app does not annotate its own files. Dependency resolution
+  already knows which source root a file came from.
+- `:squint/dialect :inherit` for genuinely dual-dialect libraries,
+  following the consumer on purpose instead of by omission.
+- A consumer override per dependency or namespace as an escape hatch
+  for legacy libraries, not ordinary behavior.
+- A check that warns when a library's own squint.edn declares a dialect
+  some namespace does not pin, so published libraries stay fully
+  annotated.
 
 Dialects therefore mix inside one program. The protocol-dispatched
 runtime is shared, but a keyword literal is a string in one dialect and
@@ -133,10 +148,13 @@ key for the places where the mode diverges from real CLJS, such as
 string access on JS objects, or `:cljs` branches leaning on hosts squint
 lacks (goog, cljs.core internals).
 
-A library that works in both dialects ships one source with those
-conditionals and no dialect metadata, inheriting the consumer's mode. A
-library that requires one dialect pins its namespaces with
-`:squint/dialect` ns metadata and keeps it in every consumer.
+A library that requires one dialect pins its namespaces and keeps it in
+every consumer. A library with no metadata stays `:squint`, which is
+what its code assumed when it was written. A library that works in both
+dialects ships one source with those conditionals, initially compiling
+as `:squint` like any unpinned code, later following the consumer via
+`:squint/dialect :inherit`. Until then its data enters a cljs mode app
+as string keywords, the ordinary cross-dialect boundary.
 
 ## Relationship to ADR 0004
 
@@ -154,9 +172,5 @@ ambient surprises.
   default mode too, or only under the flag.
 - Metadata on interned keywords (CLJS does not support it either).
 - REPL and playground story when two dialects share one session.
-- Whether pre-mode libraries without dialect metadata should inherit
-  the consumer's mode, as proposed, or default to `:squint`, since all
-  of them were written against string keywords.
-- Whether the consumer can override a dependency's dialect from its own
-  squint.edn, for depending on legacy libraries that predate the
-  metadata.
+- Shape of the consumer override escape hatch, per dependency or per
+  namespace, for legacy libraries that predate the metadata.
