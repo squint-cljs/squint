@@ -26,10 +26,22 @@ the constraint that generated most of 0004's pain.
 
 ## Decision (proposed)
 
-A global compiler flag. One mode per app, applied to the app and all
-dependencies, since squint compiles dependencies from source.
-Per-namespace mixing is out: data crosses namespaces and the dialects
-disagree on lookup and equality.
+A dialect resolved per namespace, with the consuming project's
+squint.edn `:dialect` as the default. `:squint/dialect` ns metadata pins
+a namespace to a dialect and travels with the source, so a library
+compiled from a git dep or a jar keeps its dialect inside a consumer
+running the other one. Ns metadata is the only channel that survives
+every packaging: squint compiles dependencies from source directories
+and jars, where out-of-band config like the library's own squint.edn is
+not present. Unannotated namespaces inherit the consumer's setting. A
+library's own squint.edn still sets the dialect for its own development,
+and a check can warn when it declares a dialect that some namespace does
+not pin, so published libraries stay fully annotated.
+
+Dialects therefore mix inside one program. The protocol-dispatched
+runtime is shared, but a keyword literal is a string in one dialect and
+a Keyword in the other, so lookups across the boundary miss. Data
+crossing between dialects is the user's problem.
 
 In cljs mode:
 
@@ -98,15 +110,33 @@ Documented edges, not solved ones:
 
 ## What this costs
 
-- A second dialect for library authors. The mode is viral per app, so a
-  squint library either targets one dialect or tests both. Everything
-  published today assumes keywords are strings and maps are objects.
+- A second dialect for library authors. A squint library either declares
+  one dialect or tests both. Everything published today assumes keywords
+  are strings and maps are objects, and predates the declaration, so it
+  inherits whatever the consumer runs.
 - The 0004 interop traps (typeof gates, structuredClone, `===` in JS
   libraries) return as documented mode semantics. Acceptable when the
   app opted in, deadly when ambient. That is the line between this
   proposal and the rejected default.
 - The overlay module, the literal emitters and a doubled portion of the
   test suite.
+
+## Dual-dialect libraries
+
+Reader conditionals: the cljs mode feature set is
+`[:squint/cljs :cljs :default]`, bare `:squint` deliberately absent.
+Default squint already falls back to `:cljs`, so existing
+`#?(:squint ... :cljs ...)` code does the right thing in both dialects
+with no duplication: the `:cljs` branch serves real CLJS and cljs mode,
+which share semantics by construction. `:squint/cljs` is the rare escape
+key for the places where the mode diverges from real CLJS, such as
+string access on JS objects, or `:cljs` branches leaning on hosts squint
+lacks (goog, cljs.core internals).
+
+A library that works in both dialects ships one source with those
+conditionals and no dialect metadata, inheriting the consumer's mode. A
+library that requires one dialect pins its namespaces with
+`:squint/dialect` ns metadata and keeps it in every consumer.
 
 ## Relationship to ADR 0004
 
@@ -124,12 +154,9 @@ ambient surprises.
   default mode too, or only under the flag.
 - Metadata on interned keywords (CLJS does not support it either).
 - REPL and playground story when two dialects share one session.
-- Reader conditional support for dual-target libraries, for example a
-  `:squint/cljs` feature. A lib's existing `:squint` branch assumes
-  strings and objects, so in cljs mode it is the wrong branch to take.
-  The mode's feature list could be `[:squint/cljs :cljs :default]`,
-  skipping bare `:squint`: under real keywords and persistent
-  collections a lib's `:cljs` branch is usually the more correct code,
-  so untouched CLJS libraries might compile as-is. Counterweight: `:cljs`
-  branches can lean on hosts squint lacks (goog, cljs.core internals).
-  Needs more thought.
+- Whether pre-mode libraries without dialect metadata should inherit
+  the consumer's mode, as proposed, or default to `:squint`, since all
+  of them were written against string keywords.
+- Whether the consumer can override a dependency's dialect from its own
+  squint.edn, for depending on legacy libraries that predate the
+  metadata.
