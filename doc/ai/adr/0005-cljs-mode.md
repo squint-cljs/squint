@@ -1,8 +1,14 @@
 # ADR 0005: cljs mode, an opt-in dialect with real keywords and persistent collections
 
-Status: Proposed. Design sketch, nothing implemented. Depends on the
+Status: Accepted as direction, nothing implemented. Depends on the
 immutable branch (persistent data structures with protocol-dispatched
 core) being merged first.
+
+Names, to avoid three-way confusion: the dialect value in
+`:squint/dialect` ns metadata is `:cljs` (against `:squint`, the
+default). The reader conditional feature key is `:squint/cljs`, since
+bare `:cljs` already means real ClojureScript there. Prose says cljs
+mode or cljs dialect.
 
 ## Context
 
@@ -17,8 +23,8 @@ Resolution section).
 The immutable branch changes the base assumptions. Once persistent
 collections land in core and core functions dispatch through protocols,
 core is representation-agnostic. A keyword type then no longer needs
-core rewritten, it needs protocol implementations plus a small set of
-overridden vars.
+core rewritten, it needs protocol implementations, a small set of
+overridden vars and a compiler audit (see Core function reuse).
 
 This ADR proposes an opt-in compile mode instead of a new default. The
 mode owes no compatibility to string-keyed squint data, which removes
@@ -62,25 +68,50 @@ In cljs mode:
 
 - Keyword literals compile to globally interned Keyword objects, hoisted
   as module-level constants. `case` keeps compiling to switch, since
-  interning makes `===` correct. Symbols get the same treatment.
+  interning makes `===` correct. Symbols intern globally the same way,
+  decided here rather than left open, because `case` on symbols
+  otherwise needs separate behavior.
 - Map, vector and set literals compile to persistent constructors.
+  `#js` literals stay native JS arrays and objects, the literal-level
+  escape hatch from persistent collections.
 - `(= :a "a")` is false. No name-equivalent equality anywhere.
+- Keyword invocation stays supported: `(:foo m)` and `(:foo m nf)`.
+  The compiler currently infers keyword callability from the string
+  tag, cljs mode needs a distinct Keyword routing path for it.
+- `(str :foo)` is `":foo"` and toString matches, CLJS fidelity over
+  current squint's `"foo"`. String sinks (DOM attributes, hiccup) take
+  `(name k)`, as in CLJS. Anything else silently weakens the claim that
+  the mode shares CLJS semantics.
 - Keywords intern in a global table reachable through the Symbol.for
   registry, and protocol brands use registry symbols too (the idea in
-  doc/dev/ideas.md). Two evaluated runtime copies hand out the same
-  instances, so `===` and `case` work across copies. Weak references
-  keep the table from pinning keywords, as in the POC's weak interning.
+  doc/dev/ideas.md). Duplicate runtime copies within the same JS realm
+  hand out the same instances, so `===` and `case` work across copies.
+  Separate realms and workers share neither the weak table nor object
+  identity, cross-realm data goes through the wire encoding as always.
+  Weak references keep the table from pinning keywords, as in the POC's
+  weak interning. Registry keys carry a contract version: once protocol
+  slots use Symbol.for they are an ABI shared by runtime copies from
+  different squint versions, and the key must change when the slot
+  contract does.
 
 ## Core function reuse
 
-Most of core is reused unchanged through protocol dispatch. The overlay
-module (working name `squint.cljs-mode`) overrides a short list:
+Most of core is reused unchanged through protocol dispatch. The public
+var overrides in the overlay module (working name `squint.cljs-mode`)
+are a short list:
 
 - `keyword`, `keyword?`, `name`, `namespace`, `symbol`, `symbol?`,
   `find-keyword`
 - printing (`pr-str` path for Keyword and Symbol)
 - `clj->js` and `js->clj`, the sanctioned deep conversion
 - the edn reader keyword hook
+
+The var list understates the compiler audit. Beyond it, the mode
+touches: literal emission for keywords, symbols, maps, vectors and
+sets, keyword-as-function inference (string tag today, Keyword routing
+needed), hashing and equality protocol implementations for the new
+types, `case` constant emission, quoted forms, destructuring output,
+and JSX/hiccup tag positions where keywords flow into strings.
 
 Remapping mechanism: a second edn resource next to core.edn listing the
 overridden munged names. In cljs mode the compiler prefixes those vars
@@ -125,10 +156,10 @@ Documented edges, not solved ones:
 
 ## What this costs
 
-- A second dialect for library authors. A squint library either declares
+- A second dialect for library authors. A squint library either pins
   one dialect or tests both. Everything published today assumes keywords
-  are strings and maps are objects, and predates the declaration, so it
-  inherits whatever the consumer runs.
+  are strings and maps are objects, and predates the metadata, so it
+  stays `:squint` everywhere.
 - The 0004 interop traps (typeof gates, structuredClone, `===` in JS
   libraries) return as documented mode semantics. Acceptable when the
   app opted in, deadly when ambient. That is the line between this
@@ -139,22 +170,24 @@ Documented edges, not solved ones:
 ## Dual-dialect libraries
 
 Reader conditionals: the cljs mode feature set is
-`[:squint/cljs :cljs :default]`, bare `:squint` deliberately absent.
-Default squint already falls back to `:cljs`, so existing
-`#?(:squint ... :cljs ...)` code does the right thing in both dialects
-with no duplication: the `:cljs` branch serves real CLJS and cljs mode,
-which share semantics by construction. `:squint/cljs` is the rare escape
-key for the places where the mode diverges from real CLJS, such as
-string access on JS objects, or `:cljs` branches leaning on hosts squint
-lacks (goog, cljs.core internals).
+`#{:squint/cljs :cljs}`, bare `:squint` deliberately absent, `:default`
+matching as fallback behavior like everywhere else. Default squint
+already falls back to `:cljs`, so existing `#?(:squint ... :cljs ...)`
+code does the right thing in both dialects with no duplication: the
+`:cljs` branch serves real CLJS and cljs mode, which share semantics by
+construction. `:squint/cljs` is the rare escape key for the places
+where the mode diverges from real CLJS, such as string access on JS
+objects, or `:cljs` branches leaning on hosts squint lacks (goog,
+cljs.core internals).
 
 A library that requires one dialect pins its namespaces and keeps it in
 every consumer. A library with no metadata stays `:squint`, which is
-what its code assumed when it was written. A library that works in both
-dialects ships one source with those conditionals, initially compiling
-as `:squint` like any unpinned code, later following the consumer via
-`:squint/dialect :inherit`. Until then its data enters a cljs mode app
-as string keywords, the ordinary cross-dialect boundary.
+what its code assumed when it was written. Dialect-neutral source, one
+source that compiles correctly either way via those conditionals, is
+the accurate term during the initial phase: without `:inherit` it
+always compiles as `:squint`, even inside a cljs mode app, and its data
+enters through the ordinary cross-dialect boundary. It only becomes a
+true dual-dialect library once `:squint/dialect :inherit` exists.
 
 ## Relationship to ADR 0004
 
@@ -167,7 +200,6 @@ ambient surprises.
 
 ## Open questions
 
-- Whether symbols intern globally like keywords or stay per-call.
 - Whether the immutable branch makes persistent literals available in
   default mode too, or only under the flag.
 - Metadata on interned keywords (CLJS does not support it either).
