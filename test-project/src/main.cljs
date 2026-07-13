@@ -5,6 +5,7 @@
             [compile-time :as ct :refer [shout doubled tripled]]
             [compile-time-cljs :as ctcljs]
             [other-ns]
+            [proto-lib :as proto :refer [IDescribe describe]]
             [macros-self :as ms]
             [my-other-src :as src]
             [greetlib.core :as greet]
@@ -50,3 +51,16 @@
 (println "ct-cljs-yell:" (ctcljs/yell "hey"))
 (println "ct-cljs-runtime:" (ctcljs/runtime-fn 41))
 (println "self-require-macros:" ms/self-val (ms/twice-m 4))
+
+(deftype Square [w]
+  proto/IDescribe
+  (describe [_] (str "square " w)))
+
+(deftype Circle [r])
+(extend-type Circle
+  proto/IDescribe
+  (describe [c] (str "circle " (.-r c))))
+
+(println "proto-deftype:" (describe (->Square 2)))
+(println "proto-extend-type:" (proto/describe (->Circle 3)))
+(println "proto-reify:" (describe (reify IDescribe (describe [_] "reified"))))
