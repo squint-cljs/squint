@@ -754,6 +754,20 @@
 (extend-protocol p/MyProtocol nil (my-foo [_] :nil))")]
         (is (str/includes? js "p.my_foo[null] =")))))
 
+(deftest cross-ns-extend-type-test
+  (testing "qualified protocol keys the impl by its slot Symbol"
+    (let [js (jss! "(ns qux (:require [foo])) (deftype T []) (extend-type T foo/Bar (baz [_] :ok))")]
+      (is (str/includes? js "T.prototype[foo.Bar_baz]"))))
+  (testing "aliased protocol"
+    (let [js (jss! "(ns qux (:require [foo :as f])) (deftype T []) (extend-type T f/Bar (baz [_] :ok))")]
+      (is (str/includes? js "T.prototype[f.Bar_baz]"))))
+  (testing "refer'd protocol resolves the slot via its source ns"
+    (let [js (jss! "(ns qux (:require [foo :refer [Bar]])) (deftype T []) (extend-type T Bar (baz [_] :ok))")]
+      (is (str/includes? js "T.prototype[foo.Bar_baz]"))))
+  (testing "reify on a refer'd protocol"
+    (let [js (jss! "(ns qux (:require [foo :refer [Bar]])) (reify Bar (baz [_] :ok))")]
+      (is (str/includes? js "[foo.Bar_baz]")))))
+
 (deftest deftype-test
   (is (= 1 (jsv! '(do (deftype Foo [x]) (.-x (->Foo 1))))))
   (is (eq [:foo :bar]

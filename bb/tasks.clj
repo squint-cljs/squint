@@ -212,7 +212,11 @@
       (assert (str/includes? output "ct-cljs-runtime: 42"))
       ;; a macro used in the ns that defines it (self :require-macros) expands:
       ;; the macro's own def must not shadow the lookup or trigger a rename
-      (assert (str/includes? output "self-require-macros: 42 8")))
+      (assert (str/includes? output "self-require-macros: 42 8"))
+      ;; protocol from another ns: deftype, extend-type and reify dispatch (#955)
+      (assert (str/includes? output "proto-deftype: square 2"))
+      (assert (str/includes? output "proto-extend-type: circle 3"))
+      (assert (str/includes? output "proto-reify: reified")))
     (assert (not (str/includes? (slurp "test-project/lib/macros_self.mjs") "G__")))
     ;; a defmacro is compile-time only: no runtime var, no export, and a :refer
     ;; of it emits no runtime import (main.mjs above would fail to run otherwise)
