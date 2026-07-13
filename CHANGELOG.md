@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## 0.14.204
+
+- Fix [#955](https://github.com/squint-cljs/squint/issues/955): cross-ns extend-type keys impl by protocol slot Symbol
+
 ## 0.14.203
 
 Preparatory release before adding immutable + persistent collections in `squint.immutable`
