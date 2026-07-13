@@ -84,17 +84,28 @@
     ;; multi-arity
     (map insert-this method-bodies)))
 
+(core/defn- protocol-ns
+  "Namespace to qualify a protocol's slot vars with: psym's own namespace,
+  or the source ns when psym is :refer'd into the current ns."
+  [env psym]
+  (core/or (namespace psym)
+           (core/when-let [ns-state (core/some-> env :ns-state deref)]
+             (core/let [source (get-in ns-state [(:current ns-state) :refers psym])]
+               ;; a string source is a JS libname: no ns to qualify with
+               (core/when (symbol? source)
+                 (str source))))))
+
 (core/defn- emit-type-method
-  [psym type-sym method]
-  (let [pns (namespace psym)
+  [env psym type-sym method]
+  (let [pns (protocol-ns env psym)
         mname (first method)
         mname (if (or (qualified-symbol? mname)
                       (not pns))
                 mname
-                (symbol (namespace psym) (name mname)))
+                (symbol pns (name mname)))
         msym (if (= 'Object psym)
                (str mname)
-               (symbol (str psym "_" mname)))
+               (symbol pns (str (name psym) "_" (name mname))))
         f `(fn ~@(insert-this (rest method)))]
     (if (nil? type-sym)
       `(let [f# ~f]
@@ -106,7 +117,7 @@
           (.-prototype ~type-sym) ~msym f#)))))
 
 (core/defn- emit-type-methods
-  [type-sym [psym pmethods]]
+  [env type-sym [psym pmethods]]
   (let [flag (if (nil? type-sym)
                `(unchecked-set
                  ~psym nil true)
@@ -115,29 +126,30 @@
                  (unchecked-get ~psym "__sym") true))]
     ;; (prn :flag flag)
     `(~flag
-      ~@(map #(emit-type-method psym type-sym %) pmethods))))
+      ~@(map #(emit-type-method env psym type-sym %) pmethods))))
 
 (core/defn core-extend-type
-  [_&env _&form type-sym & impls]
+  [_&form &env type-sym & impls]
   (core/let [type-sym (if (nil? type-sym)
                         type-sym
                         (get js-type-sym->type type-sym type-sym))
              impl-map (->impl-map impls)]
     `(do
-       ~@(mapcat #(emit-type-methods type-sym %) impl-map))))
+       ~@(mapcat #(emit-type-methods &env type-sym %) impl-map))))
 
 (core/defn- emit-reify-method
-  [obj-sym psym method]
+  [env obj-sym psym method]
   (core/let [mname (first method)
              msym (if (= 'Object psym)
                     (str mname)
-                    (symbol (str psym "_" mname)))]
+                    (symbol (protocol-ns env psym)
+                            (str (name psym) "_" (name mname))))]
     ;; the protocol dispatcher passes `this` as the first argument, so the
     ;; method is a plain fn over its declared params (no `this` binding needed)
     `(unchecked-set ~obj-sym ~msym (fn ~@(rest method)))))
 
 (core/defn core-reify
-  [_&form _&env & impls]
+  [_&form &env & impls]
   (core/let [obj (gensym "reify__")
              impl-map (->impl-map impls)]
     `(let [~obj {}]
@@ -145,7 +157,7 @@
                    (core/concat
                     (when-not (= 'Object psym)
                       [`(unchecked-set ~obj (unchecked-get ~psym "__sym") true)])
-                    (map #(emit-reify-method obj psym %) methods)))
+                    (map #(emit-reify-method &env obj psym %) methods)))
                  impl-map)
        ~obj)))
 
