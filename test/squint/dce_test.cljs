@@ -70,10 +70,11 @@
    ;; instanceof pins SortedSet + sort + compare (the "_elts" field is unique to
    ;; SortedSet) into every app that uses conj.
    {:names ["conj"] :cap 2900 :absent ["_elts"]}
-   ;; the full import set of reagami 0.1.38, a whole-lib floor. Unused protocol
-   ;; consts must shake out; IWriter's description is the canary.
+   ;; everything reagami imports from core. Reagami does not use IWriter, so
+   ;; its symbol description showing up in the bundle means unused protocol
+   ;; consts were not shaken out.
    {:names ["boolean_QMARK_" "conj" "deref" "disj" "fn_QMARK_" "fnil" "map_QMARK_"
-            "min" "not" "nth" "number_QMARK_" "object_QMARK_" "quot" "reduce"
+            "not" "nth" "number_QMARK_" "object_QMARK_" "quot" "reduce"
             "run_BANG_" "seq_QMARK_" "string_QMARK_" "subs" "truth_" "update_BANG_"
             "vector_QMARK_" "volatile_BANG_" "vreset_BANG_"]
     :cap 8500 :absent ["squint.core.IWriter"]}])
