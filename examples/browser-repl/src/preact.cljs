@@ -16,3 +16,6 @@
           [:button {:style ui/btn :onClick #(set-n (inc n))} "Click me!"]]))
 
 (render #jsx [App] (js/document.querySelector "#preact"))
+
+;; preact reconciles: the App instance and its useState survive the re-render
+(defn ^:dev/after-load re-render [] (render #jsx [App] (js/document.querySelector "#preact")))
