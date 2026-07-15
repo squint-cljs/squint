@@ -7,6 +7,7 @@
    [edamame.core :as e]
    [shadow.esm :as esm]
    [squint.compiler :as compiler]
+   [squint.compiler-common :as cc]
    [squint.internal.node.utils :as utils]))
 
 (def sci (atom nil))
@@ -327,6 +328,20 @@
   (let [{:keys [output-dir paths extension]} (utils/expand-paths (or (utils/get-cfg) {}))]
     (compiled-output-path x (or paths ["." "src"]) (or output-dir ".") extension)))
 
+(defn- dev-hooks
+  "Munged globalThis paths (\"tic_tac_toe.core.re_render\") of the current ns's
+  vars tagged ^:dev/before-load / ^:dev/after-load, for hot-reload tooling."
+  [ns-state]
+  (let [state @ns-state
+        current (:current state)
+        hooks (fn [k]
+                (into [] (keep (fn [[sym m]]
+                                 (when (and (symbol? sym) (map? m) (get m k))
+                                   (str (munge current) "." (cc/munge* sym)))))
+                      (get state current)))]
+    {:before-load (hooks :dev/before-load)
+     :after-load (hooks :dev/after-load)}))
+
 (defn compile-file [{:keys [in-file in-str out-file extension output-dir]
                      :or {output-dir ""}
                      :as opts}]
@@ -364,7 +379,8 @@
                                        {:output-dir output-dir
                                         :out-file out-file})))
                    (spit out-file javascript)
-                   (assoc opts :out-file out-file)))))))
+                   (cond-> (assoc opts :out-file out-file)
+                     (:repl opts) (assoc :dev-hooks (dev-hooks (:ns-state opts))))))))))
 
 (defn ->clj [x]
   (js->clj x :keywordize-keys true))

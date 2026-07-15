@@ -52,6 +52,21 @@ export default defineConfig({ plugins: [squint()] });
 `npm run build` produces a normal optimized bundle with regular (non-REPL) squint
 output, with the dev-only REPL/HMR stripped.
 
+## Hot reload
+
+Saving a `.cljs`/`.cljc` file recompiles it and hot-swaps the module in the
+page, without a page reload. To take actions before and after such a reload, you
+can define functions that take `:dev/before-load` and `:dev/after-load` metadata
+respectively.
+
+```clojure
+(defn ^:dev/after-load re-render []
+  (swap! store identity))
+```
+
+`^:dev/before-load` runs before the new code loads. See
+[`examples/replicant`](../examples/replicant) for a working setup.
+
 ## React / Preact (JSX)
 
 Set `:jsx-runtime` so squint emits `jsx()`/`jsxs()` calls (importing the

@@ -7,5 +7,9 @@
 
 (defonce store (atom nil))
 
+;; touching the store re-runs the render watch with the freshly loaded code
+(defn ^:dev/after-load re-render []
+  (swap! store identity))
+
 (tic-tac-toe/main store)
 (tic-tac-toe/start-new-game store)

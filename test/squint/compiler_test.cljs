@@ -2807,7 +2807,33 @@ globalThis.foo.fs = fs;")))))
   (testing "a bare dotted [some.ns] require imports once (no duplicate)"
     (let [s (squint/compile-string "(ns foo (:require [some.ns]))")
           n (count (re-seq #"import \* as some_DOT_ns " s))]
-      (is (= 1 n)))))
+      (is (= 1 n))))
+  (testing "a resolved local ns :as binds the alias to the live globalThis cell"
+    (let [s (squint/compile-string "(ns foo.main (:require [foo.core :as fc])) (fc/x)"
+                                   {:repl true
+                                    :resolve-ns (fn [sym] (when (= 'foo.core sym) "./foo/core.js"))})]
+      (is (str/includes? s "await import('./foo/core.js'); var fc = globalThis.foo.core"))
+      (is (str/includes? s "var foo_DOT_core = globalThis.foo.core"))))
+  (testing "a bare resolved local ns require binds the live cell too"
+    (let [s (squint/compile-string "(ns foo.main (:require [foo.core])) (foo.core/x)"
+                                   {:repl true
+                                    :resolve-ns (fn [sym] (when (= 'foo.core sym) "./foo/core.js"))})]
+      (is (str/includes? s "await import('./foo/core.js'); var foo_DOT_core = globalThis.foo.core"))))
+  (testing "a local ns :refer resolves through the provider's live cell"
+    (let [s (squint/compile-string "(ns foo.main (:require [foo.core :refer [render-game]])) (render-game 1)"
+                                   {:repl true
+                                    :resolve-ns (fn [sym] (when (= 'foo.core sym) "./foo/core.js"))})]
+      (is (str/includes? s "globalThis.foo.core.render_game(1)")))
+    (testing "with :rename"
+      (let [s (squint/compile-string "(ns foo.main (:require [foo.core :refer [render-game] :rename {render-game rg}])) (rg 1)"
+                                     {:repl true
+                                      :resolve-ns (fn [sym] (when (= 'foo.core sym) "./foo/core.js"))})]
+        (is (str/includes? s "globalThis.foo.core.render_game(1)"))))
+    (testing "own def shadows the refer"
+      (let [s (squint/compile-string "(ns foo.main (:require [foo.core :refer [render-game]])) (def render-game 1) render-game"
+                                     {:repl true
+                                      :resolve-ns (fn [sym] (when (= 'foo.core sym) "./foo/core.js"))})]
+        (is (str/includes? s "globalThis.foo.main.render_game"))))))
 
 (deftest import-attributes-test
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})
