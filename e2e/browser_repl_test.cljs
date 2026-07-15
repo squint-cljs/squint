@@ -96,6 +96,24 @@
   (check "macro edit picked up across recompile (#819)" true
          (str/includes? (await (.textContent page "#macro-tag")) "macro-v2")))
 
+(defn ^:async check-after-load
+  "Issue #957: editing a non-entry source (ui.cljs, shared styles) must hot-swap
+  the module and run the ^:dev/after-load fn in plain.cljs, re-rendering with
+  the new code and without a page reload. `card` is consumed via the `ui`
+  alias, `btn` via :refer - both must show the new value."
+  [page ui-file orig-ui]
+  (await (.evaluate page "window.__e2e_no_reload = true"))
+  (.writeFileSync fs ui-file (-> orig-ui
+                                 (str/replace "1px solid #e2e2e2" "4px solid #123456")
+                                 (str/replace "1px solid #ccc" "3px dashed #123456")))
+  (await (with-timeout 20000 "after-load re-render"
+                       (.waitForFunction page "document.querySelector('#plain').innerHTML.includes('4px solid')")))
+  (check "after-load hook re-renders on dep edit (#957)" true
+         (str/includes? (await (.innerHTML page "#plain")) "4px solid"))
+  (check "refer'd var sees the hot swap" true
+         (str/includes? (await (.innerHTML page "#plain")) "3px dashed"))
+  (check "hot swap without page reload" true (await (.evaluate page "!!window.__e2e_no_reload"))))
+
 ;; ------------------------------------------------------------------ run ----
 
 ;; Hard safety net: never let the process hang past 2 min (unref'd so a fast
@@ -115,10 +133,13 @@
         ;; so we can restore after editing them at runtime.
         macro-file (path/join EXDIR "src" "e2e_macros.cljc")
         consumer-file (path/join EXDIR "src" "plain.cljs")
+        ui-file (path/join EXDIR "src" "ui.cljs")
         orig-macro (.readFileSync fs macro-file "utf8")
         orig-consumer (.readFileSync fs consumer-file "utf8")
+        orig-ui (.readFileSync fs ui-file "utf8")
         restore-files! (fn [] (try (.writeFileSync fs macro-file orig-macro)
                                    (.writeFileSync fs consumer-file orig-consumer)
+                                   (.writeFileSync fs ui-file orig-ui)
                                    (catch :default _ nil)))
         ;; safety net: the hard-timeout path calls process.exit and skips the
         ;; finally below, so restore on exit too (sync, idempotent)
@@ -148,6 +169,7 @@
         (await (check-counter page "preact (#jsx)" "#preact"))
         (await (check-counter page "reagami (hiccup)" "#reagami"))
         (await (check-macro-reload page macro-file consumer-file orig-consumer))
+        (await (check-after-load page ui-file orig-ui))
         (let [client (await (with-timeout 10000 "nrepl connect" (make-client NREPL-PORT)))
               clone (await (with-timeout 10000 "nrepl clone" (nrepl-request client #js {:op "clone"})))
               session (some (fn [m] (aget m "new-session")) (js/Array.from clone))

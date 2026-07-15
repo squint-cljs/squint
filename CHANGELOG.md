@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#957](https://github.com/squint-cljs/squint/issues/957): vite HMR: support `^:dev/after-load` + `^:dev/before-load` hooks similar to shadow-cljs + other REPL bugfixes
+
 ## 0.14.204
 
 - Fix [#955](https://github.com/squint-cljs/squint/issues/955): cross-ns extend-type keys impl by protocol slot Symbol

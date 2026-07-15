@@ -150,6 +150,10 @@ export default function squint(options = {}) {
   // the nREPL server, so the REPL knows the vars/aliases the files defined (a
   // cljs atom; survives the JS boundary as an opaque object). Dev only.
   let nsState;
+  // source file -> {before-load: [...], after-load: [...]}: munged globalThis
+  // paths of ^:dev/before-load / ^:dev/after-load fns, refreshed per compile,
+  // dropped when the source is deleted.
+  const devHooks = new Map();
 
   async function compileCljs(file) {
     const res = await compileFile({
@@ -166,8 +170,16 @@ export default function squint(options = {}) {
       // thread the shared ns-state (dev only; the build doesn't need a REPL)
       ...(isBuild ? {} : { 'ns-state': nsState }),
     });
-    if (!isBuild) nsState = res['ns-state']; // capture/refresh the shared atom
+    if (!isBuild) {
+      nsState = res['ns-state']; // capture/refresh the shared atom
+      devHooks.set(file, res['dev-hooks']);
+    }
     return res;
+  }
+
+  function hookCalls(which) {
+    const paths = [...devHooks.values()].flatMap((h) => h[which]);
+    return paths.map((p) => `__squint_dev_hook(${JSON.stringify(p)});`).join(' ');
   }
 
   async function compileAll() {
@@ -240,14 +252,35 @@ export default function squint(options = {}) {
 
     // Make compiled cljs->js modules self-accepting in dev so a recompile
     // hot-swaps the module (re-runs it, re-binding globalThis.<ns> with the
-    // new code) instead of triggering a full page reload. Injected at serve
-    // time only, so the files on disk and the production build stay clean.
+    // new code) instead of triggering a full page reload. ^:dev/before-load
+    // hooks run on dispose (old module about to be replaced), ^:dev/after-load
+    // hooks on accept (new module has executed). Hooks resolve by name on
+    // globalThis at call time. Injected at serve time only, so the files on
+    // disk and the production build stay clean.
     transform(code, id) {
       if (isBuild) return;
       const file = id.split('?')[0];
       const outBase = join(root, outDir) + sep;
       if (file.startsWith(outBase) && file.endsWith('.' + extension)) {
-        return code + '\nif (import.meta.hot) { import.meta.hot.accept(); }\n';
+        const before = hookCalls('before-load');
+        const after = hookCalls('after-load');
+        const noHooksHint =
+          "console.info('[squint] hot reloaded, but no ^:dev/after-load hook is defined to e.g. re-render');";
+        return (
+          code +
+          `
+if (import.meta.hot) {
+  globalThis.__squint_dev_hook ??= (p) => {
+    let f = globalThis;
+    for (const seg of p.split('.')) f = f?.[seg];
+    if (typeof f !== 'function') { console.warn('[squint] dev hook not found: ' + p); return; }
+    try { f(); } catch (e) { console.error('[squint] dev hook ' + p + ' threw', e); }
+  };
+  ${before ? `import.meta.hot.dispose(() => { ${before} });` : ''}
+  import.meta.hot.accept(() => { ${after || noHooksHint} });
+}
+`
+        );
       }
     },
     transformIndexHtml: {
@@ -298,6 +331,7 @@ export default function squint(options = {}) {
       for (const p of paths) server.watcher.add(p);
       server.watcher.on('change', onChange);
       server.watcher.on('add', onChange);
+      server.watcher.on('unlink', (file) => devHooks.delete(resolve(file)));
 
       // Resolve a bare specifier from REPL-eval'd dynamic import()s to the url
       // vite serves it at, returned as text (the client imports that url; see

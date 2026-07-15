@@ -596,10 +596,16 @@
                             (str (when (:repl env)
                                    (str "globalThis." (munge current) "."))
                                  (get-in current-ns [:var-renames (munged-name expr)] (munged-name expr))))
-                          (when (contains? (:refers current-ns) expr)
-                            (str (when (:repl env)
-                                   (str "globalThis." (munge current) "."))
-                                 (munged-name expr)))
+                          (when-let [refer-ns (get (:refers current-ns) expr)]
+                            (if (and (:repl env) (symbol? refer-ns)
+                                     (not (library-ns? (:target env) refer-ns)))
+                              ;; local ns: resolve through the provider's live
+                              ;; cell so redefs / HMR hot swaps stay visible
+                              (str "globalThis." (munge refer-ns) "."
+                                   (munged-name (get-in current-ns [:refer-renames expr] expr)))
+                              (str (when (:repl env)
+                                     (str "globalThis." (munge current) "."))
+                                   (munged-name expr))))
                           (some-> (maybe-core-var expr env) munge)
                           (when alias
                             (str (when (:repl env)
@@ -862,7 +868,8 @@
                                    coll-tag (init-return-tag init env)]
                                (assoc-in state [current name]
                                          (cond-> (select-keys (meta name)
-                                                              [:arglists :doc :line :file :private :macro])
+                                                              [:arglists :doc :line :file :private :macro
+                                                               :dev/before-load :dev/after-load])
                                            coll-tag (assoc :tag coll-tag))))))
     (if (:macro (meta name))
       ;; a macro is compile-time only; emit no runtime var (like CLJS)
@@ -898,10 +905,6 @@
     (let [env (expr-env env)
           original-libname libname
           libname (resolve-ns env libname)
-          ;; resolved to a compiled module: bind to the module object, not globalThis
-          resolved-local? (and (string? libname)
-                               (symbol? original-libname)
-                               (not (library-ns? (:target env) original-libname)))
           [libname suffix] (str/split (if (string? libname) libname (str libname)) #"\$" 2)
           default? (= "default" suffix) ;; we only support a default suffix for now anyway
           as (when as (munge as))
@@ -930,8 +933,7 @@
                     (let [auto-alias (alias-munge (str original-libname))]
                       (if (:repl env)
                         (str
-                          (if (or (library-ns? (:target env) original-libname)
-                                  resolved-local?)
+                          (if (library-ns? (:target env) original-libname)
                             (statement (format "var %s = await import('%s'%s)" auto-alias libname
                                                (if with (str ", " (emit {:with with} env)) "")))
                             (statement (format "await import('%s'%s); var %s = globalThis.%s" libname
@@ -964,8 +966,7 @@
                                  ;; clojure.string) export their vars instead, so
                                  ;; bind to the module object.
                                  (and (:repl env) (symbol? original-libname)
-                                      (not (library-ns? (:target env) original-libname))
-                                      (not resolved-local?))
+                                      (not (library-ns? (:target env) original-libname)))
                                  (format "await import('%s'%s); var %s = globalThis.%s"
                                          libname
                                          (if with (str ", " (emit {:with with} env)) "")
@@ -983,8 +984,7 @@
                       (let [auto-alias (alias-munge (str original-libname))]
                         (statement (cond
                                      ;; local ns: live globalThis cell
-                                     (and (:repl env) (not (library-ns? (:target env) original-libname))
-                                          (not resolved-local?))
+                                     (and (:repl env) (not (library-ns? (:target env) original-libname)))
                                      (format "var %s = globalThis.%s" auto-alias (munge original-libname))
                                      ;; library ns: reuse the module-bound alias
                                      (:repl env)
@@ -996,12 +996,18 @@
                   (swap! (:ns-state env)
                          (fn [ns-state]
                            (let [current (:current ns-state)]
-                             (update-in ns-state [current :refers]
-                                        (fn [refers]
-                                          (merge refers (zipmap (map (fn [refer]
-                                                                       (get rename refer refer)) refer)
-                                                               (repeat (if (symbol? original-libname)
-                                                                         original-libname libname)))))))))
+                             (cond-> (update-in ns-state [current :refers]
+                                                (fn [refers]
+                                                  (merge refers (zipmap (map (fn [refer]
+                                                                               (get rename refer refer)) refer)
+                                                                        (repeat (if (symbol? original-libname)
+                                                                                  original-libname libname))))))
+                               ;; renamed refer -> original name in the provider
+                               ;; ns, so a reference can resolve to the
+                               ;; provider's var
+                               (seq rename)
+                               (update-in [current :refer-renames]
+                                          (fnil merge {}) (zipmap (vals rename) (keys rename)))))))
                   (let [macro-names (get-in @(:ns-state env) [:macros original-libname])
                         runtime-refer (remove #(or (builtin-refer-is-macro? original-libname %)
                                                    (contains? macro-names %))
@@ -1015,19 +1021,25 @@
                                                                        (str " as " (munge renamed)))))
                                                               runtime-refer))]
                           (if (:repl env)
-                            (str (statement (format "var { %s } = (await import('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
-                                                    (if with
-                                                      (str ", " (emit {:with with} env))
-                                                      "")
-                                                    (if suffix
-                                                      (str "." suffix)
-                                                      "")))
-                                 (str/join (map (fn [sym]
-                                                  (let [sym (munge sym)]
-                                                    (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym))))
-                                                (map (fn [refer]
-                                                       (get rename refer refer))
-                                                     runtime-refer))))
+                            ;; a local cljs ns emits no refer bindings: references
+                            ;; resolve through the provider's live globalThis cell
+                            ;; (see the symbol emitter) and the :as / auto-alias
+                            ;; import below loads the module
+                            (when (or (not (symbol? original-libname))
+                                      (library-ns? (:target env) original-libname))
+                              (str (statement (format "var { %s } = (await import('%s'%s))%s" (str/replace referred+renamed " as " ": ") libname
+                                                      (if with
+                                                        (str ", " (emit {:with with} env))
+                                                        "")
+                                                      (if suffix
+                                                        (str "." suffix)
+                                                        "")))
+                                   (str/join (map (fn [sym]
+                                                    (let [sym (munge sym)]
+                                                      (statement (str "globalThis." (munge current-ns-name) "." sym " = " sym))))
+                                                  (map (fn [refer]
+                                                         (get rename refer refer))
+                                                       runtime-refer)))))
 
                             (if default?
                               (let [libname* ((:gensym env) "default")]
@@ -1043,10 +1055,15 @@
                       (when (and (not as) (symbol? original-libname))
                         (let [auto-alias (alias-munge (str original-libname))]
                           (if (:repl env)
-                            (statement (format "var %s = await import('%s'%s)" auto-alias libname
-                                               (if with
-                                                 (str ", " (emit {:with with} env))
-                                                 "")))
+                            (if (library-ns? (:target env) original-libname)
+                              (statement (format "var %s = await import('%s'%s)" auto-alias libname
+                                                 (if with
+                                                   (str ", " (emit {:with with} env))
+                                                   "")))
+                              ;; local cljs ns: bind the live globalThis cell
+                              (str (statement (format "await import('%s'%s)" libname
+                                                      (if with (str ", " (emit {:with with} env)) "")))
+                                   (statement (format "var %s = globalThis.%s" auto-alias (munge original-libname)))))
                             (statement (format "import * as %s from '%s'%s" auto-alias libname
                                                (if with
                                                  (str " with " (unwrap (emit with env)))
