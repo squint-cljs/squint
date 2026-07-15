@@ -25,5 +25,7 @@
          test:libs {:doc "Run external library tests"
                     :task (t/libtests)}
          test:e2e {:doc "e2e tests (node nREPL server + browser REPL via vite + playwright).\nNeeds `npx playwright install chromium`.\nOptional --vite <version> (default 8), e.g. `bb test:e2e --vite 5`."
-                   :task (exec 'tasks/e2e)}}
+                   :task (exec 'tasks/e2e)}
+         test:size {:doc "Compile and bundle reagami against the latest release (or --baseline <version>) and this checkout.\nFails when the gzipped bundle grows beyond --threshold (default 1.02)."
+                    :task (exec 'tasks/size-check)}}
  }

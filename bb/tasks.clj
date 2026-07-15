@@ -369,3 +369,65 @@
   (replicant-test)
   (reagami-test)
   (babashka-cli-test))
+
+(defn- baseline-package
+  "Npm-packs squint-cljs@version (default: latest published) into .work and
+  returns the unpacked package dir."
+  [version]
+  (let [version (or version
+                    (str/trim (:out (shell {:out :string} "npm view squint-cljs version"))))
+        dir (fs/path ".work" (str "baseline-" version))]
+    (when-not (fs/exists? dir)
+      (fs/create-dirs ".work")
+      (shell {:dir ".work"} "npm" "pack" (str "squint-cljs@" version))
+      (shell {:dir ".work"} "tar" "xzf" (str "squint-cljs-" version ".tgz"))
+      (fs/move (fs/path ".work" "package") dir))
+    dir))
+
+(defn- install-squint
+  "Replaces node_modules/squint-cljs in dir with the squint package at
+  squint-dir, mirroring reagami-test."
+  [dir squint-dir]
+  (let [target (fs/path dir "node_modules/squint-cljs")]
+    (fs/delete-tree target)
+    (fs/create-dirs target)
+    (run! #(fs/copy % target) (fs/glob squint-dir "*.{js,json}"))
+    (fs/copy-tree (fs/path squint-dir "lib") (fs/path target "lib"))
+    (fs/copy-tree (fs/path squint-dir "src") (fs/path target "src"))))
+
+(defn- reagami-bundle-size
+  "Compiles the reagami checkout in dir with the squint package at squint-dir,
+  bundles a minimal app with reagami's own esbuild and returns gzip bytes.
+  Uses reagami's esbuild on purpose: this repo's devDep is newer and shakes
+  unannotated Symbols, hiding what consumers on older bundlers see."
+  [dir squint-dir]
+  (install-squint dir squint-dir)
+  (shell {:dir dir} "node_modules/.bin/squint" "compile")
+  (spit (str (fs/path dir "size_entry.mjs"))
+        "import { render } from './reagami.mjs';\nrender(document.body, ['div', 'hello']);\n")
+  (shell {:dir dir} "node_modules/.bin/esbuild" "size_entry.mjs"
+         "--bundle" "--minify" "--format=iife" "--outfile=size_bundle.js" "--log-level=error")
+  (-> (shell {:dir dir :out :string}
+             "bash" "-c" "gzip -9 -c size_bundle.js | wc -c")
+      :out str/trim parse-long))
+
+(defn size-check
+  "Compiles and bundles reagami against a released squint baseline (default:
+  the latest published) and against this checkout, and compares gzipped bundle
+  size. Fails when the current bundle exceeds baseline * threshold. Options:
+  --baseline <npm version>, --threshold X."
+  [{:keys [baseline threshold]
+    :or {threshold 1.02}}]
+  (let [squint-baseline (baseline-package baseline)
+        reagami (fs/path ".work" "size-reagami")]
+    (when-not (fs/exists? reagami)
+      (shell "git" "clone" "--depth" "1" "https://github.com/borkdude/reagami" (str reagami)))
+    (shell {:dir reagami} "npm" "install" "--legacy-peer-deps")
+    (let [before (reagami-bundle-size reagami squint-baseline)
+          after (reagami-bundle-size reagami ".")
+          ratio (double (/ after before))]
+      (println "reagami bundle gzip bytes:" before "->" after
+               (format "(ratio %.3f, threshold %s)" ratio threshold))
+      (when (> ratio threshold)
+        (println "SIZE REGRESSION: bundle grew beyond the threshold")
+        (System/exit 1)))))
