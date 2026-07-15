@@ -55,9 +55,8 @@ output, with the dev-only REPL/HMR stripped.
 ## Hot reload
 
 Saving a `.cljs`/`.cljc` file recompiles it and hot-swaps the module in the
-page, without a page reload. To take actions before and after such a reload, you
-can define functions that take `:dev/before-load` and `:dev/after-load` metadata
-respectively.
+page, without a page reload. To run code before and after such a reload, define
+functions tagged with `:dev/before-load` and `:dev/after-load` metadata.
 
 ```clojure
 (defn ^:dev/after-load re-render []

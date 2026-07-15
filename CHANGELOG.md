@@ -2,9 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.14.205
 
-- Fix [#957](https://github.com/squint-cljs/squint/issues/957): vite HMR: support `^:dev/after-load` + `^:dev/before-load` hooks similar to shadow-cljs + other REPL bugfixes
+- Fix [#957](https://github.com/squint-cljs/squint/issues/957): vite HMR: support `^:dev/after-load` + `^:dev/before-load` hooks similar to shadow-cljs
+- REPL mode: resolve local namespace aliases and refers through `globalThis` so redefined and hot-swapped code stays visible across namespaces. The REPL now expects `:repl`-compiled output.
 
 ## 0.14.204
 
