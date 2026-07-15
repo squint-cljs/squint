@@ -69,7 +69,14 @@
    ;; conj must dispatch SortedSet by brand, not `instanceof SortedSet`. An
    ;; instanceof pins SortedSet + sort + compare (the "_elts" field is unique to
    ;; SortedSet) into every app that uses conj.
-   {:names ["conj"] :cap 2900 :absent ["_elts"]}])
+   {:names ["conj"] :cap 2900 :absent ["_elts"]}
+   ;; the full import set of reagami 0.1.38, a whole-lib floor. Unused protocol
+   ;; consts must shake out; IWriter's description is the canary.
+   {:names ["boolean_QMARK_" "conj" "deref" "disj" "fn_QMARK_" "fnil" "map_QMARK_"
+            "min" "not" "nth" "number_QMARK_" "object_QMARK_" "quot" "reduce"
+            "run_BANG_" "seq_QMARK_" "string_QMARK_" "subs" "truth_" "update_BANG_"
+            "vector_QMARK_" "volatile_BANG_" "vreset_BANG_"]
+    :cap 8500 :absent ["squint.core.IWriter"]}])
 
 (deftest no-dce-floor-regression
   (doseq [{:keys [names cap absent]} cases]
@@ -81,6 +88,19 @@
         (doseq [m (or absent [])]
           (is (not (str/includes? code m))
               (str "contains '" m "' - unused machinery pulled in")))))))
+
+(deftest symbol-defs-stay-pure
+  ;; esbuild 0.28 treats Symbol() as side-effect free, but older esbuild (vite
+  ;; bundles 0.21-0.25) and other bundlers do not: an unannotated top-level
+  ;; Symbol definition pins itself and its protocol const into every consumer
+  ;; bundle. The bundler in this suite is too new to catch that via size, so
+  ;; check the source directly.
+  (let [src (fs/readFileSync core "utf8")
+        bad (->> (str/split-lines src)
+                 (filter #(str/includes? % "Symbol("))
+                 (remove #(str/includes? % "@__PURE__")))]
+    (is (empty? bad)
+        (str "Symbol( without @__PURE__ annotation:\n" (str/join "\n" bad)))))
 
 (deftest unused-fn-shakes-out
   ;; multi-arity/variadic fns emit a `var f = (() => {...})()` IIFE. Without the
