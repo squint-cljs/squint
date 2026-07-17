@@ -55,6 +55,24 @@ function mapCount(m) {
     : Object.keys(m).length;
 }
 
+// shared by dequal's fast path and fall-through. element-wise for arrays, own
+// enumerable keys otherwise; callers guarantee a shared ctor, no brand, no -equiv
+function dequalSameCtor(foo, bar, ctor) {
+  var len;
+  if (ctor === Array) {
+    if ((len = foo.length) === bar.length) {
+      while (len-- && dequal(foo[len], bar[len]));
+    }
+    return len === -1;
+  }
+  len = 0;
+  for (const k in foo) {
+    if (has.call(foo, k) && ++len && !has.call(bar, k)) return false;
+    if (!(k in bar) || !dequal(foo[k], bar[k])) return false;
+  }
+  return Object.keys(bar).length === len;
+}
+
 function dequal(foo, bar) {
   // supports primitives, Array, Set, Map and plain objects
   // like CLJS: does not support NaN
@@ -62,12 +80,22 @@ function dequal(foo, bar) {
   // null and undefined are both nil in CLJS, so they compare equal
   if (foo == null) return bar == null;
   if (bar == null) return false;
+  // a primitive is only equal by identity, checked above; bail before the
+  // property checks below box it
+  if (typeof foo !== 'object' || typeof bar !== 'object') return false;
+  var ctor = foo.constructor, tmp;
+
+  // same-constructor plain objects and arrays skip the protocol, sorted and
+  // cross-type checks below; neither type can carry -equiv or a brand
+  if (ctor === bar.constructor && (ctor === Object || ctor === Array)) {
+    return dequalSameCtor(foo, bar, ctor);
+  }
+
   // -equiv dispatches on the left argument, like CLJS =
   if (typeof foo === 'object' && foo[IEquiv__equiv] !== undefined) return !!foo[IEquiv__equiv](foo, bar);
   // when only the right side has -equiv (the left is e.g. a plain object),
   // dispatch on it so = stays symmetric
   if (typeof bar === 'object' && bar[IEquiv__equiv] !== undefined) return !!bar[IEquiv__equiv](bar, foo);
-  var ctor, len, tmp;
 
   // A sorted map compares by entries against any map type (object, Map, sorted).
   const fooSorted = isSortedMap(foo);
@@ -104,17 +132,11 @@ function dequal(foo, bar) {
     return true;
   }
 
-  if (foo && bar && (ctor = foo.constructor) === bar.constructor) {
+  if (foo && bar && ctor === bar.constructor) {
     if (ctor === Date) return foo.getTime() === bar.getTime();
     // regexes only compare by identity, like CLJS
     if (ctor === RegExp) return false;
-
-    if (ctor === Array) {
-      if ((len = foo.length) === bar.length) {
-        while (len-- && dequal(foo[len], bar[len]));
-      }
-      return len === -1;
-    }
+    // no Array branch: same-ctor arrays already returned via the fast path
 
     if (ctor === Map) {
       if (foo.size !== bar.size) {
@@ -136,12 +158,7 @@ function dequal(foo, bar) {
     // LazyIterable falls through to the sequential-equality path below; it is an
     // object but must compare element-wise, not by enumerable properties
     if ((!ctor || typeof foo === 'object') && foo[TYPE_TAG] !== LAZY_ITERABLE_TYPE) {
-      len = 0;
-      for (const k in foo) {
-        if (has.call(foo, k) && ++len && !has.call(bar, k)) return false;
-        if (!(k in bar) || !dequal(foo[k], bar[k])) return false;
-      }
-      return Object.keys(bar).length === len;
+      return dequalSameCtor(foo, bar, Object);
     }
   }
 
@@ -347,7 +364,8 @@ export function assoc(o, k, v, ...kvs) {
   if (o == null) {
     o = {};
   }
-  if (o[IAssociative__assoc] !== undefined) {
+  // plain objects and arrays never carry the slot: skip the lookup, like get
+  if (!isObj(o) && !Array.isArray(o) && o[IAssociative__assoc] !== undefined) {
     let ret = o[IAssociative__assoc](o, k, v);
     for (let i = 0; i < kvs.length; i += 2) {
       ret = ret[IAssociative__assoc](ret, kvs[i], kvs[i + 1]);
@@ -1578,6 +1596,9 @@ export function equiv(x, y) {
   if (x === y) return true;
   if (x == null) return y == null;
   if (y == null) return false;
+  // a primitive is only equal by identity, checked above; bail before the
+  // slot checks below box it
+  if (typeof x !== 'object' || typeof y !== 'object') return false;
   if (x[IEquiv__equiv] !== undefined) return !!x[IEquiv__equiv](x, y);
   if (y[IEquiv__equiv] !== undefined) return !!y[IEquiv__equiv](y, x);
   if (x instanceof Date && y instanceof Date) return x.getTime() === y.getTime();
