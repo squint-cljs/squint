@@ -471,12 +471,12 @@
     (if-let [lib (get-in library-imports [target alias])]
       (resolve-import-map import-maps lib)
       (case target
-        :squint (if (symbol? alias)
-                  (if-let [resolve-ns (:resolve-ns env)]
-                    (or (resolve-ns alias)
-                        alias)
-                    alias)
-                  (resolve-import-map import-maps alias))
+        (:squint :cherry) (if (symbol? alias)
+                            (if-let [resolve-ns (:resolve-ns env)]
+                              (or (resolve-ns alias)
+                                  alias)
+                              alias)
+                            (resolve-import-map import-maps alias))
         alias))))
 
 (defmethod emit #?(:clj clojure.lang.Symbol :cljs Symbol) [expr env]
