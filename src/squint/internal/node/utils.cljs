@@ -3,7 +3,8 @@
             ["fs" :as fs]
             ["path" :as path]
             [clojure.edn :as edn]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [squint.compiler-common :as cc]))
 
 (defn slurp [f]
   (fs/readFileSync f "utf-8"))
@@ -185,3 +186,17 @@
   ([x config-file]
    (let [{:keys [output-dir paths extension]} (expand-paths (or (get-cfg config-file) {}))]
      (compiled-output-path x (or paths ["." "src"]) (or output-dir ".") extension))))
+
+(defn dev-hooks
+  "Munged globalThis paths (\"tic_tac_toe.core.re_render\") of the current ns's
+  vars tagged ^:dev/before-load / ^:dev/after-load, for hot-reload tooling."
+  [ns-state]
+  (let [state @ns-state
+        current (:current state)
+        hooks (fn [k]
+                (into [] (keep (fn [[sym m]]
+                                 (when (and (symbol? sym) (map? m) (get m k))
+                                   (str (munge current) "." (cc/munge* sym)))))
+                      (get state current)))]
+    {:before-load (hooks :dev/before-load)
+     :after-load (hooks :dev/after-load)}))
