@@ -5,6 +5,7 @@
 ## Unreleased
 
 - `defmulti` defines the multimethod with `defonce`, so a REPL or vite HMR module reload keeps the registered methods, like CLJS
+- Share the macro scan and macro lookup with cherry. A macro expansion calling another macro namespace's macro fully qualified now expands instead of compiling to a runtime call
 
 ## 0.14.206
 
