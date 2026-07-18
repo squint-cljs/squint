@@ -413,6 +413,69 @@
       (clojure.test cljs.test) 'cherry.test
       alias)))
 
+(defn lookup-macro
+  "Resolve the macro fn for a namespaced or referred call head symbol, or nil.
+  Consults the :macros in env (embed), the ns-state populated by the macro
+  scan (macros, aliases, macro-aliases, ns-aliases, refers), the dialect's
+  built-in macro namespaces, and finally the lazy SCI resolver registered by
+  the scan for transitive macro deps."
+  [head env built-in-macro-nss]
+  (let [ns (namespace head)
+        nm (name head)
+        ns-state @(:ns-state env)
+        current-ns (:current ns-state)
+        nms (symbol nm)
+        current-ns-state (get ns-state current-ns)]
+    (or
+     (if ns
+       (let [nss (symbol ns)]
+         (or
+          ;; used by cherry embed:
+          (some-> env :macros (get nss) (get nms))
+          (let [macro-alias-ns (get-in current-ns-state [:macro-aliases nss])
+                resolved-ns (or macro-alias-ns
+                                (get-in current-ns-state [:aliases nss] nss))
+                macro-ns (resolve-macro-ns resolved-ns (:target env))
+                ;; :aliases values may be JS paths; :ns-aliases maps an
+                ;; :as alias to its real ns, so macros required via
+                ;; alias resolve to their macro namespace
+                alias-ns (get-in current-ns-state [:ns-aliases nss])]
+            (or (get-in ns-state [:macros macro-ns nms])
+                (get-in ns-state [:macros resolved-ns nms])
+                (get-in ns-state [:macros nss nms])
+                (when alias-ns
+                  (or (get-in ns-state [:macros alias-ns nms])
+                      (get-in ns-state [:macros (resolve-macro-ns alias-ns (:target env)) nms])))
+                ;; alias may resolve to JS path; find original ns
+                ;; by matching libname against other aliases
+                (when (string? resolved-ns)
+                  (some (fn [[alias-sym alias-lib]]
+                          (when (= (str alias-lib) resolved-ns)
+                            (get-in ns-state [:macros alias-sym nms])))
+                        (:aliases current-ns-state)))
+                ;; Built-in fallback. Only consult if the user actually
+                ;; required this ns - otherwise (cljs.test/foo) with no
+                ;; require would silently work. Cheaper to first see if
+                ;; there's even a built-in candidate.
+                (when-let [m (or (get-in built-in-macro-nss [macro-ns nms])
+                                 (get-in built-in-macro-nss [resolved-ns nms]))]
+                  (when (or (contains? (:aliases current-ns-state) nss)
+                            (contains? (:macro-aliases current-ns-state) nss)
+                            (contains? (:aliases current-ns-state)
+                                       (symbol (alias-munge (str nss)))))
+                    m))))))
+       (let [refers (:refers current-ns-state)]
+         (when-let [macro-ns (get refers nms)]
+           (or (some-> env :macros (get (symbol macro-ns)) (get nms))
+               (get-in ns-state [:macros macro-ns nms])
+               (let [resolved (resolve-macro-ns macro-ns (:target env))]
+                 (or (get-in ns-state [:macros resolved nms])
+                     (get-in built-in-macro-nss [macro-ns nms])
+                     (get-in built-in-macro-nss [resolved nms])))))))
+     ;; lazy resolve: ask SCI for transitive macro deps
+     (when-let [resolve-macro (:resolve-macro ns-state)]
+       (resolve-macro (or (some-> ns symbol) nms) nms)))))
+
 (def ^:private builtin-test-macro-names
   '#{deftest is testing are async use-fixtures})
 
