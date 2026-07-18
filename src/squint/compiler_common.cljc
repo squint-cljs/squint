@@ -1847,10 +1847,15 @@ break;}" body)
                             children
                             (if single-child?
                               (first elts)
-                              (vec elts))]
-                        (cond-> (or attrs {})
-                          (seq children)
-                          (assoc :children children))))
+                              ;; the jsx runtime wants a plain JS children array;
+                              ;; ::js makes cherry emit one (no-op for squint)
+                              (with-meta (vec elts) {::js true}))]
+                        ;; props are a plain-JS contract for the jsx runtime;
+                        ;; ::js makes cherry emit a JS object (no-op for squint)
+                        (-> (cond-> (or attrs {})
+                              (seq children)
+                              (assoc :children children))
+                            (vary-meta assoc ::js true))))
                 env))
         (let [expr-env* (assoc (expr-env env) :unsafe-html unsafe-html?)
               ret (str
