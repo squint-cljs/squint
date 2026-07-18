@@ -282,19 +282,7 @@
 
 (def resolve-ns-repl utils/resolve-ns-repl)
 
-(defn- dev-hooks
-  "Munged globalThis paths (\"tic_tac_toe.core.re_render\") of the current ns's
-  vars tagged ^:dev/before-load / ^:dev/after-load, for hot-reload tooling."
-  [ns-state]
-  (let [state @ns-state
-        current (:current state)
-        hooks (fn [k]
-                (into [] (keep (fn [[sym m]]
-                                 (when (and (symbol? sym) (map? m) (get m k))
-                                   (str (munge current) "." (cc/munge* sym)))))
-                      (get state current)))]
-    {:before-load (hooks :dev/before-load)
-     :after-load (hooks :dev/after-load)}))
+(def ^:private dev-hooks utils/dev-hooks)
 
 (defn compile-file [{:keys [in-file in-str out-file extension output-dir]
                      :or {output-dir ""}
