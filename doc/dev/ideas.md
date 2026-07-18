@@ -52,6 +52,18 @@ runtime conj! 2-arg fast-path patch handles one fn; this is the general
 compiler-level fix across all variadic/multi-arity calls. See doc/ai/adr/0001 for
 the variadic/multi-arity codegen this builds on.
 
+Evidence from the 0.14.199 `min` regression (reagami js-framework-benchmark
+remove, +18%): a keyed vdom patch calls `min` once per element, ~7000x per
+render. Dispatching on `arguments.length` inside the rest-args fn does not
+help: the check itself is free, but V8 only elides the rest array when
+inlining plus escape analysis succeed, and in throttled Chrome they did not
+(fast-arity runtime min measured as slow as plain rest-args; only the
+`Math.min` intrinsic restored 0.14.197 performance). So the fix has to be at
+the call site: a per-arity function (CLJS `.cljs$core$IFn$_invoke$arity$2`
+style) or inline emission. #885 tried inline emission and #887 reverted it
+(double-evaluation); per-arity functions avoid that. Costs bundle size, so
+scope to hot core fns first: `min`, `max`, `=`, `conj`, `get`, `assoc`.
+
 ## Registry symbols for type brands (duplicated-runtime interop)
 
 Squint brands its types with module-local symbols: `TYPE_TAG` in core.js
