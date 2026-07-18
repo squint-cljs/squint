@@ -53,7 +53,7 @@ analysis both succeed, and in throttled Chrome they did not (a fast-arity runtim
 0.14.197 speed). So the fix has to be at the call site: emit a per-arity call
 (CLJS `.cljs$core$IFn$_invoke$arity$2` style). #885 tried inline emission and
 #887 reverted it (double-evaluation); per-arity functions avoid that. This is the
-doc/dev/ideas.md "Emit direct fixed-arity calls" idea.
+doc/ai/ideas.md "Emit direct fixed-arity calls" idea.
 
 ## Decision
 
@@ -82,5 +82,5 @@ Defer both. Ship neither fix now.
   matters, or a size-sensitive consumer is blocked by it - by then the protocol
   code is battle-tested and the inversion is far less risky than doing it now
   against fresh code.
-- Variadic call cost: alongside the fixed-arity codegen work in doc/dev/ideas.md,
+- Variadic call cost: alongside the fixed-arity codegen work in doc/ai/ideas.md,
   which supersedes the reverted runtime patch.

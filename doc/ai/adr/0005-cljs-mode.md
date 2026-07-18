@@ -84,7 +84,7 @@ In cljs mode:
   the mode shares CLJS semantics.
 - Keywords intern in a global table reachable through the Symbol.for
   registry, and protocol brands use registry symbols too (the idea in
-  doc/dev/ideas.md). Duplicate runtime copies within the same JS realm
+  doc/ai/ideas.md). Duplicate runtime copies within the same JS realm
   hand out the same instances, so `===` and `case` work across copies.
   Separate realms and workers share neither the weak table nor object
   identity, cross-realm data goes through the wire encoding as always.
