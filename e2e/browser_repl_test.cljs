@@ -114,6 +114,25 @@
          (str/includes? (await (.innerHTML page "#plain")) "3px dashed"))
   (check "hot swap without page reload" true (await (.evaluate page "!!window.__e2e_no_reload"))))
 
+(defn ^:async check-multimethod-hmr
+  "defmulti is defonce, like CLJS: hot-swapping the module that defines the
+  multimethod (shared.cljs) must keep methods registered from other modules
+  (the defmethod in plain.cljs), not reset to an empty method table."
+  [page shared-file orig-shared]
+  (check "multimethod cross-module dispatch" "circle-label"
+         (await (.textContent page "#mm")))
+  (.writeFileSync fs shared-file (str/replace orig-shared "(+ 1 2 3)" "(+ 3 4)"))
+  (await (with-timeout 20000 "shared.cljs hot swap"
+                       (.waitForFunction page "document.querySelector('#reagami').textContent.includes('Shared: 7')")))
+  ;; a stale #mm would still show the old text after a broken swap (the render
+  ;; throws before setting innerHTML), so force a fresh render through the
+  ;; multimethod: click the counter and require the new count to appear
+  (await (.click page "#plain button"))
+  (await (with-timeout 20000 "plain render after provider hot swap"
+                       (.waitForFunction page "document.querySelector('#plain').textContent.includes('Counted: 2')")))
+  (check "multimethod survives provider hot swap" "circle-label"
+         (await (.textContent page "#mm"))))
+
 ;; ------------------------------------------------------------------ run ----
 
 ;; Hard safety net: never let the process hang past 2 min (unref'd so a fast
@@ -134,12 +153,15 @@
         macro-file (path/join EXDIR "src" "e2e_macros.cljc")
         consumer-file (path/join EXDIR "src" "plain.cljs")
         ui-file (path/join EXDIR "src" "ui.cljs")
+        shared-file (path/join EXDIR "src" "shared.cljs")
         orig-macro (.readFileSync fs macro-file "utf8")
         orig-consumer (.readFileSync fs consumer-file "utf8")
         orig-ui (.readFileSync fs ui-file "utf8")
+        orig-shared (.readFileSync fs shared-file "utf8")
         restore-files! (fn [] (try (.writeFileSync fs macro-file orig-macro)
                                    (.writeFileSync fs consumer-file orig-consumer)
                                    (.writeFileSync fs ui-file orig-ui)
+                                   (.writeFileSync fs shared-file orig-shared)
                                    (catch :default _ nil)))
         ;; safety net: the hard-timeout path calls process.exit and skips the
         ;; finally below, so restore on exit too (sync, idempotent)
@@ -170,6 +192,7 @@
         (await (check-counter page "reagami (hiccup)" "#reagami"))
         (await (check-macro-reload page macro-file consumer-file orig-consumer))
         (await (check-after-load page ui-file orig-ui))
+        (await (check-multimethod-hmr page shared-file orig-shared))
         (let [client (await (with-timeout 10000 "nrepl connect" (make-client NREPL-PORT)))
               clone (await (with-timeout 10000 "nrepl clone" (nrepl-request client #js {:op "clone"})))
               session (some (fn [m] (aget m "new-session")) (js/Array.from clone))
