@@ -168,6 +168,7 @@ export function makeVitePlugin(adapter) {
     let main; // entry ns(s): string or array, injected into index.html
     let target = 'browser';
     let nreplPort = 1339;
+    let debug = false;
     // {import-source} when set (e.g. for React/Preact): the compiler emits
     // jsx()/jsxs() calls + imports the runtime, instead of raw <tags> a bundler
     // would have to transform. We flip :development per mode (dev -> jsx-dev-runtime).
@@ -258,6 +259,7 @@ export function makeVitePlugin(adapter) {
           (process.env[ENV_PORT] ? Number(process.env[ENV_PORT]) : undefined) ??
           cfg['nrepl-port'] ??
           1339;
+        debug = options.debug ?? cfg.debug ?? false;
         if (target !== 'browser') {
           throw new Error(
             `${name} vite plugin: target ${JSON.stringify(target)} not supported yet (only 'browser')`,
@@ -418,6 +420,7 @@ if (import.meta.hot) {
         server.ws.on(EVT_REPLY, (data) => handleBrowserMessage(data));
         await startServer({
           port: nreplPort,
+          debug,
           browserTransport: {
             send: (msg) => server.ws.send(EVT, msg),
             // resolved lazily: vite only knows its URL once it's listening

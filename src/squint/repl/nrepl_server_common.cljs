@@ -20,8 +20,13 @@
 (defn set-dialect! [dialect]
   (reset! !dialect dialect))
 
+;; Request/response logging is opt-in: --debug on the CLI, :debug in
+;; start-server opts, nreplDebug in the vite plugin (#960).
+(def !debug (atom false))
+
 (defn debug [& strs]
-  (.debug js/console (str/join " " strs)))
+  (when @!debug
+    (.debug js/console (str/join " " strs))))
 
 (defn warn [& strs]
   (.warn js/console (str/join " " strs)))
@@ -325,7 +330,9 @@
             (send-fn request {"ns" (str (current-ns))
                               "value" value})))
    (.catch (fn [e]
-             (js/console.error e)
+             ;; the client gets err/ex via handle-error; the terminal copy is
+             ;; debug-only noise (e.g. cider probing `resolve` on connect, #960)
+             (when @!debug (js/console.error e))
              (handle-error send-fn request e)))
    (.finally (fn []
                (send-fn request {"ns" (str (current-ns))
@@ -512,8 +519,11 @@
                                        (.-browserTransport ^js opts)))
                ns-state (or (:ns-state opts)
                             (when (object? opts) (.-nsState ^js opts)))
+               debug? (or (:debug opts)
+                          (when (object? opts) (.-debug ^js opts)))
                server (node-net/createServer
                        (partial on-connect {}))]
+           (reset! !debug (boolean debug?))
            ;; share the host's compiler ns-state (file compiles + REPL eval)
            (when ns-state (reset! !ns-state ns-state))
            ;; Pick the evaluator: delegate to a browser when a transport was
