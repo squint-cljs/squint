@@ -619,11 +619,11 @@
                           (let [m (munged-name expr)]
                             m)))))]
           ;; a reference to a dynamic var (earmuffed, not a local) reads the
-          ;; box's .val. Cherry has real CLJS dynamic vars, no box.
+          ;; box's .val. Cherry too: its npm lib exports accessor boxes that
+          ;; proxy the real cljs.core vars.
           (emit-return (escape-jsx
                         (cond-> expr
-                          (and (not= :cherry (:target env))
-                               (dynamic-name? orig-sym)
+                          (and (dynamic-name? orig-sym)
                                (not (contains? (:var->ident env) orig-sym)))
                           (str ".val"))
                         env)
@@ -802,9 +802,8 @@
         init (emit expr (expr-env env*))
         ;; a dynamic var (earmuffed) compiles to a mutable box {value ...} so
         ;; set!/binding can mutate it across ESM modules; references read .value.
-        ;; Cherry has real CLJS dynamic vars, no box.
-        init (if (and (not= :cherry (:target env))
-                      (dynamic-name? name))
+        ;; Cherry boxes user dynvars the same way.
+        init (if (dynamic-name? name)
                (str "({val: " init "})")
                init)]
     (str "var " ident " = "
