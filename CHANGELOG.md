@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- `defmulti` defines the multimethod with `defonce`, so a REPL or vite HMR module reload keeps the registered methods, like CLJS
+
 ## 0.14.206
 
 - Fix [#960](https://github.com/squint-cljs/squint/issues/960): the nREPL server no longer logs requests, responses and eval errors by default. Enable with `--debug` (CLI), `:debug` in squint.edn, or `:debug` (`startServer`)

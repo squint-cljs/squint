@@ -35,7 +35,9 @@
                   (contains? opts :hierarchy) (assoc "hierarchy" (:hierarchy opts)))
         m (merge (if docstring {:doc docstring} {}) attr-map)
         mm-name* (if (seq m) (with-meta mm-name m) mm-name)]
-    `(def ~mm-name* ~(multi-call "defmulti" [(str mm-name) dispatch-fn opts-js]))))
+    ;; defonce so a module re-run (REPL reload, vite HMR hot swap) keeps the
+    ;; method table and cross-module defmethods alive, like CLJS
+    `(defonce ~mm-name* ~(multi-call "defmulti" [(str mm-name) dispatch-fn opts-js]))))
 
 (core/defn core-defmethod
   "(defmethod multifn dispatch-val [args*] body)"
