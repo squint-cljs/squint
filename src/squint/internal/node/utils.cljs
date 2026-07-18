@@ -16,23 +16,27 @@
                 full-path)))
           exts)))
 
-(def !cfg (atom nil))
+(def default-config-file "squint.edn")
 
-(goog-define TARGET "squint")
+;; config file name -> effective config. Keyed so cherry and squint can
+;; coexist in one build, each reading its own config file.
+(def !cfg (atom {}))
 
-(def config-file
-  "The dialect's config file: squint.edn, cherry.edn via the TARGET define."
-  (str TARGET ".edn"))
+(defn get-cfg
+  ([] (get-cfg default-config-file))
+  ([config-file]
+   (or (get @!cfg config-file)
+       (let [cfg (when (fs/existsSync config-file)
+                   (-> (slurp config-file)
+                       (edn/read-string)))]
+         (swap! !cfg assoc config-file cfg)
+         cfg))))
 
-(defn get-cfg []
-  (or @!cfg
-      (do (reset! !cfg (when (fs/existsSync config-file)
-                         (-> (slurp config-file)
-                             (edn/read-string))))
-          @!cfg)))
-
-(defn set-cfg! [cfg]
-  (reset! !cfg cfg))
+(defn set-cfg!
+  ([cfg] (set-cfg! default-config-file cfg))
+  ([config-file cfg]
+   (swap! !cfg assoc config-file cfg)
+   cfg))
 
 (defn- dep-dir?
   "A classpath entry that is an external source directory: absolute (the
@@ -84,11 +88,12 @@
     opts))
 
 (defn read-config
-  "Read and parse the dialect's config file (see `config-file`) from `dir`
-  (defaults to cwd). Returns the config map, or nil when there is no config
-  file."
+  "Read and parse the config file (`config-file` names it, default squint.edn)
+  from `dir` (defaults to cwd). Returns the config map, or nil when there is
+  no config file."
   ([] (read-config "."))
-  ([dir]
+  ([dir] (read-config dir default-config-file))
+  ([dir config-file]
    (let [f (path/resolve dir config-file)]
      (when (fs/existsSync f)
        (edn/read-string (slurp f))))))
@@ -98,17 +103,20 @@
   directories. Returns [] when there is no config file or no `:deps`. Kept
   separate from JS callers reading the raw config: the deps map has symbol keys
   that would not survive a clj<->js round-trip."
-  [dir]
-  (let [cfg (read-config dir)]
-    (if-let [deps (:deps cfg)]
-      (deps->paths deps dir)
-      [])))
+  ([dir] (deps-paths dir default-config-file))
+  ([dir config-file]
+   (let [cfg (read-config dir config-file)]
+     (if-let [deps (:deps cfg)]
+       (deps->paths deps dir)
+       []))))
 
-(defn process-opts! [opts]
-  (let [file-cfg (get-cfg)
-        cfg (expand-paths (merge file-cfg opts))]
-    (set-cfg! cfg)
-    cfg))
+(defn process-opts!
+  ([opts] (process-opts! default-config-file opts))
+  ([config-file opts]
+   (let [file-cfg (get-cfg config-file)
+         cfg (expand-paths (merge file-cfg opts))]
+     (set-cfg! config-file cfg)
+     cfg)))
 
 (defn resolve-file
   ([macro-ns]
