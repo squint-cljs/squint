@@ -117,13 +117,13 @@
 (deftest vector-dispatch-and-remove-test
   (t/async done
     (-> (eval-repl "
-(defmulti conv (fn [from to _] [from to]))
-(defmethod conv [:km :m] [_ _ x] (* x 1000))
-(defmethod conv [:m :cm] [_ _ x] (* x 100))
-(let [before (count (methods conv))
-      a (conv :km :m 5)
-      _ (remove-method conv [:m :cm])
-      after (count (methods conv))]
+(defmulti conv2 (fn [from to _] [from to]))
+(defmethod conv2 [:km :m] [_ _ x] (* x 1000))
+(defmethod conv2 [:m :cm] [_ _ x] (* x 100))
+(let [before (count (methods conv2))
+      a (conv2 :km :m 5)
+      _ (remove-method conv2 [:m :cm])
+      after (count (methods conv2))]
   [a before after])")
         (.then (fn [v] (is (= [5000 2 1] (vec v)))))
         (.finally done))))
