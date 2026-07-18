@@ -291,6 +291,29 @@
            (utils/set-cfg! config-file opts)
            (watch dialect opts)))})
 
+(def nrepl-server-spec
+  {:host {:desc "Host on which to expose server (0.0.0.0 to allow network access)"
+          :ref "<host>"
+          :default "127.0.0.1"
+          :coerce :string}
+   :port {:desc "Port on which to expose server (0 to pick a random port)"
+          :ref "<port>"
+          :default 0
+          :coerce :long}})
+(def nrepl-server-opt-order [:host :port :help])
+
+(defn nrepl-server-cmd [_dialect]
+  {:cmds ["nrepl-server"]
+   :doc "Start an nREPL server."
+   :spec nrepl-server-spec
+   :order nrepl-server-opt-order
+   ;; the module lives next to cli.js in the dialect's lib dir
+   :fn (fn [{:keys [opts] :as m}]
+         (args-validate (assoc m :arg-count 0))
+         (-> (esm/dynamic-import "./node.nrepl_server.js")
+             (.then (fn [^js val]
+                      ((.-startServer val) opts)))))})
+
 (defn eval-cmd [dialect]
   {:cmds ["eval"] ;; also reachable as the top-level -e shorthand
    :doc "Compile and run an expression (also: -e <expr>)."
