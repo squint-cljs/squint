@@ -18,10 +18,16 @@
 
 (def !cfg (atom nil))
 
+(goog-define TARGET "squint")
+
+(def config-file
+  "The dialect's config file: squint.edn, cherry.edn via the TARGET define."
+  (str TARGET ".edn"))
+
 (defn get-cfg []
   (or @!cfg
-      (do (reset! !cfg (when (fs/existsSync "squint.edn")
-                         (-> (slurp "squint.edn")
+      (do (reset! !cfg (when (fs/existsSync config-file)
+                         (-> (slurp config-file)
                              (edn/read-string))))
           @!cfg)))
 
@@ -78,17 +84,18 @@
     opts))
 
 (defn read-config
-  "Read and parse squint.edn from `dir` (defaults to cwd). Returns the config
-  map, or nil when there is no squint.edn."
+  "Read and parse the dialect's config file (see `config-file`) from `dir`
+  (defaults to cwd). Returns the config map, or nil when there is no config
+  file."
   ([] (read-config "."))
   ([dir]
-   (let [f (path/resolve dir "squint.edn")]
+   (let [f (path/resolve dir config-file)]
      (when (fs/existsSync f)
        (edn/read-string (slurp f))))))
 
 (defn deps-paths
-  "Resolve the `:deps` of the squint.edn in `dir` to absolute source
-  directories. Returns [] when there is no squint.edn or no `:deps`. Kept
+  "Resolve the `:deps` of the config file in `dir` to absolute source
+  directories. Returns [] when there is no config file or no `:deps`. Kept
   separate from JS callers reading the raw config: the deps map has symbol keys
   that would not survive a clj<->js round-trip."
   [dir]
