@@ -1,27 +1,9 @@
 (ns squint.internal.cli
   (:require
-   [shadow.esm :as esm]
    [squint.compiler :as cc]
    [squint.compiler.node :as compiler]
    [squint.internal.cli-common :as cli-common]
-   [squint.repl.node :as repl]
-   #_[squint.repl.nrepl-server :as nrepl]))
-
-(defn start-nrepl [{:keys [opts]}]
-  (-> (esm/dynamic-import "./node.nrepl_server.js")
-      (.then (fn [^js val]
-               ((.-startServer val) opts)))))
-
-(def nrepl-server-spec
-  {:host {:desc "Host on which to expose server (0.0.0.0 to allow network access)"
-          :ref "<host>"
-          :default "127.0.0.1"
-          :coerce :string}
-   :port {:desc "Port on which to expose server (0 to pick a random port)"
-          :ref "<port>"
-          :default 0
-          :coerce :long}})
-(def nrepl-server-opt-order [:host :port :help])
+   [squint.repl.node :as repl]))
 
 (def dialect
   {:prog "squint"
@@ -43,11 +25,7 @@
    {:cmds ["socket-repl"]
     :doc "Start a socket REPL."
     :fn (fn [m] (cli-common/args-validate (assoc m :arg-count 0)) (repl/socket-repl m))}
-   {:cmds ["nrepl-server"]
-    :doc "Start an nREPL server."
-    :spec nrepl-server-spec
-    :order nrepl-server-opt-order
-    :fn (fn [m] (cli-common/args-validate (assoc m :arg-count 0)) (start-nrepl m))}
+   (cli-common/nrepl-server-cmd dialect)
    (cli-common/eval-cmd dialect)])
 
 (defn init []
