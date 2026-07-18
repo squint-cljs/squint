@@ -1835,7 +1835,14 @@ break;}" body)
           outer-html? (:outer-html (meta expr))]
       (when unsafe-html? (reset! has-dynamic-expr? true))
       (if (and (not html?) (:jsx env) (:jsx-runtime env))
-        (let [single-child? (= 1 (count elts))]
+        (let [single-child? (= 1 (count elts))
+              ;; on a DOM tag, a literal map value of a well-known attr is a
+              ;; plain-JS contract too: ::js makes cherry emit a JS object
+              ;; literal (no-op for squint). Only literals: dynamic values and
+              ;; component props are left to the user.
+              attrs (if (and (keyword? tag) (map? attrs) (map? (:style attrs)))
+                      (update attrs :style vary-meta assoc ::js true)
+                      attrs)]
           (emit (list (if single-child?
                         '_jsx '_jsxs)
                       (cond fragment? "_Fragment"
