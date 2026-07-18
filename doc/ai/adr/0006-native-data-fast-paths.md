@@ -71,7 +71,7 @@ only for instance types). This ADR makes it the rule and extends it to `dequal`,
   constructor), so a custom type that extends a protocol still reaches its slot.
 - `=` still pays the variadic calling convention (rest array + `walkArray`) on
   top of the now-cheap body. Removing that, and the analogous per-call cost on
-  `min`/`max`, is the fixed-arity call emission in doc/dev/ideas.md.
+  `min`/`max`, is the fixed-arity call emission in doc/ai/ideas.md.
 
 ## Alternatives considered
 

@@ -75,6 +75,10 @@ jobs:
         npm install --global yarn
         bb test:libs
 
+    - name: Run size check
+      if: matrix.os == 'ubuntu-latest'
+      run: bb test:size
+
     - name: Cache Playwright browsers
       if: matrix.os == 'ubuntu-latest'
       uses: actions/cache@v4
