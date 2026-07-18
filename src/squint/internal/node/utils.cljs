@@ -16,6 +16,27 @@
                 full-path)))
           exts)))
 
+(defn in-dir? [dir file]
+  (let [dir (.split ^js (path/resolve dir) path/sep)
+        file (.split ^js (path/resolve file) path/sep)]
+    (loop [dir dir
+           file file]
+      (or (empty? dir)
+          (and (seq file)
+               (= (first dir)
+                  (first file))
+               (recur (rest dir)
+                      (rest file)))))))
+
+(defn adjust-file-for-paths [in-file paths]
+  (let [out-file (reduce (fn [acc path]
+                           (if (in-dir? path in-file)
+                             (reduced (path/relative path in-file))
+                             acc))
+                         in-file
+                         paths)]
+    out-file))
+
 (def default-config-file "squint.edn")
 
 ;; config file name -> effective config. Keyed so cherry and squint can
