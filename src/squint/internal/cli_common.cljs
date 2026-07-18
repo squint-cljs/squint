@@ -299,8 +299,10 @@
    :port {:desc "Port on which to expose server (0 to pick a random port)"
           :ref "<port>"
           :default 0
-          :coerce :long}})
-(def nrepl-server-opt-order [:host :port :help])
+          :coerce :long}
+   :debug {:desc "Log nREPL requests and responses"
+           :coerce :boolean}})
+(def nrepl-server-opt-order [:host :port :debug :help])
 
 (defn nrepl-server-cmd [_dialect]
   {:cmds ["nrepl-server"]
