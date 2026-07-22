@@ -259,7 +259,39 @@
                 names (let [cs (msg-field jscpl "completions")]
                         (when cs (map (fn [c] (aget c "candidate")) (js/Array.from cs))))]
             (check "js complete finds js/console.log" true
-                   (boolean (some (fn [n] (= "js/console.log" n)) names))))))
+                   (boolean (some (fn [n] (= "js/console.log" n)) names))))
+          ;; on-demand esbuild bundling of a brand-new npm dep (POC). lodash is
+          ;; installed in the example but never imported by any app source, so
+          ;; vite's optimizer has never seen it. Requiring it at the REPL must
+          ;; resolve WITHOUT a full page reload (a reload wipes globalThis defs).
+          ;; lodash is CJS - the $default form yields the lodash object.
+          (await (ev "(ns depns) (def dep-sentinel 42)"))
+          (check "lodash chunk via on-demand esbuild bundle"
+                 "2"
+                 (await (ev (str "(ns depns2 (:require [\"lodash$default\" :as ld]))"
+                                 " (count (ld/chunk [1 2 3 4] 2))"))))
+          ;; the sentinel survived -> the page did NOT reload when the new dep
+          ;; was bundled and imported (the no-reload proof; a reload would have
+          ;; dropped globalThis.depns.dep_sentinel and this would read nil).
+          (check "new dep required without page reload (REPL state survived)"
+                 "42"
+                 (await (ev "(ns depns) dep-sentinel")))
+          ;; a not-installed dep must fail cleanly (esbuild's 'could not resolve'
+          ;; diagnosis surfaces via __replImport), never hang.
+          (let [resp (await (with-timeout 20000 "eval missing dep"
+                                          (nrepl-request client #js {:op "eval" :session session
+                                                                     :code "(ns depmissing (:require [\"some-package-that-is-not-installed-xyz\" :as x])) x"})))
+                ex (msg-field resp "ex")]
+            (check "missing dep errors cleanly (non-empty message)" true
+                   (boolean (and ex (pos? (count ex))))))
+          ;; a node-only spec can't be bundled for the browser; esbuild's
+          ;; diagnosis (unresolvable node:fs) surfaces through __replImport.
+          (let [resp (await (with-timeout 20000 "eval node-only dep"
+                                          (nrepl-request client #js {:op "eval" :session session
+                                                                     :code "(ns depnode (:require [\"node:fs\" :as nfs])) nfs"})))
+                ex (msg-field resp "ex")]
+            (check "node-only dep errors cleanly (non-empty message)" true
+                   (boolean (and ex (pos? (count ex))))))))
       (catch :default e
         (swap! failures inc)
         (println "ERROR:" (.-message e))

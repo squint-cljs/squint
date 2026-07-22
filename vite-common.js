@@ -31,8 +31,8 @@
 //   startServer, handleBrowserMessage, evalString, // nREPL server fns
 // }
 
-import { readdirSync, existsSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
+import { readdirSync, existsSync, readFileSync } from 'node:fs';
+import { join, resolve, relative, isAbsolute, sep } from 'node:path';
 
 const CLJS_RE = /\.clj[sc]$/;
 
@@ -78,7 +78,12 @@ async function pr_str_repl(v) {
 const __rawImport = new Function('u', 'return import(u)');
 async function __replImport(spec) {
   const res = await fetch('/@resolve-deps/' + encodeURIComponent(spec));
-  if (!res.ok) throw new Error('${name}-repl: could not resolve ' + spec);
+  if (!res.ok) {
+    // append the server's body (esbuild's diagnosis: unresolvable node builtin,
+    // missing package, ...) so the user sees WHY, not just "could not resolve".
+    const detail = await res.text().catch(() => '');
+    throw new Error('${name}-repl: could not resolve ' + spec + (detail ? ': ' + detail : ''));
+  }
   const url = await res.text();
   return __rawImport(url);
 }
@@ -376,8 +381,134 @@ if (import.meta.hot) {
           res.writeHead(200, { 'content-type': 'text/plain' });
           res.end(url);
         };
+
+        // vite's dep-optimizer metadata: which bare specs it has already
+        // pre-bundled (`optimized`) or discovered mid-session (`discovered`).
+        // Prefer the live in-memory optimizer (vite 6+); fall back to the
+        // on-disk _metadata.json for older vite. Shape:
+        //   { browserHash, optimized: { "<spec>": { file, fileHash, ... } } }
+        // (on disk `file` is relative to the deps dir, e.g. "nanoid.js"; live it
+        // is an absolute path - callers take the basename).
+        const optimizerMetadata = () => {
+          const live = server.environments?.client?.depsOptimizer?.metadata;
+          if (live) return live;
+          try {
+            const p = join(server.config.cacheDir, 'deps', '_metadata.json');
+            return JSON.parse(readFileSync(p, 'utf8'));
+          } catch {
+            return null;
+          }
+        };
+        // Does vite's optimizer already know this bare spec? If so we can safely
+        // resolveId it (it won't trigger a re-optimize) and share the page's
+        // instance. If not, resolveId would REGISTER it as a missing dep and
+        // schedule a re-optimize + full page reload - so unknown bare specs must
+        // never reach the resolver (see the middleware below).
+        const optimizerKnows = (spec) => {
+          const md = optimizerMetadata();
+          if (!md) return false;
+          return !!((md.optimized && md.optimized[spec]) ||
+                    (md.discovered && md.discovered[spec]));
+        };
+
+        // esbuild plugin: when an on-demand bundle imports a transitive bare dep
+        // vite has ALREADY optimized (e.g. an app-shared preact), don't inline a
+        // second copy - point it at the page's optimized url so the browser
+        // reuses the one module instance (same identity-sharing reasoning as the
+        // canonical-url path above). If metadata is unreadable, inline it
+        // (silently) - a second copy of a transitive is acceptable.
+        const viteOptimizedExternal = {
+          name: 'vite-optimized-external',
+          setup(build) {
+            build.onResolve({ filter: /^[^./]/ }, (args) => {
+              const md = optimizerMetadata();
+              const entry = md && md.optimized && md.optimized[args.path];
+              if (!entry) return null;
+              // cacheDir default <root>/node_modules/.vite -> url prefix
+              // /node_modules/.vite/deps/... (the form the page's imports use).
+              const rel = relative(root, server.config.cacheDir).split(sep).join('/');
+              const base = entry.file.split(/[\\/]/).pop();
+              return { external: true, path: '/' + rel + '/deps/' + base + '?v=' + md.browserHash };
+            });
+          },
+        };
+
+        // On-demand esbuild bundling of a brand-new npm dep (never seen by
+        // vite). Cache: spec -> Promise<bundled esm text>, so concurrent
+        // requests share one build and /@repl-deps can re-read the text.
+        const replDepCache = new Map();
+        const bundleDep = (spec) => {
+          let p = replDepCache.get(spec);
+          if (p) return p;
+          p = (async () => {
+            let esbuild;
+            try {
+              esbuild = await import('esbuild');
+            } catch {
+              throw new Error('esbuild is required for on-demand REPL deps (npm i esbuild)');
+            }
+            // A proxy module: esbuild's entryPoints treat the arg as a file
+            // path, so bundle a stdin module that imports the spec instead, and
+            // normalize CJS default-export interop (`import('lodash')` should
+            // hand back the lodash object, not a { default } namespace).
+            const proxy = `import * as __m from ${JSON.stringify(spec)};\n` +
+              `export * from ${JSON.stringify(spec)};\n` +
+              `export default (__m.default !== undefined ? __m.default : __m);`;
+            const out = await esbuild.build({
+              stdin: { contents: proxy, resolveDir: root, sourcefile: 'repl-dep-proxy.js' },
+              bundle: true, format: 'esm', platform: 'browser', write: false,
+              logLevel: 'silent',
+              define: { 'process.env.NODE_ENV': '"development"' },
+              plugins: [viteOptimizedExternal],
+            });
+            return out.outputFiles[0].text;
+          })();
+          replDepCache.set(spec, p);
+          return p;
+        };
+
         server.middlewares.use('/@resolve-deps', async (req, res) => {
           const spec = decodeURIComponent(req.url.slice(1));
+          const isBare = !spec.startsWith('.') && !spec.startsWith('/') && !isAbsolute(spec);
+          // The optimizer's reload trap is only for bare *package* specifiers
+          // (extensionless, e.g. `lodash`, `firebase/app`) - those it wants to
+          // pre-bundle. A bare spec with an explicit JS file extension (e.g.
+          // `squint-cljs/core.js`, the REPL's own core import) resolves to a real
+          // file vite serves directly, never through the optimizer - so resolveId
+          // on it is safe and, crucially, shares the page's ONE instance (a
+          // second esbuild-bundled core would break cross-instance atom/protocol
+          // identity). Keep those on the resolver path.
+          const isPkgSpec = isBare && !/\.[mc]?jsx?$/.test(spec);
+
+          // A bare package spec vite's optimizer has never seen is the reload
+          // trap: resolveId on it registers it as a missing dep and schedules a
+          // re-optimize + full page reload (wiping REPL state). So for an unknown
+          // bare package spec, DO NOT call the resolver - resolve it another way.
+          if (isPkgSpec && !optimizerKnows(spec)) {
+            // a bare cljs ns name (e.g. `index`, emitted by the compiler for a
+            // local require) resolves to its compiled output, never esbuild.
+            const rel = outDir + '/' + spec.replace(/\./g, '/') + '.' + extension;
+            if (existsSync(join(root, rel))) {
+              sendUrl(res, '/' + rel);
+              return;
+            }
+            // genuinely-new npm dep: bundle on demand and serve it at a stable
+            // /@repl-deps url vite never analyzes, so the optimizer never learns
+            // of it (no re-optimize, no reload).
+            try {
+              await bundleDep(spec);
+            } catch (e) {
+              replDepCache.delete(spec);
+              res.writeHead(404, { 'content-type': 'text/plain' });
+              // esbuild's error names unresolvable node builtins (node:fs, ...)
+              // and missing packages - that IS the browser-compat diagnosis.
+              res.end(e && e.message ? e.message : String(e));
+              return;
+            }
+            sendUrl(res, '/@repl-deps/' + encodeURIComponent(spec));
+            return;
+          }
+
           let resolved = null;
           // resolve via the plugin container (runs vite's own resolver + dep
           // pre-bundling). vite 6+ exposes it per-environment; older vite only on
@@ -413,6 +544,29 @@ if (import.meta.hot) {
           }
           res.writeHead(404);
           res.end();
+        });
+
+        // Serve an on-demand-bundled dep. __replImport imports this via
+        // __rawImport (a raw import(url)), so vite's import-analysis never sees
+        // it and the browser module map keys it stably by this url - repeated
+        // requires of the same dep share one instance.
+        server.middlewares.use('/@repl-deps', async (req, res) => {
+          const spec = decodeURIComponent(req.url.slice(1));
+          const p = replDepCache.get(spec);
+          if (!p) {
+            res.writeHead(404);
+            res.end();
+            return;
+          }
+          try {
+            const code = await p;
+            res.writeHead(200, { 'content-type': 'text/javascript' });
+            res.end(code);
+          } catch (e) {
+            replDepCache.delete(spec);
+            res.writeHead(404, { 'content-type': 'text/plain' });
+            res.end(e && e.message ? e.message : String(e));
+          }
         });
 
         // Start the dialect's nREPL server, delegating eval to the browser over
