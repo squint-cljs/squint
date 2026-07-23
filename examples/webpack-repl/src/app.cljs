@@ -1,18 +1,27 @@
 (ns app
-  (:require ["preact" :as p]))
-
-;; Expose the page's preact instance so the REPL can prove instance sharing
-;; (a REPL require of "preact" must resolve to THIS module, via the manifest
-;; registry, not a second copy).
-(set! js/globalThis.__page_preact p)
+  (:require ["preact" :refer [render]]))
 
 (defn hot-fn
   "Redefined by the e2e :hot :ws test."
   []
   1)
 
+(defonce state (atom {:a 1}))
+
+(declare render!)
+
+(defn App []
+  #jsx [:div
+        [:button {:id "btn"
+                  :onClick (fn []
+                             (swap! state update :a inc)
+                             (render!))}
+         "Click me"]
+        [:div "Counter " (str (:a @state))]])
+
 (defn render! []
-  (set! (.-textContent (js/document.getElementById "app"))
-        "hello from squint webpack repl"))
+  (render #jsx [App] (js/document.getElementById "app")))
 
 (render!)
+
+(defn ^:dev/after-load re-render [] (render!))

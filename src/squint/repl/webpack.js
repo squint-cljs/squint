@@ -62,8 +62,18 @@ export class SquintPlugin {
     const extension = options.extension ?? cfg.extension ?? 'js';
     const jsxRuntime = options.jsxRuntime ?? cfg['jsx-runtime'];
     // POC defaults avoid the vite plugin's 1339/1340: nREPL 1341, WS 1342.
-    const nreplPort = options.nreplPort ?? cfg['nrepl-port'] ?? 1341;
-    const wsPort = options.wsPort ?? cfg['ws-port'] ?? 1342;
+    // env wins over the config file (a runtime override, e.g. for tests/CI),
+    // options over env, mirroring the vite plugin.
+    const nreplPort =
+      options.nreplPort ??
+      (process.env.SQUINT_NREPL_PORT ? Number(process.env.SQUINT_NREPL_PORT) : undefined) ??
+      cfg['nrepl-port'] ??
+      1341;
+    const wsPort =
+      options.wsPort ??
+      (process.env.SQUINT_WS_PORT ? Number(process.env.SQUINT_WS_PORT) : undefined) ??
+      cfg['ws-port'] ??
+      1342;
     const debug = options.debug ?? cfg.debug ?? false;
 
     // Shared compiler ns-state: a cljs atom captured from the first compile and
@@ -144,6 +154,15 @@ export class SquintPlugin {
 
     function writeManifest() {
       const specs = scanDeps();
+      // #jsx compiles to imports of the jsx runtime (compiler-injected, so the
+      // source scan can't see them); register both variants so REPL-eval'd jsx
+      // shares the page's runtime (and its preact) instead of a tier-3 copy.
+      if (jsxRuntime && jsxRuntime['import-source']) {
+        for (const rt of ['/jsx-runtime', '/jsx-dev-runtime']) {
+          const spec = jsxRuntime['import-source'] + rt;
+          if (!specs.includes(spec)) specs.push(spec);
+        }
+      }
       const imports = [];
       const reg = [];
       // Register squint core so REPL-eval'd `await import('squint-cljs/core.js')`

@@ -11,7 +11,7 @@ export default {
   output: { filename: 'main.js', publicPath: '/' },
   // repl-mode output uses top-level await (await import('squint-cljs/core.js')).
   experiments: { topLevelAwait: true },
-  plugins: [new SquintPlugin({ nreplPort: 1341, wsPort: 1342 })],
+  plugins: [new SquintPlugin()],
   devServer: {
     port: 5299,
     // :hot :ws owns cljs reload; keep webpack from also reloading the page

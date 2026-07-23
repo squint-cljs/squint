@@ -14,8 +14,11 @@
             [clojure.string :as str]
             [nrepl-client :refer [make-client nrepl-request nrepl-eval msg-field with-timeout]]))
 
-(def PORT 5299)        ;; webpack-dev-server (isolated from 5188/5199)
-(def NREPL-PORT 1341)  ;; nREPL TCP (isolated from 1339/1340)
+;; e2e ports are distinct from the example's defaults (5299/1341/1342), so a
+;; running `npm run dev` session in the example never collides with the test.
+(def PORT 5399)        ;; webpack-dev-server (isolated from 5188/5199/5299)
+(def NREPL-PORT 1343)  ;; nREPL TCP (isolated from 1339/1340/1341)
+(def WS-PORT 1344)     ;; squint WS transport (isolated from 1342)
 (def URL (str "http://localhost:" PORT "/"))
 (def EXDIR (path/resolve "examples/webpack-repl"))
 
@@ -60,12 +63,23 @@
          120000))
 
 (defn ^:async run []
-  (let [wp (.spawn cp "node_modules/.bin/webpack" #js ["serve"]
-                   #js {:cwd EXDIR :env js/process.env})
+  (let [wp (.spawn cp "node_modules/.bin/webpack"
+                   #js ["serve" "--port" (str PORT)]
+                   #js {:cwd EXDIR
+                        :env (js/Object.assign #js {} js/process.env
+                                               #js {:SQUINT_NREPL_PORT (str NREPL-PORT)
+                                                    :SQUINT_WS_PORT (str WS-PORT)})})
         browser (atom nil)
         app-file (path/join EXDIR "src" "app.cljs")
         orig-app (.readFileSync fs app-file "utf8")
-        restore! (fn [] (try (.writeFileSync fs app-file orig-app) (catch :default _ nil)))
+        ;; the test's plugin instance rewrites the manifest with the e2e WS
+        ;; port; restore it so a dev session in the example keeps its own.
+        manifest-file (path/join EXDIR "js" "repl_deps.js")
+        orig-manifest (try (.readFileSync fs manifest-file "utf8") (catch :default _ nil))
+        restore! (fn []
+                   (try (.writeFileSync fs app-file orig-app) (catch :default _ nil))
+                   (when orig-manifest
+                     (try (.writeFileSync fs manifest-file orig-manifest) (catch :default _ nil))))
         _ (.on js/process "exit" restore!)
         wlog (atom "")
         log! (fn [& xs] (swap! wlog str (apply str xs) "\n"))]
@@ -84,7 +98,7 @@
         (await (.goto page URL))
         (await (with-timeout 30000 "browser nrepl listener ready" ready))
         (check "page rendered from bundled cljs" true
-               (str/includes? (await (.textContent page "#app")) "hello from squint webpack repl"))
+               (str/includes? (await (.textContent page "#app")) "Counter 1"))
         (let [client (await (with-timeout 10000 "nrepl connect" (make-client NREPL-PORT)))
               clone (await (with-timeout 10000 "nrepl clone" (nrepl-request client #js {:op "clone"})))
               session (some (fn [m] (aget m "new-session")) (js/Array.from clone))
@@ -95,13 +109,13 @@
           ;; a REPL-defined sentinel to prove no page reload later
           (await (ev "(ns depns) (def sentinel 42)"))
           ;; 2. require preact -> resolves via the manifest registry, so it's
-          ;; the SAME instance the page bundled (compare the `h` export, stable
-          ;; across namespace-object wrappers).
-          (await (ev "(set! js/globalThis.__page_h (.-h js/globalThis.__page_preact))"))
+          ;; the SAME instance the page bundled. The page's copy is reachable
+          ;; through the repl-mode refer binding globalThis.app.render, so the
+          ;; app needs no test scaffolding.
           (check "preact instance shared via registry"
                  "true"
                  (await (ev (str "(ns preactns (:require [\"preact\" :as p]))"
-                                 " (identical? (.-h p) js/globalThis.__page_h)"))))
+                                 " (identical? (.-render p) (.-render js/globalThis.app))"))))
           ;; 3. tier 3: lodash is installed but never required by app source, so
           ;; it's not in the manifest -> on-demand esbuild bundle over the WS.
           ;; lodash is CJS -> the $default form yields the lodash object.
@@ -121,7 +135,18 @@
                 ex (msg-field resp "ex")]
             (check "node-only dep errors cleanly (non-empty message)" true
                    (boolean (and ex (pos? (count ex))))))
-          ;; 6. :hot :ws - edit hot-fn in the source, wait for the recompile+load
+          ;; 6. #jsx eval'd at the REPL: the server compiles with the config's
+          ;; :jsx-runtime, the runtime import resolves via the manifest registry
+          ;; (the page's preact), and renders into the live page.
+          (check "jsx runtime registered in manifest" "true"
+                 (await (ev "(some? (aget js/globalThis.__squint_deps \"preact/jsx-dev-runtime\"))")))
+          (await (ev "(js/document.body.insertAdjacentHTML \"beforeend\" \"<div id='jsx-target'></div>\")"))
+          (check "repl #jsx renders via page preact"
+                 "\"jsx from repl\""
+                 (await (ev (str "(ns jsxns (:require [\"preact\" :refer [render]]))"
+                                 " (render #jsx [:div \"jsx from repl\"] (js/document.getElementById \"jsx-target\"))"
+                                 " (.-textContent (js/document.getElementById \"jsx-target\"))"))))
+          ;; 7. :hot :ws - edit hot-fn in the source, wait for the recompile+load
           ;; over the WS, then eval it: the new behaviour is visible AND the
           ;; REPL sentinel still exists (state-preserving reload, no page reload).
           (check "hot-fn v1" "1" (await (ev "(app/hot-fn)")))

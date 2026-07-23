@@ -161,7 +161,8 @@
 
 (defn- webpack-repl-e2e []
   ;; browser REPL in generic (webpack) mode: SquintPlugin runs the nREPL + WS
-  ;; servers inside `webpack serve` (isolated ports 5299/1341/1342).
+  ;; servers inside `webpack serve` (isolated ports 5399/1343/1344, so a dev
+  ;; session in the example on the 5299/1341/1342 defaults doesn't collide).
   (println "[webpack-repl-test] installing deps in examples/webpack-repl")
   (shell {:dir "examples/webpack-repl"} "npm" "install")
   (shell "node" "e2e/webpack_repl_test.mjs"))
