@@ -206,7 +206,15 @@ export class SquintPlugin {
         throw new Error('ws is required for the squint webpack REPL (npm i ws)');
       }
       const wss = new WebSocketServer({ host: '127.0.0.1', port: wsPort });
-      wss.on('connection', (sock) => {
+      wss.on('connection', (sock, req) => {
+        // The socket accepts eval and browsers allow cross-site WS handshakes,
+        // so refuse pages not served from localhost (cross-site WS hijacking).
+        // A missing Origin header (non-browser client) is allowed.
+        const origin = req.headers.origin;
+        if (origin && !/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)) {
+          sock.close(1008, 'origin not allowed');
+          return;
+        }
         sockets.add(sock);
         sock.on('close', () => sockets.delete(sock));
         sock.on('message', async (raw) => {
