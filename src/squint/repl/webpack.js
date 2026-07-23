@@ -221,7 +221,13 @@ export class SquintPlugin {
         debug,
         browserTransport: {
           send: broadcast,
-          url: () => 'the webpack dev server URL',
+          // best effort for the "Open <url> in a browser tab" timeout hint;
+          // nil is handled (generic hint) when there is no dev server config.
+          url: () => {
+            const dev = compiler.options.devServer;
+            if (!dev) return undefined;
+            return 'http://localhost:' + (dev.port ?? 8080) + '/';
+          },
         },
         nsState,
       });
