@@ -46,4 +46,5 @@ scratch
 e2e/*.mjs
 examples/browser-repl/js/
 examples/browser-repl/dist/
+examples/webpack-repl/js/
 .nrepl-port

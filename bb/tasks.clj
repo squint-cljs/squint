@@ -159,6 +159,13 @@
     (shell {:dir "examples/browser-repl"} "npm" "install" (str "vite@" v))
     (shell "node" "e2e/browser_repl_test.mjs")))
 
+(defn- webpack-repl-e2e []
+  ;; browser REPL in generic (webpack) mode: SquintPlugin runs the nREPL + WS
+  ;; servers inside `webpack serve` (isolated ports 5299/1341/1342).
+  (println "[webpack-repl-test] installing deps in examples/webpack-repl")
+  (shell {:dir "examples/webpack-repl"} "npm" "install")
+  (shell "node" "e2e/webpack_repl_test.mjs"))
+
 (defn e2e
   "squint's own e2e tests (not example code). Lives in e2e/. One group:
   - node nREPL server path (no browser);
@@ -174,7 +181,8 @@
   [{:keys [vite] :or {vite ["8"]}}]
   (compile-e2e)
   (nrepl-node-e2e)
-  (browser-repl-sweep vite))
+  (browser-repl-sweep vite)
+  (webpack-repl-e2e))
 
 (defn test-project [_]
   (let [dir "test-project"]

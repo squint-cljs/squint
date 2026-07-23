@@ -1,0 +1,17 @@
+{
+  "type": "module",
+  "scripts": {
+    "dev": "webpack serve"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "preact": "^10.24.0",
+    "squint-cljs": "file:../.."
+  },
+  "devDependencies": {
+    "webpack": "^5.97.1",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.2.0",
+    "ws": "^8.18.0"
+  }
+}

@@ -33,6 +33,7 @@
 
 import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import { join, resolve, relative, isAbsolute, sep } from 'node:path';
+import { makeBundleDep } from './src/squint/repl/deps.js';
 
 const CLJS_RE = /\.clj[sc]$/;
 
@@ -434,38 +435,12 @@ if (import.meta.hot) {
         };
 
         // On-demand esbuild bundling of a brand-new npm dep (never seen by
-        // vite). Cache: spec -> Promise<bundled esm text>, so concurrent
-        // requests share one build and /@repl-deps can re-read the text.
-        const replDepCache = new Map();
-        const bundleDep = (spec) => {
-          let p = replDepCache.get(spec);
-          if (p) return p;
-          p = (async () => {
-            let esbuild;
-            try {
-              esbuild = await import('esbuild');
-            } catch {
-              throw new Error('esbuild is required for on-demand REPL deps (npm i esbuild)');
-            }
-            // A proxy module: esbuild's entryPoints treat the arg as a file
-            // path, so bundle a stdin module that imports the spec instead, and
-            // normalize CJS default-export interop (`import('lodash')` should
-            // hand back the lodash object, not a { default } namespace).
-            const proxy = `import * as __m from ${JSON.stringify(spec)};\n` +
-              `export * from ${JSON.stringify(spec)};\n` +
-              `export default (__m.default !== undefined ? __m.default : __m);`;
-            const out = await esbuild.build({
-              stdin: { contents: proxy, resolveDir: root, sourcefile: 'repl-dep-proxy.js' },
-              bundle: true, format: 'esm', platform: 'browser', write: false,
-              logLevel: 'silent',
-              define: { 'process.env.NODE_ENV': '"development"' },
-              plugins: [viteOptimizedExternal],
-            });
-            return out.outputFiles[0].text;
-          })();
-          replDepCache.set(spec, p);
-          return p;
-        };
+        // vite). The shared bundler caches spec -> Promise<esm text> on
+        // bundleDep.cache, so concurrent requests share one build and
+        // /@repl-deps can re-read the text. viteOptimizedExternal points
+        // already-optimized transitives back at the page's urls.
+        const bundleDep = makeBundleDep({ root, plugins: [viteOptimizedExternal] });
+        const replDepCache = bundleDep.cache;
 
         server.middlewares.use('/@resolve-deps', async (req, res) => {
           const spec = decodeURIComponent(req.url.slice(1));
