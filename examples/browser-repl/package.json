@@ -13,6 +13,6 @@
     "squint-cljs": "file:../../squint"
   },
   "devDependencies": {
-    "vite": "^8.1.4"
+    "vite": "^8.1.5"
   }
 }
