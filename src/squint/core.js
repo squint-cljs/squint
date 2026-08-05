@@ -857,14 +857,20 @@ export function nth(coll, idx, orElse) {
   } else if (coll[IIndexed__nth] !== undefined) {
     return hasDefault ? coll[IIndexed__nth](coll, idx, orElse) : coll[IIndexed__nth](coll, idx);
   } else if (idx >= 0) {
-    // non-array: skip whole chunks instead of counting elements (handles
-    // infinite seqs since it stops once idx is reached)
-    const next = chunkCursor(coll);
-    let base = 0;
-    let ch;
-    while ((ch = next()) !== null) {
-      if (idx < base + ch.length) return ch[idx - base];
-      base += ch.length;
+    // an array-seq is one realized chunk over the array: index it like the array
+    if (coll._rest === EMPTY_SEQ) {
+      const ch = coll.chunk;
+      if (ch !== null && idx < ch.length) return ch[idx];
+    } else {
+      // non-array: skip whole chunks instead of counting elements (handles
+      // infinite seqs since it stops once idx is reached)
+      const next = chunkCursor(coll);
+      let base = 0;
+      let ch;
+      while ((ch = next()) !== null) {
+        if (idx < base + ch.length) return ch[idx - base];
+        base += ch.length;
+      }
     }
   }
   // out of bounds. With a default return it, otherwise throw like Clojure
@@ -3317,6 +3323,8 @@ export function count(coll) {
     return len;
   }
   if (coll[ICounted__count] !== undefined) return coll[ICounted__count](coll);
+  // an array-seq is one realized chunk over the array: count it like the array
+  if (coll._rest === EMPTY_SEQ) return coll.chunk === null ? 0 : coll.chunk.length;
   // sum chunk lengths instead of counting elements one by one
   const next = chunkCursor(coll);
   let ret = 0;
