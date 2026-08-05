@@ -34,7 +34,7 @@
                                ;; the rest of a vector destructuring is a seq, as
                                ;; in Clojure, so kwargs after & destructure as a map
                                (= '& firstb) (recur (pb ret (second bs)
-                                                        (list 'cljs.core/concat gseq))
+                                                        (list 'cljs.core/array-seq gseq))
                                                     n
                                                     (nnext bs)
                                                     true)

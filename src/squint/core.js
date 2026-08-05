@@ -1260,6 +1260,26 @@ export function lazy(f) {
   return new LazyIterable(unchunkedSteps(f()));
 }
 
+// a lazy cell that is already realized and empty: every array-seq shares it
+const EMPTY_SEQ = /* @__PURE__ */ (() => {
+  const t = new LazyIterable(null);
+  t.realized = true;
+  return t;
+})();
+
+export function array_seq(arr, i = 0) {
+  // a view, not a copy: arr becomes the cell's chunk as-is, so the caller's
+  // array is neither copied nor mutated. i mirrors cljs.core/array-seq.
+  if (!Array.isArray(arr)) return seq(arr); // already a seq, or nil
+  if (i > 0) arr = arr.slice(i);
+  if (arr.length === 0) return null;
+  const s = new LazyIterable(null);
+  s.realized = true;
+  s.chunk = arr;
+  s._rest = EMPTY_SEQ;
+  return s;
+}
+
 // gen(it) over a hoisted iterator: keeps the input head unpinned (streaming)
 function lazyIter(coll, gen) {
   const it = es6_iterator(iterable(coll));
@@ -2278,7 +2298,7 @@ export function apply(f, ...args) {
     if (rest == null) return f(...fixed);
     // hand the impl a seq, not the caller's array: a rest arg is a seq, and an
     // array would read as associative (see seq_to_map_for_destructuring)
-    return v(...fixed, Array.isArray(rest) ? concat1([rest]) : rest);
+    return v(...fixed, Array.isArray(rest) ? array_seq(rest) : rest);
   }
   return f(...xs, ...iterable(last));
 }

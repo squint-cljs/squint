@@ -117,6 +117,7 @@
   array
   array_QMARK_
   array_map
+  array_seq
   aset
   assoc
   assoc_BANG_

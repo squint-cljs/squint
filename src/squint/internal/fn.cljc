@@ -84,7 +84,7 @@
         default-case (if variadic
                        `(let [~rest-sym (.slice ~args-sym ~maxfa)]
                           (.call ~(:impl-sym variadic) ~this-sym ~@(arg-refs maxfa)
-                                 (if (zero? (.-length ~rest-sym)) nil (cljs.core/concat ~rest-sym))))
+                                 (if (zero? (.-length ~rest-sym)) nil (cljs.core/array-seq ~rest-sym))))
                        `(throw (js/Error. (str "Invalid arity: " (.-length ~args-sym)))))]
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
        (let [~@impl-binds
@@ -127,7 +127,7 @@
              ~name (fn [~@fixed-syms ~(symbol (str "..." rest-sym))]
                      (this-as self#
                        (.call ~impl self# ~@fixed-syms
-                              (if (zero? (.-length ~rest-sym)) nil (cljs.core/concat ~rest-sym)))))]
+                              (if (zero? (.-length ~rest-sym)) nil (cljs.core/array-seq ~rest-sym)))))]
          (unchecked-set ~name "squint$lang$variadic" ~impl)
          ~name))))
 
