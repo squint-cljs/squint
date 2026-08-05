@@ -1493,6 +1493,11 @@ break;}" body)
                                                  (first %)))
                                body)
         non-statement? (not= :statement (:context env))
+        ;; in :return context the try already sits in statement position of the
+        ;; enclosing function, so returning from its branches directly is
+        ;; enough. Wrapping it in an iife there would cut off a recur inside
+        ;; from its loop: continue cannot cross a function boundary.
+        iife? (contains? #{:expr :repl-return} (:context env))
         outer-env env
         env (if non-statement?
               (assoc env :context :return)
@@ -1509,24 +1514,24 @@ break;}" body)
       (throw (new Exception (str "Cannot supply more than one finally clause in a try statement! " expression)))
 
       :else
-      (-> (cond-> (str "try{\n"
-                       (emit-do env try-body)
-                       "}\n"
-                       (when-let [[_ _exception binding & catch-body] (first catch-clause)]
-                         (let [binding (munge binding)
-                               env (update env :var->ident (fn [m]
-                                                             (-> m
-                                                                 (assoc binding (gensym binding)))))]
-                           (str "catch(" (emit binding (expr-env env)) "){\n"
-                                (emit-do env catch-body)
-                                "}\n")))
-                       (when-let [[_ & finally-body] (first finally-clause)]
-                         (str "finally{\n"
-                              (emit-do (assoc env :context :statement) finally-body)
-                              "}\n")))
-            (not= :statement (:context env))
-            (wrap-implicit-iife env))
-          (emit-return outer-env)))))
+      (cond-> (str "try{\n"
+                   (emit-do env try-body)
+                   "}\n"
+                   (when-let [[_ _exception binding & catch-body] (first catch-clause)]
+                     (let [binding (munge binding)
+                           env (update env :var->ident (fn [m]
+                                                         (-> m
+                                                             (assoc binding (gensym binding)))))]
+                       (str "catch(" (emit binding (expr-env env)) "){\n"
+                            (emit-do env catch-body)
+                            "}\n")))
+                   (when-let [[_ & finally-body] (first finally-clause)]
+                     (str "finally{\n"
+                          (emit-do (assoc env :context :statement) finally-body)
+                          "}\n")))
+        iife?
+        (-> (wrap-implicit-iife env)
+            (emit-return outer-env))))))
 
 (defmethod emit-special 'funcall [_type env [fname & args :as expr]]
   (let [ns (when (symbol? fname) (namespace fname))

@@ -2933,6 +2933,32 @@ globalThis.foo.fs = fs;")))))
   (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2)))))
   (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2))))))
 
+(deftest recur-across-try-test
+  (testing "recur inside try reaches its loop, in return position"
+    (is (= 3 (jsv! '(let [f (fn []
+                              (loop [i 0]
+                                (try (if (< i 3) (recur (inc i)) i)
+                                     (catch :default _ :caught))))]
+                      (f))))))
+  (testing "and with the loop itself in expression position"
+    (is (= "3" (jsv! '(str (loop [i 0]
+                             (try (if (< i 3) (recur (inc i)) i)
+                                  (catch :default _ :caught))))))))
+  (testing "a finally clause runs on every recur, per JS continue semantics"
+    (is (= 4 (jsv! '(let [n (atom 0)
+                          f (fn []
+                              (loop [i 0]
+                                (try (if (< i 3) (recur (inc i)) i)
+                                     (finally (swap! n inc)))))]
+                      (f)
+                      @n)))))
+  (testing "recur from a catch clause"
+    (is (= 3 (jsv! '(let [f (fn []
+                              (loop [i 0]
+                                (try (if (< i 3) (throw (js/Error. "again")) i)
+                                     (catch :default _ (recur (inc i))))))]
+                      (f)))))))
+
 (deftest dissoc!-test
   (is (eq #js {"1" 2 "3" 4} (jsv! '(dissoc! {"1" 2 "3" 4}))))
   (is (eq #js {"1" 2 "3" 4} (jsv! '(let [x {"1" 2 "3" 4}]
