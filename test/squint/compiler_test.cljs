@@ -3004,6 +3004,27 @@ globalThis.foo.fs = fs;")))))
 (defn wrap-async [s]
   (str/replace "(async function () {\n%s\n})()" "%s" s))
 
+(deftest defclass-get-set-test
+  (testing "getters and setters"
+    (is (str/includes? (jss! "(defclass A Object (^:get x [this] 1))") "get x("))
+    (is (str/includes? (jss! "(defclass A Object (^:set x [this v] v))") "set x("))
+    (is (str/includes? (jss! "(defclass A Object (^:static ^:get x [this] 1))") "static get x("))
+    (is (= 6 (jsv! "(defclass A (field -y 3) (constructor [this]) Object (^:get doubled [this] (* 2 -y)))
+                    (.-doubled (new A))")))
+    (is (= 10 (jsv! "(defclass A (field -y 1) (constructor [this])
+                       Object
+                       (^:get doubled [this] (* 2 -y))
+                       (^:set doubled [this v] (set! -y (/ v 2))))
+                     (let [a (new A)] (set! (.-doubled a) 10) (.-doubled a))"))))
+  (testing "a getter takes no arguments and a setter takes one"
+    (is (thrown? js/Error (jss! "(defclass A Object (^:get x [this v] 1))")))
+    (is (thrown? js/Error (jss! "(defclass A Object (^:set x [this] 1))")))
+    (is (thrown? js/Error (jss! "(defclass A Object (^:set x [this a b] 1))"))))
+  (testing "get and set do not combine with each other, async or gen"
+    (is (thrown? js/Error (jss! "(defclass A Object (^:get ^:set x [this] 1))")))
+    (is (thrown? js/Error (jss! "(defclass A Object (^:get ^:async x [this] 1))")))
+    (is (thrown? js/Error (jss! "(defclass A Object (^:get ^:gen x [this] 1))")))))
+
 (deftest defclass-test
   (async done
     #_(println (jss! (str (fs/readFileSync "test-resources/defclass_test.cljs"))))
