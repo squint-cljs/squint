@@ -390,13 +390,12 @@ export const array_map = hash_map;
 
 // https://clojure.org/reference/special_forms#keyword-arguments
 export function seq_to_map_for_destructuring(s) {
-  // rest args are an array, or a seq when the fn was reached through apply
   const arr = Array.isArray(s) ? s : [...iterable(s)];
   const n = arr.length;
   if (n < 2) return n ? arr[0] : {};
   const m = {};
   for (let i = 0; i < n; i += 2) {
-    // an odd count leaves a trailing map after the key/value pairs
+    // an odd count leaves a trailing map
     if (i === n - 1) for (const [k, v] of iterable(arr[i])) m[k] = v;
     else m[arr[i]] = arr[i + 1];
   }

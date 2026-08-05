@@ -63,8 +63,7 @@
                            :variadic? variadic?
                            :impl-sym (gensym "impl")
                            :fixed (if variadic? (subvec clean 0 (dec (count clean))) clean)
-                           ;; ADR 0008
-                           :rest-target (when variadic? (mark-rest-args (peek clean)))}))
+                           :rest-target (when variadic? (mark-rest-args (peek clean)))})) ; ADR 0008
                       fdecl)
         variadic (first (filter :variadic? methods))
         maxfa (when variadic (count (:fixed variadic)))

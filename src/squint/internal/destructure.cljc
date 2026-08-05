@@ -12,9 +12,7 @@
   (:refer-clojure :exclude [destructure]))
 
 (defn mark-rest-args
-  "Marks a binding form that receives rest args. An associative one then
-  destructures the kwargs those args stand for, rather than the args.
-  See ADR 0008."
+  "Marks a binding form that receives rest args. See ADR 0008."
   [b]
   (cond-> b (map? b) (vary-meta assoc ::rest-args true)))
 
@@ -69,21 +67,12 @@
                        (loop [ret (-> bvec (conj gmap) (conj v)
                                       (conj gmap)
                                       (conj
+                                       ;; kwargs, see ADR 0008
                                        (if (::rest-args (meta b))
-                                         ;; rest args are a plain array, which no
-                                         ;; runtime test tells from a vector; the
-                                         ;; binding form is what says they are
-                                         ;; kwargs. No args is nil, and stays
-                                         ;; nil. See ADR 0008
                                          (list 'if (list 'cljs.core/nil? gmap)
                                                gmap
                                                (list 'cljs.core/seq-to-map-for-destructuring gmap))
-                                         ;; a seq destructured as a map is kwargs,
-                                         ;; as in Clojure. sequential? minus
-                                         ;; vector? is squint's ISeq test: list,
-                                         ;; lazy seq and cons, but not a vector,
-                                         ;; a js/Map or any iterable JS object
-                                         ;; (seq? would take all of those)
+                                         ;; sequential? minus vector? is ISeq
                                          (list 'if (list 'cljs.core/sequential? gmap)
                                                (list 'if (list 'cljs.core/vector? gmap)
                                                      gmap
