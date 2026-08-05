@@ -98,9 +98,8 @@
   (let [s (jss! "(let [^js {:keys [a b c]} #js {:a 1 :b 2 :c 3}]
                    (+ a b c))")]
     (is (= 6 (js/eval s))))
-  (is (eq #js [1 #js [2 3]]
-          (jsv! "(let [[x & xs] [1 2 3]]
-                   [x xs])"))))
+  (is (true? (jsv! "(let [[x & xs] [1 2 3]]
+                   (= [1 [2 3]] [x xs]))"))))
 
 (deftest fn-test
   (let [s (jss! '(let [f (fn [x] x)]
@@ -2696,15 +2695,15 @@ with `backticks`")))]
   (is (eq [1 nil] (jsv! '(let [foo (fn [x & xs] [x xs])] (foo 1)))))
   (is (true? (jsv! '(let [foo (fn [x & xs] [x xs])] (= [1 [2 3]] (foo 1 2 3))))))
   ;; apply does the fixed/rest split, passing the rest as a seq (no spread)
-  (is (eq [1 [2 3]] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo [1 2 3])))))
-  (is (eq [1 [2 3]] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo 1 [2 3])))))
+  (is (true? (jsv! '(let [foo (fn [x & xs] [x xs])] (= [1 [2 3]] (apply foo [1 2 3]))))))
+  (is (true? (jsv! '(let [foo (fn [x & xs] [x xs])] (= [1 [2 3]] (apply foo 1 [2 3]))))))
   (is (eq [1 nil] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo [1])))))
   ;; destructured FIXED params: the facade must pass values through to impl, not
   ;; splice the destructuring forms into the call (regression: replicant/clojure-mode)
   (is (true? (jsv! '(let [f (fn [{:keys [a b]} c & xs] [a b c xs])]
                       (= [1 2 3 [4 5]] (f {:a 1 :b 2} 3 4 5))))))
-  (is (eq [1 2 3 [4 5]]
-          (jsv! '(let [f (fn [{:keys [a b]} c & xs] [a b c xs])] (apply f {:a 1 :b 2} 3 [4 5])))))
+  (is (true? (jsv! '(let [f (fn [{:keys [a b]} c & xs] [a b c xs])]
+                      (= [1 2 3 [4 5]] (apply f {:a 1 :b 2} 3 [4 5]))))))
   ;; concat uses the same VARIADIC hook; apply with prefix args must prepend them
   (is (eq [1 2 3 4] (jsv! '(vec (apply concat [1 2] [[3 4]])))))
   (is (eq [1 2 3 4] (jsv! '(vec (apply concat [[1 2] [3 4]])))))
@@ -2723,8 +2722,8 @@ with `backticks`")))]
   (let [defs "(defn foo ([a] [:one a]) ([a b] [:two a b]) ([a b & r] [:var a b r]))"]
     (is (eq [:one 1] (jsv! (str defs " (apply foo [1])"))))
     (is (eq [:two 1 2] (jsv! (str defs " (apply foo [1 2])"))))
-    (is (eq [:var 1 2 [3]] (jsv! (str defs " (apply foo [1 2 3])"))))
-    (is (eq [:var 1 2 [3]] (jsv! (str defs " (apply foo 1 [2 3])")))))
+    (is (true? (jsv! (str defs " (= [:var 1 2 [3]] (apply foo [1 2 3]))"))))
+    (is (true? (jsv! (str defs " (= [:var 1 2 [3]] (apply foo 1 [2 3]))")))))
   ;; lazy: apply over a multi-arity variadic must not realize an infinite coll
   (is (= 1 (jsv! '(do (defn h ([a] a) ([a & r] a)) (apply h 1 (range)))))))
 

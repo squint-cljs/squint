@@ -2276,7 +2276,9 @@ export function apply(f, ...args) {
     }
     rest = rest == null ? null : seq(rest);
     if (rest == null) return f(...fixed);
-    return v(...fixed, rest);
+    // hand the impl a seq, not the caller's array: a rest arg is a seq, and an
+    // array would read as associative (see seq_to_map_for_destructuring)
+    return v(...fixed, Array.isArray(rest) ? concat1([rest]) : rest);
   }
   return f(...xs, ...iterable(last));
 }
