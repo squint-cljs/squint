@@ -388,7 +388,7 @@ export function hash_map(...kvs) {
 
 export const array_map = hash_map;
 
-const REQ_NOT_FOUND = /* @__PURE__ */ Symbol('squint.core/req-not-found');
+const REQ_NOT_FOUND = {};
 
 // Like arity-2 get, but throws if key not present.
 export function req_BANG_(m, k) {
@@ -2347,7 +2347,7 @@ export function array_QMARK_(x) {
   return Array.isArray(x);
 }
 
-const CONCAT_DONE = /* @__PURE__ */ Symbol('concat-done');
+const CONCAT_DONE = {};
 
 function concat1(colls) {
   // chunk-aware: pass each coll's chunks through, preserving chunkedness. Each
@@ -3000,7 +3000,7 @@ export function distinct(coll) {
   });
 }
 
-const DEDUPE_NONE = /* @__PURE__ */ Symbol('dedupe-none');
+const DEDUPE_NONE = {};
 
 function dedupe1() {
   return transducer((rf) => {
