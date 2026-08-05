@@ -388,6 +388,26 @@ export function hash_map(...kvs) {
 
 export const array_map = hash_map;
 
+// https://clojure.org/reference/special_forms#keyword-arguments
+export function seq_to_map_for_destructuring(s) {
+  // rest args are an array, or a seq when the fn was reached through apply
+  const arr = Array.isArray(s) ? s : [...iterable(s)];
+  if (arr.length < 2) return arr.length === 0 ? {} : arr[0];
+  // an odd count means a trailing map after the key/value pairs
+  const trailing = arr.length % 2 === 1;
+  const n = trailing ? arr.length - 1 : arr.length;
+  const m = {};
+  for (let i = 0; i < n; i += 2) {
+    m[arr[i]] = arr[i + 1];
+  }
+  if (trailing) {
+    for (const [k, v] of iterable(arr[n])) {
+      m[k] = v;
+    }
+  }
+  return m;
+}
+
 const MAP_TYPE = 1;
 const ARRAY_TYPE = 2;
 const OBJECT_TYPE = 3;

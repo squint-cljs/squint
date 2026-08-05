@@ -333,6 +333,7 @@
   select_keys
   seq
   seq_QMARK_
+  seq_to_map_for_destructuring
   seqable_QMARK_
   sequential_QMARK_
   set

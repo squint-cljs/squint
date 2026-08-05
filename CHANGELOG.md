@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix [#975](https://github.com/squint-cljs/squint/issues/975): `& {:keys [...]}` now destructures a map instead of the raw rest args. Both the kwargs and trailing-map call styles work, via `seq-to-map-for-destructuring`
 - Fix [#977](https://github.com/squint-cljs/squint/issues/977): `recur` inside `try` no longer emits an illegal `continue`. A `try` in return position emits without the iife wrapper that cut the `recur` off from its loop
 - Fix [#978](https://github.com/squint-cljs/squint/issues/978): `defclass` now supports `^:get` and `^:set` methods
 - `defmulti` now defines the multimethod with `defonce` in REPL-mode, so a REPL or vite HMR module reload keeps the registered methods

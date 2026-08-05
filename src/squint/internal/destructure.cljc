@@ -60,7 +60,16 @@
                            gmap (gensym "map__")
                            defaults (:or b)]
                        (loop [ret (-> bvec (conj gmap) (conj v)
-                                      #_#_(conj gmap) (conj gmap)
+                                      (conj gmap)
+                                      ;; kwargs: (defn f [& {:keys [a]}]) sees the
+                                      ;; rest args, so turn them into a map first.
+                                      ;; Clojure guards this with seq?, but squint's
+                                      ;; seq? is iterator-based and so covers js/Map
+                                      ;; and Set, which destructure as maps
+                                      (conj (list 'if
+                                                  (list 'cljs.core/sequential? gmap)
+                                                  (list 'cljs.core/seq-to-map-for-destructuring gmap)
+                                                  gmap))
                                       ((fn [ret]
                                          (if (:as b)
                                            (conj ret (:as b) gmap)

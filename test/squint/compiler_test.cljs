@@ -3843,6 +3843,24 @@ new Foo();")
   (let [s (squint/compile-string "(defn foo [^:js {:keys [x y]}] [x y])")]
     (is (str/includes? s "{x,y}"))))
 
+(deftest kwargs-destructuring-test
+  (testing "& {:keys [...]} sees a map, both as kwargs and as a trailing map"
+    (is (= 2 (jsv! "(defn f [x & {:keys [b]}] b) (f 1 :b 2)")))
+    (is (= 2 (jsv! "(defn f [x & {:keys [b]}] b) (f 1 {:b 2})")))
+    (is (eq #js [1 2] (jsv! "(defn f [& {:keys [a b]}] [a b]) (f :a 1 {:b 2})")))
+    (is (= 2 (jsv! "(defn f [x & {:keys [b]}] b) (apply f [1 :b 2])"))))
+  (testing "on a variadic arity of a multi-arity fn"
+    (is (= 2 (jsv! "(defn f ([x] :one) ([x & {:keys [b]}] b)) (f 1 :b 2)"))))
+  (testing "in vector destructuring"
+    (is (= 2 (jsv! "(let [[a & {:keys [b]}] [1 :b 2]] b)"))))
+  (testing ":or defaults and :as, with no args at all"
+    (is (= 42 (jsv! "(defn f [& {:keys [a] :or {a 42}}] a) (f)")))
+    (is (eq #js {"a" 1 "b" 2} (jsv! "(defn f [& {:as m}] m) (f :a 1 :b 2)")))
+    (is (nil? (jsv! "(defn f [& {:as m}] m) (f)"))))
+  (testing "ordinary map destructuring is untouched, including js/Map"
+    (is (= 1 (jsv! "(let [{:keys [a]} {:a 1}] a)")))
+    (is (= 1 (jsv! "(let [{:keys [a]} (js/Map. [[\"a\" 1]])] a)")))))
+
 (deftest arrow-fn-test
   (is (true? (jsv! "(def obj {:a (fn [] (this-as this this))}) (= obj (.a obj))")))
   (is (true? (jsv! "(def obj {:a ^:=> (fn [] (this-as this this))}) (not= obj (.a obj))")))
