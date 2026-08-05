@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.14.207
 
 - Clojure 1.13 destructuring: `:keys!`/`:syms!`/`:strs!` for required keys, `&` inside them for keys required but not bound, `:select`, `:all`, `:defaults`, and `:or` by key. Adds `req!` and `some-vals` to core
 - Fix [#975](https://github.com/squint-cljs/squint/issues/975): `& {:keys [...]}` now destructures a map instead of the raw rest args, and a seq destructured as a map is read as kwargs. Both the kwargs and trailing-map call styles work, via `seq-to-map-for-destructuring`. See ADR 0008
