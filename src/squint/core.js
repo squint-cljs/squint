@@ -388,6 +388,9 @@ export function hash_map(...kvs) {
 
 export const array_map = hash_map;
 
+// req! and some-vals are clojure.core fns added for 1.13 destructuring.
+// Ported from Clojure (clojure/core.clj), Copyright (c) Rich Hickey and
+// contributors, Eclipse Public License 1.0.
 const REQ_NOT_FOUND = {};
 
 // Like arity-2 get, but throws if key not present.

@@ -1,4 +1,5 @@
-;; Adapted from CLJS core.cljc. Original copyright notice:
+;; Adapted from ClojureScript core.cljc, and from Clojure core.clj for the
+;; 1.13 map directives. Original copyright notice:
 
 ;;   Copyright (c) Rich Hickey. All rights reserved.  The use and distribution
 ;;   terms for this software are covered by the Eclipse Public License
@@ -13,7 +14,7 @@
   (:require [clojure.string :as str]))
 
 ;; The Clojure 1.13 directives (:keys!, :select, :all, :defaults, key-form :or)
-;; track sci's src/sci/impl/destructure.cljc, which tracks clojure/clojure
+;; came in via sci's src/sci/impl/destructure.cljc, which tracks clojure/clojure
 ;; core.clj at dd006fb9. Diff against those when syncing.
 
 (defn- destructure-error [msg]
