@@ -9,7 +9,8 @@
 ;;   software.
 
 (ns squint.internal.fn
-  {:clj-kondo/config '{:linters {:discouraged-var {clojure.core/gensym {:level :off}}}}})
+  {:clj-kondo/config '{:linters {:discouraged-var {clojure.core/gensym {:level :off}}}}}
+  (:require [squint.internal.destructure :refer [mark-rest-args]]))
 
 #?(:cljs (def Exception js/Error))
 
@@ -62,7 +63,8 @@
                            :variadic? variadic?
                            :impl-sym (gensym "impl")
                            :fixed (if variadic? (subvec clean 0 (dec (count clean))) clean)
-                           :rest-target (when variadic? (peek clean))}))
+                           ;; ADR 0008
+                           :rest-target (when variadic? (mark-rest-args (peek clean)))}))
                       fdecl)
         variadic (first (filter :variadic? methods))
         maxfa (when variadic (count (:fixed variadic)))
@@ -84,7 +86,7 @@
         default-case (if variadic
                        `(let [~rest-sym (.slice ~args-sym ~maxfa)]
                           (.call ~(:impl-sym variadic) ~this-sym ~@(arg-refs maxfa)
-                                 (if (zero? (.-length ~rest-sym)) nil (cljs.core/array-seq ~rest-sym))))
+                                 (if (zero? (.-length ~rest-sym)) nil ~rest-sym)))
                        `(throw (js/Error. (str "Invalid arity: " (.-length ~args-sym)))))]
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
        (let [~@impl-binds
@@ -109,7 +111,7 @@
                {:squint.compiler/no-rename true :async async :gen gen})
         sig (vec (remove '#{&} arglist))
         fixed (subvec sig 0 (dec (count sig)))
-        rest-target (peek sig)
+        rest-target (mark-rest-args (peek sig)) ; ADR 0008
         ;; the facade takes plain params and passes them through; impl does any
         ;; destructuring. Splicing the fixed params (which may be destructuring
         ;; forms) into the impl CALL would emit them as literals, not values.
@@ -127,7 +129,7 @@
              ~name (fn [~@fixed-syms ~(symbol (str "..." rest-sym))]
                      (this-as self#
                        (.call ~impl self# ~@fixed-syms
-                              (if (zero? (.-length ~rest-sym)) nil (cljs.core/array-seq ~rest-sym)))))]
+                              (if (zero? (.-length ~rest-sym)) nil ~rest-sym))))]
          (unchecked-set ~name "squint$lang$variadic" ~impl)
          ~name))))
 

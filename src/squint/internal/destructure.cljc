@@ -11,6 +11,13 @@
 (ns squint.internal.destructure
   (:refer-clojure :exclude [destructure]))
 
+(defn mark-rest-args
+  "Marks a binding form that receives rest args. An associative one then
+  destructures the kwargs those args stand for, rather than the args.
+  See ADR 0008."
+  [b]
+  (cond-> b (map? b) (vary-meta assoc ::rest-args true)))
+
 (defn destructure [env bindings]
   (let [gensym (:gensym env)
         bents (partition 2 bindings)
@@ -31,10 +38,7 @@
                          (if (seq bs)
                            (let [firstb (first bs)]
                              (cond
-                               ;; the rest of a vector destructuring is a seq, as
-                               ;; in Clojure, so kwargs after & destructure as a map
-                               (= '& firstb) (recur (pb ret (second bs)
-                                                        (list 'cljs.core/array-seq gseq))
+                               (= '& firstb) (recur (pb ret (mark-rest-args (second bs)) gseq)
                                                     n
                                                     (nnext bs)
                                                     true)
@@ -64,16 +68,26 @@
                            defaults (:or b)]
                        (loop [ret (-> bvec (conj gmap) (conj v)
                                       (conj gmap)
-                                      ;; a seq destructured as a map is kwargs,
-                                      ;; as in Clojure. squint's seq? is
-                                      ;; iterator-based, so rule out the
-                                      ;; associatives (vector, js/Map) that
-                                      ;; Clojure's ISeq test rejects
-                                      (conj (list 'if (list 'cljs.core/seq? gmap)
-                                                  (list 'if (list 'cljs.core/associative? gmap)
-                                                        gmap
-                                                        (list 'cljs.core/seq-to-map-for-destructuring gmap))
-                                                  gmap))
+                                      (conj
+                                       (if (::rest-args (meta b))
+                                         ;; rest args are a plain array, which no
+                                         ;; runtime test tells from a vector; the
+                                         ;; binding form is what says they are
+                                         ;; kwargs. No args is nil, and stays
+                                         ;; nil. See ADR 0008
+                                         (list 'if (list 'cljs.core/nil? gmap)
+                                               gmap
+                                               (list 'cljs.core/seq-to-map-for-destructuring gmap))
+                                         ;; a seq destructured as a map is kwargs,
+                                         ;; as in Clojure. squint's seq? is
+                                         ;; iterator-based, so rule out the
+                                         ;; associatives (vector, js/Map) that
+                                         ;; Clojure's ISeq test rejects
+                                         (list 'if (list 'cljs.core/seq? gmap)
+                                               (list 'if (list 'cljs.core/associative? gmap)
+                                                     gmap
+                                                     (list 'cljs.core/seq-to-map-for-destructuring gmap))
+                                               gmap)))
                                       ((fn [ret]
                                          (if (:as b)
                                            (conj ret (:as b) gmap)
