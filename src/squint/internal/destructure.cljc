@@ -11,6 +11,11 @@
 (ns squint.internal.destructure
   (:refer-clojure :exclude [destructure]))
 
+(defn mark-rest-args
+  "Marks a binding form that receives rest args. See ADR 0008."
+  [b]
+  (cond-> b (map? b) (vary-meta assoc ::rest-args true)))
+
 (defn destructure [env bindings]
   (let [gensym (:gensym env)
         bents (partition 2 bindings)
@@ -31,7 +36,7 @@
                          (if (seq bs)
                            (let [firstb (first bs)]
                              (cond
-                               (= '& firstb) (recur (pb ret (second bs) gseq)
+                               (= '& firstb) (recur (pb ret (mark-rest-args (second bs)) gseq)
                                                     n
                                                     (nnext bs)
                                                     true)
@@ -60,7 +65,19 @@
                            gmap (gensym "map__")
                            defaults (:or b)]
                        (loop [ret (-> bvec (conj gmap) (conj v)
-                                      #_#_(conj gmap) (conj gmap)
+                                      (conj gmap)
+                                      (conj
+                                       ;; kwargs, see ADR 0008
+                                       (if (::rest-args (meta b))
+                                         (list 'if (list 'cljs.core/nil? gmap)
+                                               gmap
+                                               (list 'cljs.core/seq-to-map-for-destructuring gmap))
+                                         ;; sequential? minus vector? is ISeq
+                                         (list 'if (list 'cljs.core/sequential? gmap)
+                                               (list 'if (list 'cljs.core/vector? gmap)
+                                                     gmap
+                                                     (list 'cljs.core/seq-to-map-for-destructuring gmap))
+                                               gmap)))
                                       ((fn [ret]
                                          (if (:as b)
                                            (conj ret (:as b) gmap)
