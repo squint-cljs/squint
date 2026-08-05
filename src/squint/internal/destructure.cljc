@@ -79,12 +79,13 @@
                                                gmap
                                                (list 'cljs.core/seq-to-map-for-destructuring gmap))
                                          ;; a seq destructured as a map is kwargs,
-                                         ;; as in Clojure. squint's seq? is
-                                         ;; iterator-based, so rule out the
-                                         ;; associatives (vector, js/Map) that
-                                         ;; Clojure's ISeq test rejects
-                                         (list 'if (list 'cljs.core/seq? gmap)
-                                               (list 'if (list 'cljs.core/associative? gmap)
+                                         ;; as in Clojure. sequential? minus
+                                         ;; vector? is squint's ISeq test: list,
+                                         ;; lazy seq and cons, but not a vector,
+                                         ;; a js/Map or any iterable JS object
+                                         ;; (seq? would take all of those)
+                                         (list 'if (list 'cljs.core/sequential? gmap)
+                                               (list 'if (list 'cljs.core/vector? gmap)
                                                      gmap
                                                      (list 'cljs.core/seq-to-map-for-destructuring gmap))
                                                gmap)))

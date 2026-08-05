@@ -3863,6 +3863,11 @@ new Foo();")
   #_(testing "a seq destructured as a map is kwargs too, fn or no fn"
       (is (= 1 (jsv! "(let [{:keys [a]} '(:a 1 :b 2)] a)")))
       (is (= 1 (jsv! "(let [{:keys [a]} (map identity '(:a 1))] a)"))))
+  (testing "an iterable host object is not a seq of kwargs"
+    ;; squint's seq? is iterator-based, so a guard using it slurped CodeMirror
+    ;; objects into a map and OOMed the clojure-mode lib test
+    (is (nil? (jsv! "(let [{:keys [a]} (js/Uint8Array. 3)] a)")))
+    (is (nil? (jsv! "(let [{:keys [a]} \"ab\"] a)"))))
   (testing "an associative is not a seq of kwargs, as in Clojure"
     (is (nil? (jsv! "(let [{:keys [a]} [:a 1]] a)")))
     (is (= 1 (jsv! "(let [{:keys [a]} {:a 1}] a)")))

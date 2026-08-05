@@ -18,10 +18,13 @@ nil (issue #975).
 
 Two things make Clojure's rule not portable as written:
 
-- squint's `seq?` is iterator-based, so it is true for a vector, a `js/Map` and
-  a `Set`. Clojure's is an `ISeq` test, true for none of them. Using `seq?`
-  alone would convert a vector that Clojure leaves alone, and would break
-  `(let [{:keys [a]} (js/Map. ...)] a)`, which works today.
+- squint's `seq?` is iterator-based (`x[Symbol.iterator]`), so it is true for a
+  vector, a `js/Map`, a `Set`, a string, and **any iterable JS class instance**.
+  Clojure's is an `ISeq` test, true for none of them. `seq?` is not a usable
+  guard: it converts a vector Clojure leaves alone, breaks
+  `(let [{:keys [a]} (js/Map. ...)] a)`, and slurps an iterable host object into
+  a map. The last one is not theoretical - a `seq?`/`associative?` guard OOMed
+  the clojure-mode lib test, which destructures CodeMirror objects.
 - Variadic rest args are a native JS array (ADR 0001), which is the same runtime
   value as a vector. So a rest arg carries no runtime evidence that it stands
   for kwargs.
@@ -33,15 +36,16 @@ Two mechanisms, because squint has two situations where Clojure has one.
 **A runtime guard on every map destructuring**, for values that are seqs:
 
 ```clojure
-(if (seq? gmap)
-  (if (associative? gmap) gmap (seq-to-map-for-destructuring gmap))
+(if (sequential? gmap)
+  (if (vector? gmap) gmap (seq-to-map-for-destructuring gmap))
   gmap)
 ```
 
-`associative?` is what recovers Clojure's `ISeq` meaning from squint's broader
-`seq?`: it rules out the vectors and `js/Map`s that an `ISeq` test rejects. This
-covers anything reaching the destructuring at runtime, including through a local
-or a parameter the compiler cannot see into.
+`sequential?` minus `vector?` is squint's `ISeq` test. `sequential?` is
+array-or-lazy-or-`IVector`, so it admits lists, lazy seqs and cons cells while
+rejecting `js/Map`, `Set`, strings and host objects; `vector?` then removes the
+plain arrays. This covers anything reaching the destructuring at runtime,
+including through a local or a parameter the compiler cannot see into.
 
 **A compile-time marker on the binding form after `&`**, for rest args.
 `mark-rest-args` tags an associative binding form in rest position, and `pmap`
@@ -74,9 +78,11 @@ contract, and squint's representation (a plain object, not a
 
 - `seq?` alone, as in Clojure: converts vectors, and breaks `js/Map`
   destructuring. Rejected.
-- `sequential?` instead of `seq?` + `associative?`: matches arrays, so the rest
-  arg through a local works, but a vector is wrongly converted. Trades a case
-  Clojure gets right for one it also gets right; no net gain.
+- `seq?` + `associative?`: rules out vectors and `js/Map`, but not an iterable
+  class instance, which `seq?` still admits. OOMed the clojure-mode lib test by
+  realizing a CodeMirror object into a map. Rejected.
+- `sequential?` alone: also matches plain arrays, so a vector is wrongly
+  converted. Rejected.
 - Rest args as a seq, so one runtime rule covers everything. Tried three ways:
   tagging the array in place as a list (`apply` hands over the caller's array,
   so tagging it mutates a value the caller still holds), `(concat rest)`, and an
