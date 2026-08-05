@@ -321,6 +321,7 @@
   repeat
   repeatedly
   replace
+  req_BANG_
   reset_BANG_
   reset_vals_BANG_
   rest
@@ -347,6 +348,7 @@
   some
   some_QMARK_
   some_fn
+  some_vals
   sort
   sort_by
   sorted_QMARK_

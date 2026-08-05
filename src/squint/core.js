@@ -388,6 +388,31 @@ export function hash_map(...kvs) {
 
 export const array_map = hash_map;
 
+// req! and some-vals are clojure.core fns added for 1.13 destructuring.
+// Ported from Clojure (clojure/core.clj), Copyright (c) Rich Hickey and
+// contributors, Eclipse Public License 1.0.
+const REQ_NOT_FOUND = {};
+
+// Like arity-2 get, but throws if key not present.
+export function req_BANG_(m, k) {
+  const v = get(m, k, REQ_NOT_FOUND);
+  if (v === REQ_NOT_FOUND) throw new Error('Missing required key: ' + k);
+  return v;
+}
+
+// Returns a map with only the non-nil values of m, or nil if there are none.
+export function some_vals(m) {
+  if (m == null) return null;
+  let ret = null;
+  for (const [k, v] of iterable(m)) {
+    if (v !== null && v !== undefined) {
+      if (ret === null) ret = {};
+      ret[k] = v;
+    }
+  }
+  return ret;
+}
+
 // https://clojure.org/reference/special_forms#keyword-arguments
 export function seq_to_map_for_destructuring(s) {
   const arr = Array.isArray(s) ? s : [...iterable(s)];
@@ -2325,7 +2350,7 @@ export function array_QMARK_(x) {
   return Array.isArray(x);
 }
 
-const CONCAT_DONE = /* @__PURE__ */ Symbol('concat-done');
+const CONCAT_DONE = {};
 
 function concat1(colls) {
   // chunk-aware: pass each coll's chunks through, preserving chunkedness. Each
@@ -2978,7 +3003,7 @@ export function distinct(coll) {
   });
 }
 
-const DEDUPE_NONE = /* @__PURE__ */ Symbol('dedupe-none');
+const DEDUPE_NONE = {};
 
 function dedupe1() {
   return transducer((rf) => {
