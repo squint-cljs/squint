@@ -9,8 +9,7 @@
 ;;   software.
 
 (ns squint.internal.fn
-  {:clj-kondo/config '{:linters {:discouraged-var {clojure.core/gensym {:level :off}}}}}
-  (:require [squint.internal.destructure :refer [mark-rest-args]]))
+  {:clj-kondo/config '{:linters {:discouraged-var {clojure.core/gensym {:level :off}}}}})
 
 #?(:cljs (def Exception js/Error))
 
@@ -63,7 +62,7 @@
                            :variadic? variadic?
                            :impl-sym (gensym "impl")
                            :fixed (if variadic? (subvec clean 0 (dec (count clean))) clean)
-                           :rest-target (when variadic? (mark-rest-args (peek clean)))}))
+                           :rest-target (when variadic? (peek clean))}))
                       fdecl)
         variadic (first (filter :variadic? methods))
         maxfa (when variadic (count (:fixed variadic)))
@@ -110,7 +109,7 @@
                {:squint.compiler/no-rename true :async async :gen gen})
         sig (vec (remove '#{&} arglist))
         fixed (subvec sig 0 (dec (count sig)))
-        rest-target (mark-rest-args (peek sig))
+        rest-target (peek sig)
         ;; the facade takes plain params and passes them through; impl does any
         ;; destructuring. Splicing the fixed params (which may be destructuring
         ;; forms) into the impl CALL would emit them as literals, not values.

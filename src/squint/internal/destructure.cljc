@@ -11,12 +11,6 @@
 (ns squint.internal.destructure
   (:refer-clojure :exclude [destructure]))
 
-(defn mark-rest-args
-  "Marks a binding form that receives rest args. An associative one then
-  destructures the kwargs those args stand for, rather than the args."
-  [b]
-  (cond-> b (map? b) (vary-meta assoc ::rest-args true)))
-
 (defn destructure [env bindings]
   (let [gensym (:gensym env)
         bents (partition 2 bindings)
@@ -37,7 +31,7 @@
                          (if (seq bs)
                            (let [firstb (first bs)]
                              (cond
-                               (= '& firstb) (recur (pb ret (mark-rest-args (second bs)) gseq)
+                               (= '& firstb) (recur (pb ret (second bs) gseq)
                                                     n
                                                     (nnext bs)
                                                     true)
@@ -66,16 +60,19 @@
                            gmap (gensym "map__")
                            defaults (:or b)]
                        (loop [ret (-> bvec (conj gmap) (conj v)
-                                      ;; Clojure asks seq? here on every map
-                                      ;; destructuring; the rest binding is known
-                                      ;; at compile time, so only kwargs pay. No
-                                      ;; args is nil, and stays nil as in Clojure
-                                      (cond-> (::rest-args (meta b))
-                                        (-> (conj gmap)
-                                            (conj (list 'if
-                                                        (list 'cljs.core/nil? gmap)
-                                                        gmap
-                                                        (list 'cljs.core/seq-to-map-for-destructuring gmap)))))
+                                      (conj gmap)
+                                      ;; kwargs: (defn f [& {:keys [a]}]) sees the
+                                      ;; rest args, so turn them into a map first.
+                                      ;; Clojure guards this with seq?, but squint's
+                                      ;; seq? is iterator-based and so covers js/Map
+                                      ;; and Set, which destructure as maps.
+                                      ;; sequential? also covers vectors, which
+                                      ;; Clojure leaves alone: rest args are a plain
+                                      ;; array here, so the two are indistinguishable
+                                      (conj (list 'if
+                                                  (list 'cljs.core/sequential? gmap)
+                                                  (list 'cljs.core/seq-to-map-for-destructuring gmap)
+                                                  gmap))
                                       ((fn [ret]
                                          (if (:as b)
                                            (conj ret (:as b) gmap)
