@@ -392,18 +392,13 @@ export const array_map = hash_map;
 export function seq_to_map_for_destructuring(s) {
   // rest args are an array, or a seq when the fn was reached through apply
   const arr = Array.isArray(s) ? s : [...iterable(s)];
-  if (arr.length < 2) return arr.length === 0 ? {} : arr[0];
-  // an odd count means a trailing map after the key/value pairs
-  const trailing = arr.length % 2 === 1;
-  const n = trailing ? arr.length - 1 : arr.length;
+  const n = arr.length;
+  if (n < 2) return n ? arr[0] : {};
   const m = {};
   for (let i = 0; i < n; i += 2) {
-    m[arr[i]] = arr[i + 1];
-  }
-  if (trailing) {
-    for (const [k, v] of iterable(arr[n])) {
-      m[k] = v;
-    }
+    // an odd count leaves a trailing map after the key/value pairs
+    if (i === n - 1) for (const [k, v] of iterable(arr[i])) m[k] = v;
+    else m[arr[i]] = arr[i + 1];
   }
   return m;
 }
