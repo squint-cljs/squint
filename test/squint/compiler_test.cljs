@@ -8,6 +8,7 @@
    [promesa.core :as p]
    [squint.compiler :as squint]
    [squint.dce-test]
+   [squint.destructure-test]
    [squint.edn-test]
    [squint.html-test]
    [squint.jsx-test]
@@ -4488,4 +4489,5 @@ new Foo();")
                'squint.walk-test
                'squint.multi-test
                'squint.dce-test
+               'squint.destructure-test
                'squint.edn-test))
