@@ -3859,7 +3859,12 @@ new Foo();")
     (is (nil? (jsv! "(defn f [& {:as m}] m) (f)"))))
   (testing "ordinary map destructuring is untouched, including js/Map"
     (is (= 1 (jsv! "(let [{:keys [a]} {:a 1}] a)")))
-    (is (= 1 (jsv! "(let [{:keys [a]} (js/Map. [[\"a\" 1]])] a)")))))
+    (is (= 1 (jsv! "(let [{:keys [a]} (js/Map. [[\"a\" 1]])] a)")))
+    (testing "and emits no conversion, so only kwargs pay for it"
+      (is (not (str/includes? (squint/compile-string "(defn f [{:keys [a]}] a)")
+                              "seq_to_map_for_destructuring")))
+      (is (str/includes? (squint/compile-string "(defn f [& {:keys [a]}] a)")
+                         "seq_to_map_for_destructuring")))))
 
 (deftest arrow-fn-test
   (is (true? (jsv! "(def obj {:a (fn [] (this-as this this))}) (= obj (.a obj))")))
