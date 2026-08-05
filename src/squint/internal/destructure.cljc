@@ -66,16 +66,26 @@
                            gmap (gensym "map__")
                            defaults (:or b)]
                        (loop [ret (-> bvec (conj gmap) (conj v)
-                                      ;; rest args are a plain array, which no
-                                      ;; runtime test tells from a vector; the
-                                      ;; binding form is what says they are
-                                      ;; kwargs. No args is nil, and stays nil
-                                      (cond-> (::rest-args (meta b))
-                                        (-> (conj gmap)
-                                            (conj (list 'if
-                                                        (list 'cljs.core/nil? gmap)
-                                                        gmap
-                                                        (list 'cljs.core/seq-to-map-for-destructuring gmap)))))
+                                      (conj gmap)
+                                      (conj
+                                       (if (::rest-args (meta b))
+                                         ;; rest args are a plain array, which no
+                                         ;; runtime test tells from a vector; the
+                                         ;; binding form is what says they are
+                                         ;; kwargs. No args is nil, and stays nil
+                                         (list 'if (list 'cljs.core/nil? gmap)
+                                               gmap
+                                               (list 'cljs.core/seq-to-map-for-destructuring gmap))
+                                         ;; a seq destructured as a map is kwargs,
+                                         ;; as in Clojure. squint's seq? is
+                                         ;; iterator-based, so rule out the
+                                         ;; associatives (vector, js/Map) that
+                                         ;; Clojure's ISeq test rejects
+                                         (list 'if (list 'cljs.core/seq? gmap)
+                                               (list 'if (list 'cljs.core/associative? gmap)
+                                                     gmap
+                                                     (list 'cljs.core/seq-to-map-for-destructuring gmap))
+                                               gmap)))
                                       ((fn [ret]
                                          (if (:as b)
                                            (conj ret (:as b) gmap)

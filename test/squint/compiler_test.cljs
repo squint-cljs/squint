@@ -126,7 +126,7 @@
     (testing "vararg fixed arity"
       (is (nil? (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2)) {:repl repl}))))
     (testing "vararg vararg arity"
-      (is (eq #js [3 4] (jsv! '(let [f (fn foo [x y & zs] zs)] (f 1 2 3 4)) {:repl repl}))))
+      (is (true? (jsv! '(let [f (fn foo [x y & zs] zs)] (= [3 4] (f 1 2 3 4))) {:repl repl}))))
     (testing "multi vararg fixed arity"
       (is (eq 1 (jsv! '(let [f (fn foo
                                  ([y] 1)
@@ -134,10 +134,10 @@
                          (f 1))
                       {:repl repl}))))
     (testing "multi vararg vararg arity"
-      (is (eq [2] (jsv! '(let [f (fn foo
+      (is (true? (jsv! '(let [f (fn foo
                                    ([y] 1)
                                    ([y & zs] zs))]
-                           (f 1 2)) {:repl repl}))))))
+                           (= [2] (f 1 2))) {:repl repl}))))))
 
 (deftest fn-multi-arity-test
   (is (= 1 (jsv! '(let [f (fn foo ([x] x) ([x y] y))] (f 1)))))
@@ -146,7 +146,7 @@
 
 (deftest fn-multi-varargs-test
   (is (= 1 (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1)))))
-  (is (eq '(3 4) (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1 2 3 4)))))
+  (is (true? (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (= '(3 4) (f 1 2 3 4))))))
   (is (nil? (jsv! '(let [f (fn foo ([x] x) ([x y & zs] zs))] (f 1 2))))))
 
 (deftest defn-test
@@ -184,17 +184,16 @@
     (is (zero? (js/eval s)))))
 
 (deftest defn-varargs-test
-  (let [s (jss! '(do (defn foo [x & args] args) (foo 1 2 3)))]
-    (is (eq '(2 3) (js/eval s)))))
+  (let [s (jss! '(do (defn foo [x & args] args) (= '(2 3) (foo 1 2 3))))]
+    (is (true? (js/eval s)))))
 
 (deftest defn-multi-varargs-test
-  (is (eq [1 [1 2 '(3 4)]]
-          (js/eval
-           (jss! '(do (defn foo
-                        ([x] x)
-                        ([x y & args]
-                         [x y args]))
-                      [(foo 1) (foo 1 2 3 4)]))))))
+  (is (true? (js/eval
+              (jss! '(do (defn foo
+                           ([x] x)
+                           ([x y & args]
+                            [x y args]))
+                         (= [1 [1 2 '(3 4)]] [(foo 1) (foo 1 2 3 4)])))))))
 
 (deftest loop-test
   (let [s (jss! '(loop [x 1] (+ 1 2 x)))]
@@ -2695,15 +2694,15 @@ with `backticks`")))]
 (deftest variadic-native-rest-test
   ;; variadic fns use native JS rest params; empty rest is nil (CLJS-compat)
   (is (eq [1 nil] (jsv! '(let [foo (fn [x & xs] [x xs])] (foo 1)))))
-  (is (eq [1 [2 3]] (jsv! '(let [foo (fn [x & xs] [x xs])] (foo 1 2 3)))))
+  (is (true? (jsv! '(let [foo (fn [x & xs] [x xs])] (= [1 [2 3]] (foo 1 2 3))))))
   ;; apply does the fixed/rest split, passing the rest as a seq (no spread)
   (is (eq [1 [2 3]] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo [1 2 3])))))
   (is (eq [1 [2 3]] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo 1 [2 3])))))
   (is (eq [1 nil] (jsv! '(let [foo (fn [x & xs] [x xs])] (apply foo [1])))))
   ;; destructured FIXED params: the facade must pass values through to impl, not
   ;; splice the destructuring forms into the call (regression: replicant/clojure-mode)
-  (is (eq [1 2 3 [4 5]]
-          (jsv! '(let [f (fn [{:keys [a b]} c & xs] [a b c xs])] (f {:a 1 :b 2} 3 4 5)))))
+  (is (true? (jsv! '(let [f (fn [{:keys [a b]} c & xs] [a b c xs])]
+                      (= [1 2 3 [4 5]] (f {:a 1 :b 2} 3 4 5))))))
   (is (eq [1 2 3 [4 5]]
           (jsv! '(let [f (fn [{:keys [a b]} c & xs] [a b c xs])] (apply f {:a 1 :b 2} 3 [4 5])))))
   ;; concat uses the same VARIADIC hook; apply with prefix args must prepend them
