@@ -3857,12 +3857,14 @@ new Foo();")
     (is (= 42 (jsv! "(defn f [& {:keys [a] :or {a 42}}] a) (f)")))
     (is (eq #js {"a" 1 "b" 2} (jsv! "(defn f [& {:as m}] m) (f :a 1 :b 2)")))
     (is (nil? (jsv! "(defn f [& {:as m}] m) (f)"))))
-  (testing "on rest args that reach the destructuring through a local"
-    (is (= 1 (jsv! "(defn f [& args] (let [{:keys [a]} args] a)) (f :a 1)")))
-    (is (= 1 (jsv! "(let [{:keys [a]} (list :a 1)] a)"))))
   (testing "ordinary map destructuring is untouched, including js/Map"
     (is (= 1 (jsv! "(let [{:keys [a]} {:a 1}] a)")))
-    (is (= 1 (jsv! "(let [{:keys [a]} (js/Map. [[\"a\" 1]])] a)")))))
+    (is (= 1 (jsv! "(let [{:keys [a]} (js/Map. [[\"a\" 1]])] a)")))
+    (testing "and emits no conversion, so only kwargs pay for it"
+      (is (not (str/includes? (squint/compile-string "(defn f [{:keys [a]}] a)")
+                              "seq_to_map_for_destructuring")))
+      (is (str/includes? (squint/compile-string "(defn f [& {:keys [a]}] a)")
+                         "seq_to_map_for_destructuring")))))
 
 (deftest arrow-fn-test
   (is (true? (jsv! "(def obj {:a (fn [] (this-as this this))}) (= obj (.a obj))")))
