@@ -388,6 +388,28 @@ export function hash_map(...kvs) {
 
 export const array_map = hash_map;
 
+const REQ_NOT_FOUND = /* @__PURE__ */ Symbol('squint.core/req-not-found');
+
+// Like arity-2 get, but throws if key not present.
+export function req_BANG_(m, k) {
+  const v = get(m, k, REQ_NOT_FOUND);
+  if (v === REQ_NOT_FOUND) throw new Error('Missing required key: ' + k);
+  return v;
+}
+
+// Returns a map with only the non-nil values of m, or nil if there are none.
+export function some_vals(m) {
+  if (m == null) return null;
+  let ret = null;
+  for (const [k, v] of iterable(m)) {
+    if (v !== null && v !== undefined) {
+      if (ret === null) ret = {};
+      ret[k] = v;
+    }
+  }
+  return ret;
+}
+
 // https://clojure.org/reference/special_forms#keyword-arguments
 export function seq_to_map_for_destructuring(s) {
   const arr = Array.isArray(s) ? s : [...iterable(s)];
