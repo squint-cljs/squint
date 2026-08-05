@@ -135,7 +135,17 @@
         async? (:async mf)
         gen? (:gen mf)
         static? (:static mf)
+        get? (:get mf)
+        set? (:set mf)
         env (if async? (assoc env :async async?) env)]
+    (when (and get? set?)
+      (throw (ex-info (str "defclass: " fn-name " cannot be both a getter and a setter") {})))
+    (when (and (or get? set?) (or async? gen?))
+      (throw (ex-info (str "defclass: " fn-name " cannot combine get or set with async or gen") {})))
+    (when (and get? (seq arglist))
+      (throw (ex-info (str "defclass: getter " fn-name " takes no arguments") {})))
+    (when (and set? (not= 1 (count arglist)))
+      (throw (ex-info (str "defclass: setter " fn-name " takes exactly one argument") {})))
     (async-fn async?
               (fn []
                 (str
@@ -144,6 +154,8 @@
                  (when async?
                    "async ")
                  (when gen? "* ")
+                 (when get? "get ")
+                 (when set? "set ")
                  (munge fn-name) "("
                  (str/join ", " (emit-args env emit-fn arglist))
                  ") { \n"

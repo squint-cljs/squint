@@ -32,6 +32,9 @@ possible. The syntax is inspired by
   (^:async fetch [_]
     (js/fetch "https://clojure.org"))
 
+  (^:get doubled [_] (* 2 -y))
+  (^:set doubled [_ v] (set! -y (/ v 2)))
+
   (toString [this] (str "<<<<" (.dude this) ">>>>") ))
 
 (def c (new Class2 1 2))
