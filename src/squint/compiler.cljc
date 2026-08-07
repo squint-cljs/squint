@@ -303,7 +303,7 @@
                    (set? fexpr))
                (let [[obj k & args] expr]
                  (emit (list* 'clojure.core/get obj k args) env))
-               (list? expr)
+               (seq? expr)
                (cc/emit-special 'funcall env expr)
                :else
                (throw (new Exception (str "invalid form: " expr))))))

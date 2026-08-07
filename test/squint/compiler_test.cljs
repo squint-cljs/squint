@@ -2832,7 +2832,22 @@ globalThis.foo.fs = fs;")))))
       (let [s (squint/compile-string "(ns foo.main (:require [foo.core :refer [render-game]])) (def render-game 1) render-game"
                                      {:repl true
                                       :resolve-ns (fn [sym] (when (= 'foo.core sym) "./foo/core.js"))})]
-        (is (str/includes? s "globalThis.foo.main.render_game"))))))
+        (is (str/includes? s "globalThis.foo.main.render_game")))))
+  (testing "a require registers only its own aliases: an earlier alias var is
+            scoped to the IIFE of the eval that created it"
+    (let [opts {:repl true :elide-exports true}
+          first-eval (squint/compile-string* "(require '[\"lib-a\" :as a])" opts nil)
+          js (:javascript (squint/compile-string* "(require '[\"lib-b\" :as b])" opts first-eval))]
+      (is (str/includes? js "globalThis.user.b = b"))
+      (is (not (str/includes? js "globalThis.user.a = a"))))))
+
+(deftest let-shadow-rename-test
+  ;; shadowed bindings rename with a _ separator; top-level renames append a
+  ;; bare gensym number. Same-shape suffixes collided when the two counters
+  ;; produced the same digits (seq__3 -> seq__37 from both).
+  (let [js (squint/compile-string "(let [x 1] (let [x 2] (prn x)))" {:repl true})]
+    (is (re-find #"let x\d+ = 1" js))
+    (is (re-find #"const x_\d+ = 2" js))))
 
 (deftest import-attributes-test
   (is (str/includes? (jss! "(ns foo (:require [\"./foo.json\" :with {:type :json}]))" {:elide-imports false})

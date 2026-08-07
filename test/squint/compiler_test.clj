@@ -31,6 +31,26 @@
          (edn/read-string
           (format "[%s]" (test-expr "(vec (for [i (range 10)] (println i)))"))))))
 
+(deftest jvm-host-macro-test
+  ;; syntax-quoted core vars in macro expansions must resolve to the core
+  ;; module on the JVM host, not to the macro's own namespace
+  (let [js (to-js "(time (prn :timed))
+                   (doseq [x [1 2 3]] (prn x))
+                   (defn f ([x] x) ([x & ys] ys))
+                   (defprotocol P (pfoo [x]))
+                   (deftype T [] P (pfoo [_] :pfoo))
+                   (with-out-str (print :out))"
+                  {})]
+    (is (not (str/includes? js ".internal."))))
+  (is (str/includes? (test-expr "(time (prn :timed))") "Elapsed time"))
+  (is (str/includes? (test-expr "(doseq [x [1 2 3]] (prn x))") "3"))
+  (is (str/includes? (test-expr "(defn f ([x] x) ([x & ys] ys)) (prn (f 1 2 3))") "[2 3]"))
+  (is (str/includes? (test-expr "(defprotocol P (pfoo [x]))
+                                 (deftype T [] P (pfoo [_] :pfoo))
+                                 (prn (pfoo (->T)))")
+                     "pfoo"))
+  (is (str/includes? (test-expr "(prn (with-out-str (print :out)))") "out")))
+
 (def our-ns *ns*)
 (defn run-tests [_]
   (let [{:keys [fail error]}
