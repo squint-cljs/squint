@@ -2850,6 +2850,27 @@ globalThis.foo.fs = fs;")))))
         (is (not (str/includes? s "squint_DOT_core")))
         (is (str/includes? s "globalThis.foo.a = a"))))))
 
+(deftest core-ns-alias-test
+  (testing "a core ns binds no module, so its alias resolves to the core var"
+    (doseq [opts [{} {:repl true}]]
+      (testing "in call position"
+        (is (str/includes? (squint/compile-string "(ns foo (:require [squint.core :as sc])) (sc/inc 1)" opts)
+                           "(1 + 1)")))
+      (testing "as a value"
+        (let [s (squint/compile-string "(ns foo (:require [squint.core :as sc])) (map sc/inc [1 2])" opts)]
+          (is (str/includes? s "squint_core.inc"))
+          (is (not (str/includes? s "sc.inc")))))
+      (testing "fully qualified as a value"
+        (let [s (squint/compile-string "(ns foo (:require [squint.core])) (map squint.core/inc [1 2])" opts)]
+          (is (str/includes? s "squint_core.inc"))
+          (is (not (str/includes? s "squint.core.inc")))))
+      (testing "a macro through the alias"
+        (is (str/includes? (squint/compile-string "(ns foo (:require [squint.core :as sc])) (sc/defclass Bar (extends js/Object))" opts)
+                           "class Bar$ extends Object")))))
+  (testing "cljs.core keeps binding its alias to the module"
+    (let [s (squint/compile-string "(ns foo (:require [cljs.core :as cc])) (map cc/inc [1 2])")]
+      (is (str/includes? s "cc.inc")))))
+
 (deftest let-shadow-rename-test
   ;; shadowed bindings rename with a _ separator; top-level renames append a
   ;; bare gensym number. Same-shape suffixes collided when the two counters

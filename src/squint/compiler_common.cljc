@@ -589,7 +589,12 @@
               expr (if-let [sym-ns (some-> (namespace expr) munge)]
                      (let [sn (symbol (name expr))]
                        (or (when (or (= "cljs.core" sym-ns)
-                                     (= "clojure.core" sym-ns))
+                                     (= "clojure.core" sym-ns)
+                                     ;; a core ns binds no module, so an alias of
+                                     ;; one resolves to the core var too
+                                     (implicit-core-ns? (symbol sym-ns))
+                                     (implicit-core-ns?
+                                      (get-in ns-state [current :ns-aliases (symbol sym-ns)])))
                              (some-> (maybe-core-var sn env) munge))
                            (when (= "js" sym-ns)
                              (munge* (name expr)))
@@ -974,10 +979,24 @@
 (defn unwrap [s]
   (str/replace (str s) #"^\(|\)$" ""))
 
+(defn- register-core-ns-alias!
+  "Registers `the-alias` as an alias of core ns `libname`, so alias-qualified
+  core symbols strip to their bare name. Core vars are always in scope, so this
+  emits no code and returns nil."
+  [env the-alias libname]
+  (when the-alias
+    (swap! (:ns-state env)
+           (fn [ns-state]
+             (let [current (:current ns-state)]
+               (update-in ns-state [current :ns-aliases]
+                          (fn [m] ((fnil assoc {}) m the-alias libname)))))))
+  nil)
+
 (defn process-require-clause [env current-ns-name libspec]
   (let [libspec (if (symbol? libspec) [libspec] libspec)
         [libname & {:keys [rename refer as with as-alias]}] libspec]
-  (when-not (implicit-core-ns? libname)
+  (if (implicit-core-ns? libname)
+    (register-core-ns-alias! env (or as as-alias) libname)
     (let [env (expr-env env)
           original-libname libname
           libname (resolve-ns env libname)
