@@ -528,6 +528,12 @@
   [target alias]
   (contains? (get library-imports target) alias))
 
+(defn implicit-core-ns?
+  "True when `libname` is the dialect's own core ns. Its vars are already in
+  scope, so a require of it emits no import and binds no alias."
+  [libname]
+  (contains? '#{squint.core cherry.core} libname))
+
 (defn resolve-ns [env alias]
   (let [import-maps (:import-maps env)
         target (:target env)]
@@ -583,7 +589,12 @@
               expr (if-let [sym-ns (some-> (namespace expr) munge)]
                      (let [sn (symbol (name expr))]
                        (or (when (or (= "cljs.core" sym-ns)
-                                     (= "clojure.core" sym-ns))
+                                     (= "clojure.core" sym-ns)
+                                     ;; a core ns binds no module, so an alias of
+                                     ;; one resolves to the core var too
+                                     (implicit-core-ns? (symbol sym-ns))
+                                     (implicit-core-ns?
+                                      (get-in ns-state [current :ns-aliases (symbol sym-ns)])))
                              (some-> (maybe-core-var sn env) munge))
                            (when (= "js" sym-ns)
                              (munge* (name expr)))
@@ -968,10 +979,24 @@
 (defn unwrap [s]
   (str/replace (str s) #"^\(|\)$" ""))
 
+(defn- register-core-ns-alias!
+  "Registers `the-alias` as an alias of core ns `libname`, so alias-qualified
+  core symbols strip to their bare name. Core vars are always in scope, so this
+  emits no code and returns nil."
+  [env the-alias libname]
+  (when the-alias
+    (swap! (:ns-state env)
+           (fn [ns-state]
+             (let [current (:current ns-state)]
+               (update-in ns-state [current :ns-aliases]
+                          (fn [m] ((fnil assoc {}) m the-alias libname)))))))
+  nil)
+
 (defn process-require-clause [env current-ns-name libspec]
   (let [libspec (if (symbol? libspec) [libspec] libspec)
         [libname & {:keys [rename refer as with as-alias]}] libspec]
-  (when-not (contains? '#{squint.core cherry.core} libname)
+  (if (implicit-core-ns? libname)
+    (register-core-ns-alias! env (or as as-alias) libname)
     (let [env (expr-env env)
           original-libname libname
           libname (resolve-ns env libname)
@@ -1214,14 +1239,18 @@
 (defn- libspec-repl-aliases
   "Munged aliases a repl require of `libspec` binds as vars in the emitted
   code: the :as alias and, for symbol libnames, the full-name auto-alias.
-  :as-alias binds no runtime var."
+  :as-alias binds no runtime var, and neither does a core ns."
   [libspec]
   (if (or (symbol? libspec) (string? libspec))
-    (if (symbol? libspec) [(alias-munge (str libspec))] [])
+    (if (and (symbol? libspec) (not (implicit-core-ns? libspec)))
+      [(alias-munge (str libspec))]
+      [])
     (let [[libname & {:keys [as]}] libspec]
-      (cond-> []
-        as (conj (alias-munge (str as)))
-        (symbol? libname) (conj (alias-munge (str libname)))))))
+      (if (implicit-core-ns? libname)
+        []
+        (cond-> []
+          as (conj (alias-munge (str as)))
+          (symbol? libname) (conj (alias-munge (str libname))))))))
 
 (defn- libspec-global-alias
   "The alias a :require-global of `libspec` binds as a const, when any."

@@ -2839,7 +2839,37 @@ globalThis.foo.fs = fs;")))))
           first-eval (squint/compile-string* "(require '[\"lib-a\" :as a])" opts nil)
           js (:javascript (squint/compile-string* "(require '[\"lib-b\" :as b])" opts first-eval))]
       (is (str/includes? js "globalThis.user.b = b"))
-      (is (not (str/includes? js "globalThis.user.a = a"))))))
+      (is (not (str/includes? js "globalThis.user.a = a")))))
+  (testing "a squint.core require binds no alias, so none is registered"
+    (let [s (squint/compile-string "(ns foo (:require [squint.core :refer [defclass]]))"
+                                   {:repl true})]
+      (is (not (str/includes? s "squint_DOT_core"))))
+    (testing "bare, and next to another require"
+      (let [s (squint/compile-string "(ns foo (:require [squint.core] [\"lib-a\" :as a]))"
+                                     {:repl true})]
+        (is (not (str/includes? s "squint_DOT_core")))
+        (is (str/includes? s "globalThis.foo.a = a"))))))
+
+(deftest core-ns-alias-test
+  (testing "a core ns binds no module, so its alias resolves to the core var"
+    (doseq [opts [{} {:repl true}]]
+      (testing "in call position"
+        (is (str/includes? (squint/compile-string "(ns foo (:require [squint.core :as sc])) (sc/inc 1)" opts)
+                           "(1 + 1)")))
+      (testing "as a value"
+        (let [s (squint/compile-string "(ns foo (:require [squint.core :as sc])) (map sc/inc [1 2])" opts)]
+          (is (str/includes? s "squint_core.inc"))
+          (is (not (str/includes? s "sc.inc")))))
+      (testing "fully qualified as a value"
+        (let [s (squint/compile-string "(ns foo (:require [squint.core])) (map squint.core/inc [1 2])" opts)]
+          (is (str/includes? s "squint_core.inc"))
+          (is (not (str/includes? s "squint.core.inc")))))
+      (testing "a macro through the alias"
+        (is (str/includes? (squint/compile-string "(ns foo (:require [squint.core :as sc])) (sc/defclass Bar (extends js/Object))" opts)
+                           "class Bar$ extends Object")))))
+  (testing "cljs.core keeps binding its alias to the module"
+    (let [s (squint/compile-string "(ns foo (:require [cljs.core :as cc])) (map cc/inc [1 2])")]
+      (is (str/includes? s "cc.inc")))))
 
 (deftest let-shadow-rename-test
   ;; shadowed bindings rename with a _ separator; top-level renames append a
