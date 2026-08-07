@@ -2863,8 +2863,8 @@ globalThis.foo.fs = fs;")))))
 
 (deftest default-require-test
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom")]
-    (is (str/includes? js "import default$1 from 'some-js-lib'"))
-    (is (str/includes? js "const { atom } = default$1;")))
+    (is (str/includes? js "import default$_1 from 'some-js-lib'"))
+    (is (str/includes? js "const { atom } = default$_1;")))
   (let [js (squint/compile-string "(ns foo (:require [\"some-js-lib$default\" :as a :refer [atom]])) atom" {:repl true})]
     (is (str/includes? js "var { atom } = (await import('some-js-lib')).default;"))))
 
@@ -4257,7 +4257,7 @@ new Foo();")
     (testing "inlind some? via macro"
       (is (str/includes? s "!(x == null)")))
     (testing "no truth check"
-      (is (str/includes? s "if (y1)")))))
+      (is (str/includes? s "if (y_1)")))))
 
 (deftest custom-collection-protocols-test
   (testing "a deftype can act as a vector through the protocol slots"
