@@ -90,12 +90,12 @@
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
        (let [~@impl-binds
              ~name (fn [~(symbol (str "..." args-sym))]
-                     (this-as ~this-sym
+                     (cljs.core/this-as ~this-sym
                        (case (.-length ~args-sym)
                          ~@fixed-cases
                          ~default-case)))]
          ~@(when variadic
-             [`(unchecked-set ~name "squint$lang$variadic" ~(:impl-sym variadic))])
+             [`(cljs.core/unchecked-set ~name "squint$lang$variadic" ~(:impl-sym variadic))])
          ~name))))
 
 (defn- variadic-fn? [fdecl]
@@ -126,10 +126,10 @@
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
        (let [~impl ~(with-meta `(fn [~@fixed ~rest-target] ~@body) fmeta)
              ~name (fn [~@fixed-syms ~(symbol (str "..." rest-sym))]
-                     (this-as self#
+                     (cljs.core/this-as self#
                        (.call ~impl self# ~@fixed-syms
                               (if (zero? (.-length ~rest-sym)) nil ~rest-sym))))]
-         (unchecked-set ~name "squint$lang$variadic" ~impl)
+         (cljs.core/unchecked-set ~name "squint$lang$variadic" ~impl)
          ~name))))
 
 (defn core-fn

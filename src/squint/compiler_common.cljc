@@ -1737,9 +1737,9 @@ break;}" body)
         (reset! dyn true))
       (-> (format "${squint_html.css(%s,%s)}"
                   (emit (cond->> (get v :&)
-                          cherry? (list `clj->js)) (dissoc env :jsx))
+                          cherry? (list 'cljs.core/clj->js)) (dissoc env :jsx))
                   (emit (cond->> rest-opts
-                          cherry? (list `clj->js)) (dissoc env :jsx)))
+                          cherry? (list 'cljs.core/clj->js)) (dissoc env :jsx)))
           (wrap-double-quotes)))
     (let [env (assoc env :html-attr true)]
       (-> (reduce
@@ -1770,9 +1770,9 @@ break;}" body)
                      cherry? (= :cherry (:target env))]
                  (format "${squint_html.attrs(%s,%s)}"
                          (emit (cond->> (get v* :&)
-                                 cherry? (list `clj->js)) (dissoc env :jsx))
+                                 cherry? (list 'cljs.core/clj->js)) (dissoc env :jsx))
                          (emit (cond->> rest-opts
-                                 cherry? (list `clj->js)) (dissoc env :jsx)))))
+                                 cherry? (list 'cljs.core/clj->js)) (dissoc env :jsx)))))
              (str/join " "
                        (map
                         (fn [[k v]]

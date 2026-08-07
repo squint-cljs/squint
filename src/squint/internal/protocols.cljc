@@ -6,24 +6,24 @@
   ;; bound method call this[sym](..) - deftype/reify bodies rely on `this`.
   [proto-method mname method-sym qualified-name evm? args]
   (let [this (first args)
-        slot-call `((unchecked-get ~this ~method-sym) ~@args)
+        slot-call `((cljs.core/unchecked-get ~this ~method-sym) ~@args)
         miss `(throw (clojure.core/missing-protocol ~proto-method ~this))]
     `(~args
       (if (nil? ~this)
-        (let [f# (unchecked-get ~mname nil)]
-          (if (undefined? f#)
+        (let [f# (cljs.core/unchecked-get ~mname nil)]
+          (if (cljs.core/undefined? f#)
             ~miss
             (f# ~@args)))
         ~(if evm?
            ;; :extend-via-metadata: fall back to the metadata impl, looked up
            ;; under the fully-qualified method name, when the slot is absent.
            ;; Pins get+meta, so only emitted on opt-in (CLJS parity).
-           `(if (undefined? (unchecked-get ~this ~method-sym))
+           `(if (cljs.core/undefined? (cljs.core/unchecked-get ~this ~method-sym))
               (if-let [f# (get (meta ~this) ~qualified-name)]
                 (f# ~@args)
                 ~miss)
               ~slot-call)
-           `(if (undefined? (unchecked-get ~this ~method-sym))
+           `(if (cljs.core/undefined? (cljs.core/unchecked-get ~this ~method-sym))
               ~miss
               ~slot-call))))))
 
@@ -109,21 +109,21 @@
         f `(fn ~@(insert-this (rest method)))]
     (if (nil? type-sym)
       `(let [f# ~f]
-         (unchecked-set
+         (cljs.core/unchecked-set
           ~mname
           ~type-sym f#))
       `(let [f# ~f]
-         (unchecked-set
+         (cljs.core/unchecked-set
           (.-prototype ~type-sym) ~msym f#)))))
 
 (core/defn- emit-type-methods
   [env type-sym [psym pmethods]]
   (let [flag (if (nil? type-sym)
-               `(unchecked-set
+               `(cljs.core/unchecked-set
                  ~psym nil true)
-               `(unchecked-set
+               `(cljs.core/unchecked-set
                  (.-prototype ~type-sym)
-                 (unchecked-get ~psym "__sym") true))]
+                 (cljs.core/unchecked-get ~psym "__sym") true))]
     ;; (prn :flag flag)
     `(~flag
       ~@(map #(emit-type-method env psym type-sym %) pmethods))))
@@ -146,7 +146,7 @@
                             (str (name psym) "_" (name mname))))]
     ;; the protocol dispatcher passes `this` as the first argument, so the
     ;; method is a plain fn over its declared params (no `this` binding needed)
-    `(unchecked-set ~obj-sym ~msym (fn ~@(rest method)))))
+    `(cljs.core/unchecked-set ~obj-sym ~msym (fn ~@(rest method)))))
 
 (core/defn core-reify
   [_&form &env & impls]
@@ -156,7 +156,7 @@
        ~@(mapcat (core/fn [[psym methods]]
                    (core/concat
                     (when-not (= 'Object psym)
-                      [`(unchecked-set ~obj (unchecked-get ~psym "__sym") true)])
+                      [`(cljs.core/unchecked-set ~obj (cljs.core/unchecked-get ~psym "__sym") true)])
                     (map #(emit-reify-method &env obj psym %) methods)))
                  impl-map)
        ~obj)))

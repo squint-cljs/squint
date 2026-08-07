@@ -100,7 +100,7 @@
              docstring (core/str "Factory function for " rname ", taking a map of keywords to field values.")
              ms 'm]
     `(defn ~fn-name ~docstring [~ms]
-       (reduce-kv (fn [r# k# v#] (unchecked-set r# k# v#) r#)
+       (reduce-kv (fn [r# k# v#] (cljs.core/unchecked-set r# k# v#) r#)
                   (new ~rname ~@(map (core/fn [f] `(get ~ms ~(core/name f))) fields))
                   ~ms))))
 

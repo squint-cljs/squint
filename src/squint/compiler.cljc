@@ -194,7 +194,7 @@
 (defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
   (emit (list 'do #_(list 'js* (str "var " (munge name) ";\n"))
               (if (:repl env)
-                `(when-not (exists? ~(symbol (cc/current-ns env) name))
+                `(when-not (cljs.core/exists? ~(symbol (cc/current-ns env) name))
                    ~(vary-meta `(def ~name ~init)
                                assoc :squint.compiler/skip-var true))
                 (vary-meta `(def ~name ~init)
