@@ -1211,6 +1211,33 @@
                 split-name)
         :js)))
 
+(defn- libspec-repl-aliases
+  "Munged aliases a repl require of `libspec` binds as vars in the emitted
+  code: the :as alias and, for symbol libnames, the full-name auto-alias.
+  :as-alias binds no runtime var."
+  [libspec]
+  (if (or (symbol? libspec) (string? libspec))
+    (if (symbol? libspec) [(alias-munge (str libspec))] [])
+    (let [[libname & {:keys [as]}] libspec]
+      (cond-> []
+        as (conj (alias-munge (str as)))
+        (symbol? libname) (conj (alias-munge (str libname)))))))
+
+(defn- libspec-global-alias
+  "The alias a :require-global of `libspec` binds as a const, when any."
+  [libspec]
+  (let [libspec (if (symbol? libspec) [libspec] libspec)
+        [_libname & {:keys [as]}] libspec]
+    (when as [(alias-munge (str as))])))
+
+(defn- repl-alias-registrations
+  "globalThis.<ns>.<alias> = <alias> lines for aliases bound by this form.
+  Only this form's clauses: aliases from earlier repl evals are vars in
+  earlier evals' scopes and no longer resolve."
+  [ns-obj aliases]
+  (str/join (map (fn [a] (str ns-obj "." a " = " a ";\n"))
+                 (distinct aliases))))
+
 (defmethod emit-special 'ns [_type env [_ns name & clauses]]
   (let [mname (munge name)
         ensure-obj (ensure-global mname)
@@ -1238,41 +1265,25 @@
              ""
              clauses)
      (when (:repl env)
-       (str
-        (reduce-kv (fn [acc k _v]
-                     (if (symbol? k)
-                       (str acc
-                            ns-obj "." (alias-munge k) " = " (alias-munge k) ";\n")
-                       acc))
-                   ""
-                   (get-in @(:ns-state env) [name :aliases])))))))
+       (repl-alias-registrations
+        ns-obj
+        (mapcat (fn [[k & exprs]]
+                  (cond
+                    (= :require k) (mapcat libspec-repl-aliases exprs)
+                    (= :require-global k) (mapcat libspec-global-alias exprs)
+                    :else nil))
+                clauses))))))
 
 (defmethod emit-special 'require [_ env [_ & clauses]]
   (let [clauses (map second clauses)]
     (str (str/join "" (map #(process-require-clause env (current-ns env) %) clauses))
          (when (:repl env)
            (let [mname (munge (current-ns env))
-                 split-name (str/split (str mname) #"\.")
-                 ensure-obj (-> (reduce (fn [{:keys [js nk]} k]
-                                          (let [nk (str (when nk
-                                                          (str nk ".")) k)]
-                                            {:js (str js "globalThis." nk " = globalThis." nk " || {};\n")
-                                             :nk nk}))
-                                        {}
-                                        split-name)
-                                :js)
+                 ensure-obj (ensure-global mname)
                  ns-obj (str "globalThis." mname)]
              (str
               ensure-obj
-              #_#_ns-obj " = {aliases: {}};\n"
-              (reduce-kv (fn [acc k _v]
-                           (if (symbol? k)
-                             (let [k (munge k)]
-                               (str acc
-                                    ns-obj "." #_".aliases." k " = " k ";\n"))
-                             acc))
-                         ""
-                         (get-in @(:ns-state env) [(current-ns env) :aliases]))))))))
+              (repl-alias-registrations ns-obj (mapcat libspec-repl-aliases clauses))))))))
 
 (defmethod emit-special 'str [_type env [_str & args]]
   (apply clojure.core/str (interpose " + " (emit-args env args))))
