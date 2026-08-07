@@ -2839,7 +2839,16 @@ globalThis.foo.fs = fs;")))))
           first-eval (squint/compile-string* "(require '[\"lib-a\" :as a])" opts nil)
           js (:javascript (squint/compile-string* "(require '[\"lib-b\" :as b])" opts first-eval))]
       (is (str/includes? js "globalThis.user.b = b"))
-      (is (not (str/includes? js "globalThis.user.a = a"))))))
+      (is (not (str/includes? js "globalThis.user.a = a")))))
+  (testing "a squint.core require binds no alias, so none is registered"
+    (let [s (squint/compile-string "(ns foo (:require [squint.core :refer [defclass]]))"
+                                   {:repl true})]
+      (is (not (str/includes? s "squint_DOT_core"))))
+    (testing "bare, and next to another require"
+      (let [s (squint/compile-string "(ns foo (:require [squint.core] [\"lib-a\" :as a]))"
+                                     {:repl true})]
+        (is (not (str/includes? s "squint_DOT_core")))
+        (is (str/includes? s "globalThis.foo.a = a"))))))
 
 (deftest let-shadow-rename-test
   ;; shadowed bindings rename with a _ separator; top-level renames append a
