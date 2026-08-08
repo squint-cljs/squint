@@ -2,6 +2,15 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix core var references in macro expansions on the JVM compiler path
+- Fix let rename collisions in REPL output
+- Fix "invalid form" error for expanded call forms on the JVM compiler path
+- Fix repeated REPL `require` throwing on aliases from earlier evals
+- Fix REPL `require` of squint.core registering an unbound alias
+- Resolve core ns aliases to core vars
+
 ## 0.14.207
 
 - Clojure 1.13 destructuring: `:keys!`/`:syms!`/`:strs!` for required keys, `&` inside them for keys required but not bound, `:select`, `:all`, `:defaults`, and `:or` by key. Adds `req!` and `some-vals` to core
