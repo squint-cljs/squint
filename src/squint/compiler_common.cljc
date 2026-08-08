@@ -390,14 +390,16 @@
 
 (defn dynamic-name?
   "True for an earmuffed name like *foo* - squint's convention for a dynamic
-  var. Dynamic vars compile to a box {val ...}; references read .val and
-  `binding` save/sets/restores it, which works across ESM modules (the box
-  object is shared; the import binding is never reassigned)."
+  var - and for the repl vars *e, *1, *2 and *3. Dynamic vars compile to a
+  box {val ...}; references read .val and `binding` save/sets/restores it,
+  which works across ESM modules (the box object is shared; the import
+  binding is never reassigned)."
   [sym-or-name]
   (let [s (name sym-or-name)]
-    (and (> (count s) 2)
-         (str/starts-with? s "*")
-         (str/ends-with? s "*"))))
+    (or (and (> (count s) 2)
+             (str/starts-with? s "*")
+             (str/ends-with? s "*"))
+        (contains? #{"*e" "*1" "*2" "*3"} s))))
 
 (defn resolve-import-map [import-maps lib]
   (get import-maps lib lib))
