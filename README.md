@@ -106,22 +106,24 @@ Solve [Advent of Code](https://adventofcode.com/) puzzles with squint [here](htt
 
 ### Seqs
 
-Squint does not implement Clojure seqs. Instead it uses the JavaScript
+The seq concept in Squint builds on
 [iteration
-protocols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols)
-to work with collections. What this means in practice is the following:
+protocols](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols).
 
-- `seq` takes a collection and returns an Iterable of that collection, or nil if it's empty
-- `iterable` takes a collection and returns an Iterable of that collection, even if it's empty
-- `seqable?` can be used to check if you can call either one
+Squint has lazy seqs, but a seq is not a distinct type. Next to `seq`, squint
+has `iterable`, which returns an iterable collection even when it's empty.
+Unlike in CLJS, `seq?` returns true for anything that is JS iterable, so also
+for vectors, strings and sets. To get the CLJS behavior, use
+`(and (sequential? x) (not (vector? x)))`.
 
 Most collections are iterable already, so `seq` and `iterable` will simply
 return them; an exception are objects created via `{:a 1}`, where `seq` and
 `iterable` will return the result of `Object.entries`.
 
 `first`, `rest`, `map`, `reduce` et al. call `iterable` on the collection before
-processing, and functions that typically return seqs instead return an array of
-the results.
+processing. Functions that are lazy in Clojure, like `map`, `filter`, `range`
+and `concat`, return a lazy seq. Eager ones, like `keys`, `vals`, `sort` and
+`reverse`, return an array.
 
 #### Memory usage
 
