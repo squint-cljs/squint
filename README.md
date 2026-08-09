@@ -117,8 +117,7 @@ for vectors, strings and sets. To get the CLJS behavior, use
 `(and (sequential? x) (not (vector? x)))`.
 
 Most collections are iterable already, so `seq` and `iterable` will simply
-return them; an exception are objects created via `{:a 1}`, where `seq` and
-`iterable` will return the result of `Object.entries`.
+return them.
 
 `first`, `rest`, `map`, `reduce` et al. call `iterable` on the collection before
 processing. Functions that are lazy in Clojure, like `map`, `filter`, `range`
