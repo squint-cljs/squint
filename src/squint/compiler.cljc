@@ -9,6 +9,7 @@
 ;; remove this notice, or any other, from this software.
 
 (ns squint.compiler
+  (:refer-clojure :exclude [munge])
   (:require
    #?(:clj [squint.resource :refer [edn-resource]])
    [clojure.string :as str]
@@ -17,6 +18,7 @@
                                           #?(:cljs format)
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
+   [squint.compiler.utils :refer [munge]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
    [squint.internal.destructure :refer [core-let]]

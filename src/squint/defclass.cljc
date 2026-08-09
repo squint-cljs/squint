@@ -1,6 +1,8 @@
 (ns squint.defclass
+  (:refer-clojure :exclude [munge])
   (:require [clojure.string :as str]
-            [clojure.walk :as walk]))
+            [clojure.walk :as walk]
+            [squint.compiler.utils :refer [munge]]))
 
 ;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
 ;; https://clojureverse.org/t/modern-js-with-cljs-class-and-template-literals/7450

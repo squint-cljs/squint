@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Fix [#985](https://github.com/squint-cljs/squint/issues/985): munge JS reserved words on the JVM compiler path
 - Fix core var references in macro expansions on the JVM compiler path
 - Fix let rename collisions in REPL output
 - Fix "invalid form" error for expanded call forms on the JVM compiler path

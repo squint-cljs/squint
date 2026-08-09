@@ -1,9 +1,10 @@
 (ns squint.compiler-common
+  (:refer-clojure :exclude [munge])
   (:require
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
-   [squint.compiler.utils :as utils]
+   [squint.compiler.utils :as utils :refer [munge]]
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
 
@@ -193,10 +194,10 @@
 (defn munge**
   "Same as munge but does not do any renaming of reserved words"
   [x]
-  (let [munged (str (munge x))
-        #?@(:cljs [js? (#'js-reserved? (str x))])]
-    #?(:cljs (if js? (subs munged 0 (dec (count munged))) munged)
-       :clj munged)))
+  (let [munged (str (munge x))]
+    (if (contains? utils/js-reserved-words (str x))
+      (subs munged 0 (dec (count munged)))
+      munged)))
 
 (defmethod emit nil [_ env]
   (when-not (= :statement (:context env))

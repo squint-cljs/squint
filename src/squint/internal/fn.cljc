@@ -10,7 +10,9 @@
 
 (ns squint.internal.fn
   {:clj-kondo/config '{:linters {:discouraged-var {clojure.core/gensym {:level :off}}}}}
-  (:require [squint.internal.destructure :refer [mark-rest-args]]))
+  (:refer-clojure :exclude [munge])
+  (:require [squint.compiler.utils :refer [munge]]
+            [squint.internal.destructure :refer [mark-rest-args]]))
 
 #?(:cljs (def Exception js/Error))
 

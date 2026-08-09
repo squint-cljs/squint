@@ -51,6 +51,15 @@
                      "pfoo"))
   (is (str/includes? (test-expr "(prn (with-out-str (print :out)))") "out")))
 
+(deftest js-reserved-word-test
+  ;; clojure.core/munge leaves JS reserved words alone, cljs.core/munge appends $
+  (is (str/includes? (sq/compile-string "(defn f [new] new)") "new$"))
+  (is (str/includes?
+       (sq/compile-string "(ns foo (:require [squint.core :refer [defclass]]))
+                           (defclass MyElement (extends js/HTMLElement) (constructor [this] (super)))")
+       "const this$ = this;"))
+  (is (= "1" (test-expr "(prn ((fn [this] this) 1))"))))
+
 (def our-ns *ns*)
 (defn run-tests [_]
   (let [{:keys [fail error]}

@@ -4,6 +4,7 @@
   (:require
    [clojure.core :as core]
    [clojure.string :as str]
+   [squint.compiler.utils :as utils]
    [squint.internal.protocols :as p]))
 
 (def fast-path-protocols
@@ -116,8 +117,8 @@
   (core/when-let [atm (:need-record-import env)]
     (reset! atm true))
   (core/let [r t
-             params (map (core/comp core/munge core/name) fields)
-             ctor-js (core/str "function " (core/munge (core/str t))
+             params (map (core/comp utils/munge core/name) fields)
+             ctor-js (core/str "function " (utils/munge (core/str t))
                                " (" (str/join ", " params) ") {\n"
                                (apply core/str
                                       (map (core/fn [f p]
@@ -126,7 +127,7 @@
                                "}")
              aliases (into {} (core/keep (core/fn [f]
                                             (core/let [n (core/name f)
-                                                       m (core/str (core/munge n))]
+                                                       m (core/str (utils/munge n))]
                                               (core/when-not (= m n)
                                                 [m n])))
                                           fields))]
