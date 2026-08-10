@@ -416,6 +416,19 @@
       (clojure.test cljs.test) 'cherry.test
       alias)))
 
+(defn core-macro-shadowed?
+  "True when the unqualified call head must not resolve to a core macro
+  in the current ns: a same-ns var shadows a macro (#886), and so does
+  (:refer-clojure :exclude ...). A same-ns defmacro is no runtime var
+  and must not shadow itself."
+  [head env]
+  (let [ns-state (some-> (:ns-state env) deref)
+        current-ns (get ns-state (:current ns-state))]
+    (boolean
+     (or (and (contains? current-ns head)
+              (not (:macro (get current-ns head))))
+         (contains? (:excludes current-ns) head)))))
+
 (defn lookup-macro
   "Resolve the macro fn for a namespaced or referred call head symbol, or nil.
   Consults the :macros in env (embed), the ns-state populated by the macro
