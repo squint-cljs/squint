@@ -974,7 +974,7 @@
                                                                :dev/before-load :dev/after-load])
                                            coll-tag (assoc :tag coll-tag))))))
     (if (:macro (meta name))
-      (if (:self_hosted_macros env)
+      (if (:self-hosted-macros env)
         ;; self-hosted: the macro is a real runtime fn, registered from
         ;; inside the initializer so it is in place before the var
         ;; assignment returns
@@ -1313,7 +1313,7 @@
                  ;; with self-hosted macros a macro namespace is an ordinary
                  ;; namespace: importing it registers its macros, and its
                  ;; refers resolve like any other
-                 (and (= :require-macros k) (:self_hosted_macros env))
+                 (and (= :require-macros k) (:self-hosted-macros env))
                  (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
                  (= :require-global k)
                  (str acc (str/join "" (map #(process-require-global-clause env %) exprs)))
