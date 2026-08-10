@@ -942,9 +942,7 @@
   (let [munged (str (munge* name))]
     (get-in @(:ns-state env) [(current-ns env) :var-renames munged] munged)))
 
-(defn emit-var
-  ([expr skip-var? env] (emit-var expr skip-var? env nil))
-  ([[name ?doc ?expr :as expr] _skip-var? env wrap-init]
+(defn emit-var [[name ?doc ?expr :as expr] _skip-var? env]
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
         env* (no-top-level env)
@@ -955,19 +953,22 @@
         ;; Cherry boxes user dynvars the same way.
         init (if (dynamic-name? name)
                (str "({val: " init "})")
-               init)
-        ;; hosts can wrap the initializer, e.g. to register self-hosted
-        ;; macros before the var assignment returns
-        init (if wrap-init (wrap-init init) init)]
-    (str "var " ident " = "
-         init ";\n"
-         (when (:repl env)
-           (emit-return (str "globalThis."
-                            (when (current-ns env)
-                              (str (munge (current-ns env)) "."))
-                            ident " = " ident
-                            (when (= :statement (:context env)) ";\n"))
-                        env))))))
+               init)]
+    (str "var " ident " = " init ";\n")))
+
+(defn emit-var-return
+  "What a repl gets back for a def: the var, published under its namespace.
+  Separate from `emit-var` so that whatever else a def has to do with the
+  fresh var happens before the return, which ends the compiled form."
+  [name env]
+  (when (:repl env)
+    (let [ident (var-ident env name)]
+      (emit-return (str "globalThis."
+                        (when (current-ns env)
+                          (str (munge (current-ns env)) "."))
+                        ident " = " ident
+                        (when (= :statement (:context env)) ";\n"))
+                   env))))
 
 ;; Core fns whose return value is callable as a function in CLJS. The tag drives
 ;; get routing at later call sites. 'object is a map (so get inlines to property
@@ -1033,19 +1034,19 @@
                                            coll-tag (assoc :tag coll-tag))))))
     (if (:macro (meta name))
       (if (:self-hosted-macros env)
-        ;; self-hosted: the macro is a real runtime fn, registered from
-        ;; inside the initializer so it is in place before the var
-        ;; assignment returns
+        ;; self-hosted: the macro is a real runtime fn, registered under its
+        ;; namespace so that a later compile can tell it apart from a fn
         (let [current (pr-str (str (:current @(:ns-state env))))
               nm (pr-str (str name))]
-          (emit-var more false env
-                    (fn [init]
-                      (format "(globalThis.__cherryMacros = globalThis.__cherryMacros || {}, (globalThis.__cherryMacros[%s] = globalThis.__cherryMacros[%s] || {})[%s] = %s)"
-                              current current nm init))))
+          (str (emit-var more false env)
+               (format "globalThis.__cherryMacros = globalThis.__cherryMacros || {};\nglobalThis.__cherryMacros[%s] = globalThis.__cherryMacros[%s] || {};\nglobalThis.__cherryMacros[%s][%s] = %s;\n"
+                       current current current nm (var-ident env name))
+               (emit-var-return name env)))
         ;; a macro is compile-time only; emit no runtime var (like CLJS)
         "")
       (let [skip-var? (:squint.compiler/skip-var (meta expr))]
-        (emit-var more skip-var? env)))))
+        (str (emit-var more skip-var? env)
+             (emit-var-return name env))))))
 
 (defn js-await [env more]
   (emit-return
