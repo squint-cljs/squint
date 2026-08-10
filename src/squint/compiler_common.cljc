@@ -1310,6 +1310,11 @@
                (cond
                  (= :require k)
                  (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
+                 ;; with self-hosted macros a macro namespace is an ordinary
+                 ;; namespace: importing it registers its macros, and its
+                 ;; refers resolve like any other
+                 (and (= :require-macros k) (:self_hosted_macros env))
+                 (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
                  (= :require-global k)
                  (str acc (str/join "" (map #(process-require-global-clause env %) exprs)))
                  (= :refer-global k)
