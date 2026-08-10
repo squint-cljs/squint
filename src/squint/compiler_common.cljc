@@ -884,7 +884,9 @@
   (let [munged (str (munge* name))]
     (get-in @(:ns-state env) [(current-ns env) :var-renames munged] munged)))
 
-(defn emit-var [[name ?doc ?expr :as expr] _skip-var? env]
+(defn emit-var
+  ([expr skip-var? env] (emit-var expr skip-var? env nil))
+  ([[name ?doc ?expr :as expr] _skip-var? env wrap-init]
   (let [expr (if (= 3 (count expr))
                ?expr ?doc)
         env* (no-top-level env)
@@ -895,7 +897,10 @@
         ;; Cherry boxes user dynvars the same way.
         init (if (dynamic-name? name)
                (str "({val: " init "})")
-               init)]
+               init)
+        ;; hosts can wrap the initializer, e.g. to register self-hosted
+        ;; macros before the var assignment returns
+        init (if wrap-init (wrap-init init) init)]
     (str "var " ident " = "
          init ";\n"
          (when (:repl env)
@@ -904,7 +909,7 @@
                               (str (munge (current-ns env)) "."))
                             ident " = " ident
                             (when (= :statement (:context env)) ";\n"))
-                        env)))))
+                        env))))))
 
 ;; Core fns whose return value is callable as a function in CLJS. The tag drives
 ;; get routing at later call sites. 'object is a map (so get inlines to property
@@ -970,13 +975,15 @@
                                            coll-tag (assoc :tag coll-tag))))))
     (if (:macro (meta name))
       (if (:self_hosted_macros env)
-        ;; self-hosted: the macro is a real runtime fn; register it so
-        ;; the in-realm compiler can call it during expansion
-        (let [current (str (:current @(:ns-state env)))]
-          (str (emit-var more false env)
-               (format ";\nglobalThis.__cherryMacros = globalThis.__cherryMacros || {};\n(globalThis.__cherryMacros[%s] = globalThis.__cherryMacros[%s] || {})[%s] = %s;\n"
-                       (pr-str current) (pr-str current)
-                       (pr-str (str name)) (munge* name))))
+        ;; self-hosted: the macro is a real runtime fn, registered from
+        ;; inside the initializer so it is in place before the var
+        ;; assignment returns
+        (let [current (pr-str (str (:current @(:ns-state env))))
+              nm (pr-str (str name))]
+          (emit-var more false env
+                    (fn [init]
+                      (format "(globalThis.__cherryMacros = globalThis.__cherryMacros || {}, (globalThis.__cherryMacros[%s] = globalThis.__cherryMacros[%s] || {})[%s] = %s)"
+                              current current nm init))))
         ;; a macro is compile-time only; emit no runtime var (like CLJS)
         "")
       (let [skip-var? (:squint.compiler/skip-var (meta expr))]
