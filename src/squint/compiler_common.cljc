@@ -974,7 +974,7 @@
         ;; the in-realm compiler can call it during expansion
         (let [current (str (:current @(:ns-state env)))]
           (str (emit-var more false env)
-               (format "globalThis.__cherryMacros = globalThis.__cherryMacros || {};\n(globalThis.__cherryMacros[%s] = globalThis.__cherryMacros[%s] || {})[%s] = %s;\n"
+               (format ";\nglobalThis.__cherryMacros = globalThis.__cherryMacros || {};\n(globalThis.__cherryMacros[%s] = globalThis.__cherryMacros[%s] || {})[%s] = %s;\n"
                        (pr-str current) (pr-str current)
                        (pr-str (str name)) (munge* name))))
         ;; a macro is compile-time only; emit no runtime var (like CLJS)
