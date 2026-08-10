@@ -4,6 +4,7 @@
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
+   [edamame.core :as e]
    [squint.compiler.utils :as utils :refer [munge]]
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
@@ -360,6 +361,63 @@
        (when-let [core-alias (:core-alias env)]
          (str core-alias "."))
        m))))
+
+(defn ns-form-resolution
+  "What an ns form maps a syntax-quoted symbol to: the current ns, aliases,
+  refers (in-scope name -> providing lib), imports (classname -> full
+  classname) and the (:refer-clojure :exclude ..) symbols."
+  [ns-form]
+  (let [{:keys [current aliases requires imports]} (e/parse-ns-form ns-form)]
+    {:current current
+     :aliases aliases
+     :refers (reduce (fn [acc {:keys [lib refer rename]}]
+                       (if (sequential? refer)
+                         (reduce (fn [acc sym]
+                                   (assoc acc (get rename sym sym) (symbol (str lib) (str sym))))
+                                 acc refer)
+                         acc))
+                     {} requires)
+     :imports (reduce (fn [acc {:keys [classname full-classname]}]
+                        (assoc acc classname full-classname))
+                      {} imports)
+     :excludes (set (some (fn [clause]
+                            (when (and (seq? clause) (= :refer-clojure (first clause)))
+                              (:exclude (apply hash-map (rest clause)))))
+                          ns-form))}))
+
+(defn syntax-quote-resolver
+  "The :resolve-symbol fn for syntax quote. Resolves like Clojure's reader
+  does - aliases, then method, constructor and dotted symbols as-is, then
+  refers, imports and the current ns - and qualifies a core var as
+  cljs.core/x, which is the part edamame cannot do on its own: it knows
+  nothing of an implicitly referred namespace.
+
+  Reading a file happens before compiling it, so a var the ns defines later
+  is not known here. A core name that a namespace both excludes and defines
+  therefore resolves to the current ns on the strength of the exclude alone."
+  [{:keys [current aliases refers imports excludes]} core-vars]
+  (fn [sym]
+    (let [sym-name (name sym)]
+      (if-let [sym-ns (namespace sym)]
+        (if-let [expanded (get aliases (symbol sym-ns))]
+          (symbol (str expanded) sym-name)
+          sym)
+        (cond
+          (str/starts-with? sym-name ".") sym
+          (str/ends-with? sym-name ".")
+          (if-let [c (get imports (symbol (subs sym-name 0 (dec (count sym-name)))))]
+            (symbol (str c "."))
+            sym)
+          (str/includes? sym-name ".") sym
+          :else
+          (or (get refers sym)
+              (some-> (get imports sym) str symbol)
+              (when (and (contains? core-vars (munge sym))
+                         (not (contains? excludes sym)))
+                (symbol "cljs.core" sym-name))
+              (if current
+                (symbol (str current) sym-name)
+                sym)))))))
 
 (defn resolves-to-core?
   "True when `sym` in this env really resolves to the squint core var: not

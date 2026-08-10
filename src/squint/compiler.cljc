@@ -407,18 +407,36 @@
     :read-cond :allow
     :features #{:squint :cljs}}))
 
+(defn leading-ns-form
+  "The source's own ns form, read ahead of the source itself: syntax quote
+  resolves symbols against it while reading, so it has to be known before the
+  first form is read. Only a leading ns form counts, which is where a
+  namespace declares itself. A source that does not read is left to the real
+  read to report."
+  [s opts]
+  (let [form (try (e/parse-next (e/reader s) (assoc opts :ns-state (atom nil)))
+                  (catch #?(:clj Exception :cljs :default) _ nil))]
+    (when (and (seq? form) (= 'ns (first form)))
+      form)))
+
 (defn read-forms
   ([s] (read-forms s nil))
   ([s env]
    (let [ns-state (some-> (:ns-state env) deref)
-         aliases (get-in ns-state [(:current ns-state) :aliases])]
-     ;; edamame auto-tracks the source's ns form into the :ns-state atom and
-     ;; uses it to auto-resolve keywords and syntax-quoted symbols (current ns
-     ;; + aliases), matching Clojure semantics.
-     (e/parse-string-all s (assoc squint-parse-opts
-                                  :auto-resolve-ns true
-                                  :auto-resolve (or aliases {})
-                                  :ns-state (atom {}))))))
+         aliases (get-in ns-state [(:current ns-state) :aliases])
+         opts (assoc squint-parse-opts
+                     :auto-resolve-ns true
+                     :auto-resolve (or aliases {}))
+         ;; edamame auto-tracks the source's ns form and uses it to auto-resolve
+         ;; keywords and syntax-quoted symbols, matching Clojure semantics. Its
+         ;; resolution knows nothing of core, so where the ns form is ours to
+         ;; read we resolve syntax-quoted symbols ourselves instead.
+         resolution (some-> (leading-ns-form s opts) cc/ns-form-resolution)]
+     (e/parse-string-all s (cond-> opts
+                             resolution
+                             (assoc :syntax-quote
+                                    {:resolve-symbol
+                                     (cc/syntax-quote-resolver resolution core-vars)}))))))
 
 (defn transpile*
   ([s] (transpile* s {}))

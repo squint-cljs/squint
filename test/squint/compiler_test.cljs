@@ -4524,6 +4524,25 @@ new Foo();")
     (is (= 1970 (jsv! '(do (ns foo (:refer-global :only [Date] :rename {Date my-date}))
                            (.getFullYear (my-date. 0))))))))
 
+(deftest syntax-quote-resolution-test
+  (testing "a core var qualifies to cljs.core, not to the current ns"
+    (let [s (jss! "(ns my.macros) `(map inc [1 2])")]
+      (is (str/includes? s "cljs.core/map"))
+      (is (str/includes? s "cljs.core/inc"))
+      (is (not (str/includes? s "my.macros/map")))))
+  (testing "a refer wins over the core var of the same name"
+    (is (str/includes? (jss! "(ns my.macros (:require [my.lib :refer [map]])) `(map 1)")
+                       "my.lib/map")))
+  (testing ":refer-clojure :exclude keeps the core var out"
+    (is (str/includes? (jss! "(ns my.macros (:refer-clojure :exclude [map])) `(map 1)")
+                       "my.macros/map")))
+  (testing "an alias expands to the lib it names"
+    (is (str/includes? (jss! "(ns my.macros (:require [clojure.string :as str])) `(str/join 1)")
+                       "clojure.string/join")))
+  (testing "a symbol core does not know still qualifies to the current ns"
+    (is (str/includes? (jss! "(ns my.macros) `(no-such-var 1)")
+                       "my.macros/no-such-var"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test
