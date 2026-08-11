@@ -1371,9 +1371,16 @@
                  (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
                  ;; with self-hosted macros a macro namespace is an ordinary
                  ;; namespace: importing it registers its macros, and its
-                 ;; refers resolve like any other
+                 ;; refers resolve like any other. A namespace requiring its
+                 ;; own macros - how a .cljc file carries both halves in
+                 ;; ClojureScript - already has them: importing itself here
+                 ;; would only ask for a module that is still loading.
                  (and (= :require-macros k) (:self-hosted-macros env))
-                 (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
+                 (str acc (str/join "" (keep (fn [spec]
+                                               (let [lib (if (sequential? spec) (first spec) spec)]
+                                                 (when-not (= lib name)
+                                                   (process-require-clause env name spec))))
+                                             exprs)))
                  (= :require-global k)
                  (str acc (str/join "" (map #(process-require-global-clause env %) exprs)))
                  (= :refer-global k)
