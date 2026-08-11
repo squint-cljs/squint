@@ -1034,13 +1034,13 @@
                                            coll-tag (assoc :tag coll-tag))))))
     (if (:macro (meta name))
       (if (:self-hosted-macros env)
-        ;; self-hosted: the macro is a real runtime fn, registered under its
-        ;; namespace so that a later compile can tell it apart from a fn
-        (let [current (pr-str (str (:current @(:ns-state env))))
-              nm (pr-str (str name))]
+        ;; self-hosted: the macro is a real runtime var, carrying :macro so a
+        ;; later compile can tell it apart from a fn. It is reached through
+        ;; its namespace on globalThis, which is where a macro that survives
+        ;; into runtime lives: a module compile emits none at all.
+        (let [init (list 'cljs.core/with-meta (last more) {:macro true})
+              more (concat (butlast more) [init])]
           (str (emit-var more false env)
-               (format "globalThis.__cherryMacros = globalThis.__cherryMacros || {};\nglobalThis.__cherryMacros[%s] = globalThis.__cherryMacros[%s] || {};\nglobalThis.__cherryMacros[%s][%s] = %s;\n"
-                       current current current nm (var-ident env name))
                (emit-var-return name env)))
         ;; a macro is compile-time only; emit no runtime var (like CLJS)
         "")
