@@ -124,35 +124,6 @@ processing. Functions that are lazy in Clojure, like `map`, `filter`, `range`
 and `concat`, return a lazy seq. Eager ones, like `keys`, `vals`, `sort` and
 `reverse`, return an array.
 
-#### Memory usage
-
-With respect to memory usage:
-
-- Lazy seq function results hold on to their input, so if the input contains resources that should be garbage collected, it is recommended to limit their scope and convert their results to arrays when leaving the scope:
-
-
-``` clojure
-(js/global.gc)
-
-(println (js/process.memoryUsage))
-
-(defn doit []
-  (let [x [(-> (new Array 10000000)
-               (.fill 0)) :foo :bar]
-        ;; Big array `x` is still being held on to by `y`:
-        y (rest x)]
-    (println (js/process.memoryUsage))
-    (vec y)))
-
-(println (doit))
-
-(js/global.gc)
-;; Note that big array is garbage collected now:
-(println (js/process.memoryUsage))
-```
-
-Run the above program with `node --expose-gc ./node_cli mem.cljs`
-
 ## JSX
 
 You can produce JSX syntax using the `#jsx` tag:
