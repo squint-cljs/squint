@@ -1033,11 +1033,11 @@
                                                                :dev/before-load :dev/after-load])
                                            coll-tag (assoc :tag coll-tag))))))
     (if (:macro (meta name))
-      (if (:self-hosted-macros env)
-        ;; self-hosted: the macro is a real runtime var, carrying :macro so a
-        ;; later compile can tell it apart from a fn. It is reached through
-        ;; its namespace on globalThis, which is where a macro that survives
-        ;; into runtime lives: a module compile emits none at all.
+      (if (:runtime-macros env)
+        ;; the macro is a real runtime var, carrying :macro so a later
+        ;; compile can tell it apart from a fn. It is reached through its
+        ;; namespace on globalThis, which is where a macro that survives into
+        ;; runtime lives: a module compile emits none at all.
         (let [init (list 'cljs.core/with-meta (last more) {:macro true})
               more (concat (butlast more) [init])]
           (str (emit-var more false env)
@@ -1369,13 +1369,13 @@
                (cond
                  (= :require k)
                  (str acc (str/join "" (map #(process-require-clause env name %) exprs)))
-                 ;; with self-hosted macros a macro namespace is an ordinary
-                 ;; namespace: importing it registers its macros, and its
+                 ;; with runtime macros a macro namespace is an ordinary
+                 ;; namespace: importing it brings its macros along, and its
                  ;; refers resolve like any other. A namespace requiring its
                  ;; own macros - how a .cljc file carries both halves in
                  ;; ClojureScript - already has them: importing itself here
                  ;; would only ask for a module that is still loading.
-                 (and (= :require-macros k) (:self-hosted-macros env))
+                 (and (= :require-macros k) (:runtime-macros env))
                  (str acc (str/join "" (keep (fn [spec]
                                                (let [lib (if (sequential? spec) (first spec) spec)]
                                                  (when-not (= lib name)
