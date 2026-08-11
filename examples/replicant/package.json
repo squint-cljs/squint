@@ -9,6 +9,7 @@
     "squint-cljs": "file:../../squint"
   },
   "devDependencies": {
+    "rollup-plugin-analyzer": "^4.0.0",
     "vite": "^8.0.14"
   }
 }
