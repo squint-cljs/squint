@@ -77,7 +77,7 @@
             "not" "nth" "number_QMARK_" "object_QMARK_" "quot" "reduce"
             "run_BANG_" "seq_QMARK_" "string_QMARK_" "subs" "truth_" "update_BANG_"
             "vector_QMARK_" "volatile_BANG_" "vreset_BANG_"]
-    :cap 8500 :absent ["squint.core.IWriter"]}])
+    :cap 8500 :absent ["squint.core/IWriter"]}])
 
 (deftest no-dce-floor-regression
   (doseq [{:keys [names cap absent]} cases]
