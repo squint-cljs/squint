@@ -1570,56 +1570,56 @@ export const IAtom = { __sym: IATOM_SYM };
 export const IDeref = { __sym: IDEREF_SYM };
 // method slot for (-deref x), named like the defprotocol emission so
 // (extend-type T IDeref (-deref [x] ...)) fills it
-export const IDeref__deref = /* @__PURE__ */ Symbol.for('squint.core/IDeref__deref');
+export const IDeref__deref = /* @__PURE__ */ Symbol.for('squint.core/-deref');
 export function _deref(o) {
   if (o != null && o[IDeref__deref] !== undefined) return o[IDeref__deref](o);
   return nilImpl(_deref, 'IDeref.-deref', o)(o);
 }
 export const ISeqable = { __sym: ISEQABLE_SYM };
-export const ISeqable__seq = /* @__PURE__ */ Symbol.for('squint.core/ISeqable__seq');
+export const ISeqable__seq = /* @__PURE__ */ Symbol.for('squint.core/-seq');
 
 // map-facing protocols. Each dispatches through its slot in the extension
 // path (INSTANCE_TYPE) of the corresponding core fn, so plain objects and
 // arrays never pay for them. Slot symbols are separate consts so a bundle
 // using only e.g. conj pulls one symbol, not the whole protocol set.
 export const ILookup = { __sym: /* @__PURE__ */ Symbol.for('squint.core/ILookup') };
-export const ILookup__lookup = /* @__PURE__ */ Symbol.for('squint.core/ILookup__lookup');
+export const ILookup__lookup = /* @__PURE__ */ Symbol.for('squint.core/-lookup');
 export const IAssociative = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IAssociative') };
-export const IAssociative__assoc = /* @__PURE__ */ Symbol.for('squint.core/IAssociative__assoc');
-export const IAssociative__contains_key_QMARK_ = /* @__PURE__ */ Symbol.for('squint.core/IAssociative__contains_key_QMARK_');
+export const IAssociative__assoc = /* @__PURE__ */ Symbol.for('squint.core/-assoc');
+export const IAssociative__contains_key_QMARK_ = /* @__PURE__ */ Symbol.for('squint.core/-contains-key?');
 export const IMap = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IMap') };
-export const IMap__dissoc = /* @__PURE__ */ Symbol.for('squint.core/IMap__dissoc');
+export const IMap__dissoc = /* @__PURE__ */ Symbol.for('squint.core/-dissoc');
 export const ICounted = { __sym: /* @__PURE__ */ Symbol.for('squint.core/ICounted') };
-export const ICounted__count = /* @__PURE__ */ Symbol.for('squint.core/ICounted__count');
+export const ICounted__count = /* @__PURE__ */ Symbol.for('squint.core/-count');
 export const IKVReduce = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IKVReduce') };
-export const IKVReduce__kv_reduce = /* @__PURE__ */ Symbol.for('squint.core/IKVReduce__kv_reduce');
+export const IKVReduce__kv_reduce = /* @__PURE__ */ Symbol.for('squint.core/-kv-reduce');
 export const ICollection = { __sym: /* @__PURE__ */ Symbol.for('squint.core/ICollection') };
-export const ICollection__conj = /* @__PURE__ */ Symbol.for('squint.core/ICollection__conj');
+export const ICollection__conj = /* @__PURE__ */ Symbol.for('squint.core/-conj');
 export const IEmptyableCollection = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IEmptyableCollection') };
-export const IEmptyableCollection__empty = /* @__PURE__ */ Symbol.for('squint.core/IEmptyableCollection__empty');
+export const IEmptyableCollection__empty = /* @__PURE__ */ Symbol.for('squint.core/-empty');
 export const IEquiv = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IEquiv') };
-export const IEquiv__equiv = /* @__PURE__ */ Symbol.for('squint.core/IEquiv__equiv');
+export const IEquiv__equiv = /* @__PURE__ */ Symbol.for('squint.core/-equiv');
 // set and transient protocols, same extension-path dispatch as the map-facing
 // protocols above
 export const ISet = { __sym: /* @__PURE__ */ Symbol.for('squint.core/ISet') };
-export const ISet__disjoin = /* @__PURE__ */ Symbol.for('squint.core/ISet__disjoin');
+export const ISet__disjoin = /* @__PURE__ */ Symbol.for('squint.core/-disjoin');
 export const IEditableCollection = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IEditableCollection') };
-export const IEditableCollection__as_transient = /* @__PURE__ */ Symbol.for('squint.core/IEditableCollection__as_transient');
+export const IEditableCollection__as_transient = /* @__PURE__ */ Symbol.for('squint.core/-as-transient');
 export const ITransientCollection = { __sym: /* @__PURE__ */ Symbol.for('squint.core/ITransientCollection') };
-export const ITransientCollection__conj_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/ITransientCollection__conj_BANG_');
-export const ITransientCollection__persistent_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/ITransientCollection__persistent_BANG_');
+export const ITransientCollection__conj_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/-conj!');
+export const ITransientCollection__persistent_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/-persistent!');
 export const ITransientAssociative = { __sym: /* @__PURE__ */ Symbol.for('squint.core/ITransientAssociative') };
-export const ITransientAssociative__assoc_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/ITransientAssociative__assoc_BANG_');
+export const ITransientAssociative__assoc_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/-assoc!');
 export const ITransientMap = { __sym: /* @__PURE__ */ Symbol.for('squint.core/ITransientMap') };
-export const ITransientMap__dissoc_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/ITransientMap__dissoc_BANG_');
+export const ITransientMap__dissoc_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/-dissoc!');
 export const ITransientSet = { __sym: /* @__PURE__ */ Symbol.for('squint.core/ITransientSet') };
-export const ITransientSet__disjoin_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/ITransientSet__disjoin_BANG_');
+export const ITransientSet__disjoin_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/-disjoin!');
 // metadata protocols, like CLJS: types implement the slots, plain values
 // get instance-level impls installed by with-meta
 export const IMeta = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IMeta') };
-export const IMeta__meta = /* @__PURE__ */ Symbol.for('squint.core/IMeta__meta');
+export const IMeta__meta = /* @__PURE__ */ Symbol.for('squint.core/-meta');
 export const IWithMeta = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IWithMeta') };
-export const IWithMeta__with_meta = /* @__PURE__ */ Symbol.for('squint.core/IWithMeta__with_meta');
+export const IWithMeta__with_meta = /* @__PURE__ */ Symbol.for('squint.core/-with-meta');
 // hashing (Murmur3, like CLJS). The contract: (= a b) implies (hash a) ===
 // (hash b), where = is dequal. None of this is referenced by =, so bundles
 // that only compare pay nothing.
@@ -1629,7 +1629,7 @@ export const IWithMeta__with_meta = /* @__PURE__ */ Symbol.for('squint.core/IWit
 
 // IHash: a custom type opts into value hashing
 export const IHash = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IHash') };
-export const IHash__hash = /* @__PURE__ */ Symbol.for('squint.core/IHash__hash');
+export const IHash__hash = /* @__PURE__ */ Symbol.for('squint.core/-hash');
 
 // the equality hashed collections key by: identical or -equiv, never a
 // deep compare like =
@@ -1797,9 +1797,9 @@ export function hash(o) {
 // printing protocols, like CLJS: a type prints itself through
 // (-pr-writer [obj writer opts]), writing strings via (-write writer s)
 export const IWriter = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IWriter') };
-export const IWriter__write = /* @__PURE__ */ Symbol.for('squint.core/IWriter__write');
+export const IWriter__write = /* @__PURE__ */ Symbol.for('squint.core/-write');
 export const IPrintWithWriter = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IPrintWithWriter') };
-export const IPrintWithWriter__pr_writer = /* @__PURE__ */ Symbol.for('squint.core/IPrintWithWriter__pr_writer');
+export const IPrintWithWriter__pr_writer = /* @__PURE__ */ Symbol.for('squint.core/-pr-writer');
 export function _write(writer, s) {
   if (writer != null && writer[IWriter__write] !== undefined) return writer[IWriter__write](writer, s);
   return nilImpl(_write, 'IWriter.-write', writer)(writer, s);
@@ -1809,19 +1809,19 @@ export function write_all(writer, ...ss) {
 }
 // vector-facing protocols, dispatched like the map-facing set above
 export const IStack = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IStack') };
-export const IStack__peek = /* @__PURE__ */ Symbol.for('squint.core/IStack__peek');
-export const IStack__pop = /* @__PURE__ */ Symbol.for('squint.core/IStack__pop');
+export const IStack__peek = /* @__PURE__ */ Symbol.for('squint.core/-peek');
+export const IStack__pop = /* @__PURE__ */ Symbol.for('squint.core/-pop');
 export const IIndexed = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IIndexed') };
-export const IIndexed__nth = /* @__PURE__ */ Symbol.for('squint.core/IIndexed__nth');
+export const IIndexed__nth = /* @__PURE__ */ Symbol.for('squint.core/-nth');
 export const ITransientVector = { __sym: /* @__PURE__ */ Symbol.for('squint.core/ITransientVector') };
-export const ITransientVector__pop_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/ITransientVector__pop_BANG_');
+export const ITransientVector__pop_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/-pop!');
 // marker protocol: a non-array type that counts as a vector (vector?,
 // sequential?, vec, subvec route through it)
 export const IVector = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IVector') };
 // a type converts itself in clj->js through this slot, like CLJS IEncodeJS;
 // the impl receives (x, recur) with recur a cycle-safe clj->js
 export const IEncodeJS = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IEncodeJS') };
-export const IEncodeJS__clj__GT_js = /* @__PURE__ */ Symbol.for('squint.core/IEncodeJS__clj__GT_js');
+export const IEncodeJS__clj__GT_js = /* @__PURE__ */ Symbol.for('squint.core/-clj->js');
 // marker protocol set by defrecord
 export const IRecord = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IRecord') };
 
@@ -1909,21 +1909,21 @@ function nilImpl(dispatchFn, protoMethod, o) {
   return f;
 }
 export const IReset = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IReset') };
-export const IReset__reset_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/IReset__reset_BANG_');
+export const IReset__reset_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/-reset!');
 export function _reset_BANG_(o, v) {
   if (o != null && o[IReset__reset_BANG_] !== undefined) return o[IReset__reset_BANG_](o, v);
   return nilImpl(_reset_BANG_, 'IReset.-reset!', o)(o, v);
 }
 export const ISwap = { __sym: /* @__PURE__ */ Symbol.for('squint.core/ISwap') };
-export const ISwap__swap_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/ISwap__swap_BANG_');
+export const ISwap__swap_BANG_ = /* @__PURE__ */ Symbol.for('squint.core/-swap!');
 export function _swap_BANG_(o, f, ...args) {
   if (o != null && o[ISwap__swap_BANG_] !== undefined) return o[ISwap__swap_BANG_](o, f, ...args);
   return nilImpl(_swap_BANG_, 'ISwap.-swap!', o)(o, f, ...args);
 }
 export const IWatchable = { __sym: /* @__PURE__ */ Symbol.for('squint.core/IWatchable') };
-export const IWatchable__add_watch = /* @__PURE__ */ Symbol.for('squint.core/IWatchable__add_watch');
-export const IWatchable__remove_watch = /* @__PURE__ */ Symbol.for('squint.core/IWatchable__remove_watch');
-export const IWatchable__notify_watches = /* @__PURE__ */ Symbol.for('squint.core/IWatchable__notify_watches');
+export const IWatchable__add_watch = /* @__PURE__ */ Symbol.for('squint.core/-add-watch');
+export const IWatchable__remove_watch = /* @__PURE__ */ Symbol.for('squint.core/-remove-watch');
+export const IWatchable__notify_watches = /* @__PURE__ */ Symbol.for('squint.core/-notify-watches');
 export function _add_watch(o, k, f) {
   if (o != null && o[IWatchable__add_watch] !== undefined) return o[IWatchable__add_watch](o, k, f);
   return nilImpl(_add_watch, 'IWatchable.-add-watch', o)(o, k, f);

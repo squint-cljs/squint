@@ -1,16 +1,16 @@
 (ns squint.internal.protocols
-  (:require [clojure.core :as core]
-            [squint.compiler.utils :as utils]))
+  (:require [clojure.core :as core]))
 
 (core/defn- registry-key
-  "Global-registry key for a protocol's marker or slot symbol: <ns>/<JS binding
-  name>. Two module instances of the same library must agree on the key, or
-  their protocol slots are mutually invisible. Mirrors squint.core in core.js."
+  "Global-registry key for a protocol's marker or slot symbol: the qualified
+  name as written, e.g. squint.core/-deref. Two module instances of the same
+  library must agree on the key, or their protocol slots are mutually
+  invisible. Doubles as the :extend-via-metadata lookup name."
   [env sym]
   (core/str (core/or (core/some-> env :ns :name)
                      (core/some-> env :ns-state deref :current)
                      'user)
-            "/" (utils/munge sym)))
+            "/" sym))
 
 (core/defn- emit-protocol-method-arity
   ;; NOTE: call (unchecked-get this sym) in head position so it compiles to a
@@ -39,16 +39,18 @@
               ~slot-call))))))
 
 (core/defn- emit-protocol-method
-  [env ns-name p evm? method]
+  [env _ns-name p evm? method]
   (let [mname (first method)
         method-sym (symbol (str p "_" mname))
-        qualified-name (str ns-name "/" mname)
+        ;; the registry key and the :extend-via-metadata lookup are the same
+        ;; qualified name
+        qualified-name (registry-key env mname)
         method (rest method)
         [mdocs margs] (if (string? (last method))
                         [(last method) (butlast method)]
                         [nil method])]
     `((def ~method-sym
-        (js/Symbol.for ~(registry-key env method-sym)))
+        (js/Symbol.for ~qualified-name))
       (defn ~mname
         ~@(when mdocs [mdocs])
         ~@(map #(emit-protocol-method-arity (str p "." mname) mname method-sym qualified-name evm? %) margs)))))
