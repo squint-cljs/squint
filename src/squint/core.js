@@ -438,8 +438,10 @@ const LAZY_ITERABLE_TYPE = 6;
 const INSTANCE_TYPE = 7;
 
 // type tag set in each collection ctor, read by typeConst (DCE: no instanceof).
-const TYPE_TAG = /* @__PURE__ */ Symbol.for('squint.lang/type');
-const SORTED_TAG = /* @__PURE__ */ Symbol.for('squint.lang/sorted');
+// registry keys mirror the binding name and are permanent: renaming these consts
+// changes the key and two evaluated copies of core stop recognizing each other.
+const TYPE_TAG = /* @__PURE__ */ Symbol.for('squint.core/TYPE_TAG');
+const SORTED_TAG = /* @__PURE__ */ Symbol.for('squint.core/SORTED_TAG');
 
 // @__NO_SIDE_EFFECTS__ lets a bundler drop unused defclass/withApply calls; see doc/dev/dce.md
 // @__NO_SIDE_EFFECTS__
@@ -970,7 +972,7 @@ export function seqable_QMARK_(x) {
 // arrays). We tag entries produced from a map with this marker symbol so
 // map-entry? can tell them apart from ordinary vectors. Symbol-keyed props are
 // invisible to =, into, iteration and JSON, so the effect is contained.
-const MAP_ENTRY = /* @__PURE__ */ Symbol.for('squint.lang/map-entry');
+const MAP_ENTRY = /* @__PURE__ */ Symbol.for('squint.core/MAP_ENTRY');
 
 function tagMapEntry(e) {
   e[MAP_ENTRY] = true;
