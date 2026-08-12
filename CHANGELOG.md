@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.14.208
 
 - Fix [#985](https://github.com/squint-cljs/squint/issues/985): munge JS reserved words on the JVM compiler path
 - Fix core var references in macro expansions on the JVM compiler path
@@ -11,6 +11,7 @@
 - Fix repeated REPL `require` throwing on aliases from earlier evals
 - Fix REPL `require` of squint.core registering an unbound alias
 - Resolve core ns aliases to core vars
+- Use `Symbol.for` for protocol method dispatch, so pulling in multiple copies of squint.core (e.g. via http://esm.sh/) does not break protocol dispatch
 
 ## 0.14.207
 
