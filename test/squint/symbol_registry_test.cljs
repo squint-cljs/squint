@@ -16,7 +16,12 @@
    [squint.compiler :as squint]))
 
 (def ^:private core-path
-  (str/replace (str (js/process.cwd) "/src/squint/core.js") "\\" "/"))
+  (path/join (js/process.cwd) "src" "squint" "core.js"))
+
+;; a generated module imports core by URL, not by path: the ESM loader rejects a
+;; bare Windows path ("Received protocol 'd:'")
+(def ^:private core-url
+  (.-href (url/pathToFileURL core-path)))
 
 (defn- two-instances
   "Resolves to [A B]: the module at `p`, evaluated twice."
@@ -27,9 +32,8 @@
 
 (defn- write-temp!
   [suffix contents]
-  (let [p (str/replace (path/join (.realpathSync fs (os/tmpdir))
-                                  (str "squint-registry-" (.getTime (js/Date.)) suffix))
-                       "\\" "/")]
+  (let [p (path/join (.realpathSync fs (os/tmpdir))
+                     (str "squint-registry-" (.getTime (js/Date.)) suffix))]
     (fs/writeFileSync p contents)
     p))
 
@@ -66,8 +70,9 @@
                        "(defprotocol IShape (-area [x]))\n"
                        "(deftype Sq [s] IShape (-area [_] (* s s)))\n"
                        "(defn make [n] (->Sq n))\n"))
-                 (str/replace "squint-cljs/core.js" core-path))
+                 (str/replace "squint-cljs/core.js" core-url))
           p (write-temp! ".mjs" js)]
+      (is (str/includes? js "file://") "core must be imported by URL, not by path")
       (->
        (.then (two-instances p)
               (fn [[a b]]
