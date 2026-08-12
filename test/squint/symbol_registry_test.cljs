@@ -93,3 +93,44 @@
        (.finally (fn []
                    (fs/rmSync p)
                    (done)))))))
+
+(def ^:private core-registry-keys
+  "Every Symbol.for key in core.js. These are permanent: two evaluated copies of
+   core agree only when the strings match, so a change here breaks interop
+   between squint versions. Update this list only on purpose."
+  ["squint.core/-add-watch" "squint.core/-as-transient" "squint.core/-assoc"
+   "squint.core/-assoc!" "squint.core/-clj->js" "squint.core/-conj"
+   "squint.core/-conj!" "squint.core/-contains-key?" "squint.core/-count"
+   "squint.core/-deref" "squint.core/-disjoin" "squint.core/-disjoin!"
+   "squint.core/-dissoc" "squint.core/-dissoc!" "squint.core/-empty"
+   "squint.core/-equiv" "squint.core/-hash" "squint.core/-kv-reduce"
+   "squint.core/-lookup" "squint.core/-meta" "squint.core/-notify-watches"
+   "squint.core/-nth" "squint.core/-peek" "squint.core/-persistent!"
+   "squint.core/-pop" "squint.core/-pop!" "squint.core/-pr-writer"
+   "squint.core/-remove-watch" "squint.core/-reset!" "squint.core/-seq"
+   "squint.core/-swap!" "squint.core/-with-meta" "squint.core/-write"
+   "squint.core/IAssociative" "squint.core/IAtom" "squint.core/ICollection"
+   "squint.core/ICounted" "squint.core/IDeref"
+   "squint.core/IEditableCollection" "squint.core/IEmptyableCollection"
+   "squint.core/IEncodeJS" "squint.core/IEquiv" "squint.core/IHash"
+   "squint.core/IIndexed" "squint.core/IIterable" "squint.core/IKVReduce"
+   "squint.core/ILookup" "squint.core/IMap" "squint.core/IMeta"
+   "squint.core/IPrintWithWriter" "squint.core/IRecord" "squint.core/IReset"
+   "squint.core/ISeqable" "squint.core/ISet" "squint.core/IStack"
+   "squint.core/ISwap" "squint.core/ITransientAssociative"
+   "squint.core/ITransientCollection" "squint.core/ITransientMap"
+   "squint.core/ITransientSet" "squint.core/ITransientVector"
+   "squint.core/IVector" "squint.core/IWatchable" "squint.core/IWithMeta"
+   "squint.core/IWriter" "squint.core/map-entry" "squint.core/sorted"
+   "squint.core/type"])
+
+(deftest core-registry-keys-are-stable
+  (let [found (->> (re-seq #"Symbol\.for\('([^']*)'\)" (fs/readFileSync core-path "utf8"))
+                   (map second)
+                   sort
+                   vec)
+        known (set core-registry-keys)]
+    (testing "no key was added or renamed"
+      (is (empty? (remove known found))))
+    (testing "no key was removed"
+      (is (empty? (remove (set found) core-registry-keys))))))
