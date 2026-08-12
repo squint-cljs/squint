@@ -1563,9 +1563,9 @@ export const PROTOCOL_SENTINEL = {};
 // marker protocols so (satisfies? IAtom x) works, like CLJS. Marked in the
 // constructor, not on the prototype, so no top-level mutation pins Atom
 // into bundles that do not use it.
-const IATOM_SYM = /* @__PURE__ */ Symbol.for('squint.core/IATOM_SYM');
-const IDEREF_SYM = /* @__PURE__ */ Symbol.for('squint.core/IDEREF_SYM');
-const ISEQABLE_SYM = /* @__PURE__ */ Symbol.for('squint.core/ISEQABLE_SYM');
+const IATOM_SYM = /* @__PURE__ */ Symbol.for('squint.core/IAtom');
+const IDEREF_SYM = /* @__PURE__ */ Symbol.for('squint.core/IDeref');
+const ISEQABLE_SYM = /* @__PURE__ */ Symbol.for('squint.core/ISeqable');
 export const IAtom = { __sym: IATOM_SYM };
 export const IDeref = { __sym: IDEREF_SYM };
 // method slot for (-deref x), named like the defprotocol emission so
