@@ -1,6 +1,17 @@
 (ns squint.internal.protocols
   (:require [clojure.core :as core]))
 
+(core/defn- registry-key
+  "Global-registry key for a protocol's marker or slot symbol: the qualified
+  name as written, e.g. squint.core/-deref. Two module instances of the same
+  library must agree on the key, or their protocol slots are mutually
+  invisible. Doubles as the :extend-via-metadata lookup name."
+  [env sym]
+  (core/str (core/or (core/some-> env :ns :name)
+                     (core/some-> env :ns-state deref :current)
+                     'user)
+            "/" sym))
+
 (core/defn- emit-protocol-method-arity
   ;; NOTE: call (unchecked-get this sym) in head position so it compiles to a
   ;; bound method call this[sym](..) - deftype/reify bodies rely on `this`.
@@ -28,16 +39,18 @@
               ~slot-call))))))
 
 (core/defn- emit-protocol-method
-  [ns-name p evm? method]
+  [env _ns-name p evm? method]
   (let [mname (first method)
         method-sym (symbol (str p "_" mname))
-        qualified-name (str ns-name "/" mname)
+        ;; the registry key and the :extend-via-metadata lookup are the same
+        ;; qualified name
+        qualified-name (registry-key env mname)
         method (rest method)
         [mdocs margs] (if (string? (last method))
                         [(last method) (butlast method)]
                         [nil method])]
     `((def ~method-sym
-        (js/Symbol ~(str p "_" mname)))
+        (js/Symbol.for ~qualified-name))
       (defn ~mname
         ~@(when mdocs [mdocs])
         ~@(map #(emit-protocol-method-arity (str p "." mname) mname method-sym qualified-name evm? %) margs)))))
@@ -54,8 +67,8 @@
                            (map vec (partition 2 (rest doc-and-opts))))
                      (into {} (map vec (partition 2 doc-and-opts))))]
     `(do
-       (def ~(with-meta p pmeta) {:__sym (js/Symbol ~(str p))})
-       ~@(mapcat #(emit-protocol-method ns-name p (:extend-via-metadata pmeta) %) methods))))
+       (def ~(with-meta p pmeta) {:__sym (js/Symbol.for ~(registry-key &env p))})
+       ~@(mapcat #(emit-protocol-method &env ns-name p (:extend-via-metadata pmeta) %) methods))))
 
 (core/defn ->impl-map [impls]
   (core/loop [ret {} s impls]

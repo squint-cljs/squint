@@ -16,6 +16,7 @@
    [squint.math-test]
    [squint.multi-test]
    [squint.string-test]
+   [squint.symbol-registry-test]
    [squint.walk-test]
    [squint.test-utils :refer [eq js! jss! jsv!]]))
 
@@ -4535,4 +4536,5 @@ new Foo();")
                'squint.multi-test
                'squint.dce-test
                'squint.destructure-test
-               'squint.edn-test))
+               'squint.edn-test
+               'squint.symbol-registry-test))

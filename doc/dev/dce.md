@@ -190,3 +190,16 @@ top-level mutations, not Symbols at runtime.
 - Emit named imports of only the used vars instead of `import * as` for more
   robust tree-shaking on weaker bundlers (webpack, old rollup). esbuild is
   already equal.
+- `deftype` emits the constructor and its prototype assignments as top-level
+  statements, so a type an app never constructs is retained along with the
+  protocol symbols and method bodies it references. This is the same blocker
+  `withApply` solves, in emitted user code rather than in core. Measured on a
+  module defining `IShape` with `-area` and `-name` plus one `deftype`, bundled
+  from an entry importing only `-area`: 711B. Wrapping the constructor and its
+  prototype assignments in a single `/* @__PURE__ */` IIFE that returns the
+  constructor drops it to 464B, with `shapes/-name`, the `shapes/IShape` marker
+  and both method bodies gone. Prototype methods stay shared, so there is no
+  per-instance cost, unlike branding in the constructor as `Atom` does. Not
+  done. It still needs to cover multi-protocol types, `Object` methods and
+  `defrecord`, and only esbuild 0.28 was checked. `extend-type` on an existing
+  type has no construction site to wrap, so those assignments stay top-level.

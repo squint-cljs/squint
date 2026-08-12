@@ -65,11 +65,11 @@
    {:names ["atom" "deref" "reset_BANG_" "swap_BANG_"] :cap 3600}
    ;; get/assoc/str/keyword use no lazy seqs: the lazy machinery (marked by
    ;; concat1's "concat-done" symbol) must not be pulled in.
-   {:names ["atom" "get" "assoc" "str" "keyword"] :cap 4000 :absent ["concat-done"]}
+   {:names ["atom" "get" "assoc" "str" "keyword"] :cap 4100 :absent ["concat-done"]}
    ;; conj must dispatch SortedSet by brand, not `instanceof SortedSet`. An
    ;; instanceof pins SortedSet + sort + compare (the "_elts" field is unique to
    ;; SortedSet) into every app that uses conj.
-   {:names ["conj"] :cap 2900 :absent ["_elts"]}
+   {:names ["conj"] :cap 2960 :absent ["_elts"]}
    ;; everything reagami imports from core. Reagami does not use IWriter, so
    ;; its symbol description showing up in the bundle means unused protocol
    ;; consts were not shaken out.
@@ -77,7 +77,7 @@
             "not" "nth" "number_QMARK_" "object_QMARK_" "quot" "reduce"
             "run_BANG_" "seq_QMARK_" "string_QMARK_" "subs" "truth_" "update_BANG_"
             "vector_QMARK_" "volatile_BANG_" "vreset_BANG_"]
-    :cap 8500 :absent ["squint.core.IWriter"]}])
+    :cap 8500 :absent ["squint.core/IWriter"]}])
 
 (deftest no-dce-floor-regression
   (doseq [{:keys [names cap absent]} cases]
@@ -98,7 +98,7 @@
   ;; check the source directly.
   (let [src (fs/readFileSync core "utf8")
         bad (->> (str/split-lines src)
-                 (filter #(str/includes? % "Symbol("))
+                 (filter #(re-find #"Symbol(?:\.for)?\(" %))
                  (remove #(str/includes? % "@__PURE__")))]
     (is (empty? bad)
         (str "Symbol( without @__PURE__ annotation:\n" (str/join "\n" bad)))))
