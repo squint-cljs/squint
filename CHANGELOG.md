@@ -7,7 +7,7 @@
 - Add standalone main.css
 - Add some initial global css vars (light/dark mode friendly)
 - Minor tweaks to size, layout, labels of buttons and repl mode control in sidebar
-de-emphasized panel borders
+- De-emphasized panel borders
 - Fix clipping (by scrollbar) of panel borders in right corners
 - Remove visual noise created by light background color of gutter in compiled code block
 - Add `position: fixed` mini-header in top right with “Squint Playground” label,  star counter, and light/dark theme toggle icon button. The toggle is temporarily hidden until the codemirror theme reloading is working. 
