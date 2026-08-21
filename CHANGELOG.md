@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Add `Developing Squint` section to readme
 - Add standalone main.css
 - Add some initial global css vars (light/dark mode friendly)
 - Minor tweaks to size, layout, labels of buttons and repl mode control in sidebar
