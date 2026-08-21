@@ -46,97 +46,56 @@
       }
     </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css" />
-  <style>
-    :root {
-      --teal-color: #31afd0;
-    }
-
-    body {
-      max-width: inherit;
-    }
-
-    #main {
-      display: flex;
-      flex-direction: column;
-      max-height: 90dvh;
-
-      @media screen and (min-width: 768px) {
-        overflow: auto;
-        flex-direction: row;
-      }
-    }
-
-    #editor {
-      width: 100%;
-      max-height: 90dvh;
-      max-width: calc(100dvw - 20px);
-      border: 1px solid grey;
-      border-radius: 10px;
-      overflow: auto;
-
-      @media screen and (min-width: 768px) {
-        margin-bottom: 10px;
-        width: 50%;
-      }
-    }
-
-    #sidebar {
-      width: 100%;
-      max-height: 90dvh;
-      max-width: calc(100dvw - 40px);
-      border: 1px solid grey;
-      border-radius: 10px;
-      padding: 10px;
-      margin-top: 10px;
-      overflow: auto;
-
-      @media screen and (min-width: 768px) {
-        margin-top: 0px;
-        margin-left: 10px;
-        margin-bottom: 10px;
-        width: 50%;
-      }
-    }
-
-    #result {
-      margin: 10px;
-      background: var(--button-base);
-    }
-  </style>
-
+  <link rel="stylesheet" href="./css/main.css">
   <script type="module" src="./js/main_js.mjs">
   </script>
+  <script src="./js/theme.js" defer></script>
 </head>
 
 <body>
 <div id="app"></div>
+<div id="nav">
+  <div id="squint-playground-label">
+    <span>Squint</span>
+    <span id="playground-label">Playground</span>
+  </div>
+  <div id="star-counter">
+    <a href="https://gitHub.com/squint-cljs/squint"><img
+        src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a>
+  </div>
+  <!-- Light/Dark toggle is working with the app chrome, but still need to hook-it-up with codemirror to flip the theme-->
+  <button id="theme-toggle" type="button" aria-pressed="false">☼</button>
+</div>
+<!-- <div id="controls">
+</div> -->
 <div id="main">
-    <div style="position: absolute; right: 0px; top: 0px; margin: 2px">
-      <a href="https://gitHub.com/squint-cljs/squint"><img
-          src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a>
-    </div>
     <div id="editor">
     </div>
     <div id="sidebar">
-      <button onClick="compile()">
-        Compile!
-      </button>
-      <button onClick="share()"
-        title="When sharing, the window URL will be updated to encode the code in the text editor. Copy it and share it with your friends!">
-        Share!
-      </button>
-      <button style="margin-bottom: 10px;" onClick="blankAOC()">
-        Create blank AOC Playground!
-      </button>
-
-      <br>
-      <label>REPL-mode
-        <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
-      </label>
-      <br>
-      In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter. The result will
-      appear below.
-      To evaluate the whole program at once, use Alt + Enter;
+      <div id="sidebar-controls">
+        <div class="control-group" id="compilation-controls">
+          <button onClick="compile()">
+            Compile
+          </button>
+          <label>REPL-mode
+            <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+          </label>
+        </div>
+        <div class="control-group" id="sharing-controls">
+          <button onClick="share()"
+            title="When sharing, the window URL will be updated to encode the code in the text editor. Copy it and share it with your friends!">
+            Share
+          </button>
+          <button onClick="blankAOC()">
+            Blank AOC Playground
+          </button>
+        </div>
+      </div>
+      <div id="repl-mode-desc">
+        <span>In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter.</span>
+        <span>The result will appear below.</span>
+        <span>To evaluate the whole program at once, use Alt + Enter;</span>
+      </div>
       <div id="result"></div>
       Compiled code:
       <div id="compiledCode"></div>
