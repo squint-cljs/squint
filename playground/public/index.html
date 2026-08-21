@@ -49,7 +49,6 @@
   <link rel="stylesheet" href="./css/main.css">
   <script type="module" src="./js/main_js.mjs">
   </script>
-  <script src="./js/theme.js" defer></script>
 </head>
 
 <body>
@@ -63,9 +62,12 @@
     <a href="https://gitHub.com/squint-cljs/squint"><img
         src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a>
   </div>
-  <!-- Light/Dark toggle is working with the app chrome, but still need to hook-it-up with codemirror to flip the theme
-  <button id="theme-toggle" type="button" aria-pressed="false">☼</button>
+  <!--
+   Light/Dark toggle is working with the app chrome, but still need to
+   hook-it-up with codemirror instances to flip the theme.
+   display of the element is temporarily set to none.
   -->
+  <button id="theme-toggle" style="display:none" type="button" aria-pressed="false">☼</button>
 </div>
 <!-- <div id="controls">
 </div> -->
@@ -78,9 +80,6 @@
           <button onClick="compile()">
             Compile
           </button>
-          <label>REPL-mode
-            <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
-          </label>
         </div>
         <div class="control-group" id="sharing-controls">
           <button onClick="share()"
@@ -92,16 +91,38 @@
           </button>
         </div>
       </div>
-      <div id="repl-mode-desc">
-        <span>In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter.</span>
-        <span>The result will appear below.</span>
-        <span>To evaluate the whole program at once, use Alt + Enter;</span>
+      <div id="repl-mode"> 
+        <label>
+          <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+          REPL-mode
+        </label>
+        <div id="repl-mode-desc">
+          <span>In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter.</span>
+          <span>The result will appear below.</span>
+          <span>To evaluate the whole program at once, use Alt + Enter;</span>
+        </div>
       </div>
+
       <div id="result"></div>
       Compiled code:
       <div id="compiledCode"></div>
     </div>
   </div>
 </body>
+<script>
+const toggle = document.querySelector("#theme-toggle");
 
+toggle.addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme === "dark";
+
+  if (dark) {
+    delete document.documentElement.dataset.theme;
+  } else {
+    document.documentElement.dataset.theme = "dark";
+  }
+
+  toggle.setAttribute("aria-pressed", String(!dark));
+  toggle.textContent = dark ? "☼" : "☾" ;
+});
+</script>
 </html>
