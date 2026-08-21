@@ -7,7 +7,7 @@
   --fg: light-dark(#222, #eee);
   --panel-border-color: light-dark(
     rgb(from gray r g b / 30%),
-    rgb(from gray r g b / 50%)
+    rgb(from gray r g b / 60%)
   );
   --panel-border: 1px solid var(--panel-border-color);
   color-scheme: light;
@@ -158,16 +158,22 @@ body, #editor, #sidebar {
     label {
       margin: 0;
     }
+
     button {
+      font-size: 14px;
+      font-weight: 500;
       color: var(--fg);
       background: light-dark(rgb(from currentColor r g b / 5%), rgb(from currentColor r g b / 12%));
-      border: 1px solid rgb(from currentColor r g b / 50%);
+      border: 1px solid rgb(from currentColor r g b / 20%);
       height: fit-content;
       margin: 0;
-      padding: 0.25em 0.75em;
+      padding: 0.25em 0.85em 0.35em;
       border-radius: 0.3em;
       &:hover, &:active {
-        border-color: currentColor;
+        border-color: rgb(from currentColor r g b / 40%);
+      }
+      &:focus {
+        box-shadow: none;
       }
     }
     & .control-group {
@@ -178,22 +184,49 @@ body, #editor, #sidebar {
 
   }
   
-  #repl-mode-desc {
+  #repl-mode {
+    font-size: 14px;
+    font-weight: 500;
     display: flex;
     flex-direction: column;
-    color: rgb(from currentColor r g b / 75%);
+    gap: 0.5em;
+    color: rgb(from currentColor r g b / 100%);
     label {
       margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      input {
+        margin: 0;
+        accent-color: var(--fg);
+        &:focus {
+          --focus: transparent;
+        }
+      }
+    }
+    #repl-mode-desc {
+      font-weight: normal;
+      display: flex;
+      flex-direction: column;
+      color: rgb(from currentColor r g b / 75%);
+      label {
+        margin: 0;
+      }
     }
   }
+
   .ͼ2 .cm-gutters {
     background-color: transparent;
   }
 }
 
 #result {
-  margin: 10px;
-  background: var(--button-base);
+  border: var(--panel-border);
+  border-radius: 2px;
+  padding: 0px;
+  #sidebar:has(#replCheckBox:checked) & {
+    padding: 10px;
+  }
 }
 
 #editor, #sidebar {
