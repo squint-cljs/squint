@@ -67,7 +67,9 @@
         (println js-str)
         (println "---"))
     (->
-     (js/Promise.resolve (js/eval js-str))
+     ;; eval in a callback: a SyntaxError from the compiled JS throws
+     ;; synchronously and would escape the promise chain, killing the REPL
+     (.then (js/Promise.resolve nil) (fn [] (js/eval js-str)))
      (.then (fn [^js boxed]
               (let [val (aget boxed 0)]
                 (-> (rp/pr-str-repl val)
