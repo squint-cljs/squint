@@ -6,6 +6,7 @@
 
 - Fix [#992](https://github.com/squint-cljs/squint/issues/992): emit regex literals like CLJS on the JVM compiler path
 - Fix [#994](https://github.com/squint-cljs/squint/issues/994): `:jsx-runtime` fragments refer to the imported `_Fragment` instead of a `"_Fragment"` tag string
+- Fix [#998](https://github.com/squint-cljs/squint/issues/998): test macros with a `cljs.test` require import squint's test module when a custom `:resolve-ns` is passed
 
 ## 0.14.208
 
