@@ -60,6 +60,12 @@
        "const this$ = this;"))
   (is (= "1" (test-expr "(prn ((fn [this] this) 1))"))))
 
+(deftest regex-literal-test
+  (is (str/includes? (sq/compile-string "#\"(?i)x/y\"") "/x\\/y/i"))
+  (is (str/includes? (sq/compile-string "#\"\"") "(new RegExp(\"\"))"))
+  (is (thrown? Exception (sq/compile-string "#\"[{}[]\\\"]\"")))
+  (is (= "true" (test-expr "(prn (some? (re-find #\"(?i)a/b\" \"A/B\")))"))))
+
 (def our-ns *ns*)
 (defn run-tests [_]
   (let [{:keys [fail error]}

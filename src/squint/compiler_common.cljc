@@ -263,8 +263,12 @@
       (emit-return env)
       (tagged-expr 'boolean)))
 
+;; same as cljs.compiler/emit-constant* for Pattern
 #?(:clj (defmethod emit #?(:clj java.util.regex.Pattern) [expr _env]
-          (str \/ expr \/)))
+          (if (= "" (str expr))
+            "(new RegExp(\"\"))"
+            (let [[_ flags pattern] (re-find #"^(?:\(\?([idmsux]*)\))?(.*)" (str expr))]
+              (str \/ (.replaceAll (re-matcher #"/" pattern) "\\\\/") \/ flags)))))
 
 (defmethod emit :default [expr env]
   ;; RegExp case moved here:
