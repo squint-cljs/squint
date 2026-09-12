@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Fix [#992](https://github.com/squint-cljs/squint/issues/992): emit regex literals like CLJS on the JVM compiler path
+
 ## 0.14.208
 
 - Fix [#985](https://github.com/squint-cljs/squint/issues/985): munge JS reserved words on the JVM compiler path
