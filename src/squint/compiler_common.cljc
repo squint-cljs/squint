@@ -1973,7 +1973,7 @@ break;}" body)
                       attrs)]
           (emit (list (if single-child?
                         '_jsx '_jsxs)
-                      (cond fragment? "_Fragment"
+                      (cond fragment? '_Fragment
                             (keyword? tag)
                             (name tag-name)
                             :else tag-name*)
