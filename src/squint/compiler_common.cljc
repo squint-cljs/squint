@@ -648,15 +648,12 @@
                                  nm (name expr)
                                  ;; auto-import: if ns resolves to a file, generate import on the fly
                                  auto-alias (alias-munge ns)
-                                 resolved (or (when-let [rns (:resolve-ns env)]
-                                                (rns (symbol ns)))
-                                              ;; fall back to the built-in ns->libname mapping
-                                              ;; so macro-generated qualified refs to e.g. cljs.test
-                                              ;; get an auto-import in squint output.
-                                              (let [r (resolve-ns env (symbol ns))]
-                                                (when (and (string? r)
-                                                           (not= r (str (symbol ns))))
-                                                  r)))
+                                 ;; library nss (e.g. clojure.test from test macros) win over :resolve-ns, like in the ns form
+                                 resolved (let [ns-sym (symbol ns)]
+                                            (if (library-ns? (:target env) ns-sym)
+                                              (resolve-ns env ns-sym)
+                                              (when-let [rns (:resolve-ns env)]
+                                                (rns ns-sym))))
                                  _ (when (and resolved (not (contains? aliases (symbol auto-alias))))
                                      (when-let [imports (:imports env)]
                                        (swap! imports str
