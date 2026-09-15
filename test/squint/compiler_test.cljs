@@ -3400,7 +3400,13 @@ globalThis.foo.fs = fs;")))))
   (is (eq "foo" (jsv! '(.-source (re-pattern "(?dgi)foo"))))))
 
 (deftest js-in-test
-  (is (true? (jsv! "(js-in :foo {:foo 1})"))))
+  (is (true? (jsv! "(js-in :foo {:foo 1})")))
+  (testing "embedded in another expression"
+    (is (true? (jsv! "(let [o {:a 1}] (not (js-in \"b\" o)))")))))
+
+(deftest js-typeof-test
+  (testing "embedded in another expression"
+    (is (= 6 (jsv! "(let [x \"abc\"] (.-length (js/typeof x)))")))))
 
 (deftest int-test
   (is (= 3 (jsv! "(int 3.14)"))))

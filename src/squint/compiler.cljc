@@ -166,7 +166,7 @@
        'boolean))))
 
 (defmethod emit-special 'js/typeof [_ env [_ form]]
-  (emit-return (str "typeof " (emit form (expr-env env))) env))
+  (emit-return (str "(typeof " (emit form (expr-env env)) ")") env))
 
 ;; squint has no vars; (var x) / #'x resolves to the value of x for now
 (defmethod emit-special 'var [_ env [_ form]]

@@ -1675,7 +1675,7 @@ break;}" body)
                'boolean))
 
 (defmethod emit-special 'js-in [_ env [_ key obj]]
-  (tagged-expr (emit (list 'js* "~{} in ~{}" key obj) env)
+  (tagged-expr (emit (list 'js* "(~{} in ~{})" key obj) env)
                'boolean))
 
 (defmethod emit-special 'js-yield [_ env [_ key obj]]
