@@ -300,6 +300,12 @@
         (is (not (str/includes? js "truth_")) (str "contains truth check: " input "\n" js))
         (is (eq 1 (js/eval js)))))))
 
+(deftest empty-string-truthy-test
+  (doseq [input ["(if (str nil) 1 2)" "(if (str) 1 2)" "(when (str nil) 1)"
+                 "(if (subs \"abc\" 0 0) 1 2)" "(if (name \"\") 1 2)"
+                 "(let [x (str nil)] (if x 1 2))"]]
+    (is (eq 1 (jsv! input)) input)))
+
 (deftest doseq-test
   (let [s (jss! '(let [a []]
                    (doseq [x [1 2 3]]

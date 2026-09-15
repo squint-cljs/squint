@@ -907,11 +907,7 @@
                             (when (= :statement (:context env)) ";\n"))
                         env)))))
 
-;; Core fns whose return value is callable as a function in CLJS. The tag drives
-;; get routing at later call sites. 'object is a map (so get inlines to property
-;; access), 'array a vector, 'set a set, 'coll an unknown collection type,
-;; 'string a keyword (calls as (get coll k)). Only non-nil string returns are
-;; tagged 'string so the always-truthy skip stays correct.
+;; Return tags for core functions with callable results in CLJS.
 (def ^:private fn-return-tags
   '{set set, hash-set set, sorted-set set, disj set,
     hash-map object, array-map object, zipmap object,
@@ -1746,7 +1742,11 @@ break;}" body)
     (f sym env expr)))
 
 (defn skip-truth? [tag]
-  (contains? #{'boolean 'string} tag))
+  (= 'boolean tag))
+
+(defn- truthy-literal? [form]
+  (or (keyword? form)
+      (and (string? form) (not= "" form))))
 
 (defmethod emit-special 'if [_type env [_if test then else :as expr]]
   ;; NOTE: I tried making the output smaller if the if is in return position
@@ -1757,7 +1757,8 @@ break;}" body)
   ;; tools like eslint will rewrite in the short form anyway.
   (let [expr-env (assoc env :context :expr)
         naked-condition (emit test expr-env)
-        skip-truth? (or (skip-truth? (:tag naked-condition))
+        skip-truth? (or (truthy-literal? test)
+                        (skip-truth? (:tag naked-condition))
                         (skip-truth? (:tag (meta expr)))
                         (skip-truth? (:tag (meta test))))
         condition (if skip-truth?
