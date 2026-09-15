@@ -907,10 +907,7 @@
                             (when (= :statement (:context env)) ";\n"))
                         env)))))
 
-;; Core fns whose return value is callable as a function in CLJS. The tag drives
-;; get routing at later call sites. 'object is a map (so get inlines to property
-;; access), 'array a vector, 'set a set, 'coll an unknown collection type,
-;; 'string a keyword (calls as (get coll k)).
+;; Return tags for core functions with callable results in CLJS.
 (def ^:private fn-return-tags
   '{set set, hash-set set, sorted-set set, disj set,
     hash-map object, array-map object, zipmap object,
