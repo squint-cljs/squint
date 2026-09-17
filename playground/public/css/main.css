@@ -26,7 +26,7 @@ body {
   max-width: inherit;
   padding: 0;
   background: var(--body-background-color-light-mode);
-  margin-block-start: 40px; 
+  margin-block-start: 10px;
   margin-inline: var(--viewport-padding-inline); 
 }
 
@@ -43,27 +43,6 @@ body, #editor, #sidebar {
   background: var(--body-background-color-light-mode);
   box-shadow: 0 0 20px rgb(from black r g b / 10%);
 
-}
-
-#nav {
-  background: var(--body-background-color-light-mode);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  height: var(--nav-height);
-  width: auto;
-  position: fixed;
-  top: 0;
-  right: 0;
-  padding-inline: var(--viewport-padding-inline);
-}
-
-#squint-playground-label {
-  font-weight: bold;
-}
-
-#playground-label {
-  font-weight: 300;
 }
 
 #theme-toggle {
@@ -90,6 +69,7 @@ body, #editor, #sidebar {
 #star-counter {
   width: 84px;
   height: 17px;
+  line-height: 0;
 }
 
 #controls {
@@ -153,8 +133,10 @@ body, #editor, #sidebar {
 
   #sidebar-controls {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     label {
       margin: 0;
     }
