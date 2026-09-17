@@ -26,7 +26,7 @@ body {
   max-width: inherit;
   padding: 0;
   background: var(--body-background-color-light-mode);
-  margin-block-start: 40px; 
+  margin-block-start: 10px;
   margin-inline: var(--viewport-padding-inline); 
 }
 
@@ -43,27 +43,6 @@ body, #editor, #sidebar {
   background: var(--body-background-color-light-mode);
   box-shadow: 0 0 20px rgb(from black r g b / 10%);
 
-}
-
-#nav {
-  background: var(--body-background-color-light-mode);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  height: var(--nav-height);
-  width: auto;
-  position: fixed;
-  top: 0;
-  right: 0;
-  padding-inline: var(--viewport-padding-inline);
-}
-
-#squint-playground-label {
-  font-weight: bold;
-}
-
-#playground-label {
-  font-weight: 300;
 }
 
 #theme-toggle {
@@ -90,6 +69,7 @@ body, #editor, #sidebar {
 #star-counter {
   width: 84px;
   height: 17px;
+  line-height: 0;
 }
 
 #controls {
@@ -112,6 +92,8 @@ body, #editor, #sidebar {
   @media screen and (min-width: 768px) {
     overflow: auto;
     flex-direction: row;
+    /* fill the window instead of shrinking to the height of the code */
+    height: calc(100dvh - 20px);
   }
 }
 
@@ -127,6 +109,7 @@ body, #editor, #sidebar {
   @media screen and (min-width: 768px) {
     margin-bottom: 10px;
     width: 50%;
+    max-height: none;
   }
 }
 
@@ -149,12 +132,18 @@ body, #editor, #sidebar {
     margin-left: 10px;
     margin-bottom: 10px;
     width: 50%;
+    max-height: none;
   }
 
   #sidebar-controls {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
     align-items: center;
+    gap: 12px;
+    /* buttons stay together on the left, star counter keeps the right edge */
+    #meta-controls {
+      margin-left: auto;
+    }
     label {
       margin: 0;
     }
@@ -224,6 +213,9 @@ body, #editor, #sidebar {
   border: var(--panel-border);
   border-radius: 2px;
   padding: 0px;
+  /* an expanded tree scrolls in place, so the compiled code stays reachable */
+  max-height: 40dvh;
+  overflow: auto;
   #sidebar:has(#replCheckBox:checked) & {
     padding: 10px;
   }

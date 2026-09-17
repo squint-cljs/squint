@@ -9,7 +9,7 @@ import prettierPluginJS from "prettier/plugins/estree.mjs";
 import prettierPluginBabel from "prettier/plugins/babel.mjs";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { Inspector } from "react-inspector";
+import { Inspector, chromeLight } from "react-inspector";
 const url = new URL(window.location.href);
 import * as squint from "squint-cljs";
 import * as prettier from "prettier";
@@ -94,6 +94,12 @@ async function JSEditor(js) {
 
 let reactRoot = ReactDOM.createRoot(document.querySelector("#result"));
 
+// react-inspector styles inline from its theme, so CSS can't size it: match the
+// editor's code font here
+const inspectorTheme = { ...chromeLight,
+                         BASE_FONT_SIZE: '13px', BASE_LINE_HEIGHT: 1.4,
+                         TREENODE_FONT_SIZE: '13px', TREENODE_LINE_HEIGHT: 1.4 };
+
 let evalCode = async (code) => {
   // drop whatever is in the result panel: a previous error must not linger
   // when the next run succeeds (non-REPL runs render no result of their own)
@@ -171,9 +177,9 @@ let evalCode = async (code) => {
       // Use Inspector's root `name` to label a Promise wrapper: renders as one
       // expandable line ("Promise: <value>") instead of stitching text spans
       // around a separate tree, which looked broken on multi-line values.
-      const inspectorProps = promiseTag === 'rejected' ? { name: 'Promise rejected', data: result }
-                           : promiseTag === 'resolved' ? { name: 'Promise', data: result }
-                           : { data: result };
+      const inspectorProps = promiseTag === 'rejected' ? { name: 'Promise rejected', data: result, theme: inspectorTheme }
+                           : promiseTag === 'resolved' ? { name: 'Promise', data: result, theme: inspectorTheme }
+                           : { data: result, theme: inspectorTheme };
       reactRoot.render(
         promiseTag === 'pending'
           ? React.createElement('span', null, '#<Promise pending>')

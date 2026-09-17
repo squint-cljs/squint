@@ -52,22 +52,6 @@
 
 <body>
 <div id="app"></div>
-<div id="nav">
-  <div id="squint-playground-label">
-    <span>Squint</span>
-    <span id="playground-label">Playground</span>
-  </div>
-  <div id="star-counter">
-    <a href="https://gitHub.com/squint-cljs/squint"><img
-        src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a>
-  </div>
-  <!--
-   Light/Dark toggle is working with the app chrome, but still need to
-   hook-it-up with codemirror instances to flip the theme.
-   display of the element is temporarily set to none.
-  -->
-  <button id="theme-toggle" style="display:none" type="button" aria-pressed="false">☼</button>
-</div>
 <!-- <div id="controls">
 </div> -->
 <div id="main">
@@ -88,6 +72,18 @@
           <button onClick="blankAOC()">
             Blank AOC Playground
           </button>
+        </div>
+        <div class="control-group" id="meta-controls">
+          <div id="star-counter">
+            <a href="https://gitHub.com/squint-cljs/squint"><img
+                src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a>
+          </div>
+          <!--
+           Light/Dark toggle is working with the app chrome, but still need to
+           hook-it-up with codemirror instances to flip the theme.
+           display of the element is temporarily set to none.
+          -->
+          <button id="theme-toggle" style="display:none" type="button" aria-pressed="false">☼</button>
         </div>
       </div>
       <div id="repl-mode"> 
