@@ -198,7 +198,9 @@
 (defn node-eval
   "Default evaluator: eval compiled JS locally and format the value."
   [js-str request]
-  (-> (js/Promise.resolve (js/eval js-str))
+  ;; eval in a callback: a SyntaxError from the compiled JS throws
+  ;; synchronously and would escape the promise chain, killing the server
+  (-> (.then (js/Promise.resolve nil) (fn [] (js/eval js-str)))
       (.then (fn [^js boxed]
                ;; compile wraps the user's top-level value in [v] so a Promise
                ;; survives the async IIFE without being auto-unwrapped

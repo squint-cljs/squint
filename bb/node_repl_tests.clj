@@ -46,6 +46,12 @@
   (let [out (:out (p/shell {:out :string} "node test-resources/js_api.mjs"))]
     (is (= ["1" "1" "6"]  (str/split-lines out)))))
 
+(deftest eval-syntax-error-test
+  ;; a form compiling to unparseable JS must not take down the REPL process
+  (let [out (:out (repl "js/import.meta.url\n(str \"still\" \"-alive\")"))]
+    (is (str/includes? out "SyntaxError"))
+    (is (str/includes? out "still-alive"))))
+
 (deftest repl-namespace-global-test
   (is (str/includes? (:out (repl "(ns foo.bar) (def x 1) (ns other.ns) (= 1 foo.bar/x)")) "true")))
 

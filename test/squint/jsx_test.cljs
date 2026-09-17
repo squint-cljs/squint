@@ -85,6 +85,10 @@
     (is (= "<div class=\"myclass\"></div>" (test-jsx "#jsx [:div.myclass {}]"))))
   (testing "class shorthand with non-class props (#810)"
     (is (= "<div data-foo=\"x\" class=\"myclass\"></div>" (test-jsx "#jsx [:div.myclass {:data-foo \"x\"}]"))))
+  (testing "jsx-runtime fragment refers to the imported Fragment"
+    (let [s (jss! "#jsx [:<> [:div \"x\"]]" {:jsx-runtime true})]
+      (is (str/includes? s "_jsx(_Fragment, "))
+      (is (not (str/includes? s "\"_Fragment\"")))))
   (testing "return position"
     (is (= 1 (count (re-seq #"return" (jss! "(defn foo [] #jsx [:button \"dude\"])"
                                             {:jsx-runtime true})))))))

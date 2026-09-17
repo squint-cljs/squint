@@ -12,6 +12,11 @@
 - Fix clipping (by scrollbar) of panel borders in right corners
 - Remove visual noise created by light background color of gutter in compiled code block
 - Add `position: fixed` mini-header in top right with “Squint Playground” label,  star counter, and light/dark theme toggle icon button. The toggle is temporarily hidden until the codemirror theme reloading is working. 
+- Fix [#992](https://github.com/squint-cljs/squint/issues/992): emit regex literals like CLJS on the JVM compiler path
+- Fix [#994](https://github.com/squint-cljs/squint/issues/994): `:jsx-runtime` fragments refer to the imported `_Fragment` instead of a `"_Fragment"` tag string
+- Fix [#998](https://github.com/squint-cljs/squint/issues/998): test macros with a `cljs.test` require import squint's test module when a custom `:resolve-ns` is passed
+- Fix [#1000](https://github.com/squint-cljs/squint/issues/1000): treat empty strings from `str`, `subs` or `name` as truthy in `if`
+- Fix [#1002](https://github.com/squint-cljs/squint/issues/1002): wrap `js-in` and `js/typeof` output in parens so it embeds in other expressions
 
 ## 0.14.208
 

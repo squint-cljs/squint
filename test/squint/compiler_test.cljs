@@ -300,6 +300,12 @@
         (is (not (str/includes? js "truth_")) (str "contains truth check: " input "\n" js))
         (is (eq 1 (js/eval js)))))))
 
+(deftest empty-string-truthy-test
+  (doseq [input ["(if (str nil) 1 2)" "(if (str) 1 2)" "(when (str nil) 1)"
+                 "(if (subs \"abc\" 0 0) 1 2)" "(if (name \"\") 1 2)"
+                 "(let [x (str nil)] (if x 1 2))"]]
+    (is (eq 1 (jsv! input)) input)))
+
 (deftest doseq-test
   (let [s (jss! '(let [a []]
                    (doseq [x [1 2 3]]
@@ -2834,6 +2840,15 @@ globalThis.foo.fs = fs;")))))
                                      {:repl true
                                       :resolve-ns (fn [sym] (when (= 'foo.core sym) "./foo/core.js"))})]
         (is (str/includes? s "globalThis.foo.main.render_game")))))
+  (testing "test macros with a cljs.test require import squint's test module despite a catch-all :resolve-ns (#998)"
+    (let [s (squint/compile-string "(ns foo (:require [cljs.test :refer [deftest is]])) (deftest bar (is (= 1 1)))"
+                                   {:resolve-ns (fn [sym] (str "./" sym ".js"))})]
+      (is (str/includes? s "import * as clojure_DOT_test from 'squint-cljs/src/squint/test.js'"))
+      (is (not (str/includes? s "./clojure.test.js")))))
+  (testing "a qualified ref to an unrequired local ns auto-imports via :resolve-ns"
+    (let [s (squint/compile-string "(foo.core/x)"
+                                   {:resolve-ns (fn [sym] (when (= 'foo.core sym) "./foo/core.js"))})]
+      (is (str/includes? s "import * as foo_DOT_core from './foo/core.js'"))))
   (testing "a require registers only its own aliases: an earlier alias var is
             scoped to the IIFE of the eval that created it"
     (let [opts {:repl true :elide-exports true}
@@ -3385,7 +3400,13 @@ globalThis.foo.fs = fs;")))))
   (is (eq "foo" (jsv! '(.-source (re-pattern "(?dgi)foo"))))))
 
 (deftest js-in-test
-  (is (true? (jsv! "(js-in :foo {:foo 1})"))))
+  (is (true? (jsv! "(js-in :foo {:foo 1})")))
+  (testing "embedded in another expression"
+    (is (true? (jsv! "(let [o {:a 1}] (not (js-in \"b\" o)))")))))
+
+(deftest js-typeof-test
+  (testing "embedded in another expression"
+    (is (= 6 (jsv! "(let [x \"abc\"] (.-length (js/typeof x)))")))))
 
 (deftest int-test
   (is (= 3 (jsv! "(int 3.14)"))))
