@@ -22,6 +22,7 @@
 - Playground: compile a non-REPL run from fresh compiler state, so vars from earlier runs don't emit exports for names the document no longer defines
 - Playground: render results at the code font size
 - Playground: drop the top bar, moving the star counter into the sidebar controls
+- Playground: editor and sidebar fill the window; the result box scrolls on its own so the compiled code stays in view
 
 ## 0.14.208
 
