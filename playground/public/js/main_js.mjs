@@ -95,6 +95,9 @@ async function JSEditor(js) {
 let reactRoot = ReactDOM.createRoot(document.querySelector("#result"));
 
 let evalCode = async (code) => {
+  // drop whatever is in the result panel: a previous error must not linger
+  // when the next run succeeds (non-REPL runs render no result of their own)
+  reactRoot.render(null);
   try {
     let importSource = url.searchParams.get('jsx.import-source') || 'react';
     // In REPL mode, :repl-return wraps the top-level value in [v] so a Promise
@@ -104,7 +107,10 @@ let evalCode = async (code) => {
     let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'repl-return' : 'statement',
                  "jsx-runtime": { "import-source": importSource, development: true }
                };
-    globalThis.compilerState = compileStringEx(`${code}`, opts, globalThis.compilerState);
+    // only REPL evals build on earlier state; a non-REPL run compiles the whole
+    // document as a fresh module, and carried-over vars emit exports for names
+    // the document no longer defines
+    globalThis.compilerState = compileStringEx(`${code}`, opts, repl ? globalThis.compilerState : null);
     let js = globalThis.compilerState.javascript;
     if (dev) {
       console.log("Loading local squint libs");
@@ -396,6 +402,8 @@ window.blankAOC = async () => {
 
 window.changeREPL = (target) => {
   reactRoot.render(null);
+  // vars from the other mode don't carry over: their definitions are gone
+  globalThis.compilerState = null;
   if (target.checked) {
     repl = true;
     window.compile();
