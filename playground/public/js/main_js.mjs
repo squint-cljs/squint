@@ -180,8 +180,10 @@ let evalCode = async (code) => {
       }
     }
   } catch (e) {
-    document.querySelector('#result').innerText =
-      e.message + '\n\n' + e.stack;
+    // render through the React root: writing to #result directly detaches the
+    // nodes React still tracks, and later renders update orphans
+    reactRoot.render(React.createElement('span', { style: { whiteSpace: 'pre-wrap' } },
+                                         e.message + '\n\n' + e.stack));
     console.error(e);
   }
 };
@@ -393,7 +395,7 @@ window.blankAOC = async () => {
 };
 
 window.changeREPL = (target) => {
-  document.getElementById('result').innerText = '';
+  reactRoot.render(null);
   if (target.checked) {
     repl = true;
     window.compile();
