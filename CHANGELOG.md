@@ -17,6 +17,7 @@
 - Fix [#998](https://github.com/squint-cljs/squint/issues/998): test macros with a `cljs.test` require import squint's test module when a custom `:resolve-ns` is passed
 - Fix [#1000](https://github.com/squint-cljs/squint/issues/1000): treat empty strings from `str`, `subs` or `name` as truthy in `if`
 - Fix [#1002](https://github.com/squint-cljs/squint/issues/1002): wrap `js-in` and `js/typeof` output in parens so it embeds in other expressions
+- Fix [#990](https://github.com/squint-cljs/squint/issues/990): playground shows results again after toggling REPL-mode off and on
 
 ## 0.14.208
 
