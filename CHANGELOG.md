@@ -8,6 +8,7 @@
 - Fix [#994](https://github.com/squint-cljs/squint/issues/994): `:jsx-runtime` fragments refer to the imported `_Fragment` instead of a `"_Fragment"` tag string
 - Fix [#998](https://github.com/squint-cljs/squint/issues/998): test macros with a `cljs.test` require import squint's test module when a custom `:resolve-ns` is passed
 - Fix [#1000](https://github.com/squint-cljs/squint/issues/1000): treat empty strings from `str`, `subs` or `name` as truthy in `if`
+- Fix [#1002](https://github.com/squint-cljs/squint/issues/1002): wrap `js-in` and `js/typeof` output in parens so it embeds in other expressions
 
 ## 0.14.208
 
