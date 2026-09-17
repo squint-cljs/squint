@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+- Add `Developing Squint` section to readme
+- Add standalone main.css
+- Add some initial global css vars (light/dark mode friendly)
+- Minor tweaks to size, layout, labels of buttons and repl mode control in sidebar
+- De-emphasized panel borders
+- Fix clipping (by scrollbar) of panel borders in right corners
+- Remove visual noise created by light background color of gutter in compiled code block
+- Add `position: fixed` mini-header in top right with “Squint Playground” label,  star counter, and light/dark theme toggle icon button. The toggle is temporarily hidden until the codemirror theme reloading is working. 
 - Fix [#992](https://github.com/squint-cljs/squint/issues/992): emit regex literals like CLJS on the JVM compiler path
 - Fix [#994](https://github.com/squint-cljs/squint/issues/994): `:jsx-runtime` fragments refer to the imported `_Fragment` instead of a `"_Fragment"` tag string
 - Fix [#998](https://github.com/squint-cljs/squint/issues/998): test macros with a `cljs.test` require import squint's test module when a custom `:resolve-ns` is passed
