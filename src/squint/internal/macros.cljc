@@ -537,11 +537,14 @@
          tag (or (:tag emitted)
                  (:tag (meta x)))
          x (with-meta (list 'js* emitted)
-             {:tag tag})]
-     (if (= 'boolean tag)
-       (list 'js* "(~{} && ~{})"
-             x
-             `(and ~@next))
+             {:tag tag})
+         recur? (volatile! false)
+         more (when (= 'boolean tag)
+                (emit `(and ~@next)
+                      (assoc &env :context :expr
+                             :recur-callback (fn [_] (vreset! recur? true)))))]
+     (if (and more (not @recur?))
+       (list 'js* "(~{} && ~{})" x (list 'js* more))
        `(let [and# ~x]
           (if and# (and ~@next) and#))))))
 

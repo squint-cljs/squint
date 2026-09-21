@@ -3072,7 +3072,12 @@ globalThis.foo.fs = fs;")))))
   (is (eq true (jsv! '(and))))
   (is (eq nil (jsv! '(or))))
   (is (eq "0" (jsv! '(str (or 0 1)))))
-  (is (eq "1" (jsv! '(str (and 0 1))))))
+  (is (eq "1" (jsv! '(str (and 0 1)))))
+  (testing "and accepts recur after a boolean operand"
+    (is (false? (jsv! "(loop [i 0] (and (< i 3) (recur (inc i))))")))
+    (is (eq [false 3] (jsv! "(let [n (atom 0)] [(loop [i 0] (and (< i 3) (do (swap! n inc) true) (recur (inc i)))) @n])"))))
+  (testing "or accepts recur after a boolean operand"
+    (is (true? (jsv! "(loop [i 0] (or (> i 3) (recur (inc i))))")))))
 
 (deftest fn-direct-invoke-test
   (is (eq 2 (jsv! '(#(inc %) 1)))))
