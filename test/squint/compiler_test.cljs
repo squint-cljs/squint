@@ -96,6 +96,16 @@
     (is (eq #js [2 2 2]
             (js/eval s)))))
 
+(deftest local-shadows-core-macro-test
+  (testing "a `let` binding named `str` is called as a function"
+    (is (= 2 (jsv! '(let [str (fn [x] (inc x))]
+                      (str 1))))))
+  (testing "a parameter named `when` is called as a function"
+    (is (= 2 (jsv! '((fn [when] (when 1)) inc)))))
+  (testing "`str` outside the binding expands as the macro"
+    (is (= "1" (jsv! '(do (let [str (fn [x] (inc x))] (str 1))
+                          (str 1)))))))
+
 (deftest destructure-test
   (let [s (jss! "(let [^js {:keys [a b c]} #js {:a 1 :b 2 :c 3}]
                    (+ a b c))")]

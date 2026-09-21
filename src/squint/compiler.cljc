@@ -261,7 +261,8 @@
                      head-str (str head)
                      macro (when (and (symbol? head)
                                       (not (:squint.compiler/skip-macro mexpr))
-                                      (not excluded?))
+                                      (not excluded?)
+                                      (not (contains? (:var->ident env) head*)))
                              ;; TODO: check excluded
                              (or (built-in-macros (strip-core-symbol head))
                                  (cc/lookup-macro head env built-in-macro-nss)))]
