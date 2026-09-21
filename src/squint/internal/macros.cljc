@@ -512,6 +512,35 @@
                              (map #(cons `fn (rest %)) fnspecs)))
            ~@body))
 
+(defn- simple-operand? [x]
+  (or (and (symbol? x) (not (str/includes? (str x) ".")))
+      (keyword? x) (string? x) (number? x) (boolean? x) (nil? x)))
+
+(defn- short-circuit
+  "Returns the expansion of (or x & next) or (and x & next). op is 'or or
+  'and, rest-form the form for the operands after x."
+  [env op x rest-form]
+  (let [emit (-> env :utils :emit)
+        emitted (emit x (assoc env :context :expr))
+        tag (or (:tag emitted)
+                (:tag (meta x)))
+        or? (= 'or op)
+        branch (fn [t]
+                 (if or?
+                   (list 'if t t rest-form)
+                   (list 'if t rest-form t)))]
+    (cond
+      (= 'boolean tag)
+      (list 'js* (if or? "(~{} || ~{})" "(~{} && ~{})")
+            (with-meta (list 'js* emitted) {:tag tag})
+            rest-form)
+      (simple-operand? x)
+      (branch x)
+      :else
+      (let [v ((:gensym env) op)]
+        `(let [~v ~(with-meta (list 'js* emitted) {:tag tag})]
+           ~(branch v))))))
+
 (defn core-or
   "Evaluates exprs one at a time, from left to right. If a form
   returns a logical true value, or returns that value and doesn't
@@ -520,9 +549,8 @@
   {:added "1.0"}
   ([_ _] nil)
   ([_ _ x] x)
-  ([_ _ x & next]
-   `(let [or# ~x]
-      (if or# or# (or ~@next)))))
+  ([_ env x & next]
+   (short-circuit env 'or x `(or ~@next))))
 
 (core/defmacro core-and
   "Evaluates exprs one at a time, from left to right. If a form
@@ -532,18 +560,7 @@
   ([] true)
   ([x] x)
   ([x & next]
-   (let [emit (-> &env :utils :emit)
-         emitted (emit x (assoc &env :context :expr))
-         tag (or (:tag emitted)
-                 (:tag (meta x)))
-         x (with-meta (list 'js* emitted)
-             {:tag tag})]
-     (if (= 'boolean tag)
-       (list 'js* "(~{} && ~{})"
-             x
-             `(and ~@next))
-       `(let [and# ~x]
-          (if and# (and ~@next) and#))))))
+   (short-circuit &env 'and x `(and ~@next))))
 
 (defn core-assert
   "Evaluates expr and throws an exception if it does not evaluate to

@@ -10,14 +10,13 @@
 
 (defn run
   "Compiles script/expr_harness/forms.edn and evaluates each form in node,
-  directly and through Datastar's value attribute splitter. Pass --strict to
-  fail when a form breaks in the splitter."
-  [{:keys [strict]}]
+  directly and through Datastar's value attribute splitter. Exits 1 when a
+  form gives another result than expected."
+  [_]
   (let [forms (edn/read-string (slurp "script/expr_harness/forms.edn"))
         out   (fs/file ".work" "expr-harness" "compiled.json")]
     (fs/create-dirs (fs/parent out))
     (spit out (json/generate-string
                (for [[src expected] forms]
                  {:src src :expected expected :js (squint/compile-string src opts)})))
-    (apply shell "node" "script/expr_harness/eval.js" (str out)
-           (when strict ["--strict"]))))
+    (shell "node" "script/expr_harness/eval.js" (str out))))

@@ -5,8 +5,7 @@ import * as squint_core from '../../src/squint/core.js';
 
 globalThis.squint_core = squint_core;
 
-const [, , compiledPath, ...flags] = process.argv;
-const strict = flags.includes('--strict');
+const [, , compiledPath] = process.argv;
 
 // Datastar v1.0.2, library/src/engine/engine.ts, genRx
 const statementRe = /(\/(\\\/|[^/])*\/|"(\\"|[^"])*"|'(\\'|[^'])*'|`(\\`|[^`])*`|\(\s*((function)\s*\(\s*\)|(\(\s*\))\s*=>)\s*(?:\{[\s\S]*?\}|[^;){]*)\s*\)\s*\(\s*\)|[^;])+/gm;
@@ -68,4 +67,4 @@ for (const { src, expected, js } of rows) {
 
 console.log(`\nTOTAL forms=${rows.length} direct-ok=${direct} datastar-ok=${datastar} bytes=${bytes} no-arg-iifes=${iifes}`);
 
-if (direct < rows.length || (strict && datastar < rows.length)) process.exit(1);
+if (direct < rows.length || datastar < rows.length) process.exit(1);

@@ -3072,7 +3072,28 @@ globalThis.foo.fs = fs;")))))
   (is (eq true (jsv! '(and))))
   (is (eq nil (jsv! '(or))))
   (is (eq "0" (jsv! '(str (or 0 1)))))
-  (is (eq "1" (jsv! '(str (and 0 1))))))
+  (is (eq "1" (jsv! '(str (and 0 1)))))
+  (testing "or skips nil and false operands"
+    (is (eq [0 "" 3] (jsv! "(let [f (fn [x] x) a 0 b \"\"] [(or a 1) (or b 1) (or (f nil) (f false) 3)])"))))
+  (testing "and stops at nil and false operands"
+    (is (eq [nil false 3] (jsv! "(let [f (fn [x] x) a 1 b 0] [(and a (f nil) 3) (and (f false) 3) (and b (f \"\") 3)])"))))
+  (testing "a call operand runs once"
+    (is (eq [5 1] (jsv! "(let [n (atom 0) f (fn [] (swap! n inc) nil)] [(or (f) 5) @n])")))
+    (is (eq [5 1] (jsv! "(let [n (atom 0) f (fn [] (swap! n inc) 3)] [(and (f) 5) @n])"))))
+  (testing "a dotted symbol operand runs a getter once"
+    (is (eq [5 1] (jsv! "(let [n (atom 0)
+                              o (js/Object.defineProperty #js {} \"p\" #js {:get (fn [] (swap! n inc) nil)})]
+                          [(or o.p 5) @n])"))))
+  (testing "a symbol operand compiles to an expression without a function"
+    (doseq [input ["(inc (or x y))" "(inc (and x y))" "(inc (or x (and y z)))"]]
+      (let [js (jss! input)]
+        (is (not (str/includes? js "=>")) js)
+        (is (not (str/includes? js "const")) js))))
+  (testing "a boolean operand compiles to || and &&"
+    (is (str/includes? (jss! "(inc (or (nil? x) y))") "||"))
+    (is (str/includes? (jss! "(inc (and (nil? x) y))") "&&")))
+  (testing "or accepts recur in the last operand"
+    (is (eq 4 (jsv! "(loop [i 0] (or (when (> i 3) i) (recur (inc i))))")))))
 
 (deftest fn-direct-invoke-test
   (is (eq 2 (jsv! '(#(inc %) 1)))))
