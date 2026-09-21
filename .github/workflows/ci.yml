@@ -75,10 +75,6 @@ jobs:
         npm install --global yarn
         bb test:libs
 
-    - name: Run expression harness
-      if: matrix.os == 'ubuntu-latest'
-      run: bb expr-harness
-
     - name: Run size check
       if: matrix.os == 'ubuntu-latest'
       run: bb test:size

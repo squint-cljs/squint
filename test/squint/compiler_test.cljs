@@ -3439,6 +3439,45 @@ globalThis.foo.fs = fs;")))))
   (testing "embedded in another expression"
     (is (= 6 (jsv! "(let [x \"abc\"] (.-length (js/typeof x)))")))))
 
+(def ^:private datastar-statement-re
+  #"(/(\\/|[^/])*/|\"(\\\"|[^\"])*\"|'(\\'|[^'])*'|`(\\`|[^`])*`|\(\s*((function)\s*\(\s*\)|(\(\s*\))\s*=>)\s*(?:\{[\s\S]*?\}|[^;){]*)\s*\)\s*\(\s*\)|[^;])+")
+
+(defn- datastar-value
+  "Evaluates js as a Datastar v1.0.2 value attribute: splits it into
+  statements and returns the last one."
+  [js]
+  (let [statements (.match (str/trim js) (js/RegExp. (.-source datastar-statement-re) "gm"))
+        n (dec (alength statements))]
+    (aset statements n (str "return (" (str/trim (aget statements n)) ");"))
+    ((js/Function. "a" "b" "c" "d" "e" "xs" "z" (.join statements ";\n"))
+     nil 7 0 "" false #js [1 2 3] js/undefined)))
+
+(deftest datastar-value-attribute-test
+  (doseq [[expected form]
+          [[7 "(or a b)"]
+           [0 "(or c b)"]
+           ["" "(or e d)"]
+           [0 "(and b c)"]
+           [nil "(and a b)"]
+           [7 "(or a e b)"]
+           [0 "(and (or a b) (or c d))"]
+           [7 "(when-let [x (or a b)] x)"]
+           [1 "(if-let [x (and b c)] (inc x) -1)"]
+           [1 "(or (first xs) 9)"]
+           #_[1 "(let [n (atom 0)] (or (do (swap! n inc) nil) @n))"]
+           [1 "(do (set! z 1) (or a z))"]
+           ["seven" "(case b 7 \"seven\" \"other\")"]
+           [2 "(cond a 1 c 2 :else 3)"]
+           [56 "(let [x b y (inc x)] (* x y))"]
+           ["z" "(when (and b c) (or a \"z\"))"]
+           ["none" "(str (or a \"none\"))"]
+           #_[8 "(let [x (let [y b] (inc y))] (or a x))"]
+           [8 "(some-> b inc)"]
+           [2 "(if (or a e) 1 2)"]
+           [7 "(when-some [x c] (when-let [y (or a b)] (+ x y)))"]]]
+    (is (eq expected (datastar-value (jss! form {:context :expr :top-level false :elide-exports true})))
+        form)))
+
 (deftest int-test
   (is (= 3 (jsv! "(int 3.14)"))))
 

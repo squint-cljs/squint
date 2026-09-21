@@ -20,9 +20,6 @@
                    :extra-deps {this/project {:local/root "."}}
                    :extra-paths ["test"]
                    :task (exec 'squint.compiler-test/run-tests)}
-         expr-harness {:doc "Evaluate expression forms directly and through Datastar's value attribute splitter"
-                       :extra-deps {this/project {:local/root "."}}
-                       :task (exec 'expr-harness/run)}
          test:clj {:doc "Run tests in Clojure"
                    :task (clojure "-X:test")}
          test:libs {:doc "Run external library tests"

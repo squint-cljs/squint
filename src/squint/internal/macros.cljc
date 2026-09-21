@@ -513,12 +513,12 @@
            ~@body))
 
 (defn- simple-operand? [x]
+  ;; a getter behind a dotted symbol may have side effects
   (or (and (symbol? x) (not (str/includes? (str x) ".")))
       (keyword? x) (string? x) (number? x) (boolean? x) (nil? x)))
 
 (defn- short-circuit
-  "Returns the expansion of (or x & next) or (and x & next). op is 'or or
-  'and, rest-form the form for the operands after x."
+  "Returns the expansion shared by the `or` and `and` macros."
   [env op x rest-form]
   (let [emit (-> env :utils :emit)
         emitted (emit x (assoc env :context :expr))
