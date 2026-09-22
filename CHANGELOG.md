@@ -27,6 +27,7 @@
 - `or` and `and` compile to `||`, `&&` or a conditional expression when the first operand is a boolean, a literal or a local. A chain of boolean operands is boolean, so `if` skips its truth check
 - Fix [#1008](https://github.com/squint-cljs/squint/issues/1008): `and` accepts `recur` after a boolean operand
 - Fix [#1011](https://github.com/squint-cljs/squint/issues/1011): wrap `set!` in parens in expression position so it embeds in other expressions
+- A regex literal in return position is returned on the JVM compiler path, `(defn f [] #"a")` returned undefined
 
 ## 0.14.208
 

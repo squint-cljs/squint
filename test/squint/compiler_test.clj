@@ -64,7 +64,10 @@
   (is (str/includes? (sq/compile-string "#\"(?i)x/y\"") "/x\\/y/i"))
   (is (str/includes? (sq/compile-string "#\"\"") "(new RegExp(\"\"))"))
   (is (thrown? Exception (sq/compile-string "#\"[{}[]\\\"]\"")))
-  (is (= "true" (test-expr "(prn (some? (re-find #\"(?i)a/b\" \"A/B\")))"))))
+  (is (= "true" (test-expr "(prn (some? (re-find #\"(?i)a/b\" \"A/B\")))")))
+  (t/testing "a regex literal in return position is returned"
+    (is (str/includes? (sq/compile-string "(defn f [] #\"a\")") "return /a/"))
+    (is (= "true" (test-expr "(prn (some? ((fn [] #\"a\"))))")))))
 
 (def our-ns *ns*)
 (defn run-tests [_]
