@@ -1412,9 +1412,10 @@
       (tagged-expr 'number)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
-  (str "while (" (emit test (expr-env env)) ") { \n"
-       (emit-do (assoc env :context :statement) body)
-       "\n}"))
+  (cond-> (str "while (" (emit test (expr-env env)) ") { \n"
+               (emit-do (assoc env :context :statement) body)
+               "\n}")
+    (= :expr (:context env)) (wrap-implicit-iife env)))
 
 (defn map-params [m]
   (let [ks (:keys m)]

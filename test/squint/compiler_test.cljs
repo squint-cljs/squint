@@ -3519,6 +3519,8 @@ globalThis.foo.fs = fs;")))))
     (is (= "b" (jsv! "(str (case 2 1 \"a\" 2 \"b\" \"c\"))")))
     (is (= "6" (jsv! "(let [x 5] (str (case 1 1 (inc x) 0)))")))
     (is (= "0" (jsv! "(let [x 5] (str (case 3 1 (inc x) 0)))"))))
+  (testing "while as the body wraps itself"
+    (is (= 3 (jsv! "(let [n (atom 0)] (+ 0 (let [x 3] (while (< @n x) (swap! n inc)))) @n)"))))
   (testing "loops, generators and async fns keep the block"
     (is (= 3 (jsv! "(+ 0 (let [x 1] (loop [i 0] (if (< i 3) (recur (inc i)) i))))")))
     (is (= 2 (jsv! "(+ 0 (let [x 1] (try (throw (js/Error. \"e\")) (catch :default _ 2))))")))
