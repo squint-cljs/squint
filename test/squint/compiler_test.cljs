@@ -3505,7 +3505,8 @@ globalThis.foo.fs = fs;")))))
   (testing "body forms run once and in order"
     (is (= 3 (jsv! "(let [a (atom 0)] (+ 1 (let [b 1] (swap! a inc) (swap! a inc) @a)))"))))
   (testing "a mutable binding is assignable"
-    (is (= 2 (jsv! "(+ 0 (let [^:mutable x 1] (set! x 2) x))"))))
+    (is (= 2 (jsv! "(+ 0 (let [^:mutable x 1] (set! x 2) x))")))
+    (is (= 2 (jsv! "(+ 0 (let [^:mutable x 1] (do (set! x 2) x)))"))))
   (testing "or evaluates its first operand once"
     (is (= 1 (jsv! "(let [n (atom 0)] (or (do (swap! n inc) nil) @n))"))))
   (testing "and, or, when-let and if-let nest without a block"
