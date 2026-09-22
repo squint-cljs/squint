@@ -538,12 +538,16 @@
                  (:tag (meta x)))
          x (with-meta (list 'js* emitted)
              {:tag tag})]
-     (if (= 'boolean tag)
-       (list 'js* "(~{} && ~{})"
-             x
-             `(and ~@next))
+     (cond
+       ;; the value is returned when falsy, so it must be evaluated once
+       (not= 'boolean tag)
        `(let [and# ~x]
-          (if and# (and ~@next) and#))))))
+          (if and# (and ~@next) and#))
+       (= :expr (:context &env))
+       (list 'js* "(~{} && ~{})" x `(and ~@next))
+       ;; a falsy boolean is false, so the rest can stay in tail position for recur
+       :else
+       (list 'if x `(and ~@next) false)))))
 
 (defn core-assert
   "Evaluates expr and throws an exception if it does not evaluate to
