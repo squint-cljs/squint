@@ -3104,7 +3104,7 @@ globalThis.foo.fs = fs;")))))
     (is (eq 2 (jsv! "(let [x \"~{}\"] (inc (or (= x \"~{}\") 0)))")))
     (is (eq 2 (jsv! "(let [x \"~{}\"] (inc (and (= x \"~{}\") 1)))"))))
   (testing "a namespaced symbol operand compiles to an expression without a function"
-    (is (not (str/includes? (jss! "(ns foo (:require [clojure.string :as str])) (inc (or str/blank? y))") "=>"))))
+    (is (not (str/includes? (jss! "(inc (or clojure.string/blank? y))") "=>"))))
   (testing "a boolean operand compiles to || and &&"
     (is (str/includes? (jss! "(inc (or (nil? x) y))") "||"))
     (is (str/includes? (jss! "(inc (and (nil? x) y))") "&&")))
