@@ -28,6 +28,7 @@
 - Fix [#1008](https://github.com/squint-cljs/squint/issues/1008): `and` accepts `recur` after a boolean operand
 - Fix [#1011](https://github.com/squint-cljs/squint/issues/1011): wrap `set!` in parens in expression position so it embeds in other expressions
 - `let` with one body form in expression position binds through default parameters instead of a block, so the IIFE has no statements and `or`, `and`, `when-let` and `if-let` nest inside other expressions
+- A regex literal in return position is returned on the JVM compiler path, `(defn f [] #"a")` returned undefined
 
 ## 0.14.208
 
