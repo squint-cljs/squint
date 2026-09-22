@@ -513,13 +513,12 @@
            ~@body))
 
 (defn- simple-operand?
-  "Returns true when x can be repeated in the output: a literal, or a symbol
-  that compiles to a plain identifier. A property read can run a getter."
+  "Returns true when x can be repeated in the output: a literal, or a local
+  that compiles to a plain identifier. Any other symbol may compile to a
+  property read, which can run a getter."
   [env x]
   (or (and (symbol? x)
-           (nil? (namespace x))
-           (not (str/includes? (name x) "."))
-           (not (str/includes? (str (get (:var->ident env) x x)) ".")))
+           (some->> (get (:var->ident env) x) str (re-matches #"[A-Za-z_$][A-Za-z0-9_$]*")))
       (keyword? x) (string? x) (number? x) (boolean? x) (nil? x)))
 
 (defn- emit-expr [env form]

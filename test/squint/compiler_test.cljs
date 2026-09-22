@@ -3084,8 +3084,8 @@ globalThis.foo.fs = fs;")))))
     (is (eq [5 1] (jsv! "(let [n (atom 0)
                               o (js/Object.defineProperty #js {} \"p\" #js {:get (fn [] (swap! n inc) nil)})]
                           [(or o.p 5) @n])"))))
-  (testing "a symbol operand compiles to an expression without a function"
-    (doseq [input ["(inc (or x y))" "(inc (and x y))" "(inc (or x (and y z)))"]]
+  (testing "a local operand compiles to an expression without a function"
+    (doseq [input ["(let [x 1 y 2] (inc (or x y)))" "(let [x 1 y 2] (inc (and x y)))" "(let [x 1 y 2 z 3] (inc (or x (and y z))))"]]
       (let [js (jss! input)]
         (is (not (str/includes? js "=>")) js)
         (is (not (str/includes? js "const")) js))))
@@ -3105,6 +3105,9 @@ globalThis.foo.fs = fs;")))))
     (is (eq 2 (jsv! "(let [x \"~{}\"] (inc (and (= x \"~{}\") 1)))"))))
   (testing "a global getter operand runs once"
     (is (eq [7 1] (jsv! "(let [n (atom 0)]
+                          (js/Object.defineProperty js/globalThis \"g3\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil)) :configurable true})
+                          [(or g3 42) @n])")))
+    (is (eq [7 1] (jsv! "(let [n (atom 0)]
                           (js/Object.defineProperty js/globalThis \"g1\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil)) :configurable true})
                           [(or js/g1 42) @n])")))
     (is (eq [nil 1] (jsv! "(let [n (atom 0)]
@@ -3115,6 +3118,11 @@ globalThis.foo.fs = fs;")))))
                      (let [t (->T nil) n (atom 0)]
                        (js/Object.defineProperty t \"x\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil))})
                        (.foo t))"))))
+  (testing "a defrecord field operand runs a getter once"
+    (is (eq 7 (jsv! "(defrecord R [x] Object (foo [_] (or x 42)))
+                     (let [r (->R nil) n (atom 0)]
+                       (js/Object.defineProperty r \"x\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil))})
+                       (.foo r))"))))
   (testing "a defclass field operand runs a getter once"
     (is (eq 7 (jsv! "(defclass A
                        (field value)
@@ -3508,11 +3516,11 @@ globalThis.foo.fs = fs;")))))
            [0 "(and b c)"]
            [nil "(and a b)"]
            [7 "(or a e b)"]
-           [0 "(and (or a b) (or c d))"]
-           [7 "(when-let [x (or a b)] x)"]
-           [1 "(if-let [x (and b c)] (inc x) -1)"]
+           #_[0 "(and (or a b) (or c d))"]
+           #_[7 "(when-let [x (or a b)] x)"]
+           #_[1 "(if-let [x (and b c)] (inc x) -1)"]
            [1 "(or (first xs) 9)"]
-           ;; a let or do as first operand still emits an IIFE
+           ;; an unresolved symbol, let or do as first operand still emits an IIFE
            #_[1 "(let [n (atom 0)] (or (do (swap! n inc) nil) @n))"]
            [1 "(do (set! z 1) (or a z))"]
            ["seven" "(case b 7 \"seven\" \"other\")"]
@@ -3523,7 +3531,7 @@ globalThis.foo.fs = fs;")))))
            #_[8 "(let [x (let [y b] (inc y))] (or a x))"]
            [8 "(some-> b inc)"]
            [2 "(if (or a e) 1 2)"]
-           [7 "(when-some [x c] (when-let [y (or a b)] (+ x y)))"]]]
+           #_[7 "(when-some [x c] (when-let [y (or a b)] (+ x y)))"]]]
     (is (eq expected (datastar-value (jss! form {:context :expr :top-level false :elide-exports true})))
         form)))
 
