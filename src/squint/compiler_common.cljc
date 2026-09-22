@@ -1386,7 +1386,8 @@
           [`(. ~target ~val) alt]
           [target val])
         eenv (expr-env env)]
-    (emit-return (str (emit target eenv) " = " (emit val eenv))
+    (emit-return (cond-> (str (emit target eenv) " = " (emit val eenv))
+                   (= :expr (:context env)) wrap-parens)
                  env)))
 
 (defmethod emit-special 'new [_type env [_new class & args]]

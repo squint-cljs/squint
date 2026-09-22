@@ -3490,6 +3490,10 @@ globalThis.foo.fs = fs;")))))
   (testing "embedded in another expression"
     (is (true? (jsv! "(let [o {:a 1}] (not (js-in \"b\" o)))")))))
 
+(deftest set!-embedded-test
+  (is (eq [3 2] (jsv! "(let [o #js {}] [(inc (set! (.-y o) 2)) (.-y o)])")))
+  (is (eq ["2x" 2] (jsv! "(let [o #js {}] [(str (set! (.-y o) 2) \"x\") (.-y o)])"))))
+
 (deftest js-typeof-test
   (testing "embedded in another expression"
     (is (= 6 (jsv! "(let [x \"abc\"] (.-length (js/typeof x)))")))))
