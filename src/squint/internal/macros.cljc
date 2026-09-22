@@ -537,16 +537,17 @@
          tag (or (:tag emitted)
                  (:tag (meta x)))
          x (with-meta (list 'js* emitted)
-             {:tag tag})
-         recur? (volatile! false)
-         more (when (= 'boolean tag)
-                (emit `(and ~@next)
-                      (assoc &env :context :expr
-                             :recur-callback (fn [_] (vreset! recur? true)))))]
-     (if (and more (not @recur?))
-       (list 'js* "(~{} && ~{})" x (list 'js* more))
+             {:tag tag})]
+     (cond
+       ;; a falsy boolean is false, so no temporary is needed
+       (not= 'boolean tag)
        `(let [and# ~x]
-          (if and# (and ~@next) and#))))))
+          (if and# (and ~@next) and#))
+       (= :expr (:context &env))
+       (list 'js* "(~{} && ~{})" x `(and ~@next))
+       ;; return and statement position: the rest stays in tail position for recur
+       :else
+       (list 'if x `(and ~@next) false)))))
 
 (defn core-assert
   "Evaluates expr and throws an exception if it does not evaluate to
