@@ -24,7 +24,7 @@
 - Playground: drop the top bar, moving the star counter into the sidebar controls
 - Playground: editor and sidebar fill the window; the result box scrolls on its own so the compiled code stays in view
 - A local named like a core macro shadows the macro in call position: `(let [str f] (str x))` calls `f`
-- `or` and `and` compile to `||`, `&&` or a conditional expression when the first operand is a boolean, a symbol or a literal
+- `or` and `and` compile to `||`, `&&` or a conditional expression when the first operand is a boolean, a literal or a local. A chain of boolean operands is boolean, so `if` skips its truth check
 - Fix [#1008](https://github.com/squint-cljs/squint/issues/1008): `and` accepts `recur` after a boolean operand
 
 ## 0.14.208
