@@ -539,13 +539,13 @@
          x (with-meta (list 'js* emitted)
              {:tag tag})]
      (cond
-       ;; a falsy boolean is false, so no temporary is needed
+       ;; the value is returned when falsy, so it must be evaluated once
        (not= 'boolean tag)
        `(let [and# ~x]
           (if and# (and ~@next) and#))
        (= :expr (:context &env))
        (list 'js* "(~{} && ~{})" x `(and ~@next))
-       ;; return and statement position: the rest stays in tail position for recur
+       ;; a falsy boolean is false, so the rest can stay in tail position for recur
        :else
        (list 'if x `(and ~@next) false)))))
 
