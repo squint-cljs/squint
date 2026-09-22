@@ -530,10 +530,17 @@
                    (list 'if t t rest-form)
                    (list 'if t rest-form t)))]
     (cond
+      (and (= 'boolean tag) (= :expr (:context env)))
+      (let [rest-js (emit rest-form (assoc env :context :expr))]
+        (cond-> (list 'js* (if or? "(~{} || ~{})" "(~{} && ~{})")
+                      (with-meta (list 'js* emitted) {:tag tag})
+                      (list 'js* rest-js))
+          (= 'boolean (:tag rest-js)) (with-meta {:tag 'boolean})))
+      ;; a falsy boolean is false, so the rest can stay in tail position for recur
       (= 'boolean tag)
-      (list 'js* (if or? "(~{} || ~{})" "(~{} && ~{})")
-            (with-meta (list 'js* emitted) {:tag tag})
-            rest-form)
+      (if or?
+        (list 'if (with-meta (list 'js* emitted) {:tag tag}) true rest-form)
+        (list 'if (with-meta (list 'js* emitted) {:tag tag}) rest-form false))
       (simple-operand? x)
       (branch x)
       :else

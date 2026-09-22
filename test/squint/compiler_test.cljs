@@ -3089,11 +3089,24 @@ globalThis.foo.fs = fs;")))))
       (let [js (jss! input)]
         (is (not (str/includes? js "=>")) js)
         (is (not (str/includes? js "const")) js))))
+  (testing "a chain of boolean operands is boolean"
+    (doseq [input ["(if (or (nil? x) (nil? y)) 1 2)" "(if (and (nil? x) (< 1 2) (nil? y)) 1 2)"]]
+      (is (not (str/includes? (jss! input) "truth_")) input))
+    (is (eq 2 (jsv! "(let [x 1 y 1] (if (or (nil? x) (nil? y)) 1 2))")))
+    (is (eq 1 (jsv! "(let [x nil y 1] (if (and (nil? x) (< 1 2) (some? y)) 1 2))"))))
+  (testing "a boolean operand before a number keeps the truth check"
+    (is (str/includes? (jss! "(if (and (some? x) 0) 1 2)") "truth_"))
+    (is (eq 1 (jsv! "(let [x 1] (if (and (some? x) 0) 1 2))"))))
   (testing "a boolean operand compiles to || and &&"
     (is (str/includes? (jss! "(inc (or (nil? x) y))") "||"))
     (is (str/includes? (jss! "(inc (and (nil? x) y))") "&&")))
   (testing "or accepts recur in the last operand"
-    (is (eq 4 (jsv! "(loop [i 0] (or (when (> i 3) i) (recur (inc i))))")))))
+    (is (eq 4 (jsv! "(loop [i 0] (or (when (> i 3) i) (recur (inc i))))"))))
+  (testing "and accepts recur after a boolean operand"
+    (is (false? (jsv! "(loop [i 0] (and (< i 3) (recur (inc i))))")))
+    (is (eq [false 3] (jsv! "(let [n (atom 0)] [(loop [i 0] (and (< i 3) (do (swap! n inc) true) (recur (inc i)))) @n])"))))
+  (testing "or accepts recur after a boolean operand"
+    (is (true? (jsv! "(loop [i 0] (or (> i 3) (recur (inc i))))")))))
 
 (deftest fn-direct-invoke-test
   (is (eq 2 (jsv! '(#(inc %) 1)))))
