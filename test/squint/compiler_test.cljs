@@ -3103,8 +3103,16 @@ globalThis.foo.fs = fs;")))))
   (testing "a ~{} in an operand is left alone"
     (is (eq 2 (jsv! "(let [x \"~{}\"] (inc (or (= x \"~{}\") 0)))")))
     (is (eq 2 (jsv! "(let [x \"~{}\"] (inc (and (= x \"~{}\") 1)))"))))
-  (testing "a namespaced symbol operand compiles to an expression without a function"
-    (is (not (str/includes? (jss! "(inc (or clojure.string/blank? y))") "=>"))))
+  (testing "a global getter operand runs once"
+    (is (eq [7 1] (jsv! "(let [n (atom 0)]
+                          (js/Object.defineProperty js/globalThis \"g1\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil)) :configurable true})
+                          [(or js/g1 42) @n])")))
+    (is (eq [nil 1] (jsv! "(let [n (atom 0)]
+                            (js/Object.defineProperty js/globalThis \"g2\" #js {:get (fn [] (swap! n inc) nil) :configurable true})
+                            [(and js/g2 42) @n])"))))
+  (testing "an assignment after a boolean operand"
+    (is (eq [2 1] (jsv! "(let [o #js {}] [(inc (or (nil? 1) (set! (.-a o) 1))) (.-a o)])")))
+    (is (eq [2 1] (jsv! "(let [o #js {}] [(inc (and (nil? nil) (set! (.-a o) 1))) (.-a o)])"))))
   (testing "a boolean operand compiles to || and &&"
     (is (str/includes? (jss! "(inc (or (nil? x) y))") "||"))
     (is (str/includes? (jss! "(inc (and (nil? x) y))") "&&")))

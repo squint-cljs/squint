@@ -513,8 +513,8 @@
            ~@body))
 
 (defn- simple-operand? [x]
-  ;; a getter behind a dotted symbol may have side effects
-  (or (and (symbol? x) (not (str/includes? (name x) ".")))
+  ;; a namespaced or dotted symbol is a property read, which can run a getter
+  (or (and (symbol? x) (nil? (namespace x)) (not (str/includes? (name x) ".")))
       (keyword? x) (string? x) (number? x) (boolean? x) (nil? x)))
 
 (defn- emit-expr [env form]
@@ -540,7 +540,7 @@
           ;; a zero-argument js*, so a ~{} inside an operand is left alone
           (= :expr (:context env))
           (let [rest-js (emit-expr env rest-form)]
-            (with-meta (list 'js* (str "(" emitted (if or? " || " " && ") rest-js ")"))
+            (with-meta (list 'js* (str "(" emitted (if or? " || (" " && (") rest-js "))"))
               (when (= 'boolean (:tag rest-js)) {:tag 'boolean})))
           ;; a falsy boolean is false, so the rest can stay in tail position for recur
           :else
