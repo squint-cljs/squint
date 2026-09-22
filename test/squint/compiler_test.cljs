@@ -3110,6 +3110,10 @@ globalThis.foo.fs = fs;")))))
     (is (eq [nil 1] (jsv! "(let [n (atom 0)]
                             (js/Object.defineProperty js/globalThis \"g2\" #js {:get (fn [] (swap! n inc) nil) :configurable true})
                             [(and js/g2 42) @n])"))))
+  (testing "a boolean-tagged assignment as first operand"
+    (is (eq [2 true] (jsv! "(let [o #js {}] [(inc (or ^boolean (set! (.-a o) (nil? nil)) 5)) (.-a o)])")))
+    (is (eq [2 false] (jsv! "(let [o #js {}] [(inc (or ^boolean (set! (.-a o) (nil? 1)) 1)) (.-a o)])")))
+    (is (eq [2 true] (jsv! "(let [o #js {}] [(inc (and (coercive-boolean (set! (.-a o) true)) 1)) (.-a o)])"))))
   (testing "an assignment after a boolean operand"
     (is (eq [2 1] (jsv! "(let [o #js {}] [(inc (or (nil? 1) (set! (.-a o) 1))) (.-a o)])")))
     (is (eq [2 1] (jsv! "(let [o #js {}] [(inc (and (nil? nil) (set! (.-a o) 1))) (.-a o)])"))))

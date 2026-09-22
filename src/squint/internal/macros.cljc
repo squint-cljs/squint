@@ -540,7 +540,7 @@
           ;; a zero-argument js*, so a ~{} inside an operand is left alone
           (= :expr (:context env))
           (let [rest-js (emit-expr env rest-form)]
-            (with-meta (list 'js* (str "(" emitted (if or? " || (" " && (") rest-js "))"))
+            (with-meta (list 'js* (str "((" emitted (if or? ") || (" ") && (") rest-js "))"))
               (when (= 'boolean (:tag rest-js)) {:tag 'boolean})))
           ;; a falsy boolean is false, so the rest can stay in tail position for recur
           :else
