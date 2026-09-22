@@ -3553,8 +3553,7 @@ globalThis.foo.fs = fs;")))))
            [7 "(when-let [x (or a b)] x)"]
            [1 "(if-let [x (and b c)] (inc x) -1)"]
            [1 "(or (first xs) 9)"]
-           ;; do as an operand still emits an IIFE
-           #_[1 "(let [n (atom 0)] (or (do (swap! n inc) nil) @n))"]
+           [1 "(let [n (atom 0)] (or (do (swap! n inc) nil) @n))"]
            [1 "(do (set! z 1) (or a z))"]
            ["seven" "(case b 7 \"seven\" \"other\")"]
            [2 "(cond a 1 c 2 :else 3)"]
