@@ -514,39 +514,37 @@
 
 (defn- simple-operand? [x]
   ;; a getter behind a dotted symbol may have side effects
-  (or (and (symbol? x) (not (str/includes? (str x) ".")))
+  (or (and (symbol? x) (not (str/includes? (name x) ".")))
       (keyword? x) (string? x) (number? x) (boolean? x) (nil? x)))
+
+(defn- emit-expr [env form]
+  ((-> env :utils :emit) form (assoc env :context :expr :top-level false)))
 
 (defn- short-circuit
   "Returns the expansion shared by the `or` and `and` macros."
   [env op x rest-form]
-  (let [emit (-> env :utils :emit)
-        emitted (emit x (assoc env :context :expr))
-        tag (or (:tag emitted)
-                (:tag (meta x)))
-        or? (= 'or op)
-        branch (fn [t]
+  (let [or? (= 'or op)
+        branch (fn [test value]
                  (if or?
-                   (list 'if t t rest-form)
-                   (list 'if t rest-form t)))]
-    (cond
-      (and (= 'boolean tag) (= :expr (:context env)))
-      (let [rest-js (emit rest-form (assoc env :context :expr))]
-        (cond-> (list 'js* (if or? "(~{} || ~{})" "(~{} && ~{})")
-                      (with-meta (list 'js* emitted) {:tag tag})
-                      (list 'js* rest-js))
-          (= 'boolean (:tag rest-js)) (with-meta {:tag 'boolean})))
-      ;; a falsy boolean is false, so the rest can stay in tail position for recur
-      (= 'boolean tag)
-      (if or?
-        (list 'if (with-meta (list 'js* emitted) {:tag tag}) true rest-form)
-        (list 'if (with-meta (list 'js* emitted) {:tag tag}) rest-form false))
-      (simple-operand? x)
-      (branch x)
-      :else
-      (let [v ((:gensym env) op)]
-        `(let [~v ~(with-meta (list 'js* emitted) {:tag tag})]
-           ~(branch v))))))
+                   (list 'if test value rest-form)
+                   (list 'if test rest-form value)))]
+    (if (simple-operand? x)
+      (branch x x)
+      (let [emitted (emit-expr env x)
+            tag (or (:tag emitted) (:tag (meta x)))
+            js-x (with-meta (list 'js* emitted) {:tag tag})]
+        (cond
+          (not= 'boolean tag)
+          (let [v ((:gensym env) op)]
+            `(let [~v ~js-x] ~(branch v v)))
+          ;; a zero-argument js*, so a ~{} inside an operand is left alone
+          (= :expr (:context env))
+          (let [rest-js (emit-expr env rest-form)]
+            (with-meta (list 'js* (str "(" emitted (if or? " || " " && ") rest-js ")"))
+              (when (= 'boolean (:tag rest-js)) {:tag 'boolean})))
+          ;; a falsy boolean is false, so the rest can stay in tail position for recur
+          :else
+          (branch js-x or?))))))
 
 (defn core-or
   "Evaluates exprs one at a time, from left to right. If a form

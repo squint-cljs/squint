@@ -3097,6 +3097,14 @@ globalThis.foo.fs = fs;")))))
   (testing "a boolean operand before a number keeps the truth check"
     (is (str/includes? (jss! "(if (and (some? x) 0) 1 2)") "truth_"))
     (is (eq 1 (jsv! "(let [x 1] (if (and (some? x) 0) 1 2))"))))
+  (testing "a let in a top-level or keeps its renamed local"
+    (is (str/includes? (jss! "(def a1 5) (or (let [a 1] (+ a a1)) 2)") "const a_1 = 1"))
+    (is (eq 6 (jsv! "(def a1 5) (or (let [a 1] (+ a a1)) 2)"))))
+  (testing "a ~{} in an operand is left alone"
+    (is (eq 2 (jsv! "(let [x \"~{}\"] (inc (or (= x \"~{}\") 0)))")))
+    (is (eq 2 (jsv! "(let [x \"~{}\"] (inc (and (= x \"~{}\") 1)))"))))
+  (testing "a namespaced symbol operand compiles to an expression without a function"
+    (is (not (str/includes? (jss! "(ns foo (:require [clojure.string :as str])) (inc (or str/blank? y))") "=>"))))
   (testing "a boolean operand compiles to || and &&"
     (is (str/includes? (jss! "(inc (or (nil? x) y))") "||"))
     (is (str/includes? (jss! "(inc (and (nil? x) y))") "&&")))
@@ -3459,11 +3467,12 @@ globalThis.foo.fs = fs;")))))
   "Evaluates js as a Datastar v1.0.2 value attribute: splits it into
   statements and returns the last one."
   [js]
-  (let [statements (.match (str/trim js) (js/RegExp. (.-source datastar-statement-re) "gm"))
-        n (dec (alength statements))]
-    (aset statements n (str "return (" (str/trim (aget statements n)) ");"))
-    ((js/Function. "a" "b" "c" "d" "e" "xs" "z" (.join statements ";\n"))
-     nil 7 0 "" false #js [1 2 3] js/undefined)))
+  (if-let [statements (.match (str/trim js) (js/RegExp. (.-source datastar-statement-re) "gm"))]
+    (let [n (dec (alength statements))]
+      (aset statements n (str "return (" (str/trim (aget statements n)) ");"))
+      ((js/Function. "a" "b" "c" "d" "e" "xs" "z" (.join statements ";\n"))
+       nil 7 0 "" false #js [1 2 3] js/undefined))
+    ::no-statements))
 
 (deftest datastar-value-attribute-test
   (doseq [[expected form]
@@ -3477,6 +3486,7 @@ globalThis.foo.fs = fs;")))))
            [7 "(when-let [x (or a b)] x)"]
            [1 "(if-let [x (and b c)] (inc x) -1)"]
            [1 "(or (first xs) 9)"]
+           ;; a let or do as first operand still emits an IIFE
            #_[1 "(let [n (atom 0)] (or (do (swap! n inc) nil) @n))"]
            [1 "(do (set! z 1) (or a z))"]
            ["seven" "(case b 7 \"seven\" \"other\")"]
