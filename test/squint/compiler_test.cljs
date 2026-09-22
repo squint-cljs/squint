@@ -3073,6 +3073,77 @@ globalThis.foo.fs = fs;")))))
   (is (eq nil (jsv! '(or))))
   (is (eq "0" (jsv! '(str (or 0 1)))))
   (is (eq "1" (jsv! '(str (and 0 1)))))
+  (testing "or skips nil and false operands"
+    (is (eq [0 "" 3] (jsv! "(let [f (fn [x] x) a 0 b \"\"] [(or a 1) (or b 1) (or (f nil) (f false) 3)])"))))
+  (testing "and stops at nil and false operands"
+    (is (eq [nil false 3] (jsv! "(let [f (fn [x] x) a 1 b 0] [(and a (f nil) 3) (and (f false) 3) (and b (f \"\") 3)])"))))
+  (testing "a call operand runs once"
+    (is (eq [5 1] (jsv! "(let [n (atom 0) f (fn [] (swap! n inc) nil)] [(or (f) 5) @n])")))
+    (is (eq [5 1] (jsv! "(let [n (atom 0) f (fn [] (swap! n inc) 3)] [(and (f) 5) @n])"))))
+  (testing "a dotted symbol operand runs a getter once"
+    (is (eq [5 1] (jsv! "(let [n (atom 0)
+                              o (js/Object.defineProperty #js {} \"p\" #js {:get (fn [] (swap! n inc) nil)})]
+                          [(or o.p 5) @n])"))))
+  (testing "a local operand compiles to an expression without a function"
+    (doseq [input ["(let [x 1 y 2] (inc (or x y)))" "(let [x 1 y 2] (inc (and x y)))" "(let [x 1 y 2 z 3] (inc (or x (and y z))))"]]
+      (let [js (jss! input)]
+        (is (not (str/includes? js "=>")) js)
+        (is (not (str/includes? js "const")) js))))
+  (testing "a chain of boolean operands is boolean"
+    (doseq [input ["(if (or (nil? x) (nil? y)) 1 2)" "(if (and (nil? x) (< 1 2) (nil? y)) 1 2)"]]
+      (is (not (str/includes? (jss! input) "truth_")) input))
+    (is (eq 2 (jsv! "(let [x 1 y 1] (if (or (nil? x) (nil? y)) 1 2))")))
+    (is (eq 1 (jsv! "(let [x nil y 1] (if (and (nil? x) (< 1 2) (some? y)) 1 2))"))))
+  (testing "a boolean operand before a number keeps the truth check"
+    (is (str/includes? (jss! "(if (and (some? x) 0) 1 2)") "truth_"))
+    (is (eq 1 (jsv! "(let [x 1] (if (and (some? x) 0) 1 2))"))))
+  (testing "a let in a top-level or keeps its renamed local"
+    (is (str/includes? (jss! "(def a1 5) (or (let [a 1] (+ a a1)) 2)") "const a_1 = 1"))
+    (is (eq 6 (jsv! "(def a1 5) (or (let [a 1] (+ a a1)) 2)"))))
+  (testing "a ~{} in an operand is left alone"
+    (is (eq 2 (jsv! "(let [x \"~{}\"] (inc (or (= x \"~{}\") 0)))")))
+    (is (eq 2 (jsv! "(let [x \"~{}\"] (inc (and (= x \"~{}\") 1)))"))))
+  (testing "a global getter operand runs once"
+    (is (eq [7 1] (jsv! "(let [n (atom 0)]
+                          (js/Object.defineProperty js/globalThis \"g3\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil)) :configurable true})
+                          [(or g3 42) @n])")))
+    (is (eq [7 1] (jsv! "(let [n (atom 0)]
+                          (js/Object.defineProperty js/globalThis \"g1\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil)) :configurable true})
+                          [(or js/g1 42) @n])")))
+    (is (eq [nil 1] (jsv! "(let [n (atom 0)]
+                            (js/Object.defineProperty js/globalThis \"g2\" #js {:get (fn [] (swap! n inc) nil) :configurable true})
+                            [(and js/g2 42) @n])"))))
+  (testing "a deftype field operand runs a getter once"
+    (is (eq 7 (jsv! "(deftype T [x] Object (foo [_] (or x 42)))
+                     (let [t (->T nil) n (atom 0)]
+                       (js/Object.defineProperty t \"x\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil))})
+                       (.foo t))"))))
+  (testing "a defrecord field operand runs a getter once"
+    (is (eq 7 (jsv! "(defrecord R [x] Object (foo [_] (or x 42)))
+                     (let [r (->R nil) n (atom 0)]
+                       (js/Object.defineProperty r \"x\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil))})
+                       (.foo r))"))))
+  (testing "a defclass field operand runs a getter once"
+    (is (eq 7 (jsv! "(defclass A
+                       (field value)
+                       (constructor [this]
+                         (let [n (atom 0)]
+                           (js/Object.defineProperty this \"value\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil)) :configurable true})))
+                       Object
+                       (foo [_] (or value 42)))
+                     (.foo (A.))"))))
+  (testing "a boolean-tagged assignment as first operand"
+    (is (eq [2 true] (jsv! "(let [o #js {}] [(inc (or ^boolean (set! (.-a o) (nil? nil)) 5)) (.-a o)])")))
+    (is (eq [2 false] (jsv! "(let [o #js {}] [(inc (or ^boolean (set! (.-a o) (nil? 1)) 1)) (.-a o)])")))
+    (is (eq [2 true] (jsv! "(let [o #js {}] [(inc (and (coercive-boolean (set! (.-a o) true)) 1)) (.-a o)])"))))
+  (testing "an assignment after a boolean operand"
+    (is (eq [2 1] (jsv! "(let [o #js {}] [(inc (or (nil? 1) (set! (.-a o) 1))) (.-a o)])")))
+    (is (eq [2 1] (jsv! "(let [o #js {}] [(inc (and (nil? nil) (set! (.-a o) 1))) (.-a o)])"))))
+  (testing "a boolean operand compiles to || and &&"
+    (is (str/includes? (jss! "(inc (or (nil? x) y))") "||"))
+    (is (str/includes? (jss! "(inc (and (nil? x) y))") "&&")))
+  (testing "or accepts recur in the last operand"
+    (is (eq 4 (jsv! "(loop [i 0] (or (when (> i 3) i) (recur (inc i))))"))))
   (testing "and accepts recur after a boolean operand"
     (is (false? (jsv! "(loop [i 0] (and (< i 3) (recur (inc i))))")))
     (is (eq [false 3] (jsv! "(let [n (atom 0)] [(loop [i 0] (and (< i 3) (do (swap! n inc) true) (recur (inc i)))) @n])"))))
@@ -3422,6 +3493,47 @@ globalThis.foo.fs = fs;")))))
 (deftest js-typeof-test
   (testing "embedded in another expression"
     (is (= 6 (jsv! "(let [x \"abc\"] (.-length (js/typeof x)))")))))
+
+(def ^:private datastar-statement-re
+  #"(/(\\/|[^/])*/|\"(\\\"|[^\"])*\"|'(\\'|[^'])*'|`(\\`|[^`])*`|\(\s*((function)\s*\(\s*\)|(\(\s*\))\s*=>)\s*(?:\{[\s\S]*?\}|[^;){]*)\s*\)\s*\(\s*\)|[^;])+")
+
+(defn- datastar-value
+  "Evaluates js as a Datastar v1.0.2 value attribute: splits it into
+  statements and returns the last one."
+  [js]
+  (if-let [statements (.match (str/trim js) (js/RegExp. (.-source datastar-statement-re) "gm"))]
+    (let [n (dec (alength statements))]
+      (aset statements n (str "return (" (str/trim (aget statements n)) ");"))
+      ((js/Function. "a" "b" "c" "d" "e" "xs" "z" (.join statements ";\n"))
+       nil 7 0 "" false #js [1 2 3] js/undefined))
+    ::no-statements))
+
+(deftest datastar-value-attribute-test
+  (doseq [[expected form]
+          [[7 "(or a b)"]
+           [0 "(or c b)"]
+           ["" "(or e d)"]
+           [0 "(and b c)"]
+           [nil "(and a b)"]
+           [7 "(or a e b)"]
+           #_[0 "(and (or a b) (or c d))"]
+           #_[7 "(when-let [x (or a b)] x)"]
+           #_[1 "(if-let [x (and b c)] (inc x) -1)"]
+           [1 "(or (first xs) 9)"]
+           ;; an unresolved symbol, let or do as first operand still emits an IIFE
+           #_[1 "(let [n (atom 0)] (or (do (swap! n inc) nil) @n))"]
+           [1 "(do (set! z 1) (or a z))"]
+           ["seven" "(case b 7 \"seven\" \"other\")"]
+           [2 "(cond a 1 c 2 :else 3)"]
+           [56 "(let [x b y (inc x)] (* x y))"]
+           ["z" "(when (and b c) (or a \"z\"))"]
+           ["none" "(str (or a \"none\"))"]
+           #_[8 "(let [x (let [y b] (inc y))] (or a x))"]
+           [8 "(some-> b inc)"]
+           [2 "(if (or a e) 1 2)"]
+           #_[7 "(when-some [x c] (when-let [y (or a b)] (+ x y)))"]]]
+    (is (eq expected (datastar-value (jss! form {:context :expr :top-level false :elide-exports true})))
+        form)))
 
 (deftest int-test
   (is (= 3 (jsv! "(int 3.14)"))))

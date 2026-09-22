@@ -512,6 +512,44 @@
                              (map #(cons `fn (rest %)) fnspecs)))
            ~@body))
 
+(defn- simple-operand?
+  "Returns true when x can be repeated in the output: a literal, or a local
+  that compiles to a plain identifier. Any other symbol may compile to a
+  property read, which can run a getter."
+  [env x]
+  (or (and (symbol? x)
+           (some->> (get (:var->ident env) x) str (re-matches #"[A-Za-z_$][A-Za-z0-9_$]*")))
+      (keyword? x) (string? x) (number? x) (boolean? x) (nil? x)))
+
+(defn- emit-expr [env form]
+  ((-> env :utils :emit) form (assoc env :context :expr :top-level false)))
+
+(defn- short-circuit
+  "Returns the expansion shared by the `or` and `and` macros."
+  [env op x rest-form]
+  (let [or? (= 'or op)
+        branch (fn [test value]
+                 (if or?
+                   (list 'if test value rest-form)
+                   (list 'if test rest-form value)))]
+    (if (simple-operand? env x)
+      (branch x x)
+      (let [emitted (emit-expr env x)
+            tag (or (:tag emitted) (:tag (meta x)))
+            js-x (with-meta (list 'js* emitted) {:tag tag})]
+        (cond
+          (not= 'boolean tag)
+          (let [v ((:gensym env) op)]
+            `(let [~v ~js-x] ~(branch v v)))
+          ;; a zero-argument js*, so a ~{} inside an operand is left alone
+          (= :expr (:context env))
+          (let [rest-js (emit-expr env rest-form)]
+            (with-meta (list 'js* (str "((" emitted (if or? ") || (" ") && (") rest-js "))"))
+              (when (= 'boolean (:tag rest-js)) {:tag 'boolean})))
+          ;; a falsy boolean is false, so the rest can stay in tail position for recur
+          :else
+          (branch js-x or?))))))
+
 (defn core-or
   "Evaluates exprs one at a time, from left to right. If a form
   returns a logical true value, or returns that value and doesn't
@@ -520,9 +558,8 @@
   {:added "1.0"}
   ([_ _] nil)
   ([_ _ x] x)
-  ([_ _ x & next]
-   `(let [or# ~x]
-      (if or# or# (or ~@next)))))
+  ([_ env x & next]
+   (short-circuit env 'or x `(or ~@next))))
 
 (core/defmacro core-and
   "Evaluates exprs one at a time, from left to right. If a form
@@ -532,22 +569,7 @@
   ([] true)
   ([x] x)
   ([x & next]
-   (let [emit (-> &env :utils :emit)
-         emitted (emit x (assoc &env :context :expr))
-         tag (or (:tag emitted)
-                 (:tag (meta x)))
-         x (with-meta (list 'js* emitted)
-             {:tag tag})]
-     (cond
-       ;; the value is returned when falsy, so it must be evaluated once
-       (not= 'boolean tag)
-       `(let [and# ~x]
-          (if and# (and ~@next) and#))
-       (= :expr (:context &env))
-       (list 'js* "(~{} && ~{})" x `(and ~@next))
-       ;; a falsy boolean is false, so the rest can stay in tail position for recur
-       :else
-       (list 'if x `(and ~@next) false)))))
+   (short-circuit &env 'and x `(and ~@next))))
 
 (defn core-assert
   "Evaluates expr and throws an exception if it does not evaluate to
