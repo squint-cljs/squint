@@ -3098,7 +3098,7 @@ globalThis.foo.fs = fs;")))))
     (is (str/includes? (jss! "(if (and (some? x) 0) 1 2)") "truth_"))
     (is (eq 1 (jsv! "(let [x 1] (if (and (some? x) 0) 1 2))"))))
   (testing "a let in a top-level or keeps its renamed local"
-    (is (str/includes? (jss! "(def a1 5) (or (let [a 1] (+ a a1)) 2)") "const a_1 = 1"))
+    (is (str/includes? (jss! "(def a1 5) (or (let [a 1] (+ a a1)) 2)") "(a_1 = 1)"))
     (is (eq 6 (jsv! "(def a1 5) (or (let [a 1] (+ a a1)) 2)"))))
   (testing "a ~{} in an operand is left alone"
     (is (eq 2 (jsv! "(let [x \"~{}\"] (inc (or (= x \"~{}\") 0)))")))
@@ -3494,6 +3494,35 @@ globalThis.foo.fs = fs;")))))
   (is (eq [3 2] (jsv! "(let [o #js {}] [(inc (set! (.-y o) 2)) (.-y o)])")))
   (is (eq ["2x" 2] (jsv! "(let [o #js {}] [(str (set! (.-y o) 2) \"x\") (.-y o)])"))))
 
+(deftest let-in-expression-test
+  (testing "later bindings see earlier ones"
+    (is (= 3 (jsv! "(+ 1 (let [a 1 b (inc a)] (* a b)))"))))
+  (testing "a binding shadows an earlier binding of the same name"
+    (is (= 2 (jsv! "(+ 0 (let [x 1 x (inc x)] x))"))))
+  (testing "nil and undefined inits stay nil and undefined"
+    (is (= "true" (jsv! "(str (let [x nil] (nil? x)))")))
+    (is (= "true" (jsv! "(str (let [x js/undefined] (undefined? x)))"))))
+  (testing "body forms run once and in order"
+    (is (= 3 (jsv! "(let [a (atom 0)] (+ 1 (let [b 1] (swap! a inc) (swap! a inc) @a)))"))))
+  (testing "a mutable binding is assignable"
+    (is (= 2 (jsv! "(+ 0 (let [^:mutable x 1] (set! x 2) x))"))))
+  (testing "or evaluates its first operand once"
+    (is (= 1 (jsv! "(let [n (atom 0)] (or (do (swap! n inc) nil) @n))"))))
+  (testing "and, or, when-let and if-let nest without a block"
+    (is (= "0" (jsv! "(str (and (or nil 7) (or 0 1)))")))
+    (is (= 7 (jsv! "(+ 0 (when-let [x (or nil 7)] x))")))
+    (is (= 1 (jsv! "(+ 0 (if-let [x (and 7 0)] (inc x) -1))")))
+    (let [js (jss! "(defn f [a b c] (if (and (or a b) (or b c)) 1 2))")]
+      (is (not (str/includes? js "() =>")) js)))
+  (testing "case returns the matching branch in expression position"
+    (is (= "b" (jsv! "(str (case 2 1 \"a\" 2 \"b\" \"c\"))")))
+    (is (= "6" (jsv! "(let [x 5] (str (case 1 1 (inc x) 0)))")))
+    (is (= "0" (jsv! "(let [x 5] (str (case 3 1 (inc x) 0)))"))))
+  (testing "loops, generators and async fns keep the block"
+    (is (= 3 (jsv! "(+ 0 (let [x 1] (loop [i 0] (if (< i 3) (recur (inc i)) i))))")))
+    (is (= 2 (jsv! "(+ 0 (let [x 1] (try (throw (js/Error. \"e\")) (catch :default _ 2))))")))
+    (is (eq [1 2] (jsv! "(defn ^:gen g [] (js-yield (let [x 1] x)) (js-yield (let [y 2] y))) (vec (g))")))))
+
 (deftest js-typeof-test
   (testing "embedded in another expression"
     (is (= 6 (jsv! "(let [x \"abc\"] (.-length (js/typeof x)))")))))
@@ -3520,11 +3549,11 @@ globalThis.foo.fs = fs;")))))
            [0 "(and b c)"]
            [nil "(and a b)"]
            [7 "(or a e b)"]
-           #_[0 "(and (or a b) (or c d))"]
-           #_[7 "(when-let [x (or a b)] x)"]
-           #_[1 "(if-let [x (and b c)] (inc x) -1)"]
+           [0 "(and (or a b) (or c d))"]
+           [7 "(when-let [x (or a b)] x)"]
+           [1 "(if-let [x (and b c)] (inc x) -1)"]
            [1 "(or (first xs) 9)"]
-           ;; an unresolved symbol, let or do as first operand still emits an IIFE
+           ;; do as an operand still emits an IIFE
            #_[1 "(let [n (atom 0)] (or (do (swap! n inc) nil) @n))"]
            [1 "(do (set! z 1) (or a z))"]
            ["seven" "(case b 7 \"seven\" \"other\")"]
@@ -3532,10 +3561,10 @@ globalThis.foo.fs = fs;")))))
            [56 "(let [x b y (inc x)] (* x y))"]
            ["z" "(when (and b c) (or a \"z\"))"]
            ["none" "(str (or a \"none\"))"]
-           #_[8 "(let [x (let [y b] (inc y))] (or a x))"]
+           [8 "(let [x (let [y b] (inc y))] (or a x))"]
            [8 "(some-> b inc)"]
            [2 "(if (or a e) 1 2)"]
-           #_[7 "(when-some [x c] (when-let [y (or a b)] (+ x y)))"]]]
+           [7 "(when-some [x c] (when-let [y (or a b)] (+ x y)))"]]]
     (is (eq expected (datastar-value (jss! form {:context :expr :top-level false :elide-exports true})))
         form)))
 

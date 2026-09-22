@@ -27,6 +27,7 @@
 - `or` and `and` compile to `||`, `&&` or a conditional expression when the first operand is a boolean, a literal or a local. A chain of boolean operands is boolean, so `if` skips its truth check
 - Fix [#1008](https://github.com/squint-cljs/squint/issues/1008): `and` accepts `recur` after a boolean operand
 - Fix [#1011](https://github.com/squint-cljs/squint/issues/1011): wrap `set!` in parens in expression position so it embeds in other expressions
+- `let` with one body form in expression position compiles to an arrow with default parameters instead of an IIFE, so `or`, `and`, `when-let` and `if-let` nest inside other expressions without statements
 
 ## 0.14.208
 

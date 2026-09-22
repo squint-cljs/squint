@@ -70,10 +70,10 @@
 
 (defn tagged-expr
   ([js tag]
-   (map->Code {:js js
+   (map->Code {:js (str js)
                :tag tag}))
   ([js tag transient]
-   (map->Code {:js js
+   (map->Code {:js (str js)
                :tag tag
                :transient transient})))
 
@@ -782,42 +782,52 @@
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
                           tag (:tag rhs)
-                          expr (format "%s %s = %s;\n" (if (or loop? top-level?
-                                                               (:mutable vm))
-                                                         "let" "const") lhs rhs)
+                          decl (if (or loop? top-level? (:mutable vm)) "let" "const")
                           var->ident
                           (-> var->ident
                               (assoc var-name
                                      (cond-> renamed
                                        tag
                                        (vary-meta assoc :tag tag))))]
-                      [(str acc expr) var->ident]))
-                  ["" upper-var->ident]
+                      [(conj acc [lhs rhs decl]) var->ident]))
+                  [[] upper-var->ident]
                   partitioned))
         enc-env (assoc enc-env :var->ident var->ident :top-level false)
-        body (let [recur-targets (if loop? (map var->ident (map first partitioned))
-                                     (:recur-targets enc-env))]
-               (emit-do (-> (if iife?
-                              (assoc enc-env :context :return)
-                              enc-env)
-                            (assoc :recur-targets recur-targets)) body))
-        tag (:tag body)
-        transient (:transient body)]
-    (cond-> (str
-             bindings
-             (when loop?
-               "while(true){\n")
-             ;; TODO: move this to env arg?
-             body
-             (when loop?
-               ;; TODO: not sure why I had to insert the ; here, but else
-               ;; (loop [x 1] (+ 1 2 x)) breaks
-               ";break;\n}\n"))
-      iife?
-      (wrap-implicit-iife env)
-      iife?
-      (emit-return enc-env)
-      tag (tagged-expr tag transient))))
+        ;; a single body form is an expression, a longer body may hold statements
+        arrow? (and iife? (not loop?) (not (:gen env)) (not (:async env)) (= 1 (count body)))]
+    (if arrow?
+      (let [l (emit (first body) (assoc enc-env :context :expr))
+            js (if (seq bindings)
+                 (format "((%s) => %s)()"
+                         (str/join ", " (map (fn [[lhs rhs]] (str lhs " = " rhs)) bindings))
+                         l)
+                 (str "(" l ")"))]
+        (cond-> (emit-return js enc-env)
+          (:tag l) (tagged-expr (:tag l) (:transient l))))
+      (let [bindings (str/join (map (fn [[lhs rhs decl]] (format "%s %s = %s;\n" decl lhs rhs)) bindings))
+            body (let [recur-targets (if loop? (map var->ident (map first partitioned))
+                                         (:recur-targets enc-env))]
+                   (emit-do (-> (if iife?
+                                  (assoc enc-env :context :return)
+                                  enc-env)
+                                (assoc :recur-targets recur-targets)) body))
+            tag (:tag body)
+            transient (:transient body)]
+        (cond-> (str
+                 bindings
+                 (when loop?
+                   "while(true){\n")
+                 ;; TODO: move this to env arg?
+                 body
+                 (when loop?
+                   ;; TODO: not sure why I had to insert the ; here, but else
+                   ;; (loop [x 1] (+ 1 2 x)) breaks
+                   ";break;\n}\n"))
+          iife?
+          (wrap-implicit-iife env)
+          iife?
+          (emit-return enc-env)
+          tag (tagged-expr tag transient))))))
 
 (defmethod emit-special 'let* [_type enc-env [_let bindings & body]]
   (emit-let enc-env bindings body false))
@@ -839,7 +849,7 @@
                                        (map (fn [test]
                                               (str "case " (emit test eenv) ":\n"
                                                    (if expr?
-                                                     (str gs " = " then)
+                                                     (str gs " = " (emit then eenv) ";")
                                                      (statement (emit then env)))
                                                    "\nbreak;\n"))
                                             test)))
@@ -847,11 +857,11 @@
                      (when default
                        (str "default:\n"
                             (if expr?
-                              (str gs " = " (emit default eenv))
+                              (str gs " = " (emit default eenv) ";")
                               (emit default env))))
+                     "}"
                      (when expr?
-                       (str "return " gs ";"))
-                     "}")
+                       (str "\nreturn " gs ";")))
               expr? (wrap-implicit-iife env))]
     ret))
 
