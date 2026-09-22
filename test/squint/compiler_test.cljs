@@ -3110,6 +3110,20 @@ globalThis.foo.fs = fs;")))))
     (is (eq [nil 1] (jsv! "(let [n (atom 0)]
                             (js/Object.defineProperty js/globalThis \"g2\" #js {:get (fn [] (swap! n inc) nil) :configurable true})
                             [(and js/g2 42) @n])"))))
+  (testing "a deftype field operand runs a getter once"
+    (is (eq 7 (jsv! "(deftype T [x] Object (foo [_] (or x 42)))
+                     (let [t (->T nil) n (atom 0)]
+                       (js/Object.defineProperty t \"x\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil))})
+                       (.foo t))"))))
+  (testing "a defclass field operand runs a getter once"
+    (is (eq 7 (jsv! "(defclass A
+                       (field value)
+                       (constructor [this]
+                         (let [n (atom 0)]
+                           (js/Object.defineProperty this \"value\" #js {:get (fn [] (swap! n inc) (if (= 1 @n) 7 nil)) :configurable true})))
+                       Object
+                       (foo [_] (or value 42)))
+                     (.foo (A.))"))))
   (testing "a boolean-tagged assignment as first operand"
     (is (eq [2 true] (jsv! "(let [o #js {}] [(inc (or ^boolean (set! (.-a o) (nil? nil)) 5)) (.-a o)])")))
     (is (eq [2 false] (jsv! "(let [o #js {}] [(inc (or ^boolean (set! (.-a o) (nil? 1)) 1)) (.-a o)])")))

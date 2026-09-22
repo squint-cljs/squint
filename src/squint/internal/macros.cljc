@@ -512,9 +512,14 @@
                              (map #(cons `fn (rest %)) fnspecs)))
            ~@body))
 
-(defn- simple-operand? [x]
-  ;; a namespaced or dotted symbol is a property read, which can run a getter
-  (or (and (symbol? x) (nil? (namespace x)) (not (str/includes? (name x) ".")))
+(defn- simple-operand?
+  "Returns true when x can be repeated in the output: a literal, or a symbol
+  that compiles to a plain identifier. A property read can run a getter."
+  [env x]
+  (or (and (symbol? x)
+           (nil? (namespace x))
+           (not (str/includes? (name x) "."))
+           (not (str/includes? (str (get (:var->ident env) x x)) ".")))
       (keyword? x) (string? x) (number? x) (boolean? x) (nil? x)))
 
 (defn- emit-expr [env form]
@@ -528,7 +533,7 @@
                  (if or?
                    (list 'if test value rest-form)
                    (list 'if test rest-form value)))]
-    (if (simple-operand? x)
+    (if (simple-operand? env x)
       (branch x x)
       (let [emitted (emit-expr env x)
             tag (or (:tag emitted) (:tag (meta x)))
