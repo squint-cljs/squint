@@ -793,7 +793,7 @@
                   [[] upper-var->ident]
                   partitioned))
         enc-env (assoc enc-env :var->ident var->ident :top-level false)
-        ;; a single body form is an expression, a longer body may hold statements
+        ;; one body form makes the IIFE body an expression, a longer body may hold statements
         arrow? (and iife? (not loop?) (not (:gen env)) (not (:async env)) (= 1 (count body)))]
     (if arrow?
       (let [l (emit (first body) (assoc enc-env :context :expr))
