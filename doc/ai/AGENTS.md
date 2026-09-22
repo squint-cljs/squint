@@ -1,14 +1,5 @@
 # Squint dev notes
 
-## Plans / design notes
-
-Plans live outside the repo, in `~/Dropbox/notes/squint/`.
-
-- `PLAN-source-maps.md` - JS source maps for squint (browser DevTools + REPL
-  map back to `.cljs`). Tier 1 = form/line level. Not yet implemented.
-- `PLAN-expression-let.md` - `let*`, `or` and `and` in expression position
-  without a block IIFE. Not yet implemented.
-
 ## Build / watch
 
 - User keeps `bb dev` running (shadow-cljs watch on the `squint` build,
