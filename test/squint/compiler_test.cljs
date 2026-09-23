@@ -912,6 +912,12 @@
           (is (str/includes? s "var Reify__0 = class {};"))
           (is (str/includes? s "var Reify__1 = class {};")))))))
 
+(deftest keyword-identical?-test
+  (is (true? (jsv! "(keyword-identical? :a :a)")))
+  (is (true? (jsv! "(keyword-identical? :a/b (keyword \"a\" \"b\"))")))
+  (is (false? (jsv! "(keyword-identical? :a :b)")))
+  (is (eq [true false] (jsv! "(mapv (partial keyword-identical? :a) [:a :b])"))))
+
 (deftest set-test
   (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))
   (is (eq (js/Set. [1 2 3]) (jsv! '(set [1 2 3]))))

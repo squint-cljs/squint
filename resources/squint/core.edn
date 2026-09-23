@@ -224,6 +224,7 @@
   keys
   keyword
   keyword_QMARK_
+  keyword_identical_QMARK_
   last
   lazy
   list
