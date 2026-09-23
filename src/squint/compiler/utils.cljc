@@ -4,8 +4,8 @@
 (defmulti emit (fn [expr _env] (type expr)))
 
 (def js-reserved-words
-  "Same list cljs.core/munge uses."
-  #{"arguments" "abstract" "await" "boolean" "break" "byte" "case"
+  "The list cljs.core/munge uses, plus eval."
+  #{"arguments" "eval" "abstract" "await" "boolean" "break" "byte" "case"
     "catch" "char" "class" "const" "continue"
     "debugger" "default" "delete" "do" "double"
     "else" "enum" "export" "extends" "final"
@@ -24,10 +24,9 @@
   cljs.core/munge does. clojure.core/munge does not, which made the JVM
   compiler emit invalid JS for e.g. (fn [this] ...)."
   [x]
-  #?(:cljs (clojure.core/munge x)
-     :clj (let [munged (clojure.core/munge x)]
-            (if (contains? js-reserved-words (str munged))
-              (if (symbol? munged)
-                (symbol (str munged "$"))
-                (str munged "$"))
-              munged))))
+  (let [munged (clojure.core/munge x)]
+    (if (contains? js-reserved-words (str munged))
+      (if (symbol? munged)
+        (symbol (str munged "$"))
+        (str munged "$"))
+      munged)))

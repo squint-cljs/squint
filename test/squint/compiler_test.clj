@@ -58,7 +58,9 @@
        (sq/compile-string "(ns foo (:require [squint.core :refer [defclass]]))
                            (defclass MyElement (extends js/HTMLElement) (constructor [this] (super)))")
        "const this$ = this;"))
-  (is (= "1" (test-expr "(prn ((fn [this] this) 1))"))))
+  (is (= "1" (test-expr "(prn ((fn [this] this) 1))")))
+  (is (str/includes? (sq/compile-string "(def eval 1)") "var eval$ = 1"))
+  (is (str/includes? (sq/compile-string "(js/eval \"1\")") "eval(\"1\")")))
 
 (deftest regex-literal-test
   (is (str/includes? (sq/compile-string "#\"(?i)x/y\"") "/x\\/y/i"))

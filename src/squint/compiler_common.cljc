@@ -639,7 +639,7 @@
                                       (get-in ns-state [current :ns-aliases (symbol sym-ns)])))
                              (some-> (maybe-core-var sn env) munge))
                            (when (= "js" sym-ns)
-                             (munge* (name expr)))
+                             (munge** (name expr)))
                            (when-let [resolved-ns (get (:aliases env) (symbol sym-ns))]
                              (str (if (symbol? resolved-ns)
                                     (munge resolved-ns)
