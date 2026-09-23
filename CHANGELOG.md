@@ -23,7 +23,7 @@
 - Add `implements?`
 - Resolve `my.ns/x` and `my.ns.x` to var `x` in the current or a required ns
 - Fix invalid JS for `eval` as a var, local or param name
-- Fix `map?` and `object?` returning true for `reify` objects. They print as `#<Reify__N>`, not `{}`
+- Fix `map?` and `object?` returning true for `reify` objects. They print as `#<Reify_N>`, not `{}`
 - Add `keyword-identical?`
 - `reify` carries form metadata: `(meta ^{:k 1} (reify ...))` returns `{:k 1}`
 - Fix `with-meta` dropping the protocol methods of a deftype, defrecord or reify instance
