@@ -873,6 +873,16 @@
     (testing "an alias with dots takes precedence over the ns split"
       (is (str/includes? (jss! "(ns repro (:require [\"x\" :as foo] [\"y\" :as foo.bar])) (foo.bar)" opts) "foo_DOT_bar()")))))
 
+(deftest eval-name-test
+  (doseq [repl [false true]
+          :let [opts {:repl repl}]]
+    (testing "eval as a var, local or param name emits eval$"
+      (is (str/includes? (jss! "(def eval inc)" opts) "eval$ = "))
+      (is (= 2 (jsv! "(def eval inc) (eval 1)" opts)))
+      (is (= 2 (jsv! "(let [f (fn [eval] (eval 1))] (f inc))" opts))))
+    (testing "js/eval emits eval"
+      (is (= 2 (jsv! "(js/eval \"1 + 1\")" opts))))))
+
 (deftest set-test
   (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))
   (is (eq (js/Set. [1 2 3]) (jsv! '(set [1 2 3]))))
