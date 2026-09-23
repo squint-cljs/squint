@@ -237,10 +237,10 @@ export const __protocol_satisfies = {};
 
 export function satisfies_QMARK_(protocol, x) {
   if (x == null) {
-    return protocol[null];
+    return protocol[null] != null;
   }
-  if (typeof protocol == 'symbol') return x[protocol];
-  return x[protocol.__sym];
+  if (typeof protocol == 'symbol') return x[protocol] != null;
+  return x[protocol.__sym] != null;
 }
 
 function mapAssocMut(m, k, v) {

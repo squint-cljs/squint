@@ -845,7 +845,14 @@
   (is (not (jsv! '(do (defprotocol IFoo (-foo [_]))
                       (implements? IFoo {})))))
   (is (not (jsv! '(do (defprotocol IFoo (-foo [_]))
-                      (implements? IFoo nil))))))
+                      (implements? IFoo nil)))))
+  (testing "satisfies? and implements? return booleans"
+    (is (eq [true false false true]
+            (jsv! "(defprotocol IFoo (-foo [_])) (deftype Foo [] IFoo (-foo [_] 1))
+                   [(satisfies? IFoo (->Foo)) (satisfies? IFoo {}) (satisfies? IFoo nil) (implements? IFoo (->Foo))]")))
+    (is (eq [true false]
+            (jsv! "(defprotocol IFoo (-foo [_])) (extend-type nil IFoo (-foo [_] 1))
+                   [(satisfies? IFoo nil) (implements? IFoo 1)]")))))
 
 (deftest ns-qualified-ref-test
   (doseq [repl [false true]
