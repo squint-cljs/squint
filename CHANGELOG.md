@@ -18,7 +18,7 @@
 - Fix [#1000](https://github.com/squint-cljs/squint/issues/1000): treat empty strings from `str`, `subs` or `name` as truthy in `if`
 - Fix [#1002](https://github.com/squint-cljs/squint/issues/1002): wrap `js-in` and `js/typeof` output in parens so it embeds in other expressions
 - Fix [#990](https://github.com/squint-cljs/squint/issues/990): playground shows results again after toggling REPL-mode off and on
-- <!-- PROSE: reduce-kv honors reduced, vectors pass index as key -->
+- Fix `reduce-kv`: stop on `reduced` and pass the index as key for vectors
 - Playground: clear the result panel on every run, so an error doesn't linger after the next successful run
 - Playground: compile a non-REPL run from fresh compiler state, so vars from earlier runs don't emit exports for names the document no longer defines
 - Playground: render results at the code font size
