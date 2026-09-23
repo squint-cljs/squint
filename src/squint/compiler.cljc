@@ -472,6 +472,7 @@
              need-html-import (atom false)
              need-multi-import (atom false)
              need-record-import (atom false)
+             hoisted (atom [])
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
              jsx-runtime (:jsx-runtime opts)
@@ -494,7 +495,14 @@
                                                         :pragmas pragmas
                                                         :need-html-import need-html-import
                                                         :need-multi-import need-multi-import
-                                                        :need-record-import need-record-import))
+                                                        :need-record-import need-record-import
+                                                        :hoisted hoisted))
+                 transpiled (cond
+                              (empty? @hoisted) transpiled
+                              ;; :expr output must stay one expression
+                              (= :expr (:context opts))
+                              (str "(() => {\n" (str/join @hoisted) "return " transpiled ";\n})()")
+                              :else (str (str/join @hoisted) transpiled))
                  jsx (:jsx @(:ns-state opts))
                  _ (when (and jsx jsx-runtime)
                      (let [jsx-name (str "jsx" (if jsx-dev "DEV" ""))
