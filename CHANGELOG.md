@@ -2,47 +2,47 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.14.209
 
-- Add `Developing Squint` section to readme
-- Add standalone main.css
-- Add some initial global css vars (light/dark mode friendly)
-- Minor tweaks to size, layout, labels of buttons and repl mode control in sidebar
-- De-emphasized panel borders
-- Fix clipping (by scrollbar) of panel borders in right corners
-- Remove visual noise created by light background color of gutter in compiled code block
-- Add `position: fixed` mini-header in top right with “Squint Playground” label,  star counter, and light/dark theme toggle icon button. The toggle is temporarily hidden until the codemirror theme reloading is working. 
-- Fix [#992](https://github.com/squint-cljs/squint/issues/992): emit regex literals like CLJS on the JVM compiler path
-- Fix [#994](https://github.com/squint-cljs/squint/issues/994): `:jsx-runtime` fragments refer to the imported `_Fragment` instead of a `"_Fragment"` tag string
-- Fix [#998](https://github.com/squint-cljs/squint/issues/998): test macros with a `cljs.test` require import squint's test module when a custom `:resolve-ns` is passed
-- Fix [#1000](https://github.com/squint-cljs/squint/issues/1000): treat empty strings from `str`, `subs` or `name` as truthy in `if`
-- Fix [#1002](https://github.com/squint-cljs/squint/issues/1002): wrap `js-in` and `js/typeof` output in parens so it embeds in other expressions
-- Fix [#990](https://github.com/squint-cljs/squint/issues/990): playground shows results again after toggling REPL-mode off and on
-- Fix `reduce-kv`: stop on `reduced` and pass the index as key for vectors
-- Fix map destructuring with a symbol key: `{v k}` looks up the value of `k`
-- Add `implements?`
-- Resolve `my.ns/x` and `my.ns.x` to var `x` in the current or a required ns
-- Fix invalid JS for `eval` as a var, local or param name
-- Fix `map?` and `object?` returning true for `reify` objects. They print as `#<Reify_N>`, not `{}`
-- Add `keyword-identical?`
-- `reify` carries form metadata: `(meta ^{:k 1} (reify ...))` returns `{:k 1}`
-- Fix `with-meta` dropping the protocol methods of a deftype, defrecord or reify instance
-- `assoc` on a deftype instance returns that type, not a plain map, so it is not `map?` and not `=` to a map
 - Add `eduction`
-- `satisfies?` and `implements?` return `false`, not nil, for a value that does not implement the protocol
+- `or` and `and` compile to `||`, `&&` or a conditional expression when the first operand is a boolean, a literal or a local. A chain of boolean operands is boolean, so `if` skips its truth check
 - Compile `reify` to a per-site type with the locals in scope as fields and the methods on the prototype
+- Fix [#1000](https://github.com/squint-cljs/squint/issues/1000): treat empty strings from `str`, `subs` or `name` as truthy in `if`
+- A local named like a core macro shadows the macro in call position: `(let [str f] (str x))` calls `f`
+- Fix map destructuring with a symbol key: `{v k}` looks up the value of `k`
+- Fix `reduce-kv`: stop on `reduced` and pass the index as key for vectors
+- Fix `with-meta` dropping the protocol methods of a deftype, defrecord or reify instance
 - Fix `recur` in a protocol method rebinding the `this` param
+- Fix [#994](https://github.com/squint-cljs/squint/issues/994): `:jsx-runtime` fragments refer to the imported `_Fragment` instead of a `"_Fragment"` tag string
+- Fix [#1011](https://github.com/squint-cljs/squint/issues/1011): wrap `set!` in parens in expression position so it embeds in other expressions
+- Fix [#1002](https://github.com/squint-cljs/squint/issues/1002): wrap `js-in` and `js/typeof` output in parens so it embeds in other expressions
+- Fix invalid JS for `eval` as a var, local or param name
+- Fix [#1008](https://github.com/squint-cljs/squint/issues/1008): `and` accepts `recur` after a boolean operand
+- Resolve `my.ns/x` and `my.ns.x` to var `x` in the current or a required ns
+- Fix [#992](https://github.com/squint-cljs/squint/issues/992): emit regex literals like CLJS on the JVM compiler path
+- A regex literal in return position is returned on the JVM compiler path, `(defn f [] #"a")` returned undefined
+- Fix [#998](https://github.com/squint-cljs/squint/issues/998): test macros with a `cljs.test` require import squint's test module when a custom `:resolve-ns` is passed
+- Add `implements?`
+- Add `keyword-identical?`
+- `assoc` on a deftype instance returns that type, not a plain map, so it is not `map?` and not `=` to a map
+- Fix `map?` and `object?` returning true for `reify` objects. They print as `#<Reify_N>`, not `{}`
+- `reify` carries form metadata: `(meta ^{:k 1} (reify ...))` returns `{:k 1}`
+- `satisfies?` and `implements?` return `false`, not nil, for a value that does not implement the protocol
 - Fix `deftype` with `Object` methods adding an `undefined` key to the prototype
-- Playground: clear the result panel on every run, so an error doesn't linger after the next successful run
+- Fix [#990](https://github.com/squint-cljs/squint/issues/990): playground shows results again after toggling REPL-mode off and on
 - Playground: compile a non-REPL run from fresh compiler state, so vars from earlier runs don't emit exports for names the document no longer defines
+- Playground: clear the result panel on every run, so an error doesn't linger after the next successful run
+- Playground: editor and sidebar fill the window; the result box scrolls on its own so the compiled code stays in view
 - Playground: render results at the code font size
 - Playground: drop the top bar, moving the star counter into the sidebar controls
-- Playground: editor and sidebar fill the window; the result box scrolls on its own so the compiled code stays in view
-- A local named like a core macro shadows the macro in call position: `(let [str f] (str x))` calls `f`
-- `or` and `and` compile to `||`, `&&` or a conditional expression when the first operand is a boolean, a literal or a local. A chain of boolean operands is boolean, so `if` skips its truth check
-- Fix [#1008](https://github.com/squint-cljs/squint/issues/1008): `and` accepts `recur` after a boolean operand
-- Fix [#1011](https://github.com/squint-cljs/squint/issues/1011): wrap `set!` in parens in expression position so it embeds in other expressions
-- A regex literal in return position is returned on the JVM compiler path, `(defn f [] #"a")` returned undefined
+- Add `position: fixed` mini-header in top right with “Squint Playground” label,  star counter, and light/dark theme toggle icon button. The toggle is temporarily hidden until the codemirror theme reloading is working.
+- Minor tweaks to size, layout, labels of buttons and repl mode control in sidebar
+- Fix clipping (by scrollbar) of panel borders in right corners
+- Remove visual noise created by light background color of gutter in compiled code block
+- De-emphasized panel borders
+- Add some initial global css vars (light/dark mode friendly)
+- Add standalone main.css
+- Add `Developing Squint` section to readme
 
 ## 0.14.208
 
