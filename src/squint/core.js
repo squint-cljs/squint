@@ -444,6 +444,7 @@ const INSTANCE_TYPE = 7;
 // key and two evaluated copies of core stop recognizing each other's collections.
 const TYPE_TAG = /* @__PURE__ */ Symbol.for('squint.core/type');
 const SORTED_TAG = /* @__PURE__ */ Symbol.for('squint.core/sorted');
+const EDUCTION = /* @__PURE__ */ Symbol.for('squint.core/eduction');
 
 // @__NO_SIDE_EFFECTS__ lets a bundler drop unused defclass/withApply calls; see doc/dev/dce.md
 // @__NO_SIDE_EFFECTS__
@@ -953,7 +954,7 @@ export function seq_QMARK_(x) {
 export function sequential_QMARK_(x) {
   // vectors and lists are arrays; lazy seqs and cons carry the lazy brand.
   // Sets, maps and strings are iterable but not sequential.
-  return Array.isArray(x) || x?.[TYPE_TAG] === LAZY_ITERABLE_TYPE || x instanceof Eduction || (x != null && x[IVector.__sym] !== undefined);
+  return Array.isArray(x) || x?.[TYPE_TAG] === LAZY_ITERABLE_TYPE || x?.[EDUCTION] !== undefined || (x != null && x[IVector.__sym] !== undefined);
 }
 
 export function seqable_QMARK_(x) {
@@ -4129,6 +4130,7 @@ class Eduction {
   constructor(xform, coll) {
     this.xform = xform;
     this.coll = coll;
+    this[EDUCTION] = true;
   }
   *[Symbol.iterator]() {
     const buf = [];
@@ -4697,7 +4699,7 @@ function toEDN(value, seen = new WeakSet(), readably = true) {
     if (seen.has(value)) return '#object[circular]';
     seen.add(value);
     // an eduction prints as a seq, like CLJS
-    const T = value instanceof Eduction ? LIST_TYPE : typeConst(value);
+    const T = value[EDUCTION] !== undefined ? LIST_TYPE : typeConst(value);
     let keys, result;
     switch (T) {
       case ARRAY_TYPE:

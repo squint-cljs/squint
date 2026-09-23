@@ -121,8 +121,8 @@
    "squint.core/ITransientCollection" "squint.core/ITransientMap"
    "squint.core/ITransientSet" "squint.core/ITransientVector"
    "squint.core/IVector" "squint.core/IWatchable" "squint.core/IWithMeta"
-   "squint.core/IWriter" "squint.core/map-entry" "squint.core/sorted"
-   "squint.core/type"])
+   "squint.core/IWriter" "squint.core/eduction" "squint.core/map-entry"
+   "squint.core/sorted" "squint.core/type"])
 
 (deftest core-registry-keys-are-stable
   (let [found (->> (re-seq #"Symbol\.for\('([^']*)'\)" (fs/readFileSync core-path "utf8"))
