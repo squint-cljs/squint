@@ -101,6 +101,7 @@
                              'declare macros/core-declare
                              'letfn macros/core-letfn
                              'defclass defclass/defclass
+                             'super defclass/core-super
                              'js-template defclass/js-template
                              'or macros/core-or
                              'and macros/core-and

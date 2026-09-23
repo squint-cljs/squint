@@ -1,7 +1,6 @@
 (ns squint.defclass
   (:refer-clojure :exclude [munge])
   (:require [clojure.string :as str]
-            [clojure.walk :as walk]
             [squint.compiler.utils :refer [munge]]))
 
 ;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
@@ -11,6 +10,15 @@
 
 (defn defclass [_ _ & body]
   `(defclass* ~@body))
+
+(defn core-super
+  "Expands a super call in a defclass constructor to super*, and marks the
+  constructor as calling super. Elsewhere leaves the form as a plain call."
+  [form env & args]
+  (if-let [{:keys [called this-sym]} (::ctor env)]
+    (do (vreset! called true)
+        `(super* {:forms ~args :this-sym ~this-sym}))
+    (vary-meta form assoc :squint.compiler/skip-macro true)))
 
 (defn- parse-class [form]
   (loop [classname nil
@@ -84,20 +92,6 @@
         (throw (ex-info "invalid defclass form" {:form head}))
         ))))
 
-
-(defn- find-and-replace-super-call [form super? fields this-sym]
-  (let [res
-        (walk/prewalk
-         (fn [form]
-           (if-not (and (list? form) (= 'super (first form)))
-             form
-             `(super* {:forms ~(rest form) :fields ~fields :this-sym ~this-sym})))
-         form)]
-    (if (not= form res)
-      res
-      ;; if super call was not found, add it first
-      (if super? (cons `(super*) form)
-          form))))
 
 (defn- emit-fields [env emit-fn fields]
   (let [fields-str
@@ -179,8 +173,7 @@
         classname* (symbol (str classname "$"))
         [this-sym & ctor-args] ctor-args
         super? (some? extends)
-        ctor-body
-        (find-and-replace-super-call ctor-body super? fields this-sym)
+        super-called (volatile! false)
         field-syms (map :field-name fields)
         field-locals (reduce
                       (fn [m fld]
@@ -196,9 +189,11 @@
         ctor-args-munged (zipmap ctor-arg-locals
                                  (cond->> (map munge ctor-args)
                                    this-sym (cons (munge this-sym))))
-        ctor-args-env (update fields-env :var->ident (fn [vi]
-                                                       (-> (apply dissoc vi ctor-arg-locals)
-                                                           (merge ctor-args-munged))))
+        ctor-args-env (-> fields-env
+                          (update :var->ident (fn [vi]
+                                                (-> (apply dissoc vi ctor-arg-locals)
+                                                    (merge ctor-args-munged))))
+                          (assoc ::ctor {:called super-called :this-sym this-sym}))
         object-fns (-> (some #(when (= 'Object (:protocol-name %)) %) protocols)
                        :protocol-fns)
         extend-form
@@ -219,11 +214,17 @@
      (when constructor
        (str
         "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n"
-        (when-not super?
-          (str "const self__ = this;\n"
-               (when this-sym
-                 (str "const " (emit-fn this-sym ctor-args-env) " = this;\n"))))
-        (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env))
+        (let [body (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env))]
+          (str
+           (cond
+             ;; no super call in the body: call it first
+             (and super? (not @super-called))
+             (emit-super ctor-args-env emit-fn {:this-sym this-sym})
+             (not super?)
+             (str "const self__ = this;\n"
+                  (when this-sym
+                    (str "const " (emit-fn this-sym ctor-args-env) " = this;\n"))))
+           body))
         "  }\n"))
      (str/join "\n" (map #(emit-object-fn fields-env emit-fn async-fn %) object-fns))
      "};\n"

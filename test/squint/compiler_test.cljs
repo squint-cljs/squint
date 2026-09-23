@@ -3311,6 +3311,26 @@ globalThis.foo.fs = fs;")))))
 (defn wrap-async [s]
   (str/replace "(async function () {\n%s\n})()" "%s" s))
 
+(deftest defclass-super-test
+  (testing "an explicit super call passes its args and binds this after it"
+    (is (eq [1 2] (jsv! "(defclass A (field x) (constructor [this x] (set! (.-x this) x)))
+                          (defclass B (extends A) (field y) (constructor [this x] (super x) (set! y 2)))
+                          (let [b (new B 1)] [(.-x b) (.-y b)])"))))
+  (testing "a constructor without a super call calls super first"
+    (is (= 2 (jsv! "(defclass A (constructor [this]))
+                     (defclass B (extends A) (field y) (constructor [this] (set! y 2)))
+                     (.-y (new B))"))))
+  (testing "a quoted super list in a constructor stays data"
+    (is (eq ["super" 1] (jsv! "(defclass A (constructor [this]))
+                                (defclass B (extends A) (field q) (constructor [this] (set! q (quote (super 1)))))
+                                (vec (.-q (new B)))"))))
+  (testing "super outside a constructor is a plain call"
+    (is (= 3 (jsv! "(defn super [x] (inc x)) (super 2)"))))
+  (testing "super in a method refers to the parent"
+    (is (= "a!" (jsv! "(defclass A (constructor [this]) Object (greet [this] \"a\"))
+                        (defclass B (extends A) (constructor [this]) Object (greet [this] (str (.greet super) \"!\")))
+                        (.greet (new B))")))))
+
 (deftest defclass-get-set-test
   (testing "getters and setters"
     (is (str/includes? (jss! "(defclass A Object (^:get x [this] 1))") "get x("))
