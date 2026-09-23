@@ -937,6 +937,27 @@
     (is (true? (jsv! "(object? (assoc {:a 1} :b 2))")))
     (is (true? (jsv! "(object? (with-meta {:a 1} {:k 1}))")))))
 
+(deftest eduction-test
+  (testing "eduction composes xforms left to right"
+    (is (eq [3 5] (jsv! "(vec (eduction (map inc) (filter odd?) [1 2 3 4 5]))")))
+    (is (eq [1 2] (jsv! "(vec (eduction [1 2]))"))))
+  (testing "eduction is reducible and honors reduced"
+    (is (= 9 (jsv! "(reduce + 0 (eduction (map inc) [1 2 3]))")))
+    (is (= 3 (jsv! "(reduce (fn [a x] (if (= x 3) (reduced a) (+ a x))) 0 (eduction (map inc) [0 1 2 3]))")))
+    (is (eq [1 2] (jsv! "(into [] (take 2) (eduction (map inc) (range)))"))))
+  (testing "eduction stops early and flushes stateful xforms"
+    (is (eq [0 1] (jsv! "(vec (eduction (take 2) (range)))")))
+    (is (eq [[1 2] [3]] (jsv! "(vec (eduction (partition-all 2) [1 2 3]))"))))
+  (testing "eduction is a seqable, sequential collection"
+    (is (nil? (jsv! "(seq (eduction (filter odd?) [2 4]))")))
+    (is (= 2 (jsv! "(first (eduction (map inc) [1 2]))")))
+    (is (= 3 (jsv! "(count (eduction (map inc) [1 2 3]))")))
+    (is (true? (jsv! "(sequential? (eduction [1]))"))))
+  (testing "eduction reruns its xform on each reduction"
+    (is (= 4 (jsv! "(let [n (atom 0) e (eduction (map #(do (swap! n inc) %)) [1 2])] (vec e) (vec e) @n)"))))
+  (testing "eduction prints as a seq"
+    (is (= "(2, 3)" (jsv! "(pr-str (eduction (map inc) [1 2]))")))))
+
 (deftest set-test
   (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))
   (is (eq (js/Set. [1 2 3]) (jsv! '(set [1 2 3]))))

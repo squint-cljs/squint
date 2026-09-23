@@ -164,6 +164,7 @@
   drop
   drop_last
   drop_while
+  eduction
   empty
   empty_QMARK_
   ensure_reduced
