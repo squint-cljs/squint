@@ -3587,7 +3587,11 @@ globalThis.foo.fs = fs;")))))
 (deftest reduce-kv-test
   (is (eq {1 :a, 2 :b, 3 :c} (jsv! "(reduce-kv #(assoc %1 %3 %2) {} {:a 1 :b 2 :c 3})")))
   (is (eq {1 :a, 2 :b, 3 :c} (jsv! "(reduce-kv #(assoc %1 %3 %2) {} (new js/Map (js/Object.entries {:a 1 :b 2 :c 3})))")))
-  (is (eq {:a 1} (jsv! "(reduce-kv #(assoc %1 %3 %2) {:a 1} {})"))))
+  (is (eq {:a 1} (jsv! "(reduce-kv #(assoc %1 %3 %2) {:a 1} {})")))
+  (is (eq [[0 10] [1 20]] (jsv! "(reduce-kv (fn [acc k v] (conj acc [k v])) [] [10 20])")))
+  (testing "reduced stops reduction"
+    (is (eq "stop" (jsv! "(reduce-kv (fn [acc _ v] (if (= v 2) (reduced :stop) acc)) nil {:a 1 :b 2 :c 3})")))
+    (is (eq 10 (jsv! "(reduce-kv (fn [acc _ v] (if (= v 20) (reduced acc) (+ acc v))) 0 [10 20 30])")))))
 
 (deftest set-lib--test
   (t/async done
