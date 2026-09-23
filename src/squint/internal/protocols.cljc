@@ -89,12 +89,24 @@
     ;; TODO what to do here?
     default js/Object})
 
+(core/defn- recur-past-this
+  "Returns [params body] where a recur in body rebinds only the params after
+  the first."
+  [params body]
+  (if (some #{'recur} (tree-seq coll? seq body))
+    (core/let [[this & args] params
+               gs (map-indexed (core/fn [i _] (symbol (core/str "p__" i))) args)]
+      [(vec (cons this gs))
+       [`(loop ~(vec (interleave args gs)) ~@body)]])
+    [params body]))
+
 (defn insert-this [method-bodies]
   (if (vector? (first method-bodies))
-    (list* (first method-bodies)
-           (with-meta (list 'js* "const self__ = this;")
-             {:context :statement})
-           (rest method-bodies))
+    (core/let [[params body] (recur-past-this (first method-bodies) (rest method-bodies))]
+      (list* params
+             (with-meta (list 'js* "const self__ = this;")
+               {:context :statement})
+             body))
     ;; multi-arity
     (map insert-this method-bodies)))
 
@@ -138,8 +150,8 @@
                `(cljs.core/unchecked-set
                  (.-prototype ~type-sym)
                  (cljs.core/unchecked-get ~psym "__sym") true))]
-    ;; (prn :flag flag)
-    `(~flag
+    ;; Object has no protocol marker
+    `(~@(when-not (= 'Object psym) [flag])
       ~@(map #(emit-type-method env psym type-sym %) pmethods))))
 
 (core/defn core-extend-type
@@ -166,14 +178,8 @@
   [&form &env & impls]
   (core/let [obj (gensym "reify__")
              impl-map (->impl-map impls)
-             ;; an instance of a per-site class, so map? is false, like in CLJS
-             init (core/if-let [hoisted (:hoisted &env)]
-                    (core/let [cls (if (:repl &env)
-                                     (str (gensym "Reify__"))
-                                     (str "Reify__" (count @hoisted)))]
-                      (swap! hoisted conj (str "var " cls " = class {};\n"))
-                      (list 'js* (str "new " cls "()")))
-                    (list 'js* "new (class Reify {})()"))]
+             ;; a class instance, so map? is false, like in CLJS
+             init (list 'js* "new (class Reify {})()")]
     `(let [~obj ~init]
        ~@(mapcat (core/fn [[psym methods]]
                    (core/concat

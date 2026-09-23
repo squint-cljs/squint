@@ -90,7 +90,7 @@
                              'defprotocol protocols/core-defprotocol
                              'extend-type protocols/core-extend-type
                              'extend-protocol protocols/core-extend-protocol
-                             'reify protocols/core-reify
+                             'reify deftype/core-reify
                              'deftype deftype/core-deftype
                              'defrecord deftype/core-defrecord
                              'defn core-defn
