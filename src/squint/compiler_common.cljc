@@ -880,6 +880,11 @@
 (defmethod emit-special 'recur [_ env [_ & exprs]]
   (let [gensym (:gensym env)
         bindings (:recur-targets env)
+        ;; a method recur may pass the target object first: drop it, like CLJS
+        exprs (if (and (:squint.compiler/method (meta bindings))
+                       (= (count exprs) (inc (count bindings))))
+                (rest exprs)
+                exprs)
         temps (repeatedly (count exprs) gensym)
         eenv (expr-env env)]
     (when-let [cb (:recur-callback env)]
@@ -1477,7 +1482,9 @@
         single-expr-arrow? (and arrow? (= 1 (count body)))
         method? (:squint.compiler/method (meta sig))
         [env sig] (->sig env sig)
-        recur-targets (if method? (subvec sig 1) sig)
+        recur-targets (if method?
+                        (with-meta (subvec sig 1) {:squint.compiler/method true})
+                        sig)
         env (assoc env :recur-targets recur-targets)
         recur? (volatile! nil)
             env (assoc env :recur-callback
@@ -1534,7 +1541,10 @@ break;}" body)
                       (meta expr))]
           (emit new-f env))
         (-> (if name
-              (let [body (rest expr)]
+              (let [body (rest expr)
+                    ;; the fn name is a local in its body
+                    env (update env :var->ident assoc name
+                                (with-meta (symbol (str (munge name))) {:squint.compiler/no-rename true}))]
                 (str (when (:async env)
                        "async ") "function"
                      ;; TODO: why is this duplicated here and in emit-function?
@@ -2074,7 +2084,12 @@ break;}" body)
     (emit form env)))
 
 (defmethod emit-special 'deftype* [_ env [_ t fields pmasks body]]
-  (let [fields* (map munge fields)]
+  (let [;; fields that munge to the same name get a suffix: duplicate params are a SyntaxError
+        fields* (second (reduce (fn [[seen acc] f]
+                                  (let [m (str (munge f))
+                                        m (if (seen m) (str m "$" (count acc)) m)]
+                                    [(conj seen m) (conj acc (symbol m))]))
+                                [#{} []] fields))]
     (str "var " (munge t)
          " = "
          (format "function %s {

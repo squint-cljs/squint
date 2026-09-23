@@ -929,6 +929,23 @@
       (is (= 10 (jsv! "(ns reify-fields-test) (defprotocol P (-p [_ n acc]))
                         (deftype T [] P (-p [_ n acc] (if (zero? n) acc (recur (dec n) (+ acc n)))))
                         (-p (->T) 4 0)" opts))))
+    (testing "recur in a multi-arity method rebinds the params after this"
+      (is (= "ok" (jsv! "(ns reify-fields-test) (defprotocol Q2 (-q2 [_] [_ n]))
+                          (-q2 (reify Q2 (-q2 [_] 0) (-q2 [_ n] (if (pos? n) (recur (dec n)) :ok))) 3)" opts))))
+    (testing "recur in a method may pass the target object first"
+      (is (= 0 (jsv! "(ns reify-fields-test) (defprotocol Q (-q [_ n]))
+                       (-q (reify Q (-q [this n] (if (pos? n) (recur this (dec n)) n))) 3)" opts)))
+      (is (= 0 (jsv! "(ns reify-fields-test) (defprotocol Q (-q [_ n]))
+                       (-q (reify Q (-q [this n] (if (pos? n) (recur (dec n)) n))) 3)" opts))))
+    (testing "reify captures the name of an enclosing named fn"
+      (is (true? (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                         (let [g (fn me [] (reify P (-p [_] me)))] (fn? (-p (g))))" opts)))
+      (is (= "done" (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                            (def g (fn self [n] (reify P (-p [_] (if (pos? n) (-p (self (dec n))) :done)))))
+                            (-p (g 3))" opts))))
+    (testing "locals that munge to the same name stay distinct"
+      (is (eq [1 2] (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                            (let [foo-bar 1 foo_bar 2] (-p (reify P (-p [_] [foo-bar foo_bar]))))" opts))))
     (testing "recur works in a reify method"
       (is (= 10 (jsv! "(ns reify-fields-test) (defprotocol P (-p [_ n acc]))
                         (-p (reify P (-p [_ n acc] (if (zero? n) acc (recur (dec n) (+ acc n))))) 4 0)" opts))))

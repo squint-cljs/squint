@@ -62,6 +62,7 @@
                         (let [variadic? (boolean (some '#{&} sig))
                               clean (vec (remove '#{&} sig))]
                           {:body body
+                           :sig-meta (clojure.core/meta sig)
                            :variadic? variadic?
                            :impl-sym (gensym "impl")
                            :fixed (if variadic? (subvec clean 0 (dec (count clean))) clean)
@@ -72,7 +73,8 @@
         impl-binds (mapcat (fn [m]
                              [(:impl-sym m)
                               (with-meta
-                                `(fn [~@(:fixed m) ~@(when (:rest-target m) [(:rest-target m)])]
+                                `(fn ~(with-meta (vec (concat (:fixed m) (when (:rest-target m) [(:rest-target m)])))
+                                        (:sig-meta m))
                                    ~@(:body m))
                                 fmeta)])
                            methods)
