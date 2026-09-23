@@ -28,13 +28,12 @@
 
 (defn- key-form->key
   "A key written in a binding form, as the map key squint emits. A keyword, a
-  symbol and a string all munge to the same string, so :keys, :syms and :strs
-  are one directive here."
+  quoted symbol and a string all munge to the same string, so :keys, :syms and
+  :strs are one directive here. A bare symbol is an expression."
   [k]
   (cond
     (keyword? k) (subs (str k) 1)
     (string? k) k
-    (symbol? k) (str k)
     (and (seq? k) (= 'quote (first k))) (str (second k))
     :else k))
 
