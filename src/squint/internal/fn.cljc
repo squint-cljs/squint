@@ -90,14 +90,15 @@
                           (.call ~(:impl-sym variadic) ~this-sym ~@(arg-refs maxfa)
                                  (if (zero? (.-length ~rest-sym)) nil ~rest-sym)))
                        `(throw (js/Error. (str "Invalid arity: " (.-length ~args-sym)))))]
-    ;; letfn*: the fn name is a local in every arity impl
+    ;; the name is bound before the arity impls, like CLJS, so they see it as a local
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
-       (~'letfn* [~@impl-binds
-                  ~name (fn [~(symbol (str "..." args-sym))]
-                     (cljs.core/this-as ~this-sym
-                       (case (.-length ~args-sym)
-                         ~@fixed-cases
-                         ~default-case)))]
+       (let [~(vary-meta name assoc :mutable true) nil
+             ~@impl-binds]
+         (set! ~name (fn [~(symbol (str "..." args-sym))]
+                       (cljs.core/this-as ~this-sym
+                         (case (.-length ~args-sym)
+                           ~@fixed-cases
+                           ~default-case))))
          ~@(when variadic
              [`(cljs.core/unchecked-set ~name "squint$lang$variadic" ~(:impl-sym variadic))])
          ~name))))
