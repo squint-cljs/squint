@@ -111,7 +111,13 @@
                    (+ a b c))")]
     (is (= 6 (js/eval s))))
   (is (true? (jsv! "(let [[x & xs] [1 2 3]]
-                   (= [1 [2 3]] [x xs]))"))))
+                   (= [1 [2 3]] [x xs]))")))
+  (testing "a symbol map key looks up the value of the local"
+    (is (= 1 (jsv! "(let [k \"a\" {v k} {\"a\" 1}] v)")))
+    (is (= "x" (jsv! "(let [m \"decode\" {{:keys [name]} m} {\"decode\" {:name \"x\"}}] name)")))
+    (is (= 2 (jsv! "(let [f (fn [k {v k}] v)] (f :b {:b 2}))"))))
+  (testing "a quoted symbol map key looks up its name"
+    (is (= 1 (jsv! "(let [k \"b\" {v 'k} {\"k\" 1}] v)")))))
 
 (deftest fn-test
   (let [s (jss! '(let [f (fn [x] x)]
