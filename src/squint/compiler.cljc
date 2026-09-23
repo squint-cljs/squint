@@ -96,6 +96,7 @@
                              'defn core-defn
                              'defn- core-defn-
                              'instance? macros/core-instance?
+                             'implements? macros/core-implements?
                              'time macros/core-time
                              'declare macros/core-declare
                              'letfn macros/core-letfn

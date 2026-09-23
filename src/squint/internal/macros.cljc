@@ -479,6 +479,9 @@
                     ret# (~'js* "(~{} instanceof ~{})" x# c#)]
                 ret#)))
 
+(defn core-implements? [_ _ psym x]
+  (list 'cljs.core/satisfies? psym x))
+
 (defn core-time
   "Evaluates expr and prints the time it took. Returns the value of expr."
   [_ _ expr]

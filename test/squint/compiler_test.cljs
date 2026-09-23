@@ -836,6 +836,17 @@
                  (extend-type string IFoo)
                  (satisfies? IFoo "bar")))))
 
+(deftest implements?-test
+  (is (jsv! '(do (defprotocol IFoo (-foo [_]))
+                 (implements? IFoo (reify IFoo (-foo [_] 1))))))
+  (is (jsv! '(do (defprotocol IFoo (-foo [_]))
+                 (deftype Foo [] IFoo (-foo [_] 1))
+                 (implements? IFoo (->Foo)))))
+  (is (not (jsv! '(do (defprotocol IFoo (-foo [_]))
+                      (implements? IFoo {})))))
+  (is (not (jsv! '(do (defprotocol IFoo (-foo [_]))
+                      (implements? IFoo nil))))))
+
 (deftest set-test
   (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))
   (is (eq (js/Set. [1 2 3]) (jsv! '(set [1 2 3]))))
