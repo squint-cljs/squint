@@ -198,15 +198,8 @@
        ~(build-positional-factory t r fields)
        ~t)))
 
-(core/defn- reify-fields
-  "Returns the enclosing locals that impls refer to, in first-use order."
-  [env impls]
-  (core/let [locals (:var->ident env)]
-    (into [] (comp (filter symbol?) (filter #(contains? locals %)) (distinct))
-          (tree-seq coll? seq impls))))
-
 (core/defn core-reify
-  "Expands to an instance of a per-site deftype whose fields are the captured locals.
+  "Expands to an instance of a per-site deftype whose fields are the locals in scope.
   A hoisted init function builds the type on first use."
   [&form &env & impls]
   (core/if-let [hoisted (:hoisted &env)]
@@ -215,7 +208,8 @@
                cls (if (:repl &env)
                      (core/str (gensym "Reify__"))
                      (core/str "Reify__" idx))
-               fields (reify-fields &env impls)
+               ;; every local in scope, like CLJS
+               fields (vec (sort-by core/str (keys (:var->ident &env))))
                [fpps pmasks] (prepare-protocol-masks &env impls)
                t (vary-meta (symbol cls) assoc
                             :protocols (collect-protocols impls &env)

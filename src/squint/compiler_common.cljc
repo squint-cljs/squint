@@ -1475,12 +1475,14 @@
   (let [env (assoc env :fn-scope true)
         arrow? (:arrow env)
         single-expr-arrow? (and arrow? (= 1 (count body)))
+        method? (:squint.compiler/method (meta sig))
         [env sig] (->sig env sig)
-        env (assoc env :recur-targets sig)
+        recur-targets (if method? (subvec sig 1) sig)
+        env (assoc env :recur-targets recur-targets)
         recur? (volatile! nil)
             env (assoc env :recur-callback
                        (fn [coll]
-                         (when (identical? sig coll)
+                         (when (identical? recur-targets coll)
                            (vreset! recur? true))))
             body (if single-expr-arrow?
                    (emit (first body) (assoc env :context :expr))

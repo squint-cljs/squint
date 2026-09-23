@@ -89,24 +89,13 @@
     ;; TODO what to do here?
     default js/Object})
 
-(core/defn- recur-past-this
-  "Returns [params body] where a recur in body rebinds only the params after
-  the first."
-  [params body]
-  (if (some #{'recur} (tree-seq coll? seq body))
-    (core/let [[this & args] params
-               gs (map-indexed (core/fn [i _] (symbol (core/str "p__" i))) args)]
-      [(vec (cons this gs))
-       [`(loop ~(vec (interleave args gs)) ~@body)]])
-    [params body]))
-
 (defn insert-this [method-bodies]
   (if (vector? (first method-bodies))
-    (core/let [[params body] (recur-past-this (first method-bodies) (rest method-bodies))]
-      (list* params
-             (with-meta (list 'js* "const self__ = this;")
-               {:context :statement})
-             body))
+    ;; a recur in a method rebinds only the params after this
+    (list* (vary-meta (first method-bodies) assoc :squint.compiler/method true)
+           (with-meta (list 'js* "const self__ = this;")
+             {:context :statement})
+           (rest method-bodies))
     ;; multi-arity
     (map insert-this method-bodies)))
 

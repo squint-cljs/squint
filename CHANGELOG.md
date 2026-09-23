@@ -30,7 +30,7 @@
 - `assoc` on a deftype instance returns that type, not a plain map, so it is not `map?` and not `=` to a map
 - Add `eduction`
 - `satisfies?` and `implements?` return `false`, not nil, for a value that does not implement the protocol
-- Compile `reify` to a per-site type with the captured locals as fields and the methods on the prototype
+- Compile `reify` to a per-site type with the locals in scope as fields and the methods on the prototype
 - Fix `recur` in a protocol method rebinding the `this` param
 - Fix `deftype` with `Object` methods adding an `undefined` key to the prototype
 - Playground: clear the result panel on every run, so an error doesn't linger after the next successful run
