@@ -347,6 +347,8 @@ function copy(o) {
     case ARRAY_TYPE:
       return copyMeta(o, [...o]);
     case INSTANCE_TYPE:
+      // keep the prototype so class methods survive
+      return copyMeta(o, Object.assign(Object.create(Object.getPrototypeOf(o)), o));
     case OBJECT_TYPE:
       return copyMeta(o, { ...o });
     case LIST_TYPE:

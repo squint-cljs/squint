@@ -893,6 +893,12 @@
       (is (true? (jsv! "(ns reify-map-test) (map? (reify IMap (-dissoc [_ k] nil)))" opts))))
     (testing "each reify site gets its own class"
       (is (false? (jsv! "(ns reify-map-test) (def a (reify Object)) (def b (reify Object)) (identical? (.-constructor a) (.-constructor b))" opts))))
+    (testing "reify carries form metadata"
+      (is (eq {:k 1} (jsv! "(ns reify-map-test) (meta ^{:k 1} (reify Object))" opts)))
+      (is (eq {:k 2} (jsv! "(ns reify-map-test) (let [v 2] (meta ^{:k v} (reify Object)))" opts)))
+      (is (nil? (jsv! "(ns reify-map-test) (meta (reify Object))" opts)))
+      (is (false? (jsv! "(ns reify-map-test) (map? ^{:k 1} (reify Object))" opts)))
+      (is (= 1 (jsv! "(ns reify-map-test) (defprotocol P (-p [_])) (-p ^{:k 1} (reify P (-p [_] 1)))" opts))))
     (testing "reify methods close over locals per call"
       (is (eq [1 2] (jsv! "(ns reify-map-test) (defprotocol P (-p [_])) (defn f [x] (reify P (-p [_] x))) [(-p (f 1)) (-p (f 2))]" opts))))))
 
@@ -917,6 +923,19 @@
   (is (true? (jsv! "(keyword-identical? :a/b (keyword \"a\" \"b\"))")))
   (is (false? (jsv! "(keyword-identical? :a :b)")))
   (is (eq [true false] (jsv! "(mapv (partial keyword-identical? :a) [:a :b])"))))
+
+(deftest copy-keeps-prototype-test
+  (testing "with-meta keeps protocol methods"
+    (is (= 1 (jsv! "(defprotocol P (-p [_])) (deftype T [a] P (-p [_] a)) (-p (with-meta (->T 1) {}))")))
+    (is (= 1 (jsv! "(defprotocol P (-p [_])) (defrecord R [a] P (-p [_] a)) (-p (with-meta (->R 1) {:k 1}))")))
+    (is (eq {:k 1} (jsv! "(defprotocol P (-p [_])) (defrecord R [a] P (-p [_] a)) (meta (with-meta (->R 1) {:k 1}))")))
+    (is (false? (jsv! "(map? (with-meta (reify Object) {:k 1}))"))))
+  (testing "assoc on a deftype instance returns the same type"
+    (is (= 1 (jsv! "(defprotocol P (-p [_])) (deftype T [a] P (-p [_] a)) (-p (assoc (->T 1) :b 2))")))
+    (is (false? (jsv! "(deftype T [a]) (map? (assoc (->T 1) :b 2))"))))
+  (testing "assoc and with-meta on a plain object return a plain object"
+    (is (true? (jsv! "(object? (assoc {:a 1} :b 2))")))
+    (is (true? (jsv! "(object? (with-meta {:a 1} {:k 1}))")))))
 
 (deftest set-test
   (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))

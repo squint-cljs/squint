@@ -1,5 +1,6 @@
 (ns squint.internal.protocols
-  (:require [clojure.core :as core]))
+  (:require [clojure.core :as core]
+            [squint.compiler-common :as cc]))
 
 (core/defn- registry-key
   "Global-registry key for a protocol's marker or slot symbol: the qualified
@@ -162,7 +163,7 @@
     `(cljs.core/unchecked-set ~obj-sym ~msym (fn ~@(rest method)))))
 
 (core/defn core-reify
-  [_&form &env & impls]
+  [&form &env & impls]
   (core/let [obj (gensym "reify__")
              impl-map (->impl-map impls)
              ;; an instance of a per-site class, so map? is false, like in CLJS
@@ -180,7 +181,9 @@
                       [`(cljs.core/unchecked-set ~obj (cljs.core/unchecked-get ~psym "__sym") true)])
                     (map #(emit-reify-method &env obj psym %) methods)))
                  impl-map)
-       ~obj)))
+       ~(core/if-let [m (cc/user-meta &form)]
+          `(cljs.core/with-meta ~obj ~m)
+          obj))))
 
 (core/defn- parse-impls [specs]
   (core/loop [ret {} s specs]
