@@ -847,6 +847,25 @@
   (is (not (jsv! '(do (defprotocol IFoo (-foo [_]))
                       (implements? IFoo nil))))))
 
+(deftest ns-qualified-ref-test
+  (testing "a current ns qualified symbol refers to the var"
+    (is (= 1 (jsv! "(ns repro) (def x 1) (let [x 2] repro/x)"))))
+  (testing "a dotted symbol with the current ns as prefix refers to the var"
+    (is (= 1 (jsv! "(ns repro) (def x 1) repro.x")))
+    (is (jsv! "(ns repro) (defprotocol P (-p [_])) (satisfies? repro.P (reify P (-p [_] 1)))"))
+    (is (jsv! "(ns my.repro) (defprotocol P (-p [_])) (implements? my.repro.P (reify P (-p [_] 1)))")))
+  (testing "a dotted symbol with a required ns as prefix emits the module member"
+    (let [s (jss! "(ns repro (:require [foo.bar :as fb] [baz.qux])) [foo.bar.x baz.qux.y]")]
+      (is (str/includes? s "foo_DOT_bar.x"))
+      (is (str/includes? s "baz_DOT_qux.y"))))
+  (testing "a dotted symbol with an unknown prefix stays a JS path"
+    (is (str/includes? (jss! "(ns repro) js/Math.PI") "Math.PI"))
+    (is (str/includes? (jss! "(ns repro) (defn f [o] o.foo.bar)") "o.foo.bar")))
+  (testing "a dotted symbol with a local as first segment is property access"
+    (is (= 2 (jsv! "(ns o.foo) (def bar 1) (let [o #js {:foo #js {:bar 2}}] o.foo.bar)"))))
+  (testing "an alias with dots takes precedence over the ns split"
+    (is (str/includes? (jss! "(ns repro (:require [\"x\" :as foo] [\"y\" :as foo.bar])) (foo.bar)") "foo_DOT_bar()"))))
+
 (deftest set-test
   (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))
   (is (eq (js/Set. [1 2 3]) (jsv! '(set [1 2 3]))))
