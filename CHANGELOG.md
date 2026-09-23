@@ -25,6 +25,9 @@
 - Fix invalid JS for `eval` as a var, local or param name
 - Fix `map?` and `object?` returning true for `reify` objects. They print as `#<Reify__N>`, not `{}`
 - Add `keyword-identical?`
+- `reify` carries form metadata: `(meta ^{:k 1} (reify ...))` returns `{:k 1}`
+- `with-meta` and `assoc` on a deftype, defrecord or reify instance keep its type and protocol methods
+- `assoc` on a deftype instance returns that type, not a plain map, so it is not `map?` and not `=` to a map
 - Playground: clear the result panel on every run, so an error doesn't linger after the next successful run
 - Playground: compile a non-REPL run from fresh compiler state, so vars from earlier runs don't emit exports for names the document no longer defines
 - Playground: render results at the code font size
