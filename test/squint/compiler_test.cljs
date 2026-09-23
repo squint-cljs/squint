@@ -899,9 +899,10 @@
 (deftest reify-expr-context-test
   (testing "reify in :expr context compiles to one expression"
     (let [s (squint/compile-string "(fn [] (reify Object))" {:context :expr :elide-imports true})]
-      (is (not (str/includes? s "var ")))
-      (is (fn? (js/eval (str "(" s ")"))))
-      (is (= "Reify" (.. ((js/eval (str "(" s ")"))) -constructor -name))))))
+      (is (not (str/starts-with? s "var ")))
+      (let [f ((js/Function. (str "return " s)))]
+        (is (fn? f))
+        (is (identical? (.-constructor (f)) (.-constructor (f))))))))
 
 (deftest reify-class-names-test
   (let [src "(def a (reify Object)) (def b (reify Object))"]

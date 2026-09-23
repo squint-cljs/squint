@@ -496,10 +496,13 @@
                                                         :need-html-import need-html-import
                                                         :need-multi-import need-multi-import
                                                         :need-record-import need-record-import
-                                                        ;; :expr output must stay one expression
-                                                        :hoisted (when-not (= :expr (:context opts))
-                                                                   hoisted)))
-                 transpiled (str (str/join @hoisted) transpiled)
+                                                        :hoisted hoisted))
+                 transpiled (cond
+                              (empty? @hoisted) transpiled
+                              ;; :expr output must stay one expression
+                              (= :expr (:context opts))
+                              (str "(() => {\n" (str/join @hoisted) "return " transpiled ";\n})()")
+                              :else (str (str/join @hoisted) transpiled))
                  jsx (:jsx @(:ns-state opts))
                  _ (when (and jsx jsx-runtime)
                      (let [jsx-name (str "jsx" (if jsx-dev "DEV" ""))
