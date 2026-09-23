@@ -1558,19 +1558,14 @@ break;}" body)
                     ;; the fn name is a local in its body
                     env (update env :var->ident assoc name
                                 (with-meta (symbol (str (munge name))) {:squint.compiler/no-rename true}))]
-                (if arrow?
-                  ;; bind the name in an arrow iife, which keeps the outer this
-                  (str "(() => {\nconst " (munge name) " = "
-                       (emit-function env name signature body)
-                       ";\nreturn " (munge name) ";\n})()")
-                  (str (when (:async env)
-                         "async ") "function"
-                       ;; TODO: why is this duplicated here and in emit-function?
-                       (when (:gen env)
-                         "*")
-                       " "
-                       (munge name) " "
-                       (emit-function env name signature body true))))
+                (str (when (:async env)
+                       "async ") "function"
+                     ;; TODO: why is this duplicated here and in emit-function?
+                     (when (:gen env)
+                       "*")
+                     " "
+                     (munge name) " "
+                     (emit-function env name signature body true)))
               (let [body (rest expr)]
                 (emit-function env nil signature body)))
             (cond-> (and

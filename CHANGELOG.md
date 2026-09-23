@@ -33,7 +33,6 @@
 - Compile `reify` to a per-site type with the locals in scope as fields and the methods on the prototype
 - Fix `recur` in a protocol method rebinding the `this` param
 - Fix `deftype` with `Object` methods adding an `undefined` key to the prototype
-- Fix invalid JS for a named arrow fn, `(fn ^:=> me [] ...)`
 - Playground: clear the result panel on every run, so an error doesn't linger after the next successful run
 - Playground: compile a non-REPL run from fresh compiler state, so vars from earlier runs don't emit exports for names the document no longer defines
 - Playground: render results at the code font size

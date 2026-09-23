@@ -4263,10 +4263,7 @@ new Foo();")
   (is (true? (jsv! "(def obj {:a ^:=> (fn [] (this-as this this))}) (not= obj (.a obj))")))
   (is (true? (jsv! "(def obj {:a (^:=> fn [] (this-as this this))}) (not= obj (.a obj))")))
   (is (true? (jsv! "(def obj {:a (fn ^:=> [] (this-as this this))}) (not= obj (.a obj))")))
-  (is (eq 1 (jsv! "(^:=> (fn [x] x) 1)")))
-  (testing "a named arrow fn calls itself and keeps the outer this"
-    (is (= "done" (jsv! "((fn ^:=> me [n] (if (pos? n) (me (dec n)) :done)) 2)")))
-    (is (true? (jsv! "(def obj {:a ^:=> (fn me [] (this-as this this))}) (not= obj (.a obj))")))))
+  (is (eq 1 (jsv! "(^:=> (fn [x] x) 1)"))))
 
 (deftest alias-test
   (is (str/includes?
