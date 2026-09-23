@@ -969,8 +969,8 @@
     (testing "reify class names count up per compile unit"
       (dotimes [_ 2]
         (let [s (jss! src)]
-          (is (str/includes? s "function Reify__0_init()"))
-          (is (str/includes? s "function Reify__1_init()")))))))
+          (is (str/includes? s "function squint$hoist$0_init()"))
+          (is (str/includes? s "function squint$hoist$1_init()")))))))
 
 (deftest keyword-identical?-test
   (is (true? (jsv! "(keyword-identical? :a :a)")))

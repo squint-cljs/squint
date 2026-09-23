@@ -200,32 +200,20 @@
 
 (core/defn core-reify
   "Expands to an instance of a per-site deftype whose fields are the locals in scope.
-  A hoisted init function builds the type on first use."
+  squint.impl/hoist* builds the type once, on first use."
   [&form &env & impls]
-  (core/if-let [hoisted (:hoisted &env)]
-    (core/let [idx (count (swap! hoisted conj nil))
-               idx (dec idx)
-               cls (if (:repl &env)
-                     (core/str (gensym "Reify__"))
-                     (core/str "Reify__" idx))
-               ;; every local in scope, like CLJS
-               fields (vec (sort-by core/str (keys (:var->ident &env))))
-               [fpps pmasks] (prepare-protocol-masks &env impls)
-               t (vary-meta (symbol cls) assoc
-                            :protocols (collect-protocols impls &env)
-                            :skip-protocol-flag fpps)
-               emit (:emit (:utils &env))
-               body (emit `(deftype* ~t ~fields ~pmasks
-                             ~(core/when (seq impls)
-                                `(extend-type ~t ~@(dt->et t impls fields))))
-                          (assoc &env :var->ident {} :context :statement :top-level false))
-               _ (swap! hoisted assoc idx
-                        (core/str "var " cls ";\nfunction " cls "_init() {\n"
-                                  body "\nreturn " cls ";\n}\n"))
-               obj `(~'js* ~(core/str "new (" cls " ??= " cls "_init())("
-                                      (str/join ", " (repeat (count fields) "~{}")) ")")
-                     ~@fields)]
-      (core/if-let [m (cc/user-meta &form)]
-        `(cljs.core/with-meta ~obj ~m)
-        obj))
-    (apply p/core-reify &form &env impls)))
+  (core/let [t ((:gensym &env) "Reify")
+             ;; every local in scope, like CLJS
+             fields (vec (sort-by core/str (keys (:var->ident &env))))
+             [fpps pmasks] (prepare-protocol-masks &env impls)
+             t (vary-meta t assoc
+                          :protocols (collect-protocols impls &env)
+                          :skip-protocol-flag fpps)
+             obj `(new (squint.impl/hoist* ~t
+                         (deftype* ~t ~fields ~pmasks
+                           ~(core/when (seq impls)
+                              `(extend-type ~t ~@(dt->et t impls fields)))))
+                       ~@fields)]
+    (core/if-let [m (cc/user-meta &form)]
+      `(cljs.core/with-meta ~obj ~m)
+      obj)))

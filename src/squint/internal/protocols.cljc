@@ -1,6 +1,5 @@
 (ns squint.internal.protocols
-  (:require [clojure.core :as core]
-            [squint.compiler-common :as cc]))
+  (:require [clojure.core :as core]))
 
 (core/defn- registry-key
   "Global-registry key for a protocol's marker or slot symbol: the qualified
@@ -151,34 +150,6 @@
              impl-map (->impl-map impls)]
     `(do
        ~@(mapcat #(emit-type-methods &env type-sym %) impl-map))))
-
-(core/defn- emit-reify-method
-  [env obj-sym psym method]
-  (core/let [mname (first method)
-             msym (if (= 'Object psym)
-                    (str mname)
-                    (symbol (protocol-ns env psym)
-                            (str (name psym) "_" (name mname))))]
-    ;; the protocol dispatcher passes `this` as the first argument, so the
-    ;; method is a plain fn over its declared params (no `this` binding needed)
-    `(cljs.core/unchecked-set ~obj-sym ~msym (fn ~@(rest method)))))
-
-(core/defn core-reify
-  [&form &env & impls]
-  (core/let [obj (gensym "reify__")
-             impl-map (->impl-map impls)
-             ;; a class instance, so map? is false, like in CLJS
-             init (list 'js* "new (class Reify {})()")]
-    `(let [~obj ~init]
-       ~@(mapcat (core/fn [[psym methods]]
-                   (core/concat
-                    (when-not (= 'Object psym)
-                      [`(cljs.core/unchecked-set ~obj (cljs.core/unchecked-get ~psym "__sym") true)])
-                    (map #(emit-reify-method &env obj psym %) methods)))
-                 impl-map)
-       ~(core/if-let [m (cc/user-meta &form)]
-          `(cljs.core/with-meta ~obj ~m)
-          obj))))
 
 (core/defn- parse-impls [specs]
   (core/loop [ret {} s specs]

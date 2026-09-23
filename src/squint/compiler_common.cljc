@@ -1417,6 +1417,19 @@
                    (= :expr (:context env)) wrap-parens)
                  env)))
 
+(defmethod emit-special 'squint.impl/hoist* [_ env [_ local body]]
+  ;; runs body once, on first use, in a module-level init fn without the enclosing locals
+  (let [init-body (emit body (assoc env :var->ident {} :context :statement :top-level false))
+        ret (str init-body "\nreturn " (munge local) ";\n")]
+    (if-let [hoisted (:hoisted env)]
+      (let [idx (count @hoisted)
+            id (if (:repl env)
+                 (str (gensym "squint$hoist$"))
+                 (str "squint$hoist$" idx))]
+        (swap! hoisted conj (str "var " id ";\nfunction " id "_init() {\n" ret "}\n"))
+        (emit-return (str "(" id " ??= " id "_init())") env))
+      (emit-return (str "((() => {\n" ret "})())") env))))
+
 (defmethod emit-special 'new [_type env [_new class & args]]
   (emit-return (wrap-parens (str "new " (emit class (expr-env env)) (comma-list (emit-args env args)))) env))
 

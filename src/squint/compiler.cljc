@@ -50,6 +50,7 @@
                          'squint-compiler-js-map
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
                          'squint.impl/for-of
+                         'squint.impl/hoist*
                          'squint.impl/defonce
                          ]))
 
