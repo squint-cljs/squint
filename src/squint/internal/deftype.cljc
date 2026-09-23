@@ -4,6 +4,7 @@
   (:require
    [clojure.core :as core]
    [clojure.string :as str]
+   [squint.compiler-common :as cc]
    [squint.compiler.utils :as utils]
    [squint.internal.protocols :as p]))
 
@@ -196,3 +197,23 @@
             `(extend-type ~t ~@(dt->et t impls fields))))
        ~(build-positional-factory t r fields)
        ~t)))
+
+(core/defn core-reify
+  "Expands to an instance of a per-site deftype whose fields are the locals in scope.
+  squint.impl/hoist* builds the type once, on first use."
+  [&form &env & impls]
+  (core/let [t ((:gensym &env) "Reify")
+             ;; every local in scope, like CLJS
+             fields (vec (sort-by core/str (keys (:var->ident &env))))
+             [fpps pmasks] (prepare-protocol-masks &env impls)
+             t (vary-meta t assoc
+                          :protocols (collect-protocols impls &env)
+                          :skip-protocol-flag fpps)
+             obj `(new (squint.impl/hoist* ~t
+                         (deftype* ~t ~fields ~pmasks
+                           ~(core/when (seq impls)
+                              `(extend-type ~t ~@(dt->et t impls fields)))))
+                       ~@fields)]
+    (core/if-let [m (cc/user-meta &form)]
+      `(cljs.core/with-meta ~obj ~m)
+      obj)))

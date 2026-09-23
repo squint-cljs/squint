@@ -54,14 +54,14 @@
   (let [async (:async meta)
         gen (:gen meta)
         fmeta {:async async :gen gen}
-        name (with-meta (munge (or name (gensym "f")))
-               (assoc fmeta :squint.compiler/no-rename true))
+        name (or name (gensym "f"))
         args-sym (gensym "args")
         rest-sym (gensym "rest")
         methods (mapv (fn [[sig & body]]
                         (let [variadic? (boolean (some '#{&} sig))
                               clean (vec (remove '#{&} sig))]
                           {:body body
+                           :sig-meta (clojure.core/meta sig)
                            :variadic? variadic?
                            :impl-sym (gensym "impl")
                            :fixed (if variadic? (subvec clean 0 (dec (count clean))) clean)
@@ -72,7 +72,8 @@
         impl-binds (mapcat (fn [m]
                              [(:impl-sym m)
                               (with-meta
-                                `(fn [~@(:fixed m) ~@(when (:rest-target m) [(:rest-target m)])]
+                                `(fn ~(with-meta (vec (concat (:fixed m) (when (:rest-target m) [(:rest-target m)])))
+                                        (:sig-meta m))
                                    ~@(:body m))
                                 fmeta)])
                            methods)
@@ -89,13 +90,15 @@
                           (.call ~(:impl-sym variadic) ~this-sym ~@(arg-refs maxfa)
                                  (if (zero? (.-length ~rest-sym)) nil ~rest-sym)))
                        `(throw (js/Error. (str "Invalid arity: " (.-length ~args-sym)))))]
+    ;; the name is bound before the arity impls, like CLJS, so they see it as a local
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
-       (let [~@impl-binds
-             ~name (fn [~(symbol (str "..." args-sym))]
-                     (cljs.core/this-as ~this-sym
-                       (case (.-length ~args-sym)
-                         ~@fixed-cases
-                         ~default-case)))]
+       (let [~(vary-meta name assoc :mutable true) nil
+             ~@impl-binds]
+         (set! ~name (fn [~(symbol (str "..." args-sym))]
+                       (cljs.core/this-as ~this-sym
+                         (case (.-length ~args-sym)
+                           ~@fixed-cases
+                           ~default-case))))
          ~@(when variadic
              [`(cljs.core/unchecked-set ~name "squint$lang$variadic" ~(:impl-sym variadic))])
          ~name))))

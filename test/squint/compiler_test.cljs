@@ -909,6 +909,53 @@
     (testing "reify methods close over locals per call"
       (is (eq [1 2] (jsv! "(ns reify-map-test) (defprotocol P (-p [_])) (defn f [x] (reify P (-p [_] x))) [(-p (f 1)) (-p (f 2))]" opts))))))
 
+(deftest reify-fields-test
+  (doseq [repl [false true]
+          :let [opts {:repl repl}]]
+    (testing "reify captures the locals its methods use"
+      (is (eq [3 4] (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]) (-q [_ y]))
+                            (defn f [x z] (reify P (-p [_] x) (-q [_ y] (+ x y))))
+                            [(-p (f 3 0)) (-q (f 1 0) 3)]" opts)))
+      (is (= 6 (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                       (let [g (fn [a] (* 2 a))] (-p (reify P (-p [_] (g 3)))))" opts))))
+    (testing "a nested reify captures a field of the outer reify"
+      (is (= 5 (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                       (defn f [x] (reify P (-p [_] (reify P (-p [_] x)))))
+                       (-p (-p (f 5)))" opts))))
+    (testing "the first method param is the reify object"
+      (is (true? (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                         (let [r (reify P (-p [this] this))] (identical? r (-p r)))" opts))))
+    (testing "recur in a deftype method rebinds the params after this"
+      (is (= 10 (jsv! "(ns reify-fields-test) (defprotocol P (-p [_ n acc]))
+                        (deftype T [] P (-p [_ n acc] (if (zero? n) acc (recur (dec n) (+ acc n)))))
+                        (-p (->T) 4 0)" opts))))
+    (testing "recur in a multi-arity method rebinds the params after this"
+      (is (= "ok" (jsv! "(ns reify-fields-test) (defprotocol Q2 (-q2 [_] [_ n]))
+                          (-q2 (reify Q2 (-q2 [_] 0) (-q2 [_ n] (if (pos? n) (recur (dec n)) :ok))) 3)" opts))))
+    (testing "recur in a method may pass the target object first"
+      (is (= 0 (jsv! "(ns reify-fields-test) (defprotocol Q (-q [_ n]))
+                       (-q (reify Q (-q [this n] (if (pos? n) (recur this (dec n)) n))) 3)" opts)))
+      (is (= 0 (jsv! "(ns reify-fields-test) (defprotocol Q (-q [_ n]))
+                       (-q (reify Q (-q [this n] (if (pos? n) (recur (dec n)) n))) 3)" opts))))
+    (testing "reify captures the name of an enclosing named fn"
+      (is (true? (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                         (let [g (fn me [] (reify P (-p [_] me)))] (fn? (-p (g))))" opts)))
+      (is (= "done" (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                            (def g (fn self [n] (reify P (-p [_] (if (pos? n) (-p (self (dec n))) :done)))))
+                            (-p (g 3))" opts))))
+    (testing "reify captures the name of an enclosing multi-arity fn"
+      (is (true? (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                         (fn? (-p ((fn me ([] (reify P (-p [_] me))) ([x] x)))))" opts))))
+    (testing "locals that munge to the same name stay distinct"
+      (is (eq [1 2] (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                            (let [foo-bar 1 foo_bar 2] (-p (reify P (-p [_] [foo-bar foo_bar]))))" opts))))
+    (testing "recur works in a reify method"
+      (is (= 10 (jsv! "(ns reify-fields-test) (defprotocol P (-p [_ n acc]))
+                        (-p (reify P (-p [_ n acc] (if (zero? n) acc (recur (dec n) (+ acc n))))) 4 0)" opts))))
+    (testing "Object methods live on the prototype without a marker key"
+      (is (= "r" (jsv! "(ns reify-fields-test) (str (reify Object (toString [_] \"r\")))" opts)))
+      (is (eq ["toString"] (jsv! "(ns reify-fields-test) (deftype T [] Object (toString [_] \"t\")) (js/Object.keys (.-prototype T))" opts))))))
+
 (deftest reify-expr-context-test
   (testing "reify in :expr context compiles to one expression"
     (let [s (squint/compile-string "(fn [] (reify Object))" {:context :expr :elide-imports true})]
@@ -922,8 +969,8 @@
     (testing "reify class names count up per compile unit"
       (dotimes [_ 2]
         (let [s (jss! src)]
-          (is (str/includes? s "var Reify__0 = class {};"))
-          (is (str/includes? s "var Reify__1 = class {};")))))))
+          (is (str/includes? s "function squint$hoist$0_init()"))
+          (is (str/includes? s "function squint$hoist$1_init()")))))))
 
 (deftest keyword-identical?-test
   (is (true? (jsv! "(keyword-identical? :a :a)")))

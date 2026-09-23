@@ -1,6 +1,5 @@
 (ns squint.internal.protocols
-  (:require [clojure.core :as core]
-            [squint.compiler-common :as cc]))
+  (:require [clojure.core :as core]))
 
 (core/defn- registry-key
   "Global-registry key for a protocol's marker or slot symbol: the qualified
@@ -91,7 +90,8 @@
 
 (defn insert-this [method-bodies]
   (if (vector? (first method-bodies))
-    (list* (first method-bodies)
+    ;; a recur in a method rebinds only the params after this
+    (list* (vary-meta (first method-bodies) assoc :squint.compiler/method true)
            (with-meta (list 'js* "const self__ = this;")
              {:context :statement})
            (rest method-bodies))
@@ -138,8 +138,8 @@
                `(cljs.core/unchecked-set
                  (.-prototype ~type-sym)
                  (cljs.core/unchecked-get ~psym "__sym") true))]
-    ;; (prn :flag flag)
-    `(~flag
+    ;; Object has no protocol marker
+    `(~@(when-not (= 'Object psym) [flag])
       ~@(map #(emit-type-method env psym type-sym %) pmethods))))
 
 (core/defn core-extend-type
@@ -150,40 +150,6 @@
              impl-map (->impl-map impls)]
     `(do
        ~@(mapcat #(emit-type-methods &env type-sym %) impl-map))))
-
-(core/defn- emit-reify-method
-  [env obj-sym psym method]
-  (core/let [mname (first method)
-             msym (if (= 'Object psym)
-                    (str mname)
-                    (symbol (protocol-ns env psym)
-                            (str (name psym) "_" (name mname))))]
-    ;; the protocol dispatcher passes `this` as the first argument, so the
-    ;; method is a plain fn over its declared params (no `this` binding needed)
-    `(cljs.core/unchecked-set ~obj-sym ~msym (fn ~@(rest method)))))
-
-(core/defn core-reify
-  [&form &env & impls]
-  (core/let [obj (gensym "reify__")
-             impl-map (->impl-map impls)
-             ;; an instance of a per-site class, so map? is false, like in CLJS
-             init (core/if-let [hoisted (:hoisted &env)]
-                    (core/let [cls (if (:repl &env)
-                                     (str (gensym "Reify__"))
-                                     (str "Reify__" (count @hoisted)))]
-                      (swap! hoisted conj (str "var " cls " = class {};\n"))
-                      (list 'js* (str "new " cls "()")))
-                    (list 'js* "new (class Reify {})()"))]
-    `(let [~obj ~init]
-       ~@(mapcat (core/fn [[psym methods]]
-                   (core/concat
-                    (when-not (= 'Object psym)
-                      [`(cljs.core/unchecked-set ~obj (cljs.core/unchecked-get ~psym "__sym") true)])
-                    (map #(emit-reify-method &env obj psym %) methods)))
-                 impl-map)
-       ~(core/if-let [m (cc/user-meta &form)]
-          `(cljs.core/with-meta ~obj ~m)
-          obj))))
 
 (core/defn- parse-impls [specs]
   (core/loop [ret {} s specs]
