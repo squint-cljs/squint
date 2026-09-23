@@ -883,6 +883,27 @@
     (testing "js/eval emits eval"
       (is (= 2 (jsv! "(js/eval \"1 + 1\")" opts))))))
 
+(deftest reify-map?-test
+  (doseq [repl [false true]
+          :let [opts {:repl repl}]]
+    (testing "a reify object is not map?"
+      (is (false? (jsv! "(ns reify-map-test) (defprotocol P (-p [_])) (map? (reify P (-p [_] 1)))" opts)))
+      (is (false? (jsv! "(ns reify-map-test) (map? (reify Object (toString [_] \"x\")))" opts))))
+    (testing "a reify implementing IMap is map?"
+      (is (true? (jsv! "(ns reify-map-test) (map? (reify IMap (-dissoc [_ k] nil)))" opts))))
+    (testing "each reify site gets its own class"
+      (is (false? (jsv! "(ns reify-map-test) (def a (reify Object)) (def b (reify Object)) (identical? (.-constructor a) (.-constructor b))" opts))))
+    (testing "reify methods close over locals per call"
+      (is (eq [1 2] (jsv! "(ns reify-map-test) (defprotocol P (-p [_])) (defn f [x] (reify P (-p [_] x))) [(-p (f 1)) (-p (f 2))]" opts))))))
+
+(deftest reify-class-names-test
+  (let [src "(def a (reify Object)) (def b (reify Object))"]
+    (testing "reify class names count up per compile unit"
+      (dotimes [_ 2]
+        (let [s (jss! src)]
+          (is (str/includes? s "var Reify__0 = class {};"))
+          (is (str/includes? s "var Reify__1 = class {};")))))))
+
 (deftest set-test
   (is (eq (js/Set. #js [1 2 3]) (jsv! #{1 2 3})))
   (is (eq (js/Set. [1 2 3]) (jsv! '(set [1 2 3]))))

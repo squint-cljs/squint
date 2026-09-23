@@ -23,6 +23,7 @@
 - Add `implements?`
 - Resolve `my.ns/x` and `my.ns.x` to var `x` in the current or a required ns
 - Fix invalid JS for `eval` as a var, local or param name
+- Fix `map?` returning true for `reify` objects
 - Playground: clear the result panel on every run, so an error doesn't linger after the next successful run
 - Playground: compile a non-REPL run from fresh compiler state, so vars from earlier runs don't emit exports for names the document no longer defines
 - Playground: render results at the code font size

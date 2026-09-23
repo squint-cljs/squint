@@ -164,8 +164,16 @@
 (core/defn core-reify
   [_&form &env & impls]
   (core/let [obj (gensym "reify__")
-             impl-map (->impl-map impls)]
-    `(let [~obj {}]
+             impl-map (->impl-map impls)
+             ;; an instance of a per-site class, so map? is false, like in CLJS
+             init (core/if-let [hoisted (:hoisted &env)]
+                    (core/let [cls (if (:repl &env)
+                                     (str (gensym "Reify__"))
+                                     (str "Reify__" (count @hoisted)))]
+                      (swap! hoisted conj (str "var " cls " = class {};\n"))
+                      (list 'js* (str "new " cls "()")))
+                    (list 'js* "new (class {})()"))]
+    `(let [~obj ~init]
        ~@(mapcat (core/fn [[psym methods]]
                    (core/concat
                     (when-not (= 'Object psym)
