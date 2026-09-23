@@ -172,7 +172,7 @@
                                      (str "Reify__" (count @hoisted)))]
                       (swap! hoisted conj (str "var " cls " = class {};\n"))
                       (list 'js* (str "new " cls "()")))
-                    (list 'js* "new (class {})()"))]
+                    (list 'js* "new (class Reify {})()"))]
     `(let [~obj ~init]
        ~@(mapcat (core/fn [[psym methods]]
                    (core/concat

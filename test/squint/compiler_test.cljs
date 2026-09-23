@@ -896,6 +896,13 @@
     (testing "reify methods close over locals per call"
       (is (eq [1 2] (jsv! "(ns reify-map-test) (defprotocol P (-p [_])) (defn f [x] (reify P (-p [_] x))) [(-p (f 1)) (-p (f 2))]" opts))))))
 
+(deftest reify-expr-context-test
+  (testing "reify in :expr context compiles to one expression"
+    (let [s (squint/compile-string "(fn [] (reify Object))" {:context :expr :elide-imports true})]
+      (is (not (str/includes? s "var ")))
+      (is (fn? (js/eval (str "(" s ")"))))
+      (is (= "Reify" (.. ((js/eval (str "(" s ")"))) -constructor -name))))))
+
 (deftest reify-class-names-test
   (let [src "(def a (reify Object)) (def b (reify Object))"]
     (testing "reify class names count up per compile unit"
