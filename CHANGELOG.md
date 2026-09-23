@@ -20,6 +20,7 @@
 - Fix [#990](https://github.com/squint-cljs/squint/issues/990): playground shows results again after toggling REPL-mode off and on
 - Fix `reduce-kv`: stop on `reduced` and pass the index as key for vectors
 - Fix map destructuring with a symbol key: `{v k}` looks up the value of `k`
+- Add `implements?`
 - Playground: clear the result panel on every run, so an error doesn't linger after the next successful run
 - Playground: compile a non-REPL run from fresh compiler state, so vars from earlier runs don't emit exports for names the document no longer defines
 - Playground: render results at the code font size
