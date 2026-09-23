@@ -54,8 +54,7 @@
   (let [async (:async meta)
         gen (:gen meta)
         fmeta {:async async :gen gen}
-        name (with-meta (munge (or name (gensym "f")))
-               (assoc fmeta :squint.compiler/no-rename true))
+        name (or name (gensym "f"))
         args-sym (gensym "args")
         rest-sym (gensym "rest")
         methods (mapv (fn [[sig & body]]
@@ -91,9 +90,10 @@
                           (.call ~(:impl-sym variadic) ~this-sym ~@(arg-refs maxfa)
                                  (if (zero? (.-length ~rest-sym)) nil ~rest-sym)))
                        `(throw (js/Error. (str "Invalid arity: " (.-length ~args-sym)))))]
+    ;; letfn*: the fn name is a local in every arity impl
     `(cljs.core/js* "/* @__PURE__ */ ~{}"
-       (let [~@impl-binds
-             ~name (fn [~(symbol (str "..." args-sym))]
+       (~'letfn* [~@impl-binds
+                  ~name (fn [~(symbol (str "..." args-sym))]
                      (cljs.core/this-as ~this-sym
                        (case (.-length ~args-sym)
                          ~@fixed-cases

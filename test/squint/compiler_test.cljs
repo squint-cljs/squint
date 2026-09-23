@@ -943,6 +943,9 @@
       (is (= "done" (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
                             (def g (fn self [n] (reify P (-p [_] (if (pos? n) (-p (self (dec n))) :done)))))
                             (-p (g 3))" opts))))
+    (testing "reify captures the name of an enclosing multi-arity fn"
+      (is (true? (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
+                         (fn? (-p ((fn me ([] (reify P (-p [_] me))) ([x] x)))))" opts))))
     (testing "locals that munge to the same name stay distinct"
       (is (eq [1 2] (jsv! "(ns reify-fields-test) (defprotocol P (-p [_]))
                             (let [foo-bar 1 foo_bar 2] (-p (reify P (-p [_] [foo-bar foo_bar]))))" opts))))
