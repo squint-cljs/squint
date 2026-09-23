@@ -851,8 +851,8 @@
             (jsv! "(defprotocol IFoo (-foo [_])) (deftype Foo [] IFoo (-foo [_] 1))
                    [(satisfies? IFoo (->Foo)) (satisfies? IFoo {}) (satisfies? IFoo nil) (implements? IFoo (->Foo))]")))
     (is (eq [true false]
-            (jsv! "(defprotocol IFoo (-foo [_])) (extend-type nil IFoo (-foo [_] 1))
-                   [(satisfies? IFoo nil) (implements? IFoo 1)]")))))
+            (jsv! "(defprotocol IBoolTest (-foo [_])) (extend-type nil IBoolTest (-foo [_] 1))
+                   [(satisfies? IBoolTest nil) (implements? IBoolTest 1)]")))))
 
 (deftest ns-qualified-ref-test
   (doseq [repl [false true]
