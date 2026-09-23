@@ -597,7 +597,23 @@
                                 (subs s 10)
                                 (subs s 13))]
                    (symbol "cljs.core" suffix))
-                 expr)]
+                 expr)
+          ;; my.ns.P -> my.ns/P after aliases, locals and vars, like CLJS
+          expr (or (when (and (simple-symbol? expr)
+                              (not (contains? aliases expr)))
+                     (let [s (str expr)
+                           i (str/last-index-of s ".")]
+                       (when (and i (pos? i) (< i (dec (count s))))
+                         (let [prefix (subs s 0 i)
+                               head (symbol (first (str/split s #"\." 2)))]
+                           (when (and (not (contains? (:var->ident env) head))
+                                      (not (contains? current-ns head))
+                                      (not (get (:refers current-ns) head))
+                                      (not (maybe-core-var head env))
+                                      (or (= prefix (str current))
+                                          (contains? aliases (symbol (alias-munge prefix)))))
+                             (symbol prefix (subs s (inc i))))))))
+                   expr)]
       (if (and (simple-symbol? expr)
                (not (contains? aliases expr))
                (str/includes? (str expr) "."))
@@ -610,7 +626,11 @@
               munged-name (fn [expr] (munge* (name expr)))
               expr (if-let [sym-ns (some-> (namespace expr) munge)]
                      (let [sn (symbol (name expr))]
-                       (or (when (or (= "cljs.core" sym-ns)
+                       (or (when (= (namespace expr) (str current))
+                             (str (when (:repl env)
+                                    (str "globalThis." (munge current) "."))
+                                  (get-in current-ns [:var-renames (munged-name sn)] (munged-name sn))))
+                           (when (or (= "cljs.core" sym-ns)
                                      (= "clojure.core" sym-ns)
                                      ;; a core ns binds no module, so an alias of
                                      ;; one resolves to the core var too
