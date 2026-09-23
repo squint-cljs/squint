@@ -23,7 +23,7 @@
 - Add `implements?`
 - Resolve `my.ns/x` and `my.ns.x` to var `x` in the current or a required ns
 - Fix invalid JS for `eval` as a var, local or param name
-- Fix `map?` and `object?` returning true for `reify` objects. They print as `#<Reify__N>`, not `{}`
+- Fix `map?` and `object?` returning true for `reify` objects. They print as `#<Reify_N>`, not `{}`
 - Add `keyword-identical?`
 - `reify` carries form metadata: `(meta ^{:k 1} (reify ...))` returns `{:k 1}`
 - Fix `with-meta` dropping the protocol methods of a deftype, defrecord or reify instance
@@ -33,6 +33,7 @@
 - Compile `reify` to a per-site type with the locals in scope as fields and the methods on the prototype
 - Fix `recur` in a protocol method rebinding the `this` param
 - Fix `deftype` with `Object` methods adding an `undefined` key to the prototype
+- Fix invalid JS for a named arrow fn, `(fn ^:=> me [] ...)`
 - Playground: clear the result panel on every run, so an error doesn't linger after the next successful run
 - Playground: compile a non-REPL run from fresh compiler state, so vars from earlier runs don't emit exports for names the document no longer defines
 - Playground: render results at the code font size
