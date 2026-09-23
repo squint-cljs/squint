@@ -3482,8 +3482,16 @@ export function reduce_kv(f, init, m) {
   }
   if (m[IKVReduce__kv_reduce] !== undefined) return m[IKVReduce__kv_reduce](m, f, init);
   var ret = init;
+  if (Array.isArray(m)) {
+    for (let i = 0; i < m.length; i++) {
+      ret = f(ret, i, m[i]);
+      if (ret instanceof Reduced) return ret.value;
+    }
+    return ret;
+  }
   for (const o of iterable(m)) {
     ret = f(ret, o[0], o[1]);
+    if (ret instanceof Reduced) return ret.value;
   }
   return ret;
 }
