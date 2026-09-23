@@ -28,6 +28,7 @@
 - `reify` carries form metadata: `(meta ^{:k 1} (reify ...))` returns `{:k 1}`
 - Fix `with-meta` dropping the protocol methods of a deftype, defrecord or reify instance
 - `assoc` on a deftype instance returns that type, not a plain map, so it is not `map?` and not `=` to a map
+- Add `eduction`
 - Playground: clear the result panel on every run, so an error doesn't linger after the next successful run
 - Playground: compile a non-REPL run from fresh compiler state, so vars from earlier runs don't emit exports for names the document no longer defines
 - Playground: render results at the code font size

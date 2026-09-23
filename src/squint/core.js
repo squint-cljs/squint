@@ -953,7 +953,7 @@ export function seq_QMARK_(x) {
 export function sequential_QMARK_(x) {
   // vectors and lists are arrays; lazy seqs and cons carry the lazy brand.
   // Sets, maps and strings are iterable but not sequential.
-  return Array.isArray(x) || x?.[TYPE_TAG] === LAZY_ITERABLE_TYPE || (x != null && x[IVector.__sym] !== undefined);
+  return Array.isArray(x) || x?.[TYPE_TAG] === LAZY_ITERABLE_TYPE || x instanceof Eduction || (x != null && x[IVector.__sym] !== undefined);
 }
 
 export function seqable_QMARK_(x) {
@@ -4125,6 +4125,32 @@ export function transduce(xform, ...args) {
   }
 }
 
+class Eduction {
+  constructor(xform, coll) {
+    this.xform = xform;
+    this.coll = coll;
+  }
+  *[Symbol.iterator]() {
+    const buf = [];
+    const rf = this.xform((...args) => {
+      if (args.length === 2) buf.push(args[1]);
+      return args[0];
+    });
+    for (const x of iterable(this.coll)) {
+      const ret = rf(null, x);
+      yield* buf.splice(0);
+      if (ret instanceof Reduced) break;
+    }
+    rf(null);
+    yield* buf.splice(0);
+  }
+}
+
+export function eduction(...args) {
+  const coll = args.pop();
+  return new Eduction(comp(...args), coll);
+}
+
 export function zipmap(keys, vals) {
   const res = {};
   const keyIterator = iterable(keys)[Symbol.iterator]();
@@ -4670,7 +4696,8 @@ function toEDN(value, seen = new WeakSet(), readably = true) {
     // appears under sibling branches is a DAG, not a cycle, so delete on exit.
     if (seen.has(value)) return '#object[circular]';
     seen.add(value);
-    const T = typeConst(value);
+    // an eduction prints as a seq, like CLJS
+    const T = value instanceof Eduction ? LIST_TYPE : typeConst(value);
     let keys, result;
     switch (T) {
       case ARRAY_TYPE:
