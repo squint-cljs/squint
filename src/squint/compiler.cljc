@@ -237,11 +237,12 @@
     (escape-jsx
      (let [fexpr (first expr)]
        (if (:quote env)
-         (format "%slist(%s)"
-                 (if-let [ca (:core-alias env)]
-                   (str ca ".")
-                   "")
-                 (str/join ", " (emit-args env expr)))
+         (do (cc/record-core-var! env "list")
+             (format "%slist(%s)"
+                     (if-let [ca (:core-alias env)]
+                       (str ca ".")
+                       "")
+                     (str/join ", " (emit-args env expr))))
          (cond (symbol? fexpr)
                (let [head* fexpr
                      ns-state @(:ns-state env)
@@ -473,6 +474,7 @@
              need-html-import (atom false)
              need-multi-import (atom false)
              need-record-import (atom false)
+             core-var-uses (atom #{})
              hoisted (atom [])
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
@@ -497,6 +499,7 @@
                                                         :need-html-import need-html-import
                                                         :need-multi-import need-multi-import
                                                         :need-record-import need-record-import
+                                                        :core-var-uses core-var-uses
                                                         :hoisted hoisted))
                  transpiled (cond
                               (empty? @hoisted) transpiled
@@ -569,6 +572,7 @@
                     :pragmas pragmas
                     :imports imports
                     :exports exports
+                    :used-core-vars @core-var-uses
                     :body transpiled
                     :javascript (str pragmas imports transpiled exports)
                     :jsx jsx

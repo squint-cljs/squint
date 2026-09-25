@@ -4863,6 +4863,13 @@ new Foo();")
     (is (= 1970 (jsv! '(do (ns foo (:refer-global :only [Date] :rename {Date my-date}))
                            (.getFullYear (my-date. 0))))))))
 
+(deftest used-core-vars-test
+  (testing ":used-core-vars contains re_find and truth_"
+    (is (= #{"re_find" "truth_"}
+           (set (:used-core-vars (squint/compile* "(when-let [x (or a b)] (re-find #\"a;b\" x))"))))))
+  (testing "(+ 1 2) leaves :used-core-vars empty"
+    (is (empty? (:used-core-vars (squint/compile* "(+ 1 2)"))))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test
