@@ -474,7 +474,7 @@
              need-html-import (atom false)
              need-multi-import (atom false)
              need-record-import (atom false)
-             core-var-uses (atom (sorted-set))
+             core-var-uses (atom #{})
              hoisted (atom [])
              opts (merge {:ns-state (atom {})
                           :top-level true} opts)
