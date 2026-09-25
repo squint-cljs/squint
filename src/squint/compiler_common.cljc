@@ -127,12 +127,19 @@
                        {} m)]
       (not-empty m))))
 
+(defn record-core-var!
+  "Adds m to the :core-var-uses atom of env, if env has one.
+  m is a munged core var name."
+  [env m]
+  (some-> (:core-var-uses env) (swap! conj m)))
+
 (defn emit-with-meta
   "Wraps an emitted collection/fn value in a `with-meta` call when the source
   `form` carries user reader metadata; otherwise returns `value` unchanged."
   [value form env]
   (if-let [um (user-meta form)]
-    (str (when-let [ca (:core-alias env)] (str ca "."))
+    (str (do (record-core-var! env "with_meta")
+             (when-let [ca (:core-alias env)] (str ca ".")))
          "with_meta(" value ", " (emit um (expr-env (dissoc env :jsx))) ")")
     value))
 
@@ -366,6 +373,14 @@
        (when-let [core-alias (:core-alias env)]
          (str core-alias "."))
        m))))
+
+(defn- emit-core-var
+  "Returns the JS reference to core var sym, or nil if sym is not a core var.
+  Records the munged name of sym in the :core-var-uses atom of env."
+  [sym env]
+  (when-let [s (maybe-core-var sym env)]
+    (record-core-var! env (str (munge sym)))
+    s))
 
 (defn resolves-to-core?
   "True when `sym` in this env really resolves to the squint core var: not
@@ -637,7 +652,7 @@
                                      (implicit-core-ns? (symbol sym-ns))
                                      (implicit-core-ns?
                                       (get-in ns-state [current :ns-aliases (symbol sym-ns)])))
-                             (some-> (maybe-core-var sn env) munge))
+                             (some-> (emit-core-var sn env) munge))
                            (when (= "js" sym-ns)
                              (munge** (name expr)))
                            (when-let [resolved-ns (get (:aliases env) (symbol sym-ns))]
@@ -724,7 +739,7 @@
                               (str (when (:repl env)
                                      (str "globalThis." (munge current) "."))
                                    (munged-name expr))))
-                          (some-> (maybe-core-var expr env) munge)
+                          (some-> (emit-core-var expr env) munge)
                           (when alias
                             (str (when (:repl env)
                                    (str "globalThis." (munge current) "."))
@@ -2081,7 +2096,8 @@ break;}" body)
           (if (and (= :cherry (:target env))
                    (not (::js (meta expr))))
             (format "%svector(%s)"
-                    (if-let [core-alias (:core-alias env)]
+                    (if-let [core-alias (do (record-core-var! env "vector")
+                                            (:core-alias env))]
                       (str core-alias ".")
                       "")
                     (str/join ", " (emit-args env expr)))

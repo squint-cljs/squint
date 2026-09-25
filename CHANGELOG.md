@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Return the munged core var names that the output references as `:used-core-vars` from `compile*`
+
 ## 0.14.209
 
 - Add `eduction`, `implements?` and `keyword-identical?`
