@@ -5,7 +5,8 @@
                     [tasks :as t])
          :init (def playground-cli-opts (cli/parse-opts *command-line-args* {:coerce {:port :int :headers :edn}}))
          build (t/build-squint-npm-package)
-         publish (t/publish)
+         publish {:doc "Publishes to npm and Clojars, --bump for a new patch version"
+                  :exec-fn tasks/publish}
          watch {:doc "Starts the squint dev watcher"
                 :task (t/watch-squint)}
          serve-playground {:doc "Starts squint the playground http server"
