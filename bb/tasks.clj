@@ -82,12 +82,42 @@
   (shell "npx shadow-cljs --config-merge .work/config-merge.edn release squint")
   (compile-test-runtime))
 
-(defn publish []
+(defn- bump-release!
+  "Increments the patch version in package.json.
+  Replaces the ## Unreleased heading in CHANGELOG.md with the new version.
+  Commits, tags v<version> and pushes the tag.
+  Throws if CHANGELOG.md has no ## Unreleased heading."
+  []
+  (let [pkg (slurp "package.json")
+        old (second (re-find #"\"version\":\s*\"([^\"]+)\"" pkg))
+        [major minor patch] (str/split old #"\.")
+        new (str major "." minor "." (inc (parse-long patch)))
+        changelog (slurp "CHANGELOG.md")]
+    (when-not (str/includes? changelog "## Unreleased")
+      (throw (ex-info "CHANGELOG.md has no ## Unreleased heading" {})))
+    (spit "package.json" (str/replace-first pkg
+                                            (str "\"version\": \"" old "\"")
+                                            (str "\"version\": \"" new "\"")))
+    (spit "CHANGELOG.md" (str/replace-first changelog "## Unreleased" (str "## " new)))
+    (shell "git add package.json CHANGELOG.md")
+    (shell "git commit -m" (str "v" new))
+    (shell "git tag" (str "v" new))
+    (shell "git push --tags")))
+
+(defn publish
+  "Publishes to npm and Clojars, then pushes."
+  {:org.babashka/cli {:spec {:bump {:coerce :boolean
+                                    :desc "Bump the patch version and release the Unreleased changelog section first"}}
+                      :restrict true}}
+  [{:keys [bump]}]
+  (when bump
+    (bump-release!))
   (build-squint-npm-package)
   (run! fs/delete (fs/glob "lib" "*.map"))
   (shell "npx esbuild src/squint/core.js --minify --format=iife --global-name=squint.core --outfile=lib/squint.core.umd.js")
   (shell "npm publish")
-  (shell "clojure -T:build deploy"))
+  (shell "clojure -T:build deploy")
+  (shell "git push"))
 
 ;; the same list playground/bb.edn init copies into public/public/src/squint
 (def ^:private runtime-js-files
