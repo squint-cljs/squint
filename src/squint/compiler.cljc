@@ -237,12 +237,12 @@
     (escape-jsx
      (let [fexpr (first expr)]
        (if (:quote env)
-         (format "%slist(%s)"
-                 (if-let [ca (do (cc/record-core-var! env "list")
-                                 (:core-alias env))]
-                   (str ca ".")
-                   "")
-                 (str/join ", " (emit-args env expr)))
+         (do (cc/record-core-var! env "list")
+             (format "%slist(%s)"
+                     (if-let [ca (:core-alias env)]
+                       (str ca ".")
+                       "")
+                     (str/join ", " (emit-args env expr))))
          (cond (symbol? fexpr)
                (let [head* fexpr
                      ns-state @(:ns-state env)
