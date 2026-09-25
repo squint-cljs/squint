@@ -4864,10 +4864,10 @@ new Foo();")
                            (.getFullYear (my-date. 0))))))))
 
 (deftest used-core-vars-test
-  (testing ":used-core-vars holds the munged core names in the output"
+  (testing ":used-core-vars contains re_find and truth_"
     (is (= #{"re_find" "truth_"}
            (set (:used-core-vars (squint/compile* "(when-let [x (or a b)] (re-find #\"a;b\" x))"))))))
-  (testing "output without core calls leaves :used-core-vars empty"
+  (testing "(+ 1 2) leaves :used-core-vars empty"
     (is (empty? (:used-core-vars (squint/compile* "(+ 1 2)"))))))
 
 (defn init []

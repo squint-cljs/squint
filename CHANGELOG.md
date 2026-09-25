@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- Return the munged core var names that the output references as `:used-core-vars` from `compile*`
+- Add `:used-core-vars` to the result of `compile*`, with the munged core var names that the output references
 
 ## 0.14.209
 
