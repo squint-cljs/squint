@@ -2,10 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.14.211
 
-- [#1032](https://github.com/squint-cljs/squint/issues/1032): `#html`: escape attribute values from `{:& m}`
-- [#1031](https://github.com/squint-cljs/squint/issues/1031): `#html`: escape every string in a seq, not only the first one
+- [#1032](https://github.com/squint-cljs/squint/issues/1032): `#html`: escape attribute values from `{:& m}` ([@mskyan](https://github.com/mskyan))
+- [#1031](https://github.com/squint-cljs/squint/issues/1031): `#html`: escape every string in a seq, not only the first one ([@mskyan](https://github.com/mskyan))
 
 ## 0.14.210
 
