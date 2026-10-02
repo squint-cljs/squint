@@ -83,7 +83,7 @@ export function attrs(v, props) {
     ret += "=";
     ret += '"';
     const v1 = attr(kv[1]);
-    ret += v1;
+    ret += escapeHTML(v1);
     ret += '"';
     first = false;
   }

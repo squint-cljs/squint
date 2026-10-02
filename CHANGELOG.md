@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- [#1032](https://github.com/squint-cljs/squint/issues/1032): `#html`: escape attribute values from `{:& m}`
+
 ## 0.14.210
 
 - Add `:used-core-vars` to the result of `compile*`, with the munged core var names that the output references
