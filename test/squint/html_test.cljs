@@ -220,6 +220,17 @@
      (p/catch #(is false "nooooo"))
      (p/finally done))))
 
+(deftest html-spread-attrs-escape-test
+  ;; attribute values from {:& m} are escaped, like literal attribute values
+  (t/async done
+    (let [js (compile-html
+              "(let [m {:title \"\\\"><script>\"}] (str #html [:div {:& m} \"Hello\"]))")]
+      (-> (js/eval js)
+          (.then
+           #(is (= "<div title=\"&quot;&gt;&lt;script&gt;\">Hello</div>" %)))
+          (.catch #(is false "nooooo"))
+          (.finally done)))))
+
 (deftest html-boolean-attr-test
   ;; true -> bare attribute name (hiccup convention); false -> rendered value
   (t/async done

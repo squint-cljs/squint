@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- [#1032](https://github.com/squint-cljs/squint/issues/1032): `#html`: escape attribute values from `{:& m}`
 - [#1031](https://github.com/squint-cljs/squint/issues/1031): `#html`: escape every string in a seq, not only the first one
 
 ## 0.14.210
