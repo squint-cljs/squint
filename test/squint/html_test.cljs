@@ -132,6 +132,24 @@
      (p/catch #(is false "nooooo"))
      (p/finally done))))
 
+(deftest html-seq-escape-test
+  ;; every string in a seq is escaped, not only the first one
+  (t/async done
+    (->
+     (p/do
+       (p/let [js (compile-html "(str #html [:p (list \"<a>\" \"<b>\" \"<c>\")])")
+               v (js/eval js)
+               _ (is (= "<p>&lt;a&gt;&lt;b&gt;&lt;c&gt;</p>" v))])
+       (p/let [js (compile-html "(str #html [:ul (for [x [\"<a>\" \"<b>\"]] x)])")
+               v (js/eval js)
+               _ (is (= "<ul>&lt;a&gt;&lt;b&gt;</ul>" v))])
+       ;; inside [:$ ...] no element of a seq is escaped
+       (p/let [js (compile-html "(str #html [:div [:$ (list \"<a>\" \"<b>\")]])")
+               v (js/eval js)
+               _ (is (= "<div><a><b></div>" v))]))
+     (p/catch #(is false "nooooo"))
+     (p/finally done))))
+
 (deftest html5-test
   (t/async done
     (->
