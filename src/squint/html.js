@@ -65,7 +65,7 @@ function toHTML(v, unsafe) {
   if (v instanceof Html) return v;
   if (typeof(v) === 'string') return unsafe ? v : safe(v);
   if (v[Symbol.iterator]) {
-    return [...v].map(toHTML).join("");
+    return [...v].map((x) => toHTML(x, unsafe)).join("");
   }
   return unsafe? v.toString() : safe(v.toString());
 }
