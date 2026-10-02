@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- [#1031](https://github.com/squint-cljs/squint/issues/1031): `#html`: escape every string in a seq, not only the first one
+
 ## 0.14.210
 
 - Add `:used-core-vars` to the result of `compile*`, with the munged core var names that the output references
