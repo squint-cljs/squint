@@ -99,6 +99,7 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 - [Zenith](https://tofutheloafu.itch.io/zenith): a game developed for the Lisp Game Jame 2024 by Trevor
 - [hiccupad](https://brianium.github.io/hiccupad/) ([source](https://github.com/brianium/hiccupad))
 - [hyper](https://github.com/dynamic-alpha/hyper): a reactive server-rendered web framework for Clojure
+- [datastar-expressions](https://github.com/outskirtslabs/datastar-expressions): Write ðŸš€ datastar expressions using Clojure (squint)
 
 ## Advent of Code
 
