@@ -91,7 +91,6 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 
 ## Projects using squint
 
-- [@nextjournal/clojure-mode](https://github.com/nextjournal/clojure-mode)
 - [cljdoc](https://cljdoc.org) ([source](https://github.com/cljdoc/cljdoc/tree/master/front-end/src/cljdoc/client))
 - [epupp](https://github.com/PEZ/epupp): a browser extension for tampering with web pages, live or with userscripts
 - [hyper](https://github.com/dynamic-alpha/hyper): a reactive server-rendered web framework for Clojure
@@ -111,6 +110,7 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 
 ## Libraries supporting squint
 
+- [@nextjournal/clojure-mode](https://github.com/nextjournal/clojure-mode)
 - [replicant](https://github.com/cjohansen/replicant)
 - [babashka.cli](https://github.com/babashka/cli#javascript)
 - [babashka.fs](https://github.com/babashka/fs#nodejs)
