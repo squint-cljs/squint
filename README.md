@@ -93,13 +93,28 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 
 - [@nextjournal/clojure-mode](https://github.com/nextjournal/clojure-mode)
 - [cljdoc](https://cljdoc.org) ([source](https://github.com/cljdoc/cljdoc/tree/master/front-end/src/cljdoc/client))
-- [Eucalypt](https://chr15m.github.io/eucalypt/): a Reagent clone in squint
-- [static search index for Tumblr](https://github.com/holyjak/clj-tumblr-summarizer/commit/a8b2ca8a9f777e4a9059fa0f1381ded24e5f1a0f)
-- [wordle](https://github.com/jackdbd/squint-wordle)
-- [Zenith](https://tofutheloafu.itch.io/zenith): a game developed for the Lisp Game Jame 2024 by Trevor
-- [hiccupad](https://brianium.github.io/hiccupad/) ([source](https://github.com/brianium/hiccupad))
+- [epupp](https://github.com/PEZ/epupp): a browser extension for tampering with web pages, live or with userscripts
 - [hyper](https://github.com/dynamic-alpha/hyper): a reactive server-rendered web framework for Clojure
+- [weave](https://nakkaya.github.io/weave/reference/40_javascript/): a Clojure web framework that compiles client-side code with squint
+- [Eucalypt](https://chr15m.github.io/eucalypt/): a Reagent clone in squint
+- [pavlov](https://github.com/thomascothran/pavlov#experimental-squint-support): behavioral programming for Clojure
+- [clj-proj](https://github.com/willcohen/clj-proj): PROJ for the JVM and JS
 - [datastar-expressions](https://github.com/outskirtslabs/datastar-expressions): Write ðŸš€ datastar expressions using Clojure (squint)
+- [longdown](https://github.com/dundalek/longdown): convert longform markdown files to the Logseq outline format
+- [simpleviz](https://github.com/sstoehrm/simpleviz): EDN-driven graph visualization
+- [hiccupad](https://brianium.github.io/hiccupad/) ([source](https://github.com/brianium/hiccupad))
+- [Feles Tales](https://rafaeldelboni.itch.io/feles-tales) ([source](https://github.com/rafaeldelboni/feles-tales)): a game about a cat sneaking and stealing stuff
+- [sapper](https://github.com/tonsky/sapper): Minesweeper
+- [Zenith](https://tofutheloafu.itch.io/zenith): a game developed for the Lisp Game Jame 2024 by Trevor
+- [wordle](https://github.com/jackdbd/squint-wordle)
+- [static search index for Tumblr](https://github.com/holyjak/clj-tumblr-summarizer/commit/a8b2ca8a9f777e4a9059fa0f1381ded24e5f1a0f)
+
+## Libraries supporting squint
+
+- [replicant](https://github.com/cjohansen/replicant)
+- [babashka.cli](https://github.com/babashka/cli#javascript)
+- [babashka.fs](https://github.com/babashka/fs#nodejs)
+- [nexus](https://github.com/cjohansen/nexus)
 
 ## Advent of Code
 
