@@ -27,7 +27,9 @@
 (defn node? [x]
   (instance? Node x))
 
-(defn- code? [x]
+(defn code?
+  "Returns true if x is a Code record."
+  [x]
   (and (map? x) (contains? x :js) (not (node? x))))
 
 (defn- structured?
@@ -93,6 +95,7 @@
                      (when alt [" else " alt])])
     :variable-declaration [(:kind n) " " (interpose-comma (:declarations n)) ";\n"]
     :variable-declarator [(:id n) " = " (:init n)]
+    :assignment-expression [(:left n) " " (:operator n) " " (:right n)]
     (:function-expression :arrow-function-expression) (function-parts n)))
 
 (declare walk)
@@ -148,6 +151,7 @@
                         (when-let [alt (:alternate n)] (f " else ") (w alt)))
       :variable-declaration (do (w (:kind n)) (f " ") (each (:declarations n)) (f ";\n"))
       :variable-declarator (do (w (:id n)) (f " = ") (w (:init n)))
+      :assignment-expression (do (w (:left n)) (f " ") (f (:operator n)) (f " ") (w (:right n)))
       (:function-expression :arrow-function-expression) (walk-function n f enter exit))))
 
 (defn- walk

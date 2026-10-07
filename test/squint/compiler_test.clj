@@ -6,7 +6,8 @@
    [clojure.test :refer [deftest is] :as t]
    [clojure.edn :as edn]
    [squint.compiler :as sq]
-   [squint.compiler.js-ast :as ast]))
+   [squint.compiler.js-ast :as ast]
+   [squint.compiler.lift-iife :as lift-iife]))
 
 (defn to-js [code {:keys [requires]}]
   (sq/compile-string
@@ -103,23 +104,46 @@
 (deftest printer-layout-test
   (let [src "(defn f [x] (let [y (inc x)] (if (pos? y) (g y) (h))))
              (defn m [o] (.foo o 1))
+             (defn t [a] (if (or (g a) (h a)) 1 2))
              (defn ^:async b [] (await (new js/Promise (fn [r] (r (if r 1 2))))))
              (defn ^:gen c [] (f (let [z (f 1)] z)))
              (def k (fn [] (map #(f %) [1])))
              (def d (let [z (do (f 1) (f 2))] (f z)))"
         nodes (mapcat (fn [env]
-                        (filter ast/node? (tree-seq coll? seq (#'sq/transpile-node* src env))))
+                        (filter ast/node? (tree-seq coll? seq (lift-iife/lift (#'sq/transpile-node* src env)))))
                       [{} {:repl true :context :repl-return :ns-state (atom {:current 'user})}])]
     (t/testing "the snippets cover every node type"
       (is (= #{:raw :program :expression-statement :return-statement :array-expression
                :call-expression :new-expression :member-expression :parenthesized-expression
                :await-expression :yield-expression :conditional-expression :block-statement
                :if-statement :variable-declaration :variable-declarator :function-expression
-               :arrow-function-expression}
+               :arrow-function-expression :assignment-expression}
              (set (map :type nodes)))))
     (t/testing "printing a node matches the text of its parts"
       (doseq [n nodes]
         (is (= (ast/print-js n) (parts-text n)) (pr-str (:type n)))))))
+
+(defn- lifted [src]
+  (:javascript (sq/compile* src {:lift-iife true :elide-imports true :elide-exports true})))
+
+(deftest lift-iife-test
+  (t/testing "a let in a binding init becomes statements"
+    (is (= "var f = function (a) {\nconst c_2 = g(a);\nconst b_1 = h(c_2);\nreturn k(b_1);\n\n};\n"
+           (lifted "(defn f [a] (let [b (let [c (g a)] (h c))] (k b)))"))))
+  (t/testing "an or in an if test assigns a temporary in each branch"
+    (is (= (str "var f = function (a) {\nconst or_1_2 = g(a);\nlet squint$iife$1;\n"
+                "if (squint_core.truth_(or_1_2)) {\nsquint$iife$1 = or_1_2} else {\nsquint$iife$1 = h(a)};\n"
+                "if (squint_core.truth_(squint$iife$1)) {\nreturn 1} else {\nreturn 2};\n\n};\n")
+           (lifted "(defn f [a] (if (or (g a) (h a)) 1 2))"))))
+  (t/testing "an IIFE after a call argument stays"
+    (is (str/includes? (lifted "(defn f [a] (k (g a) (let [z (g a)] (h z))))") "(() => {")))
+  (t/testing "an IIFE at module level stays"
+    (is (str/includes? (lifted "(def x (let [a (f 1)] (g a)))") "(() => {")))
+  (t/testing "an async IIFE stays"
+    (is (str/includes? (lifted "(defn ^:async f [] (k (let [z (await (g))] (h z))))") "(async () => {")))
+  (t/testing "without :lift-iife the output keeps the IIFE"
+    (is (str/includes? (sq/compile-string "(defn f [a] (let [b (let [c (g a)] (h c))] (k b)))")
+                       "(() => {"))))
 
 (def our-ns *ns*)
 (defn run-tests [_]

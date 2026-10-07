@@ -19,6 +19,7 @@
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.compiler.js-ast :as ast]
+   [squint.compiler.lift-iife :as lift-iife]
    [squint.compiler.utils :refer [munge]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
@@ -510,6 +511,8 @@
                                                         :need-record-import need-record-import
                                                         :core-var-uses core-var-uses
                                                         :hoisted hoisted))
+                 transpiled (cond-> transpiled
+                              (:lift-iife opts) lift-iife/lift)
                  transpiled (cond
                               (empty? @hoisted) transpiled
                               ;; :expr output must stay one expression
