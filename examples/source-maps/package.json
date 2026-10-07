@@ -1,0 +1,11 @@
+{
+  "name": "squint-source-maps-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile": "node ../../node_cli.js compile --source-map --output-dir out src/app.cljs",
+    "start": "npm run compile && node --enable-source-maps out/src/app.mjs",
+    "start:no-maps": "npm run compile && node out/src/app.mjs",
+    "serve": "npm run compile && cd ../.. && python3 -m http.server 8137"
+  }
+}
