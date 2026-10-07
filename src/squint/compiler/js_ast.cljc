@@ -32,7 +32,7 @@
   [x]
   (and (map? x) (contains? x :js) (not (node? x))))
 
-(defn- structured?
+(defn structured?
   "Returns true if x prints through the printer rather than as a plain string."
   [x]
   (or (node? x)
@@ -47,71 +47,27 @@
     (node :raw :parts (vec parts))
     (print-js parts)))
 
-(defn- interpose-comma [xs]
-  (vec (interpose ", " xs)))
-
-(defn- function-parts [{:keys [id params body async generator expression]
-                         :as n}]
-  (let [arrow? (= :arrow-function-expression (:type n))
-        params ["(" (interpose-comma params) ")"]
-        stmts (:body body)
-        body (if expression body [" {\n" stmts "\n}"])]
-    (cond
-      (:squint/iife n)
-      (if generator
-        [(when async "async ") "function* () {\n" stmts "\n}"]
-        [(when async "async ") "() => {\n" stmts "\n}"])
-      id
-      [(when async "async ") "function" (when generator "*") " " id " "
-       params (when arrow? "=>") body]
-      :else
-      [(when async "async ") (when-not arrow? "function") (when generator "*")
-       (when (or (not arrow?) async) " ")
-       params (when arrow? "=>") body])))
-
-(defn- parts
-  "Returns the children and text of node n in print order."
-  [n]
-  (case (:type n)
-    :raw (:parts n)
-    :program (:body n)
-    :expression-statement [(:expression n) ";\n"]
-    :return-statement ["return " (let [a (:argument n)] (if (nil? a) "null" a))]
-    :array-expression ["[" (interpose-comma (:elements n)) "]"]
-    :call-expression (let [callee (:callee n)]
-                       (if (:squint/iife callee)
-                         ["(" callee ")()"]
-                         [callee "(" (interpose-comma (:arguments n)) ")"]))
-    :new-expression ["new " (:callee n) "(" (interpose-comma (:arguments n)) ")"]
-    :member-expression [(:object n) "." (:property n)]
-    :parenthesized-expression ["(" (:expression n) ")"]
-    :await-expression ["(await " (:argument n) ")"]
-    :yield-expression ["(yield* " (:argument n) ")"]
-    :conditional-expression ["((" (:test n) ") ? (" (:consequent n) ") : ("
-                             (:alternate n) "))"]
-    :block-statement ["{\n" (:body n) "}"]
-    :if-statement (let [alt (:alternate n)]
-                    ["if (" (:test n) ") " (:consequent n)
-                     (when alt [" else " alt])])
-    :variable-declaration [(:kind n) " " (interpose-comma (:declarations n)) ";\n"]
-    :variable-declarator [(:id n) " = " (:init n)]
-    :assignment-expression [(:left n) " " (:operator n) " " (:right n)]
-    (:function-expression :arrow-function-expression) (function-parts n)))
+(defn terminate
+  "Returns a :raw node that prints x followed by ;\\n, unless the output
+  already ends with ;\\n."
+  [x]
+  (node :raw :parts [x] :squint/terminate true))
 
 (declare walk)
 
-(defn- walk-each [xs sep f enter exit]
+(defn- walk-each [xs sep out enter exit]
   (reduce (fn [first? x]
-            (when-not first? (f sep))
-            (walk x f enter exit)
+            (when-not first? ((:emit out) sep))
+            (walk x out enter exit)
             false)
           true xs))
 
 (defn- walk-function [{:keys [id params body async generator expression]
-                       :as n} f enter exit]
-  (let [arrow? (= :arrow-function-expression (:type n))
-        w #(walk % f enter exit)
-        params! #(do (f "(") (walk-each params ", " f enter exit) (f ")"))
+                       :as n} out enter exit]
+  (let [f (:emit out)
+        arrow? (= :arrow-function-expression (:type n))
+        w #(walk % out enter exit)
+        params! #(do (f "(") (walk-each params ", " out enter exit) (f ")"))
         stmts (:body body)
         body! #(if expression (w body) (do (f " {\n") (w stmts) (f "\n}")))]
     (when async (f "async "))
@@ -126,11 +82,14 @@
           (when (or (not arrow?) async) (f " "))
           (params!) (when arrow? (f "=>")) (body!)))))
 
-(defn- walk-node [n f enter exit]
-  (let [w #(walk % f enter exit)
-        each #(walk-each % ", " f enter exit)]
+(defn- walk-node [n out enter exit]
+  (let [f (:emit out)
+        w #(walk % out enter exit)
+        each #(walk-each % ", " out enter exit)]
     (case (:type n)
-      :raw (w (:parts n))
+      :raw (do (w (:parts n))
+               (when (and (:squint/terminate n) (not= ";\n" @(:tail out)))
+                 (f ";\n")))
       :program (w (:body n))
       :expression-statement (do (w (:expression n)) (f ";\n"))
       :return-statement (do (f "return ") (let [a (:argument n)] (if (nil? a) (f "null") (w a))))
@@ -152,25 +111,41 @@
       :variable-declaration (do (w (:kind n)) (f " ") (each (:declarations n)) (f ";\n"))
       :variable-declarator (do (w (:id n)) (f " = ") (w (:init n)))
       :assignment-expression (do (w (:left n)) (f " ") (f (:operator n)) (f " ") (w (:right n)))
-      (:function-expression :arrow-function-expression) (walk-function n f enter exit))))
+      (:function-expression :arrow-function-expression) (walk-function n out enter exit))))
 
 (defn- walk
-  "Calls (f s) for each text chunk of x in print order. Calls (enter loc)
+  "Emits each text chunk of x in print order through out. Calls (enter loc)
   and (exit) around a node with a :loc, if enter is given."
-  [x f enter exit]
+  [x out enter exit]
   (cond
-    (string? x) (f x)
+    (string? x) ((:emit out) x)
     (nil? x) nil
     (node? x) (let [loc (when enter (:loc x))]
                 (when loc (enter loc))
-                (walk-node x f enter exit)
+                (walk-node x out enter exit)
                 (when loc (exit)))
     (code? x) (let [loc (when enter (:loc x))]
                 (when loc (enter loc))
-                (walk (:js x) f enter exit)
+                (walk (:js x) out enter exit)
                 (when loc (exit)))
-    (sequential? x) (reduce (fn [_ y] (walk y f enter exit)) nil x)
-    :else (f (str x))))
+    (sequential? x) (reduce (fn [_ y] (walk y out enter exit)) nil x)
+    :else ((:emit out) (str x))))
+
+(defn- output
+  "Returns an output that passes each chunk to f and tracks the last two
+  characters written."
+  [f]
+  (let [tail (volatile! "")]
+    {:tail tail
+     :emit (fn [^String s]
+             (let [c (count s)]
+               (when (pos? c)
+                 (vreset! tail (if (>= c 2)
+                                 (subs s (- c 2))
+                                 (let [t (str @tail s)
+                                       ct (count t)]
+                                   (if (> ct 2) (subs t (- ct 2)) t))))
+                 (f s))))}))
 
 (defn print-js
   "Returns the JS text of x, a string, node, Code record or vector of those."
@@ -178,67 +153,36 @@
   (if (string? x)
     x
     #?(:clj (let [sb (StringBuilder.)]
-              (walk x #(.append sb ^String %) nil nil)
+              (walk x (output #(.append sb ^String %)) nil nil)
               (.toString sb))
        :cljs (let [arr #js []]
-               (walk x #(.push arr %) nil nil)
+               (walk x (output #(.push arr %)) nil nil)
                (.join arr "")))))
 
-(defn- children-rev
-  "Returns the parts of x in reverse print order."
-  [x]
-  (cond (node? x) (rseq (vec (parts x)))
-        (code? x) [(:js x)]
-        (sequential? x) (rseq (vec x))))
-
-(defn tail
-  "Returns the last n characters of the text of x."
-  [n x]
-  (if (string? x)
-    (let [c (count x)] (if (< c n) x (subs x (- c n))))
-    (loop [stack (list x) acc ""]
-      (if (or (>= (count acc) n) (empty? stack))
-        (let [c (count acc)] (if (< c n) acc (subs acc (- c n))))
-        (let [[y & more] stack]
-          (cond (nil? y) (recur more acc)
-                (string? y) (recur more (str y acc))
-                (or (node? y) (code? y) (sequential? y))
-                (recur (concat (children-rev y) more) acc)
-                :else (recur more (str y acc))))))))
-
-(defn- children
-  [x]
-  (cond (node? x) (parts x)
-        (code? x) [(:js x)]
-        (sequential? x) x))
+(def ^:private enough #?(:clj (Exception. "enough") :cljs (js/Error. "enough")))
 
 (defn head
   "Returns the first n characters of the text of x."
   [n x]
   (if (string? x)
     (if (< (count x) n) x (subs x 0 n))
-    (loop [stack (list x) acc ""]
-      (if (or (>= (count acc) n) (empty? stack))
-        (if (< (count acc) n) acc (subs acc 0 n))
-        (let [[y & more] stack]
-          (cond (nil? y) (recur more acc)
-                (string? y) (recur more (str acc y))
-                (or (node? y) (code? y) (sequential? y))
-                (recur (concat (children y) more) acc)
-                :else (recur more (str acc y))))))))
+    (let [acc (volatile! "")]
+      (try
+        (walk x (output (fn [s]
+                          (vswap! acc str s)
+                          (when (>= (count @acc) n) (throw enough))))
+              nil nil)
+        (catch #?(:clj Exception :cljs :default) e
+          (when-not (identical? e enough) (throw e))))
+      (let [a @acc] (if (< (count a) n) a (subs a 0 n))))))
 
-(defn blank?
-  "Returns true if the text of x is empty or whitespace."
+(defn empty-text?
+  "Returns true if x prints as an empty string."
   [x]
-  (if (string? x)
-    (str/blank? x)
-    (loop [stack (list x)]
-      (if-let [[y & more] (seq stack)]
-        (cond (nil? y) (recur more)
-              (string? y) (if (str/blank? y) (recur more) false)
-              (or (node? y) (code? y) (sequential? y)) (recur (concat (children y) more))
-              :else (if (str/blank? (str y)) (recur more) false))
-        true))))
+  (cond (nil? x) true
+        (string? x) (= "" x)
+        (code? x) (empty-text? (:js x))
+        :else false))
 
 (defn with-loc
   "Returns x with the source position of form, if form has one and x prints
@@ -327,7 +271,7 @@
                (vswap! stack rest)
                (when-let [parent (first @stack)]
                  (mark! parent)))]
-    (walk x f enter exit)
+    (walk x (output f) enter exit)
     {:js #?(:clj (.toString sb) :cljs (.join arr ""))
      :segments (persistent! @segments)}))
 

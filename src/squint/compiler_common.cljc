@@ -199,18 +199,17 @@
     :array-expression})
 
 (defn statement [expr]
-  (if (string? expr)
-    (when-not (str/blank? expr)
-      (if (not (= statement-separator (str-tail (count statement-separator) expr)))
-        (str expr statement-separator)
-        expr))
+  (if (ast/structured? expr)
     (let [t (:type expr)]
       (cond (contains? expression-types t)
             (ast/node :expression-statement :expression expr)
             (= :variable-declaration t) expr
-            (ast/blank? expr) nil
-            (= statement-separator (ast/tail (count statement-separator) expr)) expr
-            :else (ast/raw expr statement-separator)))))
+            :else (ast/terminate expr)))
+    (let [expr (str expr)]
+      (when-not (str/blank? expr)
+        (if (not (= statement-separator (str-tail (count statement-separator) expr)))
+          (str expr statement-separator)
+          expr)))))
 
 (defn comma-list [coll]
   (apply ast/raw "(" (concat (interpose ", " coll) [")"])))

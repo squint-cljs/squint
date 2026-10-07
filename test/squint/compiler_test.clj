@@ -5,9 +5,7 @@
    [clojure.string :as str]
    [clojure.test :refer [deftest is] :as t]
    [clojure.edn :as edn]
-   [squint.compiler :as sq]
-   [squint.compiler.js-ast :as ast]
-   [squint.compiler.lift-iife :as lift-iife]))
+   [squint.compiler :as sq]))
 
 (defn to-js [code {:keys [requires]}]
   (sq/compile-string
@@ -92,36 +90,6 @@
       (is (str/includes? source-map "\"sourcesContent\":[\"(ns m)\\n(defn f")))
     (t/testing "compiling without :source-map returns no map"
       (is (nil? (:source-map (sq/compile* src)))))))
-
-(defn- parts-text [x]
-  (cond (string? x) x
-        (nil? x) ""
-        (ast/node? x) (parts-text (#'ast/parts x))
-        (and (map? x) (contains? x :js)) (parts-text (:js x))
-        (sequential? x) (apply str (map parts-text x))
-        :else (str x)))
-
-(deftest printer-layout-test
-  (let [src "(defn f [x] (let [y (inc x)] (if (pos? y) (g y) (h))))
-             (defn m [o] (.foo o 1))
-             (defn t [a] (if (or (g a) (h a)) 1 2))
-             (defn ^:async b [] (await (new js/Promise (fn [r] (r (if r 1 2))))))
-             (defn ^:gen c [] (f (let [z (f 1)] z)))
-             (def k (fn [] (map #(f %) [1])))
-             (def d (let [z (do (f 1) (f 2))] (f z)))"
-        nodes (mapcat (fn [env]
-                        (filter ast/node? (tree-seq coll? seq (lift-iife/lift (#'sq/transpile-node* src env)))))
-                      [{} {:repl true :context :repl-return :ns-state (atom {:current 'user})}])]
-    (t/testing "the snippets cover every node type"
-      (is (= #{:raw :program :expression-statement :return-statement :array-expression
-               :call-expression :new-expression :member-expression :parenthesized-expression
-               :await-expression :yield-expression :conditional-expression :block-statement
-               :if-statement :variable-declaration :variable-declarator :function-expression
-               :arrow-function-expression :assignment-expression}
-             (set (map :type nodes)))))
-    (t/testing "printing a node matches the text of its parts"
-      (doseq [n nodes]
-        (is (= (ast/print-js n) (parts-text n)) (pr-str (:type n)))))))
 
 (defn- lifted [src]
   (:javascript (sq/compile* src {:lift-iife true :elide-imports true :elide-exports true})))

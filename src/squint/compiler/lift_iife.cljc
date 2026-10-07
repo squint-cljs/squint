@@ -1,17 +1,16 @@
 (ns squint.compiler.lift-iife
   "Replaces an IIFE in a function body with its statements if its statement
   evaluates the IIFE first."
-  (:require [squint.compiler.js-ast :as ast]))
+  (:require [clojure.string :as str]
+            [squint.compiler.js-ast :as ast]))
 
 (defn- return? [x]
   (= :return-statement (:type (cond-> x (ast/code? x) :js))))
 
 (defn- statement-wrapper?
-  "Returns true if x is a :raw node of an expression or return and a ;\\n."
+  "Returns true if x is a :raw node that terminates a statement."
   [x]
-  (and (= :raw (:type x))
-       (let [ps (:parts x)]
-         (and (= 2 (count ps)) (= ";\n" (peek ps))))))
+  (and (= :raw (:type x)) (:squint/terminate x)))
 
 (defn- statement-node? [x]
   (or (contains? #{:variable-declaration :expression-statement :if-statement :return-statement}
@@ -24,10 +23,18 @@
   [x]
   (cond
     (nil? x) []
-    (string? x) (cond (ast/blank? x) []
+    (string? x) (cond (str/blank? x) []
                       (re-find #";\n$" x) [x]
                       :else nil)
     (ast/code? x) (flatten-statements (:js x))
+    (statement-wrapper? x)
+    (let [inner (first (:parts x))
+          inner (cond-> inner (ast/code? inner) :js)
+          items (when (and (= :raw (:type inner)) (not (statement-wrapper? inner)))
+                  (flatten-statements inner))]
+      (if (seq items)
+        (conj (pop items) (ast/terminate (peek items)))
+        [x]))
     (statement-node? x) [x]
     (= :raw (:type x)) (flatten-statements (:parts x))
     (sequential? x) (reduce (fn [acc y]
@@ -176,13 +183,13 @@
           (let [[stmts e] (lift-expr (:test x))]
             [stmts (assoc x :test e)])
           :raw
-          (let [[e sep] (:parts x)
+          (let [[e] (:parts x)
                 e (cond-> e (ast/code? e) :js)
                 [stmts e'] (if (return? e)
                              (let [[stmts arg] (lift-expr (:argument e))]
                                [stmts (assoc e :argument arg)])
                              (lift-expr e))]
-            [stmts (assoc x :parts [e' sep])])
+            [stmts (assoc x :parts [e'])])
           [[] x])]
     (if (seq stmts) (conj stmts x') x)))
 

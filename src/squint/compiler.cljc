@@ -457,7 +457,7 @@
                           ;; compile-time forms run in SCI, never emitted to JS;
                           ;; marker value :both emits too
                           (let [t (transpile-form-node next-form env)]
-                            (when-not (= "" (ast/head 1 t)) t)))
+                            (when-not (ast/empty-text? t) t)))
                  next-js
                  (cc/save-pragma env next-t)]
              (recur (conj transpiled next-js)
