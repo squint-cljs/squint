@@ -5,7 +5,8 @@
    [clojure.string :as str]
    [clojure.test :refer [deftest is] :as t]
    [clojure.edn :as edn]
-   [squint.compiler :as sq]))
+   [squint.compiler :as sq]
+   [squint.compiler.js-ast :as ast]))
 
 (defn to-js [code {:keys [requires]}]
   (sq/compile-string
@@ -70,6 +71,55 @@
   (t/testing "a regex literal in return position is returned"
     (is (str/includes? (sq/compile-string "(defn f [] #\"a\")") "return /a/"))
     (is (= "true" (test-expr "(prn (some? ((fn [] #\"a\"))))")))))
+
+(defn- gen-pos [js s]
+  (let [i (str/index-of js s)
+        before (subs js 0 i)]
+    [(count (filter #{\newline} before))
+     (- i (inc (or (str/last-index-of before "\n") -1)))]))
+
+(deftest source-map-test
+  (let [src "(ns m)\n(defn f [x]\n  (g\n   (h x)))"
+        {:keys [javascript source-map source-map-segments]}
+        (sq/compile* src {:source-map {:file "m.mjs" :source "m.cljs"}})
+        mapped (set (map (fn [[gl gc sl sc]] [[gl gc] [sl sc]]) source-map-segments))]
+    (t/testing "a call maps to the line and column of its form"
+      (is (contains? mapped [(gen-pos javascript "g(h(x))") [2 2]]))
+      (is (contains? mapped [(gen-pos javascript "h(x)") [3 3]])))
+    (t/testing "the map names the source and embeds its content"
+      (is (str/includes? source-map "\"sources\":[\"m.cljs\"]"))
+      (is (str/includes? source-map "\"sourcesContent\":[\"(ns m)\\n(defn f")))
+    (t/testing "compiling without :source-map returns no map"
+      (is (nil? (:source-map (sq/compile* src)))))))
+
+(defn- parts-text [x]
+  (cond (string? x) x
+        (nil? x) ""
+        (ast/node? x) (parts-text (#'ast/parts x))
+        (and (map? x) (contains? x :js)) (parts-text (:js x))
+        (sequential? x) (apply str (map parts-text x))
+        :else (str x)))
+
+(deftest printer-layout-test
+  (let [src "(defn f [x] (let [y (inc x)] (if (pos? y) (g y) (h))))
+             (defn m [o] (.foo o 1))
+             (defn ^:async b [] (await (new js/Promise (fn [r] (r (if r 1 2))))))
+             (defn ^:gen c [] (f (let [z (f 1)] z)))
+             (def k (fn [] (map #(f %) [1])))
+             (def d (let [z (do (f 1) (f 2))] (f z)))"
+        nodes (mapcat (fn [env]
+                        (filter ast/node? (tree-seq coll? seq (#'sq/transpile-node* src env))))
+                      [{} {:repl true :context :repl-return :ns-state (atom {:current 'user})}])]
+    (t/testing "the snippets cover every node type"
+      (is (= #{:raw :program :expression-statement :return-statement :array-expression
+               :call-expression :new-expression :member-expression :parenthesized-expression
+               :await-expression :yield-expression :conditional-expression :block-statement
+               :if-statement :variable-declaration :variable-declarator :function-expression
+               :arrow-function-expression}
+             (set (map :type nodes)))))
+    (t/testing "printing a node matches the text of its parts"
+      (doseq [n nodes]
+        (is (= (ast/print-js n) (parts-text n)) (pr-str (:type n)))))))
 
 (def our-ns *ns*)
 (defn run-tests [_]

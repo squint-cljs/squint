@@ -4870,6 +4870,14 @@ new Foo();")
   (testing "(+ 1 2) leaves :used-core-vars empty"
     (is (empty? (:used-core-vars (squint/compile* "(+ 1 2)"))))))
 
+(deftest source-map-test
+  (let [{:keys [source-map]} (squint/compile* "(ns m)\n(defn f [x]\n  (g\n   (h x)))"
+                                              {:source-map {:file "m.mjs" :source "m.cljs"}})
+        m (js/JSON.parse source-map)]
+    (is (= 3 (.-version m)))
+    (is (= ["m.cljs"] (vec (.-sources m))))
+    (is (str/includes? (.-mappings m) ";"))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test

@@ -18,6 +18,7 @@
                                           #?(:cljs format)
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
+   [squint.compiler.js-ast :as ast]
    [squint.compiler.utils :refer [munge]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
@@ -234,7 +235,7 @@
   (let [env* env
         mexpr (meta expr)
         env (assoc env :jsx (::jsx mexpr))]
-    (escape-jsx
+    (-> (escape-jsx
      (let [fexpr (first expr)]
        (if (:quote env)
          (do (cc/record-core-var! env "list")
@@ -309,7 +310,8 @@
                (cc/emit-special 'funcall env expr)
                :else
                (throw (new Exception (str "invalid form: " expr))))))
-     env*)))
+         env*)
+        (ast/with-loc expr))))
 
 (defn emit-map [expr env]
   (-> (if (every? #(or (string? %)
@@ -346,11 +348,8 @@
        env)
       (cc/tagged-expr 'set)))
 
-(defn transpile-form
-  ([f] (transpile-form f nil))
-  ([f env]
-   (str
-    (emit f (merge {:ns-state (atom {})
+(defn- transpile-form-node [f env]
+  (emit f (merge {:ns-state (atom {})
                     :context :statement
                     :target :squint
                       :core-package "squint-cljs/core.js"
@@ -374,7 +373,12 @@
                              ::cc/map emit-map
                              ::cc/keyword emit-keyword
                              ::cc/set emit-set
-                             ::cc/special emit-special}} env)))))
+                             ::cc/special emit-special}} env)))
+
+(defn transpile-form
+  ([f] (transpile-form f nil))
+  ([f env]
+   (str (transpile-form-node f env))))
 
 
 (defn jsx [form]
@@ -424,9 +428,9 @@
                                   :auto-resolve (or aliases {})
                                   :ns-state (atom {}))))))
 
-(defn transpile*
-  ([s] (transpile* s {}))
-  ([s env]
+(defn- transpile-node*
+  "Returns a :program node for the forms in s."
+  [s env]
    (let [env (merge {:ns-state (atom {})
                      :context :statement} env)
          forms (if (string? s) (read-forms s env) s)
@@ -434,10 +438,10 @@
          orig-ctx (:context env)
          return? (contains? #{:return :repl-return} orig-ctx)
          env (if return? (assoc env :context :statement) env)]
-     (loop [transpiled (if (and (:repl env) (cc/current-ns env))
-                         (let [ns (munge (cc/current-ns env))]
-                           (cc/ensure-global ns))
-                         "")
+     (loop [transpiled [(if (and (:repl env) (cc/current-ns env))
+                          (let [ns (munge (cc/current-ns env))]
+                            (cc/ensure-global ns))
+                          "")]
             forms forms
             form-idx 0]
        (let [next-form (if (seq forms)
@@ -447,17 +451,22 @@
                    (assoc env :context orig-ctx)
                    env)]
          (if (= ::e/eof next-form)
-           transpiled
+           (ast/node :program :body transpiled)
            (let [next-t (when-not (true? (:squint/compile-time (meta next-form)))
                           ;; compile-time forms run in SCI, never emitted to JS;
                           ;; marker value :both emits too
-                          (-> (transpile-form next-form env)
-                              not-empty))
+                          (let [t (transpile-form-node next-form env)]
+                            (when-not (= "" (ast/head 1 t)) t)))
                  next-js
                  (cc/save-pragma env next-t)]
-             (recur (str transpiled next-js)
+             (recur (conj transpiled next-js)
                     (rest forms)
-                    (inc form-idx)))))))))
+                    (inc form-idx))))))))
+
+(defn transpile*
+  ([s] (transpile* s {}))
+  ([s env]
+   (str (transpile-node* s env))))
 
 (defn compile*
   ([s] (compile* s nil))
@@ -491,7 +500,7 @@
            ;; :current must be set before the first form (e.g. a REPL eval in ns
            ;; X, or the next form in a session). A leading (ns ..) form updates it.
            (swap! (:ns-state opts) assoc :current (:ns opts 'user))
-           (let [transpiled (transpile* s (assoc opts
+           (let [transpiled (transpile-node* s (assoc opts
                                                         :core-alias core-alias
                                                         :imports imports
                                                         :jsx false
@@ -505,8 +514,8 @@
                               (empty? @hoisted) transpiled
                               ;; :expr output must stay one expression
                               (= :expr (:context opts))
-                              (str "(() => {\n" (str/join @hoisted) "return " transpiled ";\n})()")
-                              :else (str (str/join @hoisted) transpiled))
+                              (ast/raw "(() => {\n" @hoisted "return " transpiled ";\n})()")
+                              :else (ast/raw @hoisted transpiled))
                  jsx (:jsx @(:ns-state opts))
                  _ (when (and jsx jsx-runtime)
                      (let [jsx-name (str "jsx" (if jsx-dev "DEV" ""))
@@ -567,17 +576,29 @@
                                                              v))
                                                          vars))))))
                             (when (contains? public-vars "default$")
-                              "export default default$\n")))]
-             (assoc opts
-                    :pragmas pragmas
-                    :imports imports
-                    :exports exports
-                    :used-core-vars @core-var-uses
-                    :body transpiled
-                    :javascript (str pragmas imports transpiled exports)
-                    :jsx jsx
-                    :ns (cc/current-ns opts)
-                    :ns-state (:ns-state opts))))))
+                              "export default default$\n")))
+                 source-map (:source-map opts)
+                 prefix (str pragmas imports)
+                 {body :js segments :segments} (if source-map
+                                                 (ast/print-with-map transpiled)
+                                                 {:js (str transpiled)})
+                 segments (when source-map (ast/shift-segments segments prefix))]
+             (cond-> (assoc opts
+                            :pragmas pragmas
+                            :imports imports
+                            :exports exports
+                            :used-core-vars @core-var-uses
+                            :body body
+                            :javascript (str prefix body exports)
+                            :jsx jsx
+                            :ns (cc/current-ns opts)
+                            :ns-state (:ns-state opts))
+               source-map
+               (assoc :source-map-segments segments
+                      :source-map (ast/source-map
+                                   segments
+                                   (cond-> (when (map? source-map) source-map)
+                                     (string? s) (update :source-content #(or % s))))))))))
 
 #?(:cljs
    (defn- macros-opt->symbol-keys
