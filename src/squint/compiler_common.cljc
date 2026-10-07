@@ -101,11 +101,16 @@
     (cond->
         (-> (if (and (empty? args) (ast/node? template))
               template
-              (reduce (fn [template substitution]
-                        (replace-first* template "~{}"
-                                        (emit substitution (merge (assoc env :context :expr)))))
-                      (str template)
-                      args))
+              (let [template (str template)
+                    pieces (loop [from 0 acc []]
+                             (if-let [i (str/index-of template "~{}" from)]
+                               (recur (+ i 3) (conj acc (subs template from i)))
+                               (conj acc (subs template from))))
+                    emitted (mapv #(emit % (assoc env :context :expr)) args)
+                    n (min (count emitted) (dec (count pieces)))]
+                (apply ast/raw
+                       (concat (interleave (take n pieces) (take n emitted))
+                               [(str/join "~{}" (drop n pieces))]))))
             (emit-return (merge env (meta expr))))
       tag (tagged-expr tag transient))))
 
