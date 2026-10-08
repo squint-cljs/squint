@@ -406,6 +406,8 @@ In `squint.edn` you can describe the following options:
   `re-find`.
 - `:output-dir`: the directory where compiled files will be created,
   which defaults to the project root directory.
+- `:source-map`: write a `.map` file next to each compiled file. Defaults to
+  `true` for `squint watch` and `false` for `squint compile`.
 - `:deps`: a map of dependencies from the Clojure ecosystem, in the same format
   as `deps.edn`. Only `:git/url` (with `:git/sha`) and `:local/root` libraries
   are supported, no jars yet. Their source directories are resolved via the
@@ -423,6 +425,38 @@ See [examples/replicant](examples/replicant) for one that pulls a git dependency
 
 Run `npx squint watch` to watch the source directories described in `squint.edn` and they will be (re-)compiled whenever they change.
 See [examples/vite-react](examples/vite-react) for an example project which uses this.
+
+## Source maps
+
+Use `--source-map` to write a `.map` file next to each compiled file:
+
+```bash
+npx squint compile --source-map src/app.cljs
+```
+
+`squint watch` writes source maps by default. Turn them off with
+`--no-source-map` or `:source-map false` in `squint.edn`.
+
+Run Node with `--enable-source-maps` to get `.cljs` locations in stack traces:
+
+```bash
+node --enable-source-maps src/app.mjs
+```
+
+The vite plugin writes source maps in development. Set `build.sourcemap` to
+include them in a production build:
+
+```js
+export default defineConfig({
+  plugins: [squint()],
+  build: { sourcemap: true },
+});
+```
+
+Forms evaluated through the browser REPL get an inline source map for the
+editor's file.
+
+See [examples/source-maps](examples/source-maps) for an example.
 
 ## Svelte
 

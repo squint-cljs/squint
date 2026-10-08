@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- Write source maps with `--source-map` or `:source-map` in `squint.edn`, by default for `squint watch`, the vite plugin in development and forms evaluated through the browser REPL
 - Optimize compiled output for core predicates such as `even?` and `string?` in `if`, `and`, `or` and `not`
 - Fix `contains?` to return a boolean for `IAssociative` types
 
