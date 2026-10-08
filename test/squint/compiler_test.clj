@@ -101,6 +101,35 @@
 (defn- lifted [src]
   (:javascript (sq/compile* src {:passes [lift-iife/lift] :elide-imports true :elide-exports true})))
 
+(defn- mapped-at
+  "Returns the 1-based [line column] of the source mapped at generated position
+  pos, or nil if no segment covers it."
+  [segments [gl gc]]
+  (some->> segments
+           (filter (fn [[l c]] (and (= l gl) (<= c gc))))
+           last
+           (drop 2)
+           (mapv inc)))
+
+(deftest source-map-locations-test
+  (doseq [[desc src generated expected opts]
+          [["a call in a let binding maps to its form" "(defn f [] (let [a (g 1)] a))" "g(1)" [1 20]]
+           ["a call in an if test maps to its form" "(defn f [x] (if (g x) 1 2))" "g(x)" [1 17]]
+           ["a call in a nested fn maps to its form" "(defn f [] (fn [] (h 2)))" "h(2)" [1 19]]
+           ["a constructor call maps to its form" "(defn f [] (js/Date. 1))" "new Date(1)" [1 12]]
+           ["a method call maps to its form" "(defn f [o] (.foo o 1))" "o.foo(1)" [1 13]]
+           ["@a maps to the @" "(defn f [a] @a)" "squint_core.deref(a)" [1 13]]
+           ["a call in #() maps to its form" "(defn f [] (map #(g %) [1]))" "g(_PERCENT" [1 18]]
+           ["text after a nested call maps to the enclosing form" "(defn f [x] (g (h x) 2))" ", 2)" [1 13]]
+           ["a call in a vector literal has no mapping" "(defn f [] [(g 1)])" "g(1)" nil]
+           ["a call lifted out of an IIFE keeps its form"
+            "(defn f [a]\n  (let [b (let [c (g a)]\n            (h c))]\n    (k b)))"
+            "h(c_2)" [3 13] {:passes [lift-iife/lift]}]]]
+    (let [{:keys [javascript source-map-segments]}
+          (sq/compile* src (merge {:source-map true :elide-imports true :elide-exports true} opts))]
+      (t/testing desc
+        (is (= expected (mapped-at source-map-segments (gen-pos javascript generated))))))))
+
 (deftest lift-iife-test
   (t/testing "a let in a binding init becomes statements"
     (is (= "var f = function (a) {\nconst c_2 = g(a);\nconst b_1 = h(c_2);\nreturn k(b_1);\n\n};\n"
