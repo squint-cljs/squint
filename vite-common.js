@@ -31,7 +31,7 @@
 //   startServer, handleBrowserMessage, evalString, // nREPL server fns
 // }
 
-import { readdirSync, existsSync } from 'node:fs';
+import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 
 const CLJS_RE = /\.clj[sc]$/;
@@ -169,6 +169,9 @@ export function makeVitePlugin(adapter) {
     let target = 'browser';
     let nreplPort = 1339;
     let debug = false;
+    // Source maps are on in dev and follow vite's build.sourcemap in a build.
+    // :source-map in the config file or the sourceMap option overrides both.
+    let sourceMap = true;
     // {import-source} when set (e.g. for React/Preact): the compiler emits
     // jsx()/jsxs() calls + imports the runtime, instead of raw <tags> a bundler
     // would have to transform. We flip :development per mode (dev -> jsx-dev-runtime).
@@ -188,6 +191,7 @@ export function makeVitePlugin(adapter) {
         'output-dir': join(root, outDir),
         paths,
         extension,
+        'source-map': sourceMap,
         // REPL output (globalThis bindings, dynamic imports) in dev; regular,
         // optimizable ESM for production builds.
         repl: !isBuild,
@@ -202,6 +206,10 @@ export function makeVitePlugin(adapter) {
         devHooks.set(file, res['dev-hooks']);
       }
       return res;
+    }
+
+    function isOutFile(file) {
+      return file.startsWith(join(root, outDir) + sep) && file.endsWith('.' + extension);
     }
 
     function hookCalls(which) {
@@ -260,6 +268,8 @@ export function makeVitePlugin(adapter) {
           cfg['nrepl-port'] ??
           1339;
         debug = options.debug ?? cfg.debug ?? false;
+        sourceMap =
+          options.sourceMap ?? cfg['source-map'] ?? (isBuild ? !!config.build?.sourcemap : true);
         if (target !== 'browser') {
           throw new Error(
             `${name} vite plugin: target ${JSON.stringify(target)} not supported yet (only 'browser')`,
@@ -279,6 +289,12 @@ export function makeVitePlugin(adapter) {
         if (id === RESOLVED_CLIENT) {
           return clientCode({ name, coreImport, evt: EVT, evtReply: EVT_REPLY, log: LOG });
         }
+        // hand vite the compiled module with its source map
+        const file = id.split('?')[0];
+        if (sourceMap && isOutFile(file) && existsSync(file + '.map')) {
+          const code = readFileSync(file, 'utf8').replace(/\n\/\/# sourceMappingURL=\S+\n$/, '\n');
+          return { code, map: readFileSync(file + '.map', 'utf8') };
+        }
       },
 
       // Make compiled cljs->js modules self-accepting in dev so a recompile
@@ -291,15 +307,17 @@ export function makeVitePlugin(adapter) {
       transform(code, id) {
         if (isBuild) return;
         const file = id.split('?')[0];
-        const outBase = join(root, outDir) + sep;
-        if (file.startsWith(outBase) && file.endsWith('.' + extension)) {
+        if (isOutFile(file)) {
           const before = hookCalls('before-load');
           const after = hookCalls('after-load');
           const noHooksHint =
             `console.info('[${name}] hot reloaded, but no ^:dev/after-load hook is defined to e.g. re-render');`;
-          return (
-            code +
-            `
+          return {
+            // appended lines leave the existing mappings intact
+            map: null,
+            code:
+              code +
+              `
 if (import.meta.hot) {
   globalThis.${DEV_HOOK} ??= (p) => {
     let f = globalThis;
@@ -310,8 +328,8 @@ if (import.meta.hot) {
   ${before ? `import.meta.hot.dispose(() => { ${before} });` : ''}
   import.meta.hot.accept(() => { ${after || noHooksHint} });
 }
-`
-          );
+`,
+          };
         }
       },
       transformIndexHtml: {
