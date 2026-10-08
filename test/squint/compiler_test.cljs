@@ -4872,7 +4872,7 @@ new Foo();")
 
 (deftest source-map-test
   (let [{:keys [source-map-json]} (squint/compile* "(ns m)\n(defn f [x]\n  (g\n   (h x)))"
-                                              {:source-map {:file "m.mjs" :source "m.cljs"}})
+                                                   {:source-map {:file "m.mjs" :source "m.cljs"}})
         m (js/JSON.parse source-map-json)]
     (is (= 3 (.-version m)))
     (is (= ["m.cljs"] (vec (.-sources m))))
