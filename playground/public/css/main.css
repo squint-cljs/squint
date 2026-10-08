@@ -260,6 +260,8 @@ body, #editor, #sidebar {
 }
 
 #result {
+  color: var(--fg);
+  background: var(--bg);
   border: var(--panel-border);
   border-radius: 2px;
   padding: 0px;
@@ -352,5 +354,4 @@ body, #editor, #sidebar {
     translate: 0 -4px;
   }
 }
-
 
