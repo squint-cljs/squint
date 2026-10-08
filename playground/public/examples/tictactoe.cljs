@@ -1,6 +1,3 @@
-;; Local copy of the playground's linked tic tac toe example:
-;; https://gist.github.com/borkdude/6463b9628292e820742838b840096386
-;; Load with ?src=<playground-origin>/examples/tictactoe.cljs
 (require '["react" :as react])
 (require '["react-dom" :as rdom])
 
