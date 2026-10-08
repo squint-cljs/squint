@@ -19,6 +19,7 @@
 (defn node? [x]
   (instance? Node x))
 
+;; Duck-typed to avoid requiring compiler-common. Remove once tags live on nodes.
 (defn code?
   "Returns true if x is a Code record."
   [x]
