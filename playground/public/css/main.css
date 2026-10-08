@@ -2,12 +2,16 @@
   --teal-color: #31afd0;
   --nav-height: 40px;
   --viewport-padding-inline: 20px;
-  --panel-border-radius: 10px;
+  --panel-border-radius: 0px;
   --bg: light-dark(#fff, #181818);
   --fg: light-dark(#222, #eee);
   --panel-border-color: light-dark(
     rgb(from gray r g b / 30%),
     rgb(from gray r g b / 60%)
+  );
+  --panel-border-color-hover: light-dark(
+    rgb(from gray r g b / 80%),
+    rgb(from gray r g b / 100%)
   );
   --panel-border: 1px solid var(--panel-border-color);
   color-scheme: light;
@@ -26,8 +30,8 @@ body {
   max-width: inherit;
   padding: 0;
   background: var(--body-background-color-light-mode);
-  margin-block-start: 10px;
-  margin-inline: var(--viewport-padding-inline); 
+  margin-block-start: 0px;
+  margin-inline: 0;
 }
 
 body, #editor, #sidebar {
@@ -38,11 +42,13 @@ body, #editor, #sidebar {
 }
 
 #app {
-  margin-inline: 0;
-  margin-bottom: 12px;
+  padding: var(--viewport-padding-inline);
+  margin: 0;
   background: var(--body-background-color-light-mode);
   box-shadow: 0 0 20px rgb(from black r g b / 10%);
-
+  table {
+    margin-bottom: 0;
+  }
 }
 
 #theme-toggle {
@@ -102,9 +108,11 @@ body, #editor, #sidebar {
   max-height: 90dvh;
   max-width: calc(100dvw - 20px);
   border: var(--panel-border);
+  border-inline: none;
   border-radius: var(--panel-border-radius);
   overflow: auto;
   background: var(--bg);
+  padding-inline-start: var(--viewport-padding-inline);
 
   @media screen and (min-width: 768px) {
     margin-bottom: 10px;
@@ -114,6 +122,8 @@ body, #editor, #sidebar {
 }
 
 #sidebar {
+  --draggable-divider-width: 10px;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -121,18 +131,47 @@ body, #editor, #sidebar {
   max-height: 90dvh;
   max-width: calc(100dvw - 40px);
   border: var(--panel-border);
+  border-inline: none;
   border-radius: var(--panel-border-radius);
-  padding: 10px;
+  padding: 10px 10px 10px calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
   margin-top: 10px;
   overflow: auto;
   background: var(--bg);
 
   @media screen and (min-width: 768px) {
     margin-top: 0px;
-    margin-left: 10px;
+    margin-left: 0px;
     margin-bottom: 10px;
     width: 50%;
     max-height: none;
+  }
+
+
+  #draggable-divider {
+    width: var(--draggable-divider-width);
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 100%;
+    cursor: col-resize;
+    &:hover {
+      &>div {
+        background: var(--panel-border-color-hover);
+        border: 0.5px solid var(--panel-border-color);
+        -webkit-mask-image: linear-gradient(#0000 0%,#000 10% 90%,#0000 100%);
+        mask-image: linear-gradient(#0000,#000 10% 90%,#0000);
+      }
+    }
+    &>div {
+      transition-property: background;
+      transition-duration: .25s;
+      position: absolute;
+      width: 1px;
+      top: 0px;
+      left: 3px;
+      height: 100%;
+      background: var(--panel-border-color);
+    }
   }
 
   #sidebar-controls {
@@ -206,6 +245,9 @@ body, #editor, #sidebar {
 
   .ͼ2 .cm-gutters {
     background-color: transparent;
+    &.cm-gutters-before {
+      border-right-width: 0px;
+    }
   }
 }
 
@@ -221,7 +263,33 @@ body, #editor, #sidebar {
   }
 }
 
-#editor, #sidebar {
-  scrollbar-color: rgba(from gray r g b / 33%) transparent;
+#main, #editor, #sidebar, #result, .cm-scroller {
+  scrollbar-color: auto;
   scrollbar-width: auto;
+}
+
+#main,
+#editor,
+#sidebar,
+#result,
+.cm-scroller {
+  &::-webkit-scrollbar {
+    width: 16px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgb(128 128 128 / 23%);
+    background-clip: padding-box;
+    border: 4px solid transparent;
+    border-radius: 12px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgb(128 128 128 / 43%);
+    background-clip: padding-box;
+  }
 }
