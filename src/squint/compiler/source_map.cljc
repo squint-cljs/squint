@@ -63,12 +63,9 @@
 (defn encode
   "Returns a source map v3 JSON string for segments, mapping file to sources.
   sources is a vector of source paths and sources-content a vector of their
-  texts, with nil for an absent text.
-  source and source-content are the single-source form of both."
-  [segments {:keys [file source source-content sources sources-content]}]
-  (let [sources (or sources [(or source "")])
-        sources-content (or sources-content (when source-content [source-content]))
-        json-list (fn [xs] (str "[" (str/join "," (map #(if (nil? %) "null" (json-str %)) xs)) "]"))]
+  texts, with nil for an absent text."
+  [segments {:keys [file sources sources-content]}]
+  (let [json-list (fn [xs] (str "[" (str/join "," (map #(if (nil? %) "null" (json-str %)) xs)) "]"))]
     (str "{\"version\":3"
          (when file (str ",\"file\":" (json-str file)))
          ",\"sources\":" (json-list sources)

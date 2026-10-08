@@ -96,10 +96,10 @@
                        (spit map-file (sm/encode
                                        segments
                                        {:file (path/basename out-file)
-                                        :source (if in-file
-                                                  (utils/url-path out-path (path/resolve in-file))
-                                                  "<stdin>")
-                                        :source-content contents}))
+                                        :sources [(if in-file
+                                                    (utils/url-path out-path (path/resolve in-file))
+                                                    "<stdin>")]
+                                        :sources-content [contents]}))
                        (spit out-file (str javascript "\n//# sourceMappingURL="
                                            (path/basename map-file) "\n")))
                      (let [stale-map (str out-file ".map")]

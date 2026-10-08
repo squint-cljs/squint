@@ -173,10 +173,10 @@
                          (sm/shift-segments segments eval-wrapper-prefix))
           on-disk? (and file (fs/existsSync file))
           json (sm/encode segments
-                               {:source (if file (utils/url-path (js/process.cwd) file) "repl")
-                                :source-content (if on-disk?
-                                                  (fs/readFileSync file "utf8")
-                                                  code)})]
+                               {:sources [(if file (utils/url-path (js/process.cwd) file) "repl")]
+                                :sources-content [(if on-disk?
+                                                    (fs/readFileSync file "utf8")
+                                                    code)]})]
       (str "\n//# sourceMappingURL=data:application/json;base64,"
            (.toString (js/Buffer.from json "utf8") "base64")))))
 

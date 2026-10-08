@@ -599,10 +599,13 @@
                             :ns-state (:ns-state opts))
                source-map
                (assoc :source-map-segments segments
-                      :source-map-json (sm/encode
-                                   segments
-                                   (cond-> (when (map? source-map) source-map)
-                                     (string? s) (update :source-content #(or % s))))))))))
+                      :source-map-json (let [{:keys [file source source-content]}
+                                             (when (map? source-map) source-map)]
+                                         (sm/encode segments
+                                                    {:file file
+                                                     :sources [(or source "")]
+                                                     :sources-content [(or source-content
+                                                                           (when (string? s) s))]}))))))))
 
 #?(:cljs
    (defn- macros-opt->symbol-keys
