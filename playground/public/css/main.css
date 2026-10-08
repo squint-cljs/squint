@@ -15,6 +15,8 @@
   );
   --panel-border: 1px solid var(--panel-border-color);
   color-scheme: light;
+  --button-color: light-dark(rgb(from currentColor r g b / 5%), rgb(from currentColor r g b / 12%));
+  --tooltip-color: light-dark(#eee, #e5e5e5);
 }
 
 :root[data-theme="light"]{
@@ -191,7 +193,7 @@ body, #editor, #sidebar {
       font-size: 14px;
       font-weight: 500;
       color: var(--fg);
-      background: light-dark(rgb(from currentColor r g b / 5%), rgb(from currentColor r g b / 12%));
+      background: var(--button-color);
       border: 1px solid rgb(from currentColor r g b / 20%);
       height: fit-content;
       margin: 0;
@@ -208,6 +210,9 @@ body, #editor, #sidebar {
       display: flex;
       align-items: center;
       gap: 12px;
+      &:has(#theme-toggle) {
+        gap: 20px;
+      }
     }
 
   }
@@ -293,3 +298,52 @@ body, #editor, #sidebar {
     background-clip: padding-box;
   }
 }
+
+[role="tooltip"][popover] {
+  /* undo UA popover centering */
+  inset: auto;
+  margin: 16px 0 0;
+
+  /* anchor below, flip above if clipped */
+  position-area: bottom;
+  position-try-fallbacks: flip-block;
+
+  border: 0;
+  border-radius: 4px;
+  background: var(--tooltip-color);
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 10%),  /* hairline edge */
+    0 2px 12px rgb(0 0 0 / 15%);
+  color: #5a5a5a;
+  
+  padding: 8px 12px;
+  font: 16px/1.5 system-ui, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+
+  /* exit state */
+  opacity: 0;
+  translate: 0 -4px;
+  transition:
+      opacity 120ms,
+      translate 120ms,
+      display 120ms allow-discrete,
+      overlay 120ms allow-discrete;
+
+  border-radius: 5px;
+}
+
+[role="tooltip"]:popover-open {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* entry state */
+@starting-style {
+  [role="tooltip"]:popover-open {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+

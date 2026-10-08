@@ -68,13 +68,23 @@
           </button>
         </div>
         <div class="control-group" id="sharing-controls">
-          <button onClick="share()"
-            title="When sharing, the window URL will be updated to encode the code in the text editor. Copy it and share it with your friends!">
+
+          <button onClick="share()" data-tip="tip-share">
             Share
           </button>
-          <button onClick="blankAOC()">
+          <div popover="manual" id="tip-share" role="tooltip">
+            When sharing, the window URL will be <br/>
+            updated to encode the code in the text editor.<br/>
+            Copy it and share it with your friends!
+          </div>
+
+          <button onClick="blankAOC()"
+                  data-tip="tip-blank-advent-of-code">
             Blank AOC Playground
           </button>
+          <div popover="manual" id="tip-blank-advent-of-code" role="tooltip">
+            Create a blank Advent of Code playground
+          </div>
         </div>
         <div class="control-group" id="meta-controls">
           <!--
@@ -82,7 +92,8 @@
            hook-it-up with codemirror instances to flip the theme.
            display of the element is temporarily set to none.
           -->
-          <button id="theme-toggle" type="button" aria-pressed="false">☼</button>
+          <button id="theme-toggle" data-tip="tip-theme-toggle" type="button">☼</button>
+          <div popover="manual" role="tooltip" id="tip-theme-toggle">Toggle theme</div>
           <div id="star-counter">
             <a href="https://gitHub.com/squint-cljs/squint"><img
                 src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a>
@@ -122,5 +133,30 @@ toggle.addEventListener("click", () => {
   toggle.setAttribute("aria-pressed", String(!dark));
   toggle.textContent = dark ? "☼" : "☾" ;
 });
+
+// native tooltips
+document.querySelectorAll("[data-tip]").forEach((el, i) => {
+  const tip = document.getElementById(el.dataset.tip);
+  const name = `--tip-${i}`;
+  el.style.anchorName = name;
+  tip.style.positionAnchor = name;
+  el.setAttribute("aria-describedby", tip.id);
+
+  let timer;
+  const show = (delay) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => tip.showPopover(), delay);
+  };
+  const hide = () => {
+    clearTimeout(timer);
+    if (tip.matches(":popover-open")) tip.hidePopover();
+  };
+
+  el.addEventListener("pointerenter", () => show(400)); // delayed in
+  el.addEventListener("pointerleave", hide);            // immediate out
+  el.addEventListener("focus", () => show(0));
+  el.addEventListener("blur", hide);
+});
+
 </script>
 </html>
