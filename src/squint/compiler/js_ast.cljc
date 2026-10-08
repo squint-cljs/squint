@@ -3,8 +3,7 @@
   A node is a map with a kebab-case :type keyword and kebab-case ESTree fields.
   Namespaced keys are printer hints outside ESTree.
   A :raw node holds emitted text and nested nodes."
-  (:require [clojure.string :as str])
-  #?(:cljs (:require-macros [squint.compiler.js-ast :refer [node]])))
+  (:require [clojure.string :as str]))
 
 (declare print-js)
 
@@ -12,19 +11,10 @@
   Object
   (toString [this] (print-js this)))
 
-#?(:clj
-   (defmacro node
-     "Returns a node from m, a map with :type and the node's fields. A literal
-  m expands to the record constructor."
-     [m]
-     (if (map? m)
-       (let [ext (not-empty (dissoc m :type))]
-         (if (:ns &env)
-           ;; a local, so the record's declared field count does not apply
-           `(let [ctor# squint.compiler.js-ast/Node]
-              (new ctor# ~(:type m) nil ~ext nil))
-           (list 'new 'squint.compiler.js_ast.Node (:type m) nil ext)))
-       `(map->Node ~m))))
+(defn node
+  "Returns a node from m, a map with :type and the node's fields."
+  [m]
+  (map->Node m))
 
 (defn node? [x]
   (instance? Node x))
