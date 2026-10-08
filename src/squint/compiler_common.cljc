@@ -959,7 +959,7 @@
      vec array, vector array, mapv array, filterv array, subvec array,
      vector-of array,
      name string, subs string, str string}
-   (zipmap '[NaN? any? array? associative? boolean boolean? char? coll? counted?
+   (zipmap '[NaN? any? array? associative? boolean boolean? char? coll? contains? counted?
              distinct? double? empty? even? every? false? float? fn? ident? ifn?
              inst? int? integer? keyword? keyword-identical? list? map? map-entry?
              nat-int? neg-int? not-any? not-every? number? object? odd? pos-int?

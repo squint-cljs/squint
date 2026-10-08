@@ -784,7 +784,7 @@ export function contains_QMARK_(coll, v) {
       return false;
     case INSTANCE_TYPE:
       if (coll[IAssociative__contains_key_QMARK_] !== undefined) {
-        return coll[IAssociative__contains_key_QMARK_](coll, v);
+        return !!coll[IAssociative__contains_key_QMARK_](coll, v);
       }
     // fall through
     default:
