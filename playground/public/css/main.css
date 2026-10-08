@@ -187,7 +187,7 @@ body, #editor, #sidebar {
       margin: 0;
     }
 
-    button {
+    button:not(#theme-toggle) {
       font-size: 14px;
       font-weight: 500;
       color: var(--fg);
@@ -282,14 +282,14 @@ body, #editor, #sidebar {
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgb(128 128 128 / 23%);
+    background: light-dark(rgb(128 128 128 / 23%), rgb(128 128 128 / 43%));
     background-clip: padding-box;
     border: 4px solid transparent;
     border-radius: 12px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: rgb(128 128 128 / 43%);
+    background: light-dark(rgb(128 128 128 / 43%), rgb(128 128 128 / 63%));
     background-clip: padding-box;
   }
 }
