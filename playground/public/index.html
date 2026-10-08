@@ -52,23 +52,23 @@
 
 <body>
 <div id="app"></div>
-<!-- <div id="controls">
-</div> -->
 <div id="main">
     <div id="editor">
     </div>
     <div id="sidebar">
       <div id="draggable-divider">
-        <div></div>
+        <div id="draggable-divider-line"></div>
       </div>
+
       <div id="sidebar-controls">
+
         <div class="control-group" id="compilation-controls">
           <button onClick="compile()">
             Compile
           </button>
         </div>
-        <div class="control-group" id="sharing-controls">
 
+        <div class="control-group" id="sharing-controls">
           <button onClick="share()" data-tip="tip-share">
             Share
           </button>
@@ -77,7 +77,6 @@
             updated to encode the code in the text editor.<br/>
             Copy it and share it with your friends!
           </div>
-
           <button onClick="blankAOC()"
                   data-tip="tip-blank-advent-of-code">
             Blank AOC Playground
@@ -86,37 +85,41 @@
             Create a blank Advent of Code playground
           </div>
         </div>
+
         <div class="control-group" id="meta-controls">
-          <!--
-           Light/Dark toggle is working with the app chrome, but still need to
-           hook-it-up with codemirror instances to flip the theme.
-           display of the element is temporarily set to none.
-          -->
           <button id="theme-toggle" data-tip="tip-theme-toggle" type="button">☼</button>
           <div popover="manual" role="tooltip" id="tip-theme-toggle">Toggle theme</div>
           <div id="star-counter">
-            <a href="https://gitHub.com/squint-cljs/squint"><img
-                src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a>
+            <a href="https://gitHub.com/squint-cljs/squint">
+              <img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star">
+            </a>
           </div>
         </div>
       </div>
-      <div id="repl-mode"> 
-        <label>
-          <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
-          REPL-mode
-        </label>
-        <div id="repl-mode-desc">
-          <span>In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter.</span>
-          <span>The result will appear below.</span>
-          <span>To evaluate the whole program at once, use Alt + Enter;</span>
+
+      <div class="sidebar-section">
+        <div id="repl-mode"> 
+          <label>
+            <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+            REPL-mode
+          </label>
+          <div id="repl-mode-desc">
+            <span>In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter.</span>
+            <span>The result will appear below.</span>
+            <span>To evaluate the whole program at once, use Alt + Enter;</span>
+          </div>
         </div>
+        <div id="result"></div>
       </div>
 
-      <div id="result"></div>
-      Compiled code:
-      <div id="compiledCode"></div>
+      <div class="sidebar-section">
+        <span class="sidebar-section-label">Compiled code:</span>
+        <div id="compiled-code"></div>
+      </div>
+
     </div>
   </div>
+  <div id="footer"></div>
 </body>
 <script>
 const toggle = document.querySelector("#theme-toggle");
