@@ -196,10 +196,10 @@
                  (range) (str/split mappings #";" -1)))))
 
 (defn- gen-pos [js s]
-  (let [i (str/index-of js s)
-        before (subs js 0 i)]
-    [(count (filter #{\newline} before))
-     (- i (inc (or (str/last-index-of before "\n") -1)))]))
+  (when-let [i (str/index-of js s)]
+    (let [before (subs js 0 i)]
+      [(count (filter #{\newline} before))
+       (- i (inc (or (str/last-index-of before "\n") -1)))])))
 
 (deftest compile-source-map-test
   (fs/create-dirs (fs/file test-dir "src"))
@@ -226,6 +226,7 @@
         _ (spit file "(ns game)\n\n(defn tic [x]\n  (throw (js/Error. \"boom\")))\n")
         script "import net from 'node:net';
 import fs from 'node:fs';
+setTimeout(() => process.exit(2), 10000);
 const { startServer, handleBrowserMessage } = await import('../../lib/node.nrepl_server.js');
 let captured;
 const [file, code, portArg] = process.argv.slice(2);
@@ -244,14 +245,15 @@ sock.on('data', (d) => { if (d.toString().includes('done')) { fs.writeFileSync('
                                     "node" "repl_eval.mjs" file
                                     "(defn tic [x]\n  (throw (js/Error. \"boom\")))"
                                     (str (with-open [s (java.net.ServerSocket. 0)] (.getLocalPort s))))
-        out (slurp (fs/file test-dir "eval.js"))
+        eval-file (fs/file test-dir "eval.js")
+        out (if (fs/exists? eval-file) (slurp eval-file) "")
         [_ b64] (re-find #"sourceMappingURL=data:application/json;base64,(\S+)" out)
         sm (when b64 (json/parse-string (String. (.decode (java.util.Base64/getDecoder) ^String b64) "UTF-8")))]
     (is (zero? exit))
     (t/testing "the map names the file relative to the working directory"
       (is (= ["src/game.cljc"] (get sm "sources"))))
     (t/testing "the error on the form's second line maps to line 4, column 10 of the file"
-      (is (some #{(conj (gen-pos out "(new Error") 3 9)} (decode-mappings (get sm "mappings")))))))
+      (is (some #{(conj (gen-pos out "(new Error") 3 9)} (decode-mappings (get sm "mappings" "")))))))
 
 (defn run-tests [_]
   (let [{:keys [fail error]}
