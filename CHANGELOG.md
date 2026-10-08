@@ -2,6 +2,11 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- Optimize compiled output for core predicates such as `even?` and `string?` in `if`, `and`, `or` and `not`
+- Fix `contains?` to return a boolean for `IAssociative` types
+
 ## 0.14.211
 
 - [#1032](https://github.com/squint-cljs/squint/issues/1032): `#html`: escape attribute values from `{:& m}` ([@mskyan](https://github.com/mskyan))
