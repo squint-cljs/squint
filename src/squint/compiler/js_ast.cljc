@@ -1,5 +1,5 @@
 (ns squint.compiler.js-ast
-  "JS AST nodes isomorphic to ESTree, and a printer that emits source maps.
+  "ESTree-shaped JS AST nodes, and a printer that emits source maps.
   A node is a map with a kebab-case :type keyword and kebab-case ESTree fields.
   Namespaced keys are printer hints outside ESTree.
   A :raw node holds emitted text and nested nodes."
@@ -102,7 +102,7 @@
       :member-expression (do (w (:object n)) (f ".") (w (:property n)))
       :parenthesized-expression (do (f "(") (w (:expression n)) (f ")"))
       :await-expression (do (f "(await ") (w (:argument n)) (f ")"))
-      :yield-expression (do (f "(yield* ") (w (:argument n)) (f ")"))
+      :yield-expression (do (f (if (:delegate n) "(yield* " "(yield ")) (w (:argument n)) (f ")"))
       :conditional-expression (do (f "((") (w (:test n)) (f ") ? (") (w (:consequent n))
                                   (f ") : (") (w (:alternate n)) (f "))"))
       :block-statement (do (f "{\n") (w (:body n)) (f "}"))
@@ -312,24 +312,3 @@
     (mapv (fn [[gl gc sl sc]]
             [(+ gl lines) (if (zero? gl) (+ gc col-shift) gc) sl sc])
           segments)))
-
-(defn- camel [k]
-  (let [[h & t] (str/split (name k) #"-")]
-    (apply str h (map str/capitalize t))))
-
-(defn ->estree
-  "Returns node x as ESTree data with string type names and camelCase keys.
-  Drops namespaced printer hints."
-  [x]
-  (cond
-    (node? x) (reduce-kv (fn [m k v]
-                           (cond (namespace k) m
-                                 (= :type k) (let [s (camel v)]
-                                               (assoc m "type" (str (str/upper-case (subs s 0 1))
-                                                                    (subs s 1))))
-                                 :else (assoc m (camel k) (->estree v))))
-                         {} x)
-    (code? x) (->estree (:js x))
-    (map? x) (reduce-kv (fn [m k v] (assoc m (camel k) (->estree v))) {} x)
-    (sequential? x) (mapv ->estree x)
-    :else x))
