@@ -110,6 +110,8 @@ body, #editor, #sidebar {
 }
 
 #editor {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-height: 90dvh;
   max-width: calc(100dvw - 20px);
@@ -129,19 +131,20 @@ body, #editor, #sidebar {
 
 #sidebar {
   --draggable-divider-width: 10px;
+  overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  /* contain: layout; */
   width: 100%;
-  max-height: 90dvh;
-  max-width: calc(100dvw - 40px);
+  gap:32px;
+  /* max-height: 90dvh; */
+  /* max-width: calc(100dvw - 40px); */
   border: var(--panel-border);
   border-inline: none;
   border-radius: var(--panel-border-radius);
-  padding: 10px 10px 10px calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
+  padding: 10px 10px 0px calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
   margin-top: 10px;
-  overflow: auto;
   /* background: var(--bg); */
 
   @media screen and (min-width: 768px) {
@@ -184,6 +187,9 @@ body, #editor, #sidebar {
   }
 
   #sidebar-controls {
+    width: 100%;
+    /* width: calc(100% - 25px - var(--viewport-padding-inline)); */
+    /* position:fixed; */
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -222,9 +228,31 @@ body, #editor, #sidebar {
     }
 
   }
-  
+
+  #sidebar-sections {
+    /* margin-block-start: 3.6em; TODO - create a --control-group-button-font-size and use it to sync this spacing */
+    /* outline: 1px solid blue; */
+    outline-offset: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    overflow: hidden;
+
+    .sidebar-section {
+      /* outline: 2px solid orange; */
+      outline-offset: 2px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      &#repl-mode-section {
+        flex-shrink: 0;
+      }
+      &#compiled-code-section {
+      }
+    }
+  }
+
   #repl-mode {
-    margin-block-start: 3.6em; /* TODO - create a --control-group-button-font-size and use it to sync this spacing */
     font-weight: 500;
     display: flex;
     flex-direction: column;
@@ -243,6 +271,7 @@ body, #editor, #sidebar {
         }
       }
     }
+
     #repl-mode-desc {
       padding-inline-start: 21px;
       font-weight: normal;
@@ -256,6 +285,7 @@ body, #editor, #sidebar {
   }
 
   #result {
+    /* outline: 1px solid magenta; */
     color: var(--fg);
     background: var(--bg);
     border: var(--panel-border);
@@ -275,6 +305,10 @@ body, #editor, #sidebar {
   }
 
   #compiled-code {
+    display: flex;
+    flex-direction: column;
+    overflow:hidden;
+    /* outline: 1px solid lime; */
     padding-inline-start: 5px;
   }
 
@@ -295,17 +329,15 @@ body, #editor, #sidebar {
   height: 36px;
 }
 
-
-#main, #editor, #sidebar, #result, .cm-scroller {
-  scrollbar-color: auto;
-  scrollbar-width: auto;
+/* scrollbar behaviors */
+.cm-editor {
+  overflow:hidden;
 }
 
-#main,
-#editor,
-#sidebar,
-#result,
 .cm-scroller {
+  scrollbar-color: auto;
+  scrollbar-width: auto;
+
   &::-webkit-scrollbar {
     width: 16px;
     height: 16px;
@@ -331,6 +363,8 @@ body, #editor, #sidebar {
   }
 }
 
+/* popovers */
+
 [role="tooltip"][popover] {
   /* undo UA popover centering */
   inset: auto;
@@ -345,7 +379,7 @@ body, #editor, #sidebar {
   background: color-mix(in srgb, var(--bg), gray 10%);
   box-shadow:
     0 0 0 0.5px light-dark(rgb(0 0 0 / 10%), rgb(255 255 255 / 33%)),  /* hairline edge */
-    0 2px 22px light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 35%));
+    0 2px 16px light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 35%));
   color: var(--fg);
   padding: 10px 16px;
   font: 0.9em/1.5 system-ui, sans-serif;
@@ -377,3 +411,6 @@ body, #editor, #sidebar {
   }
 }
 
+::selection {
+  background-color: blue!important;
+}

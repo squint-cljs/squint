@@ -97,26 +97,27 @@
         </div>
       </div>
 
-      <div class="sidebar-section">
-        <div id="repl-mode"> 
-          <label>
-            <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
-            REPL-mode
-          </label>
-          <div id="repl-mode-desc">
-            <span>In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter.</span>
-            <span>The result will appear below.</span>
-            <span>To evaluate the whole program at once, use Alt + Enter;</span>
+      <div id="sidebar-sections">
+        <div class="sidebar-section" id="repl-mode-section">
+          <div id="repl-mode"> 
+            <label>
+              <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+              REPL-mode
+            </label>
+            <div id="repl-mode-desc">
+              <span>In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter.</span>
+              <span>The result will appear below.</span>
+              <span>To evaluate the whole program at once, use Alt + Enter;</span>
+            </div>
           </div>
+          <div id="result"></div>
         </div>
-        <div id="result"></div>
-      </div>
 
-      <div class="sidebar-section">
-        <span class="sidebar-section-label">Compiled code:</span>
-        <div id="compiled-code"></div>
+        <div class="sidebar-section" id="compiled-code-section">
+          <span class="sidebar-section-label">Compiled code:</span>
+          <div id="compiled-code"></div>
+        </div>
       </div>
-
     </div>
   </div>
   <div id="footer"></div>
