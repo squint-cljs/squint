@@ -1536,7 +1536,7 @@
   (let [keys (:keys x)]
     (str "{" (str/join "," (map munge keys)) "}")))
 
-(defn emit-function [env _name sig body & [_elide-function?]]
+(defn emit-function [env _name sig body]
   ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
   (let [env (assoc env :fn-scope true)
@@ -1596,7 +1596,7 @@
                     ;; the fn name is a local in its body
                     env (update env :var->ident assoc name
                                 (with-meta (symbol (str (munge name))) {:squint.compiler/no-rename true}))]
-                (assoc (emit-function env name signature body true)
+                (assoc (emit-function env name signature body)
                        :id (munge name)))
               (let [body (rest expr)]
                 (emit-function env nil signature body)))
