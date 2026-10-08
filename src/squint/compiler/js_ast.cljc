@@ -1,15 +1,15 @@
 (ns squint.compiler.js-ast
-  "ESTree-shaped JS AST nodes, and a printer that emits source maps.
+  "ESTree-shaped JS AST nodes, and code generation with source maps.
   A node is a map with a kebab-case :type keyword and kebab-case ESTree fields.
   Namespaced keys are printer hints outside ESTree.
   A :raw node holds emitted text and nested nodes."
   (:require [clojure.string :as str]))
 
-(declare print-js)
+(declare generate)
 
 (defrecord Node [type]
   Object
-  (toString [this] (print-js this)))
+  (toString [this] (generate this)))
 
 (defn node
   "Returns a node from m, a map with :type and the node's fields."
@@ -38,7 +38,7 @@
   [& parts]
   (if (some structured? parts)
     (node {:type :raw :parts (vec parts)})
-    (print-js parts)))
+    (generate parts)))
 
 (defn terminate
   "Returns a :raw node that prints x followed by ;\\n, unless the output
@@ -46,21 +46,21 @@
   [x]
   (node {:type :raw :parts [x] ::terminate true}))
 
-(declare walk)
+(declare write)
 
-(defn- walk-each [xs sep out enter exit]
+(defn- write-each [xs sep out enter exit]
   (reduce (fn [first? x]
             (when-not first? ((:emit out) sep))
-            (walk x out enter exit)
+            (write x out enter exit)
             false)
           true xs))
 
-(defn- walk-function [{:keys [id params body async generator expression]
+(defn- write-function [{:keys [id params body async generator expression]
                        :as n} out enter exit]
   (let [f (:emit out)
         arrow? (= :arrow-function-expression (:type n))
-        w #(walk % out enter exit)
-        params! #(do (f "(") (walk-each params ", " out enter exit) (f ")"))
+        w #(write % out enter exit)
+        params! #(do (f "(") (write-each params ", " out enter exit) (f ")"))
         stmts (:body body)
         body! #(if expression (w body) (do (f " {\n") (w stmts) (f "\n}")))]
     (when async (f "async "))
@@ -75,10 +75,10 @@
           (when (or (not arrow?) async) (f " "))
           (params!) (when arrow? (f "=>")) (body!)))))
 
-(defn- walk-node [n out enter exit]
+(defn- write-node [n out enter exit]
   (let [f (:emit out)
-        w #(walk % out enter exit)
-        each #(walk-each % ", " out enter exit)]
+        w #(write % out enter exit)
+        each #(write-each % ", " out enter exit)]
     (case (:type n)
       :raw (do (w (:parts n))
                (when (and (::terminate n) (not= ";\n" @(:tail out)))
@@ -104,9 +104,9 @@
       :variable-declaration (do (w (:kind n)) (f " ") (each (:declarations n)) (f ";\n"))
       :variable-declarator (do (w (:id n)) (f " = ") (w (:init n)))
       :assignment-expression (do (w (:left n)) (f " ") (f (:operator n)) (f " ") (w (:right n)))
-      (:function-expression :arrow-function-expression) (walk-function n out enter exit))))
+      (:function-expression :arrow-function-expression) (write-function n out enter exit))))
 
-(defn- walk
+(defn- write
   "Emits each text chunk of x in print order through out. Calls (enter loc)
   and (exit) around a node with a :loc, if enter is given."
   [x out enter exit]
@@ -115,13 +115,13 @@
     (nil? x) nil
     (node? x) (let [loc (when enter (:loc x))]
                 (when loc (enter loc))
-                (walk-node x out enter exit)
+                (write-node x out enter exit)
                 (when loc (exit)))
     (code? x) (let [loc (when enter (:loc x))]
                 (when loc (enter loc))
-                (walk (:js x) out enter exit)
+                (write (:js x) out enter exit)
                 (when loc (exit)))
-    (sequential? x) (reduce (fn [_ y] (walk y out enter exit)) nil x)
+    (sequential? x) (reduce (fn [_ y] (write y out enter exit)) nil x)
     :else ((:emit out) (str x))))
 
 (defn- output
@@ -140,16 +140,16 @@
                                    (if (> ct 2) (subs t (- ct 2)) t))))
                  (f s))))}))
 
-(defn print-js
+(defn generate
   "Returns the JS text of x, a string, node, Code record or vector of those."
   [x]
   (if (string? x)
     x
     #?(:clj (let [sb (StringBuilder.)]
-              (walk x (output #(.append sb ^String %)) nil nil)
+              (write x (output #(.append sb ^String %)) nil nil)
               (.toString sb))
        :cljs (let [arr #js []]
-               (walk x (output #(.push arr %)) nil nil)
+               (write x (output #(.push arr %)) nil nil)
                (.join arr "")))))
 
 (def ^:private enough #?(:clj (Exception. "enough") :cljs (js/Error. "enough")))
@@ -161,7 +161,7 @@
     (if (< (count x) n) x (subs x 0 n))
     (let [acc (volatile! "")]
       (try
-        (walk x (output (fn [s]
+        (write x (output (fn [s]
                           (vswap! acc str s)
                           (when (>= (count @acc) n) (throw enough))))
               nil nil)
@@ -233,7 +233,7 @@
     (let [j (str/index-of s "\n" i)]
       (if j (recur (inc j) (inc n)) n))))
 
-(defn print-with-map
+(defn generate-with-map
   "Returns {:js text :segments [[gen-line gen-col src-line src-col] ..]} for x.
   Lines and columns are 0-based."
   [x]
@@ -264,7 +264,7 @@
                (vswap! stack rest)
                (when-let [parent (first @stack)]
                  (mark! parent)))]
-    (walk x (output f) enter exit)
+    (write x (output f) enter exit)
     {:js #?(:clj (.toString sb) :cljs (.join arr ""))
      :segments (persistent! @segments)}))
 

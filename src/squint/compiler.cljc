@@ -583,7 +583,7 @@
                  source-map (:source-map opts)
                  prefix (str pragmas imports)
                  {body :js segments :segments} (if source-map
-                                                 (ast/print-with-map transpiled)
+                                                 (ast/generate-with-map transpiled)
                                                  {:js (str transpiled)})
                  segments (when source-map (ast/shift-segments segments prefix))]
              (cond-> (assoc opts
