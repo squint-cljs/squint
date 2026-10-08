@@ -289,9 +289,9 @@ export function makeVitePlugin(adapter) {
         if (id === RESOLVED_CLIENT) {
           return clientCode({ name, coreImport, evt: EVT, evtReply: EVT_REPLY, log: LOG });
         }
-        // hand vite the compiled module with its source map
+        // the build does not read sourceMappingURL comments, the dev server does
         const file = id.split('?')[0];
-        if (sourceMap && isOutFile(file) && existsSync(file + '.map')) {
+        if (isBuild && sourceMap && isOutFile(file) && existsSync(file + '.map')) {
           const code = readFileSync(file, 'utf8').replace(/\n\/\/# sourceMappingURL=\S+\n$/, '\n');
           return { code, map: readFileSync(file + '.map', 'utf8') };
         }
