@@ -114,6 +114,22 @@
 
 (declare lift-expr)
 
+(def ^:private call-operand-types
+  #{:call-expression :new-expression :member-expression
+    :parenthesized-expression :array-expression})
+
+(defn- lift-operand
+  "Like lift-expr, with a lifted expression in parens unless it is pure or its
+  type is in safe-types."
+  ([x] (lift-operand x call-operand-types))
+  ([x safe-types]
+   (let [[stmts x'] (lift-expr x)]
+     [stmts (if (and (seq stmts)
+                     (not (pure? x'))
+                     (not (contains? safe-types (:type x'))))
+              (ast/node :parenthesized-expression :expression x')
+              x')])))
+
 (defn- lift-args
   "Returns [statements args'] lifted from the first impure argument."
   [args]
@@ -149,7 +165,7 @@
     (let [[stmts e] (lift-expr (:expression x))]
       [stmts (assoc x :expression e)])
     (contains? #{:await-expression} (:type x))
-    (let [[stmts e] (lift-expr (:argument x))]
+    (let [[stmts e] (lift-operand (:argument x))]
       [stmts (assoc x :argument e)])
     (= :conditional-expression (:type x))
     (let [[stmts e] (lift-expr (:test x))]
@@ -158,7 +174,10 @@
     (if (pure? (:callee x))
       (let [[stmts args] (lift-args (vec (:arguments x)))]
         [stmts (assoc x :arguments args)])
-      (let [[stmts callee] (lift-expr (:callee x))]
+      (let [[stmts callee] (lift-operand (:callee x)
+                                         (if (= :new-expression (:type x))
+                                           #{:parenthesized-expression}
+                                           call-operand-types))]
         [stmts (assoc x :callee callee)]))
     :else [[] x]))
 
@@ -177,7 +196,7 @@
           (let [[stmts arg] (lift-expr (:argument x))]
             [stmts (assoc x :argument arg)])
           :expression-statement
-          (let [[stmts e] (lift-expr (:expression x))]
+          (let [[stmts e] (lift-operand (:expression x))]
             [stmts (assoc x :expression e)])
           :if-statement
           (let [[stmts e] (lift-expr (:test x))]
@@ -188,7 +207,7 @@
                 [stmts e'] (if (return? e)
                              (let [[stmts arg] (lift-expr (:argument e))]
                                [stmts (assoc e :argument arg)])
-                             (lift-expr e))]
+                             (lift-operand e))]
             [stmts (assoc x :parts [e'])])
           [[] x])]
     (if (seq stmts) (conj stmts x') x)))

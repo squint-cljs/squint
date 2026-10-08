@@ -113,6 +113,14 @@
     (is (str/includes? (sq/compile-string "(defn f [a] (let [b (let [c (g a)] (h c))] (k b)))")
                        "(() => {"))))
 
+  (t/testing "a function lifted into callee position gets parens"
+    (is (= "var f = function () {\nconst a_1 = g(1);\n(function (y) {\nreturn (a_1 + y);\n\n})(g(2));\nreturn null;\n\n};\n"
+           (lifted "(defn f [] ((let [a (g 1)] (fn [y] (+ a y))) (g 2)) nil)")))
+    (is (= "var f = function () {\nconst a_1 = g(1);\nreturn ((y)=>(a_1 + y))(g(2));\n\n};\n"
+           (lifted "(defn f [] ((let [a (g 1)] (fn ^:=> [y] (+ a y))) (g 2)))"))))
+  (t/testing "a call lifted into a new callee gets parens"
+    (is (= "var f = function () {\nconst a_1 = g(1);\nreturn (new (h(a_1))(1));\n\n};\n"
+           (lifted "(defn f [] (new (let [a (g 1)] (h a)) 1))"))))
 (def our-ns *ns*)
 (defn run-tests [_]
   (let [{:keys [fail error]}
