@@ -949,14 +949,25 @@
                             (when (= :statement (:context env)) ";\n"))
                         env)))))
 
-;; Return tags for core functions with callable results in CLJS.
+;; Return tags for core functions with callable results in CLJS, and for core
+;; predicates that return true or false.
 (def ^:private fn-return-tags
-  '{set set, hash-set set, sorted-set set, disj set,
-    hash-map object, array-map object, zipmap object,
-    frequencies object, group-by object, select-keys object,
-    vec array, vector array, mapv array, filterv array, subvec array,
-    vector-of array,
-    name string, subs string, str string})
+  (merge
+   '{set set, hash-set set, sorted-set set, disj set,
+     hash-map object, array-map object, zipmap object,
+     frequencies object, group-by object, select-keys object,
+     vec array, vector array, mapv array, filterv array, subvec array,
+     vector-of array,
+     name string, subs string, str string}
+   (zipmap '[NaN? any? array? associative? boolean boolean? char? coll? counted?
+             distinct? double? empty? even? every? false? float? fn? ident? ifn?
+             inst? int? integer? keyword? keyword-identical? list? map? map-entry?
+             nat-int? neg-int? not-any? not-every? number? object? odd? pos-int?
+             qualified-ident? qualified-keyword? qualified-symbol? realized?
+             record? reduced? regexp? reversible? satisfies? seq? seqable?
+             sequential? set? simple-ident? simple-keyword? simple-symbol?
+             sorted? string? symbol? true? uuid? var? vector?]
+           (repeat 'boolean))))
 
 ;; The tag for an expr used as a def or binding init, or nil. A collection or
 ;; keyword literal, or a call to a tagged-return core fn, is provable.

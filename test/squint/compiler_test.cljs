@@ -310,11 +310,18 @@
                 "(if \"foo\" 1 2)" "(if :foo 1 2)"
                 "(let [x nil] (if (nil? x) 1 2))"
                 "(let [x (zero? 0) y x] (if y 1 2))"
-                "(if (coercive-boolean (range 0 1)) 1 2)"]]
+                "(if (coercive-boolean (range 0 1)) 1 2)"
+                "(if (even? 2) 1 2)" "(if (boolean 0) 1 2)"
+                "(let [x (string? \"a\")] (if x 1 2))"
+                "(if (or (= 1 2) (boolean 1)) 1 2)"
+                "(if (and (map? {}) (vector? [])) 1 2)"
+                "(if (not (empty? [])) 2 1)"]]
     (doseq [input inputs]
       (let [js (jss! input)]
         (is (not (str/includes? js "truth_")) (str "contains truth check: " input "\n" js))
-        (is (eq 1 (js/eval js)))))))
+        (is (eq 1 (js/eval js))))))
+  (testing "contains? keeps the truth check"
+    (is (str/includes? (jss! "(if (contains? {:a 1} :a) 1 2)") "truth_"))))
 
 (deftest empty-string-truthy-test
   (doseq [input ["(if (str nil) 1 2)" "(if (str) 1 2)" "(when (str nil) 1)"
