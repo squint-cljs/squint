@@ -97,7 +97,7 @@
                                        segments
                                        {:file (path/basename out-file)
                                         :source (if in-file
-                                                  (path/relative out-path (path/resolve in-file))
+                                                  (utils/url-path out-path (path/resolve in-file))
                                                   "<stdin>")
                                         :source-content contents}))
                        (spit out-file (str javascript "\n//# sourceMappingURL="

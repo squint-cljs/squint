@@ -11,7 +11,6 @@
    [cljs.pprint :as pp]
    ["fs" :as fs]
    ["net" :as node-net]
-   ["path" :as path]
    [squint.compiler.js-ast :as ast]
    [squint.internal.node.utils :as utils]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]))
@@ -174,7 +173,7 @@
                          (ast/shift-segments segments eval-wrapper-prefix))
           on-disk? (and file (fs/existsSync file))
           json (ast/source-map segments
-                               {:source (if file (path/relative (js/process.cwd) file) "repl")
+                               {:source (if file (utils/url-path (js/process.cwd) file) "repl")
                                 :source-content (if on-disk?
                                                   (fs/readFileSync file "utf8")
                                                   code)})]

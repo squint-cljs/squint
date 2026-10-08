@@ -9,6 +9,12 @@
 (defn slurp [f]
   (fs/readFileSync f "utf-8"))
 
+(defn url-path
+  "Returns the relative path from dir to file with / as the separator."
+  [dir file]
+  (let [p (path/relative dir file)]
+    (if (= "\\" path/sep) (str/replace p "\\" "/") p)))
+
 (defn resolve-file* [dir munged-macro-ns]
   (let [exts ["cljc" "cljs"]]
     (some (fn [ext]
