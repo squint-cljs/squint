@@ -17,22 +17,24 @@
       (if (pos? v) (recur v acc) acc))))
 
 (defn- encode-mappings
-  "Returns the mappings string for segments [gen-line gen-col src-line src-col],
-  0-based and sorted."
+  "Returns the mappings string for sorted segments [gen-line gen-col src-line
+  src-col source-index], 0-based. source-index is 0 if absent."
   [segments]
   (loop [segments segments
          line 0
-         prev-gen-col 0 prev-src-line 0 prev-src-col 0
+         prev-gen-col 0 prev-src 0 prev-src-line 0 prev-src-col 0
          out [] first-in-line true]
-    (if-let [[gl gc sl sc] (first segments)]
+    (if-let [[gl gc sl sc si] (first segments)]
       (if (> gl line)
-        (recur segments (inc line) 0 prev-src-line prev-src-col (conj out ";") true)
-        (recur (rest segments) line gc sl sc
-               (conj out (str (when-not first-in-line ",")
-                              (vlq (- gc prev-gen-col)) "A"
-                              (vlq (- sl prev-src-line))
-                              (vlq (- sc prev-src-col))))
-               false))
+        (recur segments (inc line) 0 prev-src prev-src-line prev-src-col (conj out ";") true)
+        (let [si (or si 0)]
+          (recur (rest segments) line gc si sl sc
+                 (conj out (str (when-not first-in-line ",")
+                                (vlq (- gc prev-gen-col))
+                                (vlq (- si prev-src))
+                                (vlq (- sl prev-src-line))
+                                (vlq (- sc prev-src-col))))
+                 false)))
       (apply str out))))
 
 (defn count-newlines
@@ -59,17 +61,22 @@
   (str "\"" (str/escape s json-escape) "\""))
 
 (defn encode
-  "Returns a source map v3 JSON string for segments, mapping file to source.
-  source-content is the text of source, or nil if absent."
-  [segments {:keys [file source source-content]}]
-  (str "{\"version\":3"
-       (when file (str ",\"file\":" (json-str file)))
-       ",\"sources\":[" (json-str (or source "")) "]"
-       (when source-content
-         (str ",\"sourcesContent\":[" (json-str source-content) "]"))
-       ",\"names\":[]"
-       ",\"mappings\":" (json-str (encode-mappings segments))
-       "}"))
+  "Returns a source map v3 JSON string for segments, mapping file to sources.
+  sources is a vector of source paths and sources-content a vector of their
+  texts, with nil for an absent text.
+  source and source-content are the single-source form of both."
+  [segments {:keys [file source source-content sources sources-content]}]
+  (let [sources (or sources [(or source "")])
+        sources-content (or sources-content (when source-content [source-content]))
+        json-list (fn [xs] (str "[" (str/join "," (map #(if (nil? %) "null" (json-str %)) xs)) "]"))]
+    (str "{\"version\":3"
+         (when file (str ",\"file\":" (json-str file)))
+         ",\"sources\":" (json-list sources)
+         (when (some some? sources-content)
+           (str ",\"sourcesContent\":" (json-list sources-content)))
+         ",\"names\":[]"
+         ",\"mappings\":" (json-str (encode-mappings segments))
+         "}")))
 
 (defn shift-segments
   "Returns segments moved down by the lines of prefix text."
@@ -77,6 +84,6 @@
   (let [lines (count-newlines prefix)
         idx (str/last-index-of prefix "\n")
         col-shift (if idx (- (count prefix) (inc idx)) (count prefix))]
-    (mapv (fn [[gl gc sl sc]]
-            [(+ gl lines) (if (zero? gl) (+ gc col-shift) gc) sl sc])
+    (mapv (fn [[gl gc & more]]
+            (into [(+ gl lines) (if (zero? gl) (+ gc col-shift) gc)] more))
           segments)))

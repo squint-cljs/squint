@@ -6,7 +6,8 @@
    [clojure.test :refer [deftest is] :as t]
    [clojure.edn :as edn]
    [squint.compiler :as sq]
-   [squint.compiler.lift-iife :as lift-iife]))
+   [squint.compiler.lift-iife :as lift-iife]
+   [squint.compiler.source-map :as sm]))
 
 (defn to-js [code {:keys [requires]}]
   (sq/compile-string
@@ -100,6 +101,15 @@
 
 (defn- lifted [src]
   (:javascript (sq/compile* src {:passes [lift-iife/lift] :elide-imports true :elide-exports true})))
+
+(deftest source-map-encode-test
+  (t/testing "a segment with source index 1 maps to the second source"
+    (is (= (str "{\"version\":3,\"file\":\"b.js\",\"sources\":[\"a.clj\",\"b.clj\"],"
+                "\"sourcesContent\":[null,\"(x)\"],\"names\":[],\"mappings\":\"AAAA;ACAA,IAEG\"}")
+           (sm/encode [[0 0 0 0] [1 0 0 0 1] [1 4 2 3 1]]
+                      {:file "b.js" :sources ["a.clj" "b.clj"] :sources-content [nil "(x)"]}))))
+  (t/testing "shift-segments keeps the source index"
+    (is (= [[2 1 2 3 4] [3 0 0 0]] (sm/shift-segments [[0 1 2 3 4] [1 0 0 0]] "x\ny\n")))))
 
 (defn- mapped-at
   "Returns the 1-based [line column] of the source mapped at generated position
