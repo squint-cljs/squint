@@ -96,7 +96,7 @@ let jsEditor = null;
 async function JSEditor(js) {
   js = await prettier.format(js, { parser: "babel", plugins: [prettierPluginJS, prettierPluginBabel] });
   js = js.trim();
-  const elt = document.querySelector('#compiledCode');
+  const elt = document.querySelector('#compiled-code');
   const fontSizeTheme = EditorView.theme({
     $: {
       fontSize: "5pt"
