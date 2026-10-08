@@ -323,14 +323,13 @@ body, #editor, #sidebar {
 
   border: 0;
   border-radius: 4px;
-  background: var(--tooltip-color);
+  background: color-mix(in srgb, var(--bg), gray 10%);
   box-shadow:
-    0 0 0 0.5px rgb(0 0 0 / 10%),  /* hairline edge */
-    0 2px 12px rgb(0 0 0 / 15%);
-  color: #b8b8b8;
-  
-  padding: 8px 12px;
-  font: 16px/1.5 system-ui, sans-serif;
+    0 0 0 0.5px light-dark(rgb(0 0 0 / 10%), rgb(255 255 255 / 33%)),  /* hairline edge */
+    0 2px 22px light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 35%));
+  color: var(--fg);
+  padding: 10px 16px;
+  font: 0.9em/1.5 system-ui, sans-serif;
   white-space: nowrap;
   pointer-events: none;
 
