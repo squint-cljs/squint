@@ -79,6 +79,22 @@
     [(count (filter #{\newline} before))
      (- i (inc (or (str/last-index-of before "\n") -1)))]))
 
+(deftest emit-order-test
+  (doseq [src ["(defn g [] (+ (f 1) #html [:div \"x\"]))"
+               "(defn g [] (+ (f 1) 2 #html [:div \"x\"]))"
+               "(defn g [] [(f 1) #html [:div \"x\"]])"]]
+    (t/testing (str src " imports squint_html")
+      (is (str/includes? (sq/compile-string src {:elide-exports true}) "import * as squint_html"))))
+  (t/testing "a jsx literal after a call in a vector imports the jsx runtime"
+    (is (str/includes? (sq/compile-string "(defn g [] [(f 1) #jsx [:div \"x\"]])"
+                                          {:elide-exports true :jsx-runtime {:import-source "react"}})
+                       "from 'react/jsx-runtime'")))
+  (t/testing "locals in call arguments are numbered in source order"
+    (is (= (str "var x = function () {\nreturn h((f(1) + (() => {\nconst z_1 = 1;\nreturn z_1;\n\n})()), (() => {\n"
+                "const q_2 = 1;\nreturn q_2;\n\n})());\n\n};\n")
+           (sq/compile-string "(defn x [] (h (+ (f 1) (let [z 1] z)) (let [q 1] q)))"
+                              {:elide-exports true :elide-imports true})))))
+
 (deftest source-map-test
   (let [src "(ns m)\n(defn f [x]\n  (g\n   (h x)))"
         {:keys [javascript source-map-json source-map-segments]}

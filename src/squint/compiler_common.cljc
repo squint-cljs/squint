@@ -338,7 +338,7 @@
 
 (defn emit-args [env args]
   (let [env (assoc env :context :expr :top-level false)]
-    (map #(emit % env) args)))
+    (mapv #(emit % env) args)))
 
 (defn emit-infix [_type enc-env [operator & args]]
   (let [env (assoc enc-env :context :expr :top-level false)

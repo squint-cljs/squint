@@ -33,13 +33,17 @@
       (and (code? x) (structured? (:js x)))
       (and (sequential? x) (some structured? x))))
 
+(defn- realize [x]
+  (if (sequential? x) (mapv realize x) x))
+
 (defn raw
   "Returns emitted text built from parts, or a :raw node if a part is a node.
   A part is a string, node, Code record, nil or a sequence of those."
   [& parts]
-  (if (some structured? parts)
-    (node {:type :raw :parts (vec parts)})
-    (generate parts)))
+  (let [parts (realize parts)]
+    (if (some structured? parts)
+      (node {:type :raw :parts parts})
+      (generate parts))))
 
 (defn terminate
   "Returns a :raw node that prints x followed by ;\\n, unless the output
