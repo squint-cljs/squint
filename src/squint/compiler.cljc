@@ -598,7 +598,7 @@
                             :ns-state (:ns-state opts))
                source-map
                (assoc :source-map-segments segments
-                      :source-map (ast/source-map
+                      :source-map-json (ast/source-map
                                    segments
                                    (cond-> (when (map? source-map) source-map)
                                      (string? s) (update :source-content #(or % s))))))))))

@@ -79,17 +79,23 @@
 
 (deftest source-map-test
   (let [src "(ns m)\n(defn f [x]\n  (g\n   (h x)))"
-        {:keys [javascript source-map source-map-segments]}
+        {:keys [javascript source-map-json source-map-segments]}
         (sq/compile* src {:source-map {:file "m.mjs" :source "m.cljs"}})
         mapped (set (map (fn [[gl gc sl sc]] [[gl gc] [sl sc]]) source-map-segments))]
     (t/testing "a call maps to the line and column of its form"
       (is (contains? mapped [(gen-pos javascript "g(h(x))") [2 2]]))
       (is (contains? mapped [(gen-pos javascript "h(x)") [3 3]])))
     (t/testing "the map names the source and embeds its content"
-      (is (str/includes? source-map "\"sources\":[\"m.cljs\"]"))
-      (is (str/includes? source-map "\"sourcesContent\":[\"(ns m)\\n(defn f")))
+      (is (str/includes? source-map-json "\"sources\":[\"m.cljs\"]"))
+      (is (str/includes? source-map-json "\"sourcesContent\":[\"(ns m)\\n(defn f")))
+    (t/testing "a pragma before the imports shifts the mappings"
+      (let [{:keys [javascript source-map-segments]}
+            (sq/compile* (str "\"use client\"\n" src) {:source-map true})
+            mapped (set (map (fn [[gl gc sl sc]] [[gl gc] [sl sc]]) source-map-segments))]
+        (is (str/starts-with? javascript "\"use client\"\n"))
+        (is (contains? mapped [(gen-pos javascript "g(h(x))") [3 2]]))))
     (t/testing "compiling without :source-map returns no map"
-      (is (nil? (:source-map (sq/compile* src)))))))
+      (is (nil? (:source-map-json (sq/compile* src)))))))
 
 (defn- lifted [src]
   (:javascript (sq/compile* src {:lift-iife true :elide-imports true :elide-exports true})))
@@ -107,12 +113,6 @@
     (is (str/includes? (lifted "(defn f [a] (k (g a) (let [z (g a)] (h z))))") "(() => {")))
   (t/testing "an IIFE at module level stays"
     (is (str/includes? (lifted "(def x (let [a (f 1)] (g a)))") "(() => {")))
-  (t/testing "an async IIFE stays"
-    (is (str/includes? (lifted "(defn ^:async f [] (k (let [z (await (g))] (h z))))") "(async () => {")))
-  (t/testing "without :lift-iife the output keeps the IIFE"
-    (is (str/includes? (sq/compile-string "(defn f [a] (let [b (let [c (g a)] (h c))] (k b)))")
-                       "(() => {"))))
-
   (t/testing "a function lifted into callee position gets parens"
     (is (= "var f = function () {\nconst a_1 = g(1);\n(function (y) {\nreturn (a_1 + y);\n\n})(g(2));\nreturn null;\n\n};\n"
            (lifted "(defn f [] ((let [a (g 1)] (fn [y] (+ a y))) (g 2)) nil)")))
@@ -121,6 +121,12 @@
   (t/testing "a call lifted into a new callee gets parens"
     (is (= "var f = function () {\nconst a_1 = g(1);\nreturn (new (h(a_1))(1));\n\n};\n"
            (lifted "(defn f [] (new (let [a (g 1)] (h a)) 1))"))))
+  (t/testing "an async IIFE stays"
+    (is (str/includes? (lifted "(defn ^:async f [] (k (let [z (await (g))] (h z))))") "(async () => {")))
+  (t/testing "without :lift-iife the output keeps the IIFE"
+    (is (str/includes? (sq/compile-string "(defn f [a] (let [b (let [c (g a)] (h c))] (k b)))")
+                       "(() => {"))))
+
 (def our-ns *ns*)
 (defn run-tests [_]
   (let [{:keys [fail error]}

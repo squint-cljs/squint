@@ -216,7 +216,7 @@
                            @!ns-state (assoc :ns-state @!ns-state)
                            ns (assoc :ns ns))
                          @state)
-        _ (reset! state (dissoc new-state :source-map :source-map-segments))
+        _ (reset! state (dissoc new-state :source-map :source-map-json :source-map-segments))
         ;; ensure there's always a box to unwrap, even for forms with no
         ;; top-level return (e.g. a lone `(ns ...)`). The user's return-with-box,
         ;; when emitted, runs first and the appended line is unreachable.
