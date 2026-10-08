@@ -3,6 +3,7 @@
   (:require
    [babashka.fs :as fs]
    [babashka.process :as p]
+   [cheshire.core :as json]
    [clojure.test :as t :refer [deftest is]]
    [clojure.string :as str]))
 
@@ -168,6 +169,89 @@
     ;; the failure is inside the transitively loaded macro ns, not the compiled file
     (is (re-find #"Error while compiling .*main\.cljs \(loading .*badmac\.cljc:3:\d+\)" err))
     (is (str/includes? err "Unmatched delimiter"))))
+
+(def ^:private base64-chars
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+
+(defn- decode-vlq [s]
+  (loop [cs (seq s) shift 0 acc 0 out []]
+    (if-let [c (first cs)]
+      (let [d (str/index-of base64-chars c)
+            acc (+ acc (bit-shift-left (bit-and d 31) shift))]
+        (if (pos? (bit-and d 32))
+          (recur (rest cs) (+ shift 5) acc out)
+          (recur (rest cs) 0 0 (conj out (if (odd? acc) (- (quot acc 2)) (quot acc 2))))))
+      out)))
+
+(defn- decode-mappings [mappings]
+  (let [state (volatile! [0 0 0])]
+    (vec (mapcat (fn [gl line]
+                   (let [gc (volatile! 0)]
+                     (for [seg (remove str/blank? (str/split line #","))
+                           :let [[dgc _ dsl dsc] (decode-vlq seg)
+                                 [_ sl sc] @state]]
+                       (do (vswap! gc + dgc)
+                           (vreset! state [0 (+ sl dsl) (+ sc dsc)])
+                           [gl @gc (+ sl dsl) (+ sc dsc)]))))
+                 (range) (str/split mappings #";" -1)))))
+
+(defn- gen-pos [js s]
+  (let [i (str/index-of js s)
+        before (subs js 0 i)]
+    [(count (filter #{\newline} before))
+     (- i (inc (or (str/last-index-of before "\n") -1)))]))
+
+(deftest compile-source-map-test
+  (fs/create-dirs (fs/file test-dir "src"))
+  (spit (fs/file test-dir "src/app.cljs") "(ns app)\n(defn f [x]\n  (g x))\n")
+  (let [{:keys [exit]} (squint "compile" "--source-map" "--output-dir" "out" "src/app.cljs")
+        js-file (fs/file test-dir "out/src/app.mjs")
+        js (slurp js-file)
+        sm (json/parse-string (slurp (str js-file ".map")))]
+    (is (zero? exit))
+    (t/testing "the JS ends with a sourceMappingURL comment"
+      (is (str/ends-with? js "\n//# sourceMappingURL=app.mjs.map\n")))
+    (t/testing "sources is relative to the JS file"
+      (is (= ["../../src/app.cljs"] (get sm "sources"))))
+    (t/testing "the call (g x) maps to line 3, column 3"
+      (is (some #{(conj (gen-pos js "g(x)") 2 2)} (decode-mappings (get sm "mappings"))))))
+  (t/testing "a compile without --source-map removes the old map"
+    (squint "compile" "--output-dir" "out" "src/app.cljs")
+    (is (not (fs/exists? (fs/file test-dir "out/src/app.mjs.map"))))
+    (is (not (str/includes? (slurp (fs/file test-dir "out/src/app.mjs")) "sourceMappingURL")))))
+
+(deftest repl-eval-inline-source-map-test
+  (fs/create-dirs (fs/file test-dir "src"))
+  (let [file (str (fs/absolutize (fs/file test-dir "src/game.cljc")))
+        _ (spit file "(ns game)\n\n(defn tic [x]\n  (throw (js/Error. \"boom\")))\n")
+        script "import net from 'node:net';
+import fs from 'node:fs';
+const { startServer, handleBrowserMessage } = await import('../../lib/node.nrepl_server.js');
+let captured;
+const [file, code, portArg] = process.argv.slice(2);
+const port = Number(portArg);
+await startServer({ port, browserTransport: {
+  send: (msg) => { captured = msg.code;
+    setTimeout(() => handleBrowserMessage({ op: 'eval', id: msg.id, session: msg.session, value: 'nil' })); },
+  url: () => 'http://localhost' } });
+const b = (s) => `${Buffer.byteLength(s)}:${s}`;
+const msg = 'd' + b('op') + b('eval') + b('code') + b(code) + b('file') + b(file) +
+  b('line') + 'i3e' + b('column') + 'i1e' + b('ns') + b('game') + b('id') + b('1') + 'e';
+const sock = net.connect(port, '127.0.0.1', () => sock.write(msg));
+sock.on('data', (d) => { if (d.toString().includes('done')) { fs.writeFileSync('eval.js', captured); process.exit(0); } });"
+        _ (spit (fs/file test-dir "repl_eval.mjs") script)
+        {:keys [exit]} (p/shell {:dir test-dir :out :string :err :string :continue true}
+                                    "node" "repl_eval.mjs" file
+                                    "(defn tic [x]\n  (throw (js/Error. \"boom\")))"
+                                    (str (with-open [s (java.net.ServerSocket. 0)] (.getLocalPort s))))
+        out (slurp (fs/file test-dir "eval.js"))
+        [_ b64] (re-find #"sourceMappingURL=data:application/json;base64,(\S+)" out)
+        sm (when b64 (json/parse-string (String. (.decode (java.util.Base64/getDecoder) ^String b64) "UTF-8")))]
+    (is (zero? exit))
+    (t/testing "the map names the file relative to the working directory"
+      (is (= ["src/game.cljc"] (get sm "sources"))))
+    (t/testing "the error on the form's second line maps to line 4, column 10 of the file"
+      (is (some #{(conj (gen-pos out "(new Error") 3 9)} (decode-mappings (get sm "mappings")))))))
 
 (defn run-tests [_]
   (let [{:keys [fail error]}
