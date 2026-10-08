@@ -12,7 +12,6 @@
    ["fs" :as fs]
    ["net" :as node-net]
    ["path" :as path]
-   [squint.compiler-common :as cc]
    [squint.compiler.js-ast :as ast]
    [squint.internal.node.utils :as utils]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]))
