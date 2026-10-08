@@ -174,7 +174,7 @@
                                          :async (boolean (:async env))
                                          :generator (boolean gen?)
                                          :body (ast/node {:type :block-statement :body s})
-                                         :squint/iife true})
+                                         ::ast/iife true})
                        :arguments []})
       (:async env) (wrap-await env)
       true (yield-iife env))))

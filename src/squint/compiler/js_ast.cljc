@@ -44,7 +44,7 @@
   "Returns a :raw node that prints x followed by ;\\n, unless the output
   already ends with ;\\n."
   [x]
-  (node {:type :raw :parts [x] :squint/terminate true}))
+  (node {:type :raw :parts [x] ::terminate true}))
 
 (declare walk)
 
@@ -65,7 +65,7 @@
         body! #(if expression (w body) (do (f " {\n") (w stmts) (f "\n}")))]
     (when async (f "async "))
     (cond
-      (:squint/iife n)
+      (::iife n)
       (do (f (if generator "function* () {\n" "() => {\n")) (w stmts) (f "\n}"))
       id
       (do (f "function") (when generator (f "*")) (f " ") (w id) (f " ")
@@ -81,14 +81,14 @@
         each #(walk-each % ", " out enter exit)]
     (case (:type n)
       :raw (do (w (:parts n))
-               (when (and (:squint/terminate n) (not= ";\n" @(:tail out)))
+               (when (and (::terminate n) (not= ";\n" @(:tail out)))
                  (f ";\n")))
       :program (w (:body n))
       :expression-statement (do (w (:expression n)) (f ";\n"))
       :return-statement (do (f "return ") (let [a (:argument n)] (if (nil? a) (f "null") (w a))))
       :array-expression (do (f "[") (each (:elements n)) (f "]"))
       :call-expression (let [callee (:callee n)]
-                         (if (:squint/iife callee)
+                         (if (::iife callee)
                            (do (f "(") (w callee) (f ")()"))
                            (do (w callee) (f "(") (each (:arguments n)) (f ")"))))
       :new-expression (do (f "new ") (w (:callee n)) (f "(") (each (:arguments n)) (f ")"))

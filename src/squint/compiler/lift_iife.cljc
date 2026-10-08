@@ -10,7 +10,7 @@
 (defn- statement-wrapper?
   "Returns true if x is a :raw node that terminates a statement."
   [x]
-  (and (= :raw (:type x)) (:squint/terminate x)))
+  (and (= :raw (:type x)) (::ast/terminate x)))
 
 (defn- statement-node? [x]
   (or (contains? #{:variable-declaration :expression-statement :if-statement :return-statement}
@@ -52,7 +52,7 @@
 (defn- simple-iife? [x]
   (let [callee (:callee x)]
     (and (= :call-expression (:type x))
-         (:squint/iife callee)
+         (::ast/iife callee)
          (not (:async callee))
          (not (:generator callee))
          (empty? (:arguments x)))))
