@@ -190,7 +190,6 @@ body, #editor, #sidebar {
     }
 
     button:not(#theme-toggle) {
-      font-size: 14px;
       font-weight: 500;
       color: var(--fg);
       background: var(--button-color);
@@ -218,7 +217,6 @@ body, #editor, #sidebar {
   }
   
   #repl-mode {
-    font-size: 14px;
     font-weight: 500;
     display: flex;
     flex-direction: column;
@@ -248,6 +246,11 @@ body, #editor, #sidebar {
     }
   }
 
+  .ͼ2 .cm-line {
+    font-size: 13px;
+    opacity: 0.83;
+  }
+
   .ͼ2 .cm-gutters {
     background-color: transparent;
     &.cm-gutters-before {
@@ -262,9 +265,13 @@ body, #editor, #sidebar {
   padding: 0px;
   /* an expanded tree scrolls in place, so the compiled code stays reachable */
   max-height: 40dvh;
+  min-height: 20px;
   overflow: auto;
   #sidebar:has(#replCheckBox:checked) & {
     padding: 10px;
+  }
+  li {
+    font-size: 16px!important;
   }
 }
 
