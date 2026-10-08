@@ -5,7 +5,7 @@
    [clojure.string :as str]
    [shadow.esm :as esm]
    [squint.compiler :as compiler]
-   [squint.compiler.js-ast :as ast]
+   [squint.compiler.source-map :as sm]
    [squint.internal.node.macro-scan :as ms]
    [squint.internal.node.utils :as utils]))
 
@@ -93,7 +93,7 @@
                                         :out-file out-file})))
                    (if-let [segments (:source-map-segments opts)]
                      (let [map-file (str out-file ".map")]
-                       (spit map-file (ast/source-map
+                       (spit map-file (sm/encode
                                        segments
                                        {:file (path/basename out-file)
                                         :source (if in-file

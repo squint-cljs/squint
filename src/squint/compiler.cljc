@@ -19,6 +19,7 @@
                                           emit emit-args emit-infix emit-return escape-jsx
                                           expr-env infix-operator? prefix-unary? suffix-unary?]]
    [squint.compiler.js-ast :as ast]
+   [squint.compiler.source-map :as sm]
    [squint.compiler.utils :refer [munge]]
    [squint.defclass :as defclass]
    [squint.internal.deftype :as deftype]
@@ -585,7 +586,7 @@
                  {body :js segments :segments} (if source-map
                                                  (ast/generate-with-map transpiled)
                                                  {:js (str transpiled)})
-                 segments (when source-map (ast/shift-segments segments prefix))]
+                 segments (when source-map (sm/shift-segments segments prefix))]
              (cond-> (assoc opts
                             :pragmas pragmas
                             :imports imports
@@ -598,7 +599,7 @@
                             :ns-state (:ns-state opts))
                source-map
                (assoc :source-map-segments segments
-                      :source-map-json (ast/source-map
+                      :source-map-json (sm/encode
                                    segments
                                    (cond-> (when (map? source-map) source-map)
                                      (string? s) (update :source-content #(or % s))))))))))
