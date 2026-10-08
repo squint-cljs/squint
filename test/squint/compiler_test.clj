@@ -5,7 +5,8 @@
    [clojure.string :as str]
    [clojure.test :refer [deftest is] :as t]
    [clojure.edn :as edn]
-   [squint.compiler :as sq]))
+   [squint.compiler :as sq]
+   [squint.compiler.lift-iife :as lift-iife]))
 
 (defn to-js [code {:keys [requires]}]
   (sq/compile-string
@@ -98,7 +99,7 @@
       (is (nil? (:source-map-json (sq/compile* src)))))))
 
 (defn- lifted [src]
-  (:javascript (sq/compile* src {:lift-iife true :elide-imports true :elide-exports true})))
+  (:javascript (sq/compile* src {:passes [lift-iife/lift] :elide-imports true :elide-exports true})))
 
 (deftest lift-iife-test
   (t/testing "a let in a binding init becomes statements"
@@ -123,7 +124,7 @@
            (lifted "(defn f [] (new (let [a (g 1)] (h a)) 1))"))))
   (t/testing "an async IIFE stays"
     (is (str/includes? (lifted "(defn ^:async f [] (k (let [z (await (g))] (h z))))") "(async () => {")))
-  (t/testing "without :lift-iife the output keeps the IIFE"
+  (t/testing "without :passes the output keeps the IIFE"
     (is (str/includes? (sq/compile-string "(defn f [a] (let [b (let [c (g a)] (h c))] (k b)))")
                        "(() => {"))))
 
