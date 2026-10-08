@@ -102,7 +102,9 @@
                                         :source-content contents}))
                        (spit out-file (str javascript "\n//# sourceMappingURL="
                                            (path/basename map-file) "\n")))
-                     (spit out-file javascript))
+                     (let [stale-map (str out-file ".map")]
+                       (when (fs/existsSync stale-map) (fs/unlinkSync stale-map))
+                       (spit out-file javascript)))
                    (cond-> (assoc opts :out-file out-file)
                      (:repl opts) (assoc :dev-hooks (dev-hooks (:ns-state opts))))))))))
 
