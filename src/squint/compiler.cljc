@@ -451,7 +451,7 @@
                    (assoc env :context orig-ctx)
                    env)]
          (if (= ::e/eof next-form)
-           (ast/node :program :body transpiled)
+           (ast/node {:type :program :body transpiled})
            (let [next-t (when-not (true? (:squint/compile-time (meta next-form)))
                           ;; compile-time forms run in SCI, never emitted to JS;
                           ;; marker value :both emits too

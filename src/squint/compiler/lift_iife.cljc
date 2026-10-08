@@ -96,8 +96,8 @@
   assignment to tmp."
   [x tmp]
   (cond (ast/code? x) (update x :js returns->assignments tmp)
-        (return? x) (ast/node :assignment-expression :operator "=" :left tmp
-                              :right (let [a (:argument x)] (if (nil? a) "null" a)))
+        (return? x) (ast/node {:type :assignment-expression :operator "=" :left tmp
+                               :right (let [a (:argument x)] (if (nil? a) "null" a))})
         (function? x) x
         (ast/node? x) (reduce-kv (fn [m k v]
                                    (if (or (= :type k) (= :loc k) (namespace k))
@@ -127,7 +127,7 @@
      [stmts (if (and (seq stmts)
                      (not (pure? x'))
                      (not (contains? safe-types (:type x'))))
-              (ast/node :parenthesized-expression :expression x')
+              (ast/node {:type :parenthesized-expression :expression x'})
               x')])))
 
 (defn- lift-args

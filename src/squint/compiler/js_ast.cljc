@@ -12,17 +12,9 @@
   (toString [this] (print-js this)))
 
 (defn node
-  "Returns a node of type with the fields in kvs."
-  ([type] (map->Node {:type type}))
-  ([type k1 v1] (map->Node {:type type k1 v1}))
-  ([type k1 v1 k2 v2] (map->Node {:type type k1 v1 k2 v2}))
-  ([type k1 v1 k2 v2 k3 v3] (map->Node {:type type k1 v1 k2 v2 k3 v3}))
-  ([type k1 v1 k2 v2 k3 v3 k4 v4]
-   (map->Node {:type type k1 v1 k2 v2 k3 v3 k4 v4}))
-  ([type k1 v1 k2 v2 k3 v3 k4 v4 k5 v5]
-   (map->Node {:type type k1 v1 k2 v2 k3 v3 k4 v4 k5 v5}))
-  ([type k1 v1 k2 v2 k3 v3 k4 v4 k5 v5 & kvs]
-   (map->Node (apply array-map :type type k1 v1 k2 v2 k3 v3 k4 v4 k5 v5 kvs))))
+  "Returns a node from m, a map with :type and the node's fields."
+  [m]
+  (map->Node m))
 
 (defn node? [x]
   (instance? Node x))
@@ -44,14 +36,14 @@
   A part is a string, node, Code record, nil or a sequence of those."
   [& parts]
   (if (some structured? parts)
-    (node :raw :parts (vec parts))
+    (node {:type :raw :parts (vec parts)})
     (print-js parts)))
 
 (defn terminate
   "Returns a :raw node that prints x followed by ;\\n, unless the output
   already ends with ;\\n."
   [x]
-  (node :raw :parts [x] :squint/terminate true))
+  (node {:type :raw :parts [x] :squint/terminate true}))
 
 (declare walk)
 
@@ -197,7 +189,7 @@
                            (= :return-statement (:type x)) (update x :argument attach)
                            (node? x) (assoc x :loc loc)
                            (code? x) (update x :js attach)
-                           (and (string? x) (not (str/blank? x))) (node :raw :parts [x] :loc loc)
+                           (and (string? x) (not (str/blank? x))) (node {:type :raw :parts [x] :loc loc})
                            :else x))]
         (attach x))
       x)))
