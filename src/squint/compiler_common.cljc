@@ -151,8 +151,8 @@
   [value form env]
   (if-let [um (user-meta form)]
     (do (record-core-var! env "with_meta")
-        (str (when-let [ca (:core-alias env)] (str ca "."))
-             "with_meta(" value ", " (emit um (expr-env (dissoc env :jsx))) ")"))
+        (ast/raw (when-let [ca (:core-alias env)] (str ca "."))
+                 "with_meta(" value ", " (emit um (expr-env (dissoc env :jsx))) ")"))
     value))
 
 (defn yield-iife
@@ -2131,8 +2131,7 @@
                           (str core-alias ".")
                           "")
                         (str/join ", " (emit-args env expr))))
-            (format "[%s]"
-                    (str/join ", " (emit-args env expr))))
+            (ast/raw "[" (interpose ", " (emit-args env expr)) "]"))
           expr env)
          env)
         (tagged-expr 'array))))

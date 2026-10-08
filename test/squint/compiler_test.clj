@@ -131,7 +131,8 @@
            ["@a maps to the @" "(defn f [a] @a)" "squint_core.deref(a)" [1 13]]
            ["a call in #() maps to its form" "(defn f [] (map #(g %) [1]))" "g(_PERCENT" [1 18]]
            ["text after a nested call maps to the enclosing form" "(defn f [x] (g (h x) 2))" ", 2)" [1 13]]
-           ["a call in a vector literal has no mapping" "(defn f [] [(g 1)])" "g(1)" nil]
+           ["a call in a vector literal maps to its form" "(defn f [] [(g 1)])" "g(1)" [1 13]]
+           ["a call in a map literal maps to its form" "(defn f [] {:a (g 1)})" "g(1)" [1 16]]
            ["a call lifted out of an IIFE keeps its form"
             "(defn f [a]\n  (let [b (let [c (g a)]\n            (h c))]\n    (k b)))"
             "h(c_2)" [3 13] {:passes [lift-iife/lift]}]]]

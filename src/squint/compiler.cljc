@@ -327,12 +327,12 @@
                                (name k)))
               mk-pair (fn [pair]
                         (let [k (key pair)]
-                          (str (if (= :& k)
-                                 "..."
-                                 (str (emit (key-fn k) expr-env) ": "))
-                               (emit (val pair) expr-env))))
-              keys (str/join ", " (map mk-pair (seq expr)))]
-          (escape-jsx (-> (cc/emit-with-meta (format "({%s})" keys) expr env)
+                          (ast/raw (if (= :& k)
+                                     "..."
+                                     (ast/raw (emit (key-fn k) expr-env) ": "))
+                                   (emit (val pair) expr-env))))
+              keys (interpose ", " (mapv mk-pair (seq expr)))]
+          (escape-jsx (-> (cc/emit-with-meta (ast/raw "({" keys "})") expr env)
                           (emit-return env))
                       env*))
         (let [expr (list* 'doto {} (map (fn [[k v]]
