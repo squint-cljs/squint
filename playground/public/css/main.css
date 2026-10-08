@@ -289,6 +289,7 @@ body, #editor, #sidebar {
 .cm-scroller {
   &::-webkit-scrollbar {
     width: 16px;
+    height: 16px;
   }
 
   &::-webkit-scrollbar-track {
@@ -323,7 +324,7 @@ body, #editor, #sidebar {
   box-shadow:
     0 0 0 0.5px rgb(0 0 0 / 10%),  /* hairline edge */
     0 2px 12px rgb(0 0 0 / 15%);
-  color: #5a5a5a;
+  color: #b8b8b8;
   
   padding: 8px 12px;
   font: 16px/1.5 system-ui, sans-serif;
