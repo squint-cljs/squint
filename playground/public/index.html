@@ -7,10 +7,11 @@
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
   <meta content="utf-8" http-equiv="encoding" />
   <script>
-    const preferredTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
-    document.documentElement.dataset.theme = preferredTheme;
+    const osColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyOsTheme = () => {
+      document.documentElement.dataset.theme = osColorScheme.matches ? 'dark' : 'light';
+    };
+    applyOsTheme();
 
     // Restore before layout so a saved split does not flash back to 50%.
     try {
@@ -179,6 +180,11 @@ const updateThemeToggle = () => {
 };
 
 updateThemeToggle();
+
+osColorScheme.addEventListener("change", () => {
+  applyOsTheme();
+  updateThemeToggle();
+});
 
 toggle.addEventListener("click", () => {
   const dark = document.documentElement.dataset.theme === "dark";
