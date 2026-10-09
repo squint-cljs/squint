@@ -5,7 +5,7 @@
 (def ^:private base64-chars
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
 
-(defn vlq
+(defn- vlq
   "Returns the base64 VLQ encoding of integer n."
   [n]
   (loop [v (if (neg? n) (inc (* 2 (- n))) (* 2 n))

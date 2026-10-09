@@ -21,7 +21,10 @@ The result has two extra keys:
 
 - `:file`: the name of the generated file.
 - `:source`: the path of the source, or `""` if absent.
-- `:source-content`: the source text, or the string passed to `compile*` if absent.
+- `:source-content`: the source text, or the string passed to `compile*` if
+  absent, or nil if `compile*` gets forms.
+
+To map forms passed to `compile*`, give them `:line` and `:column` metadata.
 
 ## Segments
 
@@ -61,21 +64,23 @@ Concatenate compiled units into one file with one map:
          '[squint.compiler.source-map :as sm])
 
 (defn bundle [files]
-  (loop [i 0 js "" segments []]
+  (loop [i 0 js "import * as squint_core from 'squint-cljs/core.js';\n" segments []]
     (if (< i (count files))
       (let [{:keys [javascript source-map-segments]}
             (squint/compile* (slurp (nth files i))
                              {:source-map true :elide-imports true :elide-exports true})
             segs (sm/shift-segments (mapv #(conj % i) source-map-segments) js)]
         (recur (inc i) (str js javascript) (into segments segs)))
-      {:js (str js "//# sourceMappingURL=bundle.js.map\n")
-       :map (sm/encode segments {:file "bundle.js"
+      {:js (str js "//# sourceMappingURL=bundle.mjs.map\n")
+       :map (sm/encode segments {:file "bundle.mjs"
                                  :sources files
                                  :sources-content (mapv slurp files)})})))
 
 (let [{:keys [js map]} (bundle ["src/a.cljs" "src/b.cljs"])]
-  (spit "bundle.js" js)
-  (spit "bundle.js.map" map))
+  (spit "bundle.mjs" js)
+  (spit "bundle.mjs.map" map))
 ```
 
-Serve `bundle.js.map` next to `bundle.js`.
+Keep top-level names distinct across files. The bundle has one scope.
+
+Serve `bundle.mjs.map` next to `bundle.mjs`.
