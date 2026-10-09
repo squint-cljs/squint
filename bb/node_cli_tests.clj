@@ -220,41 +220,6 @@
     (is (not (fs/exists? (fs/file test-dir "out/src/app.mjs.map"))))
     (is (not (str/includes? (slurp (fs/file test-dir "out/src/app.mjs")) "sourceMappingURL")))))
 
-(deftest repl-eval-inline-source-map-test
-  (fs/create-dirs (fs/file test-dir "src"))
-  (let [file (str (fs/absolutize (fs/file test-dir "src/game.cljc")))
-        _ (spit file "(ns game)\n\n(defn tic [x]\n  (throw (js/Error. \"boom\")))\n")
-        script "import net from 'node:net';
-import fs from 'node:fs';
-setTimeout(() => process.exit(2), 10000);
-const { startServer, handleBrowserMessage } = await import('../../lib/node.nrepl_server.js');
-let captured;
-const [file, code, portArg] = process.argv.slice(2);
-const port = Number(portArg);
-await startServer({ port, browserTransport: {
-  send: (msg) => { captured = msg.code;
-    setTimeout(() => handleBrowserMessage({ op: 'eval', id: msg.id, session: msg.session, value: 'nil' })); },
-  url: () => 'http://localhost' } });
-const b = (s) => `${Buffer.byteLength(s)}:${s}`;
-const msg = 'd' + b('op') + b('eval') + b('code') + b(code) + b('file') + b(file) +
-  b('line') + 'i3e' + b('column') + 'i1e' + b('ns') + b('game') + b('id') + b('1') + 'e';
-const sock = net.connect(port, '127.0.0.1', () => sock.write(msg));
-sock.on('data', (d) => { if (d.toString().includes('done')) { fs.writeFileSync('eval.js', captured); process.exit(0); } });"
-        _ (spit (fs/file test-dir "repl_eval.mjs") script)
-        {:keys [exit]} (p/shell {:dir test-dir :out :string :err :string :continue true}
-                                    "node" "repl_eval.mjs" file
-                                    "(defn tic [x]\n  (throw (js/Error. \"boom\")))"
-                                    (str (with-open [s (java.net.ServerSocket. 0)] (.getLocalPort s))))
-        eval-file (fs/file test-dir "eval.js")
-        out (if (fs/exists? eval-file) (slurp eval-file) "")
-        [_ b64] (re-find #"sourceMappingURL=data:application/json;base64,(\S+)" out)
-        sm (when b64 (json/parse-string (String. (.decode (java.util.Base64/getDecoder) ^String b64) "UTF-8")))]
-    (is (zero? exit))
-    (t/testing "the map names the file relative to the working directory"
-      (is (= ["src/game.cljc"] (get sm "sources"))))
-    (t/testing "the error on the form's second line maps to line 4, column 10 of the file"
-      (is (some #{(conj (gen-pos out "(new Error") 3 9)} (decode-mappings (get sm "mappings" "")))))))
-
 (defn run-tests [_]
   (let [{:keys [fail error]}
         (t/run-tests 'node-cli-tests)]

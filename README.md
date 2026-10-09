@@ -455,9 +455,6 @@ export default defineConfig({
 
 The plugin's `sourceMap` option or `:source-map` in `squint.edn` overrides both.
 
-Forms evaluated through the browser REPL get an inline source map for the
-editor's file.
-
 See [examples/source-maps](examples/source-maps) for an example.
 
 To build a source map for JavaScript compiled in memory, see

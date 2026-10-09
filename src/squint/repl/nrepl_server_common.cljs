@@ -11,7 +11,7 @@
    [cljs.pprint :as pp]
    ["fs" :as fs]
    ["net" :as node-net]
-   [squint.compiler.source-map :as sm]
+   [squint.compiler-common :as cc]
    [squint.internal.node.utils :as utils]
    [squint.repl.nrepl.bencode :refer [decode-all encode]]))
 
@@ -157,30 +157,7 @@
         ((.-reject ^js p) (js/Error. (str ex)))
         ((.-resolve ^js p) msg)))))
 
-(def ^:private eval-wrapper-prefix "(async function () {\n")
-
-(defn- inline-source-map
-  "Returns a sourceMappingURL comment for code evaluated from the request's
-  file, starting at its line and column, or nil if segments is empty."
-  [segments code {:keys [line column load-file? file-path] :as request}]
-  (when (seq segments)
-    (let [line (dec (or line 1))
-          column (dec (or column 1))
-          ;; load-file sends the contents in :file and the path in :file-path
-          file (if load-file? file-path (:file request))
-          segments (mapv (fn [[gl gc sl sc]]
-                           [gl gc (+ sl line) (if (zero? sl) (+ sc column) sc)])
-                         (sm/shift-segments segments eval-wrapper-prefix))
-          on-disk? (and file (fs/existsSync file))
-          json (sm/encode segments
-                               {:sources [(if file (utils/url-path (js/process.cwd) file) "repl")]
-                                :sources-content [(if on-disk?
-                                                    (fs/readFileSync file "utf8")
-                                                    code)]})]
-      (str "\n//# sourceMappingURL=data:application/json;base64,"
-           (.toString (js/Buffer.from json "utf8") "base64")))))
-
-(defn compile [the-val {:keys [ns] :as request}]
+(defn compile [the-val ns]
   (let [;; Apply the config file's :jsx-runtime so #jsx eval'd at the REPL
         ;; emits jsx() calls (not raw <tags>, which the browser can't eval).
         ;; The REPL is always dev, so use the jsx-dev-runtime.
@@ -190,11 +167,7 @@
         ;; form like (defn render ...) lands in that ns - not whatever was last
         ;; evaluated. A form's own (ns ...) still switches from there.
         ns (when ns (symbol ns))
-        ;; the browser applies maps to eval'd code, node does not
-        source-map? (and @!browser-send
-                         (not (false? (:source-map (utils/get-cfg (:config-file @!dialect))))))
         {js-str :javascript
-         segments :source-map-segments
          :as new-state} ((:compile-string* @!dialect)
                          the-val
                          (cond-> {;; :repl-return wraps the top-level value in [v]; the
@@ -208,20 +181,18 @@
                                   ;; browser transport loads modules itself, no path resolver needed
                                   :resolve-ns (when-not @!browser-send
                                                 (:resolve-ns-repl @!dialect))}
-                           source-map? (assoc :source-map true)
                            jsx-runtime (assoc :jsx-runtime jsx-runtime)
                            ;; share the host's ns-state so file-defined
                            ;; vars/aliases are visible to the REPL
                            @!ns-state (assoc :ns-state @!ns-state)
                            ns (assoc :ns ns))
                          @state)
-        _ (reset! state (dissoc new-state :source-map :source-map-json :source-map-segments))
+        _ (reset! state new-state)
         ;; ensure there's always a box to unwrap, even for forms with no
         ;; top-level return (e.g. a lone `(ns ...)`). The user's return-with-box,
         ;; when emitted, runs first and the appended line is unreachable.
         js-str (str js-str "\n;return [undefined];")
-        js-str (str eval-wrapper-prefix js-str "\n}) ()"
-                    (when source-map? (inline-source-map segments the-val request)))]
+        js-str (cc/replace-first* "(async function () {\n%s\n}) ()" "%s" js-str)]
     js-str))
 
 (defn node-eval
@@ -343,7 +314,7 @@
   JS entrypoint below."
   [code request]
   (-> (js/Promise.resolve code)
-      (.then (fn [c] (compile c request)))
+      (.then (fn [c] (compile c (:ns request))))
       (.then (fn [js-str] (@!eval-fn js-str request)))))
 
 (defn evaluate-string
