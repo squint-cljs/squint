@@ -1,7 +1,6 @@
 # Source maps demo
 
-`src/app.cljs` throws on bad input. Run it with source maps and the stack
-trace points at `src/app.cljs`:
+Run `npm start` to show source locations in the error stack trace:
 
 ```bash
 npm start
@@ -17,6 +16,6 @@ Error: not a number: x
 
 Run `npm run start:no-maps` to compare with the compiled JavaScript locations.
 
-Run `npm run serve` and open
-`http://localhost:8137/examples/source-maps/` with DevTools open to see the
-error mapped in the browser.
+Run `npm run serve`.
+Open `http://localhost:8137/examples/source-maps/` in your browser.
+Open DevTools to view the error stack trace.
