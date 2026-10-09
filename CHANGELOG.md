@@ -2,7 +2,7 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.15.212
 
 - [#453](https://github.com/squint-cljs/squint/issues/453): Add source maps for compiled files
 - `squint watch` writes source maps by default. Disable with `--no-source-map` or `:source-map false` in `squint.edn`
