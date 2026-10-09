@@ -6,6 +6,16 @@
   <meta content="width=device-width, initial-scale=1" name="viewport" />
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
   <meta content="utf-8" http-equiv="encoding" />
+  <script>
+    // Restore before layout so a saved split does not flash back to 50%.
+    try {
+      const savedSplit = localStorage.getItem('playground.pane-split');
+      const percentage = Number(savedSplit);
+      if (savedSplit !== null && savedSplit.trim() !== '' && Number.isFinite(percentage) && percentage >= 0 && percentage <= 100) {
+        document.documentElement.style.setProperty('--pane-split', `${percentage}%`);
+      }
+    } catch (_) { /* Storage may be disabled; the default split still works. */ }
+  </script>
   <script async src="https://ga.jspm.io/npm:es-module-shims@2.6.2/dist/es-module-shims.js"
     crossorigin="anonymous"></script>
   <script type="importmap">
@@ -46,6 +56,7 @@
     </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css" />
   <link rel="stylesheet" href="./css/main.css">
+  <script type="module" src="./pane-resizing.js"></script>
   <script type="module" src="./js/main_js.mjs">
   </script>
 </head>
@@ -56,7 +67,9 @@
     <div id="editor">
     </div>
     <div id="sidebar">
-      <div id="draggable-divider">
+      <div id="draggable-divider" role="separator" aria-orientation="vertical"
+           aria-label="Resize editor and sidebar" aria-controls="editor sidebar"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" tabindex="0">
         <div id="draggable-divider-line"></div>
       </div>
 
@@ -66,9 +79,6 @@
           <button onClick="compile()">
             Compile
           </button>
-        </div>
-
-        <div class="control-group" id="sharing-controls">
           <button onClick="share()" data-tip="tip-share">
             Share
           </button>
@@ -86,7 +96,7 @@
           </div>
         </div>
 
-        <div class="control-group" id="meta-controls">
+        <div class="control-group" id="compilation-controls">
           <button id="theme-toggle" data-tip="tip-theme-toggle" type="button">☼</button>
           <div popover="manual" role="tooltip" id="tip-theme-toggle">Toggle theme</div>
           <div id="star-counter">
@@ -95,6 +105,34 @@
             </a>
           </div>
         </div>
+
+        <!-- <div class="control-group" id="sharing-controls">
+          <button onClick="share()" data-tip="tip-share">
+            Share
+          </button>
+          <div popover="manual" id="tip-share" role="tooltip">
+            When sharing, the window URL will be <br/>
+            updated to encode the code in the text editor.<br/>
+            Copy it and share it with your friends!
+          </div>
+          <button onClick="blankAOC()"
+                  data-tip="tip-blank-advent-of-code">
+            Blank AOC Playground
+          </button>
+          <div popover="manual" id="tip-blank-advent-of-code" role="tooltip">
+            Create a blank Advent of Code playground
+          </div>
+        </div> -->
+
+        <!-- <div class="control-group" id="meta-controls">
+          <button id="theme-toggle" data-tip="tip-theme-toggle" type="button">☼</button>
+          <div popover="manual" role="tooltip" id="tip-theme-toggle">Toggle theme</div>
+          <div id="star-counter">
+            <a href="https://gitHub.com/squint-cljs/squint">
+              <img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star">
+            </a>
+          </div>
+        </div> -->
       </div>
 
       <div id="sidebar-sections">

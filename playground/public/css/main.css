@@ -12,13 +12,17 @@
     rgb(from gray r g b / 60%)
   );
   --panel-border-color-hover: light-dark(
-    rgb(from gray r g b / 80%),
-    rgb(from gray r g b / 100%)
+    rgb(from black r g b / 70%),
+    rgb(from white r g b / 70%)
   );
   --panel-border: 1px solid var(--panel-border-color);
   color-scheme: light;
   --button-color: light-dark(rgb(from currentColor r g b / 5%), rgb(from currentColor r g b / 12%));
   --tooltip-color: light-dark(#eee, #e5e5e5);
+  --ui-label-weight: 400;
+  --scrollbar-thumb-color: light-dark(rgb(128 128 128 / 23%), rgb(128 128 128 / 53%));
+  --scrollbar-thumb-color-hover: light-dark(rgb(128 128 128 / 43%), rgb(128 128 128 / 73%));
+  --draggable-pane-divisor-color-hover: light-dark(rgb(128 128 128 / 53%), rgb(128 128 128 / 73%));
 }
 
 :root[data-theme="light"]{
@@ -33,6 +37,10 @@
   background-color: var(--selection-background);
   color: var(--selection-color);
 }
+
+/* for draggable pane divider */
+@property --c1 { syntax: '<color>'; inherits: false; initial-value: transparent;}
+@property --c2 { syntax: '<color>'; inherits: false; initial-value: transparent;}
 
 body {
   color: var(--fg);
@@ -65,7 +73,7 @@ body, #editor, #sidebar {
 }
 
 #theme-toggle {
-  color: var(--fg);
+  color: light-dark(color-mix(in srgb, var(--fg), transparent 55%), color-mix(in srgb, var(--fg), transparent 15%));
   background:none;
   padding: 0;
   margin: 0;
@@ -75,9 +83,10 @@ body, #editor, #sidebar {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 1.75rem;
+  font-size: 1.25rem;
+  translate: 0 0.04em;
   [data-theme="dark"] & {
-    font-size: 1rem;
+    font-size: 1.95rem;
   }
   &:focus {
     outline: none;
@@ -102,7 +111,7 @@ body, #editor, #sidebar {
 }
 
 #main {
-
+  --pane-min-width: 300px;
   padding-inline: 0;
   display: flex;
   flex-direction: column;
@@ -110,13 +119,21 @@ body, #editor, #sidebar {
 
   @media screen and (min-width: 768px) {
     overflow: auto;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: clamp(var(--pane-min-width), var(--pane-split, 50%), calc(100% - var(--pane-min-width))) minmax(0, 1fr);
     /* fill the window instead of shrinking to the height of the code */
     height: calc(100dvh - 20px);
+  }
+
+  &.pane-resizing, &.pane-resizing * {
+    cursor: col-resize;
+    user-select: none;
   }
 }
 
 #editor {
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -131,12 +148,15 @@ body, #editor, #sidebar {
 
   @media screen and (min-width: 768px) {
     /* margin-bottom: 10px; */
-    width: 50%;
+    width: auto;
+    max-width: none;
     max-height: none;
   }
 }
 
 #sidebar {
+  min-width: 0;
+  box-sizing: border-box;
   --draggable-divider-width: 10px;
   overflow: hidden;
   position: relative;
@@ -158,50 +178,57 @@ body, #editor, #sidebar {
     margin-top: 0px;
     margin-left: 0px;
     /* margin-bottom: 10px; */
-    width: 50%;
+    width: auto;
     max-height: none;
   }
 
   .sidebar-section-label {
-    font-weight: 600;
+    font-weight: var(--ui-label-weight);
   }
 
   #draggable-divider {
+    display: none;
     width: var(--draggable-divider-width);
     position: absolute;
     top: 0px;
     left: 0px;
     height: 100%;
     cursor: col-resize;
-    &:hover {
-      &>div {
-        background: var(--panel-border-color-hover);
-        border: 0.5px solid var(--panel-border-color);
-        -webkit-mask-image: linear-gradient(#0000 0%,#000 10% 90%,#0000 100%);
-        mask-image: linear-gradient(#0000,#000 10% 90%,#0000);
-      }
+    touch-action: none;
+    z-index: 1;
+    @media screen and (min-width: 768px) {
+      display: block;
     }
-    &>div {
-      transition-property: background;
-      transition-duration: .25s;
+    &:focus-visible {
+      outline: none;
+    }
+    &>#draggable-divider-line {
+      --c1: var(--scrollbar-thumb-color);
+      --c2: var(--scrollbar-thumb-color);
       position: absolute;
       width: 1px;
       top: 0px;
-      left: 3px;
+      left: 2px;
+      translate: -50%;
       height: 100%;
-      background: var(--panel-border-color);
+      /* background: var(--panel-border-color); */
+      background-image: linear-gradient(var(--c1) 0%,var(--c2) 30% 70%,var(--c1) 100%);
+      transition: --c1 200ms ease, --c2 200ms ease, width 200ms ease;
+    }
+    &:hover:not(.pane-resizing), &.pane-resizing.pointer-over, &:focus-visible:not(.pointer-focused) {
+      &>#draggable-divider-line {
+        width: 3px;
+        --c2: var(--draggable-pane-divisor-color-hover);
+      }
     }
   }
 
   #sidebar-controls {
     width: 100%;
-    /* width: calc(100% - 25px - var(--viewport-padding-inline)); */
-    /* position:fixed; */
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-    /* buttons stay together on the left, star counter keeps the right edge */
+    justify-content: space-between;
     #meta-controls {
       margin-left: auto;
     }
@@ -210,7 +237,7 @@ body, #editor, #sidebar {
     }
 
     button:not(#theme-toggle) {
-      font-weight: 500;
+      font-weight: var(--ui-label-weight);
       color: var(--fg);
       background: var(--button-color);
       border: 1px solid rgb(from currentColor r g b / 20%);
@@ -227,18 +254,19 @@ body, #editor, #sidebar {
     }
     & .control-group {
       display: flex;
+      flex-wrap: wrap;
+      min-width: 0;
+      max-width: 100%;
       align-items: center;
       gap: 12px;
       &:has(#theme-toggle) {
+        min-height: 2.0em;
         gap: 20px;
       }
     }
-
   }
 
   #sidebar-sections {
-    /* margin-block-start: 3.6em; TODO - create a --control-group-button-font-size and use it to sync this spacing */
-    /* outline: 1px solid blue; */
     outline-offset: 6px;
     display: flex;
     flex-direction: column;
@@ -246,7 +274,6 @@ body, #editor, #sidebar {
     overflow: hidden;
 
     .sidebar-section {
-      /* outline: 2px solid orange; */
       outline-offset: 2px;
       overflow: hidden;
       display: flex;
@@ -260,7 +287,7 @@ body, #editor, #sidebar {
   }
 
   #repl-mode {
-    font-weight: 500;
+    font-weight: var(--ui-label-weight);
     display: flex;
     flex-direction: column;
     gap: 0.5em;
@@ -292,7 +319,6 @@ body, #editor, #sidebar {
   }
 
   #result {
-    /* outline: 1px solid magenta; */
     color: var(--fg);
     background: var(--bg);
     border: var(--panel-border);
@@ -315,7 +341,6 @@ body, #editor, #sidebar {
     display: flex;
     flex-direction: column;
     overflow:hidden;
-    /* outline: 1px solid lime; */
     padding-inline-start: 5px;
   }
 
@@ -346,23 +371,24 @@ body, #editor, #sidebar {
   scrollbar-width: auto;
 
   &::-webkit-scrollbar {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
   }
 
   &::-webkit-scrollbar-track {
     background: transparent;
   }
 
+
   &::-webkit-scrollbar-thumb {
-    background: light-dark(rgb(128 128 128 / 23%), rgb(128 128 128 / 53%));
+    background: var(--scrollbar-thumb-color);
     background-clip: padding-box;
     border: 4px solid transparent;
     border-radius: 12px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: light-dark(rgb(128 128 128 / 43%), rgb(128 128 128 / 73%));
+    background: var(--scrollbar-thumb-color-hover);
     background-clip: padding-box;
   }
   &::-webkit-scrollbar-corner {
@@ -385,11 +411,11 @@ body, #editor, #sidebar {
   border-radius: 4px;
   background: color-mix(in srgb, var(--bg), gray 10%);
   box-shadow:
-    0 0 0 0.5px light-dark(rgb(0 0 0 / 10%), rgb(255 255 255 / 33%)),  /* hairline edge */
-    0 2px 16px light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 35%));
+    0 0 0 0.5px light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 35%)),  /* hairline edge */
+    0 2px 20px light-dark(rgb(0 0 0 / 16%), rgb(255 255 255 / 35%));
   color: var(--fg);
-  padding: 10px 16px;
-  font: 0.9em/1.5 system-ui, sans-serif;
+  padding: 6px 12px;
+  font: 1em/1.5 system-ui, sans-serif;
   white-space: nowrap;
   pointer-events: none;
 
@@ -416,8 +442,4 @@ body, #editor, #sidebar {
     opacity: 0;
     translate: 0 -4px;
   }
-}
-
-::selection {
-  background-color: blue!important;
 }
