@@ -893,25 +893,24 @@
         expr? (= :expr (:context env))
         gs (gensym "caseval__")
         eenv (expr-env env)
-        ret (cond-> (str
+        ret (cond-> (ast/raw
                      (when expr?
                        (str "var " gs ";\n"))
                      "switch (" (emit v eenv) ") {"
-                     (str/join (map (fn [test then]
-                                      (str/join
-                                       (map (fn [test]
-                                              (str "case " (emit test eenv) ":\n"
-                                                   (if expr?
-                                                     (str gs " = " then)
-                                                     (statement (emit then env)))
-                                                   "\nbreak;\n"))
-                                            test)))
-                                    tests thens))
+                     (mapv (fn [test then]
+                             (mapv (fn [test]
+                                     (ast/raw "case " (emit test eenv) ":\n"
+                                              (if expr?
+                                                (str gs " = " then)
+                                                (statement (emit then env)))
+                                              "\nbreak;\n"))
+                                   test))
+                           tests thens)
                      (when default
-                       (str "default:\n"
-                            (if expr?
-                              (str gs " = " (emit default eenv))
-                              (emit default env))))
+                       (ast/raw "default:\n"
+                                (if expr?
+                                  (ast/raw gs " = " (emit default eenv))
+                                  (emit default env))))
                      (when expr?
                        (str "return " gs ";"))
                      "}")
@@ -930,12 +929,10 @@
         eenv (expr-env env)]
     (when-let [cb (:recur-callback env)]
       (cb bindings))
-    (str
-     (str/join ""
-               (map (fn [temp expr]
-                      (statement (format "let %s = %s"
-                                         temp (emit expr eenv))))
-                    temps exprs))
+    (ast/raw
+     (mapv (fn [temp expr]
+             (statement (ast/raw "let " temp " = " (emit expr eenv))))
+           temps exprs)
      (str/join ""
                (map (fn [binding temp]
                       (statement (format "%s = %s"
@@ -1469,7 +1466,7 @@
           [`(. ~target ~val) alt]
           [target val])
         eenv (expr-env env)]
-    (emit-return (cond-> (str (emit target eenv) " = " (emit val eenv))
+    (emit-return (cond-> (ast/raw (emit target eenv) " = " (emit val eenv))
                    (= :expr (:context env)) wrap-parens)
                  env)))
 
@@ -1501,9 +1498,9 @@
       (tagged-expr 'number)))
 
 (defmethod emit-special 'while [_type env [_while test & body]]
-  (str "while (" (emit test (expr-env env)) ") { \n"
-       (emit-do (assoc env :context :statement) body)
-       "\n}"))
+  (ast/raw "while (" (emit test (expr-env env)) ") { \n"
+           (emit-do (assoc env :context :statement) body)
+           "\n}"))
 
 (defn map-params [m]
   (let [ks (:keys m)]

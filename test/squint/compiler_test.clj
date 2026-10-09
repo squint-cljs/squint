@@ -171,6 +171,10 @@
            ["a call in a super call maps to its form"
             "(ns x (:require [squint.core :refer [defclass]])) (defclass A (extends B) (field y (j 0)) (constructor [this a] (super (k a)) (g a)) Object (m [_] (h 2)))"
             "k(a" [1 120]]
+           ["a call in a case branch maps to its form" "(defn f [x] (case x 1 (h 1) 2))" "h(1)" [1 23]]
+           ["a call in a recur argument maps to its form" "(defn f [] (loop [i 0] (if (g i) (recur (h i)) i)))" "h(i" [1 41]]
+           ["a call in a set! value maps to its form" "(defn f [o] (set! (.-a o) (g 1)))" "g(1)" [1 27]]
+           ["a call in a while body maps to its form" "(defn f [] (while (g 1) (h 2)))" "h(2)" [1 25]]
            ["a call lifted out of an IIFE keeps its form"
             "(defn f [a]\n  (let [b (let [c (g a)]\n            (h c))]\n    (k b)))"
             "h(c_2)" [3 13] {:passes [lift-iife/lift]}]]]
@@ -200,6 +204,9 @@
     (let [js (lifted "(defprotocol P (m [_])) (deftype T [a] P (m [_] (if (let [b (g a)] (h b)) 1 2)))")]
       (is (str/includes? js "const self__ = this;;\nconst b_1 = g(self__.a);\nif (squint_core.truth_(h(b_1))) {"))
       (is (not (str/includes? js "(() => {")))))
+  (t/testing "a let in an if test inside a case branch becomes statements in the branch"
+    (is (str/includes? (lifted "(defn f [x] (case x 1 (if (let [y (g x)] (h y)) 2 3) 4))")
+                       "case 1:\nconst y_3 = g(x);\nif (squint_core.truth_(h(y_3))) {")))
   (t/testing "an IIFE after a call argument stays"
     (is (str/includes? (lifted "(defn f [a] (k (g a) (let [z (g a)] (h z))))") "(() => {")))
   (t/testing "an IIFE at module level stays"
