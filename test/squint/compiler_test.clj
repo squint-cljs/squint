@@ -147,6 +147,12 @@
            ["text after a nested call maps to the enclosing form" "(defn f [x] (g (h x) 2))" ", 2)" [1 13]]
            ["a call in a vector literal maps to its form" "(defn f [] [(g 1)])" "g(1)" [1 13]]
            ["a call in a map literal maps to its form" "(defn f [] {:a (g 1)})" "g(1)" [1 16]]
+           ["a call in a try body maps to its form"
+            "(defn f [] (try (g 1) (catch :default e (j e)) (finally (k 2))))" "g(1)" [1 17]]
+           ["a call in a catch body maps to its form"
+            "(defn f [] (try (g 1) (catch :default e (j e)) (finally (k 2))))" "j(e" [1 41]]
+           ["a call in a finally body maps to its form"
+            "(defn f [] (try (g 1) (catch :default e (j e)) (finally (k 2))))" "k(2)" [1 57]]
            ["a call lifted out of an IIFE keeps its form"
             "(defn f [a]\n  (let [b (let [c (g a)]\n            (h c))]\n    (k b)))"
             "h(c_2)" [3 13] {:passes [lift-iife/lift]}]]]
