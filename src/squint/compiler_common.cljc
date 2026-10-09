@@ -1476,15 +1476,15 @@
 (defmethod emit-special 'squint.impl/hoist* [_ env [_ local body]]
   ;; runs body once, on first use, in a module-level init fn without the enclosing locals
   (let [init-body (emit body (assoc env :var->ident {} :context :statement :top-level false))
-        ret (str init-body "\nreturn " (munge local) ";\n")]
+        ret (ast/raw init-body "\nreturn " (munge local) ";\n")]
     (if-let [hoisted (:hoisted env)]
       (let [idx (count @hoisted)
             id (if (:repl env)
                  (str (gensym "squint$hoist$"))
                  (str "squint$hoist$" idx))]
-        (swap! hoisted conj (str "var " id ";\nfunction " id "_init() {\n" ret "}\n"))
+        (swap! hoisted conj (ast/raw "var " id ";\nfunction " id "_init() {\n" ret "}\n"))
         (emit-return (str "(" id " ??= " id "_init())") env))
-      (emit-return (str "((() => {\n" ret "})())") env))))
+      (emit-return (ast/raw "((() => {\n" ret "})())") env))))
 
 (defmethod emit-special 'new [_type env [_new class & args]]
   (emit-return (wrap-parens (ast/node {:type :new-expression
@@ -2147,35 +2147,31 @@
                                         m (if (seen m) (str m "$" (count acc)) m)]
                                     [(conj seen m) (conj acc (symbol m))]))
                                 [#{} []] fields))]
-    (str "var " (munge t)
-         " = "
-         (format "function %s {
-%s
-%s
-};
-%s"
-                 (comma-list fields*)
-                 (str/join "\n"
-                           (map (fn [fld]
-                                  (str "this." fld " = " fld ";"))
-                                fields*))
-                 (str/join "\n"
-                           (map (fn [[pno pmask]]
-                                  (str "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
-                                pmasks))
-                 (emit body
-                       (->
-                        env
-                        (update
-                         :var->ident
-                         (fn [vi]
-                           (-> vi
-                               (merge
-                                (zipmap fields
-                                        (map (fn [fld]
-                                               (symbol (str "self__." fld)))
-                                             fields*))))))
-                        (assoc :type true)))))))
+    (ast/raw "var " (munge t)
+             " = function " (comma-list fields*) " {\n"
+             (str/join "\n"
+                       (map (fn [fld]
+                              (str "this." fld " = " fld ";"))
+                            fields*))
+             "\n"
+             (str/join "\n"
+                       (map (fn [[pno pmask]]
+                              (str "this.cljs$lang$protocol_mask$partition" pno "$ = " pmask ";"))
+                            pmasks))
+             "\n};\n"
+             (emit body
+                   (->
+                    env
+                    (update
+                     :var->ident
+                     (fn [vi]
+                       (-> vi
+                           (merge
+                            (zipmap fields
+                                    (map (fn [fld]
+                                           (symbol (str "self__." fld)))
+                                         fields*))))))
+                    (assoc :type true))))))
 
 (defmethod emit-special 'record-methods* [_ env [_ fields form]]
   (emit form
