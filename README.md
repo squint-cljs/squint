@@ -458,6 +458,9 @@ editor's file.
 
 See [examples/source-maps](examples/source-maps) for an example.
 
+To build a source map for JavaScript compiled in memory, see
+[doc/source-maps.md](doc/source-maps.md).
+
 ## Svelte
 
 A svelte pre-processor for squint can be found [here](https://github.com/jruz/svelte-preprocess-cljs).
