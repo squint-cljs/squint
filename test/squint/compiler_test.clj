@@ -155,6 +155,10 @@
             "(defn f [] (try (g 1) (catch :default e (j e)) (finally (k 2))))" "k(2)" [1 57]]
            ["a call in a doseq body maps to its form" "(defn f [xs] (doseq [x xs] (g x)))" "g(x" [1 28]]
            ["a call in a for body maps to its form" "(defn f [xs] (for [x xs] (g x)))" "g(x" [1 26]]
+           ["a call in a deftype method maps to its form"
+            "(defprotocol P (m [_])) (deftype T [a] P (m [_] (g a)))" "g(s" [1 49]]
+           ["a call in a reify method maps to its form"
+            "(defn f [] (reify Object (toString [_] (g 1))))" "g(1)" [1 40]]
            ["a call lifted out of an IIFE keeps its form"
             "(defn f [a]\n  (let [b (let [c (g a)]\n            (h c))]\n    (k b)))"
             "h(c_2)" [3 13] {:passes [lift-iife/lift]}]]]
@@ -162,6 +166,10 @@
           (sq/compile* src (merge {:source-map true :elide-imports true :elide-exports true} opts))]
       (t/testing desc
         (is (= expected (mapped-at source-map-segments (gen-pos javascript generated))))))))
+
+(deftest deftype-test
+  (t/testing "a deftype without methods emits no null statement"
+    (is (not (str/includes? (sq/compile-string "(deftype T [a])") "null;")))))
 
 (deftest lift-iife-test
   (t/testing "a let in a binding init becomes statements"
@@ -176,6 +184,10 @@
     (is (= (str "var f = function () {\ntry{\nreturn g(1);\n}\ncatch(e_1){\nconst m_2 = e_1.message;\n"
                 "if (squint_core.truth_(h(m_2))) {\nreturn 1} else {\nreturn 2};\n}\n;\n\n};\n")
            (lifted "(defn f [] (try (g 1) (catch :default e (if (let [m (.-message e)] (h m)) 1 2))))"))))
+  (t/testing "a let in an if test inside a deftype method becomes statements in the method"
+    (let [js (lifted "(defprotocol P (m [_])) (deftype T [a] P (m [_] (if (let [b (g a)] (h b)) 1 2)))")]
+      (is (str/includes? js "const self__ = this;;\nconst b_1 = g(self__.a);\nif (squint_core.truth_(h(b_1))) {"))
+      (is (not (str/includes? js "(() => {")))))
   (t/testing "an IIFE after a call argument stays"
     (is (str/includes? (lifted "(defn f [a] (k (g a) (let [z (g a)] (h z))))") "(() => {")))
   (t/testing "an IIFE at module level stays"
