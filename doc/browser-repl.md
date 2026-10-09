@@ -106,6 +106,7 @@ plain atom with `add-watch` + `render`. See
 | `:nrepl-port` | nREPL port (default `1339`) |
 | `:target` | runtime target (only `browser`) |
 | `:jsx-runtime` | `{:import-source "react"\|"preact"}` to emit jsx-runtime calls for JSX (see above) |
+| `:source-map` | write source maps (default `true` in development, vite's `build.sourcemap` in a build) |
 
 ## Optional: pre-bundle deps for a smoother REPL
 

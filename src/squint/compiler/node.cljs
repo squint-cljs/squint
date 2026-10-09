@@ -5,6 +5,7 @@
    [clojure.string :as str]
    [shadow.esm :as esm]
    [squint.compiler :as compiler]
+   [squint.compiler.source-map :as sm]
    [squint.internal.node.macro-scan :as ms]
    [squint.internal.node.utils :as utils]))
 
@@ -90,7 +91,20 @@
                      (throw (js/Error. "File not found, make sure output-dir is a valid path: "
                                        {:output-dir output-dir
                                         :out-file out-file})))
-                   (spit out-file javascript)
+                   (if-let [segments (:source-map-segments opts)]
+                     (let [map-file (str out-file ".map")]
+                       (spit map-file (sm/encode
+                                       segments
+                                       {:file (path/basename out-file)
+                                        :sources [(if in-file
+                                                    (utils/url-path out-path (path/resolve in-file))
+                                                    "<stdin>")]
+                                        :sources-content [contents]}))
+                       (spit out-file (str javascript "\n//# sourceMappingURL="
+                                           (path/basename map-file) "\n")))
+                     (let [stale-map (str out-file ".map")]
+                       (when (fs/existsSync stale-map) (fs/unlinkSync stale-map))
+                       (spit out-file javascript)))
                    (cond-> (assoc opts :out-file out-file)
                      (:repl opts) (assoc :dev-hooks (dev-hooks (:ns-state opts))))))))))
 

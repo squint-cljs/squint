@@ -4,6 +4,7 @@
    #?(:cljs [goog.string :as gstring])
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
+   [squint.compiler.js-ast :as ast]
    [squint.compiler.utils :as utils :refer [munge]]
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
@@ -44,7 +45,9 @@
    'some? macros/core-some?})
 
 (defn wrap-parens [s]
-  (str "(" s ")"))
+  (if (string? s)
+    (str "(" s ")")
+    (ast/node {:type :parenthesized-expression :expression s})))
 
 #?(:cljs (def Exception js/Error))
 
@@ -60,13 +63,15 @@
     ;; value so a Promise the user produced isn't auto-unwrapped by the async
     ;; eval IIFE. Sub-emits that enter a new fn scope assoc :context :return,
     ;; which naturally degrades to a plain (unwrapped) return.
-    :repl-return (format "return [%s]" s)
-    :return (format "return %s" s)
+    :repl-return (ast/node {:type :return-statement
+                            :argument (ast/node {:type :array-expression
+                                                :elements [(if (nil? s) "null" s)]})})
+    :return (ast/node {:type :return-statement :argument s})
     s))
 
 (defrecord Code [js tag transient]
   Object
-  (toString [_] js))
+  (toString [_] (str js)))
 
 (defn tagged-expr
   ([js tag]
@@ -92,13 +97,20 @@
   (let [mexpr (meta expr)
         tag (:tag mexpr)
         transient (:transient mexpr)
-        template (str template)]
+        template (if (instance? Code template) (:js template) template)]
     (cond->
-        (-> (reduce (fn [template substitution]
-                      (replace-first* template "~{}"
-                                      (emit substitution (merge (assoc env :context :expr)))))
-                    template
-                    args)
+        (-> (if (and (empty? args) (ast/node? template))
+              template
+              (let [template (str template)
+                    pieces (loop [from 0 acc []]
+                             (if-let [i (str/index-of template "~{}" from)]
+                               (recur (+ i 3) (conj acc (subs template from i)))
+                               (conj acc (subs template from))))
+                    emitted (mapv #(emit % (assoc env :context :expr)) args)
+                    n (min (count emitted) (dec (count pieces)))]
+                (apply ast/raw
+                       (concat (interleave (take n pieces) (take n emitted))
+                               [(str/join "~{}" (drop n pieces))]))))
             (emit-return (merge env (meta expr))))
       tag (tagged-expr tag transient))))
 
@@ -138,35 +150,36 @@
   [value form env]
   (if-let [um (user-meta form)]
     (do (record-core-var! env "with_meta")
-        (str (when-let [ca (:core-alias env)] (str ca "."))
-             "with_meta(" value ", " (emit um (expr-env (dissoc env :jsx))) ")"))
+        (ast/raw (when-let [ca (:core-alias env)] (str ca "."))
+                 "with_meta(" value ", " (emit um (expr-env (dissoc env :jsx))) ")"))
     value))
 
 (defn yield-iife
   [s env]
   (if (:gen env)
-    (format "(yield* %s)" s)
+    (ast/node {:type :yield-expression :argument s :delegate true})
     s))
 
 (defn wrap-await
   [s _env]
-  (format "(%s)" (str "await " s)))
+  (ast/node {:type :await-expression :argument s}))
 
 (defn wrap-implicit-iife
   [s env]
   (let [gen? (:gen env)]
-    (cond-> (format (if gen?
-                      "(%sfunction%s () {\n%s\n})()"
-                      "(%s() =>%s {\n%s\n})()")
-                    (if (:async env) "async " "")
-                    (if gen?
-                      "*" "")
-                    s)
+    (cond-> (ast/node {:type :call-expression
+                       :callee (ast/node {:type (if gen? :function-expression :arrow-function-expression)
+                                         :params []
+                                         :async (boolean (:async env))
+                                         :generator (boolean gen?)
+                                         :body (ast/node {:type :block-statement :body s})
+                                         ::ast/iife true})
+                       :arguments []})
       (:async env) (wrap-await env)
       true (yield-iife env))))
 
 (defmethod emit-special 'throw [_ env [_ expr]]
-  (cond-> (str "throw " (emit expr (expr-env env)))
+  (cond-> (ast/raw "throw " (emit expr (expr-env env)))
     (= :expr (:context env)) (wrap-implicit-iife env)))
 
 (def statement-separator ";\n")
@@ -179,15 +192,26 @@
       s
       (.substring s (- (count s) n)))))
 
+(def ^:private expression-types
+  #{:call-expression :new-expression :member-expression :conditional-expression
+    :parenthesized-expression :await-expression :yield-expression
+    :array-expression})
+
 (defn statement [expr]
-  (let [expr (str expr)]
-    (when-not (str/blank? expr)
-      (if (not (= statement-separator (str-tail (count statement-separator) expr)))
-        (str expr statement-separator)
-        expr))))
+  (if (ast/structured? expr)
+    (let [t (:type expr)]
+      (cond (contains? expression-types t)
+            (ast/node {:type :expression-statement :expression expr})
+            (= :variable-declaration t) expr
+            :else (ast/terminate expr)))
+    (let [expr (str expr)]
+      (when-not (str/blank? expr)
+        (if (not (= statement-separator (str-tail (count statement-separator) expr)))
+          (str expr statement-separator)
+          expr)))))
 
 (defn comma-list [coll]
-  (str "(" (str/join ", " coll) ")"))
+  (apply ast/raw "(" (concat (interpose ", " coll) [")"])))
 
 (defn munge* [expr]
   (let [munged (str (munge expr))
@@ -313,7 +337,7 @@
 
 (defn emit-args [env args]
   (let [env (assoc env :context :expr :top-level false)]
-    (map #(emit % env) args)))
+    (mapv #(emit % env) args)))
 
 (defn emit-infix [_type enc-env [operator & args]]
   (let [env (assoc enc-env :context :expr :top-level false)
@@ -338,10 +362,10 @@
              "1"
              (and (= '- operator)
                   (= 1 acount))
-             (str "-(" (emit (first args) env) ")")
+             (ast/raw "-(" (emit (first args) env) ")")
              (and (= '/ operator)
                   (= 1 acount))
-             (str "1 / " (emit (first args) env))
+             (ast/raw "1 / " (emit (first args) env))
              :else
              (-> (let [substitutions {'== "===" '!= "!=="
                                       '+ "+"
@@ -349,9 +373,9 @@
                                       'bit-and "&"
                                       'js-mod "%"
                                       'js-?? "??"}]
-                   (str/join (str " " (or (substitutions operator)
-                                          operator) " ")
-                             (emit-args env args)))))
+                   (ast/raw (interpose (str " " (or (substitutions operator)
+                                                    operator) " ")
+                                       (emit-args env args))))))
        wrap-parens
        (emit-return enc-env)
        (cond->
@@ -760,7 +784,7 @@
   (let [p (:pragmas env)
         past (and p (:past @p))]
     (if (and (:top-level env)
-             (re-find #"^(/\*|//|\"|\')" (str next-t)))
+             (re-find #"^(/\*|//|\"|\')" (ast/head 2 next-t)))
       (let [js (str next-t "\n")]
         (if (and p (not past)
                  ;; always leave jsdoc untouched
@@ -782,14 +806,14 @@
         ctx (:context env)
         statement-env (assoc env :context :statement)
         iife? (and (seq bl) (= :expr ctx))
-        exprs (str/join (map #(save-pragma statement-env (emit % statement-env)) bl))
+        exprs (mapv #(save-pragma statement-env (emit % statement-env)) bl)
         lctx (if iife? :return ctx)
         res (emit l (assoc env :context lctx))
         tag (:tag res)
         transient (:transient res)
         res (cond-> res
               (= :return ctx) (statement))
-        s (cond-> (str exprs res)
+        s (cond-> (apply ast/raw (conj exprs res))
             iife?
             (wrap-implicit-iife env))]
     (cond-> s
@@ -818,17 +842,20 @@
                           lhs (str renamed)
                           rhs (emit rhs (assoc env :var->ident var->ident))
                           tag (:tag rhs)
-                          expr (format "%s %s = %s;\n" (if (or loop? top-level?
-                                                               (:mutable vm))
-                                                         "let" "const") lhs rhs)
+                          expr (ast/node {:type :variable-declaration
+                                          :kind (if (or loop? top-level?
+                                                       (:mutable vm))
+                                                 "let" "const")
+                                          :declarations [(ast/node {:type :variable-declarator
+                                                                   :id lhs :init rhs})]})
                           var->ident
                           (-> var->ident
                               (assoc var-name
                                      (cond-> renamed
                                        tag
                                        (vary-meta assoc :tag tag))))]
-                      [(str acc expr) var->ident]))
-                  ["" upper-var->ident]
+                      [(conj acc expr) var->ident]))
+                  [[] upper-var->ident]
                   partitioned))
         enc-env (assoc enc-env :var->ident var->ident :top-level false)
         body (let [recur-targets (if loop? (map var->ident (map first partitioned))
@@ -839,7 +866,7 @@
                             (assoc :recur-targets recur-targets)) body))
         tag (:tag body)
         transient (:transient body)]
-    (cond-> (str
+    (cond-> (ast/raw
              bindings
              (when loop?
                "while(true){\n")
@@ -936,10 +963,12 @@
         ;; set!/binding can mutate it across ESM modules; references read .value.
         ;; Cherry boxes user dynvars the same way.
         init (if (dynamic-name? name)
-               (str "({val: " init "})")
+               (ast/raw "({val: " init "})")
                init)]
-    (str "var " ident " = "
-         init ";\n"
+    (ast/raw
+     (ast/node {:type :variable-declaration
+                :kind "var"
+                :declarations [(ast/node {:type :variable-declarator :id ident :init init})]})
          (when (:repl env)
            (emit-return (str "globalThis."
                             (when (current-ns env)
@@ -1385,10 +1414,12 @@
 (defn emit-method [env obj method args]
   (let [eenv (expr-env env)
         method (munge** method)]
-    (emit-return (str (cond-> (emit obj eenv)
-                        (number? obj) wrap-parens) "."
-                      method
-                      (comma-list (emit-args env args)))
+    (emit-return (ast/node {:type :call-expression
+                            :callee (ast/node {:type :member-expression
+                                              :object (cond-> (emit obj eenv)
+                                                       (number? obj) wrap-parens)
+                                              :property method})
+                            :arguments (vec (emit-args env args))})
                  env)))
 
 (defmethod emit-special '. [_type env [_period obj method & args]]
@@ -1456,7 +1487,10 @@
       (emit-return (str "((() => {\n" ret "})())") env))))
 
 (defmethod emit-special 'new [_type env [_new class & args]]
-  (emit-return (wrap-parens (str "new " (emit class (expr-env env)) (comma-list (emit-args env args)))) env))
+  (emit-return (wrap-parens (ast/node {:type :new-expression
+                                       :callee (emit class (expr-env env))
+                                       :arguments (vec (emit-args env args))}))
+               env))
 
 (defmethod emit-special 'dec [_type env [_ var]]
   (-> (emit-return (str "(" (emit var (assoc env :context :expr)) " - " 1 ")") env)
@@ -1512,7 +1546,7 @@
   (let [keys (:keys x)]
     (str "{" (str/join "," (map munge keys)) "}")))
 
-(defn emit-function [env _name sig body & [elide-function?]]
+(defn emit-function [env _name sig body]
   ;; (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
   (let [env (assoc env :fn-scope true)
@@ -1534,30 +1568,19 @@
                    (emit-do (assoc env :context :return)
                             body))
             body (if @recur?
-                   (format "while(true){
-%s
-break;}" body)
+                   (ast/raw "while(true){\n" body "\nbreak;}")
                    body)]
-        (str (when-not elide-function?
-               (str (when (:async env)
-                      "async ")
-                    (when-not arrow? "function")
-                    (when (:gen env)
-                      "*")
-                    (when (or (not arrow?)
-                              (:async env))
-                      " ")))
-             (comma-list (map (fn [x]
-                                (if (map? x)
-                                  (destructured-map env x)
-                                  x)) sig))
-             (when arrow?
-               "=>")
-             (if single-expr-arrow?
-               body
-               (str
-                " {\n"
-                body "\n}")))))
+        (ast/node {:type (if arrow? :arrow-function-expression :function-expression)
+                   :params (mapv (fn [x]
+                                  (if (map? x)
+                                    (destructured-map env x)
+                                    x)) sig)
+                   :async (boolean (:async env))
+                   :generator (boolean (:gen env))
+                   :expression (boolean single-expr-arrow?)
+                   :body (if single-expr-arrow?
+                          body
+                          (ast/node {:type :block-statement :body body}))})))
 
 (defn emit-function* [env expr opts]
   (let [name (when (symbol? (first expr)) (first expr))
@@ -1583,14 +1606,8 @@ break;}" body)
                     ;; the fn name is a local in its body
                     env (update env :var->ident assoc name
                                 (with-meta (symbol (str (munge name))) {:squint.compiler/no-rename true}))]
-                (str (when (:async env)
-                       "async ") "function"
-                     ;; TODO: why is this duplicated here and in emit-function?
-                     (when (:gen env)
-                       "*")
-                     " "
-                     (munge name) " "
-                     (emit-function env name signature body true)))
+                (assoc (emit-function env name signature body)
+                       :id (munge name)))
               (let [body (rest expr)]
                 (emit-function env nil signature body)))
             (cond-> (and
@@ -1697,7 +1714,11 @@ break;}" body)
                          (= "js" ns))
         tag (or (:tag (meta expr)) ret-tag)
         transient (:transient (meta expr))]
-    (cond-> (emit-return (str
+    (cond-> (emit-return (if-not cherry?
+                           (ast/node {:type :call-expression
+                                      :callee (emit fname (expr-env env))
+                                      :arguments (vec (emit-args env args))})
+                         (ast/raw
                          (emit fname (expr-env env))
                          ;; this is needed when calling keywords, symbols, etc. We could
                          ;; optimize this later by inferring that we're not directly
@@ -1710,7 +1731,7 @@ break;}" body)
                                                      (if (= "super" (first (str/split (str fname) #"\.")))
                                                        'self__ nil) args)
                                                     args)
-                                                  args))))
+                                                  args)))))
                          env)
       tag (tagged-expr tag transient))))))
 
@@ -1842,18 +1863,16 @@ break;}" body)
        ;; NOTE: we wrap the entire expression in parens here because some macros like bitshift-left expect their args to be already wrapped in parens
        ;; So far we've taken the approach that at the location where arguments are used we wrap those in parens which is a bit contradictory
        ;; At some point we may want to clean this up a bit. See #622 as well.
-       (format "((%s) ? (%s) : (%s))"
-               condition
-               (emit then env)
-               (emit else env))
+       (ast/node {:type :conditional-expression
+                  :test condition
+                  :consequent (emit then env)
+                  :alternate (emit else env)})
        (emit-return env))
-      (str (format "if (%s) {\n" condition)
-           (emit then env)
-           "}"
-           (when (= 4 (count expr)) ;; explicit else branch
-             (str " else {\n"
-                  (emit else env)
-                  "}"))))))
+      (ast/node {:type :if-statement
+                 :test condition
+                 :consequent (ast/node {:type :block-statement :body (emit then env)})
+                 :alternate (when (= 4 (count expr)) ;; explicit else branch
+                             (ast/node {:type :block-statement :body (emit else env)}))}))))
 
 (defn wrap-double-quotes [x]
   (str \" x \"))
@@ -2111,8 +2130,7 @@ break;}" body)
                           (str core-alias ".")
                           "")
                         (str/join ", " (emit-args env expr))))
-            (format "[%s]"
-                    (str/join ", " (emit-args env expr))))
+            (ast/raw "[" (interpose ", " (emit-args env expr)) "]"))
           expr env)
          env)
         (tagged-expr 'array))))

@@ -3,6 +3,7 @@
   (:require
    [babashka.fs :as fs]
    [babashka.process :as p]
+   [cheshire.core :as json]
    [clojure.test :as t :refer [deftest is]]
    [clojure.string :as str]))
 
@@ -168,6 +169,56 @@
     ;; the failure is inside the transitively loaded macro ns, not the compiled file
     (is (re-find #"Error while compiling .*main\.cljs \(loading .*badmac\.cljc:3:\d+\)" err))
     (is (str/includes? err "Unmatched delimiter"))))
+
+(def ^:private base64-chars
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/")
+
+(defn- decode-vlq [s]
+  (loop [cs (seq s) shift 0 acc 0 out []]
+    (if-let [c (first cs)]
+      (let [d (str/index-of base64-chars c)
+            acc (+ acc (bit-shift-left (bit-and d 31) shift))]
+        (if (pos? (bit-and d 32))
+          (recur (rest cs) (+ shift 5) acc out)
+          (recur (rest cs) 0 0 (conj out (if (odd? acc) (- (quot acc 2)) (quot acc 2))))))
+      out)))
+
+(defn- decode-mappings [mappings]
+  (let [state (volatile! [0 0 0])]
+    (vec (mapcat (fn [gl line]
+                   (let [gc (volatile! 0)]
+                     (for [seg (remove str/blank? (str/split line #","))
+                           :let [[dgc _ dsl dsc] (decode-vlq seg)
+                                 [_ sl sc] @state]]
+                       (do (vswap! gc + dgc)
+                           (vreset! state [0 (+ sl dsl) (+ sc dsc)])
+                           [gl @gc (+ sl dsl) (+ sc dsc)]))))
+                 (range) (str/split mappings #";" -1)))))
+
+(defn- gen-pos [js s]
+  (when-let [i (str/index-of js s)]
+    (let [before (subs js 0 i)]
+      [(count (filter #{\newline} before))
+       (- i (inc (or (str/last-index-of before "\n") -1)))])))
+
+(deftest compile-source-map-test
+  (fs/create-dirs (fs/file test-dir "src"))
+  (spit (fs/file test-dir "src/app.cljs") "(ns app)\n(defn f [x]\n  (g x))\n")
+  (let [{:keys [exit]} (squint "compile" "--source-map" "--output-dir" "out" "src/app.cljs")
+        js-file (fs/file test-dir "out/src/app.mjs")
+        js (slurp js-file)
+        sm (json/parse-string (slurp (str js-file ".map")))]
+    (is (zero? exit))
+    (t/testing "the JS ends with a sourceMappingURL comment"
+      (is (str/ends-with? js "\n//# sourceMappingURL=app.mjs.map\n")))
+    (t/testing "sources is relative to the JS file"
+      (is (= ["../../src/app.cljs"] (get sm "sources"))))
+    (t/testing "the call (g x) maps to line 3, column 3"
+      (is (some #{(conj (gen-pos js "g(x)") 2 2)} (decode-mappings (get sm "mappings"))))))
+  (t/testing "a compile without --source-map removes the old map"
+    (squint "compile" "--output-dir" "out" "src/app.cljs")
+    (is (not (fs/exists? (fs/file test-dir "out/src/app.mjs.map"))))
+    (is (not (str/includes? (slurp (fs/file test-dir "out/src/app.mjs")) "sourceMappingURL")))))
 
 (defn run-tests [_]
   (let [{:keys [fail error]}

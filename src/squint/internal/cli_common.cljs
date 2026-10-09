@@ -196,6 +196,8 @@
                     :coerce :boolean}
    :elide-exports  {:desc "Do not include exports"
                     :coerce :boolean}
+   :source-map     {:desc "Write a source map next to each JS file"
+                    :coerce :boolean}
    :extension      {:desc "Default extension for JS files"
                     :ref "<ext>"
                     :default ".mjs"
@@ -217,9 +219,11 @@
                     :ref "<dir>"
                     :default "."
                     :coerce :string}})
-(def compile-opt-order [:elide-imports :elide-exports :extension :paths :copy-resources :output-dir :help])
+(def compile-opt-order [:elide-imports :elide-exports :source-map :extension :paths :copy-resources :output-dir :help])
 
-(def watch-spec (assoc-in compile-spec [:paths :desc] "Watch paths for cljs/cljc files"))
+(def watch-spec (-> compile-spec
+                    (assoc-in [:paths :desc] "Watch paths for cljs/cljc files")
+                    (assoc-in [:source-map :desc] "Write a source map next to each JS file (default: true)")))
 (def watch-opt-order compile-opt-order)
 
 (def eval-spec
@@ -287,7 +291,7 @@
    :epilog (config-note dialect)
    :fn (fn [{:keys [opts] :as m}]
          (args-validate (assoc m :arg-count 0))
-         (let [opts (utils/expand-paths opts)]
+         (let [opts (utils/expand-paths (merge {:source-map true} opts))]
            (utils/set-cfg! config-file opts)
            (watch dialect opts)))})
 

@@ -4885,6 +4885,30 @@ new Foo();")
   (testing "(+ 1 2) leaves :used-core-vars empty"
     (is (empty? (:used-core-vars (squint/compile* "(+ 1 2)"))))))
 
+(deftest source-map-test
+  (let [{:keys [source-map-json]} (squint/compile* "(ns m)\n(defn f [x]\n  (g\n   (h x)))"
+                                                   {:source-map {:file "m.mjs" :source "m.cljs"}})
+        m (js/JSON.parse source-map-json)]
+    (is (= 3 (.-version m)))
+    (is (= ["m.cljs"] (vec (.-sources m))))
+    (is (str/includes? (.-mappings m) ";"))))
+
+(deftest emit-order-test
+  (doseq [src ["(defn g [] (+ (f 1) #html [:div \"x\"]))"
+               "(defn g [] (+ (f 1) 2 #html [:div \"x\"]))"
+               "(defn g [] [(f 1) #html [:div \"x\"]])"]]
+    (testing (str src " imports squint_html")
+      (is (str/includes? (squint/compile-string src {:elide-exports true}) "import * as squint_html"))))
+  (testing "a jsx literal after a call in a vector imports the jsx runtime"
+    (is (str/includes? (squint/compile-string "(defn g [] [(f 1) #jsx [:div \"x\"]])"
+                                              {:elide-exports true :jsx-runtime {:import-source "react"}})
+                       "from 'react/jsx-runtime'")))
+  (testing "locals in call arguments are numbered in source order"
+    (is (= (str "var x = function () {\nreturn h((f(1) + (() => {\nconst z_1 = 1;\nreturn z_1;\n\n})()), (() => {\n"
+                "const q_2 = 1;\nreturn q_2;\n\n})());\n\n};\n")
+           (squint/compile-string "(defn x [] (h (+ (f 1) (let [z 1] z)) (let [q 1] q)))"
+                                  {:elide-exports true :elide-imports true})))))
+
 (defn init []
   (t/run-tests 'squint.compiler-test
                'squint.jsx-test
