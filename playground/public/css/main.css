@@ -170,7 +170,6 @@ body, #editor, #sidebar {
   border-radius: 0.3em;
   &:hover, &:active {
     border-color: rgb(from currentColor r g b / 40%);
-    transform: none;
   }
   &:focus {
     box-shadow: none;
