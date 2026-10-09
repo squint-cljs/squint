@@ -5,6 +5,7 @@
 ## Unreleased
 
 - [#453](https://github.com/squint-cljs/squint/issues/453): Add source maps for compiled files
+- `squint watch` writes source maps by default. Disable with `--no-source-map` or `:source-map false` in `squint.edn`
 - Optimize compiled output for core predicates such as `even?` and `string?` in `if`, `and`, `or` and `not`
 - Fix `contains?` to return a boolean for `IAssociative` types
 - Fix `with_meta` calls in output for `^:=>` fns and for `assoc` and `get` on map literals
