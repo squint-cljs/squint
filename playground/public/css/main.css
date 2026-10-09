@@ -16,7 +16,7 @@
     rgb(from white r g b / 70%)
   );
   --panel-border: 1px solid var(--panel-border-color);
-  color-scheme: light;
+  color-scheme: light dark;
   --button-color: light-dark(rgb(from currentColor r g b / 5%), rgb(from currentColor r g b / 12%));
   --tooltip-color: light-dark(#eee, #e5e5e5);
   --ui-label-weight: 400;

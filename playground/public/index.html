@@ -7,6 +7,11 @@
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
   <meta content="utf-8" http-equiv="encoding" />
   <script>
+    const preferredTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+    document.documentElement.dataset.theme = preferredTheme;
+
     // Restore before layout so a saved split does not flash back to 50%.
     try {
       const savedSplit = localStorage.getItem('playground.pane-split');
@@ -167,17 +172,18 @@
 const toggle = document.querySelector("#theme-toggle");
 const toggleIcon = document.querySelector("#theme-toggle-icon");
 
+const updateThemeToggle = () => {
+  const dark = document.documentElement.dataset.theme === "dark";
+  toggle.setAttribute("aria-pressed", String(dark));
+  toggleIcon.textContent = dark ? "☼" : "☾";
+};
+
+updateThemeToggle();
+
 toggle.addEventListener("click", () => {
   const dark = document.documentElement.dataset.theme === "dark";
-
-  if (dark) {
-    delete document.documentElement.dataset.theme;
-  } else {
-    document.documentElement.dataset.theme = "dark";
-  }
-
-  toggle.setAttribute("aria-pressed", String(!dark));
-  toggleIcon.textContent = dark ? "☾" : "☼" ;
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  updateThemeToggle();
 });
 
 // native tooltips
