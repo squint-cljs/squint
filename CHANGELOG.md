@@ -6,6 +6,7 @@
 
 - Optimize compiled output for core predicates such as `even?` and `string?` in `if`, `and`, `or` and `not`
 - Fix `contains?` to return a boolean for `IAssociative` types
+- Fix `with_meta` calls in output for `^:=>` fns and for `assoc` and `get` on map literals
 
 ## 0.14.211
 

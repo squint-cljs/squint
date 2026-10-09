@@ -105,10 +105,9 @@
 (defn expr-env [env]
   (assoc env :context :expr :top-level false))
 
-;; Metadata that is not user data metadata: edamame location keys (:line/:column
-;; per squint-parse-opts) and compiler directives read directly during codegen
-;; (:tag type hints, :async/:gen fn markers).
-(def ^:private non-user-meta-keys #{:line :column :tag :async :gen})
+;; Metadata that is not user data metadata: reader location keys and compiler
+;; directives read directly during codegen (:tag, :async, :gen, :=>).
+(def ^:private non-user-meta-keys #{:line :column :end-line :end-column :file :tag :async :gen :=>})
 
 (defn user-meta
   "User-supplied reader metadata on a form (e.g. `^:foo`), excluding reader
