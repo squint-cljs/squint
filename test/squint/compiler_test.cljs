@@ -2976,9 +2976,10 @@ with `backticks`")))]
     (is (nil? (jsv! '(meta ^object {}))))
     (is (nil? (jsv! '(meta ^js [1 2])))))
   (testing "^:=> and macro-generated fns compile without with_meta"
-    (is (not (str/includes? (squint/compile-string "(defn f [] ^:=> (fn [x] x))") "with_meta")))
-    (is (not (str/includes? (squint/compile-string "(defn f [] (assoc {} :a 1))") "with_meta")))
-    (is (not (str/includes? (squint/compile-string "(defn f [k] (get {:a 1} (k) 0))") "with_meta")))
+    (is (contains? (:used-core-vars (squint/compile* "(defn f [] ^:foo [1])")) "with_meta"))
+    (is (not (contains? (:used-core-vars (squint/compile* "(defn f [] ^:=> (fn [x] x))")) "with_meta")))
+    (is (not (contains? (:used-core-vars (squint/compile* "(defn f [] (assoc {} :a 1))")) "with_meta")))
+    (is (not (contains? (:used-core-vars (squint/compile* "(defn f [k] (get {:a 1} (k) 0))")) "with_meta")))
     (is (nil? (jsv! '(meta ^:=> (fn [x] x)))))))
 
 (deftest require-test
