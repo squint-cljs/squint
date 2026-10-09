@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [munge])
   (:require [clojure.string :as str]
             [clojure.walk :as walk]
+            [squint.compiler.js-ast :as ast]
             [squint.compiler.utils :refer [munge]]))
 
 ;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
@@ -100,30 +101,31 @@
           form))))
 
 (defn- emit-fields [env emit-fn fields]
-  (let [fields-str
-        (str/join "\n"
-          (for [field fields
-                :let [env (assoc env :context :expr)
-                      default? (contains? field :field-default)
-                      static (-> field :field-form first meta :static)]]
-            (str (when static "static ") (munge (:field-name field))
-             (if-not default? ";" (str " = " (emit-fn (:field-default field) env) ";")))))]
-    (when-not (empty? fields-str)
-      (str fields-str "\n"))))
+  (when (seq fields)
+    (ast/raw
+     (interpose "\n"
+                (mapv (fn [field]
+                        (let [env (assoc env :context :expr)
+                              default? (contains? field :field-default)
+                              static (-> field :field-form first meta :static)]
+                          (ast/raw (when static "static ") (munge (:field-name field))
+                                   (if-not default? ";" (ast/raw " = " (emit-fn (:field-default field) env) ";")))))
+                      fields))
+     "\n")))
 
 (defn- emit-args [env emit-fn args]
   (let [arg-env (assoc env :context :expr :top-level false)]
-    (map #(emit-fn % arg-env) args)))
+    (mapv #(emit-fn % arg-env) args)))
 
 (defn emit-super
   [env emit-fn {:keys [forms this-sym]}]
   (let [super-args forms]
-    (str "super("
-         (str/join ", " (emit-args env emit-fn super-args))
-         ");"
-         "const self__ = this;\n"
-         (when this-sym
-           (str "const " (emit-fn this-sym env) " = this;\n")))))
+    (ast/raw "super("
+             (interpose ", " (emit-args env emit-fn super-args))
+             ");"
+             "const self__ = this;\n"
+             (when this-sym
+               (str "const " (emit-fn this-sym env) " = this;\n")))))
 
 (defn- emit-object-fn [env emit-fn async-fn object-fn]
   (let [[fn-name arglist & body] object-fn
@@ -150,7 +152,7 @@
       (throw (ex-info (str "defclass: setter " fn-name " takes exactly one argument") {})))
     (async-fn async?
               (fn []
-                (str
+                (ast/raw
                  (when static?
                    "static ")
                  (when async?
@@ -159,7 +161,7 @@
                  (when get? "get ")
                  (when set? "set ")
                  (munge fn-name) "("
-                 (str/join ", " (emit-args env emit-fn arglist))
+                 (interpose ", " (emit-args env emit-fn arglist))
                  ") { \n"
                  "const " (emit-fn this-arg env) " = this;\n"
                  "const self__ = this;"
@@ -167,8 +169,8 @@
                        ret-ctx (assoc env :context :return :top-level false)
                        non-ret-vals (butlast body)
                        non-ret-ctx (assoc env :context :statement :top-level false)]
-                   (str (str/join (map #(str (emit-fn % non-ret-ctx) ";\n") non-ret-vals))
-                        (emit-fn ret-val ret-ctx)))
+                   (ast/raw (mapv #(ast/raw (emit-fn % non-ret-ctx) ";\n") non-ret-vals)
+                            (emit-fn ret-val ret-ctx)))
                  "\n}")))))
 
 (defn emit-class
@@ -208,7 +210,7 @@
                         :when (not (= 'Object protocol-name))]
                     (into [protocol-name] protocol-fns))
                (mapcat identity)))]
-    (str
+    (ast/raw
      "class "
      (munge classname*)
      (when extends
@@ -217,7 +219,7 @@
      " {\n"
      (emit-fields env emit-fn fields)
      (when constructor
-       (str
+       (ast/raw
         "  constructor(" (str/join ", " (map #(emit-fn % ctor-args-env) ctor-args)) ") {\n"
         (when-not super?
           (str "const self__ = this;\n"
@@ -225,7 +227,7 @@
                  (str "const " (emit-fn this-sym ctor-args-env) " = this;\n"))))
         (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env))
         "  }\n"))
-     (str/join "\n" (map #(emit-object-fn fields-env emit-fn async-fn %) object-fns))
+     (interpose "\n" (mapv #(emit-object-fn fields-env emit-fn async-fn %) object-fns))
      "};\n"
      (emit-fn extend-form fields-env)
      (when extend

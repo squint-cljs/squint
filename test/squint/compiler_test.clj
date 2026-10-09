@@ -159,6 +159,18 @@
             "(defprotocol P (m [_])) (deftype T [a] P (m [_] (g a)))" "g(s" [1 49]]
            ["a call in a reify method maps to its form"
             "(defn f [] (reify Object (toString [_] (g 1))))" "g(1)" [1 40]]
+           ["a call in a defclass constructor maps to its form"
+            "(ns x (:require [squint.core :refer [defclass]])) (defclass A (extends B) (field y (j 0)) (constructor [this a] (super (k a)) (g a)) Object (m [_] (h 2)))"
+            "g(a" [1 127]]
+           ["a call in a defclass method maps to its form"
+            "(ns x (:require [squint.core :refer [defclass]])) (defclass A (extends B) (field y (j 0)) (constructor [this a] (super (k a)) (g a)) Object (m [_] (h 2)))"
+            "h(2)" [1 148]]
+           ["a call in a defclass field default maps to its form"
+            "(ns x (:require [squint.core :refer [defclass]])) (defclass A (extends B) (field y (j 0)) (constructor [this a] (super (k a)) (g a)) Object (m [_] (h 2)))"
+            "j(0)" [1 84]]
+           ["a call in a super call maps to its form"
+            "(ns x (:require [squint.core :refer [defclass]])) (defclass A (extends B) (field y (j 0)) (constructor [this a] (super (k a)) (g a)) Object (m [_] (h 2)))"
+            "k(a" [1 120]]
            ["a call lifted out of an IIFE keeps its form"
             "(defn f [a]\n  (let [b (let [c (g a)]\n            (h c))]\n    (k b)))"
             "h(c_2)" [3 13] {:passes [lift-iife/lift]}]]]
