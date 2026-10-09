@@ -7,7 +7,7 @@ trace points at `src/app.cljs`:
 npm start
 ```
 
-```
+```text
 Error: not a number: x
     at parse_age (.../src/app.cljs:6:14)
     at <anonymous> (.../src/app.cljs:10:27)
