@@ -172,6 +172,10 @@
                 "if (squint_core.truth_(or_1_2)) {\nsquint$iife$1 = or_1_2} else {\nsquint$iife$1 = h(a)};\n"
                 "if (squint_core.truth_(squint$iife$1)) {\nreturn 1} else {\nreturn 2};\n\n};\n")
            (lifted "(defn f [a] (if (or (g a) (h a)) 1 2))"))))
+  (t/testing "a let in an if test inside catch becomes statements in the catch block"
+    (is (= (str "var f = function () {\ntry{\nreturn g(1);\n}\ncatch(e_1){\nconst m_2 = e_1.message;\n"
+                "if (squint_core.truth_(h(m_2))) {\nreturn 1} else {\nreturn 2};\n}\n;\n\n};\n")
+           (lifted "(defn f [] (try (g 1) (catch :default e (if (let [m (.-message e)] (h m)) 1 2))))"))))
   (t/testing "an IIFE after a call argument stays"
     (is (str/includes? (lifted "(defn f [a] (k (g a) (let [z (g a)] (h z))))") "(() => {")))
   (t/testing "an IIFE at module level stays"
