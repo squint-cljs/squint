@@ -47,9 +47,6 @@ const darkTheme = EditorView.theme({
   '&': { color: '#dce4ef', backgroundColor: 'var(--bg)' },
   '.cm-content': { caretColor: '#dce4ef' },
   '&.cm-focused .cm-cursor': { borderLeftColor: '#dce4ef' },
-  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': {
-    backgroundColor: '#40536e',
-  },
   '.cm-gutters': { backgroundColor: 'var(--bg)', color: '#9aa9bc', border: 'none' },
   '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: '#ffffff0d' },
 }, { dark: true });
@@ -68,6 +65,28 @@ const compiledTheme = new Compartment();
 const colorSchemeExtensions = () => document.documentElement.dataset.theme === 'dark'
   ? [darkTheme, syntaxHighlighting(darkHighlightStyle)]
   : syntaxHighlighting(defaultHighlightStyle);
+
+function clearEditorSelection(view) {
+  if (view.state.selection.ranges.some(range => !range.empty)) {
+    view.dispatch({ selection: { anchor: view.state.selection.main.head } });
+  }
+}
+
+// Both editors draw their selections; native page selections share the same
+// CSS variable. Use the focused selector too, to override CodeMirror's defaults.
+const selectionExtensions = [
+  drawSelection(),
+  EditorView.theme({
+    '.cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
+      backgroundColor: 'var(--selection-background)',
+    },
+  }),
+  EditorView.domEventHandlers({
+    blur(_event, view) {
+      clearEditorSelection(view);
+    },
+  }),
+];
 
 const squintExtension = (opts) => {
   return keymap.of([
@@ -103,7 +122,8 @@ async function JSEditor(js) {
     }
   });
   let extensions = [javascript({}).language, fontSizeTheme, foldGutter(), compiledTheme.of(colorSchemeExtensions()),
-  EditorView.editable.of(false)];
+  selectionExtensions, EditorState.readOnly.of(true), EditorView.editable.of(false),
+  EditorView.contentAttributes.of({ tabindex: '0' })];
   let state = EditorState.create({
     doc: js,
     extensions: extensions,
@@ -270,7 +290,7 @@ let extensions = [
   theme,
   foldGutter(),
   sourceTheme.of(colorSchemeExtensions()),
-  drawSelection(),
+  selectionExtensions,
   keymap.of(complete_keymap),
   keymap.of(historyKeymap),
   squintExtension({ modifier: modifier }),
@@ -413,6 +433,14 @@ let editor = new EditorView({
   extensions: extensions,
 });
 globalThis.editor = editor;
+
+// A click on non-focusable page content may leave an editor focused, so blur
+// alone doesn't cover every outside click. Keep selections in the clicked pane.
+document.addEventListener('pointerdown', event => {
+  for (const view of [editor, jsEditor]) {
+    if (view && !view.dom.contains(event.target)) clearEditorSelection(view);
+  }
+}, { capture: true });
 
 new MutationObserver(() => {
   editor.dispatch({ effects: sourceTheme.reconfigure(colorSchemeExtensions()) });

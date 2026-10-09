@@ -1,5 +1,7 @@
 :root {
   --teal-color: #31afd0;
+  --selection-background: light-dark(rgba(31, 143, 255, 0.10), rgba(81, 177, 241, 0.34));
+  --selection-color: light-dark(#222, #fff);
   --nav-height: 40px;
   --viewport-padding-inline: 20px;
   --panel-border-radius: 0px;
@@ -25,6 +27,11 @@
 
 :root[data-theme="dark"]{
  color-scheme: dark;
+}
+
+::selection {
+  background-color: var(--selection-background);
+  color: var(--selection-color);
 }
 
 body {
