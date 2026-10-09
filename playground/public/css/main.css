@@ -60,12 +60,19 @@ body, #editor, #sidebar {
     border-color 200ms ease;
 }
 
+#aoc_container {
+  margin: 20px 30px;
+}
+
 #app {
   padding: 20px 30px;
   margin: 0;
   background: var(--body-background-color-light-mode);
   table {
     margin-bottom: 0;
+  }
+  &:empty {
+    padding: 0;
   }
 }
 
@@ -148,6 +155,42 @@ body, #editor, #sidebar {
     max-width: none;
     max-height: none;
   }
+}
+
+button,
+#aoc_form_container>button,
+#aoc_form_container>#aoc_token {
+  font-weight: var(--ui-label-weight);
+  color: var(--fg);
+  background: var(--button-color);
+  border: 1px solid rgb(from currentColor r g b / 20%);
+  height: fit-content;
+  margin: 0;
+  padding: 0.25em 0.85em 0.35em;
+  border-radius: 0.3em;
+  &:hover, &:active {
+    border-color: rgb(from currentColor r g b / 40%);
+  }
+  &:focus {
+    box-shadow: none;
+  }
+}
+
+#aoc_form_container>#aoc_token {
+ background: transparent;
+}
+
+#aoc_help_container {
+  font-size: 1rem;
+  padding: 10px 0 0;
+}
+
+#aoc_output_container {
+    border: 1px solid var(--panel-border-color);
+    margin: 0px 30px 10px;
+    /* justify-content: center; */
+    gap: 0;
+    border-radius: 7px;
 }
 
 #sidebar {
