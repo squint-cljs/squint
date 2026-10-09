@@ -184,6 +184,10 @@
     (is (= (str "var f = function () {\ntry{\nreturn g(1);\n}\ncatch(e_1){\nconst m_2 = e_1.message;\n"
                 "if (squint_core.truth_(h(m_2))) {\nreturn 1} else {\nreturn 2};\n}\n;\n\n};\n")
            (lifted "(defn f [] (try (g 1) (catch :default e (if (let [m (.-message e)] (h m)) 1 2))))"))))
+  (t/testing "a let in an if test inside a deftype method becomes statements in the method"
+    (let [js (lifted "(defprotocol P (m [_])) (deftype T [a] P (m [_] (if (let [b (g a)] (h b)) 1 2)))")]
+      (is (str/includes? js "const self__ = this;;\nconst b_1 = g(self__.a);\nif (squint_core.truth_(h(b_1))) {"))
+      (is (not (str/includes? js "(() => {")))))
   (t/testing "an IIFE after a call argument stays"
     (is (str/includes? (lifted "(defn f [a] (k (g a) (let [z (g a)] (h z))))") "(() => {")))
   (t/testing "an IIFE at module level stays"
