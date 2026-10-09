@@ -153,6 +153,12 @@ body, #editor, #sidebar {
     width: auto;
     max-width: none;
     max-height: none;
+    min-height: 0;
+
+    & > .cm-editor {
+      flex: 1;
+      min-height: 0;
+    }
   }
 }
 
@@ -461,6 +467,8 @@ body, #editor, #sidebar {
     background-clip: padding-box;
     border: 4px solid transparent;
     border-radius: 12px;
+    min-width: 56px;
+    min-height: 56px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
@@ -469,6 +477,13 @@ body, #editor, #sidebar {
   }
   &::-webkit-scrollbar-corner {
     background: transparent;
+  }
+}
+
+/* Use standard scrollbar colors only without WebKit scrollbar styling support. */
+@supports not selector(::-webkit-scrollbar) {
+  .cm-scroller {
+    scrollbar-color: var(--scrollbar-thumb-color) transparent;
   }
 }
 
