@@ -184,16 +184,16 @@
         gensym (:gensym env)
         local (gensym)
         env (update env :var->ident assoc local local)]
-    (cond-> (str (emit (list 'js* (cc/replace-first* "for (let %s of ~{})" "%s" (str local))
-                         (list 'clojure.core/iterable v))
-                   env)
-             " {\n"
-             (emit (list 'clojure.core/let [k local]
-                         body)
-                   (assoc env :context :statement))
-             "\n}"
-             (when-let [return (emit-return nil enc-env)]
-               (str "\n" return)))
+    (cond-> (ast/raw (emit (list 'js* (cc/replace-first* "for (let %s of ~{})" "%s" (str local))
+                             (list 'clojure.core/iterable v))
+                       env)
+                 " {\n"
+                 (emit (list 'clojure.core/let [k local]
+                             body)
+                       (assoc env :context :statement))
+                 "\n}"
+                 (when-let [return (emit-return nil enc-env)]
+                   (ast/raw "\n" return)))
       (= :expr (:context enc-env))
       (cc/wrap-implicit-iife enc-env))))
 

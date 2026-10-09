@@ -153,6 +153,8 @@
             "(defn f [] (try (g 1) (catch :default e (j e)) (finally (k 2))))" "j(e" [1 41]]
            ["a call in a finally body maps to its form"
             "(defn f [] (try (g 1) (catch :default e (j e)) (finally (k 2))))" "k(2)" [1 57]]
+           ["a call in a doseq body maps to its form" "(defn f [xs] (doseq [x xs] (g x)))" "g(x" [1 28]]
+           ["a call in a for body maps to its form" "(defn f [xs] (for [x xs] (g x)))" "g(x" [1 26]]
            ["a call lifted out of an IIFE keeps its form"
             "(defn f [a]\n  (let [b (let [c (g a)]\n            (h c))]\n    (k b)))"
             "h(c_2)" [3 13] {:passes [lift-iife/lift]}]]]
