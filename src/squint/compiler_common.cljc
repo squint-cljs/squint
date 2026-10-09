@@ -1657,7 +1657,7 @@
       (throw (new Exception (str "Cannot supply more than one finally clause in a try statement! " expression)))
 
       :else
-      (cond-> (str "try{\n"
+      (cond-> (ast/raw "try{\n"
                    (emit-do env try-body)
                    "}\n"
                    (when-let [[_ _exception binding & catch-body] (first catch-clause)]
@@ -1665,11 +1665,11 @@
                            env (update env :var->ident (fn [m]
                                                          (-> m
                                                              (assoc binding (gensym binding)))))]
-                       (str "catch(" (emit binding (expr-env env)) "){\n"
+                       (ast/raw "catch(" (emit binding (expr-env env)) "){\n"
                             (emit-do env catch-body)
                             "}\n")))
                    (when-let [[_ & finally-body] (first finally-clause)]
-                     (str "finally{\n"
+                     (ast/raw "finally{\n"
                           (emit-do (assoc env :context :statement) finally-body)
                           "}\n")))
         iife?

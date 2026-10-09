@@ -147,6 +147,14 @@
            ["text after a nested call maps to the enclosing form" "(defn f [x] (g (h x) 2))" ", 2)" [1 13]]
            ["a call in a vector literal maps to its form" "(defn f [] [(g 1)])" "g(1)" [1 13]]
            ["a call in a map literal maps to its form" "(defn f [] {:a (g 1)})" "g(1)" [1 16]]
+           ["a call in a try body maps to its form"
+            "(defn f [] (try (g 1) (catch :default e (j e)) (finally (k 2))))" "g(1)" [1 17]]
+           ["a call in a catch body maps to its form"
+            "(defn f [] (try (g 1) (catch :default e (j e)) (finally (k 2))))" "j(e" [1 41]]
+           ["a call in a finally body maps to its form"
+            "(defn f [] (try (g 1) (catch :default e (j e)) (finally (k 2))))" "k(2)" [1 57]]
+           ["a call in a doseq body maps to its form" "(defn f [xs] (doseq [x xs] (g x)))" "g(x" [1 28]]
+           ["a call in a for body maps to its form" "(defn f [xs] (for [x xs] (g x)))" "g(x" [1 26]]
            ["a call lifted out of an IIFE keeps its form"
             "(defn f [a]\n  (let [b (let [c (g a)]\n            (h c))]\n    (k b)))"
             "h(c_2)" [3 13] {:passes [lift-iife/lift]}]]]
@@ -164,6 +172,10 @@
                 "if (squint_core.truth_(or_1_2)) {\nsquint$iife$1 = or_1_2} else {\nsquint$iife$1 = h(a)};\n"
                 "if (squint_core.truth_(squint$iife$1)) {\nreturn 1} else {\nreturn 2};\n\n};\n")
            (lifted "(defn f [a] (if (or (g a) (h a)) 1 2))"))))
+  (t/testing "a let in an if test inside catch becomes statements in the catch block"
+    (is (= (str "var f = function () {\ntry{\nreturn g(1);\n}\ncatch(e_1){\nconst m_2 = e_1.message;\n"
+                "if (squint_core.truth_(h(m_2))) {\nreturn 1} else {\nreturn 2};\n}\n;\n\n};\n")
+           (lifted "(defn f [] (try (g 1) (catch :default e (if (let [m (.-message e)] (h m)) 1 2))))"))))
   (t/testing "an IIFE after a call argument stays"
     (is (str/includes? (lifted "(defn f [a] (k (g a) (let [z (g a)] (h z))))") "(() => {")))
   (t/testing "an IIFE at module level stays"
