@@ -1,8 +1,6 @@
 # Source maps API
 
-Use `squint.compiler.source-map` to build a source map for JavaScript you
-compile in memory, such as a bundle served by a web server. For `squint
-compile`, `squint watch` and the vite plugin, see the README.
+Use `squint.compiler.source-map` to build source maps for JavaScript compiled in memory.
 
 ## Compile with a map
 
@@ -23,7 +21,7 @@ The result has two extra keys:
 
 - `:file`: the name of the generated file.
 - `:source`: the path of the source, or `""` if absent.
-- `:source-content`: the text of the source, or the compiled string if absent.
+- `:source-content`: the source text, or the string passed to `compile*` if absent.
 
 ## Segments
 

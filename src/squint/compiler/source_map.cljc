@@ -44,7 +44,6 @@
     (let [j (str/index-of s "\n" i)]
       (if j (recur (inc j) (inc n)) n))))
 
-;; A source map holds only strings, so escaping them avoids a JSON library on the JVM.
 (defn- json-escape [c]
   (case c
     \" "\\\""
@@ -62,8 +61,8 @@
 
 (defn encode
   "Returns a source map v3 JSON string for segments, mapping file to sources.
-  sources is a vector of source paths and sources-content a vector of their
-  texts, with nil for an absent text."
+  sources is a vector of source paths.
+  sources-content is a vector of source texts, with nil for each absent text."
   [segments {:keys [file sources sources-content]}]
   (let [json-list (fn [xs] (str "[" (str/join "," (map #(if (nil? %) "null" (json-str %)) xs)) "]"))]
     (str "{\"version\":3"
@@ -76,7 +75,7 @@
          "}")))
 
 (defn shift-segments
-  "Returns segments moved down by the lines of prefix text."
+  "Returns segments with generated positions shifted by prefix."
   [segments prefix]
   (let [lines (count-newlines prefix)
         idx (str/last-index-of prefix "\n")

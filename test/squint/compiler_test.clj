@@ -128,8 +128,6 @@
     (is (= [[2 1 2 3 4] [3 0 0 0]] (sm/shift-segments [[0 1 2 3 4] [1 0 0 0]] "x\ny\n")))))
 
 (defn- mapped-at
-  "Returns the 1-based [line column] of the source mapped at generated position
-  pos, or nil if no segment covers it."
   [segments [gl gc]]
   (some->> segments
            (filter (fn [[l c]] (and (= l gl) (<= c gc))))

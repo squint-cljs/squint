@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- Write source maps with `--source-map` or `:source-map` in `squint.edn`, by default for `squint watch`, the vite plugin in development and forms evaluated through the browser REPL
+- Add source maps for compiled files and browser REPL evaluations
 - Optimize compiled output for core predicates such as `even?` and `string?` in `if`, `and`, `or` and `not`
 - Fix `contains?` to return a boolean for `IAssociative` types
 - Fix `with_meta` calls in output for `^:=>` fns and for `assoc` and `get` on map literals

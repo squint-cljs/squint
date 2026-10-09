@@ -119,8 +119,8 @@
     :parenthesized-expression :array-expression})
 
 (defn- lift-operand
-  "Like lift-expr, with a lifted expression in parens unless it is pure or its
-  type is in safe-types."
+  "Returns [statements expr'] with expr' parenthesized unless it is pure or
+  its type is in safe-types."
   ([x] (lift-operand x call-operand-types))
   ([x safe-types]
    (let [[stmts x'] (lift-expr x)]

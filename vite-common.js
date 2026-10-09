@@ -169,8 +169,6 @@ export function makeVitePlugin(adapter) {
     let target = 'browser';
     let nreplPort = 1339;
     let debug = false;
-    // Source maps are on in dev and follow vite's build.sourcemap in a build.
-    // :source-map in the config file or the sourceMap option overrides both.
     let sourceMap = true;
     // {import-source} when set (e.g. for React/Preact): the compiler emits
     // jsx()/jsxs() calls + imports the runtime, instead of raw <tags> a bundler
