@@ -84,14 +84,13 @@ body, #editor, #sidebar {
 
 #theme-toggle-icon {
   color: light-dark(color-mix(in srgb, var(--fg), transparent 55%), color-mix(in srgb, var(--fg), transparent 15%));
-  background:none;
+  background: none;
+  display: inline-flex;
   padding: 0;
   margin: 0;
   line-height: 0;
-  font-size: 1.05rem;
-  [data-theme="dark"] & {
-    font-size: 1.65rem;
-  }
+  width: 15px;
+  height: 15px;
   &:focus {
     outline: none;
     box-shadow: none;
@@ -281,6 +280,8 @@ body, #editor, #sidebar {
   }
 
   #sidebar-sections {
+    --sidebar-control-size: 13px;
+    --sidebar-control-gap: 5px;
     outline-offset: 6px;
     display: flex;
     flex-direction: column;
@@ -299,6 +300,60 @@ body, #editor, #sidebar {
       &#compiled-code-section {
       }
     }
+
+    #compiled-code-toggle {
+      appearance: none;
+      align-self: flex-start;
+      display: flex;
+      align-items: center;
+      gap: var(--sidebar-control-gap);
+      color: var(--fg);
+      background: none;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      font-family: inherit;
+      font-size: inherit;
+      font-weight: var(--ui-label-weight);
+      line-height: inherit;
+      margin: 0;
+      padding: 0;
+      cursor: pointer;
+
+      &:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 3px;
+      }
+
+      &[aria-expanded="false"] #compiled-code-toggle-icon svg {
+        transform: rotate(0deg);
+      }
+    }
+
+    #compiled-code-toggle-icon {
+      display: grid;
+      place-items: center;
+      flex: 0 0 var(--sidebar-control-size);
+      width: var(--sidebar-control-size);
+      height: var(--sidebar-control-size);
+
+      svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(90deg);
+        transition: transform 200ms ease;
+      }
+    }
+
+    #compiled-code-panel {
+      display: grid;
+      grid-template-rows: 1fr;
+      transition: grid-template-rows 200ms ease;
+    }
+
+    #compiled-code-toggle[aria-expanded="false"] + #compiled-code-panel {
+      grid-template-rows: 0fr;
+    }
   }
 
   #repl-mode {
@@ -311,8 +366,10 @@ body, #editor, #sidebar {
       margin: 0;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: var(--sidebar-control-gap);
       input {
+        width: var(--sidebar-control-size);
+        height: var(--sidebar-control-size);
         margin: 0;
         accent-color: var(--fg);
         &:focus {
@@ -352,6 +409,7 @@ body, #editor, #sidebar {
   }
 
   #compiled-code {
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow:hidden;
