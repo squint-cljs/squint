@@ -2974,7 +2974,13 @@ with `backticks`")))]
     (is (nil? (jsv! '(meta (fn []))))))
   (testing "compiler directives (:tag, :async, :gen) do not leak into runtime metadata"
     (is (nil? (jsv! '(meta ^object {}))))
-    (is (nil? (jsv! '(meta ^js [1 2]))))))
+    (is (nil? (jsv! '(meta ^js [1 2])))))
+  (testing "^:=> and macro-generated fns compile without with_meta"
+    (is (contains? (:used-core-vars (squint/compile* "(defn f [] ^:foo [1])")) "with_meta"))
+    (is (not (contains? (:used-core-vars (squint/compile* "(defn f [] ^:=> (fn [x] x))")) "with_meta")))
+    (is (not (contains? (:used-core-vars (squint/compile* "(defn f [] (assoc {} :a 1))")) "with_meta")))
+    (is (not (contains? (:used-core-vars (squint/compile* "(defn f [k] (get {:a 1} (k) 0))")) "with_meta")))
+    (is (nil? (jsv! '(meta ^:=> (fn [x] x)))))))
 
 (deftest require-test
   (let [s (squint/compile-string "(ns test-namespace (:require [\"some-js-library\" :refer [existsSync] :rename {existsSync exists}])) (exists \"README.md\")")]
