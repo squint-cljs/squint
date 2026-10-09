@@ -325,8 +325,14 @@ body, #editor, #sidebar {
         outline-offset: 3px;
       }
 
-      &[aria-expanded="false"] #compiled-code-toggle-icon svg {
-        transform: rotate(0deg);
+      &[aria-expanded="false"] {
+        .compiled-code-icon-open {
+          display: none;
+        }
+
+        .compiled-code-icon-closed {
+          display: block;
+        }
       }
     }
 
@@ -340,19 +346,11 @@ body, #editor, #sidebar {
       svg {
         width: 100%;
         height: 100%;
-        transform: rotate(90deg);
-        transition: transform 200ms ease;
       }
-    }
 
-    #compiled-code-panel {
-      display: grid;
-      grid-template-rows: 1fr;
-      transition: grid-template-rows 200ms ease;
-    }
-
-    #compiled-code-toggle[aria-expanded="false"] + #compiled-code-panel {
-      grid-template-rows: 0fr;
+      .compiled-code-icon-closed {
+        display: none;
+      }
     }
   }
 
@@ -409,11 +407,20 @@ body, #editor, #sidebar {
   }
 
   #compiled-code {
-    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow:hidden;
     padding-inline-start: 5px;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 100ms ease, visibility 0s linear;
+  }
+
+  #compiled-code-toggle[aria-expanded="false"] + #compiled-code {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 100ms ease, visibility 0s linear 100ms;
   }
 
   .ͼ2 .cm-line {
