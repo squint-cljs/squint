@@ -22,7 +22,7 @@
   --ui-label-weight: 400;
   --scrollbar-thumb-color: light-dark(rgb(128 128 128 / 23%), rgb(128 128 128 / 53%));
   --scrollbar-thumb-color-hover: light-dark(rgb(128 128 128 / 43%), rgb(128 128 128 / 73%));
-  --draggable-pane-divisor-color-hover: light-dark(rgb(128 128 128 / 53%), rgb(128 128 128 / 73%));
+  --draggable-pane-divisor-color-hover: light-dark(rgb(128 128 128 / 60%), rgb(128 128 128 / 77%));
 }
 
 :root[data-theme="light"]{
@@ -157,7 +157,8 @@ body, #editor, #sidebar {
   }
 }
 
-button,
+#sidebar button,
+#aoc_output_container button,
 #aoc_form_container>button,
 #aoc_form_container>#aoc_token {
   font-weight: var(--ui-label-weight);
@@ -177,7 +178,7 @@ button,
 }
 
 #aoc_form_container>#aoc_token {
- background: transparent;
+  background: transparent;
 }
 
 #aoc_help_container {
@@ -186,11 +187,11 @@ button,
 }
 
 #aoc_output_container {
-    border: 1px solid var(--panel-border-color);
-    margin: 0px 30px 10px;
-    /* justify-content: center; */
-    gap: 0;
-    border-radius: 7px;
+  border: 1px solid var(--panel-border-color);
+  margin: 0px 30px 10px;
+  /* justify-content: center; */
+  gap: 0;
+  border-radius: 7px;
 }
 
 #sidebar {
@@ -291,6 +292,7 @@ button,
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      gap: 12px;
       &#repl-mode-section {
         flex-shrink: 0;
       }
@@ -337,7 +339,6 @@ button,
     border: var(--panel-border);
     border-radius: 2px;
     padding: 0px;
-    margin-block-start: 12px;
     /* an expanded tree scrolls in place, so the compiled code stays reachable */
     max-height: 40dvh;
     min-height: 20px;
