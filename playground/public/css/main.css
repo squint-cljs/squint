@@ -83,7 +83,7 @@ body, #editor, #sidebar {
 }
 
 #theme-toggle-icon {
-  color: light-dark(color-mix(in srgb, var(--fg), transparent 55%), color-mix(in srgb, var(--fg), transparent 15%));
+  color: light-dark(color-mix(in srgb, var(--fg), transparent 25%), color-mix(in srgb, var(--fg), transparent 15%));
   background: none;
   display: inline-flex;
   padding: 0;
@@ -163,13 +163,14 @@ body, #editor, #sidebar {
   font-weight: var(--ui-label-weight);
   color: var(--fg);
   background: var(--button-color);
-  border: 1px solid rgb(from currentColor r g b / 20%);
+  border: 1px solid light-dark(rgb(from currentColor r g b / 20%), rgb(from currentColor r g b / 40%));
   height: fit-content;
   margin: 0;
   padding: 0.25em 0.85em 0.35em;
   border-radius: 0.3em;
   &:hover, &:active {
     border-color: rgb(from currentColor r g b / 40%);
+    transform: none;
   }
   &:focus {
     box-shadow: none;
@@ -270,6 +271,7 @@ body, #editor, #sidebar {
     }
 
     & .control-group {
+      min-height: 1.9em; /* need this in case pane is narrow and star counter wraps */
       display: flex;
       flex-wrap: wrap;
       min-width: 0;
@@ -327,12 +329,13 @@ body, #editor, #sidebar {
 
       &[aria-expanded="false"] {
         #compiled-code-toggle-icon svg {
-          transform: rotate(-90deg);
+          transform: rotate(0deg);
         }
       }
     }
 
     #compiled-code-toggle-icon {
+      scale: 1.65;
       display: grid;
       place-items: center;
       flex: 0 0 var(--sidebar-control-size);
@@ -371,7 +374,7 @@ body, #editor, #sidebar {
     }
 
     #repl-mode-desc {
-      padding-inline-start: 21px;
+      padding-inline-start: 19px;
       font-weight: normal;
       display: flex;
       flex-direction: column;
@@ -404,7 +407,7 @@ body, #editor, #sidebar {
     display: flex;
     flex-direction: column;
     overflow:hidden;
-    padding-inline-start: 5px;
+    padding-inline-start: 3px;
     opacity: 1;
     visibility: visible;
     transition: opacity 100ms ease, visibility 0s linear;
