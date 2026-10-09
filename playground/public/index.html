@@ -94,11 +94,14 @@
           <div popover="manual" id="tip-blank-advent-of-code" role="tooltip">
             Create a blank Advent of Code playground
           </div>
+          <button id="theme-toggle" data-tip="tip-theme-toggle" type="button">
+            <span>Theme</span>
+            <span id="theme-toggle-icon">☾</span>
+          </button>
+          <!-- <div popover="manual" role="tooltip" id="tip-theme-toggle">Toggle theme</div> -->
         </div>
 
         <div class="control-group" id="compilation-controls">
-          <button id="theme-toggle" data-tip="tip-theme-toggle" type="button">☼</button>
-          <div popover="manual" role="tooltip" id="tip-theme-toggle">Toggle theme</div>
           <div id="star-counter">
             <a href="https://gitHub.com/squint-cljs/squint">
               <img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star">
@@ -162,6 +165,7 @@
 </body>
 <script>
 const toggle = document.querySelector("#theme-toggle");
+const toggleIcon = document.querySelector("#theme-toggle-icon");
 
 toggle.addEventListener("click", () => {
   const dark = document.documentElement.dataset.theme === "dark";
@@ -173,7 +177,7 @@ toggle.addEventListener("click", () => {
   }
 
   toggle.setAttribute("aria-pressed", String(!dark));
-  toggle.textContent = dark ? "☼" : "☾" ;
+  toggleIcon.textContent = dark ? "☾" : "☼" ;
 });
 
 // native tooltips
