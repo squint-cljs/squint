@@ -410,6 +410,10 @@ body, #editor, #sidebar {
   }
 
   #compiled-code {
+
+    border: var(--panel-border);
+    border-left: 0;
+    border-bottom: 0;
     display: flex;
     flex-direction: column;
     overflow:hidden;
@@ -443,6 +447,25 @@ body, #editor, #sidebar {
   height: 36px;
 }
 
+@media screen and (min-width: 768px) {
+  #sidebar {
+    min-height: 0;
+  }
+
+  #sidebar-controls,
+  #compiled-code-toggle {
+    flex-shrink: 0;
+  }
+
+  #sidebar-sections,
+  #compiled-code-section,
+  #compiled-code,
+  #compiled-code > .cm-editor {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
 /* scrollbar behaviors */
 .cm-editor {
   overflow:hidden;
@@ -460,7 +483,6 @@ body, #editor, #sidebar {
   &::-webkit-scrollbar-track {
     background: transparent;
   }
-
 
   &::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb-color);
