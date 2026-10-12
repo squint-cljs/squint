@@ -5,8 +5,6 @@ browser and lets you eval into the live page over nREPL. The following setup
 runs it via `npm run dev`.
 
 The squint vite plugin currently supports vite v5-v8.
-Use vite 6.4.4, 7.3.7, 8.1.6, 8.2.4, 8.3.3 or a newer patch release.
-Older releases have dev server security issues.
 
 For a working setup, see [`examples/browser-repl`](../examples/browser-repl).
 
