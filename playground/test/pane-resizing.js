@@ -9,10 +9,25 @@
  * Playwright Chromium or installed Google Chrome. PLAYGROUND_URL overrides
  * http://localhost:5173/; PLAYWRIGHT_CHANNEL can select a browser explicitly.
  * Runs in a fresh headless browser session and exits nonzero on failure.
+ *
+ * Updating after an intentional UI change: these checks assert real computed
+ * styles, not screenshots, so there is no snapshot file to regenerate. Expected
+ * values live in the DIVIDER_LINE_WIDTH constants below (they mirror
+ * `#draggable-divider-line` in public/css/main.css). When you change the
+ * divider's design, edit those constants, then run the test and read the
+ * failure: `expected` is what the test wanted and `actual` is what the page
+ * rendered. A value strictly between two design values (for example 2.84375px
+ * between 1px and 3px) means the page was read mid-transition. Wait for the
+ * transition (see `waitForDividerLineWidth`) instead of changing the number.
  */
 const assert = require('node:assert/strict');
 const { existsSync } = require('node:fs');
 const { chromium } = require('playwright');
+
+// Visible divider line width, from `#draggable-divider-line` in main.css.
+// `rest` is the idle width. `active` applies while hovering or dragging with
+// the pointer over the handle. The width animates between them over 200ms.
+const DIVIDER_LINE_WIDTH = { rest: '1px', active: '3px' };
 
 async function main() {
   const channel =
@@ -22,6 +37,14 @@ async function main() {
   const page = await browser.newPage({
     viewport: { width: 1200, height: 800 },
   });
+  // Wait out the divider line's 200ms width transition, then return the width.
+  const waitForDividerLineWidth = async (expected) => {
+    await page.waitForFunction(
+      ([id, width]) =>
+        getComputedStyle(document.getElementById(id)).width === width,
+      ['draggable-divider-line', expected]
+    );
+  };
   const dimensions = () =>
     page.evaluate(() => {
       const bounds = (id) =>
@@ -74,17 +97,20 @@ async function main() {
         .evaluate((node) => node.classList.contains('pane-resizing')),
       true
     );
+    // While dragging with the pointer over the handle the line widens. Reading
+    // it right away would catch the 1px -> 3px transition part way.
+    await waitForDividerLineWidth(DIVIDER_LINE_WIDTH.active);
     assert.equal(
       await page
         .locator('#draggable-divider-line')
         .evaluate((node) => getComputedStyle(node).width),
-      '1px'
+      DIVIDER_LINE_WIDTH.active
     );
     await page.mouse.up();
     await page.waitForFunction(
       () => !document.querySelector('#main').classList.contains('pane-resizing')
     );
-    console.log('PASS pointer dragging, capture, 1px line, and cleanup');
+    console.log('PASS pointer dragging, capture, widened line, and cleanup');
 
     await page.mouse.move(layout.left + 50, 80);
     await page.waitForTimeout(250); // Allow the divider's 200ms color transition.
@@ -99,6 +125,7 @@ async function main() {
       true,
       'Divider hover styling clears after dragging and leaving the hit area'
     );
+    await waitForDividerLineWidth(DIVIDER_LINE_WIDTH.rest);
     console.log('PASS divider hover styling clears on pointer exit');
 
     await page.reload({ waitUntil: 'domcontentloaded' });
