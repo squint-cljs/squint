@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light dark;
   --teal-color: #31afd0;
   --selection-background: light-dark(rgba(31, 143, 255, 0.10), rgba(81, 177, 241, 0.34));
   --selection-color: light-dark(#222, #fff);
@@ -7,22 +8,15 @@
   --panel-border-radius: 0px;
   --bg: light-dark(#fff, #181818);
   --fg: light-dark(#222, #eee);
-  --panel-border-color: light-dark(
-    rgb(from gray r g b / 30%),
-    rgb(from gray r g b / 60%)
-  );
-  --panel-border-color-hover: light-dark(
-    rgb(from black r g b / 70%),
-    rgb(from white r g b / 70%)
-  );
+  --panel-border-color: light-dark(rgb(from gray r g b / 30%), rgb(from gray r g b / 60%));
+  --panel-border-color-hover: light-dark(rgb(from black r g b / 70%), rgb(from white r g b / 70%));
   --panel-border: 1px solid var(--panel-border-color);
-  color-scheme: light dark;
   --button-color: light-dark(rgb(from currentColor r g b / 5%), rgb(from currentColor r g b / 12%));
   --tooltip-color: light-dark(#eee, #e5e5e5);
   --ui-label-weight: 400;
   --scrollbar-thumb-color: light-dark(rgb(128 128 128 / 23%), rgb(128 128 128 / 53%));
   --scrollbar-thumb-color-hover: light-dark(rgb(128 128 128 / 43%), rgb(128 128 128 / 73%));
-  --draggable-pane-divisor-color-hover: light-dark(rgb(128 128 128 / 60%), rgb(128 128 128 / 77%));
+  --draggable-pane-divisor-color-hover: light-dark(rgb(128 128 128 / 44%), rgb(128 128 128 / 77%));
 }
 
 :root[data-theme="light"]{
@@ -47,7 +41,7 @@ body {
   max-width: inherit;
   padding: 0;
   background: var(--body-background-color-light-mode);
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -65,6 +59,7 @@ body, #editor, #sidebar {
 }
 
 #app {
+  flex-shrink: 0;
   padding: 20px 30px;
   margin: 0;
   background: var(--body-background-color-light-mode);
@@ -124,8 +119,10 @@ body, #editor, #sidebar {
     overflow: auto;
     display: grid;
     grid-template-columns: clamp(var(--pane-min-width), var(--pane-split, 50%), calc(100% - var(--pane-min-width))) minmax(0, 1fr);
-    /* fill the window instead of shrinking to the height of the code */
-    height: calc(100dvh - 20px);
+    /* Fill the space between the optional stage and the fixed-height footer. */
+    flex: 1;
+    min-height: 0;
+    max-height: none;
   }
 
   &.pane-resizing, &.pane-resizing * {
@@ -445,6 +442,7 @@ body, #editor, #sidebar {
 
 #footer {
   height: 36px;
+  flex: 0 0 36px;
 }
 
 @media screen and (min-width: 768px) {
