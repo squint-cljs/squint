@@ -2,6 +2,24 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+### Squint Playground UI, Phase 2 [#1045](https://github.com/squint-cljs/squint/pull/1045)
+- Playground: Global layout and framing refactor
+- Playground: Fix pane scrolling mechanics (.cm-scroller horizontal scrollbar not in view)
+- Playground: Optimize scrollbar styling
+- Playground: Implement draggable resizing of editor and compile panes
+- Playground: Add Playwright tests for pane resizing 
+- Playground: Implement compiled code section visibility toggle
+- Playground: Support codemirror dark theme across editor, repl output, and compiled code instances
+- Playground: Respect OS color scheme for initial theme state
+- Playground: Add native tooltips optimized for light-dark themes
+- Playground: Unified selection styling
+- Playground: Add Playwright tests for text selection
+- Playground: Normalized, uniform font size across all elements
+- Playground: Add pnpm instructions to readme
+- Playground: Add bb task to stop the port 5173 listener (for detached/leftover server scenario)
+- Playground: Add local (default) tictactoe example, and make it dark-mode friendly
+
 ## 0.15.212
 
 - [#453](https://github.com/squint-cljs/squint/issues/453): Add source maps for compiled files
