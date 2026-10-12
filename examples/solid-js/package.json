@@ -10,8 +10,8 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "vite": "^5.0.0",
-    "vite-plugin-solid": "^2.7.2"
+    "vite": "^8.3.4",
+    "vite-plugin-solid": "^2.11.14"
   },
   "type": "module",
   "dependencies": {
