@@ -3,7 +3,8 @@ import { history, historyKeymap } from '@codemirror/commands';
 import * as eval_region from '@nextjournal/clojure-mode/extensions/eval-region';
 import { EditorView, drawSelection, keymap } from '@codemirror/view';
 import { Compartment, EditorState } from '@codemirror/state';
-import { HighlightStyle, syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
+import { HighlightStyle, syntaxHighlighting, defaultHighlightStyle, foldGutter, syntaxTree } from '@codemirror/language';
+import { setDiagnostics, lintGutter } from '@codemirror/lint';
 import { javascript } from "@codemirror/lang-javascript";
 import { tags } from '@lezer/highlight';
 import prettierPluginJS from "prettier/plugins/estree.mjs";
@@ -157,11 +158,74 @@ const renderInspector = () => {
   }
 };
 
-let evalCode = async (code) => {
+let evalCounter = 0;
+// evals by id, to map frames from code that earlier evals defined
+const evals = new Map();
+
+let sourcePosition = (segments, [line, col]) => {
+  let found = null;
+  for (const [gl, gc, sl, sc] of segments) {
+    if (gl > line || (gl === line && gc > col)) break;
+    found = [sl, sc];
+  }
+  return found;
+};
+
+// origin is the code's editor range [pos, end) and its boilerplate line count
+let editorPosition = (origin, [line, col]) => {
+  if (line < origin.skip) return null;
+  const doc = editor.state.doc;
+  const first = doc.lineAt(Math.min(origin.pos, doc.length));
+  const n = first.number + line - origin.skip;
+  if (n > doc.lines) return null;
+  const docLine = doc.line(n);
+  return docLine.from + Math.min((line === origin.skip ? origin.pos - first.from : 0) + col, docLine.length);
+};
+
+let stackPosition = (e) => {
+  for (const [, id, line, col] of String(e?.stack ?? '').matchAll(/squint-playground-(\d+)\.js:(\d+):(\d+)/g)) {
+    const run = evals.get(Number(id));
+    const src = run?.segments && sourcePosition(run.segments, [line - 1 - run.lineShift, col - 1]);
+    const pos = src && editorPosition(run.origin, src);
+    if (pos != null) return pos;
+  }
+  return null;
+};
+
+let compilePosition = (data, origin) => {
+  // for an unclosed delimiter, mark where it opened
+  const opened = data?.['edamame/opened-delimiter-loc'];
+  const src = opened?.row != null ? [opened.row - 1, opened.col - 1]
+            : data?.line != null ? [data.line - 1, (data.column ?? 1) - 1]
+            : null;
+  return src && editorPosition(origin, src);
+};
+
+let showError = (pos, message) => {
+  // underline the whole form, not its opening bracket
+  let node = syntaxTree(editor.state).resolveInner(pos, 1);
+  while (node.to - node.from <= 1 && node.parent && node.parent.from === pos
+         && node.parent.type.name !== 'Program') {
+    node = node.parent;
+  }
+  const to = node.from === pos ? node.to : Math.min(pos + 1, editor.state.doc.length);
+  editor.dispatch(setDiagnostics(editor.state, [{ from: pos, to, severity: 'error', message }]));
+  editor.dispatch({ effects: EditorView.scrollIntoView(pos, { y: 'nearest' }) });
+};
+
+let clearErrors = () => editor.dispatch(setDiagnostics(editor.state, []));
+
+let evalCode = async (code, origin) => {
   // drop whatever is in the result panel: a previous error must not linger
   // when the next run succeeds (non-REPL runs render no result of their own)
   displayedInspectorProps = null;
   reactRoot.render(null);
+  clearErrors();
+  const id = ++evalCounter;
+  const run = { origin, segments: null, lineShift: 0 };
+  if (!repl) evals.clear();
+  evals.set(id, run);
+  let compiled = false;
   try {
     let importSource = url.searchParams.get('jsx.import-source') || 'react';
     // In REPL mode, :repl-return wraps the top-level value in [v] so a Promise
@@ -169,6 +233,7 @@ let evalCode = async (code) => {
     // below before rendering, so e.g. `(js/Promise.resolve 1)` shows as
     // Promise(1) rather than just 1.
     let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'repl-return' : 'statement',
+                 'source-map': true,
                  "jsx-runtime": { "import-source": importSource, development: true }
                };
     // only REPL evals build on earlier state; a non-REPL run compiles the whole
@@ -176,6 +241,8 @@ let evalCode = async (code) => {
     // the document no longer defines
     globalThis.compilerState = compileStringEx(`${code}`, opts, repl ? globalThis.compilerState : null);
     let js = globalThis.compilerState.javascript;
+    run.segments = globalThis.compilerState['source-map-segments'];
+    compiled = true;
     if (dev) {
       console.log("Loading local squint libs");
       // Rewrite to absolute URLs: Blob URLs used for non-REPL eval have an
@@ -196,8 +263,9 @@ let evalCode = async (code) => {
       js = js.replaceAll("'squint-cljs/", `'${base}`);
     }
     JSEditor(js);
+    const sourceURL = `\n//# sourceURL=squint-playground-${id}.js`;
     if (!repl) {
-      const blob = new Blob([js], { type: 'text/javascript' });
+      const blob = new Blob([js + sourceURL], { type: 'text/javascript' });
       const blobUrl = URL.createObjectURL(blob);
       try {
         let result = await import(/* @vite-ignore */blobUrl);
@@ -207,7 +275,8 @@ let evalCode = async (code) => {
     } else {
       // unbox the [v] wrapper added by :repl-return; forms like require/ns
       // emit no wrapper so the IIFE resolves to undefined
-      let result = (await eval(`(async function() { ${js} })()`))?.[0];
+      run.lineShift = 1;
+      let result = (await eval(`(async function() {\n${js}\n})()${sourceURL}`))?.[0];
       // If the user returned a Promise, race it against a short timeout so the
       // playground can still drill into the resolved value via Inspector while
       // surfacing that it came wrapped in a Promise. Pending falls back to a
@@ -256,19 +325,24 @@ let evalCode = async (code) => {
     reactRoot.render(React.createElement('span', { style: { whiteSpace: 'pre-wrap' } },
                                          e.message + '\n\n' + e.stack));
     console.error(e);
+    const pos = compiled ? stackPosition(e) : compilePosition(e?.data, origin);
+    if (pos != null) showError(pos, e.message);
   }
 };
 
 let evalCell = (opts) => {
   let js = opts.state.doc.toString();
-  evalCode(js);
+  evalCode(js, { pos: 0, end: js.length, skip: 0 });
   return true;
 };
 
 let evalAtCursor = (opts) => {
   if (!repl) return;
-  let js = eval_region.cursor_node_string(opts.state).toString();
-  evalCode(js);
+  let node = eval_region.node_at_cursor(opts.state);
+  if (!node) return;
+  let js = opts.state.sliceDoc(node.from, node.to);
+  if (!js.trim()) return;
+  evalCode(js, { pos: node.from, end: node.to, skip: 0 });
   return true;
 };
 
@@ -279,7 +353,16 @@ let evalToplevel = (js) => {
   return true;
 };
 let updateExt = EditorView.updateListener.of((update) => {
-  if (update.docChanged) docChanged = true;
+  if (update.docChanged) {
+    docChanged = true;
+    for (const [id, run] of evals) {
+      const { pos, end } = run.origin;
+      let edited = false;
+      update.changes.iterChangedRanges((from, to) => { if (from < end && to > pos) edited = true; });
+      if (edited) evals.delete(id);
+      else Object.assign(run.origin, { pos: update.changes.mapPos(pos, 1), end: update.changes.mapPos(end, -1) });
+    }
+  }
 });
 const platform = navigator.platform;
 const isMac = platform.startsWith('Mac') || platform.startsWith('iP');
@@ -296,6 +379,7 @@ let extensions = [
   squintExtension({ modifier: modifier }),
   eval_region.extension({ modifier: modifier }),
   updateExt,
+  lintGutter(),
   ...default_extensions,
 ];
 
@@ -462,8 +546,8 @@ if (dev) {
 var compileStringEx = squintCompiler.compileStringEx;
 window.compile = () => {
   let code = editor.state.doc.toString();
-  code = (boilerplateSrc || '') + '\n\n' + code;
-  evalCode(code);
+  const prefix = (boilerplateSrc || '') + '\n\n';
+  evalCode(prefix + code, { pos: 0, end: code.length, skip: prefix.split('\n').length - 1 });
 };
 
 window.share = async () => {
@@ -487,6 +571,7 @@ window.changeREPL = (target) => {
   reactRoot.render(null);
   // vars from the other mode don't carry over: their definitions are gone
   globalThis.compilerState = null;
+  evals.clear();
   if (target.checked) {
     repl = true;
     window.compile();

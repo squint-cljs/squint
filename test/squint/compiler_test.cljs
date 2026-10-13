@@ -4507,6 +4507,12 @@ new Foo();")
                 nil)]
     (is (true? (js/eval (.-javascript ^js result))))))
 
+(deftest compile-string-ex-error-data-test
+  (let [data (try (squint/compileStringEx "(foo\n  (bar" #js {} nil)
+                  (catch :default e (.-data ^js e)))]
+    (is (= 2 (.-line ^js data)))
+    (is (= 3 (aget data "edamame/opened-delimiter-loc" "col")))))
+
 (deftest issue-704-test
   (is (eq 10 (jsv! "(let [a (atom 1)] (while (< @a 10) (swap! a inc)) @a)"))))
 

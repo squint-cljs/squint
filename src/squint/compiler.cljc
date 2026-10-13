@@ -631,7 +631,10 @@
 
 #?(:cljs
    (defn compileStringEx [s opts state]
-     (let [res (compile* s (clj-ize-opts opts) (clj-ize-opts state))]
+     (let [res (try (compile* s (clj-ize-opts opts) (clj-ize-opts state))
+                    (catch ExceptionInfo e
+                      (throw (doto (js/Error. (ex-message e) #js {:cause e})
+                               (unchecked-set "data" (clj->js (ex-data e) :keyword-fn #(subs (str %) 1)))))))]
        (clj->js res))))
 
 (defn compile-string

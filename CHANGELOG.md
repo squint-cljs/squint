@@ -3,6 +3,9 @@
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
 ## Unreleased
+- `compileStringEx` errors carry `data` as a JS object, e.g. `e.data.line`
+- Playground: Mark compile and runtime errors at their source location in the editor
+
 ### Squint Playground UI, Phase 2 [#1045](https://github.com/squint-cljs/squint/pull/1045)
 - Playground: Global layout and framing refactor
 - Playground: Fix pane scrolling mechanics (.cm-scroller horizontal scrollbar not in view)
