@@ -3,7 +3,8 @@ import { history, historyKeymap } from '@codemirror/commands';
 import * as eval_region from '@nextjournal/clojure-mode/extensions/eval-region';
 import { EditorView, drawSelection, keymap } from '@codemirror/view';
 import { Compartment, EditorState } from '@codemirror/state';
-import { HighlightStyle, syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
+import { HighlightStyle, syntaxHighlighting, defaultHighlightStyle, foldGutter, syntaxTree } from '@codemirror/language';
+import { setDiagnostics, lintGutter } from '@codemirror/lint';
 import { javascript } from "@codemirror/lang-javascript";
 import { tags } from '@lezer/highlight';
 import prettierPluginJS from "prettier/plugins/estree.mjs";
@@ -157,11 +158,56 @@ const renderInspector = () => {
   }
 };
 
-let evalCode = async (code) => {
+let evalCounter = 0;
+
+// 0-based [line, col] of the first stack frame in file `name`, or null
+let stackPosition = (e, name, lineShift) => {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = String(e?.stack ?? '').match(new RegExp(`${escaped}:(\\d+):(\\d+)`));
+  return m && [Number(m[1]) - 1 - lineShift, Number(m[2]) - 1];
+};
+
+let sourcePosition = (segments, [line, col]) => {
+  let found = null;
+  for (const [gl, gc, sl, sc] of segments) {
+    if (gl > line || (gl === line && gc > col)) break;
+    found = [sl, sc];
+  }
+  return found;
+};
+
+let editorPosition = (origin, [line, col]) => {
+  const doc = editor.state.doc;
+  const n = origin.line + line;
+  if (n < 1 || n > doc.lines) return null;
+  const docLine = doc.line(n);
+  return docLine.from + Math.min((line === 0 ? origin.col : 0) + col, docLine.length);
+};
+
+let showError = (pos, message) => {
+  // underline the whole form, not its opening bracket
+  let node = syntaxTree(editor.state).resolveInner(pos, 1);
+  while (node.to - node.from <= 1 && node.parent && node.parent.from === pos
+         && node.parent.type.name !== 'Program') {
+    node = node.parent;
+  }
+  const to = node.from === pos ? node.to : Math.min(pos + 1, editor.state.doc.length);
+  editor.dispatch(setDiagnostics(editor.state, [{ from: pos, to, severity: 'error', message }]));
+  editor.dispatch({ effects: EditorView.scrollIntoView(pos, { y: 'nearest' }) });
+};
+
+let clearErrors = () => editor.dispatch(setDiagnostics(editor.state, []));
+
+// origin is the editor line and column where code starts, line < 1 with boilerplate
+let evalCode = async (code, origin) => {
   // drop whatever is in the result panel: a previous error must not linger
   // when the next run succeeds (non-REPL runs render no result of their own)
   displayedInspectorProps = null;
   reactRoot.render(null);
+  clearErrors();
+  const fileName = `squint-playground-${++evalCounter}.js`;
+  let segments = null;
+  let lineShift = 0;
   try {
     let importSource = url.searchParams.get('jsx.import-source') || 'react';
     // In REPL mode, :repl-return wraps the top-level value in [v] so a Promise
@@ -169,6 +215,7 @@ let evalCode = async (code) => {
     // below before rendering, so e.g. `(js/Promise.resolve 1)` shows as
     // Promise(1) rather than just 1.
     let opts = { repl: repl, 'elide-exports': repl, context: repl ? 'repl-return' : 'statement',
+                 'source-map': true,
                  "jsx-runtime": { "import-source": importSource, development: true }
                };
     // only REPL evals build on earlier state; a non-REPL run compiles the whole
@@ -176,6 +223,7 @@ let evalCode = async (code) => {
     // the document no longer defines
     globalThis.compilerState = compileStringEx(`${code}`, opts, repl ? globalThis.compilerState : null);
     let js = globalThis.compilerState.javascript;
+    segments = globalThis.compilerState['source-map-segments'];
     if (dev) {
       console.log("Loading local squint libs");
       // Rewrite to absolute URLs: Blob URLs used for non-REPL eval have an
@@ -196,8 +244,9 @@ let evalCode = async (code) => {
       js = js.replaceAll("'squint-cljs/", `'${base}`);
     }
     JSEditor(js);
+    const sourceURL = `\n//# sourceURL=${fileName}`;
     if (!repl) {
-      const blob = new Blob([js], { type: 'text/javascript' });
+      const blob = new Blob([js + sourceURL], { type: 'text/javascript' });
       const blobUrl = URL.createObjectURL(blob);
       try {
         let result = await import(/* @vite-ignore */blobUrl);
@@ -207,7 +256,8 @@ let evalCode = async (code) => {
     } else {
       // unbox the [v] wrapper added by :repl-return; forms like require/ns
       // emit no wrapper so the IIFE resolves to undefined
-      let result = (await eval(`(async function() { ${js} })()`))?.[0];
+      lineShift = 1;
+      let result = (await eval(`(async function() {\n${js}\n})()${sourceURL}`))?.[0];
       // If the user returned a Promise, race it against a short timeout so the
       // playground can still drill into the resolved value via Inspector while
       // surfacing that it came wrapped in a Promise. Pending falls back to a
@@ -256,19 +306,35 @@ let evalCode = async (code) => {
     reactRoot.render(React.createElement('span', { style: { whiteSpace: 'pre-wrap' } },
                                          e.message + '\n\n' + e.stack));
     console.error(e);
+    // for an unclosed delimiter, mark where it opened
+    const data = String(e?.data ?? '');
+    const opened = data.match(/opened-delimiter-loc (\{[^}]*\})/)?.[1] ?? '';
+    const loc = (s, l, c) => {
+      const line = s.match(new RegExp(`:${l} (\\d+)`)), col = s.match(new RegExp(`:${c} (\\d+)`));
+      return line && col && [Number(line[1]) - 1, Number(col[1]) - 1];
+    };
+    const readerPos = loc(opened, 'row', 'col') ?? loc(data, 'line', 'column');
+    const genPos = segments && stackPosition(e, fileName, lineShift);
+    const srcPos = readerPos ?? (genPos && sourcePosition(segments, genPos));
+    const pos = srcPos && origin && editorPosition(origin, srcPos);
+    if (pos != null) showError(pos, e.message);
   }
 };
 
 let evalCell = (opts) => {
   let js = opts.state.doc.toString();
-  evalCode(js);
+  evalCode(js, { line: 1, col: 0 });
   return true;
 };
 
 let evalAtCursor = (opts) => {
   if (!repl) return;
-  let js = eval_region.cursor_node_string(opts.state).toString();
-  evalCode(js);
+  let node = eval_region.node_at_cursor(opts.state);
+  if (!node) return;
+  let js = opts.state.sliceDoc(node.from, node.to);
+  if (!js.trim()) return;
+  let line = opts.state.doc.lineAt(node.from);
+  evalCode(js, { line: line.number, col: node.from - line.from });
   return true;
 };
 
@@ -296,6 +362,7 @@ let extensions = [
   squintExtension({ modifier: modifier }),
   eval_region.extension({ modifier: modifier }),
   updateExt,
+  lintGutter(),
   ...default_extensions,
 ];
 
@@ -462,8 +529,8 @@ if (dev) {
 var compileStringEx = squintCompiler.compileStringEx;
 window.compile = () => {
   let code = editor.state.doc.toString();
-  code = (boilerplateSrc || '') + '\n\n' + code;
-  evalCode(code);
+  const prefix = (boilerplateSrc || '') + '\n\n';
+  evalCode(prefix + code, { line: 2 - prefix.split('\n').length, col: 0 });
 };
 
 window.share = async () => {
