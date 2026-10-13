@@ -396,6 +396,8 @@ let extensions = [
   foldGutter(),
   sourceTheme.of(colorSchemeExtensions()),
   selectionExtensions,
+  // unwrap on macOS Option+S, until a clojure-mode release binds it
+  keymap.of([{ mac: 'Alt-\u00df', run: complete_keymap.find(b => b.key === 'Alt-s').run, preventDefault: true }]),
   keymap.of(complete_keymap),
   keymap.of(historyKeymap),
   squintExtension({ modifier: modifier }),

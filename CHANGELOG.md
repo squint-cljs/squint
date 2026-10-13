@@ -5,6 +5,7 @@
 ## Unreleased
 - `compileStringEx` errors carry `data` as a JS object, e.g. `e.data.line`
 - Playground: Mark compile and runtime errors at their source location in the editor
+- Playground: Make Option+S run `unwrap` on macOS
 
 ### Squint Playground UI, Phase 2 [#1045](https://github.com/squint-cljs/squint/pull/1045)
 - Playground: Global layout and framing refactor
