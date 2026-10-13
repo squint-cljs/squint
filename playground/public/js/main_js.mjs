@@ -159,13 +159,8 @@ const renderInspector = () => {
 };
 
 let evalCounter = 0;
-
-// 0-based [line, col] of the first stack frame in file `name`, or null
-let stackPosition = (e, name, lineShift) => {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const m = String(e?.stack ?? '').match(new RegExp(`${escaped}:(\\d+):(\\d+)`));
-  return m && [Number(m[1]) - 1 - lineShift, Number(m[2]) - 1];
-};
+// evals by id, to map frames from code that earlier evals defined
+const evals = new Map();
 
 let sourcePosition = (segments, [line, col]) => {
   let found = null;
@@ -176,12 +171,34 @@ let sourcePosition = (segments, [line, col]) => {
   return found;
 };
 
+// origin is the code's editor range [pos, end) and its boilerplate line count
 let editorPosition = (origin, [line, col]) => {
+  if (line < origin.skip) return null;
   const doc = editor.state.doc;
-  const n = origin.line + line;
-  if (n < 1 || n > doc.lines) return null;
+  const first = doc.lineAt(Math.min(origin.pos, doc.length));
+  const n = first.number + line - origin.skip;
+  if (n > doc.lines) return null;
   const docLine = doc.line(n);
-  return docLine.from + Math.min((line === 0 ? origin.col : 0) + col, docLine.length);
+  return docLine.from + Math.min((line === origin.skip ? origin.pos - first.from : 0) + col, docLine.length);
+};
+
+let stackPosition = (e) => {
+  for (const [, id, line, col] of String(e?.stack ?? '').matchAll(/squint-playground-(\d+)\.js:(\d+):(\d+)/g)) {
+    const run = evals.get(Number(id));
+    const src = run?.segments && sourcePosition(run.segments, [line - 1 - run.lineShift, col - 1]);
+    const pos = src && editorPosition(run.origin, src);
+    if (pos != null) return pos;
+  }
+  return null;
+};
+
+let compilePosition = (data, origin) => {
+  // for an unclosed delimiter, mark where it opened
+  const opened = data?.['edamame/opened-delimiter-loc'];
+  const src = opened?.row != null ? [opened.row - 1, opened.col - 1]
+            : data?.line != null ? [data.line - 1, (data.column ?? 1) - 1]
+            : null;
+  return src && editorPosition(origin, src);
 };
 
 let showError = (pos, message) => {
@@ -198,16 +215,17 @@ let showError = (pos, message) => {
 
 let clearErrors = () => editor.dispatch(setDiagnostics(editor.state, []));
 
-// origin is the editor line and column where code starts, line < 1 with boilerplate
 let evalCode = async (code, origin) => {
   // drop whatever is in the result panel: a previous error must not linger
   // when the next run succeeds (non-REPL runs render no result of their own)
   displayedInspectorProps = null;
   reactRoot.render(null);
   clearErrors();
-  const fileName = `squint-playground-${++evalCounter}.js`;
-  let segments = null;
-  let lineShift = 0;
+  const id = ++evalCounter;
+  const run = { origin, segments: null, lineShift: 0 };
+  if (!repl) evals.clear();
+  evals.set(id, run);
+  let compiled = false;
   try {
     let importSource = url.searchParams.get('jsx.import-source') || 'react';
     // In REPL mode, :repl-return wraps the top-level value in [v] so a Promise
@@ -223,7 +241,8 @@ let evalCode = async (code, origin) => {
     // the document no longer defines
     globalThis.compilerState = compileStringEx(`${code}`, opts, repl ? globalThis.compilerState : null);
     let js = globalThis.compilerState.javascript;
-    segments = globalThis.compilerState['source-map-segments'];
+    run.segments = globalThis.compilerState['source-map-segments'];
+    compiled = true;
     if (dev) {
       console.log("Loading local squint libs");
       // Rewrite to absolute URLs: Blob URLs used for non-REPL eval have an
@@ -244,7 +263,7 @@ let evalCode = async (code, origin) => {
       js = js.replaceAll("'squint-cljs/", `'${base}`);
     }
     JSEditor(js);
-    const sourceURL = `\n//# sourceURL=${fileName}`;
+    const sourceURL = `\n//# sourceURL=squint-playground-${id}.js`;
     if (!repl) {
       const blob = new Blob([js + sourceURL], { type: 'text/javascript' });
       const blobUrl = URL.createObjectURL(blob);
@@ -256,7 +275,7 @@ let evalCode = async (code, origin) => {
     } else {
       // unbox the [v] wrapper added by :repl-return; forms like require/ns
       // emit no wrapper so the IIFE resolves to undefined
-      lineShift = 1;
+      run.lineShift = 1;
       let result = (await eval(`(async function() {\n${js}\n})()${sourceURL}`))?.[0];
       // If the user returned a Promise, race it against a short timeout so the
       // playground can still drill into the resolved value via Inspector while
@@ -306,24 +325,14 @@ let evalCode = async (code, origin) => {
     reactRoot.render(React.createElement('span', { style: { whiteSpace: 'pre-wrap' } },
                                          e.message + '\n\n' + e.stack));
     console.error(e);
-    // for an unclosed delimiter, mark where it opened
-    const data = String(e?.data ?? '');
-    const opened = data.match(/opened-delimiter-loc (\{[^}]*\})/)?.[1] ?? '';
-    const loc = (s, l, c) => {
-      const line = s.match(new RegExp(`:${l} (\\d+)`)), col = s.match(new RegExp(`:${c} (\\d+)`));
-      return line && col && [Number(line[1]) - 1, Number(col[1]) - 1];
-    };
-    const readerPos = loc(opened, 'row', 'col') ?? loc(data, 'line', 'column');
-    const genPos = segments && stackPosition(e, fileName, lineShift);
-    const srcPos = readerPos ?? (genPos && sourcePosition(segments, genPos));
-    const pos = srcPos && origin && editorPosition(origin, srcPos);
+    const pos = compiled ? stackPosition(e) : compilePosition(e?.data, origin);
     if (pos != null) showError(pos, e.message);
   }
 };
 
 let evalCell = (opts) => {
   let js = opts.state.doc.toString();
-  evalCode(js, { line: 1, col: 0 });
+  evalCode(js, { pos: 0, end: js.length, skip: 0 });
   return true;
 };
 
@@ -333,8 +342,7 @@ let evalAtCursor = (opts) => {
   if (!node) return;
   let js = opts.state.sliceDoc(node.from, node.to);
   if (!js.trim()) return;
-  let line = opts.state.doc.lineAt(node.from);
-  evalCode(js, { line: line.number, col: node.from - line.from });
+  evalCode(js, { pos: node.from, end: node.to, skip: 0 });
   return true;
 };
 
@@ -345,7 +353,16 @@ let evalToplevel = (js) => {
   return true;
 };
 let updateExt = EditorView.updateListener.of((update) => {
-  if (update.docChanged) docChanged = true;
+  if (update.docChanged) {
+    docChanged = true;
+    for (const [id, run] of evals) {
+      const { pos, end } = run.origin;
+      let edited = false;
+      update.changes.iterChangedRanges((from, to) => { if (from < end && to > pos) edited = true; });
+      if (edited) evals.delete(id);
+      else Object.assign(run.origin, { pos: update.changes.mapPos(pos, 1), end: update.changes.mapPos(end, -1) });
+    }
+  }
 });
 const platform = navigator.platform;
 const isMac = platform.startsWith('Mac') || platform.startsWith('iP');
@@ -530,7 +547,7 @@ var compileStringEx = squintCompiler.compileStringEx;
 window.compile = () => {
   let code = editor.state.doc.toString();
   const prefix = (boilerplateSrc || '') + '\n\n';
-  evalCode(prefix + code, { line: 2 - prefix.split('\n').length, col: 0 });
+  evalCode(prefix + code, { pos: 0, end: code.length, skip: prefix.split('\n').length - 1 });
 };
 
 window.share = async () => {
@@ -554,6 +571,7 @@ window.changeREPL = (target) => {
   reactRoot.render(null);
   // vars from the other mode don't carry over: their definitions are gone
   globalThis.compilerState = null;
+  evals.clear();
   if (target.checked) {
     repl = true;
     window.compile();
