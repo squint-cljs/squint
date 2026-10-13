@@ -158,8 +158,7 @@ const renderInspector = () => {
   }
 };
 
-let evalCounter = 0;
-// evals by id, to map frames from code that earlier evals defined
+// evals by blob URL, to map frames from code that earlier evals defined
 const evals = new Map();
 
 let sourcePosition = (segments, [line, col]) => {
@@ -183,8 +182,8 @@ let editorPosition = (origin, [line, col]) => {
 };
 
 let stackPosition = (e) => {
-  for (const [, id, line, col] of String(e?.stack ?? '').matchAll(/squint-playground-(\d+)\.js:(\d+):(\d+)/g)) {
-    const run = evals.get(Number(id));
+  for (const [, blobUrl, line, col] of String(e?.stack ?? '').matchAll(/(blob:\S+?):(\d+):(\d+)/g)) {
+    const run = evals.get(blobUrl);
     const src = run?.segments && sourcePosition(run.segments, [line - 1 - run.lineShift, col - 1]);
     const pos = src && editorPosition(run.origin, src);
     if (pos != null) return pos;
@@ -215,16 +214,37 @@ let showError = (pos, message) => {
 
 let clearErrors = () => editor.dispatch(setDiagnostics(editor.state, []));
 
+let replCounter = 0;
+globalThis.squintRepl = {};
+
+// runs the classic script at blobUrl, resolves to what it passes to squintRepl[id]
+let runReplScript = (blobUrl, id) => new Promise((resolve, reject) => {
+  const script = document.createElement('script');
+  const onError = (e) => {
+    if (e.filename !== blobUrl) return;
+    e.preventDefault();
+    reject(e.error);
+  };
+  globalThis.squintRepl[id] = resolve;
+  window.addEventListener('error', onError);
+  script.onload = script.onerror = () => {
+    window.removeEventListener('error', onError);
+    delete globalThis.squintRepl[id];
+    script.remove();
+    reject(new Error('REPL script did not run'));
+  };
+  script.src = blobUrl;
+  document.head.append(script);
+});
+
 let evalCode = async (code, origin) => {
   // drop whatever is in the result panel: a previous error must not linger
   // when the next run succeeds (non-REPL runs render no result of their own)
   displayedInspectorProps = null;
   reactRoot.render(null);
   clearErrors();
-  const id = ++evalCounter;
-  const run = { origin, segments: null, lineShift: 0 };
+  const run = { origin, segments: null, lineShift: repl ? 1 : 0 };
   if (!repl) evals.clear();
-  evals.set(id, run);
   let compiled = false;
   try {
     let importSource = url.searchParams.get('jsx.import-source') || 'react';
@@ -263,20 +283,22 @@ let evalCode = async (code, origin) => {
       js = js.replaceAll("'squint-cljs/", `'${base}`);
     }
     JSEditor(js);
-    const sourceURL = `\n//# sourceURL=squint-playground-${id}.js`;
-    if (!repl) {
-      const blob = new Blob([js + sourceURL], { type: 'text/javascript' });
-      const blobUrl = URL.createObjectURL(blob);
-      try {
-        let result = await import(/* @vite-ignore */blobUrl);
-      } finally {
-        URL.revokeObjectURL(blobUrl);
-      }
-    } else {
+    // a classic script keeps the frames JavaScriptCore drops in eval and strict code
+    const id = ++replCounter;
+    const source = repl ? `squintRepl[${id}]((async function() {\n${js}\n})());` : js;
+    const blobUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+    evals.set(blobUrl, run);
+    let result;
+    try {
+      if (repl) result = await runReplScript(blobUrl, id);
+      else await import(/* @vite-ignore */blobUrl);
+    } finally {
+      URL.revokeObjectURL(blobUrl);
+    }
+    if (repl) {
       // unbox the [v] wrapper added by :repl-return; forms like require/ns
       // emit no wrapper so the IIFE resolves to undefined
-      run.lineShift = 1;
-      let result = (await eval(`(async function() {\n${js}\n})()${sourceURL}`))?.[0];
+      result = result?.[0];
       // If the user returned a Promise, race it against a short timeout so the
       // playground can still drill into the resolved value via Inspector while
       // surfacing that it came wrapped in a Promise. Pending falls back to a
@@ -355,11 +377,11 @@ let evalToplevel = (js) => {
 let updateExt = EditorView.updateListener.of((update) => {
   if (update.docChanged) {
     docChanged = true;
-    for (const [id, run] of evals) {
+    for (const [blobUrl, run] of evals) {
       const { pos, end } = run.origin;
       let edited = false;
       update.changes.iterChangedRanges((from, to) => { if (from < end && to > pos) edited = true; });
-      if (edited) evals.delete(id);
+      if (edited) evals.delete(blobUrl);
       else Object.assign(run.origin, { pos: update.changes.mapPos(pos, 1), end: update.changes.mapPos(end, -1) });
     }
   }
