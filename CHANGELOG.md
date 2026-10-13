@@ -3,8 +3,8 @@
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
 ## Unreleased
-- <!-- PROSE: compileStringEx error data readable from JS, clj->js with namespaced keys -->
-- <!-- PROSE: playground marks compile and runtime errors in the editor via source maps -->
+- `compileStringEx` errors carry `data` as a JS object, e.g. `e.data.line`
+- Playground: Mark compile and runtime errors at their source location in the editor
 
 ### Squint Playground UI, Phase 2 [#1045](https://github.com/squint-cljs/squint/pull/1045)
 - Playground: Global layout and framing refactor
