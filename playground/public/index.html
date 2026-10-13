@@ -6,6 +6,22 @@
   <meta content="width=device-width, initial-scale=1" name="viewport" />
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
   <meta content="utf-8" http-equiv="encoding" />
+  <script>
+    const osColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyOsTheme = () => {
+      document.documentElement.dataset.theme = osColorScheme.matches ? 'dark' : 'light';
+    };
+    applyOsTheme();
+
+    // Restore before layout so a saved split does not flash back to 50%.
+    try {
+      const savedSplit = localStorage.getItem('playground.pane-split');
+      const percentage = Number(savedSplit);
+      if (savedSplit !== null && savedSplit.trim() !== '' && Number.isFinite(percentage) && percentage >= 0 && percentage <= 100) {
+        document.documentElement.style.setProperty('--pane-split', `${percentage}%`);
+      }
+    } catch (_) { /* Storage may be disabled; the default split still works. */ }
+  </script>
   <script async src="https://ga.jspm.io/npm:es-module-shims@2.6.2/dist/es-module-shims.js"
     crossorigin="anonymous"></script>
   <script type="importmap">
@@ -46,78 +62,178 @@
     </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/light.css" />
   <link rel="stylesheet" href="./css/main.css">
+  <script type="module" src="./pane-resizing.js"></script>
   <script type="module" src="./js/main_js.mjs">
   </script>
 </head>
 
 <body>
 <div id="app"></div>
-<!-- <div id="controls">
-</div> -->
 <div id="main">
     <div id="editor">
     </div>
     <div id="sidebar">
+      <div id="draggable-divider" role="separator" aria-orientation="vertical"
+           aria-label="Resize editor and sidebar" aria-controls="editor sidebar"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" tabindex="0">
+        <div id="draggable-divider-line"></div>
+      </div>
+
       <div id="sidebar-controls">
+
         <div class="control-group" id="compilation-controls">
           <button onClick="compile()">
             Compile
           </button>
-        </div>
-        <div class="control-group" id="sharing-controls">
-          <button onClick="share()"
-            title="When sharing, the window URL will be updated to encode the code in the text editor. Copy it and share it with your friends!">
+          <button onClick="share()" data-tip="tip-share">
             Share
           </button>
-          <button onClick="blankAOC()">
+          <div popover="manual" id="tip-share" role="tooltip">
+            When sharing, the window URL will be <br/>
+            updated to encode the code in the text editor.<br/>
+            Copy it and share it with your friends!
+          </div>
+          <button onClick="blankAOC()"
+                  data-tip="tip-blank-advent-of-code">
             Blank AOC Playground
           </button>
-        </div>
-        <div class="control-group" id="meta-controls">
-          <div id="star-counter">
-            <a href="https://gitHub.com/squint-cljs/squint"><img
-                src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star"></a>
+          <div popover="manual" id="tip-blank-advent-of-code" role="tooltip">
+            Create a blank Advent of Code playground
           </div>
-          <!--
-           Light/Dark toggle is working with the app chrome, but still need to
-           hook-it-up with codemirror instances to flip the theme.
-           display of the element is temporarily set to none.
-          -->
-          <button id="theme-toggle" style="display:none" type="button" aria-pressed="false">☼</button>
+          <button id="theme-toggle" data-tip="tip-theme-toggle" type="button">
+            <span>Theme</span>
+            <span id="theme-toggle-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7.49991 0.876892C3.84222 0.876892 0.877075 3.84204 0.877075 7.49972C0.877075 11.1574 3.84222 14.1226 7.49991 14.1226C11.1576 14.1226 14.1227 11.1574 14.1227 7.49972C14.1227 3.84204 11.1576 0.876892 7.49991 0.876892ZM7.49988 1.82689C4.36688 1.8269 1.82707 4.36672 1.82707 7.49972C1.82707 10.6327 4.36688 13.1725 7.49988 13.1726V1.82689Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path>
+              </svg>
+            </span>
+          </button>
+          <!-- <div popover="manual" role="tooltip" id="tip-theme-toggle">Toggle theme</div> -->
         </div>
-      </div>
-      <div id="repl-mode"> 
-        <label>
-          <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
-          REPL-mode
-        </label>
-        <div id="repl-mode-desc">
-          <span>In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter.</span>
-          <span>The result will appear below.</span>
-          <span>To evaluate the whole program at once, use Alt + Enter;</span>
+
+        <div class="control-group" id="compilation-controls">
+          <div id="star-counter">
+            <a href="https://gitHub.com/squint-cljs/squint">
+              <img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star">
+            </a>
+          </div>
         </div>
+
+        <!-- <div class="control-group" id="sharing-controls">
+          <button onClick="share()" data-tip="tip-share">
+            Share
+          </button>
+          <div popover="manual" id="tip-share" role="tooltip">
+            When sharing, the window URL will be <br/>
+            updated to encode the code in the text editor.<br/>
+            Copy it and share it with your friends!
+          </div>
+          <button onClick="blankAOC()"
+                  data-tip="tip-blank-advent-of-code">
+            Blank AOC Playground
+          </button>
+          <div popover="manual" id="tip-blank-advent-of-code" role="tooltip">
+            Create a blank Advent of Code playground
+          </div>
+        </div> -->
+
+        <!-- <div class="control-group" id="meta-controls">
+          <button id="theme-toggle" data-tip="tip-theme-toggle" type="button">☼</button>
+          <div popover="manual" role="tooltip" id="tip-theme-toggle">Toggle theme</div>
+          <div id="star-counter">
+            <a href="https://gitHub.com/squint-cljs/squint">
+              <img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star">
+            </a>
+          </div>
+        </div> -->
       </div>
 
-      <div id="result"></div>
-      Compiled code:
-      <div id="compiledCode"></div>
+      <div id="sidebar-sections">
+        <div class="sidebar-section" id="repl-mode-section">
+          <div id="repl-mode"> 
+            <label>
+              <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+              REPL-mode
+            </label>
+            <div id="repl-mode-desc">
+              <span>In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter.</span>
+              <span>The result will appear below.</span>
+              <span>To evaluate the whole program at once, use Alt + Enter;</span>
+            </div>
+          </div>
+          <div id="result"></div>
+        </div>
+
+        <div class="sidebar-section" id="compiled-code-section">
+          <button id="compiled-code-toggle" class="sidebar-section-label" type="button"
+                  aria-expanded="true" aria-controls="compiled-code">
+            <span id="compiled-code-toggle-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor"></path>
+              </svg>
+            </span>
+            <span>Compiled code</span>
+          </button>
+          <div id="compiled-code"></div>
+        </div>
+      </div>
     </div>
   </div>
+  <div id="footer"></div>
 </body>
 <script>
 const toggle = document.querySelector("#theme-toggle");
 
+const updateThemeToggle = () => {
+  const dark = document.documentElement.dataset.theme === "dark";
+  toggle.setAttribute("aria-pressed", String(dark));
+};
+
+updateThemeToggle();
+
+osColorScheme.addEventListener("change", () => {
+  applyOsTheme();
+  updateThemeToggle();
+});
+
 toggle.addEventListener("click", () => {
   const dark = document.documentElement.dataset.theme === "dark";
-
-  if (dark) {
-    delete document.documentElement.dataset.theme;
-  } else {
-    document.documentElement.dataset.theme = "dark";
-  }
-
-  toggle.setAttribute("aria-pressed", String(!dark));
-  toggle.textContent = dark ? "☼" : "☾" ;
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+  updateThemeToggle();
 });
+
+const compiledCodeToggle = document.querySelector("#compiled-code-toggle");
+const compiledCode = document.querySelector("#compiled-code");
+
+compiledCodeToggle.addEventListener("click", () => {
+  const expanded = compiledCodeToggle.getAttribute("aria-expanded") === "true";
+  compiledCodeToggle.setAttribute("aria-expanded", String(!expanded));
+  compiledCode.setAttribute("aria-hidden", String(expanded));
+});
+
+// native tooltips
+document.querySelectorAll("[data-tip]").forEach((el, i) => {
+  const tip = document.getElementById(el.dataset.tip);
+  const name = `--tip-${i}`;
+  el.style.anchorName = name;
+  tip.style.positionAnchor = name;
+  el.setAttribute("aria-describedby", tip.id);
+
+  let timer;
+  const show = (delay) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => tip.showPopover(), delay);
+  };
+  const hide = () => {
+    clearTimeout(timer);
+    if (tip.matches(":popover-open")) tip.hidePopover();
+  };
+
+  el.addEventListener("pointerenter", () => show(400)); // delayed in
+  el.addEventListener("pointerleave", hide);            // immediate out
+  el.addEventListener("focus", () => show(0));
+  el.addEventListener("blur", hide);
+});
+
 </script>
 </html>

@@ -1,16 +1,22 @@
 :root {
+  color-scheme: light dark;
   --teal-color: #31afd0;
+  --selection-background: light-dark(rgba(31, 143, 255, 0.10), rgba(81, 177, 241, 0.34));
+  --selection-color: light-dark(#222, #fff);
   --nav-height: 40px;
   --viewport-padding-inline: 20px;
-  --panel-border-radius: 10px;
+  --panel-border-radius: 0px;
   --bg: light-dark(#fff, #181818);
   --fg: light-dark(#222, #eee);
-  --panel-border-color: light-dark(
-    rgb(from gray r g b / 30%),
-    rgb(from gray r g b / 60%)
-  );
+  --panel-border-color: light-dark(rgb(from gray r g b / 30%), rgb(from gray r g b / 60%));
+  --panel-border-color-hover: light-dark(rgb(from black r g b / 70%), rgb(from white r g b / 70%));
   --panel-border: 1px solid var(--panel-border-color);
-  color-scheme: light;
+  --button-color: light-dark(rgb(from currentColor r g b / 5%), rgb(from currentColor r g b / 12%));
+  --tooltip-color: light-dark(#eee, #e5e5e5);
+  --ui-label-weight: 400;
+  --scrollbar-thumb-color: light-dark(rgb(128 128 128 / 23%), rgb(128 128 128 / 53%));
+  --scrollbar-thumb-color-hover: light-dark(rgb(128 128 128 / 43%), rgb(128 128 128 / 73%));
+  --draggable-pane-divisor-color-hover: light-dark(rgb(128 128 128 / 44%), rgb(128 128 128 / 77%));
 }
 
 :root[data-theme="light"]{
@@ -21,13 +27,24 @@
  color-scheme: dark;
 }
 
+::selection {
+  background-color: var(--selection-background);
+  color: var(--selection-color);
+}
+
+/* for draggable pane divider */
+@property --c1 { syntax: '<color>'; inherits: false; initial-value: transparent;}
+@property --c2 { syntax: '<color>'; inherits: false; initial-value: transparent;}
+
 body {
   color: var(--fg);
   max-width: inherit;
   padding: 0;
   background: var(--body-background-color-light-mode);
-  margin-block-start: 10px;
-  margin-inline: var(--viewport-padding-inline); 
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
 }
 
 body, #editor, #sidebar {
@@ -37,29 +54,38 @@ body, #editor, #sidebar {
     border-color 200ms ease;
 }
 
-#app {
-  margin-inline: 0;
-  margin-bottom: 12px;
-  background: var(--body-background-color-light-mode);
-  box-shadow: 0 0 20px rgb(from black r g b / 10%);
+#aoc_container {
+  margin: 20px 30px;
+}
 
+#app {
+  flex-shrink: 0;
+  padding: 20px 30px;
+  margin: 0;
+  background: var(--body-background-color-light-mode);
+  table {
+    margin-bottom: 0;
+  }
+  &:empty {
+    padding: 0;
+  }
 }
 
 #theme-toggle {
-  color: var(--fg);
-  background:none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#theme-toggle-icon {
+  color: light-dark(color-mix(in srgb, var(--fg), transparent 25%), color-mix(in srgb, var(--fg), transparent 15%));
+  background: none;
+  display: inline-flex;
   padding: 0;
   margin: 0;
-  width: 24px;
-  height: 24px;
   line-height: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1.75rem;
-  [data-theme="dark"] & {
-    font-size: 1rem;
-  }
+  width: 15px;
+  height: 15px;
   &:focus {
     outline: none;
     box-shadow: none;
@@ -83,7 +109,7 @@ body, #editor, #sidebar {
 }
 
 #main {
-
+  --pane-min-width: 300px;
   padding-inline: 0;
   display: flex;
   flex-direction: column;
@@ -91,56 +117,155 @@ body, #editor, #sidebar {
 
   @media screen and (min-width: 768px) {
     overflow: auto;
-    flex-direction: row;
-    /* fill the window instead of shrinking to the height of the code */
-    height: calc(100dvh - 20px);
+    display: grid;
+    grid-template-columns: clamp(var(--pane-min-width), var(--pane-split, 50%), calc(100% - var(--pane-min-width))) minmax(0, 1fr);
+    /* Fill the space between the optional stage and the fixed-height footer. */
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+  }
+
+  &.pane-resizing, &.pane-resizing * {
+    cursor: col-resize;
+    user-select: none;
   }
 }
 
 #editor {
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-height: 90dvh;
   max-width: calc(100dvw - 20px);
   border: var(--panel-border);
+  border-inline: none;
   border-radius: var(--panel-border-radius);
   overflow: auto;
   background: var(--bg);
+  padding-inline-start: var(--viewport-padding-inline);
 
   @media screen and (min-width: 768px) {
-    margin-bottom: 10px;
-    width: 50%;
+    width: auto;
+    max-width: none;
     max-height: none;
+    min-height: 0;
+
+    & > .cm-editor {
+      flex: 1;
+      min-height: 0;
+    }
   }
 }
 
+#sidebar button,
+#aoc_output_container button,
+#aoc_form_container>button,
+#aoc_form_container>#aoc_token {
+  font-weight: var(--ui-label-weight);
+  color: var(--fg);
+  background: var(--button-color);
+  border: 1px solid light-dark(rgb(from currentColor r g b / 20%), rgb(from currentColor r g b / 40%));
+  height: fit-content;
+  margin: 0;
+  padding: 0.25em 0.85em 0.35em;
+  border-radius: 0.3em;
+  &:hover, &:active {
+    border-color: rgb(from currentColor r g b / 40%);
+    transform: none;
+  }
+  &:focus {
+    box-shadow: none;
+  }
+}
+
+#aoc_form_container>#aoc_token {
+  background: transparent;
+}
+
+#aoc_help_container {
+  font-size: 1rem;
+  padding: 10px 0 0;
+}
+
+#aoc_output_container {
+  border: 1px solid var(--panel-border-color);
+  margin: 0px 30px 10px;
+  /* justify-content: center; */
+  gap: 0;
+  border-radius: 7px;
+}
+
 #sidebar {
+  min-width: 0;
+  box-sizing: border-box;
+  --draggable-divider-width: 10px;
+  overflow: hidden;
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   width: 100%;
-  max-height: 90dvh;
-  max-width: calc(100dvw - 40px);
+  gap:32px;
   border: var(--panel-border);
+  border-inline: none;
   border-radius: var(--panel-border-radius);
-  padding: 10px;
+  padding: 10px 10px 0px calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
   margin-top: 10px;
-  overflow: auto;
-  background: var(--bg);
 
   @media screen and (min-width: 768px) {
     margin-top: 0px;
-    margin-left: 10px;
-    margin-bottom: 10px;
-    width: 50%;
+    margin-left: 0px;
+    width: auto;
     max-height: none;
   }
 
+  .sidebar-section-label {
+    font-weight: var(--ui-label-weight);
+  }
+
+  #draggable-divider {
+    display: none;
+    width: var(--draggable-divider-width);
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    height: 100%;
+    cursor: col-resize;
+    touch-action: none;
+    z-index: 1;
+    @media screen and (min-width: 768px) {
+      display: block;
+    }
+    &:focus-visible {
+      outline: none;
+    }
+    &>#draggable-divider-line {
+      --c1: var(--scrollbar-thumb-color);
+      --c2: var(--scrollbar-thumb-color);
+      position: absolute;
+      width: 1px;
+      top: 0px;
+      left: 2px;
+      translate: -50%;
+      height: 100%;
+      background-image: linear-gradient(var(--c1) 0%,var(--c2) 30% 70%,var(--c1) 100%);
+      transition: --c1 200ms ease, --c2 200ms ease, width 200ms ease;
+    }
+    &:hover:not(.pane-resizing), &.pane-resizing.pointer-over, &:focus-visible:not(.pointer-focused) {
+      &>#draggable-divider-line {
+        width: 3px;
+        --c2: var(--draggable-pane-divisor-color-hover);
+      }
+    }
+  }
+
   #sidebar-controls {
+    width: 100%;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-    /* buttons stay together on the left, star counter keeps the right edge */
+    justify-content: space-between;
     #meta-controls {
       margin-left: auto;
     }
@@ -148,34 +273,89 @@ body, #editor, #sidebar {
       margin: 0;
     }
 
-    button {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--fg);
-      background: light-dark(rgb(from currentColor r g b / 5%), rgb(from currentColor r g b / 12%));
-      border: 1px solid rgb(from currentColor r g b / 20%);
-      height: fit-content;
-      margin: 0;
-      padding: 0.25em 0.85em 0.35em;
-      border-radius: 0.3em;
-      &:hover, &:active {
-        border-color: rgb(from currentColor r g b / 40%);
-      }
-      &:focus {
-        box-shadow: none;
-      }
-    }
     & .control-group {
+      min-height: 1.9em; /* need this in case pane is narrow and star counter wraps */
       display: flex;
+      flex-wrap: wrap;
+      min-width: 0;
+      max-width: 100%;
       align-items: center;
       gap: 12px;
     }
-
   }
-  
+
+  #sidebar-sections {
+    --sidebar-control-size: 13px;
+    --sidebar-control-gap: 5px;
+    outline-offset: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    overflow: hidden;
+
+    .sidebar-section {
+      outline-offset: 2px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      &#repl-mode-section {
+        flex-shrink: 0;
+      }
+      &#compiled-code-section {
+      }
+    }
+
+    #compiled-code-toggle {
+      appearance: none;
+      align-self: flex-start;
+      display: flex;
+      align-items: center;
+      gap: var(--sidebar-control-gap);
+      color: var(--fg);
+      background: none;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      font-family: inherit;
+      font-size: inherit;
+      font-weight: var(--ui-label-weight);
+      line-height: inherit;
+      margin: 0;
+      padding: 0;
+      cursor: pointer;
+
+      &:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 3px;
+      }
+
+      &[aria-expanded="false"] {
+        #compiled-code-toggle-icon svg {
+          transform: rotate(0deg);
+        }
+      }
+    }
+
+    #compiled-code-toggle-icon {
+      scale: 1.65;
+      display: grid;
+      place-items: center;
+      flex: 0 0 var(--sidebar-control-size);
+      width: var(--sidebar-control-size);
+      height: var(--sidebar-control-size);
+
+      svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(90deg);
+        transition: transform 100ms ease;
+      }
+    }
+  }
+
   #repl-mode {
-    font-size: 14px;
-    font-weight: 500;
+    font-weight: var(--ui-label-weight);
     display: flex;
     flex-direction: column;
     gap: 0.5em;
@@ -184,8 +364,10 @@ body, #editor, #sidebar {
       margin: 0;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: var(--sidebar-control-gap);
       input {
+        width: var(--sidebar-control-size);
+        height: var(--sidebar-control-size);
         margin: 0;
         accent-color: var(--fg);
         &:focus {
@@ -193,7 +375,9 @@ body, #editor, #sidebar {
         }
       }
     }
+
     #repl-mode-desc {
+      padding-inline-start: 19px;
       font-weight: normal;
       display: flex;
       flex-direction: column;
@@ -204,24 +388,169 @@ body, #editor, #sidebar {
     }
   }
 
+  #result {
+    color: var(--fg);
+    background: var(--bg);
+    border: var(--panel-border);
+    border-radius: 2px;
+    padding: 0px;
+    /* an expanded tree scrolls in place, so the compiled code stays reachable */
+    max-height: 40dvh;
+    min-height: 20px;
+    overflow: auto;
+    #sidebar:has(#replCheckBox:checked) & {
+      padding: 10px;
+    }
+    li {
+      font-size: 16px!important;
+    }
+  }
+
+  #compiled-code {
+
+    border: var(--panel-border);
+    border-left: 0;
+    border-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    overflow:hidden;
+    padding-inline-start: 3px;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 100ms ease, visibility 0s linear;
+  }
+
+  #compiled-code-toggle[aria-expanded="false"] + #compiled-code {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 100ms ease, visibility 0s linear 100ms;
+  }
+
+  .ͼ2 .cm-line {
+    font-size: 13px;
+    opacity: 0.83;
+  }
+
   .ͼ2 .cm-gutters {
     background-color: transparent;
+    &.cm-gutters-before {
+      border-right-width: 0px;
+    }
   }
 }
 
-#result {
-  border: var(--panel-border);
-  border-radius: 2px;
-  padding: 0px;
-  /* an expanded tree scrolls in place, so the compiled code stays reachable */
-  max-height: 40dvh;
-  overflow: auto;
-  #sidebar:has(#replCheckBox:checked) & {
-    padding: 10px;
+#footer {
+  height: 36px;
+  flex: 0 0 36px;
+}
+
+@media screen and (min-width: 768px) {
+  #sidebar {
+    min-height: 0;
+  }
+
+  #sidebar-controls,
+  #compiled-code-toggle {
+    flex-shrink: 0;
+  }
+
+  #sidebar-sections,
+  #compiled-code-section,
+  #compiled-code,
+  #compiled-code > .cm-editor {
+    flex: 1;
+    min-height: 0;
   }
 }
 
-#editor, #sidebar {
-  scrollbar-color: rgba(from gray r g b / 33%) transparent;
+/* scrollbar behaviors */
+.cm-editor {
+  overflow:hidden;
+}
+
+.cm-scroller {
+  scrollbar-color: auto;
   scrollbar-width: auto;
+
+  &::-webkit-scrollbar {
+    width: 18px;
+    height: 18px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-color);
+    background-clip: padding-box;
+    border: 4px solid transparent;
+    border-radius: 12px;
+    min-width: 56px;
+    min-height: 56px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-color-hover);
+    background-clip: padding-box;
+  }
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+/* Use standard scrollbar colors only without WebKit scrollbar styling support. */
+@supports not selector(::-webkit-scrollbar) {
+  .cm-scroller {
+    scrollbar-color: var(--scrollbar-thumb-color) transparent;
+  }
+}
+
+/* popovers */
+
+[role="tooltip"][popover] {
+  /* undo UA popover centering */
+  inset: auto;
+  margin: 16px 0 0;
+
+  /* anchor below, flip above if clipped */
+  position-area: bottom;
+  position-try-fallbacks: flip-block;
+
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg), gray 10%);
+  box-shadow:
+    0 0 0 0.5px light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 35%)),  /* hairline edge */
+    0 2px 20px light-dark(rgb(0 0 0 / 16%), rgb(255 255 255 / 35%));
+  color: var(--fg);
+  padding: 6px 12px;
+  font: 1em/1.5 system-ui, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+
+  /* exit state */
+  opacity: 0;
+  translate: 0 -4px;
+  transition:
+      opacity 120ms,
+      translate 120ms,
+      display 120ms allow-discrete,
+      overlay 120ms allow-discrete;
+
+  border-radius: 5px;
+}
+
+[role="tooltip"]:popover-open {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* entry state */
+@starting-style {
+  [role="tooltip"]:popover-open {
+    opacity: 0;
+    translate: 0 -4px;
+  }
 }

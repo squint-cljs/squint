@@ -2,14 +2,15 @@ import { default_extensions, complete_keymap } from '@nextjournal/clojure-mode';
 import { history, historyKeymap } from '@codemirror/commands';
 import * as eval_region from '@nextjournal/clojure-mode/extensions/eval-region';
 import { EditorView, drawSelection, keymap } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
-import { syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
+import { Compartment, EditorState } from '@codemirror/state';
+import { HighlightStyle, syntaxHighlighting, defaultHighlightStyle, foldGutter } from '@codemirror/language';
 import { javascript } from "@codemirror/lang-javascript";
+import { tags } from '@lezer/highlight';
 import prettierPluginJS from "prettier/plugins/estree.mjs";
 import prettierPluginBabel from "prettier/plugins/babel.mjs";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { Inspector, chromeLight } from "react-inspector";
+import { Inspector, chromeDark, chromeLight } from "react-inspector";
 const url = new URL(window.location.href);
 import * as squint from "squint-cljs";
 import * as prettier from "prettier";
@@ -42,6 +43,51 @@ const theme = EditorView.theme({
   '&.cm-focused .cm-cursor': { visibility: 'visible' },
 });
 
+const darkTheme = EditorView.theme({
+  '&': { color: '#dce4ef', backgroundColor: 'var(--bg)' },
+  '.cm-content': { caretColor: '#dce4ef' },
+  '&.cm-focused .cm-cursor': { borderLeftColor: '#dce4ef' },
+  '.cm-gutters': { backgroundColor: 'var(--bg)', color: '#9aa9bc', border: 'none' },
+  '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: '#ffffff0d' },
+}, { dark: true });
+
+const darkHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword, color: '#c4a7e7' },
+  { tag: [tags.atom, tags.number, tags.null], color: '#f6c177' },
+  { tag: [tags.string, tags.regexp], color: '#9ccfd8' },
+  { tag: [tags.comment, tags.lineComment], color: '#8292a7', fontStyle: 'italic' },
+  { tag: tags.definition(tags.variableName), color: '#a7c7e7' },
+  { tag: tags.typeName, color: '#f6c177' },
+]);
+
+const sourceTheme = new Compartment();
+const compiledTheme = new Compartment();
+const colorSchemeExtensions = () => document.documentElement.dataset.theme === 'dark'
+  ? [darkTheme, syntaxHighlighting(darkHighlightStyle)]
+  : syntaxHighlighting(defaultHighlightStyle);
+
+function clearEditorSelection(view) {
+  if (view.state.selection.ranges.some(range => !range.empty)) {
+    view.dispatch({ selection: { anchor: view.state.selection.main.head } });
+  }
+}
+
+// Both editors draw their selections; native page selections share the same
+// CSS variable. Use the focused selector too, to override CodeMirror's defaults.
+const selectionExtensions = [
+  drawSelection(),
+  EditorView.theme({
+    '.cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
+      backgroundColor: 'var(--selection-background)',
+    },
+  }),
+  EditorView.domEventHandlers({
+    blur(_event, view) {
+      clearEditorSelection(view);
+    },
+  }),
+];
+
 const squintExtension = (opts) => {
   return keymap.of([
     { key: 'Alt-Enter', run: evalCell },
@@ -69,14 +115,15 @@ let jsEditor = null;
 async function JSEditor(js) {
   js = await prettier.format(js, { parser: "babel", plugins: [prettierPluginJS, prettierPluginBabel] });
   js = js.trim();
-  const elt = document.querySelector('#compiledCode');
+  const elt = document.querySelector('#compiled-code');
   const fontSizeTheme = EditorView.theme({
     $: {
       fontSize: "5pt"
     }
   });
-  let extensions = [javascript({}).language, fontSizeTheme, foldGutter(), syntaxHighlighting(defaultHighlightStyle),
-  EditorView.editable.of(false)];
+  let extensions = [javascript({}).language, fontSizeTheme, foldGutter(), compiledTheme.of(colorSchemeExtensions()),
+  selectionExtensions, EditorState.readOnly.of(true), EditorView.editable.of(false),
+  EditorView.contentAttributes.of({ tabindex: '0' })];
   let state = EditorState.create({
     doc: js,
     extensions: extensions,
@@ -96,13 +143,24 @@ let reactRoot = ReactDOM.createRoot(document.querySelector("#result"));
 
 // react-inspector styles inline from its theme, so CSS can't size it: match the
 // editor's code font here
-const inspectorTheme = { ...chromeLight,
-                         BASE_FONT_SIZE: '13px', BASE_LINE_HEIGHT: 1.4,
-                         TREENODE_FONT_SIZE: '13px', TREENODE_LINE_HEIGHT: 1.4 };
+const inspectorTheme = () => ({
+  ...(document.documentElement.dataset.theme === 'dark' ? chromeDark : chromeLight),
+  BASE_FONT_SIZE: '13px', BASE_LINE_HEIGHT: 1.4,
+  TREENODE_FONT_SIZE: '13px', TREENODE_LINE_HEIGHT: 1.4,
+});
+let displayedInspectorProps = null;
+const renderInspector = () => {
+  if (displayedInspectorProps) {
+    reactRoot.render(React.createElement(Inspector, {
+      ...displayedInspectorProps, theme: inspectorTheme(),
+    }));
+  }
+};
 
 let evalCode = async (code) => {
   // drop whatever is in the result panel: a previous error must not linger
   // when the next run succeeds (non-REPL runs render no result of their own)
+  displayedInspectorProps = null;
   reactRoot.render(null);
   try {
     let importSource = url.searchParams.get('jsx.import-source') || 'react';
@@ -177,13 +235,14 @@ let evalCode = async (code) => {
       // Use Inspector's root `name` to label a Promise wrapper: renders as one
       // expandable line ("Promise: <value>") instead of stitching text spans
       // around a separate tree, which looked broken on multi-line values.
-      const inspectorProps = promiseTag === 'rejected' ? { name: 'Promise rejected', data: result, theme: inspectorTheme }
-                           : promiseTag === 'resolved' ? { name: 'Promise', data: result, theme: inspectorTheme }
-                           : { data: result, theme: inspectorTheme };
-      reactRoot.render(
-        promiseTag === 'pending'
-          ? React.createElement('span', null, '#<Promise pending>')
-          : React.createElement(Inspector, inspectorProps));
+      if (promiseTag === 'pending') {
+        reactRoot.render(React.createElement('span', null, '#<Promise pending>'));
+      } else {
+        displayedInspectorProps = promiseTag === 'rejected' ? { name: 'Promise rejected', data: result }
+                                : promiseTag === 'resolved' ? { name: 'Promise', data: result }
+                                : { data: result };
+        renderInspector();
+      }
       if (docChanged) {
         url.searchParams.delete('src');
         window.history.replaceState(null, null, url);
@@ -230,8 +289,8 @@ let extensions = [
   history(),
   theme,
   foldGutter(),
-  syntaxHighlighting(defaultHighlightStyle),
-  drawSelection(),
+  sourceTheme.of(colorSchemeExtensions()),
+  selectionExtensions,
   keymap.of(complete_keymap),
   keymap.of(historyKeymap),
   squintExtension({ modifier: modifier }),
@@ -374,6 +433,23 @@ let editor = new EditorView({
   extensions: extensions,
 });
 globalThis.editor = editor;
+
+// A click on non-focusable page content may leave an editor focused, so blur
+// alone doesn't cover every outside click. Keep selections in the clicked pane.
+document.addEventListener('pointerdown', event => {
+  for (const view of [editor, jsEditor]) {
+    if (view && !view.dom.contains(event.target)) clearEditorSelection(view);
+  }
+}, { capture: true });
+
+new MutationObserver(() => {
+  editor.dispatch({ effects: sourceTheme.reconfigure(colorSchemeExtensions()) });
+  if (jsEditor) {
+    jsEditor.dispatch({ effects: compiledTheme.reconfigure(colorSchemeExtensions()) });
+  }
+  renderInspector();
+}).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
 var dev = JSON.parse(urlParams.get('dev')) ?? location.hostname === 'localhost';
 
 
@@ -407,6 +483,7 @@ window.blankAOC = async () => {
 };
 
 window.changeREPL = (target) => {
+  displayedInspectorProps = null;
   reactRoot.render(null);
   // vars from the other mode don't carry over: their definitions are gone
   globalThis.compilerState = null;

@@ -549,13 +549,20 @@ See [examples/babashka/index.clj](examples/babashka/index.clj).
 
 ## Developing Squint
 
-Requires Babashka, Clojure, Node, and npm.
+Requires Babashka, Clojure, Node, npm, and pnpm.
 
-Clone the repo.
+After cloning the repo, run:
 
-`cd` into `squint` and run `bb dev`.
+```shell
+cd squint
+pnpm install
+bb dev
+```
 
-This will start the Squint compiler watcher and the playground dev server.
+`pnpm install` installs the root dependencies using the checked-in lockfile.
+
+`bb dev` installs the playground's dependencies with npm, then starts the Squint
+compiler watcher and playground dev server.
 
 Vite will print the local playground URL, normally http://localhost:5173.
 
