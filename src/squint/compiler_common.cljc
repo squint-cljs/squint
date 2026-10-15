@@ -1660,7 +1660,7 @@
                    (when-let [[_ _exception binding & catch-body] (first catch-clause)]
                      (let [env (update env :var->ident (fn [m]
                                                          (-> m
-                                                             (assoc binding (munge (gensym binding))))))]
+                                                             (assoc binding (gensym (munge binding))))))]
                        (ast/raw "catch(" (emit binding (expr-env env)) "){\n"
                             (emit-do env catch-body)
                             "}\n")))
