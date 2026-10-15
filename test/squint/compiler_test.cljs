@@ -3198,7 +3198,15 @@ globalThis.foo.fs = fs;")))))
 
 (deftest try-catch-test
   (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2)))))
-  (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2))))))
+  (is (= 2 (jsv! '(try (assoc :foo 1 2) (catch :default _ 2)))))
+  (testing "a catch binding that needs munging is referred to by the same name (#1050)"
+    (is (= "boom" (jsv! '(try (throw (js/Error. "boom"))
+                              (catch :default abort-error (.-message abort-error))))))
+    (is (= "boom" (jsv! '(try (throw (js/Error. "boom"))
+                              (catch :default ok? (.-message ok?))))))
+    (is (= "boom" (jsv! '(let [err! 1]
+                           (try (throw (js/Error. "boom"))
+                                (catch :default err! (.-message err!)))))))))
 
 (deftest recur-across-try-test
   (testing "recur inside try reaches its loop, in return position"
