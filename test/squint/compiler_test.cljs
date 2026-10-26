@@ -1064,13 +1064,13 @@
                (is false (.-message err))))
      (.finally #(done)))))
 
-(deftest doseq-async-test
-  (testing "^:async on a binding makes only that loop for await"
-    (let [js (jss! "(doseq [^:async x xs y [1 2]] (prn x y))")]
+(deftest doseq-await-test
+  (testing "^:await on a binding makes only that loop for await"
+    (let [js (jss! "(doseq [^:await x xs y [1 2]] (prn x y))")]
       (is (= 1 (count (re-seq #"for await \(let" js))))
       (is (= 1 (count (re-seq #"for \(let" js))))))
-  (testing "^:async on the binding vector makes every loop for await"
-    (let [js (jss! "(doseq ^:async [x xs y ys] (prn x y))")]
+  (testing "^:await on the binding vector makes every loop for await"
+    (let [js (jss! "(doseq ^:await [x xs y ys] (prn x y))")]
       (is (= 2 (count (re-seq #"for await \(let" js))))))
   (async done
     (->
@@ -1086,12 +1086,12 @@
                          (let [a (atom 0)
                                b (atom 0)
                                c (atom 0)]
-                           (doseq ^:async [x (nums)]
+                           (doseq ^:await [x (nums)]
                              (swap! a + x))
-                           (doseq [^:async x (nums)
+                           (doseq [^:await x (nums)
                                    y [1 2]]
                              (swap! b + (* x y)))
-                           (doseq [^:async [p q] (pairs)]
+                           (doseq [^:await [p q] (pairs)]
                              (swap! c + p q))
                            [@a @b @c]))
 
