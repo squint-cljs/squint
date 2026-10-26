@@ -3,6 +3,7 @@
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
 ## Unreleased
+- [#594](https://github.com/squint-cljs/squint/issues/594): support `for await` via `(doseq ^:async [x xs] ...)` ([#1053](https://github.com/squint-cljs/squint/pull/1053))
 - `compileStringEx` errors carry `data` as a JS object, e.g. `e.data.line`
 - Playground: Mark compile and runtime errors at their source location in the editor
 - Playground: Make Option+S run `unwrap` on macOS
