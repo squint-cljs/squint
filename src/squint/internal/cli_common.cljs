@@ -126,8 +126,7 @@
             (.finally (fn []
                         (fs/rmSync dir #js {:force true :recursive true}))))))))
 
-(defn run-file [{:keys [log-prefix compile-file resolve-ns] :as dialect} opts file]
-  (binding [*print-fn* *print-err-fn*] (println log-prefix "Running" file))
+(defn run-file [{:keys [compile-file resolve-ns] :as dialect} opts file]
   (-> (compile-file (assoc opts :in-file file :resolve-ns (fn [x]
                                                             (resolve-ns opts file x))))
       (.catch (fn [err] (print-compile-error dialect file err) (cli/*exit-fn* {:exit 1})))
