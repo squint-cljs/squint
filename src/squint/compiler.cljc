@@ -184,8 +184,7 @@
         gensym (:gensym env)
         local (gensym)
         env (update env :var->ident assoc local local)]
-    (cond-> (ast/raw (emit (list 'js* (cc/replace-first* template "%s" (str local))
-                             v)
+    (cond-> (ast/raw (emit (list 'js* (cc/replace-first* template "%s" (str local)) v)
                        env)
                  " {\n"
                  (emit (list 'clojure.core/let [k local]
