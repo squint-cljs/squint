@@ -9,7 +9,7 @@
     "nanoid": "^5.0.0",
     "preact": "^10.24.0",
     "reagami": "^0.1.37",
-    "squint-cljs": "file:../../squint"
+    "squint-cljs": "file:../.."
   },
   "devDependencies": {
     "vite": "^8.3.4"
