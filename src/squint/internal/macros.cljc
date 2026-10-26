@@ -293,6 +293,7 @@
                  (vector? seq-exprs) "a vector for its binding"
                  (even? (count seq-exprs)) "an even number of forms in binding vector")
   (let [res (let [err (fn [& msg] (throw (ex-info (apply str msg) {})))
+                  for-of (if (:async (meta seq-exprs)) 'squint.impl/for-await-of 'squint.impl/for-of)
                   step (fn step [exprs]
                          (if-not exprs
                            `(do ~@body)
@@ -309,7 +310,7 @@
                                (= k :when) `(when ~v
                                               ~subform)
                                (keyword? k) (err "Invalid 'doseq' keyword" k)
-                               :else (list 'squint.impl/for-of [k v] subform)))))]
+                               :else (list for-of [k v] subform)))))]
               (step (seq seq-exprs)))]
     res))
 

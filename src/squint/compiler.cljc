@@ -51,7 +51,7 @@
                          'squint-compiler-html
                          'squint-compiler-js-map
                          'require 'squint.defclass/defclass* 'squint.defclass/super*
-                         'squint.impl/for-of
+                         'squint.impl/for-of 'squint.impl/for-await-of
                          'squint.impl/hoist*
                          'squint.impl/defonce
                          ]))
@@ -179,13 +179,13 @@
 (defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let env bindings more) env))
 
-(defmethod emit-special 'squint.impl/for-of [_type enc-env [_for-of [k v] body :as _expr]]
+(defn- emit-for-of [enc-env head coll k body]
   (let [env (assoc enc-env :context :statement)
         gensym (:gensym env)
         local (gensym)
         env (update env :var->ident assoc local local)]
-    (cond-> (ast/raw (emit (list 'js* (cc/replace-first* "for (let %s of ~{})" "%s" (str local))
-                             (list 'clojure.core/iterable v))
+    (cond-> (ast/raw (emit (list 'js* (cc/replace-first* head "%s" (str local))
+                             coll)
                        env)
                  " {\n"
                  (emit (list 'clojure.core/let [k local]
@@ -196,6 +196,12 @@
                    (ast/raw "\n" return)))
       (= :expr (:context enc-env))
       (cc/wrap-implicit-iife enc-env))))
+
+(defmethod emit-special 'squint.impl/for-of [_type enc-env [_for-of [k v] body :as _expr]]
+  (emit-for-of enc-env "for (let %s of ~{})" (list 'clojure.core/iterable v) k body))
+
+(defmethod emit-special 'squint.impl/for-await-of [_type enc-env [_for-await-of [k v] body :as _expr]]
+  (emit-for-of enc-env "for await (let %s of ~{})" v k body))
 
 (defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
   (emit (list 'do #_(list 'js* (str "var " (munge name) ";\n"))

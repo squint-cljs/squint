@@ -1064,6 +1064,26 @@
                (is false (.-message err))))
      (.finally #(done)))))
 
+(deftest doseq-async-test
+  (async done
+    (->
+     (.then (jsv! '(do (defn ^:async ^:gen nums []
+                         (js-yield (await (js/Promise.resolve 1)))
+                         (js-yield 2))
+
+                       (defn ^:async sum []
+                         (let [xs (atom 0)]
+                           (doseq ^:async [x (nums)]
+                             (swap! xs + x))
+                           @xs))
+
+                       (sum)))
+            (fn [v]
+              (is (= 3 v))))
+     (.catch (fn [err]
+               (is false (.-message err))))
+     (.finally #(done)))))
+
 (deftest top-level-await-test
   (is (str/includes? (jss! "(await 1)") "await")))
 
