@@ -1096,7 +1096,7 @@
 
                        (sums)))
             (fn [v]
-              (is (= [3 9 30] (js->clj v)))))
+              (is (eq #js [3 9 30] v))))
      (.catch (fn [err]
                (is false (.-message err))))
      (.finally #(done)))))
