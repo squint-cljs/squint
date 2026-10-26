@@ -1079,6 +1079,7 @@
                          (js-yield 2))
 
                        (defn ^:async ^:gen pairs []
+                         (js-yield (await (js/Promise.resolve [1 2])))
                          (js-yield [10 20]))
 
                        (defn ^:async sums []
@@ -1096,7 +1097,7 @@
 
                        (sums)))
             (fn [v]
-              (is (eq #js [3 9 30] v))))
+              (is (eq #js [3 9 33] v))))
      (.catch (fn [err]
                (is false (.-message err))))
      (.finally #(done)))))
