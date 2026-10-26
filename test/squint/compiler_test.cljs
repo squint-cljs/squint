@@ -1065,21 +1065,38 @@
      (.finally #(done)))))
 
 (deftest doseq-async-test
+  (testing "^:async on a binding makes only that loop for await"
+    (let [js (jss! "(doseq [^:async x xs y [1 2]] (prn x y))")]
+      (is (= 1 (count (re-seq #"for await \(let" js))))
+      (is (= 1 (count (re-seq #"for \(let" js))))))
+  (testing "^:async on the binding vector makes every loop for await"
+    (let [js (jss! "(doseq ^:async [x xs y ys] (prn x y))")]
+      (is (= 2 (count (re-seq #"for await \(let" js))))))
   (async done
     (->
      (.then (jsv! '(do (defn ^:async ^:gen nums []
                          (js-yield (await (js/Promise.resolve 1)))
                          (js-yield 2))
 
-                       (defn ^:async sum []
-                         (let [xs (atom 0)]
-                           (doseq ^:async [x (nums)]
-                             (swap! xs + x))
-                           @xs))
+                       (defn ^:async ^:gen pairs []
+                         (js-yield [10 20]))
 
-                       (sum)))
+                       (defn ^:async sums []
+                         (let [a (atom 0)
+                               b (atom 0)
+                               c (atom 0)]
+                           (doseq ^:async [x (nums)]
+                             (swap! a + x))
+                           (doseq [^:async x (nums)
+                                   y [1 2]]
+                             (swap! b + (* x y)))
+                           (doseq [^:async [p q] (pairs)]
+                             (swap! c + p q))
+                           [@a @b @c]))
+
+                       (sums)))
             (fn [v]
-              (is (= 3 v))))
+              (is (= [3 9 30] (js->clj v)))))
      (.catch (fn [err]
                (is false (.-message err))))
      (.finally #(done)))))
