@@ -310,10 +310,12 @@
                                (= k :when) `(when ~v
                                               ~subform)
                                (keyword? k) (err "Invalid 'doseq' keyword" k)
-                               :else (list (if (or await-all? (:await (meta k)))
-                                             'squint.impl/for-await-of
-                                             'squint.impl/for-of)
-                                           [k v] subform)))))]
+                               (or await-all? (:await (meta k)))
+                               `(let [c# ~v]
+                                  (squint.impl/for-await-of
+                                   [~k (if (~'js* "~{}?.[Symbol.asyncIterator]" c#) c# (clojure.core/iterable c#))]
+                                   ~subform))
+                               :else (list 'squint.impl/for-of [k v] subform)))))]
               (step (seq seq-exprs)))]
     res))
 

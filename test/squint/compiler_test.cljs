@@ -1085,7 +1085,12 @@
                        (defn ^:async sums []
                          (let [a (atom 0)
                                b (atom 0)
-                               c (atom 0)]
+                               c (atom 0)
+                               nils (atom 0)
+                               maps (atom 0)
+                               whens (atom 0)
+                               whiles (atom 0)
+                               exprs (atom 0)]
                            (doseq ^:await [x (nums)]
                              (swap! a + x))
                            (doseq [^:await x (nums)
@@ -1093,11 +1098,24 @@
                              (swap! b + (* x y)))
                            (doseq [^:await [p q] (pairs)]
                              (swap! c + p q))
-                           [@a @b @c]))
+                           (doseq [^:await x nil]
+                             (swap! nils inc))
+                           (doseq ^:await [x (nums)
+                                           [_ n] {:a 10}]
+                             (swap! maps + x n))
+                           (doseq [^:await x (nums)
+                                   :when (odd? x)]
+                             (swap! whens + x))
+                           (doseq [^:await x (nums)
+                                   :while (< x 2)]
+                             (swap! whiles + x))
+                           (let [r (doseq [^:await x (nums)]
+                                     (swap! exprs + x))]
+                             [@a @b @c @nils @maps @whens @whiles r @exprs])))
 
                        (sums)))
             (fn [v]
-              (is (eq #js [3 9 33] v))))
+              (is (eq #js [3 9 33 0 23 1 1 nil 3] v))))
      (.catch (fn [err]
                (is false (.-message err))))
      (.finally #(done)))))
