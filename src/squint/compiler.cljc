@@ -179,12 +179,12 @@
 (defmethod emit-special 'let [_type env [_let bindings & more]]
   (emit (core-let env bindings more) env))
 
-(defn- emit-for-of [enc-env head coll k body]
+(defn- emit-for-of [enc-env template coll k body]
   (let [env (assoc enc-env :context :statement)
         gensym (:gensym env)
         local (gensym)
         env (update env :var->ident assoc local local)]
-    (cond-> (ast/raw (emit (list 'js* (cc/replace-first* head "%s" (str local))
+    (cond-> (ast/raw (emit (list 'js* (cc/replace-first* template "%s" (str local))
                              coll)
                        env)
                  " {\n"
