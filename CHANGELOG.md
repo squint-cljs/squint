@@ -3,6 +3,7 @@
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
 ## Unreleased
+- [#1052](https://github.com/squint-cljs/squint/pull/1052): `squint run` prints its `Running <file>` banner to stderr, so a program's stdout carries only its own output
 - `compileStringEx` errors carry `data` as a JS object, e.g. `e.data.line`
 - Playground: Mark compile and runtime errors at their source location in the editor
 - Playground: Make Option+S run `unwrap` on macOS
