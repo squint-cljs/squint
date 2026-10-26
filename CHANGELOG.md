@@ -4,6 +4,7 @@
 
 ## Unreleased
 - [#594](https://github.com/squint-cljs/squint/issues/594): support `for await` in `doseq`, with `^:async` on a binding, `(doseq [^:async x xs] ...)`, or on the binding vector for every binding ([#1053](https://github.com/squint-cljs/squint/pull/1053))
+- [#1052](https://github.com/squint-cljs/squint/pull/1052): `squint run` no longer prints a `Running <file>` banner, so a program's output is only its own
 - `compileStringEx` errors carry `data` as a JS object, e.g. `e.data.line`
 - Playground: Mark compile and runtime errors at their source location in the editor
 - Playground: Make Option+S run `unwrap` on macOS
