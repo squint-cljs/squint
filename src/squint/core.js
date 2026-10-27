@@ -1006,6 +1006,13 @@ export function iterable(x) {
   throw new TypeError(`${x} is not iterable`);
 }
 
+export function async_iterable(x) {
+  if (x?.[Symbol.asyncIterator]) {
+    return x;
+  }
+  return iterable(x);
+}
+
 export const IIterable = /* @__PURE__ */ Symbol.for('squint.core/IIterable');
 
 export const IIterable__iterator = Symbol.iterator;

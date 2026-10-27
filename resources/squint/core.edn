@@ -123,6 +123,7 @@
   assoc_in
   assoc_in_BANG_
   associative_QMARK_
+  async_iterable
   atom
   boolean$
   boolean_QMARK_

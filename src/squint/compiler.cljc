@@ -200,7 +200,7 @@
   (emit-for-of enc-env "for (let %s of ~{})" k (list 'clojure.core/iterable v) body))
 
 (defmethod emit-special 'squint.impl/for-await-of [_type enc-env [_for-await-of [k v] body :as _expr]]
-  (emit-for-of enc-env "for await (let %s of ~{})" k v body))
+  (emit-for-of enc-env "for await (let %s of ~{})" k (list 'clojure.core/async-iterable v) body))
 
 (defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
   (emit (list 'do #_(list 'js* (str "var " (munge name) ";\n"))
