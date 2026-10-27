@@ -5,6 +5,7 @@
    ["node:util" :as util]
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]
+   [clojure.walk :as walk]
    [promesa.core :as p]
    [squint.compiler :as squint]
    [squint.dce-test]
@@ -1066,20 +1067,21 @@
 
 (defn- run-await-doseq
   "Evaluates body inside an async fn, with async generators nums (1 2) and
-  pairs ([1 2] [10 20]) and an atom acc in scope, and resolves to @acc,
-  or to the body's value when it doesn't return acc."
+  pairs ([1 2] [10 20]) and an atom acc in scope. body is a placeholder in
+  the quoted template below."
   [body]
-  (jsv! (list 'do
-              '(defn ^:async ^:gen nums []
-                 (js-yield (await (js/Promise.resolve 1)))
-                 (js-yield 2))
-              '(defn ^:async ^:gen pairs []
-                 (js-yield (await (js/Promise.resolve [1 2])))
-                 (js-yield [10 20]))
-              (list 'defn (with-meta 'run {:async true}) []
-                    (list 'let '[acc (atom 0)]
-                          body))
-              '(run))))
+  (jsv! (walk/postwalk-replace
+         {'body body}
+         '(do (defn ^:async ^:gen nums []
+                (js-yield (await (js/Promise.resolve 1)))
+                (js-yield 2))
+              (defn ^:async ^:gen pairs []
+                (js-yield (await (js/Promise.resolve [1 2])))
+                (js-yield [10 20]))
+              (defn ^:async run []
+                (let [acc (atom 0)]
+                  body))
+              (run)))))
 
 (deftest doseq-await-test
   (testing "^:await on a binding makes only that loop for await"
