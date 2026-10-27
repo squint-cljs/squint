@@ -310,8 +310,7 @@
                                (= k :when) `(when ~v
                                               ~subform)
                                (keyword? k) (err "Invalid 'doseq' keyword" k)
-                               (or await-all? (:await (meta k)))
-                               (list 'squint.impl/for-await-of [k v] subform)
+                               (or await-all? (:await (meta k))) (list 'squint.impl/for-await-of [k v] subform)
                                :else (list 'squint.impl/for-of [k v] subform)))))]
               (step (seq seq-exprs)))]
     res))
