@@ -5,6 +5,7 @@
    ["node:util" :as util]
    [clojure.string :as str]
    [clojure.test :as t :refer [async deftest is testing]]
+   [clojure.walk :as walk]
    [promesa.core :as p]
    [squint.compiler :as squint]
    [squint.dce-test]
@@ -1063,6 +1064,91 @@
      (.catch (fn [err]
                (is false (.-message err))))
      (.finally #(done)))))
+
+(defn- run-await-doseq
+  "Evaluates body inside an async fn, with async generators nums (1 2) and
+  pairs ([1 2] [10 20]) and an atom acc in scope. body is a placeholder in
+  the quoted template below."
+  [body]
+  (jsv! (walk/postwalk-replace
+         {'body body}
+         '(do (defn ^:async ^:gen nums []
+                (js-yield (await (js/Promise.resolve 1)))
+                (js-yield 2))
+              (defn ^:async ^:gen pairs []
+                (js-yield (await (js/Promise.resolve [1 2])))
+                (js-yield [10 20]))
+              (defn ^:async run []
+                (let [acc (atom 0)]
+                  body))
+              (run)))))
+
+(deftest doseq-await-test
+  (testing "^:await on a binding makes only that loop for await"
+    (let [js (jss! "(doseq [^:await x xs y [1 2]] (prn x y))")]
+      (is (= 1 (count (re-seq #"for await \(let" js))))
+      (is (= 1 (count (re-seq #"for \(let" js))))))
+  (testing "^:await on the binding vector makes every loop for await"
+    (let [js (jss! "(doseq ^:await [x xs y ys] (prn x y))")]
+      (is (= 2 (count (re-seq #"for await \(let" js))))))
+  (async done
+    (-> (p/do
+          (testing "^:await on the binding vector"
+            (p/let [v (run-await-doseq '(do (doseq ^:await [x (nums)]
+                                              (swap! acc + x))
+                                            @acc))]
+              (is (= 3 v))))
+          (testing "^:await binding nested with a non-await binding"
+            (p/let [v (run-await-doseq '(do (doseq [^:await x (nums)
+                                                    y [1 2]]
+                                              (swap! acc + (* x y)))
+                                            @acc))]
+              (is (= 9 v))))
+          (testing "destructuring an ^:await binding"
+            (p/let [v (run-await-doseq '(do (doseq [^:await [p q] (pairs)]
+                                              (swap! acc + p q))
+                                            @acc))]
+              (is (= 33 v))))
+          (testing "nil coll"
+            (p/let [v (run-await-doseq '(do (doseq [^:await x nil]
+                                              (swap! acc inc))
+                                            @acc))]
+              (is (= 0 v))))
+          (testing "coll in a local"
+            (p/let [v (run-await-doseq '(let [xs [1 2]
+                                              ys nil]
+                                          (doseq [^:await x xs]
+                                            (swap! acc + x))
+                                          (doseq [^:await y ys]
+                                            (swap! acc inc))
+                                          @acc))]
+              (is (= 3 v))))
+          (testing "map coll under the binding vector shorthand"
+            (p/let [v (run-await-doseq '(do (doseq ^:await [x (nums)
+                                                            [_ n] {:a 10}]
+                                              (swap! acc + x n))
+                                            @acc))]
+              (is (= 23 v))))
+          (testing ":when next to an ^:await binding"
+            (p/let [v (run-await-doseq '(do (doseq [^:await x (nums)
+                                                    :when (odd? x)]
+                                              (swap! acc + x))
+                                            @acc))]
+              (is (= 1 v))))
+          (testing ":while next to an ^:await binding"
+            (p/let [v (run-await-doseq '(do (doseq [^:await x (nums)
+                                                    :while (< x 2)]
+                                              (swap! acc + x))
+                                            @acc))]
+              (is (= 1 v))))
+          (testing "doseq in expression position"
+            (p/let [v (run-await-doseq '(let [r (doseq [^:await x (nums)]
+                                                  (swap! acc + x))]
+                                          [(nil? r) @acc]))]
+              (is (eq [true 3] v)))))
+        (p/catch (fn [err]
+                   (is false (.-message err))))
+        (p/finally done))))
 
 (deftest top-level-await-test
   (is (str/includes? (jss! "(await 1)") "await")))

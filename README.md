@@ -293,6 +293,35 @@ Anonymous functions must have `^:gen` on the `fn` symbol:
 
 See the [playground](https://squint-cljs.github.io/squint/?src=KGRlZm4gXjpnZW4gZm9vIFtdCiAgKGpzLXlpZWxkIDEpCiAgKGpzLXlpZWxkKiBbMiAzXSkKICAobGV0IFt4IChpbmMgMyldCiAgICAoanMteWllbGQgeCkpCiAgKGxldCBbeCAoZG8gKGpzLXlpZWxkIDUpCiAgICAgICAgICAgIDYpXQogICAgKGpzLXlpZWxkIHgpKSkKCih2ZWMgKGZvbykp) for an example.
 
+## Async generator functions
+
+Async generator functions must be marked with both `^:async` and `^:gen`:
+
+``` clojure
+(defn ^:async ^:gen nums []
+  (js-yield (await (js/Promise.resolve 1)))
+  (js-yield 2))
+```
+
+Mark any `doseq` binding with `^:await` to iterate async iterables:
+
+``` clojure
+(doseq [^:await x (nums)] ;; emits `for await`
+  (println x))
+
+;; prints 1, 2
+```
+
+Tag the binding vector to apply to all bindings:
+
+``` clojure
+(doseq ^:await [x (nums)  ;; outer `for await`
+                y (nums)] ;; inner `for await`
+  (println [x y]))
+
+;; prints [1 1], [1 2], [2 1], [2 2]
+```
+
 ## Arrow functions
 
 If for some reason you need to emit arrow functions `() => ...` rather than
