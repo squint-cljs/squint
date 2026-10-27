@@ -199,8 +199,15 @@
 (defmethod emit-special 'squint.impl/for-of [_type enc-env [_for-of [k v] body :as _expr]]
   (emit-for-of enc-env "for (let %s of ~{})" k (list 'clojure.core/iterable v) body))
 
-(defmethod emit-special 'squint.impl/for-await-of [_type enc-env [_for-await-of [k v] body :as _expr]]
-  (emit-for-of enc-env "for await (let %s of ~{})" k (list 'clojure.core/async-iterable v) body))
+(defmethod emit-special 'squint.impl/for-await-of [_type enc-env [for-await-of [k v] body :as _expr]]
+  ;; for await falls back to Symbol.iterator, so only wrap in iterable when there is no Symbol.asyncIterator
+  (if (symbol? v)
+    (emit-for-of enc-env "for await (let %s of ~{})" k
+                 (list 'js* "(~{}?.[Symbol.asyncIterator] ? ~{} : ~{})" v v (list 'clojure.core/iterable v))
+                 body)
+    ;; bind the coll to a local first, so it's only evaluated once
+    (let [c ((:gensym enc-env))]
+      (emit `(let [~c ~v] (~for-await-of [~k ~c] ~body)) enc-env))))
 
 (defmethod emit-special 'squint.impl/defonce [_type env [_defonce name init]]
   (emit (list 'do #_(list 'js* (str "var " (munge name) ";\n"))
