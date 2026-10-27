@@ -1111,11 +1111,11 @@
                              (swap! whiles + x))
                            (let [r (doseq [^:await x (nums)]
                                      (swap! exprs + x))]
-                             [@a @b @c @nils @maps @whens @whiles r @exprs])))
+                             [@a @b @c @nils @maps @whens @whiles (nil? r) @exprs])))
 
                        (sums)))
             (fn [v]
-              (is (eq #js [3 9 33 0 23 1 1 nil 3] v))))
+              (is (eq #js [3 9 33 0 23 1 1 true 3] v))))
      (.catch (fn [err]
                (is false (.-message err))))
      (.finally #(done)))))
