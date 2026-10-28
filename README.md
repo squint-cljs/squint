@@ -280,7 +280,7 @@ Generator functions must be marked with `^:gen`:
   (js-yield 1)
   (js-yield* [2 3])
   (let [x (inc 3)]
-    (yield x)))
+    (js-yield x)))
 
 (vec (foo)) ;;=> [1 2 3 4]
 ```
