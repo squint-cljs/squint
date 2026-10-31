@@ -427,6 +427,10 @@ body, #editor, #sidebar {
     transition: opacity 100ms ease, visibility 0s linear 100ms;
   }
 
+  .ͼ1.cm-focused {
+    outline-width: 0px;
+  }
+
   .ͼ2 .cm-line {
     font-size: 13px;
     opacity: 0.83;
