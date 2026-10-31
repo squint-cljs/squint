@@ -214,6 +214,7 @@ compiledCodeToggle.addEventListener("click", () => {
 // native tooltips
 document.querySelectorAll("[data-tip]").forEach((el, i) => {
   const tip = document.getElementById(el.dataset.tip);
+  if (!tip) return;
   const name = `--tip-${i}`;
   el.style.anchorName = name;
   tip.style.positionAnchor = name;
