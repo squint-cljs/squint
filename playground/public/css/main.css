@@ -1,9 +1,15 @@
 :root {
+  --label-fg-alpha: 65%;
   color-scheme: light dark;
   --teal-color: #31afd0;
   --selection-background: light-dark(rgba(31, 143, 255, 0.10), rgba(81, 177, 241, 0.34));
   --selection-color: light-dark(#222, #fff);
   --nav-height: 40px;
+  --bar-height: 39px;
+  /* opaque twin of --accordion-color, for things that sit on a tinted backdrop */
+  --accordion-solid: light-dark(color-mix(in srgb, var(--bg), var(--fg) 2.5%), color-mix(in srgb, var(--bg), var(--fg) 6%));
+  --hover-color: light-dark(rgb(0 0 0 / 7%), rgb(255 255 255 / 12%));
+  --accordion-color: light-dark(rgb(from currentColor r g b / 2.5%), rgb(from currentColor r g b / 6%));
   --viewport-padding-inline: 20px;
   --panel-border-radius: 0px;
   --bg: light-dark(#fff, #181818);
@@ -56,6 +62,208 @@ body, #editor, #sidebar {
 
 #aoc_container {
   margin: 20px 30px;
+  order: -2;
+  flex-shrink: 0;
+}
+
+.aoc-help-icon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: -2px;
+  translate: 0 -2px;
+  scale: 1.1;
+  line-height: 0;
+  opacity: 0.7;
+}
+
+#tip-aoc-token {
+  white-space: normal;
+  max-width: 560px;
+  /* left edge on the label's right edge, top edge on the label's bottom edge */
+  position-area: bottom right;
+  position-try-fallbacks: flip-inline;
+  margin: 0;
+}
+
+/* Horizontal divider between the DOM row and the code/output panes. It takes up no
+   space: it is a zero-height box on the boundary, and its line and hit area overflow
+   it. The line is 1px at rest, over the panes' top edge, and thickens upward on
+   hover. The hit area reaches a few px up into the frame and down into the panes. Same
+   fade and hover color as #draggable-divider. */
+#dom-divider {
+  display: none;
+  position: relative;
+  flex: 0 0 0;
+  height: 0;
+  cursor: row-resize;
+  touch-action: none;
+  z-index: 2;
+  &:focus-visible {
+    outline: none;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    left: 0;
+    right: 0;
+    height: 7px;
+  }
+}
+
+#dom-divider-line {
+  --c1: var(--scrollbar-thumb-color);
+  --c2: var(--scrollbar-thumb-color);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background-image: linear-gradient(to right, var(--c1) 0%, var(--c2) 30% 70%, var(--c1) 100%);
+  transition: --c1 200ms ease, --c2 200ms ease, height 200ms ease;
+}
+
+#dom-divider:hover #dom-divider-line,
+#dom-divider.dom-resizing #dom-divider-line,
+#dom-divider:focus-visible #dom-divider-line {
+  height: 3px;
+  --c2: var(--draggable-pane-divisor-color-hover);
+}
+
+@media screen and (min-width: 768px) {
+  /* The divider is switched off: the frame's bottom bar and corners set the DOM row's
+     height instead. Its markup and styles stay for now. */
+  #dom-frame:has(#app:not(:empty)) + #dom-divider {
+    display: none;
+  }
+  /* Side by side, the panes never draw their own top edge. With the DOM row above them
+     the divider draws it. With the DOM in the sidebar, or none at all, nothing sits
+     above the panes and the bare edge reads better. */
+  #main > :is(#editor, #sidebar) {
+    border-top: none;
+  }  /* With the DOM row above them and no divider, the panes draw that edge themselves. */
+  #dom-frame:has(#app:not(:empty)) + #dom-divider + #main > :is(#editor, #sidebar) {
+    border-top: var(--panel-border);
+  }
+}
+
+/* Resizable DOM frame around #app. 20px bars: readout on top, drag handles on the
+   sides, bottom and bottom corners. The canvas is centered, so it can shrink
+   below the pane width, and the backdrop then matches the other chrome. */
+#dom-frame {
+  --dom-bar-size: 20px;
+  --dom-handle-color: color-mix(in srgb, var(--fg) 40%, transparent);
+  --dom-border-color: var(--panel-border-color);
+  --dom-border: 1px solid var(--dom-border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  background: var(--hover-color); /* shows beside the device once it is narrowed */
+  &:has(#app:empty) {
+    display: none;
+  }
+}
+
+/* The bars and the canvas. Its width is set by dragging, so the bars hug the canvas. */
+#dom-device {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: var(--dom-bar-size) minmax(0, 1fr) var(--dom-bar-size);
+  grid-template-rows: var(--dom-bar-size) minmax(0, 1fr) var(--dom-bar-size);
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+}
+
+/* Hovering or dragging any handle darkens the inner borders and the readout too,
+   at the same 150ms rate as the notches. */
+#dom-frame:has([data-drag]:hover) {
+  /* halfway between the resting and the full hover color */
+  --dom-border-color: color-mix(in srgb, var(--panel-border-color), var(--panel-border-color-hover));
+  & .dom-bar-top {
+    color: var(--fg);
+  }
+}
+
+/* Each bar is bordered only on the edge facing the canvas, so nothing crosses at the corners. */
+.dom-bar {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  background: var(--accordion-solid);
+  color: var(--dom-handle-color);
+  touch-action: none;
+  user-select: none;
+  transition: color 150ms ease, border-color 150ms ease;
+  &[data-drag]:hover {
+    color: var(--fg); /* darkens the handle notches */
+  }
+  & svg {
+    display: block;
+    /* 45deg corner lines otherwise anti-alias unevenly at 1x and read as different weights */
+    shape-rendering: crispEdges;
+  }
+}
+
+.dom-bar-top {
+  border-bottom: var(--dom-border);
+  font-size: 12px;
+  color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.dom-bar-left,
+.dom-bar-right {
+  cursor: ew-resize;
+}
+
+.dom-bar-left {
+  border-right: var(--dom-border);
+}
+
+.dom-bar-right {
+  border-left: var(--dom-border);
+}
+
+
+.dom-bar-bottom {
+  border-top: var(--dom-border);
+  cursor: ns-resize;
+  & svg {
+    rotate: 90deg;
+  }
+}
+
+/* all four corners are separate cells with no borders of their own */
+.dom-corner-left {
+  cursor: nesw-resize;
+  & svg {
+    rotate: -45deg;
+  }
+}
+
+.dom-corner-right {
+  cursor: nwse-resize;
+  & svg {
+    rotate: 45deg;
+  }
+}
+
+#dom-canvas {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+#dom-frame #app {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg);
 }
 
 #app {
@@ -92,10 +300,69 @@ body, #editor, #sidebar {
   }
 }
 
-#star-counter {
-  width: 84px;
-  height: 17px;
-  line-height: 0;
+/* Custom GitHub star counter */
+#gh-stars {
+  --gh-height: 22px;
+  --gh-radius: 3px;
+  --gh-border-color: color-mix(in srgb, currentcolor, transparent 75%);
+  /* opaque twin of the footer tint, so the tag's pointer can hide its own border */
+  --gh-bg: light-dark(
+    color-mix(in srgb, var(--bg), var(--fg) 5%),
+    color-mix(in srgb, var(--bg), var(--fg) 12%));
+  display: inline-flex;
+  align-items: center;
+  transform: scale(1.05);
+  transform-origin: left center;
+  color: inherit;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  transition: opacity 0.25s;
+  &:hover {
+    opacity: 0.6;
+  }
+  & svg {
+    display: block;
+    flex-shrink: 0;
+  }
+}
+
+.gh-label,
+.gh-tag {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: var(--gh-height);
+  border: 1px solid var(--gh-border-color);
+  border-radius: var(--gh-radius);
+}
+
+.gh-label {
+  gap: 4px;
+  padding: 0 7px 0 5px;
+}
+
+.gh-tag {
+  position: relative;
+  margin-left: 7px;
+  padding: 0 7px;
+  &[hidden] {
+    display: none;
+  }
+  &::before {
+    content: "";
+    position: absolute;
+    left: -3.5px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    box-sizing: border-box;
+    background: var(--gh-bg);
+    border-bottom: 1px solid var(--gh-border-color);
+    border-left: 1px solid var(--gh-border-color);
+    transform: translateY(-50%) rotate(45deg);
+  }
 }
 
 #controls {
@@ -109,6 +376,7 @@ body, #editor, #sidebar {
 }
 
 #main {
+  position: relative;
   --pane-min-width: 300px;
   padding-inline: 0;
   display: flex;
@@ -127,6 +395,10 @@ body, #editor, #sidebar {
 
   &.pane-resizing, &.pane-resizing * {
     cursor: col-resize;
+    user-select: none;
+  }
+  &.dom-resizing, &.dom-resizing * {
+    cursor: row-resize;
     user-select: none;
   }
 }
@@ -151,6 +423,7 @@ body, #editor, #sidebar {
     max-width: none;
     max-height: none;
     min-height: 0;
+    border-bottom: none; /* the footer's top border draws this edge */
 
     & > .cm-editor {
       flex: 1;
@@ -185,43 +458,81 @@ body, #editor, #sidebar {
 }
 
 #aoc_help_container {
-  font-size: 1rem;
-  padding: 10px 0 0;
+  display: none;
 }
 
 #aoc_output_container {
   border: 1px solid var(--panel-border-color);
-  margin: 0px 30px 10px;
+  margin: 0px 30px 20px;
+  /* the boilerplate appends this to <body>. Show it right under the token form. */
+  order: -1;
+  flex-shrink: 0;
+  max-height: 30dvh;
+  overflow: auto;
   /* justify-content: center; */
   gap: 0;
   border-radius: 7px;
+}
+
+#sidebar-controls {
+  /* Bleed past #sidebar's padding so the bar spans the pane. */
+  margin: -10px calc(-1 * var(--sidebar-padding-end)) 0 calc(-1 * var(--sidebar-inset-start));
+  box-sizing: border-box;
+  height: var(--bar-height);
+  /* start matches the accordion arrows below, which sit at 15px */
+  padding: 0 var(--viewport-padding-inline) 0 calc(var(--sidebar-padding-end) + 5px);
+  background: var(--button-color);
+  border-bottom: 1px solid var(--scrollbar-thumb-color);
+}
+
+/* Mirrors #sidebar-controls, same top inset, row height and gap to the content below. */
+#editor-controls {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-start;
+  /* Bleed past #editor's inline-start padding so the bar spans the pane. */
+  margin: 0 0 32px calc(-1 * var(--viewport-padding-inline));
+  align-items: center;
+  box-sizing: border-box;
+  height: var(--bar-height);
+  padding: 0 var(--viewport-padding-inline);
+  background: var(--button-color);
+  border-bottom: 1px solid var(--scrollbar-thumb-color);
+  & .control-group {
+    min-height: 1.9em;
+    display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+    align-items: center;
+    gap: 12px;
+  }
 }
 
 #sidebar {
   min-width: 0;
   box-sizing: border-box;
   --draggable-divider-width: 10px;
+  --sidebar-padding-end: 10px; /* the sidebar's own right padding, which its full-bleed rows undo */
+  --sidebar-inset-start: calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
   overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  gap:32px;
+  gap: 0;
   border: var(--panel-border);
   border-inline: none;
   border-radius: var(--panel-border-radius);
-  padding: 10px 10px 0px calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
+  padding: 10px var(--sidebar-padding-end) 0px calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
   margin-top: 10px;
 
   @media screen and (min-width: 768px) {
     margin-top: 0px;
     margin-left: 0px;
+    border-bottom: none; /* the footer's top border draws this edge */
     width: auto;
     max-height: none;
-  }
-
-  .sidebar-section-label {
-    font-weight: var(--ui-label-weight);
   }
 
   #draggable-divider {
@@ -261,7 +572,7 @@ body, #editor, #sidebar {
   }
 
   #sidebar-controls {
-    width: 100%;
+    width: auto; /* a fixed 100% would stop short of the right edge once the bar bleeds */
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -290,7 +601,8 @@ body, #editor, #sidebar {
     outline-offset: 6px;
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    /* Bleed past #sidebar's padding so the section headers span the pane. */
+    margin: 0 calc(-1 * var(--sidebar-padding-end)) 0 calc(-1 * var(--sidebar-inset-start));
     overflow: hidden;
 
     .sidebar-section {
@@ -298,22 +610,32 @@ body, #editor, #sidebar {
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      &#repl-mode-section {
+      &[hidden] {
+        display: none;
+      }
+      &:not([hidden]) + .sidebar-section {
+        border-top: 1px solid var(--scrollbar-thumb-color);
+      }
+      &#repl-mode-section,
+      &#dom-section {
         flex-shrink: 0;
       }
-      &#compiled-code-section {
+      &#compiled-code-section:has(#compiled-code-toggle[aria-expanded="false"]) {
+        flex: 0 0 auto;
       }
     }
 
-    #compiled-code-toggle {
+    .section-header {
       appearance: none;
-      align-self: flex-start;
       display: flex;
       align-items: center;
       gap: var(--sidebar-control-gap);
-      color: var(--fg);
-      background: none;
+      box-sizing: border-box;
+      width: 100%;
+      margin: 0;
+      padding: 3.5px var(--sidebar-padding-end) 3.5px calc(var(--sidebar-padding-end) + 5px);
+      color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
+      background: var(--accordion-color);
       border: 0;
       border-radius: 0;
       box-shadow: none;
@@ -321,23 +643,30 @@ body, #editor, #sidebar {
       font-size: inherit;
       font-weight: var(--ui-label-weight);
       line-height: inherit;
-      margin: 0;
-      padding: 0;
+      text-align: start;
       cursor: pointer;
 
-      &:focus-visible {
+      &:focus-visible, &:has(:focus-visible) {
         outline: 2px solid currentColor;
-        outline-offset: 3px;
+        outline-offset: -2px;
       }
 
-      &[aria-expanded="false"] {
-        #compiled-code-toggle-icon svg {
-          transform: rotate(0deg);
+      input {
+        width: var(--sidebar-control-size);
+        height: var(--sidebar-control-size);
+        margin: 0 0 0 3px;
+        accent-color: var(--fg);
+        &:active {
+          transform: none; 
+        }
+        &:focus, &:focus-visible {
+          --focus: transparent;
+          outline: none;
         }
       }
     }
 
-    #compiled-code-toggle-icon {
+    .section-icon {
       scale: 1.65;
       display: grid;
       place-items: center;
@@ -348,47 +677,57 @@ body, #editor, #sidebar {
       svg {
         width: 100%;
         height: 100%;
-        transform: rotate(90deg);
+        transform: rotate(0deg);
         transition: transform 100ms ease;
       }
     }
+
+    #compiled-code-toggle,
+    #dom-toggle[aria-expanded="true"],
+    .section-header:has(input:checked) {
+      border-bottom: 1px solid var(--scrollbar-thumb-color);
+    }
+
+    .section-header[aria-expanded="true"] .section-icon svg,
+    .section-header:has(input:checked) .section-icon svg {
+      transform: rotate(90deg);
+    }
   }
 
-  #repl-mode {
-    font-weight: var(--ui-label-weight);
+  #repl-mode-section:not(:has(#replCheckBox:checked)) :is(#result, #repl-instructions),
+  #repl-mode-section:has(#replCheckBox:checked) #tip-repl-mode {
+    display: none;
+  }
+
+  #dom-toggle[aria-expanded="false"] + #dom-section-body {
+    display: none;
+  }
+
+  #dom-section-body:has(> #dom-frame[style*="height"]) {
+    max-height: none; /* a height set from the frame's bottom bar wins over the cap below */
+  }
+
+  #dom-section-body {
+    max-height: 40dvh;
+    overflow: auto;
+    #app {
+      padding: 12px var(--sidebar-padding-end) 12px var(--sidebar-inset-start);
+      &:empty {
+        padding: 0;
+      }
+    }
+  }
+
+  #repl-instructions {
     display: flex;
     flex-direction: column;
-    gap: 0.5em;
-    color: rgb(from currentColor r g b / 100%);
-    label {
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: var(--sidebar-control-gap);
-      input {
-        width: var(--sidebar-control-size);
-        height: var(--sidebar-control-size);
-        margin: 0;
-        accent-color: var(--fg);
-        &:focus {
-          --focus: transparent;
-        }
-      }
-    }
-
-    #repl-mode-desc {
-      padding-inline-start: 19px;
-      font-weight: normal;
-      display: flex;
-      flex-direction: column;
-      color: rgb(from currentColor r g b / 75%);
-      label {
-        margin: 0;
-      }
-    }
+    margin: 12px var(--sidebar-padding-end) 0 var(--sidebar-inset-start);
+    /* same color as the accordion header labels */
+    color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
   }
 
   #result {
+    margin: 12px var(--sidebar-padding-end) 17px var(--sidebar-inset-start);
     color: var(--fg);
     background: var(--bg);
     border: var(--panel-border);
@@ -407,24 +746,15 @@ body, #editor, #sidebar {
   }
 
   #compiled-code {
-
-    border: var(--panel-border);
-    border-left: 0;
-    border-bottom: 0;
+    margin: 12px var(--sidebar-padding-end) 0 var(--sidebar-inset-start);
     display: flex;
     flex-direction: column;
-    overflow:hidden;
+    overflow: hidden;
     padding-inline-start: 3px;
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 100ms ease, visibility 0s linear;
   }
 
   #compiled-code-toggle[aria-expanded="false"] + #compiled-code {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 100ms ease, visibility 0s linear 100ms;
+    display: none;
   }
 
   .ͼ1.cm-focused {
@@ -445,8 +775,246 @@ body, #editor, #sidebar {
 }
 
 #footer {
-  height: 36px;
-  flex: 0 0 36px;
+  height: 40px;
+  flex: 0 0 40px;
+  background: var(--button-color);
+  border-top: 1px solid var(--scrollbar-thumb-color);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding-inline: var(--viewport-padding-inline);
+  gap: 12px;
+}
+
+#footer-left,
+#footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#editor-controls label {
+  margin: 0 -6px 0 0; /* pulls the dropdown closer than the group's 12px gap */
+  font-weight: var(--ui-label-weight);
+  color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
+}
+
+#example-select {
+  width: auto;
+  margin: 0;
+  color: var(--fg); /* the page's base stylesheet hardcodes a dark text color here */
+  border-radius: 0;
+  border: 1px solid var(--panel-border-color);
+  box-sizing: border-box;
+  height: 30px; /* bar is 39px, so 4px clear above and below */
+  padding-block: 0;
+  padding-left: 13px;
+  padding-right: 30px; /* 7px arrow inset + 12px arrow + 11px before it */
+  /* filled down-pointing triangle, 8.4px wide: 70% of the old 12px chevron */
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23161f27'/%3E%3C/svg%3E");
+  background-size: 8.4px auto;
+  background-position: calc(100% - 8.8px) 50%;
+  /* --accordion-color is translucent, so mix it opaque here. Over the bar's tint
+     it would stack up darker instead of matching the accordion rows. */
+  background-color: var(--accordion-solid);
+}
+
+:root[data-theme="dark"] #example-select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='white'/%3E%3C/svg%3E");
+}
+
+#footer-right {
+  gap: 24px;
+}
+
+#footer-logo {
+  width: 33px;
+  height: 33px;
+  margin-right: 10px; /* plus the footer's 10px gap makes 20px to the star counter */
+}
+
+#footer-title {
+  display: none; /* temporarily hidden */
+  margin-right: 24px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+#footer button,
+#sidebar-controls button,
+#editor-controls button {
+  background: none;
+  border: none;
+  box-shadow: none;
+  /* the padding gives the hover background room. The negative margin keeps
+     the content where it was. */
+  margin: 0 -9px 0 -6px;
+  padding: 4px 9px 4px 6px;
+  border-radius: 8px;
+  color: var(--fg);
+  font-weight: var(--ui-label-weight);
+  cursor: pointer;
+  &:active, &:focus {
+    background: none;
+    box-shadow: none;
+    transform: none;
+  }
+  &:hover {
+    background: var(--hover-color);
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+/* Icon-only buttons. Even padding, no negative-margin compensation. */
+#footer .icon-button,
+#sidebar-controls .icon-button,
+#editor-controls .icon-button {
+  margin: 0;
+  padding: 4px;
+}
+
+/* Layout icons for the DOM view toggle.
+   The shaded cell is the DOM, the rest are the code pane and the output sections. */
+.layout-icon {
+  --layout-icon-w: 1.5px;
+  --layout-icon-line: var(--layout-icon-w) solid currentColor;
+  /* both icons share this lighter gray. Only the selected one's DOM cell is darker. */
+  color: color-mix(in srgb, var(--fg) 40%, transparent);
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-template-rows: 50% 50%;
+  box-sizing: border-box;
+  height: 18px;
+  aspect-ratio: 1.25; /* landscape */
+  border: var(--layout-icon-line);
+  border-radius: 2px;
+  overflow: hidden;
+  & i {
+    min-width: 0;
+    min-height: 0;
+  }
+  & .cell-dom {
+    grid-area: dom;
+    background: color-mix(in srgb, currentColor 17%, transparent);
+    background-clip: padding-box; /* keep the fill from stacking under the border */
+    border-bottom: var(--layout-icon-line);
+  }
+  & .cell-code {
+    grid-area: code;
+    border-right: var(--layout-icon-line);
+  }
+  & .cell-a {
+    grid-area: a;
+  }
+}
+
+/* Full screen icon */
+.layout-icon.fullscreen-icon {
+  display: block;
+  padding: var(--layout-icon-w);
+  & i {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 1px;
+    background-color: color-mix(in srgb, currentColor 17%, transparent);
+  }
+}
+
+#fullscreen-button[aria-pressed="true"] .fullscreen-icon i {
+  background-color: currentColor;
+}
+
+/* Full screen: the DOM frame covers everything above the footer.
+   Its height is set in index.html to the space above the footer.
+   The opaque base hides what is underneath. */
+body.dom-fullscreen #dom-frame {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: linear-gradient(var(--hover-color), var(--hover-color)), var(--bg);
+}
+
+/* DOM row across the top, code and the output below it */
+.layout-icon-top {
+  grid-template-areas:
+    "dom dom"
+    "code a";
+}
+
+/* code on the left, DOM above the output on the right */
+.layout-icon-side {
+  grid-template-areas:
+    "code dom"
+    "code a";
+}
+
+/* The selected layout has its DOM cell filled with the same color as the lines. */
+#view-controls button[aria-pressed="true"] .layout-icon .cell-dom {
+  background-color: currentColor; /* not the shorthand, which would reset background-clip */
+}
+
+/* Hover: no background, the lines and cells just darken a little. */
+#view-controls button.icon-button:hover {
+  background: none;
+}
+
+#view-controls button:hover .layout-icon {
+  color: color-mix(in srgb, var(--fg) 55%, transparent);
+}
+
+/* the two layout buttons live in the footer, next to each other */
+#view-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px; /* on top of the footer's 24px gap after Theme */
+}
+
+
+#sidebar-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#sidebar #sidebar-controls .control-group {
+  gap: 24px;
+}
+
+#footer #theme-toggle {
+  gap: 5px;
+  /* same color as the accordion labels */
+  color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
+}
+
+#footer #theme-toggle-icon {
+  color: inherit;
+}
+
+#example-select option {
+  color: var(--fg);
+  background: var(--bg);
+}
+
+#settings-button[hidden] {
+  display: none; /* temporarily hidden, kept in place for later */
+}
+
+#settings-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#settings-button svg {
+  width: 16.335px;
+  height: 16.335px;
 }
 
 @media screen and (min-width: 768px) {
