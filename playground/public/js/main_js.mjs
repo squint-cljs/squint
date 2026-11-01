@@ -590,6 +590,36 @@ window.blankAOC = async () => {
   window.location = url;
 };
 
+// Examples served from ./examples/, keyed by their <option> value in the dropdown.
+const fileExamples = {
+  'tictactoe': 'tictactoe.cljs',
+  'edn-data': 'edn-data.cljs',
+  'pinball': 'pinball.cljs',
+};
+const exampleUrl = (file) => new URL(`./examples/${file}`, window.location.href).href;
+
+window.loadExample = (name) => {
+  if (name === 'blank-aoc') return window.blankAOC();
+  const file = fileExamples[name];
+  if (!file) return;
+  const url = new URL(window.location);
+  url.searchParams.set('src', exampleUrl(file));
+  url.searchParams.set('repl', true);
+  url.searchParams.delete('boilerplate');
+  window.location = url;
+};
+
+// show which example the page was opened with
+const exampleSelect = document.getElementById('example-select');
+if (exampleSelect) {
+  const srcParam = urlParams.get('src') || '';
+  const fileMatch = Object.entries(fileExamples)
+    .find(([, file]) => srcParam.endsWith(`/examples/${file}`));
+  exampleSelect.value = boilerplate === aocBoilerplateUrl ? 'blank-aoc'
+    : fileMatch ? fileMatch[0]
+    : '';
+}
+
 window.changeREPL = (target) => {
   displayedInspectorProps = null;
   reactRoot.render(null);

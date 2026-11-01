@@ -1,3 +1,5 @@
+;; Squint Playground convention: DOM goes into the element with the id "app".
+
 (require '["react" :as react])
 (require '["react-dom" :as rdom])
 
