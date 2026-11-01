@@ -66,23 +66,26 @@ body, #editor, #sidebar {
   flex-shrink: 0;
 }
 
-.aoc-help-icon {
-  display: inline-flex;
-  vertical-align: middle;
-  margin-left: -2px;
-  translate: 0 -2px;
-  scale: 1.1;
-  line-height: 0;
-  opacity: 0.7;
-}
+#aoc-token-help {
+  margin-top: 1em;
 
-#tip-aoc-token {
-  white-space: normal;
-  max-width: 560px;
-  /* left edge on the label's right edge, top edge on the label's bottom edge */
-  position-area: bottom right;
-  position-try-fallbacks: flip-inline;
-  margin: 0;
+  & a {
+    color: color-mix(in srgb, currentcolor, transparent 25%);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentcolor, transparent 50%);
+    text-underline-offset: 2px;
+  }
+
+  /* a margin instead of a space, so the underline stops at the question mark */
+  & a svg {
+    vertical-align: middle;
+    margin-left: 0.25em;
+  }
+
+  & a:hover {
+    color: color-mix(in srgb, currentcolor, transparent 10%);
+    text-decoration-color: currentcolor;
+  }
 }
 
 /* Horizontal divider between the DOM row and the code/output panes. It takes up no
@@ -472,6 +475,15 @@ body, #editor, #sidebar {
   /* justify-content: center; */
   gap: 0;
   border-radius: 7px;
+}
+
+/* Closes the AOC section: form, then output, then this full-width rule. Same order as
+   the output container, and ::after comes last in the DOM, so it sits right below it. */
+body:has(#aoc_container)::after {
+  content: "";
+  order: -1;
+  flex-shrink: 0;
+  border-bottom: var(--panel-border);
 }
 
 #sidebar-controls {

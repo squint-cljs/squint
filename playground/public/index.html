@@ -306,25 +306,22 @@ const setupTip = (el) => {
 };
 document.querySelectorAll("[data-tip]").forEach(setupTip);
 
-// The AOC boilerplate builds its form at runtime. Move its NOTE into a tooltip
-// on the token label, marked with a help icon.
+// The AOC boilerplate builds its form at runtime. Add a row under it with a link
+// that searches Google for how to get the session token.
 new MutationObserver(() => {
-  const label = document.querySelector("#aoc_form_container label");
-  const help = document.getElementById("aoc_help_container");
-  if (!label || !help || label.dataset.tip) return;
-  const tip = document.createElement("div");
-  tip.id = "tip-aoc-token";
-  tip.setAttribute("popover", "manual");
-  tip.setAttribute("role", "tooltip");
-  tip.innerHTML = help.innerHTML;
-  document.body.append(tip);
-  const icon = document.createElement("span");
-  icon.className = "aoc-help-icon";
-  icon.setAttribute("aria-hidden", "true");
-  icon.innerHTML = `<svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.49915 0.876907C11.1566 0.876907 14.1218 3.84164 14.1222 7.49898C14.1222 11.1566 11.1568 14.122 7.49915 14.122C3.84181 14.1216 0.877075 11.1564 0.877075 7.49898C0.877487 3.8419 3.84206 0.877319 7.49915 0.876907ZM7.49915 1.82613C4.36674 1.82654 1.82671 4.36657 1.82629 7.49898C1.82629 10.6317 4.36648 13.1714 7.49915 13.1718C10.6321 13.1718 13.172 10.632 13.172 7.49898C13.1716 4.36631 10.6319 1.82613 7.49915 1.82613ZM7.50012 9.74995C7.91423 9.75006 8.25009 10.0858 8.25012 10.5C8.25012 10.9141 7.91425 11.2498 7.50012 11.25C7.08591 11.25 6.75012 10.9142 6.75012 10.5C6.75015 10.0858 7.08593 9.74995 7.50012 9.74995ZM7.50012 3.82515C8.93513 3.82519 10.0499 4.9279 10.0499 6.24995C10.0499 7.35371 9.31972 7.89011 8.78528 8.2148C8.48593 8.39664 8.30488 8.48614 8.15051 8.6064C8.08554 8.65705 8.05977 8.68922 8.0509 8.70308L8.04895 8.70406C8.04674 9.00589 7.80247 9.24991 7.50012 9.24995C7.19643 9.24995 6.95042 9.00382 6.95032 8.70015C6.95034 8.23216 7.2324 7.92706 7.47473 7.73824C7.6953 7.56644 8.01457 7.39708 8.21497 7.27534C8.6804 6.99257 8.95032 6.74107 8.95032 6.24995C8.95028 5.57211 8.36497 4.9248 7.50012 4.92476C6.63522 4.92476 6.04996 5.57208 6.04993 6.24995C6.04993 6.55368 5.80384 6.79971 5.50012 6.79976C5.19637 6.79976 4.95032 6.55371 4.95032 6.24995C4.95035 4.92787 6.06507 3.82515 7.50012 3.82515Z" fill="currentColor"/></svg>`;
-  label.append(icon);
-  label.dataset.tip = tip.id;
-  setupTip(label);
+  const form = document.getElementById("aoc_form_container");
+  if (!form || document.getElementById("aoc-token-help")) return;
+  const query = "How do I get my Advent of Code session token?";
+  const row = document.createElement("div");
+  row.id = "aoc-token-help";
+  const link = document.createElement("a");
+  link.href = "https://www.google.com/search?q=" + encodeURIComponent(query);
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.append(query);
+  link.insertAdjacentHTML("beforeend", `<svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor"/></svg>`);
+  row.append(link);
+  form.after(row);
 }).observe(document.body, { childList: true, subtree: true });
 
 
