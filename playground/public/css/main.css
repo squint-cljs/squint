@@ -1,5 +1,5 @@
 :root {
-  --label-fg-alpha: 65%;
+  --label-fg-alpha: 60%;
   color-scheme: light dark;
   --teal-color: #31afd0;
   --selection-background: light-dark(rgba(31, 143, 255, 0.10), rgba(81, 177, 241, 0.34));
@@ -13,8 +13,9 @@
   --viewport-padding-inline: 20px;
   --panel-border-radius: 0px;
   --bg: light-dark(#fff, #181818);
-  --fg: light-dark(#222, #eee);
-  --panel-border-color: light-dark(rgb(from gray r g b / 30%), rgb(from gray r g b / 60%));
+  --fg: light-dark(#222, #cccccc);
+  /* opaque, so lines that cross do not add up to a brighter pixel */
+  --panel-border-color: color-mix(in srgb, var(--bg), gray 30%);
   --panel-border-color-hover: light-dark(rgb(from black r g b / 70%), rgb(from white r g b / 70%));
   --panel-border: 1px solid var(--panel-border-color);
   --button-color: light-dark(rgb(from currentColor r g b / 5%), rgb(from currentColor r g b / 12%));
@@ -22,7 +23,7 @@
   --ui-label-weight: 400;
   --scrollbar-thumb-color: light-dark(rgb(128 128 128 / 23%), rgb(128 128 128 / 53%));
   --scrollbar-thumb-color-hover: light-dark(rgb(128 128 128 / 43%), rgb(128 128 128 / 73%));
-  --draggable-pane-divisor-color-hover: light-dark(rgb(128 128 128 / 44%), rgb(128 128 128 / 77%));
+  --draggable-pane-divisor-color-hover: light-dark(color-mix(in srgb, var(--bg), gray 44%), color-mix(in srgb, var(--bg), gray 77%));
 }
 
 :root[data-theme="light"]{
@@ -46,7 +47,7 @@ body {
   color: var(--fg);
   max-width: inherit;
   padding: 0;
-  background: var(--body-background-color-light-mode);
+  background: var(--bg);
   height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -168,6 +169,25 @@ body, #editor, #sidebar {
   }
 }
 
+/* A DOM example is loading: keep the frame open at a minimum height (the previous
+   example's frame height, from the head script) while #app is still empty, so the layout does not collapse and jump when the example renders. */
+html.dom-example #dom-frame {
+  min-height: var(--dom-min-height, 200px);
+  transition: min-height 250ms ease-out;
+  &:has(#app:empty) {
+    display: flex;
+  }
+}
+
+/* the example's output fades in once it renders */
+#dom-frame #app > * {
+  animation: dom-fade-in 200ms ease-out;
+}
+
+@keyframes dom-fade-in {
+  from { opacity: 0; }
+}
+
 /* The bars and the canvas. Its width is set by dragging, so the bars hug the canvas. */
 #dom-device {
   box-sizing: border-box;
@@ -269,11 +289,108 @@ body, #editor, #sidebar {
   background: var(--bg);
 }
 
+/* Example content is styled to work in light and dark without querying the theme:
+   headings follow the foreground, buttons are the foreground on a faint gray, and
+   range inputs use a thin mid-gray track. */
+/* vega-embed adds padding on the right for its actions menu. Count it inside the width,
+   so the menu button is not pushed past #app's edge into a scrollbar. */
+#app .vega-embed {
+  display: block;
+  box-sizing: border-box;
+  /* The actions button hangs about 9px past the top and right edges. Leave room for it,
+     since overflow past the top is clipped and past the right adds a scrollbar. */
+  width: calc(100% - 10px);
+  margin: 10px 10px 0 0;
+}
+
+#app :is(h1, h2, h3, h4, h5, h6) {
+  color: inherit;
+}
+
+#app button,
+#app input:not([type="range"], [type="checkbox"], [type="radio"]) {
+  color: var(--fg);
+  background: rgb(128 128 128 / 18%);
+  border: 1px solid rgb(128 128 128 / 30%);
+  &:hover {
+    background: rgb(128 128 128 / 25%);
+    border-color: rgb(128 128 128 / 44%);
+  }
+}
+
+/* text fields are square, unlike buttons */
+#app input:not([type="range"], [type="checkbox"], [type="radio"]) {
+  border-radius: 0;
+}
+
+/* water.css draws a focus ring on anything clicked. Drop it for mouse focus. Keyboard
+   focus (:focus-visible) keeps the ring. */
+#app :is(button, input, select, textarea):focus:not(:focus-visible) {
+  box-shadow: none;
+  outline: none;
+}
+
+/* water.css nudges buttons and slider thumbs down 2px while pressed. Never do that.
+   One rule each: an unknown pseudo-element in a list drops the whole rule. */
+#app :is(button, input, select):active {
+  transform: none;
+}
+#app input[type="range"]::-webkit-slider-thumb:active {
+  transform: none;
+}
+#app input[type="range"]::-moz-range-thumb:active {
+  transform: none;
+}
+
+#app input[type="range"] {
+  appearance: none;
+  height: 3px;
+  margin-bottom: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: rgb(128 128 128 / 50%);
+  outline: none;
+  box-shadow: none;
+  /* no focus ring. Pressing lightens the track in dark, darkens it in light. */
+  &:focus {
+    box-shadow: none;
+    outline: none;
+  }
+  &:active {
+    background: light-dark(#555, #c0c0c0);
+  }
+  &::-webkit-slider-runnable-track {
+    height: 3px;
+    background: none;
+  }
+  &::-moz-range-track {
+    height: 3px;
+    background: none;
+  }
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5.5px;
+    border: none;
+    border-radius: 50%;
+    background: rgb(128 128 128);
+  }
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: none;
+    border-radius: 50%;
+    background: rgb(128 128 128);
+  }
+}
+
 #app {
   flex-shrink: 0;
   padding: 20px 30px;
   margin: 0;
-  background: var(--body-background-color-light-mode);
+  background: var(--bg);
   table {
     margin-bottom: 0;
   }
@@ -413,7 +530,6 @@ body, #editor, #sidebar {
   flex-direction: column;
   width: 100%;
   max-height: 90dvh;
-  max-width: calc(100dvw - 20px);
   border: var(--panel-border);
   border-inline: none;
   border-radius: var(--panel-border-radius);
@@ -494,7 +610,7 @@ body:has(#aoc_container)::after {
   /* start matches the accordion arrows below, which sit at 15px */
   padding: 0 var(--viewport-padding-inline) 0 calc(var(--sidebar-padding-end) + 5px);
   background: var(--button-color);
-  border-bottom: 1px solid var(--scrollbar-thumb-color);
+  border-bottom: 1px solid var(--panel-border-color);
 }
 
 /* Mirrors #sidebar-controls, same top inset, row height and gap to the content below. */
@@ -509,7 +625,7 @@ body:has(#aoc_container)::after {
   height: var(--bar-height);
   padding: 0 var(--viewport-padding-inline);
   background: var(--button-color);
-  border-bottom: 1px solid var(--scrollbar-thumb-color);
+  border-bottom: 1px solid var(--panel-border-color);
   & .control-group {
     min-height: 1.9em;
     display: flex;
@@ -535,6 +651,7 @@ body:has(#aoc_container)::after {
   gap: 0;
   border: var(--panel-border);
   border-inline: none;
+  border-bottom: none; /* the footer's top border draws this edge */
   border-radius: var(--panel-border-radius);
   padding: 10px var(--sidebar-padding-end) 0px calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
   margin-top: 10px;
@@ -542,7 +659,6 @@ body:has(#aoc_container)::after {
   @media screen and (min-width: 768px) {
     margin-top: 0px;
     margin-left: 0px;
-    border-bottom: none; /* the footer's top border draws this edge */
     width: auto;
     max-height: none;
   }
@@ -564,13 +680,12 @@ body:has(#aoc_container)::after {
       outline: none;
     }
     &>#draggable-divider-line {
-      --c1: var(--scrollbar-thumb-color);
-      --c2: var(--scrollbar-thumb-color);
+      --c1: var(--panel-border-color);
+      --c2: var(--panel-border-color);
       position: absolute;
       width: 1px;
       top: 0px;
-      left: 2px;
-      translate: -50%;
+      left: 0px; /* on the pane boundary, where the rows' borders start */
       height: 100%;
       background-image: linear-gradient(var(--c1) 0%,var(--c2) 30% 70%,var(--c1) 100%);
       transition: --c1 200ms ease, --c2 200ms ease, width 200ms ease;
@@ -626,7 +741,7 @@ body:has(#aoc_container)::after {
         display: none;
       }
       &:not([hidden]) + .sidebar-section {
-        border-top: 1px solid var(--scrollbar-thumb-color);
+        border-top: 1px solid var(--panel-border-color);
       }
       &#repl-mode-section,
       &#dom-section {
@@ -697,7 +812,7 @@ body:has(#aoc_container)::after {
     #compiled-code-toggle,
     #dom-toggle[aria-expanded="true"],
     .section-header:has(input:checked) {
-      border-bottom: 1px solid var(--scrollbar-thumb-color);
+      border-bottom: 1px solid var(--panel-border-color);
     }
 
     .section-header[aria-expanded="true"] .section-icon svg,
@@ -786,11 +901,28 @@ body:has(#aoc_container)::after {
   }
 }
 
+/* Small screens: the page is taller than the viewport, so let the body grow
+   and keep the footer stuck to the bottom of the viewport. margin-top: auto
+   pushes it down when the content is short. */
+@media screen and (width < 768px) {
+  body {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  #footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: auto;
+  }
+}
+
 #footer {
   height: 40px;
   flex: 0 0 40px;
   background: var(--button-color);
-  border-top: 1px solid var(--scrollbar-thumb-color);
+  border-top: 1px solid var(--panel-border-color);
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
@@ -864,7 +996,7 @@ body:has(#aoc_container)::after {
      the content where it was. */
   margin: 0 -9px 0 -6px;
   padding: 4px 9px 4px 6px;
-  border-radius: 8px;
+  border-radius: 999px;
   color: var(--fg);
   font-weight: var(--ui-label-weight);
   cursor: pointer;
@@ -1009,7 +1141,141 @@ body.dom-fullscreen #dom-frame {
   color: inherit;
 }
 
+/* Small screens use the native select. Wider ones use the trigger button and
+   popover menu. */
+#editor-controls #example-trigger {
+  display: none;
+}
+
+@media screen and (min-width: 768px) {
+  #example-select {
+    display: none;
+  }
+
+  /* looks like the select it replaces */
+  #editor-controls #example-trigger {
+    display: block;
+    anchor-name: --example-trigger;
+    margin: 0;
+    height: 30px;
+    padding: 0 30px 0 13px;
+    border: 1px solid var(--panel-border-color);
+    border-radius: 0;
+    font: inherit;
+    font-weight: normal;
+    color: var(--fg);
+    text-align: left;
+    background-color: var(--accordion-solid);
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23161f27'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: 8.4px auto;
+    background-position: calc(100% - 8.8px) 50%;
+  }
+
+  :root[data-theme="dark"] #editor-controls #example-trigger {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='white'/%3E%3C/svg%3E");
+  }
+}
+
+#example-menu {
+  /* undo UA popover centering, open below the trigger */
+  inset: auto;
+  margin: 4px 0 0;
+  position-anchor: --example-trigger;
+  position-area: bottom span-right;
+  position-try-fallbacks: flip-inline;
+
+  box-sizing: border-box;
+  max-width: calc(100dvw - 20px);
+  padding: 36px 90px 26.4px 33px;
+  border: 1px solid var(--panel-border-color);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 2px 20px light-dark(rgb(0 0 0 / 16%), rgb(0 0 0 / 50%));
+  font-size: 1rem;
+
+  /* two columns, DOM examples then Examples (no DOM), with Advent of Code
+     below DOM examples */
+  &:popover-open {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: start;
+    gap: 60px 90px; /* row column */
+  }
+
+  & #example-menu-aoc {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  & h3 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  & ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* the DOM column splits into two, filled top to bottom */
+  & #example-menu-dom ul {
+    columns: 2;
+    column-gap: 24px;
+  }
+
+  /* the padding keeps the spacing between items while the buttons stay tight */
+  & li {
+    break-inside: avoid;
+    padding-block: 2px;
+  }
+}
+
+/* items: secondary color, primary on hover */
+#editor-controls #example-menu button {
+  display: block;
+  width: auto;
+  /* the padding gives the current item's background room. The negative margin
+     keeps the text aligned with the heading. */
+  margin: 0 -12px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: normal;
+  text-align: left;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
+  background: none;
+  outline: none;
+
+  /* hovered, focused and current items: darker text on a gray background */
+  &:hover,
+  &:focus-visible,
+  &[aria-current="true"] {
+    color: var(--fg);
+    background: var(--hover-color);
+  }
+
+  &:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
 #example-select option {
+  color: var(--fg);
+  background: var(--bg);
+}
+
+/* group headers in the full foreground color, not the browser's gray */
+#example-select optgroup {
   color: var(--fg);
   background: var(--bg);
 }
@@ -1053,7 +1319,8 @@ body.dom-fullscreen #dom-frame {
   overflow:hidden;
 }
 
-.cm-scroller {
+.cm-scroller,
+#dom-frame #app {
   scrollbar-color: auto;
   scrollbar-width: auto;
 
@@ -1086,7 +1353,8 @@ body.dom-fullscreen #dom-frame {
 
 /* Use standard scrollbar colors only without WebKit scrollbar styling support. */
 @supports not selector(::-webkit-scrollbar) {
-  .cm-scroller {
+  .cm-scroller,
+  #dom-frame #app {
     scrollbar-color: var(--scrollbar-thumb-color) transparent;
   }
 }
