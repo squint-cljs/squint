@@ -2,6 +2,7 @@
   (:require
    [babashka.fs :as fs]
    [babashka.process :as p :refer [shell]]
+   [babashka.wait :as wait]
    [cheshire.core :as json]
    [node-repl-tests]
    [node-cli-tests]
@@ -169,6 +170,13 @@
   (bump-core-vars)
   (future (watch-core-vars))
   (shell "npx shadow-cljs --aliases :dev --config-merge .work/config-merge.edn watch squint"))
+
+(defn wait-for-cli
+  "Blocks until lib/cli.js exists."
+  []
+  (when-not (fs/exists? "lib/cli.js")
+    (println "[dev] waiting for lib/cli.js")
+    (wait/wait-for-path "lib/cli.js")))
 
 (defn- compile-e2e []
   ;; compile the squint e2e harnesses (browser_repl_test, nrepl_node_test,
