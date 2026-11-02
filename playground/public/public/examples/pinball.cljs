@@ -936,7 +936,9 @@
         mid-x (/ (.-width rect) 2.0)]
     (dotimes [i (.. event -touches -length)]
       (let [touch (aget (.-touches event) i)
-            is-left (< (.-clientX touch)
+            ;; clientX is from the viewport's left edge, and the canvas sits in
+            ;; the middle of the frame, so measure from the canvas's own left edge
+            is-left (< (- (.-clientX touch) (.-left rect))
                        mid-x)
             flipper-id (if is-left
                          :left
