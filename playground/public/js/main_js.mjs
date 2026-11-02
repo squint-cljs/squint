@@ -404,7 +404,8 @@ let updateExt = EditorView.updateListener.of((update) => {
 const platform = navigator.platform;
 const isMac = platform.startsWith('Mac') || platform.startsWith('iP');
 let modifier = localStorage.getItem("editor.modifier") || (isMac ? 'Meta' : 'Ctrl');
-if (!isMac || modifier === 'Ctrl') document.getElementById('modifierDesc').innerText = 'Ctrl'
+// every place that names the eval shortcut (the REPL-mode tooltip and helper text)
+if (!isMac || modifier === 'Ctrl') document.querySelectorAll('.modifier-desc').forEach((el) => { el.innerText = 'Ctrl'; });
 let extensions = [
   history(),
   theme,
