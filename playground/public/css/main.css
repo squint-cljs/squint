@@ -174,12 +174,16 @@ body, #editor, #sidebar {
 }
 
 /* A DOM example is loading: keep the frame open at a minimum height (the previous
-   example's frame height, from the head script) while #app is still empty, so the layout does not collapse and jump when the example renders. */
+   example's frame height, from the head script) while #app is still empty, so the
+   layout does not collapse and jump when the example renders. Once it renders, the
+   floor drops to 0 and the frame eases down to fit the content. 0 rather than no
+   min-height, so the drop can transition. */
 html.dom-example #dom-frame {
-  min-height: var(--dom-min-height, 200px);
+  min-height: 0;
   transition: min-height 250ms ease-out;
   &:has(#app:empty) {
     display: flex;
+    min-height: var(--dom-min-height, 200px);
   }
 }
 
