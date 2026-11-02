@@ -13,6 +13,15 @@
     };
     applyOsTheme();
 
+    // Hold the DOM frame open from the first paint when a DOM example is loading.
+    try {
+      if (new URLSearchParams(location.search).has('example') && sessionStorage.getItem('playground.dom-example') === 'true') {
+        document.documentElement.classList.add('dom-example');
+        const h = Number(sessionStorage.getItem('playground.dom-height'));
+        if (h >= 200) document.documentElement.style.setProperty('--dom-min-height', h + 'px');
+      }
+    } catch (_) {}
+
     // Restore before layout so a saved split does not flash back to 50%.
     try {
       const savedSplit = localStorage.getItem('playground.pane-split');
@@ -89,14 +98,30 @@
     <div id="editor">
       <div id="editor-controls">
         <div class="control-group">
-          <label for="example-select">Select example:</label>
+          <label for="example-select" id="example-label">Select example:</label>
+          <!-- Small screens get the native select, wider ones the popover menu.
+               Both are filled from the examples registry in js/main_js.mjs. -->
           <select id="example-select" onchange="loadExample(this.value)">
             <option value="" disabled hidden>Choose…</option>
-            <option value="tictactoe">Tic-tac-toe</option>
-            <option value="edn-data">edn-data</option>
-            <option value="pinball">Pinball</option>
-            <option value="blank-aoc">Blank AOC playground</option>
           </select>
+          <button id="example-trigger" type="button" popovertarget="example-menu"
+                  aria-haspopup="menu" aria-labelledby="example-label example-trigger">Choose…</button>
+          <div id="example-menu" popover role="menu" aria-label="Examples">
+            <section class="example-menu-group" id="example-menu-dom">
+              <h3>DOM examples</h3>
+              <ul></ul>
+            </section>
+            <section class="example-menu-group" id="example-menu-no-dom">
+              <h3>Examples (no DOM)</h3>
+              <ul></ul>
+            </section>
+            <section class="example-menu-group" id="example-menu-aoc">
+              <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="m14.05 13.236 6.498 9.606L18.91 24l-6.905-9.47L5.1 24l-1.637-1.158 6.498-9.606L.553 9.22l.615-1.69 9.596 3.463L11.087 0h1.826l.323 10.993 9.596-3.462.615 1.69-9.387 4.015z"/></svg>Advent of Code</h3>
+              <ul>
+                <li><button type="button" role="menuitem" onClick="blankAOC()">Create blank AOC playground</button></li>
+              </ul>
+            </section>
+          </div>
         </div>
       </div>
     </div>
@@ -388,6 +413,16 @@ new MutationObserver(() => {
     domSection.hidden = !(view === "accordion" && app.hasChildNodes());
   };
   new MutationObserver(syncSection).observe(app, { childList: true });
+
+  // The previous example's height held the frame open while this one loaded. Once
+  // something renders, drop it so the frame shrinks (min-height transitions in the
+  // stylesheet) or stays as tall as the content needs.
+  const releaseHeight = new MutationObserver(() => {
+    if (!app.hasChildNodes()) return;
+    document.documentElement.style.removeProperty("--dom-min-height");
+    releaseHeight.disconnect();
+  });
+  releaseHeight.observe(app, { childList: true });
 
   const setView = (next) => {
     view = next;
