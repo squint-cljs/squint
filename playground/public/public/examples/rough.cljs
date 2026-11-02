@@ -17,6 +17,20 @@
 
 (def rc (rough/canvas canvas))
 
-(rc.rectangle 10 10 200 200)
-(rc.circle 80 120 50 {:fill :green})
-(rc.circle 80 160 50 {:fill :red})
+;; Rough strokes in black by default, which vanishes on a dark page. Draw in the
+;; page's text color instead, read from #app, and redraw when the theme changes.
+(defn draw! []
+  (let [ink (.-color (js/getComputedStyle app))]
+    (.clearRect (.getContext canvas "2d") 0 0 (.-width canvas) (.-height canvas))
+    (rc.rectangle 10 10 200 200 {:stroke ink})
+    (rc.circle 80 120 50 {:stroke ink :fill :green})
+    (rc.circle 80 160 50 {:stroke ink :fill :red})))
+
+(when js/window.roughThemeObserver
+  (.disconnect js/window.roughThemeObserver))
+;; the page's text color fades over 200ms, so redraw once it has settled
+(set! js/window.roughThemeObserver (js/MutationObserver. (fn [] (js/setTimeout draw! 250))))
+(.observe js/window.roughThemeObserver js/document.documentElement
+          {:attributes true :attributeFilter ["data-theme"]})
+
+(draw!)

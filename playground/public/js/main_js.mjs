@@ -546,8 +546,7 @@ const examples = {
   'lit': { label: 'Lit', group: 'DOM examples', file: 'lit.cljs' },
   'quill': { label: 'Quill', group: 'DOM examples', file: 'quill.cljs' },
   'vega-lite': { label: 'Vega-lite', group: 'DOM examples', file: 'vega-lite.cljs' },
-  // Needs fixing. See the examples plan.
-  // 'rough': { label: 'Rough', group: 'DOM examples', file: 'rough.cljs' },
+  'rough': { label: 'Rough', group: 'DOM examples', file: 'rough.cljs' },
   'game-of-life': { label: 'Game of life', group: 'DOM examples', file: 'game-of-life.cljs' },
   'snabbdom': { label: 'Snabbdom', group: 'DOM examples', file: 'snabbdom.cljs' },
   'ohms-law': { label: "Ohm's law", group: 'DOM examples', file: 'ohms-law.cljs' },
