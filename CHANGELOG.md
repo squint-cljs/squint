@@ -28,7 +28,7 @@
 - Playground: Use a white background for Game of life in light mode
 - Playground: Consolidate the AOC section into the top DOM canvas area, and make its helper text a link that searches for the token instructions in a new tab
 - Playground: Fix console error when a page has no `data-tip` elements
-
+- Playground: Add a slot in the output pane for errors without a source location (such as a module that fails to resolve).
 
 
 - [#594](https://github.com/squint-cljs/squint/issues/594): support `for await` in `doseq`, with `^:await` on a binding, `(doseq [^:await x xs] ...)`, or on the binding vector for every binding ([#1053](https://github.com/squint-cljs/squint/pull/1053))

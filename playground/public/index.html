@@ -228,8 +228,21 @@
             </span>
             <span>Compiled JS</span>
           </button>
-          <div id="compiled-code"></div>
+          <div id="compiled-code-body">
+            <div id="compiled-code"></div>
+            <!-- the last run's error; shown only when there is one -->
+            <div id="error-slot" role="alert" hidden>
+              <span class="error-badge-box" aria-hidden="true">
+                <svg class="error-badge" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="8" cy="8" r="8"></circle>
+                  <path d="M5.5 5.5L10.5 10.5M10.5 5.5L5.5 10.5" stroke-width="1.6" stroke-linecap="round"></path>
+                </svg>
+              </span>
+              <span id="error-message"></span>
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
   </div>

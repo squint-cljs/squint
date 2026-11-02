@@ -213,7 +213,18 @@ let showError = (pos, message) => {
   editor.dispatch({ effects: EditorView.scrollIntoView(pos, { y: 'nearest' }) });
 };
 
-let clearErrors = () => editor.dispatch(setDiagnostics(editor.state, []));
+// The error slot below Compiled JS shows the last run's error, located or not.
+// Errors with a source location are also underlined in the editor (showError).
+let showErrorPanel = (message) => {
+  document.getElementById('error-message').textContent = message;
+  document.getElementById('error-slot').hidden = false;
+};
+
+let clearErrors = () => {
+  editor.dispatch(setDiagnostics(editor.state, []));
+  document.getElementById('error-message').textContent = '';
+  document.getElementById('error-slot').hidden = true;
+};
 
 let replCounter = 0;
 globalThis.squintRepl = {};
@@ -350,6 +361,7 @@ let evalCode = async (code, origin) => {
     reactRoot.render(React.createElement('span', { style: { whiteSpace: 'pre-wrap' } },
                                          e.message + '\n\n' + e.stack));
     console.error(e);
+    showErrorPanel(e.message);
     const pos = compiled ? stackPosition(e) : compilePosition(e?.data, origin);
     if (pos != null) showError(pos, e.message);
   }

@@ -14,6 +14,10 @@
   --panel-border-radius: 0px;
   --bg: light-dark(#fff, #181818);
   --fg: light-dark(#222, #cccccc);
+  --error-background: light-dark(rgb(255 0 0 / 7%), rgb(255 70 70 / 20%));
+  --error-foreground: light-dark(#5c0b0b, #ffd4d4);
+  --error-badge: #e5484d;
+  --error-badge-x: light-dark(#fff, #000);
   /* opaque, so lines that cross do not add up to a brighter pixel */
   --panel-border-color: color-mix(in srgb, var(--bg), gray 30%);
   --panel-border-color-hover: light-dark(rgb(from black r g b / 70%), rgb(from white r g b / 70%));
@@ -747,9 +751,6 @@ body:has(#aoc_container)::after {
       &#dom-section {
         flex-shrink: 0;
       }
-      &#compiled-code-section:has(#compiled-code-toggle[aria-expanded="false"]) {
-        flex: 0 0 auto;
-      }
     }
 
     .section-header {
@@ -880,8 +881,60 @@ body:has(#aoc_container)::after {
     padding-inline-start: 3px;
   }
 
-  #compiled-code-toggle[aria-expanded="false"] + #compiled-code {
+  /* collapsing Compiled JS hides only the code, the error slot below stays */
+  #compiled-code-toggle[aria-expanded="false"] + #compiled-code-body #compiled-code {
     display: none;
+  }
+
+  #compiled-code-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* The last run's error: no label, the badge in the arrows' column and the
+     message where the labels start, on a translucent red like the browser
+     console. Translucent, so it sits on any background shade. */
+  #error-slot {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sidebar-control-gap);
+    padding: 8px var(--sidebar-padding-end) 8px calc(var(--sidebar-padding-end) + 5px);
+    border-top: 1px solid var(--panel-border-color);
+    background: var(--error-background);
+    color: var(--error-foreground);
+    max-height: 40dvh;
+    overflow: auto;
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  /* with Compiled JS collapsed the slot sits right under its header, which
+     already draws the line */
+  #compiled-code-toggle[aria-expanded="false"] + #compiled-code-body #error-slot {
+    border-top: none;
+  }
+
+  /* the same 13px column as .section-icon, so the X centers under the arrows */
+  .error-badge-box {
+    flex: 0 0 var(--sidebar-control-size);
+    display: grid;
+    place-items: center;
+    height: 1lh;
+    translate: -2px;
+  }
+
+  .error-badge {
+    circle { fill: var(--error-badge); }
+    path { stroke: var(--error-badge-x); }
+  }
+
+  #error-message {
+    min-width: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   .ͼ1.cm-focused {
@@ -1307,10 +1360,21 @@ body.dom-fullscreen #dom-frame {
 
   #sidebar-sections,
   #compiled-code-section,
+  #compiled-code-body,
   #compiled-code,
   #compiled-code > .cm-editor {
     flex: 1;
     min-height: 0;
+  }
+
+  /* The body spans from the Compiled JS header to the footer, so the error slot
+     can take up to half of that before it scrolls. */
+  #compiled-code-body {
+    container-type: size;
+  }
+
+  #error-slot {
+    max-height: 50cqh;
   }
 }
 
