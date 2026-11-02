@@ -11,7 +11,8 @@
          watch            {:doc  "Starts the squint dev watcher"
                            :task (t/watch-squint)}
          serve-playground {:doc  "Starts squint the playground http server"
-                           :task (shell {:dir "playground"} "bb dev")}
+                           :task (do (t/wait-for-cli)
+                                     (shell {:dir "playground"} "bb dev"))}
          dev              {:doc  "Starts the squint dev watcher and the playground http server"
                            :task (run '-dev {:parallel true})}
          dev:stop         {:doc  "Stops the process listening on playground port 5173"
