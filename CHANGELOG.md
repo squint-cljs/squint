@@ -3,7 +3,31 @@
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
 ## Unreleased
-### Squint Playground UI, Phase 3
+- [#594](https://github.com/squint-cljs/squint/issues/594): support `for await` in `doseq`, with `^:await` on a binding, `(doseq [^:await x xs] ...)`, or on the binding vector for every binding ([#1053](https://github.com/squint-cljs/squint/pull/1053))
+- [#1052](https://github.com/squint-cljs/squint/pull/1052): `squint run` no longer prints a `Running <file>` banner, so a program's output is only its own
+- `compileStringEx` errors carry `data` as a JS object, e.g. `e.data.line`
+- Playground: Mark compile and runtime errors at their source location in the editor
+- Playground: Make Option+S run `unwrap` on macOS
+- [#1050](https://github.com/squint-cljs/squint/issues/1050): fix a `catch` binding that needs munging (e.g. `abort-error`) not being found in the catch body ([@mskyan](https://github.com/mskyan))
+
+### Squint Playground UI, Phase 2 [#1045](https://github.com/squint-cljs/squint/pull/1045)
+- Playground: Global layout and framing refactor
+- Playground: Fix pane scrolling mechanics (.cm-scroller horizontal scrollbar not in view)
+- Playground: Optimize scrollbar styling
+- Playground: Implement draggable resizing of editor and compile panes
+- Playground: Add Playwright tests for pane resizing 
+- Playground: Implement compiled code section visibility toggle
+- Playground: Support codemirror dark theme across editor, repl output, and compiled code instances
+- Playground: Respect OS color scheme for initial theme state
+- Playground: Add native tooltips optimized for light-dark themes
+- Playground: Unified selection styling
+- Playground: Add Playwright tests for text selection
+- Playground: Normalized, uniform font size across all elements
+- Playground: Add pnpm instructions to readme
+- Playground: Add bb task to stop the port 5173 listener (for detached/leftover server scenario)
+- Playground: Add local (default) tictactoe example, and make it dark-mode friendly
+
+### Squint Playground UI, Phase 3 [#1056](https://github.com/squint-cljs/squint/pull/1056)
 - Playground: Render examples into `#app` inside a resizable DOM frame above the code and output panes, with a size readout and drag handles on the sides, bottom and bottom corners
 - Playground: Let the DOM frame sit above the panes, move into a section at the top of the output pane, or fill the screen, picked from layout icons in the footer
 - Playground: Keep the DOM frame at its previous height while the next example loads, then resize it to fit
@@ -31,29 +55,6 @@
 - Playground: Add a slot in the output pane for errors without a source location (such as a module that fails to resolve).
 
 
-- [#594](https://github.com/squint-cljs/squint/issues/594): support `for await` in `doseq`, with `^:await` on a binding, `(doseq [^:await x xs] ...)`, or on the binding vector for every binding ([#1053](https://github.com/squint-cljs/squint/pull/1053))
-- [#1052](https://github.com/squint-cljs/squint/pull/1052): `squint run` no longer prints a `Running <file>` banner, so a program's output is only its own
-- `compileStringEx` errors carry `data` as a JS object, e.g. `e.data.line`
-- Playground: Mark compile and runtime errors at their source location in the editor
-- Playground: Make Option+S run `unwrap` on macOS
-- [#1050](https://github.com/squint-cljs/squint/issues/1050): fix a `catch` binding that needs munging (e.g. `abort-error`) not being found in the catch body ([@mskyan](https://github.com/mskyan))
-
-### Squint Playground UI, Phase 2 [#1045](https://github.com/squint-cljs/squint/pull/1045)
-- Playground: Global layout and framing refactor
-- Playground: Fix pane scrolling mechanics (.cm-scroller horizontal scrollbar not in view)
-- Playground: Optimize scrollbar styling
-- Playground: Implement draggable resizing of editor and compile panes
-- Playground: Add Playwright tests for pane resizing 
-- Playground: Implement compiled code section visibility toggle
-- Playground: Support codemirror dark theme across editor, repl output, and compiled code instances
-- Playground: Respect OS color scheme for initial theme state
-- Playground: Add native tooltips optimized for light-dark themes
-- Playground: Unified selection styling
-- Playground: Add Playwright tests for text selection
-- Playground: Normalized, uniform font size across all elements
-- Playground: Add pnpm instructions to readme
-- Playground: Add bb task to stop the port 5173 listener (for detached/leftover server scenario)
-- Playground: Add local (default) tictactoe example, and make it dark-mode friendly
 
 ## 0.15.212
 
