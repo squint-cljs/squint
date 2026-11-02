@@ -1,5 +1,3 @@
-;; Squint Playground convention: DOM goes into the element with the id "app".
-
 (require '["react" :as react])
 (require '["react-dom" :as rdom])
 
@@ -96,10 +94,12 @@ returns the character for the winning player, nil if there is no winner"
                                          (update :board assoc-in [i j] player)))))}
                      (get-in board [i j])]])])]]]))
 
+;; Squint Playground convention:
+;; DOM always goes into the element with the id "app".
 (defn render-board []
   (let [elt (or (js/document.getElementById "app")
               (doto (js/document.createElement "div")
-                (set! -id "div")
+                (set! -id "app")
                 (js/document.body.prepend)))
         root (rdom/createRoot elt)]
     (.render root #jsx [board])))

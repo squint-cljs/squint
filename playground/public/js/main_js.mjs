@@ -146,6 +146,7 @@ let reactRoot = ReactDOM.createRoot(document.querySelector("#result"));
 // editor's code font here
 const inspectorTheme = () => ({
   ...(document.documentElement.dataset.theme === 'dark' ? chromeDark : chromeLight),
+  BASE_BACKGROUND_COLOR: 'transparent',
   BASE_FONT_SIZE: '13px', BASE_LINE_HEIGHT: 1.4,
   TREENODE_FONT_SIZE: '13px', TREENODE_LINE_HEIGHT: 1.4,
 });
@@ -335,7 +336,9 @@ let evalCode = async (code, origin) => {
         renderInspector();
       }
       if (docChanged) {
+        // edited code is no longer the preset, so a reload restores it from localStorage
         url.searchParams.delete('src');
+        url.searchParams.delete('example');
         window.history.replaceState(null, null, url);
         localStorage.setItem('document', editor.state.doc.toString());
         docChanged = false;
@@ -509,7 +512,61 @@ async function zipCode(code) {
   return 'gzip:' + base64;
 }
 
-let src = urlParams.get('src'), isGzip = false;
+// Examples served from ./examples/, keyed by the ?example= value. `params` are
+// URL settings the example needs, applied whenever it loads. The dropdown lists
+// them under their `group`, in this order.
+const examples = {
+  'pinball': { label: 'Pinball', group: 'DOM examples', file: 'pinball.cljs' },
+  'tictactoe': { label: 'Tic-tac-toe', group: 'DOM examples', file: 'tictactoe.cljs' },
+  'wordle': { label: 'Wordle', group: 'DOM examples', file: 'wordle.cljs' },
+  'react': { label: 'React', group: 'DOM examples', file: 'react.cljs' },
+  'preact': { label: 'Preact', group: 'DOM examples', file: 'preact.cljs',
+              params: { 'jsx.import-source': 'https://esm.sh/preact@10.19.2' } },
+  'preact-hiccup': { label: 'Preact + hiccup', group: 'DOM examples', file: 'preact-hiccup.cljs' },
+  'mobx': { label: 'MobX', group: 'DOM examples', file: 'mobx.cljs' },
+  'mobx-atoms': { label: 'MobX + atoms', group: 'DOM examples', file: 'mobx-atoms.cljs' },
+  'solidjs': { label: 'SolidJS', group: 'DOM examples', file: 'solidjs.cljs',
+               params: { 'jsx.import-source': 'https://esm.sh/solid-js@1.8.10/h' } },
+  'vue': { label: 'Vue.js', group: 'DOM examples', file: 'vue.cljs' },
+  'mithril': { label: 'Mithril', group: 'DOM examples', file: 'mithril.cljs' },
+  'vanjs': { label: 'VanJS', group: 'DOM examples', file: 'vanjs.cljs' },
+  'web-components': { label: 'Web components', group: 'DOM examples', file: 'web-components.cljs' },
+  'lit': { label: 'Lit', group: 'DOM examples', file: 'lit.cljs' },
+  'quill': { label: 'Quill', group: 'DOM examples', file: 'quill.cljs' },
+  'vega-lite': { label: 'Vega-lite', group: 'DOM examples', file: 'vega-lite.cljs' },
+  // Needs fixing. See the examples plan.
+  // 'rough': { label: 'Rough', group: 'DOM examples', file: 'rough.cljs' },
+  'game-of-life': { label: 'Game of life', group: 'DOM examples', file: 'game-of-life.cljs' },
+  'snabbdom': { label: 'Snabbdom', group: 'DOM examples', file: 'snabbdom.cljs' },
+  'ohms-law': { label: "Ohm's law", group: 'DOM examples', file: 'ohms-law.cljs' },
+  'idiomorph': { label: 'Idiomorph', group: 'DOM examples', file: 'idiomorph.cljs' },
+  'eucalypt': { label: 'Eucalypt', group: 'DOM examples', file: 'eucalypt.cljs' },
+  'docx': { label: 'docx', group: 'DOM examples', file: 'docx.cljs' },
+  'immer': { label: 'Immer', group: 'DOM examples', file: 'immer.cljs' },
+  'edn-data': { label: 'edn-data', group: 'Examples (no DOM)', file: 'edn-data.cljs' },
+  'records-and-tuples': { label: 'TC39 Records and Tuples', group: 'Examples (no DOM)', file: 'records-and-tuples.cljs' },
+  'immutable-js': { label: 'Immutable-js', group: 'Examples (no DOM)', file: 'immutable-js.cljs' },
+  'date-fns': { label: 'Date-fns', group: 'Examples (no DOM)', file: 'date-fns.cljs' },
+  'defmulti': { label: 'defmulti', group: 'Examples (no DOM)', file: 'defmulti.cljs' },
+  'mutative': { label: 'mutative', group: 'Examples (no DOM)', file: 'mutative.cljs' },
+  'generators': { label: 'Generators', group: 'Examples (no DOM)', file: 'generators.cljs' },
+  'umd-module': { label: 'Loading a UMD module', group: 'Examples (no DOM)', file: 'umd-module.cljs' },
+};
+// every param any example sets, cleared before loading another one
+const exampleParamNames = [...new Set(Object.values(examples)
+  .flatMap((e) => Object.keys(e.params || {})))];
+const exampleUrl = (file) => new URL(`./examples/${file}`, window.location.href).href;
+
+const exampleName = urlParams.get('example');
+const example = examples[exampleName] || null;
+// Tells the stylesheet to hold the DOM frame open while the example loads.
+document.documentElement.classList.toggle('dom-example', example?.group === 'DOM examples');
+if (example) {
+  for (const [k, v] of Object.entries(example.params || {})) url.searchParams.set(k, v);
+  window.history.replaceState(null, null, url);
+}
+
+let src = example ? exampleUrl(example.file) : urlParams.get('src'), isGzip = false;
 
 if (src) {
   if (/http(s)?:\/\/.*/.test(src)) {
@@ -578,46 +635,111 @@ window.share = async () => {
   const code = editor.state.doc.toString().trim();
   const src = await zipCode(code);
   url.searchParams.set('src', src);
+  url.searchParams.delete('example');
   window.location = url;
 };
 window.blankAOC = async () => {
   const code = await zipCode(aocDoc);
   const url = new URL(window.location);
   url.searchParams.set('src', code);
+  url.searchParams.delete('example');
+  for (const k of exampleParamNames) url.searchParams.delete(k);
   url.searchParams.set('boilerplate', aocBoilerplateUrl);
   url.searchParams.set('repl', true);
 
   window.location = url;
 };
 
-// Examples served from ./examples/, keyed by their <option> value in the dropdown.
-const fileExamples = {
-  'tictactoe': 'tictactoe.cljs',
-  'edn-data': 'edn-data.cljs',
-  'pinball': 'pinball.cljs',
-};
-const exampleUrl = (file) => new URL(`./examples/${file}`, window.location.href).href;
-
 window.loadExample = (name) => {
   if (name === 'blank-aoc') return window.blankAOC();
-  const file = fileExamples[name];
-  if (!file) return;
+  if (!examples[name]) return;
+  // read by the inline script in <head> so the next page load starts with the DOM frame open
+  try {
+    sessionStorage.setItem('playground.dom-example', String(examples[name].group === 'DOM examples'));
+    // the frame's current height, so the next page starts at the same height (not in full screen)
+    const frame = document.getElementById('dom-frame');
+    if (frame.offsetHeight && !document.body.classList.contains('dom-fullscreen')) {
+      sessionStorage.setItem('playground.dom-height', String(Math.round(frame.getBoundingClientRect().height)));
+    }
+  } catch (e) {}
   const url = new URL(window.location);
-  url.searchParams.set('src', exampleUrl(file));
+  for (const k of exampleParamNames) url.searchParams.delete(k);
+  for (const [k, v] of Object.entries(examples[name].params || {})) url.searchParams.set(k, v);
+  url.searchParams.set('example', name);
   url.searchParams.set('repl', true);
+  url.searchParams.delete('src');
   url.searchParams.delete('boilerplate');
   window.location = url;
 };
 
-// show which example the page was opened with
+// fill the dropdown from the registry, one <optgroup> per group, and show
+// which example the page was opened with
 const exampleSelect = document.getElementById('example-select');
 if (exampleSelect) {
-  const srcParam = urlParams.get('src') || '';
-  const fileMatch = Object.entries(fileExamples)
-    .find(([, file]) => srcParam.endsWith(`/examples/${file}`));
+  // Same group order as the popover menu, whatever the registry order. AOC is
+  // not a file example, so its group is added here, last. A blank row
+  // separates the groups.
+  const optgroup = (label) => Object.assign(document.createElement('optgroup'), { label });
+  const groups = new Map(['DOM examples', 'Examples (no DOM)'].map((g) => [g, optgroup(g)]));
+  for (const [name, { label, group }] of Object.entries(examples)) {
+    groups.get(group).append(new Option(label, name));
+  }
+  const aocGroup = optgroup('Advent of Code');
+  aocGroup.append(new Option('Blank AOC playground', 'blank-aoc'));
+  [...groups.values(), aocGroup].forEach((g, i) => {
+    if (i > 0) {
+      const spacer = new Option('\u00a0');
+      spacer.disabled = true;
+      exampleSelect.append(spacer);
+    }
+    exampleSelect.append(g);
+  });
   exampleSelect.value = boilerplate === aocBoilerplateUrl ? 'blank-aoc'
-    : fileMatch ? fileMatch[0]
+    : example ? exampleName
     : '';
+}
+
+// The popover menu that replaces the select on wider screens. Each registry
+// group fills the list in its own column. The current example is marked.
+const exampleMenu = document.getElementById('example-menu');
+if (exampleMenu) {
+  const lists = {
+    'DOM examples': exampleMenu.querySelector('#example-menu-dom ul'),
+    'Examples (no DOM)': exampleMenu.querySelector('#example-menu-no-dom ul'),
+  };
+  for (const [name, { label, group }] of Object.entries(examples)) {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.setAttribute('role', 'menuitem');
+    item.textContent = label;
+    item.addEventListener('click', () => window.loadExample(name));
+    if (name === exampleName && example) item.setAttribute('aria-current', 'true');
+    const li = document.createElement('li');
+    li.append(item);
+    lists[group]?.append(li);
+  }
+  const isAoc = boilerplate === aocBoilerplateUrl;
+  if (isAoc) exampleMenu.querySelector('#example-menu-aoc button').setAttribute('aria-current', 'true');
+  document.getElementById('example-trigger').textContent =
+    example ? example.label : isAoc ? 'Blank AOC playground' : 'Choose…';
+
+  // On open, focus the current item (or the first). Arrow keys, Home and End
+  // move through the items in reading order. Escape and outside clicks are
+  // handled by the popover itself.
+  const items = () => [...exampleMenu.querySelectorAll('[role="menuitem"]')];
+  exampleMenu.addEventListener('toggle', (e) => {
+    if (e.newState !== 'open') return;
+    (exampleMenu.querySelector('[aria-current="true"]') || items()[0]).focus();
+  });
+  exampleMenu.addEventListener('keydown', (e) => {
+    const all = items();
+    const i = all.indexOf(document.activeElement);
+    const next = { ArrowDown: i + 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowLeft: i - 1,
+                   Home: 0, End: all.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    all[(next + all.length) % all.length].focus();
+  });
 }
 
 window.changeREPL = (target) => {

@@ -1,5 +1,3 @@
-;; Squint Playground convention: DOM goes into the element with the id "app".
-
 ;; based on https://matthias-research.github.io/pages/tenMinutePhysics/index.html
 
 ;; #_:clj-kondo/ignore
@@ -18,8 +16,8 @@
 
 (def orange "#F26D00") ;; the one color for the whole table: outline, bumpers, flippers, lambda, score and restart
 (def orange-rgb [242 109 0]) ;; the same orange, as parts, for blending
-(def outline-alpha 0.6)
-;; the table outline's color: the same orange, dimmed
+(def outline-alpha 0.5)
+;; the table outline's color: the same orange at half opacity
 (def outline-color
   (let [[r g b] orange-rgb]
     (str "rgba(" r "," g "," b "," outline-alpha ")")))
@@ -40,6 +38,8 @@
   (set! (.. elt -style -cssText) css)
   elt)
 
+;; Squint Playground convention:
+;; DOM always goes into the element with the id "app".
 ;; #app > #pinball > (#pinball-header > (score, restart button), #pinball-table > canvas)
 (def pinball
   (style! (element "div" "pinball" "#app" false)
@@ -81,13 +81,14 @@
 
 ;; The table is 1.0 wide and flipper-height tall in sim units. The canvas is
 ;; sized to; exactly that, so the scale only depends on the canvas height.
-;; The lambda's bumper's stroke is 5px at the default 400px table, scaling with it, never under 1px.
+;; The one stroke width for the lambda, the flipper borders and both bumper rings. It is
+;; 2.9px at the default 400px table (5.75px at 800px), scaling with it, never under 1px.
 (defn line-w []
-  (max 1 (* 0.0125 (.-height canvas))))
+  (max 1 (* 0.00719 (.-height canvas))))
 
-;; The table's orange outline is a quarter of that, never under 1px.
+;; The table's outline is the same width.
 (defn table-line-w []
-  (max 1 (* 0.003125 (.-height canvas))))
+  (line-w))
 
 ;; One table line width is kept free at the bottom, so the stroke along y=0 isn't cut off.
 (defn c-scale []
@@ -132,6 +133,38 @@
 ;; the vector 90deg perpendicular to v in counter clockwise direction
 (defn vperp [[vx vy]]
   [(* -1 vy) vx])
+
+;; The lambda is two center lines, traced from a reference glyph, drawn as strokes of
+;; line-w with round ends. The long leg is a curve: it hooks over at the top left, runs
+;; down to the right and curls into a small foot. The short leg is straight, from the
+;; bottom left up to the long leg a little over halfway up. Each is a polyline of points
+;; so the ball collides with exactly what is drawn.
+(defn cubic-points [[x0 y0] [x1 y1] [x2 y2] [x3 y3] n]
+  (mapv (fn [i]
+          (let [t (/ i n)
+                u (- 1 t)
+                a (* u u u)
+                b (* 3 u u t)
+                d (* 3 u t t)
+                e (* t t t)]
+            [(+ (* a x0) (* b x1) (* d x2) (* e x3))
+             (+ (* a y0) (* b y1) (* d y2) (* e y3))]))
+        (range (inc n))))
+
+;; Traced in the reference image's pixels (y down), then moved into sim units (y up),
+;; centered on [0.525 1.466] and 0.194 tall.
+(def lambda-shape
+  (let [k (/ 0.194 282) ;; 97% of the original 0.2 height
+        sim (fn [[ix iy]] [(+ 0.525 (* (- ix 245) k))
+                           (- 1.466 (* (- iy 239) k))])
+        long-leg (concat
+                  (cubic-points [140 103] [200 88] [222 135] [236 190] 8)
+                  (rest (cubic-points [236 190] [262 270] [290 330] [304 346] 8))
+                  (rest (cubic-points [304 346] [318 362] [334 366] [350 365] 4)))
+        short-leg [[141 380] [236 190]]]
+    [(mapv sim long-leg) (mapv sim short-leg)]))
+
+(defonce lambda-canvas (js/document.createElement "canvas"))
 
 (defonce physics-scene (atom {:gravity [0.0 0.0]
                               :dt (/ 1.0 60.0) ;; slow down sim
@@ -208,6 +241,18 @@
         lerp (fn [a b] (js/Math.round (+ a (* k (- b a)))))]
     (str "rgb(" (lerp r0 r1) "," (lerp g0 g1) "," (lerp b0 b1) ")")))
 
+;; The points label: the same color as the rings, so the hit color blending back to orange
+;; over flash-ms, while its opacity fades out over number-fade-ms.
+(defn draw-points-label [c x y r color-k alpha txt]
+  (let [[r0 g0 b0] orange-rgb
+        [r1 g1 b1] hit-rgb
+        lerp (fn [a b] (js/Math.round (+ a (* color-k (- b a)))))]
+    (set! (.-fillStyle c) (str "rgba(" (lerp r0 r1) "," (lerp g0 g1) "," (lerp b0 b1) "," alpha ")"))
+    (set! (.-font c) (str "600 " (max 14 (* 0.0678 (c-scale))) "px " bumper-font))
+    (set! (.-textAlign c) "center")
+    (set! (.-textBaseline c) "middle")
+    (.fillText c txt x (+ y (* 0.04 r)))))
+
 (defn draw []
   (let [ps @physics-scene]
 
@@ -231,17 +276,34 @@
       (.stroke c))
     (set! (.-lineWidth c) 1)
 
-    ;; poly-segments
-    (set! (.-strokeStyle c) (hit-color (hit-fade "lambda" flash-ms)))
-    (set! (.-lineWidth c) (line-w))
-    (.beginPath c)
-    (let [[first-po & rest-po] (:poly-obstacle ps)]
-      (.moveTo c (c-x first-po) (c-y first-po))
-      (doseq [po rest-po]
-        (.lineTo c (c-x po) (c-y po)))
-      (.lineTo c (c-x first-po) (c-y first-po))
-      (.stroke c))
-    (set! (.-lineWidth c) 1)
+    ;; The lambda has the bumpers' rhythm: orange, gap, orange, each line-w thick. It is
+    ;; three layers of the same center lines with round ends and joins: 5 line-w wide in
+    ;; orange, 3 line-w wide erased from that, then line-w wide in orange. That is done on
+    ;; a scratch canvas, so the erasing cannot cut into anything else already drawn.
+    (let [lw (line-w)
+          lc lambda-canvas
+          lctx (.getContext lc "2d")
+          trace! (fn [width]
+                   (set! (.-lineWidth lctx) width)
+                   (.beginPath lctx)
+                   (doseq [[first-pt & more] (:poly-obstacle ps)]
+                     (.moveTo lctx (c-x first-pt) (c-y first-pt))
+                     (doseq [pt more]
+                       (.lineTo lctx (c-x pt) (c-y pt))))
+                   (.stroke lctx))]
+      (when (or (not= (.-width canvas) (.-width lc)) (not= (.-height canvas) (.-height lc)))
+        (set! (.-width lc) (.-width canvas))
+        (set! (.-height lc) (.-height canvas)))
+      (.clearRect lctx 0 0 (.-width lc) (.-height lc))
+      (set! (.-lineCap lctx) "round")
+      (set! (.-lineJoin lctx) "round")
+      (set! (.-strokeStyle lctx) (hit-color (hit-fade "lambda" flash-ms)))
+      (trace! (* 5 lw))
+      (set! (.-globalCompositeOperation lctx) "destination-out")
+      (trace! (* 3 lw))
+      (set! (.-globalCompositeOperation lctx) "source-over")
+      (trace! lw)
+      (.drawImage c lc 0 0))
 
     ;; balls, all the same light gray
     (doseq [ball (:balls ps)]
@@ -251,28 +313,45 @@
                  (* (:radius ball) (c-scale))
                  orange))
 
-    ;; A hit lightens the outer ring (fading over flash-ms) and shows the label
-    ;; in white (fading over number-fade-ms). 
-    ;; A new hit resets the animation.
+    ;; A bumper is two concentric rings with nothing inside. The rings are line-w thick
+    ;; with a gap of line-w between them, like the lambda's stroke. A soft glow
+    ;; around the outer ring appears on a hit. A hit lights both rings (fading over flash-ms) and
+    ;; shows the points (fading over number-fade-ms). A new hit resets the animation.
     (doseq [obstacle (:obstacles ps)]
       (let [x (c-x (:pos obstacle))
             y (c-y (:pos obstacle))
             r (* (:radius obstacle) (c-scale))
+            lw (line-w)
+            glow (max 4 (* 0.4 r))
             hit-key (str (:pos obstacle))
             number-k (hit-fade hit-key number-fade-ms)]
-        (set! (.-fillStyle c) (hit-color (hit-fade hit-key flash-ms)))
-        (draw-disc c x y r)
-        ;; the inner disc stays the solid color 
-        (set! (.-fillStyle c) orange)
-        (draw-disc c x y (* 0.625 r))
+        ;; glow: only after a hit. A ring from the outer edge out to glow px, in the light
+        ;; hit color at 45%, fading out with the hit (over flash-ms) and with distance.
+        (let [k (hit-fade hit-key flash-ms)]
+          (when (> k 0)
+            (let [[hr hg hb] hit-rgb
+                  grad (.createRadialGradient c x y r x y (+ r glow))]
+              (.addColorStop grad 0 (str "rgba(" hr "," hg "," hb "," (* 0.45 k) ")"))
+              (.addColorStop grad 1 (str "rgba(" hr "," hg "," hb ",0)"))
+              (set! (.-fillStyle c) grad)
+              (.beginPath c)
+              (.arc c x y (+ r glow) 0 (* 2.0 js/Math.PI))
+              (.arc c x y r 0 (* 2.0 js/Math.PI) true)
+              (.fill c "evenodd"))))
+        (set! (.-strokeStyle c) (hit-color (hit-fade hit-key flash-ms)))
+        (set! (.-lineWidth c) lw)
+        ;; outer ring: its outer edge is the bumper's radius. Inner ring: one gap further in.
+        (doseq [ring-r [(- r (/ lw 2)) (- r (* 2.5 lw))]]
+          (when (> ring-r 0)
+            (.beginPath c)
+            (.arc c x y ring-r 0 (* 2.0 js/Math.PI))
+            (.stroke c)))
+        (set! (.-lineWidth c) 1)
         ;; the points are left out on small tables (smaller screen sizes), where
         ;; they wouldn't be legible.
         (when (and (> number-k 0) (>= (.-height canvas) 400))
-          (set! (.-fillStyle c) (str "rgba(255,255,255," number-k ")"))
-          (set! (.-font c) (str "600 " (max 13 (* 0.06336 (c-scale))) "px " bumper-font))
-          (set! (.-textAlign c) "center")
-          (set! (.-textBaseline c) "middle")
-          (.fillText c (str (get obstacle :points 100)) x (+ y (* 0.04 r))))))
+          (draw-points-label c x y r (hit-fade hit-key flash-ms) number-k
+                             (str (get obstacle :points 100))))))
     (set! (.-textAlign c) "start")
     (set! (.-textBaseline c) "alphabetic")
 
@@ -298,15 +377,7 @@
               phi (js/Math.acos (/ (- rh rt) len))]
           (set! (.-fillStyle c) (if (= "dark" js/document.documentElement.dataset.theme) "rgb(24,24,24)" "white"))
           (set! (.-strokeStyle c) orange)
-          (set! (.-lineWidth c)
-                ;; From 500px up: half the tip radius, never under 5px. The 5px floor is why the
-                ;; border looked too heavy on small tables, it came to 80% of the tip radius at
-                ;; 500px and more below that. So under 500px the border keeps scaling down with
-                ;; the flipper, as that same 80% of the tip radius (5px at 500px, so no jump),
-                ;; with only a 1px floor.
-                (max 1 (if (< (.-height canvas) 500)
-                         (* 0.8 rt)
-                         (max 5 (* 0.5 rt)))))
+          (set! (.-lineWidth c) (line-w))
           (.beginPath c)
           (.arc c len 0 rt (- phi) phi false)
           (.arc c 0 0 rh phi (- phi) false)
@@ -403,18 +474,7 @@
               :sign -1.0
               :rotation 0.0
               :current-angular-velocity 0.0}]))
-   (assoc :poly-obstacle (let [tl [0.45 1.6]
-                               bl [0.55 1.4]
-                               br [0.60 1.4]
-                               tr [0.50 1.6]]
-                           [tr
-                            br
-                            bl
-                            [0.52 1.46]
-                            [0.50 1.4]
-                            [0.45 1.4]
-                            [0.49 1.52]
-                            tl]))
+   (assoc :poly-obstacle lambda-shape)
    (assoc :gravity [0.0 -3.0])
    (assoc :score 0)))
 
@@ -642,11 +702,8 @@
     ;; from 0 to 1 where on line from c to d
     u))
 
-(defn handle-poly-obstacle-collision [ball points]
-  (let [segments (partition 2         ;; n
-                            1         ;; step
-                            [(first points)] ;; pad seq
-                            points)
+(defn handle-poly-obstacle-collision [ball polylines]
+  (let [segments (vec (mapcat (fn [line] (partition 2 1 line)) polylines))
         crossing-segments (vec (filter
                                 (partial crossing-segment ball)
                                 segments))]
@@ -829,10 +886,33 @@
    balls
    (range (count balls))))
 
+;; The lambda turns once every lambda-spin-seconds, around the middle of its box. The
+;; shape as first set up is kept as :poly-base, and each step the turned copy goes into
+;; :poly-obstacle, which both the collision and the drawing read. It is about 25 points, so cheap.
+(def lambda-spin-seconds 7)
+(def lambda-pivot [0.525 1.466])
+
+(defn spin-lambda [ps dt]
+  (let [base (or (:poly-base ps) (:poly-obstacle ps))
+        angle (+ (or (:poly-angle ps) 0)
+                 (* 2.0 js/Math.PI (/ dt lambda-spin-seconds)))
+        cs (js/Math.cos angle)
+        sn (js/Math.sin angle)
+        [px py] lambda-pivot
+        turn (fn [[x y]]
+               (let [dx (- x px)
+                     dy (- y py)]
+                 [(+ px (- (* dx cs) (* dy sn)))
+                  (+ py (* dx sn) (* dy cs))]))]
+    (assoc ps
+           :poly-base base
+           :poly-angle angle
+           :poly-obstacle (mapv (fn [line] (mapv turn line)) base))))
+
 (defn simulate []
   (swap! physics-scene
          (fn [ps]
-           (let [ps (assoc ps :flippers (simulate-flippers ps))
+           (let [ps (spin-lambda (assoc ps :flippers (simulate-flippers ps)) (:dt ps))
                  balls (simulate-balls ps)
                  points (apply + 0 (keep #(:points %) balls))
                  balls (mapv
@@ -913,7 +993,7 @@
 
 ;; Fit the table to #app. If the frame has a set height, fill it. Otherwise use a
 ;; default height. Sim units don't depend on pixels, so resizing keeps the game going.
-(def default-height 400)
+(def default-height 555)
 
 ;; One fitting pass. Returns true if the canvas size changed.
 (defn fit! []
@@ -967,6 +1047,9 @@
   (.addEventListener js/document.body "keydown"
                      (fn [event]
                        (let [k (.-key event)]
+                         ;; space relaunches on keyup. Keep it from scrolling the page.
+                         (when (= k " ")
+                           (.preventDefault event))
                          (when-let [flipper-id (flipper-id-from-key k)]
                            (swap! physics-scene
                                   assoc-in [:flippers-active flipper-id] k)))))
@@ -977,7 +1060,7 @@
                          (when-let [flipper-id (flipper-id-from-key k)]
                            (swap! physics-scene
                                   update :flippers-active dissoc flipper-id))
-                         (when (= k "r")
+                         (when (or (= k "r") (= k " "))
                            (setup-scene)))))
 
   (.addEventListener (js/document.getElementById "button-restart") "click"
