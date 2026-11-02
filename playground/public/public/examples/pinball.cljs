@@ -922,10 +922,12 @@
                  (assoc :balls balls)
                  (update :score + points))))))
 
+;; The frame id is kept on window, so a new evaluation can cancel the old loop
+;; instead of running a second one beside it.
 (defn sim-update []
   (simulate)
   (draw)
-  (js/window.requestAnimationFrame sim-update))
+  (set! js/window.pinballFrame (js/window.requestAnimationFrame sim-update)))
 
 
 (defn on-touch-start [event]
@@ -1038,38 +1040,46 @@
 (set! js/window.pinballResizeObserver (js/ResizeObserver. (fn [] (resize!))))
 (.observe js/window.pinballResizeObserver (js/document.getElementById "app"))
 
+;; Every listener is tied to one AbortController kept on window. A new evaluation
+;; aborts it, which removes the old listeners, so they never stack up.
 (defn reg-listeners []
-  (.addEventListener canvas "touchstart"
-                     on-touch-start false)
-  (.addEventListener canvas "touchend"
-                     on-touch-end false)
+  (when js/window.pinballListeners
+    (.abort js/window.pinballListeners))
+  (set! js/window.pinballListeners (js/AbortController.))
+  (let [opts #js {:signal (.-signal js/window.pinballListeners)}]
+    (.addEventListener canvas "touchstart"
+                       on-touch-start opts)
+    (.addEventListener canvas "touchend"
+                       on-touch-end opts)
 
-  (.addEventListener js/document.body "keydown"
-                     (fn [event]
-                       (let [k (.-key event)]
-                         ;; space relaunches on keyup. Keep it from scrolling the page.
-                         (when (= k " ")
-                           (.preventDefault event))
-                         (when-let [flipper-id (flipper-id-from-key k)]
-                           (swap! physics-scene
-                                  assoc-in [:flippers-active flipper-id] k)))))
+    (.addEventListener js/document.body "keydown"
+                       (fn [event]
+                         (let [k (.-key event)]
+                           (when-let [flipper-id (flipper-id-from-key k)]
+                             (swap! physics-scene
+                                    assoc-in [:flippers-active flipper-id] k))))
+                       opts)
 
-  (.addEventListener js/document.body "keyup"
-                     (fn [event]
-                       (let [k (.-key event)]
-                         (when-let [flipper-id (flipper-id-from-key k)]
-                           (swap! physics-scene
-                                  update :flippers-active dissoc flipper-id))
-                         (when (or (= k "r") (= k " "))
-                           (setup-scene)))))
+    (.addEventListener js/document.body "keyup"
+                       (fn [event]
+                         (let [k (.-key event)]
+                           (when-let [flipper-id (flipper-id-from-key k)]
+                             (swap! physics-scene
+                                    update :flippers-active dissoc flipper-id))
+                           (when (= k "r")
+                             (setup-scene))))
+                       opts)
 
-  (.addEventListener (js/document.getElementById "button-restart") "click"
-                     (fn [event]
-                       (setup-scene)
-                       ;; Let go of the focus ring on clicked restart button.
-                       (.blur (.-currentTarget event)))))
+    (.addEventListener (js/document.getElementById "button-restart") "click"
+                       (fn [event]
+                         (setup-scene)
+                         ;; Let go of the focus ring on clicked restart button.
+                         (.blur (.-currentTarget event)))
+                       opts)))
 
 (defn start []
+  (when js/window.pinballFrame
+    (js/window.cancelAnimationFrame js/window.pinballFrame))
   (resize!)
   (reg-listeners)
   (setup-scene)
