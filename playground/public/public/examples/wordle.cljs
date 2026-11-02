@@ -27,9 +27,11 @@
   (.-textContent cell))
 
 (defn color-cell [idx cell]
+  ;; a scored cell gets a fixed background, so its letter gets a fixed color too:
+  ;; white on green and dark gray, black on aqua
   (let [color (fn [el color]
-                (set! (-> el .-style .-backgroundColor)
-                  color))
+                (set! (-> el .-style .-backgroundColor) color)
+                (set! (-> el .-style .-color) (if (= color "aqua") "black" "white")))
         letter (get-letter cell)]
     (cond
       (= letter (nth @word-of-the-day idx))
@@ -104,7 +106,7 @@
           grid-template-columns: repeat(5, 60px);
       }
       .cell {
-          color: white;
+          color: light-dark(black, white);
           font-weight: bold;
           display: flex;
           justify-content: center;
