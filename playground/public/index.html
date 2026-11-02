@@ -607,7 +607,9 @@ new MutationObserver(() => {
     }
   };
 
-  button.addEventListener("click", () => set(!document.body.classList.contains("dom-fullscreen")));
+  // Like the two layout icons, clicking it while it is selected does nothing.
+  // Esc or a layout icon leaves full screen.
+  button.addEventListener("click", () => set(true));
   // picking a layout while in full screen leaves full screen (the layout's own handler runs first)
   layoutButtons.forEach((b) => b.addEventListener("click", () => set(false)));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") set(false); });

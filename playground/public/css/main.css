@@ -1128,6 +1128,13 @@ body:has(#aoc_container)::after {
 /* Full screen: the DOM frame covers everything above the footer.
    Its height is set in index.html to the space above the footer.
    The opaque base hides what is underneath. */
+/* In the side layout the frame lives in the DOM section. A collapsed section
+   would hide it (display: none) under the full screen frame too, so full screen
+   shows the section body whatever its toggle says. */
+body.dom-fullscreen #sidebar #dom-section #dom-section-body {
+  display: block;
+}
+
 body.dom-fullscreen #dom-frame {
   position: fixed;
   top: 0;
