@@ -128,20 +128,12 @@
              (when this-sym
                (str "const " (emit-fn this-sym env) " = this;\n")))))
 
-(defn- emit-object-fn [env emit-fn async-fn object-fn]
+(defn- emit-object-fn [env emit-fn emit-params async-fn object-fn]
   (let [[fn-name arglist & body] object-fn
         [this-arg & arglist] arglist
         [arglist & body] (maybe-destructured arglist body)
-        env (update env :var->ident (fn [vi]
-                                      (-> vi
-                                          (merge (assoc (into {}
-                                                              (mapcat (fn [arg]
-                                                                        (if (map? arg)
-                                                                          (zipmap (:keys arg) (map munge (:keys arg)))
-                                                                          [[arg arg]])))
-                                                              arglist)
-                                                        'super "super"
-                                                        this-arg (munge this-arg))))))
+        env (update env :var->ident assoc 'super "super" this-arg (munge this-arg))
+        [env params] (emit-params env arglist)
         mf (meta fn-name)
         async? (:async mf)
         gen? (:gen mf)
@@ -168,11 +160,7 @@
                  (when get? "get ")
                  (when set? "set ")
                  (munge fn-name) "("
-                 (interpose ", " (map (fn [arg]
-                                        (if (map? arg)
-                                          (str "{" (str/join "," (map munge (:keys arg))) "}")
-                                          (emit-fn arg (assoc env :context :expr :top-level false))))
-                                      arglist))
+                 (interpose ", " params)
                  ") { \n"
                  "const " (emit-fn this-arg env) " = this;\n"
                  "const self__ = this;"
@@ -185,7 +173,7 @@
                  "\n}")))))
 
 (defn emit-class
-  [env* emit-fn async-fn emit-return form]
+  [env* emit-fn emit-params async-fn emit-return form]
   (let [env (assoc env* :context :statement)
         {:keys [classname extends extend constructor fields protocols] :as _all} (parse-class (rest form))
         [_ ctor-args & ctor-body] constructor
@@ -238,7 +226,7 @@
                  (str "const " (emit-fn this-sym ctor-args-env) " = this;\n"))))
         (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env))
         "  }\n"))
-     (interpose "\n" (mapv #(emit-object-fn fields-env emit-fn async-fn %) object-fns))
+     (interpose "\n" (mapv #(emit-object-fn fields-env emit-fn emit-params async-fn %) object-fns))
      "};\n"
      (emit-fn extend-form fields-env)
      (when extend

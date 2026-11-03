@@ -1968,6 +1968,9 @@
              (fn [st] (update-in st [(:current st) :vars] (fnil conj #{}) (munge* name)))))
     (defclass/emit-class env
       emit
+      (fn [env params]
+        (let [[env params] (->sig env params)]
+          [env (mapv #(if (map? %) (destructured-map env %) %) params)]))
       ;; async flows through env (emit-object-fn sets :async); callback just emits
       (fn [_async body-fn]
         (body-fn))
