@@ -1044,6 +1044,9 @@
 
 ;; Every listener is tied to one AbortController kept on window. A new evaluation
 ;; aborts it, which removes the old listeners, so they never stack up.
+(defn typing? [event]
+  (.closest (.-target event) ".cm-editor, input, textarea"))
+
 (defn reg-listeners []
   (when js/window.pinballListeners
     (.abort js/window.pinballListeners))
@@ -1056,20 +1059,22 @@
 
     (.addEventListener js/document.body "keydown"
                        (fn [event]
-                         (let [k (.-key event)]
-                           (when-let [flipper-id (flipper-id-from-key k)]
-                             (swap! physics-scene
-                                    assoc-in [:flippers-active flipper-id] k))))
+                         (when-not (typing? event)
+                           (let [k (.-key event)]
+                             (when-let [flipper-id (flipper-id-from-key k)]
+                               (swap! physics-scene
+                                      assoc-in [:flippers-active flipper-id] k)))))
                        opts)
 
     (.addEventListener js/document.body "keyup"
                        (fn [event]
-                         (let [k (.-key event)]
-                           (when-let [flipper-id (flipper-id-from-key k)]
-                             (swap! physics-scene
-                                    update :flippers-active dissoc flipper-id))
-                           (when (= k "r")
-                             (setup-scene))))
+                         (when-not (typing? event)
+                           (let [k (.-key event)]
+                             (when-let [flipper-id (flipper-id-from-key k)]
+                               (swap! physics-scene
+                                      update :flippers-active dissoc flipper-id))
+                             (when (= k "r")
+                               (setup-scene)))))
                        opts)
 
     (.addEventListener (js/document.getElementById "button-restart") "click"
