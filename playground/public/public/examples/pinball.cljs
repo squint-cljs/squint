@@ -1042,11 +1042,11 @@
 (set! js/window.pinballResizeObserver (js/ResizeObserver. (fn [] (resize!))))
 (.observe js/window.pinballResizeObserver (js/document.getElementById "app"))
 
-;; Every listener is tied to one AbortController kept on window. A new evaluation
-;; aborts it, which removes the old listeners, so they never stack up.
 (defn typing? [event]
   (.closest (.-target event) ".cm-editor, input, textarea"))
 
+;; Every listener is tied to one AbortController kept on window. A new evaluation
+;; aborts it, which removes the old listeners, so they never stack up.
 (defn reg-listeners []
   (when js/window.pinballListeners
     (.abort js/window.pinballListeners))
