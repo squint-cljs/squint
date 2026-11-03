@@ -28,7 +28,7 @@ scratch.js
 compiler-common
 garbage.js
 !examples/vite-react/public/index.html
-wordle.cljs
+/wordle.cljs
 bun.lockb
 aoc.txt
 aoc_3.cljs

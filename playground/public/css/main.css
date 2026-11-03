@@ -1,14 +1,25 @@
 :root {
+  --label-fg-alpha: 60%;
   color-scheme: light dark;
   --teal-color: #31afd0;
   --selection-background: light-dark(rgba(31, 143, 255, 0.10), rgba(81, 177, 241, 0.34));
   --selection-color: light-dark(#222, #fff);
   --nav-height: 40px;
+  --bar-height: 39px;
+  /* opaque twin of --accordion-color, for things that sit on a tinted backdrop */
+  --accordion-solid: light-dark(color-mix(in srgb, var(--bg), var(--fg) 2.5%), color-mix(in srgb, var(--bg), var(--fg) 6%));
+  --hover-color: light-dark(rgb(0 0 0 / 7%), rgb(255 255 255 / 12%));
+  --accordion-color: light-dark(rgb(from currentColor r g b / 2.5%), rgb(from currentColor r g b / 6%));
   --viewport-padding-inline: 20px;
   --panel-border-radius: 0px;
   --bg: light-dark(#fff, #181818);
-  --fg: light-dark(#222, #eee);
-  --panel-border-color: light-dark(rgb(from gray r g b / 30%), rgb(from gray r g b / 60%));
+  --fg: light-dark(#222, #cccccc);
+  --error-background: light-dark(rgb(255 0 0 / 7%), rgb(255 70 70 / 20%));
+  --error-foreground: light-dark(#5c0b0b, #ffd4d4);
+  --error-badge: #e5484d;
+  --error-badge-x: light-dark(#fff, #000);
+  /* opaque, so lines that cross do not add up to a brighter pixel */
+  --panel-border-color: color-mix(in srgb, var(--bg), gray 30%);
   --panel-border-color-hover: light-dark(rgb(from black r g b / 70%), rgb(from white r g b / 70%));
   --panel-border: 1px solid var(--panel-border-color);
   --button-color: light-dark(rgb(from currentColor r g b / 5%), rgb(from currentColor r g b / 12%));
@@ -16,7 +27,7 @@
   --ui-label-weight: 400;
   --scrollbar-thumb-color: light-dark(rgb(128 128 128 / 23%), rgb(128 128 128 / 53%));
   --scrollbar-thumb-color-hover: light-dark(rgb(128 128 128 / 43%), rgb(128 128 128 / 73%));
-  --draggable-pane-divisor-color-hover: light-dark(rgb(128 128 128 / 44%), rgb(128 128 128 / 77%));
+  --draggable-pane-divisor-color-hover: light-dark(color-mix(in srgb, var(--bg), gray 44%), color-mix(in srgb, var(--bg), gray 77%));
 }
 
 :root[data-theme="light"]{
@@ -40,7 +51,7 @@ body {
   color: var(--fg);
   max-width: inherit;
   padding: 0;
-  background: var(--body-background-color-light-mode);
+  background: var(--bg);
   height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -56,13 +67,338 @@ body, #editor, #sidebar {
 
 #aoc_container {
   margin: 20px 30px;
+  order: -2;
+  flex-shrink: 0;
+}
+
+#aoc-token-help {
+  margin-top: 1em;
+
+  & a {
+    color: color-mix(in srgb, currentcolor, transparent 25%);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentcolor, transparent 50%);
+    text-underline-offset: 2px;
+  }
+
+  /* a margin instead of a space, so the underline stops at the question mark */
+  & a svg {
+    vertical-align: middle;
+    margin-left: 0.25em;
+  }
+
+  & a:hover {
+    color: color-mix(in srgb, currentcolor, transparent 10%);
+    text-decoration-color: currentcolor;
+  }
+}
+
+/* Horizontal divider between the DOM row and the code/output panes. It takes up no
+   space: it is a zero-height box on the boundary, and its line and hit area overflow
+   it. The line is 1px at rest, over the panes' top edge, and thickens upward on
+   hover. The hit area reaches a few px up into the frame and down into the panes. Same
+   fade and hover color as #draggable-divider. */
+#dom-divider {
+  display: none;
+  position: relative;
+  flex: 0 0 0;
+  height: 0;
+  cursor: row-resize;
+  touch-action: none;
+  z-index: 2;
+  &:focus-visible {
+    outline: none;
+  }
+  &::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    left: 0;
+    right: 0;
+    height: 7px;
+  }
+}
+
+#dom-divider-line {
+  --c1: var(--scrollbar-thumb-color);
+  --c2: var(--scrollbar-thumb-color);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background-image: linear-gradient(to right, var(--c1) 0%, var(--c2) 30% 70%, var(--c1) 100%);
+  transition: --c1 200ms ease, --c2 200ms ease, height 200ms ease;
+}
+
+#dom-divider:hover #dom-divider-line,
+#dom-divider.dom-resizing #dom-divider-line,
+#dom-divider:focus-visible #dom-divider-line {
+  height: 3px;
+  --c2: var(--draggable-pane-divisor-color-hover);
+}
+
+@media screen and (min-width: 768px) {
+  /* The divider is switched off: the frame's bottom bar and corners set the DOM row's
+     height instead. Its markup and styles stay for now. */
+  #dom-frame:has(#app:not(:empty)) + #dom-divider {
+    display: none;
+  }
+  /* Side by side, the panes never draw their own top edge. With the DOM row above them
+     the divider draws it. With the DOM in the sidebar, or none at all, nothing sits
+     above the panes and the bare edge reads better. */
+  #main > :is(#editor, #sidebar) {
+    border-top: none;
+  }  /* With the DOM row above them and no divider, the panes draw that edge themselves. */
+  #dom-frame:has(#app:not(:empty)) + #dom-divider + #main > :is(#editor, #sidebar) {
+    border-top: var(--panel-border);
+  }
+}
+
+/* Resizable DOM frame around #app. 20px bars: readout on top, drag handles on the
+   sides, bottom and bottom corners. The canvas is centered, so it can shrink
+   below the pane width, and the backdrop then matches the other chrome. */
+#dom-frame {
+  --dom-bar-size: 20px;
+  --dom-handle-color: color-mix(in srgb, var(--fg) 40%, transparent);
+  --dom-border-color: var(--panel-border-color);
+  --dom-border: 1px solid var(--dom-border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  background: var(--hover-color); /* shows beside the device once it is narrowed */
+  &:has(#app:empty) {
+    display: none;
+  }
+}
+
+/* A DOM example is loading: keep the frame open at a minimum height (the previous
+   example's frame height, from the head script) while #app is still empty, so the
+   layout does not collapse and jump when the example renders. Once it renders, the
+   floor drops to 0 and the frame eases down to fit the content. 0 rather than no
+   min-height, so the drop can transition. */
+html.dom-example #dom-frame {
+  min-height: 0;
+  transition: min-height 250ms ease-out;
+  &:has(#app:empty) {
+    display: flex;
+    min-height: var(--dom-min-height, 200px);
+  }
+}
+
+/* the example's output fades in once it renders */
+#dom-frame #app > * {
+  animation: dom-fade-in 200ms ease-out;
+}
+
+@keyframes dom-fade-in {
+  from { opacity: 0; }
+}
+
+/* The bars and the canvas. Its width is set by dragging, so the bars hug the canvas. */
+#dom-device {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: var(--dom-bar-size) minmax(0, 1fr) var(--dom-bar-size);
+  grid-template-rows: var(--dom-bar-size) minmax(0, 1fr) var(--dom-bar-size);
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+}
+
+/* Hovering or dragging any handle darkens the inner borders and the readout too,
+   at the same 150ms rate as the notches. */
+#dom-frame:has([data-drag]:hover) {
+  /* halfway between the resting and the full hover color */
+  --dom-border-color: color-mix(in srgb, var(--panel-border-color), var(--panel-border-color-hover));
+  & .dom-bar-top {
+    color: var(--fg);
+  }
+}
+
+/* Each bar is bordered only on the edge facing the canvas, so nothing crosses at the corners. */
+.dom-bar {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  background: var(--accordion-solid);
+  color: var(--dom-handle-color);
+  touch-action: none;
+  user-select: none;
+  transition: color 150ms ease, border-color 150ms ease;
+  &[data-drag]:hover {
+    color: var(--fg); /* darkens the handle notches */
+  }
+  & svg {
+    display: block;
+    /* 45deg corner lines otherwise anti-alias unevenly at 1x and read as different weights */
+    shape-rendering: crispEdges;
+  }
+}
+
+.dom-bar-top {
+  border-bottom: var(--dom-border);
+  font-size: 12px;
+  color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.dom-bar-left,
+.dom-bar-right {
+  cursor: ew-resize;
+}
+
+.dom-bar-left {
+  border-right: var(--dom-border);
+}
+
+.dom-bar-right {
+  border-left: var(--dom-border);
+}
+
+
+.dom-bar-bottom {
+  border-top: var(--dom-border);
+  cursor: ns-resize;
+  & svg {
+    rotate: 90deg;
+  }
+}
+
+/* all four corners are separate cells with no borders of their own */
+.dom-corner-left {
+  cursor: nesw-resize;
+  & svg {
+    rotate: -45deg;
+  }
+}
+
+.dom-corner-right {
+  cursor: nwse-resize;
+  & svg {
+    rotate: 45deg;
+  }
+}
+
+#dom-canvas {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+#dom-frame #app {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg);
+}
+
+/* Example content is styled to work in light and dark without querying the theme:
+   headings follow the foreground, buttons are the foreground on a faint gray, and
+   range inputs use a thin mid-gray track. */
+/* vega-embed adds padding on the right for its actions menu. Count it inside the width,
+   so the menu button is not pushed past #app's edge into a scrollbar. */
+#app .vega-embed {
+  display: block;
+  box-sizing: border-box;
+  /* The actions button hangs about 9px past the top and right edges. Leave room for it,
+     since overflow past the top is clipped and past the right adds a scrollbar. */
+  width: calc(100% - 10px);
+  margin: 10px 10px 0 0;
+}
+
+#app :is(h1, h2, h3, h4, h5, h6) {
+  color: inherit;
+}
+
+#app button,
+#app input:not([type="range"], [type="checkbox"], [type="radio"]) {
+  color: var(--fg);
+  background: rgb(128 128 128 / 18%);
+  border: 1px solid rgb(128 128 128 / 30%);
+  &:hover {
+    background: rgb(128 128 128 / 25%);
+    border-color: rgb(128 128 128 / 44%);
+  }
+}
+
+/* text fields are square, unlike buttons */
+#app input:not([type="range"], [type="checkbox"], [type="radio"]) {
+  border-radius: 0;
+}
+
+/* water.css draws a focus ring on anything clicked. Drop it for mouse focus. Keyboard
+   focus (:focus-visible) keeps the ring. */
+#app :is(button, input, select, textarea):focus:not(:focus-visible) {
+  box-shadow: none;
+  outline: none;
+}
+
+/* water.css nudges buttons and slider thumbs down 2px while pressed. Never do that.
+   One rule each: an unknown pseudo-element in a list drops the whole rule. */
+#app :is(button, input, select):active {
+  transform: none;
+}
+#app input[type="range"]::-webkit-slider-thumb:active {
+  transform: none;
+}
+#app input[type="range"]::-moz-range-thumb:active {
+  transform: none;
+}
+
+#app input[type="range"] {
+  appearance: none;
+  height: 3px;
+  margin-bottom: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: rgb(128 128 128 / 50%);
+  outline: none;
+  box-shadow: none;
+  /* no focus ring. Pressing lightens the track in dark, darkens it in light. */
+  &:focus {
+    box-shadow: none;
+    outline: none;
+  }
+  &:active {
+    background: light-dark(#555, #c0c0c0);
+  }
+  &::-webkit-slider-runnable-track {
+    height: 3px;
+    background: none;
+  }
+  &::-moz-range-track {
+    height: 3px;
+    background: none;
+  }
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5.5px;
+    border: none;
+    border-radius: 50%;
+    background: rgb(128 128 128);
+  }
+  &::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: none;
+    border-radius: 50%;
+    background: rgb(128 128 128);
+  }
 }
 
 #app {
   flex-shrink: 0;
   padding: 20px 30px;
   margin: 0;
-  background: var(--body-background-color-light-mode);
+  background: var(--bg);
   table {
     margin-bottom: 0;
   }
@@ -92,10 +428,69 @@ body, #editor, #sidebar {
   }
 }
 
-#star-counter {
-  width: 84px;
-  height: 17px;
-  line-height: 0;
+/* Custom GitHub star counter */
+#gh-stars {
+  --gh-height: 22px;
+  --gh-radius: 3px;
+  --gh-border-color: color-mix(in srgb, currentcolor, transparent 75%);
+  /* opaque twin of the footer tint, so the tag's pointer can hide its own border */
+  --gh-bg: light-dark(
+    color-mix(in srgb, var(--bg), var(--fg) 5%),
+    color-mix(in srgb, var(--bg), var(--fg) 12%));
+  display: inline-flex;
+  align-items: center;
+  transform: scale(1.05);
+  transform-origin: left center;
+  color: inherit;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  transition: opacity 0.25s;
+  &:hover {
+    opacity: 0.6;
+  }
+  & svg {
+    display: block;
+    flex-shrink: 0;
+  }
+}
+
+.gh-label,
+.gh-tag {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: var(--gh-height);
+  border: 1px solid var(--gh-border-color);
+  border-radius: var(--gh-radius);
+}
+
+.gh-label {
+  gap: 4px;
+  padding: 0 7px 0 5px;
+}
+
+.gh-tag {
+  position: relative;
+  margin-left: 7px;
+  padding: 0 7px;
+  &[hidden] {
+    display: none;
+  }
+  &::before {
+    content: "";
+    position: absolute;
+    left: -3.5px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    box-sizing: border-box;
+    background: var(--gh-bg);
+    border-bottom: 1px solid var(--gh-border-color);
+    border-left: 1px solid var(--gh-border-color);
+    transform: translateY(-50%) rotate(45deg);
+  }
 }
 
 #controls {
@@ -109,6 +504,7 @@ body, #editor, #sidebar {
 }
 
 #main {
+  position: relative;
   --pane-min-width: 300px;
   padding-inline: 0;
   display: flex;
@@ -129,6 +525,10 @@ body, #editor, #sidebar {
     cursor: col-resize;
     user-select: none;
   }
+  &.dom-resizing, &.dom-resizing * {
+    cursor: row-resize;
+    user-select: none;
+  }
 }
 
 #editor {
@@ -138,7 +538,6 @@ body, #editor, #sidebar {
   flex-direction: column;
   width: 100%;
   max-height: 90dvh;
-  max-width: calc(100dvw - 20px);
   border: var(--panel-border);
   border-inline: none;
   border-radius: var(--panel-border-radius);
@@ -151,6 +550,7 @@ body, #editor, #sidebar {
     max-width: none;
     max-height: none;
     min-height: 0;
+    border-bottom: none; /* the footer's top border draws this edge */
 
     & > .cm-editor {
       flex: 1;
@@ -185,32 +585,83 @@ body, #editor, #sidebar {
 }
 
 #aoc_help_container {
-  font-size: 1rem;
-  padding: 10px 0 0;
+  display: none;
 }
 
 #aoc_output_container {
   border: 1px solid var(--panel-border-color);
-  margin: 0px 30px 10px;
+  margin: 0px 30px 20px;
+  /* the boilerplate appends this to <body>. Show it right under the token form. */
+  order: -1;
+  flex-shrink: 0;
+  max-height: 30dvh;
+  overflow: auto;
   /* justify-content: center; */
   gap: 0;
   border-radius: 7px;
+}
+
+/* Closes the AOC section: form, then output, then this full-width rule. Same order as
+   the output container, and ::after comes last in the DOM, so it sits right below it. */
+body:has(#aoc_container)::after {
+  content: "";
+  order: -1;
+  flex-shrink: 0;
+  border-bottom: var(--panel-border);
+}
+
+#sidebar-controls {
+  /* Bleed past #sidebar's padding so the bar spans the pane. */
+  margin: -10px calc(-1 * var(--sidebar-padding-end)) 0 calc(-1 * var(--sidebar-inset-start));
+  box-sizing: border-box;
+  height: var(--bar-height);
+  /* start matches the accordion arrows below, which sit at 15px */
+  padding: 0 var(--viewport-padding-inline) 0 calc(var(--sidebar-padding-end) + 5px);
+  background: var(--button-color);
+  border-bottom: 1px solid var(--panel-border-color);
+}
+
+/* Mirrors #sidebar-controls, same top inset, row height and gap to the content below. */
+#editor-controls {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-start;
+  /* Bleed past #editor's inline-start padding so the bar spans the pane. */
+  margin: 0 0 32px calc(-1 * var(--viewport-padding-inline));
+  align-items: center;
+  box-sizing: border-box;
+  height: var(--bar-height);
+  padding: 0 var(--viewport-padding-inline);
+  background: var(--button-color);
+  border-bottom: 1px solid var(--panel-border-color);
+  & .control-group {
+    min-height: 1.9em;
+    display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+    align-items: center;
+    gap: 12px;
+  }
 }
 
 #sidebar {
   min-width: 0;
   box-sizing: border-box;
   --draggable-divider-width: 10px;
+  --sidebar-padding-end: 10px; /* the sidebar's own right padding, which its full-bleed rows undo */
+  --sidebar-inset-start: calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
   overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  gap:32px;
+  gap: 0;
   border: var(--panel-border);
   border-inline: none;
+  border-bottom: none; /* the footer's top border draws this edge */
   border-radius: var(--panel-border-radius);
-  padding: 10px 10px 0px calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
+  padding: 10px var(--sidebar-padding-end) 0px calc(var(--viewport-padding-inline) + (var(--draggable-divider-width) / 2));
   margin-top: 10px;
 
   @media screen and (min-width: 768px) {
@@ -218,10 +669,6 @@ body, #editor, #sidebar {
     margin-left: 0px;
     width: auto;
     max-height: none;
-  }
-
-  .sidebar-section-label {
-    font-weight: var(--ui-label-weight);
   }
 
   #draggable-divider {
@@ -241,13 +688,12 @@ body, #editor, #sidebar {
       outline: none;
     }
     &>#draggable-divider-line {
-      --c1: var(--scrollbar-thumb-color);
-      --c2: var(--scrollbar-thumb-color);
+      --c1: var(--panel-border-color);
+      --c2: var(--panel-border-color);
       position: absolute;
       width: 1px;
       top: 0px;
-      left: 2px;
-      translate: -50%;
+      left: 0px; /* on the pane boundary, where the rows' borders start */
       height: 100%;
       background-image: linear-gradient(var(--c1) 0%,var(--c2) 30% 70%,var(--c1) 100%);
       transition: --c1 200ms ease, --c2 200ms ease, width 200ms ease;
@@ -261,7 +707,7 @@ body, #editor, #sidebar {
   }
 
   #sidebar-controls {
-    width: 100%;
+    width: auto; /* a fixed 100% would stop short of the right edge once the bar bleeds */
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -290,7 +736,8 @@ body, #editor, #sidebar {
     outline-offset: 6px;
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    /* Bleed past #sidebar's padding so the section headers span the pane. */
+    margin: 0 calc(-1 * var(--sidebar-padding-end)) 0 calc(-1 * var(--sidebar-inset-start));
     overflow: hidden;
 
     .sidebar-section {
@@ -298,22 +745,29 @@ body, #editor, #sidebar {
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      &#repl-mode-section {
-        flex-shrink: 0;
+      &[hidden] {
+        display: none;
       }
-      &#compiled-code-section {
+      &:not([hidden]) + .sidebar-section {
+        border-top: 1px solid var(--panel-border-color);
+      }
+      &#repl-mode-section,
+      &#dom-section {
+        flex-shrink: 0;
       }
     }
 
-    #compiled-code-toggle {
+    .section-header {
       appearance: none;
-      align-self: flex-start;
       display: flex;
       align-items: center;
       gap: var(--sidebar-control-gap);
-      color: var(--fg);
-      background: none;
+      box-sizing: border-box;
+      width: 100%;
+      margin: 0;
+      padding: 3.5px var(--sidebar-padding-end) 3.5px calc(var(--sidebar-padding-end) + 5px);
+      color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
+      background: var(--accordion-color);
       border: 0;
       border-radius: 0;
       box-shadow: none;
@@ -321,23 +775,30 @@ body, #editor, #sidebar {
       font-size: inherit;
       font-weight: var(--ui-label-weight);
       line-height: inherit;
-      margin: 0;
-      padding: 0;
+      text-align: start;
       cursor: pointer;
 
-      &:focus-visible {
+      &:focus-visible, &:has(:focus-visible) {
         outline: 2px solid currentColor;
-        outline-offset: 3px;
+        outline-offset: -2px;
       }
 
-      &[aria-expanded="false"] {
-        #compiled-code-toggle-icon svg {
-          transform: rotate(0deg);
+      input {
+        width: var(--sidebar-control-size);
+        height: var(--sidebar-control-size);
+        margin: 0 0 0 3px;
+        accent-color: var(--fg);
+        &:active {
+          transform: none; 
+        }
+        &:focus, &:focus-visible {
+          --focus: transparent;
+          outline: none;
         }
       }
     }
 
-    #compiled-code-toggle-icon {
+    .section-icon {
       scale: 1.65;
       display: grid;
       place-items: center;
@@ -348,47 +809,57 @@ body, #editor, #sidebar {
       svg {
         width: 100%;
         height: 100%;
-        transform: rotate(90deg);
+        transform: rotate(0deg);
         transition: transform 100ms ease;
       }
     }
+
+    #compiled-code-toggle,
+    #dom-toggle[aria-expanded="true"],
+    .section-header:has(input:checked) {
+      border-bottom: 1px solid var(--panel-border-color);
+    }
+
+    .section-header[aria-expanded="true"] .section-icon svg,
+    .section-header:has(input:checked) .section-icon svg {
+      transform: rotate(90deg);
+    }
   }
 
-  #repl-mode {
-    font-weight: var(--ui-label-weight);
+  #repl-mode-section:not(:has(#replCheckBox:checked)) :is(#result, #repl-instructions),
+  #repl-mode-section:has(#replCheckBox:checked) #tip-repl-mode {
+    display: none;
+  }
+
+  #dom-toggle[aria-expanded="false"] + #dom-section-body {
+    display: none;
+  }
+
+  #dom-section-body:has(> #dom-frame[style*="height"]) {
+    max-height: none; /* a height set from the frame's bottom bar wins over the cap below */
+  }
+
+  #dom-section-body {
+    max-height: 40dvh;
+    overflow: auto;
+    #app {
+      padding: 12px var(--sidebar-padding-end) 12px var(--sidebar-inset-start);
+      &:empty {
+        padding: 0;
+      }
+    }
+  }
+
+  #repl-instructions {
     display: flex;
     flex-direction: column;
-    gap: 0.5em;
-    color: rgb(from currentColor r g b / 100%);
-    label {
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: var(--sidebar-control-gap);
-      input {
-        width: var(--sidebar-control-size);
-        height: var(--sidebar-control-size);
-        margin: 0;
-        accent-color: var(--fg);
-        &:focus {
-          --focus: transparent;
-        }
-      }
-    }
-
-    #repl-mode-desc {
-      padding-inline-start: 19px;
-      font-weight: normal;
-      display: flex;
-      flex-direction: column;
-      color: rgb(from currentColor r g b / 75%);
-      label {
-        margin: 0;
-      }
-    }
+    margin: 12px var(--sidebar-padding-end) 0 var(--sidebar-inset-start);
+    /* same color as the accordion header labels */
+    color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
   }
 
   #result {
+    margin: 12px var(--sidebar-padding-end) 17px var(--sidebar-inset-start);
     color: var(--fg);
     background: var(--bg);
     border: var(--panel-border);
@@ -407,24 +878,71 @@ body, #editor, #sidebar {
   }
 
   #compiled-code {
-
-    border: var(--panel-border);
-    border-left: 0;
-    border-bottom: 0;
+    margin: 12px var(--sidebar-padding-end) 0 var(--sidebar-inset-start);
     display: flex;
     flex-direction: column;
-    overflow:hidden;
+    overflow: hidden;
     padding-inline-start: 3px;
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 100ms ease, visibility 0s linear;
   }
 
-  #compiled-code-toggle[aria-expanded="false"] + #compiled-code {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 100ms ease, visibility 0s linear 100ms;
+  /* collapsing Compiled JS hides only the code, the error slot below stays */
+  #compiled-code-toggle[aria-expanded="false"] + #compiled-code-body #compiled-code {
+    display: none;
+  }
+
+  #compiled-code-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* The last run's error: no label, the badge in the arrows' column and the
+     message where the labels start, on a translucent red like the browser
+     console. Translucent, so it sits on any background shade. */
+  #error-slot {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sidebar-control-gap);
+    padding: 8px var(--sidebar-padding-end) 8px calc(var(--sidebar-padding-end) + 5px);
+    border-top: 1px solid var(--panel-border-color);
+    background: var(--error-background);
+    color: var(--error-foreground);
+    max-height: 40dvh;
+    overflow: auto;
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  /* with Compiled JS collapsed the slot sits right under its header, which
+     already draws the line */
+  #compiled-code-toggle[aria-expanded="false"] + #compiled-code-body #error-slot {
+    border-top: none;
+  }
+
+  /* the same 13px column as .section-icon, so the X centers under the arrows */
+  .error-badge-box {
+    flex: 0 0 var(--sidebar-control-size);
+    display: grid;
+    place-items: center;
+    height: 1lh;
+    translate: -2px;
+  }
+
+  .error-badge {
+    circle { fill: var(--error-badge); }
+    path { stroke: var(--error-badge-x); }
+  }
+
+  #error-message {
+    min-width: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .ͼ1.cm-focused {
+    outline-width: 0px;
   }
 
   .ͼ2 .cm-line {
@@ -440,9 +958,405 @@ body, #editor, #sidebar {
   }
 }
 
+/* Small screens: the page is taller than the viewport, so let the body grow
+   and keep the footer stuck to the bottom of the viewport. margin-top: auto
+   pushes it down when the content is short. */
+@media screen and (width < 768px) {
+  body {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  #footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: auto;
+  }
+}
+
 #footer {
-  height: 36px;
-  flex: 0 0 36px;
+  height: 40px;
+  flex: 0 0 40px;
+  background: var(--button-color);
+  border-top: 1px solid var(--panel-border-color);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding-inline: var(--viewport-padding-inline);
+  gap: 12px;
+}
+
+#footer-left,
+#footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#editor-controls label {
+  margin: 0 -6px 0 0; /* pulls the dropdown closer than the group's 12px gap */
+  font-weight: var(--ui-label-weight);
+  color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
+}
+
+#example-select {
+  width: auto;
+  margin: 0;
+  color: var(--fg); /* the page's base stylesheet hardcodes a dark text color here */
+  border-radius: 0;
+  border: 1px solid var(--panel-border-color);
+  box-sizing: border-box;
+  height: 30px; /* bar is 39px, so 4px clear above and below */
+  padding-block: 0;
+  padding-left: 13px;
+  padding-right: 30px; /* 7px arrow inset + 12px arrow + 11px before it */
+  /* filled down-pointing triangle, 8.4px wide: 70% of the old 12px chevron */
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23161f27'/%3E%3C/svg%3E");
+  background-size: 8.4px auto;
+  background-position: calc(100% - 8.8px) 50%;
+  /* --accordion-color is translucent, so mix it opaque here. Over the bar's tint
+     it would stack up darker instead of matching the accordion rows. */
+  background-color: var(--accordion-solid);
+}
+
+:root[data-theme="dark"] #example-select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='white'/%3E%3C/svg%3E");
+}
+
+#footer-right {
+  gap: 24px;
+}
+
+#footer-logo {
+  width: 33px;
+  height: 33px;
+  margin-right: 10px; /* plus the footer's 10px gap makes 20px to the star counter */
+}
+
+#footer-title {
+  display: none; /* temporarily hidden */
+  margin-right: 24px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+#footer button,
+#sidebar-controls button,
+#editor-controls button {
+  background: none;
+  border: none;
+  box-shadow: none;
+  /* the padding gives the hover background room. The negative margin keeps
+     the content where it was. */
+  margin: 0 -9px 0 -6px;
+  padding: 4px 9px 4px 6px;
+  border-radius: 999px;
+  color: var(--fg);
+  font-weight: var(--ui-label-weight);
+  cursor: pointer;
+  &:active, &:focus {
+    background: none;
+    box-shadow: none;
+    transform: none;
+  }
+  &:hover {
+    background: var(--hover-color);
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+/* Icon-only buttons. Even padding, no negative-margin compensation. */
+#footer .icon-button,
+#sidebar-controls .icon-button,
+#editor-controls .icon-button {
+  margin: 0;
+  padding: 4px;
+}
+
+/* Layout icons for the DOM view toggle.
+   The shaded cell is the DOM, the rest are the code pane and the output sections. */
+.layout-icon {
+  --layout-icon-w: 1.5px;
+  --layout-icon-line: var(--layout-icon-w) solid currentColor;
+  /* both icons share this lighter gray. Only the selected one's DOM cell is darker. */
+  color: color-mix(in srgb, var(--fg) 40%, transparent);
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-template-rows: 50% 50%;
+  box-sizing: border-box;
+  height: 18px;
+  aspect-ratio: 1.25; /* landscape */
+  border: var(--layout-icon-line);
+  border-radius: 2px;
+  overflow: hidden;
+  & i {
+    min-width: 0;
+    min-height: 0;
+  }
+  & .cell-dom {
+    grid-area: dom;
+    background: color-mix(in srgb, currentColor 17%, transparent);
+    background-clip: padding-box; /* keep the fill from stacking under the border */
+    border-bottom: var(--layout-icon-line);
+  }
+  & .cell-code {
+    grid-area: code;
+    border-right: var(--layout-icon-line);
+  }
+  & .cell-a {
+    grid-area: a;
+  }
+}
+
+/* Full screen icon */
+.layout-icon.fullscreen-icon {
+  display: block;
+  padding: var(--layout-icon-w);
+  & i {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 1px;
+    background-color: color-mix(in srgb, currentColor 17%, transparent);
+  }
+}
+
+#fullscreen-button[aria-pressed="true"] .fullscreen-icon i {
+  background-color: currentColor;
+}
+
+/* Full screen: the DOM frame covers everything above the footer.
+   Its height is set in index.html to the space above the footer.
+   The opaque base hides what is underneath. */
+/* In the side layout the frame lives in the DOM section. A collapsed section
+   would hide it (display: none) under the full screen frame too, so full screen
+   shows the section body whatever its toggle says. */
+body.dom-fullscreen #sidebar #dom-section #dom-section-body {
+  display: block;
+}
+
+body.dom-fullscreen #dom-frame {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: linear-gradient(var(--hover-color), var(--hover-color)), var(--bg);
+}
+
+/* DOM row across the top, code and the output below it */
+.layout-icon-top {
+  grid-template-areas:
+    "dom dom"
+    "code a";
+}
+
+/* code on the left, DOM above the output on the right */
+.layout-icon-side {
+  grid-template-areas:
+    "code dom"
+    "code a";
+}
+
+/* The selected layout has its DOM cell filled with the same color as the lines. */
+#view-controls button[aria-pressed="true"] .layout-icon .cell-dom {
+  background-color: currentColor; /* not the shorthand, which would reset background-clip */
+}
+
+/* Hover: no background, the lines and cells just darken a little. */
+#view-controls button.icon-button:hover {
+  background: none;
+}
+
+#view-controls button:hover .layout-icon {
+  color: color-mix(in srgb, var(--fg) 55%, transparent);
+}
+
+/* the two layout buttons live in the footer, next to each other */
+#view-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px; /* on top of the footer's 24px gap after Theme */
+}
+
+
+#sidebar-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#sidebar #sidebar-controls .control-group {
+  gap: 24px;
+}
+
+#footer #theme-toggle {
+  gap: 5px;
+  /* same color as the accordion labels */
+  color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
+}
+
+#footer #theme-toggle-icon {
+  color: inherit;
+}
+
+/* Small screens use the native select. Wider ones use the trigger button and
+   popover menu. */
+#editor-controls #example-trigger {
+  display: none;
+}
+
+@media screen and (min-width: 768px) {
+  #example-select {
+    display: none;
+  }
+
+  /* looks like the select it replaces */
+  #editor-controls #example-trigger {
+    display: block;
+    anchor-name: --example-trigger;
+    margin: 0;
+    height: 30px;
+    padding: 0 30px 0 13px;
+    border: 1px solid var(--panel-border-color);
+    border-radius: 0;
+    font: inherit;
+    font-weight: normal;
+    color: var(--fg);
+    text-align: left;
+    background-color: var(--accordion-solid);
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23161f27'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: 8.4px auto;
+    background-position: calc(100% - 8.8px) 50%;
+  }
+
+  :root[data-theme="dark"] #editor-controls #example-trigger {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='white'/%3E%3C/svg%3E");
+  }
+}
+
+#example-menu {
+  /* undo UA popover centering, open below the trigger */
+  inset: auto;
+  margin: 4px 0 0;
+  position-anchor: --example-trigger;
+  position-area: bottom span-right;
+  position-try-fallbacks: flip-inline;
+
+  box-sizing: border-box;
+  max-width: calc(100dvw - 20px);
+  padding: 36px 90px 26.4px 33px;
+  border: 1px solid var(--panel-border-color);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 2px 20px light-dark(rgb(0 0 0 / 16%), rgb(0 0 0 / 50%));
+  font-size: 1rem;
+
+  /* two columns, DOM examples then Examples (no DOM), with Advent of Code
+     below DOM examples */
+  &:popover-open {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: start;
+    gap: 60px 90px; /* row column */
+  }
+
+  & #example-menu-aoc {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  & h3 {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  & ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* the DOM column splits into two, filled top to bottom */
+  & #example-menu-dom ul {
+    columns: 2;
+    column-gap: 24px;
+  }
+
+  /* the padding keeps the spacing between items while the buttons stay tight */
+  & li {
+    break-inside: avoid;
+    padding-block: 2px;
+  }
+}
+
+/* items: secondary color, primary on hover */
+#editor-controls #example-menu button {
+  display: block;
+  width: auto;
+  /* the padding gives the current item's background room. The negative margin
+     keeps the text aligned with the heading. */
+  margin: 0 -12px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: normal;
+  text-align: left;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--fg) var(--label-fg-alpha), transparent);
+  background: none;
+  outline: none;
+
+  /* hovered, focused and current items: darker text on a gray background */
+  &:hover,
+  &:focus-visible,
+  &[aria-current="true"] {
+    color: var(--fg);
+    background: var(--hover-color);
+  }
+
+  &:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+#example-select option {
+  color: var(--fg);
+  background: var(--bg);
+}
+
+/* group headers in the full foreground color, not the browser's gray */
+#example-select optgroup {
+  color: var(--fg);
+  background: var(--bg);
+}
+
+#settings-button[hidden] {
+  display: none; /* temporarily hidden, kept in place for later */
+}
+
+#settings-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#settings-button svg {
+  width: 16.335px;
+  height: 16.335px;
 }
 
 @media screen and (min-width: 768px) {
@@ -457,10 +1371,21 @@ body, #editor, #sidebar {
 
   #sidebar-sections,
   #compiled-code-section,
+  #compiled-code-body,
   #compiled-code,
   #compiled-code > .cm-editor {
     flex: 1;
     min-height: 0;
+  }
+
+  /* The body spans from the Compiled JS header to the footer, so the error slot
+     can take up to half of that before it scrolls. */
+  #compiled-code-body {
+    container-type: size;
+  }
+
+  #error-slot {
+    max-height: 50cqh;
   }
 }
 
@@ -469,7 +1394,8 @@ body, #editor, #sidebar {
   overflow:hidden;
 }
 
-.cm-scroller {
+.cm-scroller,
+#dom-frame #app {
   scrollbar-color: auto;
   scrollbar-width: auto;
 
@@ -502,7 +1428,8 @@ body, #editor, #sidebar {
 
 /* Use standard scrollbar colors only without WebKit scrollbar styling support. */
 @supports not selector(::-webkit-scrollbar) {
-  .cm-scroller {
+  .cm-scroller,
+  #dom-frame #app {
     scrollbar-color: var(--scrollbar-thumb-color) transparent;
   }
 }

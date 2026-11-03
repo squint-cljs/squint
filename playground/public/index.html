@@ -13,6 +13,15 @@
     };
     applyOsTheme();
 
+    // Hold the DOM frame open from the first paint when a DOM example is loading.
+    try {
+      if (new URLSearchParams(location.search).has('example') && sessionStorage.getItem('playground.dom-example') === 'true') {
+        document.documentElement.classList.add('dom-example');
+        const h = Number(sessionStorage.getItem('playground.dom-height'));
+        if (h >= 200) document.documentElement.style.setProperty('--dom-min-height', h + 'px');
+      }
+    } catch (_) {}
+
     // Restore before layout so a saved split does not flash back to 50%.
     try {
       const savedSplit = localStorage.getItem('playground.pane-split');
@@ -68,9 +77,53 @@
 </head>
 
 <body>
-<div id="app"></div>
+<div id="dom-frame">
+  <div id="dom-device">
+    <div class="dom-bar"></div>
+    <div class="dom-bar dom-bar-top"><span id="dom-readout"></span></div>
+    <div class="dom-bar"></div>
+    <div class="dom-bar dom-bar-left" data-drag="left" title="Drag to resize. Double-click to reset"><svg viewBox="0 0 6 16" width="6" height="16" fill="none" stroke="currentColor"><path d="M 0.5 0 V 16 M 5.5 0 V 16"></path></svg></div>
+    <div id="dom-canvas"><div id="app"></div></div>
+    <div class="dom-bar dom-bar-right" data-drag="right" title="Drag to resize. Double-click to reset"><svg viewBox="0 0 6 16" width="6" height="16" fill="none" stroke="currentColor"><path d="M 0.5 0 V 16 M 5.5 0 V 16"></path></svg></div>
+    <div class="dom-bar dom-corner dom-corner-left" data-drag="corner-left" title="Drag to resize. Double-click to reset"><svg viewBox="0 0 6 16" width="6" height="16" fill="none" stroke="currentColor"><path d="M 0.5 0 V 16 M 5.5 0 V 16"></path></svg></div>
+    <div class="dom-bar dom-bar-bottom" data-drag="bottom" title="Drag to resize. Double-click to reset"><svg viewBox="0 0 6 16" width="6" height="16" fill="none" stroke="currentColor"><path d="M 0.5 0 V 16 M 5.5 0 V 16"></path></svg></div>
+    <div class="dom-bar dom-corner dom-corner-right" data-drag="corner-right" title="Drag to resize. Double-click to reset"><svg viewBox="0 0 6 16" width="6" height="16" fill="none" stroke="currentColor"><path d="M 0.5 0 V 16 M 5.5 0 V 16"></path></svg></div>
+  </div>
+</div>
+<div id="dom-divider" role="separator" aria-orientation="horizontal"
+     aria-label="Resize the DOM area" tabindex="0">
+  <div id="dom-divider-line"></div>
+</div>
 <div id="main">
     <div id="editor">
+      <div id="editor-controls">
+        <div class="control-group">
+          <label for="example-select" id="example-label">Select example:</label>
+          <!-- Small screens get the native select, wider ones the popover menu.
+               Both are filled from the examples registry in js/main_js.mjs. -->
+          <select id="example-select" onchange="loadExample(this.value)">
+            <option value="" disabled hidden>Choose…</option>
+          </select>
+          <button id="example-trigger" type="button" popovertarget="example-menu"
+                  aria-haspopup="menu" aria-labelledby="example-label example-trigger">Choose…</button>
+          <div id="example-menu" popover role="menu" aria-label="Examples">
+            <section class="example-menu-group" id="example-menu-dom">
+              <h3>DOM examples</h3>
+              <ul></ul>
+            </section>
+            <section class="example-menu-group" id="example-menu-no-dom">
+              <h3>Examples (no DOM)</h3>
+              <ul></ul>
+            </section>
+            <section class="example-menu-group" id="example-menu-aoc">
+              <h3><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="m14.05 13.236 6.498 9.606L18.91 24l-6.905-9.47L5.1 24l-1.637-1.158 6.498-9.606L.553 9.22l.615-1.69 9.596 3.463L11.087 0h1.826l.323 10.993 9.596-3.462.615 1.69-9.387 4.015z"/></svg>Advent of Code</h3>
+              <ul>
+                <li><button type="button" role="menuitem" onClick="blankAOC()">Create blank AOC playground</button></li>
+              </ul>
+            </section>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="sidebar">
       <div id="draggable-divider" role="separator" aria-orientation="vertical"
@@ -83,9 +136,11 @@
 
         <div class="control-group" id="compilation-controls">
           <button onClick="compile()">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.15623 0.136828C8.29885 0.0017736 8.5108 -0.038992 8.69627 0.0401498C8.90813 0.130807 9.03093 0.354826 8.99314 0.582135L8.08983 6.00004H12.4999C12.6893 6.00004 12.8625 6.10703 12.9472 6.2764C13.0318 6.44567 13.0137 6.64836 12.9003 6.79983L6.90039 14.7997C6.76218 14.984 6.51554 15.0503 6.30372 14.9599C6.09185 14.8692 5.96904 14.6452 6.00685 14.4179L6.91016 9H2.50005C2.31067 9 2.13749 8.89303 2.05279 8.72364C1.96818 8.55437 1.98625 8.35167 2.09967 8.20021L8.09959 0.200304L8.15623 0.136828ZM3.50004 8.00001H7.49999C7.64696 8.00001 7.78682 8.06464 7.88182 8.17677C7.9767 8.28885 8.01724 8.43718 7.99315 8.58204L7.33007 12.5586L11.4999 7.00003H7.49999C7.35302 7.00003 7.21316 6.93541 7.11816 6.82327C7.02329 6.71118 6.98274 6.56286 7.00683 6.418L7.66894 2.44051L3.50004 8.00001Z" fill="currentColor"/></svg>
             Compile
           </button>
           <button onClick="share()" data-tip="tip-share">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M1 7.50003C1 6.11932 2.11929 5.00003 3.5 5.00003C4.46036 5.00003 5.2922 5.54261 5.71094 6.33694L9.10449 4.21683C9.03664 3.98975 9 3.74917 9 3.50003C9 2.11932 10.1193 1.00003 11.5 1.00003C12.8807 1.00003 14 2.11932 14 3.50003C14 4.88074 12.8807 6.00003 11.5 6.00003C10.6915 6.00003 9.97456 5.61485 9.51758 5.01956L5.98437 7.22855C5.99401 7.31775 6 7.40826 6 7.50003C6 7.59213 5.99408 7.68297 5.98437 7.77249L9.51758 9.98148C9.97453 9.38583 10.6913 9.00003 11.5 9.00003C12.8807 9.00003 14 10.1193 14 11.5C14 12.8807 12.8807 14 11.5 14C10.1193 14 9 12.8807 9 11.5C9 11.2512 9.03681 11.011 9.10449 10.7842L5.71094 8.66409C5.29207 9.45801 4.46005 10 3.5 10C2.11929 10 1 8.88074 1 7.50003ZM10 3.50003C10 4.32846 10.6716 5.00003 11.5 5.00003C12.3284 5.00003 13 4.32846 13 3.50003C13 2.6716 12.3284 2.00003 11.5 2.00003C10.6716 2.00003 10 2.6716 10 3.50003ZM2 7.50003C2 8.32846 2.67157 9.00003 3.5 9.00003C4.32843 9.00003 5 8.32846 5 7.50003C5 6.6716 4.32843 6.00003 3.5 6.00003C2.67157 6.00003 2 6.6716 2 7.50003ZM11.5 13C12.3284 13 13 12.3285 13 11.5C13 10.6716 12.3284 10 11.5 10C10.6716 10 10 10.6716 10 11.5C10 12.3285 10.6716 13 11.5 13Z" fill="currentColor"/></svg>
             Share
           </button>
           <div popover="manual" id="tip-share" role="tooltip">
@@ -93,32 +148,7 @@
             updated to encode the code in the text editor.<br/>
             Copy it and share it with your friends!
           </div>
-          <button onClick="blankAOC()"
-                  data-tip="tip-blank-advent-of-code">
-            Blank AOC Playground
-          </button>
-          <div popover="manual" id="tip-blank-advent-of-code" role="tooltip">
-            Create a blank Advent of Code playground
-          </div>
-          <button id="theme-toggle" data-tip="tip-theme-toggle" type="button">
-            <span>Theme</span>
-            <span id="theme-toggle-icon" aria-hidden="true">
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M7.49991 0.876892C3.84222 0.876892 0.877075 3.84204 0.877075 7.49972C0.877075 11.1574 3.84222 14.1226 7.49991 14.1226C11.1576 14.1226 14.1227 11.1574 14.1227 7.49972C14.1227 3.84204 11.1576 0.876892 7.49991 0.876892ZM7.49988 1.82689C4.36688 1.8269 1.82707 4.36672 1.82707 7.49972C1.82707 10.6327 4.36688 13.1725 7.49988 13.1726V1.82689Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path>
-              </svg>
-            </span>
-          </button>
-          <!-- <div popover="manual" role="tooltip" id="tip-theme-toggle">Toggle theme</div> -->
         </div>
-
-        <div class="control-group" id="compilation-controls">
-          <div id="star-counter">
-            <a href="https://gitHub.com/squint-cljs/squint">
-              <img src="https://img.shields.io/github/stars/squint-cljs/squint.svg?style=social&label=Star">
-            </a>
-          </div>
-        </div>
-
         <!-- <div class="control-group" id="sharing-controls">
           <button onClick="share()" data-tip="tip-share">
             Share
@@ -149,37 +179,118 @@
       </div>
 
       <div id="sidebar-sections">
+        <div class="sidebar-section" id="dom-section" hidden>
+          <button id="dom-toggle" class="section-header" type="button"
+                  aria-expanded="true" aria-controls="dom-section-body">
+            <span class="section-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor"></path>
+              </svg>
+            </span>
+            <span>DOM</span>
+          </button>
+          <div id="dom-section-body"></div>
+        </div>
+
         <div class="sidebar-section" id="repl-mode-section">
-          <div id="repl-mode"> 
-            <label>
-              <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
-              REPL-mode
-            </label>
-            <div id="repl-mode-desc">
-              <span>In REPL-mode you can evaluate individual expression with <span id="modifierDesc">⌘</span> + Enter.</span>
-              <span>The result will appear below.</span>
-              <span>To evaluate the whole program at once, use Alt + Enter;</span>
-            </div>
+          <label class="section-header" id="repl-mode-header" data-tip="tip-repl-mode">
+            <span class="section-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor"></path>
+              </svg>
+            </span>
+            <span>REPL-mode</span>
+            <input type="checkbox" id="replCheckBox" name="repl" onChange="changeREPL(this)" />
+          </label>
+          <div popover="manual" id="tip-repl-mode" role="tooltip">
+            Enabling REPL-mode will allow you to:
+            <br/>
+            &nbsp;&nbsp;- Evaluate individual expressions with <span id="modifierDesc" class="modifier-desc">⌘</span> + Enter<br/>
+            &nbsp;&nbsp;- Evaluate the whole program at once with Alt + Enter<br/><br/>
+            By default, the last form in the ns will get evaled.<br/><br/>
+            The compiled JS is different in REPL-mode.<br/>
+          </div>
+          <div id="repl-instructions">
+            <span>Evaluate individual expressions with <span class="modifier-desc">⌘</span> + Enter.</span>
+            <span>Evaluate the whole program at once with Alt + Enter.</span>
+            <span>By default, the last form in the ns is evaled.</span>
           </div>
           <div id="result"></div>
         </div>
 
         <div class="sidebar-section" id="compiled-code-section">
-          <button id="compiled-code-toggle" class="sidebar-section-label" type="button"
+          <button id="compiled-code-toggle" class="section-header" type="button"
                   aria-expanded="true" aria-controls="compiled-code">
-            <span id="compiled-code-toggle-icon" aria-hidden="true">
+            <span class="section-icon" aria-hidden="true">
               <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M6 11L6 4L10.5 7.5L6 11Z" fill="currentColor"></path>
               </svg>
             </span>
-            <span>Compiled code</span>
+            <span>Compiled JS</span>
           </button>
-          <div id="compiled-code"></div>
+          <div id="compiled-code-body">
+            <div id="compiled-code"></div>
+            <!-- the last run's error; shown only when there is one -->
+            <div id="error-slot" role="alert" hidden>
+              <span class="error-badge-box" aria-hidden="true">
+                <svg class="error-badge" width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="8" cy="8" r="8"></circle>
+                  <path d="M5.5 5.5L10.5 10.5M10.5 5.5L5.5 10.5" stroke-width="1.6" stroke-linecap="round"></path>
+                </svg>
+              </span>
+              <span id="error-message"></span>
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
   </div>
-  <div id="footer"></div>
+  <div id="footer">
+    <div id="footer-left">
+      <img id="footer-logo" src="./graphics/squint-icon.svg" alt="" width="24" height="24">
+      <span id="footer-title">Squint Playground</span>
+      <a id="gh-stars" href="https://github.com/squint-cljs/squint" target="_blank" rel="noopener"
+         title="Star squint-cljs/squint on GitHub" aria-label="Star squint-cljs/squint on GitHub"
+         data-stars="squint-cljs/squint">
+        <span class="gh-label">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7.49902 0.25C11.5033 0.25 14.7499 3.4958 14.75 7.5C14.75 10.7023 12.6746 13.418 9.7959 14.3789C9.42852 14.4496 9.29802 14.2242 9.29785 14.0303C9.29785 13.7926 9.30664 13.0099 9.30664 12.041C9.30657 11.3647 9.07434 10.9221 8.81445 10.6982C10.4292 10.5189 12.125 9.90632 12.125 7.12109C12.125 6.32946 11.8444 5.68268 11.3799 5.17578C11.4542 4.99237 11.7023 4.25509 11.3066 3.25684C11.2917 3.25225 10.6824 3.07392 9.31543 4C8.73639 3.83933 8.11598 3.75897 7.5 3.75586C6.88373 3.75899 6.26356 3.83939 5.68555 4C4.30048 3.06223 3.69141 3.25684 3.69141 3.25684C3.29667 4.25506 3.54533 4.99237 3.62012 5.17578C3.15651 5.68268 2.87402 6.32946 2.87402 7.12109C2.87404 9.89919 4.56694 10.5207 6.17676 10.7041C5.96986 10.8852 5.78272 11.2049 5.7168 11.6729C5.3038 11.8584 4.25315 12.1788 3.60645 11.0713C3.60645 11.0713 3.2236 10.3756 2.49609 10.3242C2.49609 10.3242 1.78803 10.3151 2.44629 10.7646C2.46065 10.7715 2.92629 11.0006 3.25098 11.8252C3.25565 11.8405 3.6878 13.2324 5.69336 12.7969C5.69692 13.4017 5.70312 13.858 5.70312 14.0303C5.70295 14.2225 5.57051 14.4462 5.20801 14.3799C2.32708 13.4207 0.25 10.7027 0.25 7.5C0.250136 3.49591 3.49627 0.250167 7.49902 0.25Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+          <span>Star</span>
+        </span>
+        <span class="gh-tag" data-stars-count hidden></span>
+      </a>
+    </div>
+    <div id="footer-right">
+      <button id="theme-toggle" data-tip="tip-theme-toggle" type="button">
+        <span id="theme-toggle-icon" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7.49991 0.876892C3.84222 0.876892 0.877075 3.84204 0.877075 7.49972C0.877075 11.1574 3.84222 14.1226 7.49991 14.1226C11.1576 14.1226 14.1227 11.1574 14.1227 7.49972C14.1227 3.84204 11.1576 0.876892 7.49991 0.876892ZM7.49988 1.82689C4.36688 1.8269 1.82707 4.36672 1.82707 7.49972C1.82707 10.6327 4.36688 13.1725 7.49988 13.1726V1.82689Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path>
+          </svg>
+        </span>
+        <span>Theme</span>
+      </button>
+      <div id="view-controls">
+        <button type="button" class="icon-button" data-dom-view="top" data-tip="tip-view-top" aria-pressed="true" aria-label="DOM at the top of the page">
+          <span class="layout-icon layout-icon-top" aria-hidden="true"><i class="cell-dom"></i><i class="cell-code"></i><i class="cell-a"></i></span>
+        </button>
+        <div popover="manual" id="tip-view-top" role="tooltip">DOM view: top</div>
+        <button type="button" class="icon-button" data-dom-view="accordion" data-tip="tip-view-accordion" aria-pressed="false" aria-label="DOM in the sidebar">
+          <span class="layout-icon layout-icon-side" aria-hidden="true"><i class="cell-dom"></i><i class="cell-code"></i><i class="cell-a"></i></span>
+        </button>
+        <div popover="manual" id="tip-view-accordion" role="tooltip">DOM view: side</div>
+        <button type="button" id="fullscreen-button" class="icon-button" data-tip="tip-fullscreen" aria-pressed="false" aria-label="Full screen">
+          <span class="layout-icon fullscreen-icon" aria-hidden="true"><i></i></span>
+        </button>
+        <div popover="manual" id="tip-fullscreen" role="tooltip">Full screen</div>
+      </div>
+      <button id="settings-button" type="button" hidden>
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M7.07095 0.650238C6.67391 0.650238 6.32977 0.925096 6.24198 1.31231L6.0039 2.36247C5.6249 2.47269 5.26335 2.62363 4.92436 2.81013L4.01335 2.23585C3.67748 2.02413 3.23978 2.07312 2.95903 2.35386L2.35294 2.95996C2.0722 3.2407 2.0232 3.6784 2.23493 4.01427L2.80942 4.92561C2.62307 5.2645 2.47227 5.62594 2.36216 6.00481L1.31209 6.24287C0.924883 6.33065 0.650024 6.6748 0.650024 7.07183V7.92897C0.650024 8.32601 0.924883 8.67015 1.31209 8.75794L2.36228 8.99603C2.47246 9.375 2.62335 9.73652 2.80979 10.0755L2.2354 10.9867C2.02367 11.3225 2.07267 11.7602 2.35341 12.041L2.95951 12.6471C3.24025 12.9278 3.67795 12.9768 4.01382 12.7651L4.92506 12.1907C5.26384 12.377 5.62516 12.5278 6.0039 12.6379L6.24198 13.6881C6.32977 14.0753 6.67391 14.3502 7.07095 14.3502H7.92809C8.32512 14.3502 8.66927 14.0753 8.75705 13.6881L8.99505 12.6383C9.37411 12.5282 9.73573 12.3773 10.0748 12.1909L10.986 12.7653C11.3218 12.977 11.7595 12.928 12.0403 12.6473L12.6464 12.0412C12.9271 11.7604 12.9761 11.3227 12.7644 10.9869L12.1902 10.076C12.3768 9.73688 12.5278 9.37515 12.638 8.99596L13.6879 8.75794C14.0751 8.67015 14.35 8.32601 14.35 7.92897V7.07183C14.35 6.6748 14.0751 6.33065 13.6879 6.24287L12.6381 6.00488C12.528 5.62578 12.3771 5.26414 12.1906 4.92507L12.7648 4.01407C12.9766 3.6782 12.9276 3.2405 12.6468 2.95975L12.0407 2.35366C11.76 2.07292 11.3223 2.02392 10.9864 2.23565L10.0755 2.80989C9.73622 2.62328 9.37437 2.47229 8.99505 2.36209L8.75705 1.31231C8.66927 0.925096 8.32512 0.650238 7.92809 0.650238H7.07095ZM4.92053 3.81251C5.44724 3.44339 6.05665 3.18424 6.71543 3.06839L7.07095 1.50024H7.92809L8.28355 3.06816C8.94267 3.18387 9.5524 3.44302 10.0794 3.81224L11.4397 2.9547L12.0458 3.56079L11.1882 4.92117C11.5573 5.44798 11.8164 6.0575 11.9321 6.71638L13.5 7.07183V7.92897L11.932 8.28444C11.8162 8.94342 11.557 9.55301 11.1878 10.0798L12.0453 11.4402L11.4392 12.0462L10.0787 11.1886C9.55192 11.5576 8.94241 11.8166 8.28355 11.9323L7.92809 13.5002H7.07095L6.71543 11.932C6.0569 11.8162 5.44772 11.5572 4.92116 11.1883L3.56055 12.046L2.95445 11.4399L3.81213 10.0794C3.4431 9.55266 3.18403 8.94326 3.06825 8.2845L1.50002 7.92897V7.07183L3.06818 6.71632C3.18388 6.05765 3.44283 5.44833 3.81171 4.92165L2.95398 3.561L3.56008 2.95491L4.92053 3.81251ZM9.02496 7.50008C9.02496 8.34226 8.34223 9.02499 7.50005 9.02499C6.65786 9.02499 5.97513 8.34226 5.97513 7.50008C5.97513 6.65789 6.65786 5.97516 7.50005 5.97516C8.34223 5.97516 9.02496 6.65789 9.02496 7.50008ZM9.92496 7.50008C9.92496 8.83932 8.83929 9.92499 7.50005 9.92499C6.1608 9.92499 5.07513 8.83932 5.07513 7.50008C5.07513 6.16084 6.1608 5.07516 7.50005 5.07516C8.83929 5.07516 9.92496 6.16084 9.92496 7.50008Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"/>
+          </svg>
+        <span>Settings</span>
+      </button>
+    </div>
+  </div>
 </body>
 <script>
 const toggle = document.querySelector("#theme-toggle");
@@ -212,9 +323,11 @@ compiledCodeToggle.addEventListener("click", () => {
 });
 
 // native tooltips
-document.querySelectorAll("[data-tip]").forEach((el, i) => {
+let tipCount = 0;
+const setupTip = (el) => {
   const tip = document.getElementById(el.dataset.tip);
-  const name = `--tip-${i}`;
+  if (!tip) return;
+  const name = `--tip-${tipCount++}`;
   el.style.anchorName = name;
   tip.style.positionAnchor = name;
   el.setAttribute("aria-describedby", tip.id);
@@ -233,7 +346,276 @@ document.querySelectorAll("[data-tip]").forEach((el, i) => {
   el.addEventListener("pointerleave", hide);            // immediate out
   el.addEventListener("focus", () => show(0));
   el.addEventListener("blur", hide);
-});
+};
+document.querySelectorAll("[data-tip]").forEach(setupTip);
 
+// The AOC boilerplate builds its form at runtime. Add a row under it with a link
+// that searches Google for how to get the session token.
+new MutationObserver(() => {
+  const form = document.getElementById("aoc_form_container");
+  if (!form || document.getElementById("aoc-token-help")) return;
+  const query = "How do I get my Advent of Code session token?";
+  const row = document.createElement("div");
+  row.id = "aoc-token-help";
+  const link = document.createElement("a");
+  link.href = "https://www.google.com/search?q=" + encodeURIComponent(query);
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.append(query);
+  link.insertAdjacentHTML("beforeend", `<svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3.64645 11.3536C3.45118 11.1583 3.45118 10.8417 3.64645 10.6465L10.2929 4L6 4C5.72386 4 5.5 3.77614 5.5 3.5C5.5 3.22386 5.72386 3 6 3L11.5 3C11.6326 3 11.7598 3.05268 11.8536 3.14645C11.9473 3.24022 12 3.36739 12 3.5L12 9.00001C12 9.27615 11.7761 9.50001 11.5 9.50001C11.2239 9.50001 11 9.27615 11 9.00001V4.70711L4.35355 11.3536C4.15829 11.5488 3.84171 11.5488 3.64645 11.3536Z" fill="currentColor"/></svg>`);
+  row.append(link);
+  form.after(row);
+}).observe(document.body, { childList: true, subtree: true });
+
+
+// Fills the footer star counter from the public GitHub API. The count is cached
+// in localStorage for an hour to stay under the unauthenticated rate limit. On
+// any failure the count stays hidden and "Star" still links out.
+(function () {
+  const link = document.querySelector("[data-stars]");
+  if (!link) return;
+  const repo = link.dataset.stars;
+  const count = link.querySelector("[data-stars-count]");
+  const key = "gh-stars:" + repo;
+  const maxAgeMs = 60 * 60 * 1000;
+
+  const format = (n) =>
+    n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(n);
+
+  const show = (n) => {
+    count.textContent = format(n);
+    count.hidden = false;
+    link.title = "Star " + repo + " on GitHub (" + n.toLocaleString() + " stars)";
+  };
+
+  try {
+    const cached = JSON.parse(localStorage.getItem(key));
+    if (cached && Date.now() - cached.time < maxAgeMs) {
+      show(cached.stars);
+      return;
+    }
+  } catch (e) {}
+
+  fetch("https://api.github.com/repos/" + repo)
+    .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+    .then((data) => {
+      show(data.stargazers_count);
+      try {
+        localStorage.setItem(key, JSON.stringify({ stars: data.stargazers_count, time: Date.now() }));
+      } catch (e) {}
+    })
+    .catch(() => {});
+})();
+
+// DOM view
+// "top" is the full-width row above the panes, "accordion" moves the
+// same frame (with #app inside) into a collapsible section at the top of the
+// outpane, above the REPL Output section.
+(function () {
+  const frame = document.getElementById("dom-frame");
+  const domSection = document.getElementById("dom-section");
+  const domBody = document.getElementById("dom-section-body");
+  const domToggle = document.getElementById("dom-toggle");
+  const app = document.getElementById("app");
+  const buttons = document.querySelectorAll("[data-dom-view]");
+  let view = "top";
+
+  // The accordion only exists while the DOM is in the sidebar and the example has
+  // put something in #app. It reappears when a later example renders again.
+  const syncSection = () => {
+    domSection.hidden = !(view === "accordion" && app.hasChildNodes());
+  };
+  new MutationObserver(syncSection).observe(app, { childList: true });
+
+  // The previous example's height held the frame open while this one loaded. Once
+  // something renders, drop it so the frame shrinks (min-height transitions in the
+  // stylesheet) or stays as tall as the content needs.
+  const releaseHeight = new MutationObserver(() => {
+    if (!app.hasChildNodes()) return;
+    document.documentElement.style.removeProperty("--dom-min-height");
+    releaseHeight.disconnect();
+  });
+  releaseHeight.observe(app, { childList: true });
+
+  const setView = (next) => {
+    view = next;
+    if (view === "accordion") {
+      domBody.append(frame);
+    } else {
+      // before the divider, so the order stays frame, divider, main
+      document.getElementById("dom-divider").before(frame);
+    }
+    syncSection();
+    buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.domView === view)));
+    try { localStorage.setItem("playground.dom-view", view); } catch (e) {}
+  };
+
+  buttons.forEach((b) => b.addEventListener("click", () => setView(b.dataset.domView)));
+  domToggle.addEventListener("click", () => {
+    const expanded = domToggle.getAttribute("aria-expanded") === "true";
+    domToggle.setAttribute("aria-expanded", String(!expanded));
+  });
+
+  let saved = null;
+  try { saved = localStorage.getItem("playground.dom-view"); } catch (e) {}
+  setView(saved === "accordion" ? "accordion" : "top");
+})();
+
+// Resizable DOM frame. Side bars narrow the canvas symmetrically, so it stays centered.
+// The bottom bar and corners set the frame's own height, which is the height of the DOM
+// row (or of the sidebar's DOM section). The canvas always fills that height.
+(function () {
+  const app = document.getElementById("app");
+  const readout = document.getElementById("dom-readout");
+  const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+
+  const showSize = () => {
+    const r = app.getBoundingClientRect();
+    readout.textContent = Math.round(r.width) + " × " + Math.round(r.height);
+  };
+  new ResizeObserver(showSize).observe(app);
+  showSize();
+
+  // The device (bars plus canvas) is what gets narrower, so the bars hug the canvas.
+  // 40px is the two side bars.
+  const device = document.getElementById("dom-device");
+  const frame = document.getElementById("dom-frame");
+  const frameChrome = 40;
+  const minW = 120, minFrameH = 100;
+  const setWidth = (w) => { device.style.width = w == null ? "" : (w + frameChrome) + "px"; };
+  const setFrameHeight = (h) => { frame.style.height = h == null ? "" : h + "px"; };
+
+  document.querySelectorAll("[data-drag]").forEach((bar) => {
+    const kind = bar.dataset.drag;
+    const sideSign = kind === "left" || kind === "corner-left" ? -1 : 1;
+    const moves = {
+      width: kind !== "bottom",
+      height: kind === "bottom" || kind.startsWith("corner"),
+    };
+
+    bar.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      const start = {
+        x: e.clientX,
+        y: e.clientY,
+        w: app.getBoundingClientRect().width,
+        frameH: frame.getBoundingClientRect().height,
+        deviceH: device.getBoundingClientRect().height,
+      };
+      const full = document.body.classList.contains("dom-fullscreen");
+      const maxW = frame.clientWidth - frameChrome;
+      const maxFrameH = Math.max(minFrameH, window.innerHeight - 200);
+      bar.setPointerCapture(e.pointerId);
+      const move = (ev) => {
+        if (moves.width) setWidth(clamp(start.w + sideSign * 2 * (ev.clientX - start.x), minW, maxW));
+        if (moves.height && full) {
+          // full screen: the frame is fixed, so the canvas shrinks inside it, centered
+          const dh = clamp(start.deviceH + 2 * (ev.clientY - start.y), minFrameH, start.frameH);
+          device.style.height = dh >= start.frameH ? "" : dh + "px";
+        } else if (moves.height) {
+          // the bottom edge follows the pointer, like a divider
+          setFrameHeight(clamp(start.frameH + (ev.clientY - start.y), minFrameH, maxFrameH));
+        }
+      };
+      const stop = () => {
+        bar.removeEventListener("pointermove", move);
+        bar.removeEventListener("pointerup", stop);
+        bar.removeEventListener("pointercancel", stop);
+      };
+      bar.addEventListener("pointermove", move);
+      bar.addEventListener("pointerup", stop);
+      bar.addEventListener("pointercancel", stop);
+    });
+
+    bar.addEventListener("dblclick", () => {
+      if (moves.width) setWidth(null);
+      if (moves.height) {
+        if (document.body.classList.contains("dom-fullscreen")) device.style.height = "";
+        else setFrameHeight(null);
+      }
+    });
+  });
+})();
+
+// Horizontal divider between the DOM row and the code/output panes.
+// Works like the vertical one: hover darkens it, dragging moves the split.
+(function () {
+  const divider = document.getElementById("dom-divider");
+  const main = document.getElementById("main");
+  const frame = document.getElementById("dom-frame");
+  const minH = 80;
+  let startY = 0, startH = 0;
+
+  divider.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    startY = e.clientY;
+    startH = frame.getBoundingClientRect().height;
+    divider.setPointerCapture(e.pointerId);
+    divider.classList.add("dom-resizing");
+    main.classList.add("dom-resizing");
+  });
+  divider.addEventListener("pointermove", (e) => {
+    if (!divider.hasPointerCapture(e.pointerId)) return;
+    const h = Math.min(window.innerHeight - 200, Math.max(minH, startH + e.clientY - startY));
+    frame.style.height = h + "px";
+    // the frame shrank down to the canvas: lock the canvas back to 100% of it
+    const device = document.getElementById("dom-device");
+    if (device.style.height && parseFloat(device.style.height) >= h - 0.5) device.style.height = "";
+  });
+  const end = (e) => {
+    if (divider.hasPointerCapture(e.pointerId)) divider.releasePointerCapture(e.pointerId);
+    divider.classList.remove("dom-resizing");
+    main.classList.remove("dom-resizing");
+  };
+  divider.addEventListener("pointerup", end);
+  divider.addEventListener("pointercancel", end);
+  divider.addEventListener("dblclick", () => { frame.style.height = ""; });
+})();
+
+// Full screen: the DOM frame takes over everything above the footer (see body.dom-fullscreen
+// in main.css). The frame's height is pinned to that space, so examples that fill the frame
+// fill the screen, and the frame's bars then shrink the canvas inside it.
+(function () {
+  const button = document.getElementById("fullscreen-button");
+  const frame = document.getElementById("dom-frame");
+  const device = document.getElementById("dom-device");
+  const footer = document.getElementById("footer");
+  const layoutButtons = document.querySelectorAll("[data-dom-view]");
+  let savedHeight = "";
+
+  // The two layout icons and full screen are one choice: exactly one is selected. Leaving
+  // full screen selects whichever layout the frame is in again.
+  const syncPressed = (full) => {
+    const view = frame.parentElement.id === "dom-section-body" ? "accordion" : "top";
+    layoutButtons.forEach((b) => b.setAttribute("aria-pressed", String(!full && b.dataset.domView === view)));
+  };
+
+  const fit = () => { frame.style.height = (window.innerHeight - footer.offsetHeight) + "px"; };
+
+  const set = (on) => {
+    if (on === document.body.classList.contains("dom-fullscreen")) return;
+    document.body.classList.toggle("dom-fullscreen", on);
+    button.setAttribute("aria-pressed", String(on));
+    syncPressed(on);
+    if (on) {
+      savedHeight = frame.style.height;
+      fit();
+    } else {
+      frame.style.height = savedHeight;
+      device.style.height = "";
+    }
+  };
+
+  // Like the two layout icons, clicking it while it is selected does nothing.
+  // Esc or a layout icon leaves full screen.
+  button.addEventListener("click", () => set(true));
+  // picking a layout while in full screen leaves full screen (the layout's own handler runs first)
+  layoutButtons.forEach((b) => b.addEventListener("click", () => set(false)));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") set(false); });
+  window.addEventListener("resize", () => {
+    if (document.body.classList.contains("dom-fullscreen")) fit();
+  });
+})();
 </script>
 </html>
