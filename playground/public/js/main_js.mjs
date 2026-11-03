@@ -356,10 +356,8 @@ let evalCode = async (code, origin) => {
       }
     }
   } catch (e) {
-    // render through the React root: writing to #result directly detaches the
-    // nodes React still tracks, and later renders update orphans
-    reactRoot.render(React.createElement('span', { style: { whiteSpace: 'pre-wrap' } },
-                                         e.message + '\n\n' + e.stack));
+    // the error slot shows the message and the console gets the stack. #result
+    // stays empty (cleared above) so the message is not shown twice
     console.error(e);
     showErrorPanel(e.message);
     const pos = compiled ? stackPosition(e) : compilePosition(e?.data, origin);
