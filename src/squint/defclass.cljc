@@ -3,7 +3,8 @@
   (:require [clojure.string :as str]
             [clojure.walk :as walk]
             [squint.compiler.js-ast :as ast]
-            [squint.compiler.utils :refer [munge]]))
+            [squint.compiler.utils :refer [munge]]
+            [squint.internal.fn :refer [maybe-destructured]]))
 
 ;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
 ;; https://clojureverse.org/t/modern-js-with-cljs-class-and-template-literals/7450
@@ -127,14 +128,12 @@
              (when this-sym
                (str "const " (emit-fn this-sym env) " = this;\n")))))
 
-(defn- emit-object-fn [env emit-fn async-fn object-fn]
+(defn- emit-object-fn [env emit-fn emit-params async-fn object-fn]
   (let [[fn-name arglist & body] object-fn
         [this-arg & arglist] arglist
-        env (update env :var->ident (fn [vi]
-                                      (-> vi
-                                          (merge (assoc (zipmap arglist arglist)
-                                                        'super "super"
-                                                        this-arg (munge this-arg))))))
+        [arglist & body] (maybe-destructured arglist body)
+        env (update env :var->ident assoc 'super "super" this-arg (munge this-arg))
+        [env params] (emit-params env arglist)
         mf (meta fn-name)
         async? (:async mf)
         gen? (:gen mf)
@@ -161,7 +160,7 @@
                  (when get? "get ")
                  (when set? "set ")
                  (munge fn-name) "("
-                 (interpose ", " (emit-args env emit-fn arglist))
+                 (interpose ", " params)
                  ") { \n"
                  "const " (emit-fn this-arg env) " = this;\n"
                  "const self__ = this;"
@@ -174,7 +173,7 @@
                  "\n}")))))
 
 (defn emit-class
-  [env* emit-fn async-fn emit-return form]
+  [env* emit-fn emit-params async-fn emit-return form]
   (let [env (assoc env* :context :statement)
         {:keys [classname extends extend constructor fields protocols] :as _all} (parse-class (rest form))
         [_ ctor-args & ctor-body] constructor
@@ -227,7 +226,7 @@
                  (str "const " (emit-fn this-sym ctor-args-env) " = this;\n"))))
         (when ctor-body (emit-fn (cons 'do ctor-body) ctor-args-env))
         "  }\n"))
-     (interpose "\n" (mapv #(emit-object-fn fields-env emit-fn async-fn %) object-fns))
+     (interpose "\n" (mapv #(emit-object-fn fields-env emit-fn emit-params async-fn %) object-fns))
      "};\n"
      (emit-fn extend-form fields-env)
      (when extend
