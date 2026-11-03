@@ -3467,6 +3467,16 @@ globalThis.foo.fs = fs;")))))
 (defn wrap-async [s]
   (str/replace "(async function () {\n%s\n})()" "%s" s))
 
+(deftest defclass-destructuring-test
+  (testing "a method destructures its arguments"
+    (is (eq [1 2 3] (jsv! "(defclass A Object (foo [_ {:keys [a]} [b c]] [a b c]))
+                           (.foo (A.) {:a 1} [2 3])"))))
+  (testing "a `^:js` map argument stays a JS destructuring pattern"
+    (is (eq 1 (jsv! "(defclass A Object (foo [_ ^:js {:keys [a]}] a))
+                     (.foo (A.) #js {:a 1})"))))
+  (testing "an async method destructures its arguments"
+    (is (re-find #"async foo\(p__\d+\)" (jss! "(defclass A Object (^:async foo [_ {:keys [a]}] (await a)))")))))
+
 (deftest defclass-get-set-test
   (testing "getters and setters"
     (is (str/includes? (jss! "(defclass A Object (^:get x [this] 1))") "get x("))

@@ -3,7 +3,8 @@
   (:require [clojure.string :as str]
             [clojure.walk :as walk]
             [squint.compiler.js-ast :as ast]
-            [squint.compiler.utils :refer [munge]]))
+            [squint.compiler.utils :refer [munge]]
+            [squint.internal.fn :refer [maybe-destructured]]))
 
 ;; https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes
 ;; https://clojureverse.org/t/modern-js-with-cljs-class-and-template-literals/7450
@@ -130,9 +131,15 @@
 (defn- emit-object-fn [env emit-fn async-fn object-fn]
   (let [[fn-name arglist & body] object-fn
         [this-arg & arglist] arglist
+        [arglist & body] (maybe-destructured arglist body)
         env (update env :var->ident (fn [vi]
                                       (-> vi
-                                          (merge (assoc (zipmap arglist arglist)
+                                          (merge (assoc (into {}
+                                                              (mapcat (fn [arg]
+                                                                        (if (map? arg)
+                                                                          (zipmap (:keys arg) (map munge (:keys arg)))
+                                                                          [[arg arg]])))
+                                                              arglist)
                                                         'super "super"
                                                         this-arg (munge this-arg))))))
         mf (meta fn-name)
@@ -161,7 +168,11 @@
                  (when get? "get ")
                  (when set? "set ")
                  (munge fn-name) "("
-                 (interpose ", " (emit-args env emit-fn arglist))
+                 (interpose ", " (map (fn [arg]
+                                        (if (map? arg)
+                                          (str "{" (str/join "," (map munge (:keys arg))) "}")
+                                          (emit-fn arg (assoc env :context :expr :top-level false))))
+                                      arglist))
                  ") { \n"
                  "const " (emit-fn this-arg env) " = this;\n"
                  "const self__ = this;"
