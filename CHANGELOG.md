@@ -2,7 +2,8 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
-## Unreleased
+## 0.16.213
+
 - [#1061](https://github.com/squint-cljs/squint/issues/1061): read tagged literals with reader functions from `data_readers.cljc` in `:paths`
 - [#1059](https://github.com/squint-cljs/squint/issues/1059): `defclass` methods destructure their arguments
 - [#594](https://github.com/squint-cljs/squint/issues/594): support `for await` in `doseq`, with `^:await` on a binding, `(doseq [^:await x xs] ...)`, or on the binding vector for every binding ([#1053](https://github.com/squint-cljs/squint/pull/1053), [@shaunlebron](https://github.com/shaunlebron))
