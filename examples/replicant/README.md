@@ -1,6 +1,6 @@
 # Replicant example
 
-[Replicant](https://github.com/cjohansen/replicant) running under squint, served
+[Replicant](https://codeberg.org/cjohansen/replicant) running under squint, served
 by vite. The app is the official Replicant getting-started tutorial,
 [tic-tac-toe](https://github.com/cjohansen/replicant-tic-tac-toe).
 
@@ -33,7 +33,8 @@ Replicant itself is pulled in as a git dependency via the `:deps` key in
 
 ```clojure
 {:paths ["src"]
- :deps {io.github.cjohansen/replicant {:git/sha "<latest-sha>"}}}
+ :deps {no.cjohansen/replicant {:git/url "https://codeberg.org/cjohansen/replicant"
+                                :git/sha "<latest-sha>"}}}
 ```
 
 `:deps` uses the same format as `deps.edn`. Source directories are resolved with

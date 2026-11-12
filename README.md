@@ -111,7 +111,7 @@ If you are looking for closer ClojureScript semantics, take a look at [Cherry ðŸ
 ## Libraries supporting squint
 
 - [@nextjournal/clojure-mode](https://github.com/nextjournal/clojure-mode)
-- [replicant](https://github.com/cjohansen/replicant)
+- [replicant](https://codeberg.org/cjohansen/replicant)
 - [babashka.cli](https://github.com/babashka/cli#javascript)
 - [babashka.fs](https://github.com/babashka/fs#nodejs)
 - [nexus](https://github.com/cjohansen/nexus)
@@ -444,7 +444,8 @@ In `squint.edn` you can describe the following options:
   `PATH`. Example:
   ```clojure
   {:paths ["src"]
-   :deps {io.github.cjohansen/replicant {:git/sha "..."}}}
+   :deps {no.cjohansen/replicant {:git/url "https://codeberg.org/cjohansen/replicant"
+                                  :git/sha "..."}}}
   ```
 
 See [examples/vite-react](examples/vite-react) for an example project which uses a `squint.edn`.
