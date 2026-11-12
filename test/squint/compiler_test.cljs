@@ -3732,7 +3732,8 @@ globalThis.foo.fs = fs;")))))
     (is (eq {:foo 10} (jsv! "(max-key #(:foo %) {:foo 2} {:foo 10} {:foo 1})")))))
 
 (deftest js-delete-test
-  (is (eq {:b 2} (jsv! "(def x {:a 1 :b 2}) (js-delete x :a) x"))))
+  (is (eq {:b 2} (jsv! "(def x {:a 1 :b 2}) (js-delete x :a) x")))
+  (is (true? (jsv! "((fn [o] (js-delete o :a)) {:a 1})"))))
 
 (deftest user-fn-named-delete-test
   (is (= 42 (jsv! "(defn delete [x] x) (delete 42)")))
