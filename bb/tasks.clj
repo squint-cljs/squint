@@ -348,7 +348,7 @@
   (let [dir "libtests"]
     (fs/delete-tree dir)
     (fs/create-dir dir)
-    (shell {:dir dir} "git clone https://github.com/cjohansen/replicant")
+    (shell {:dir dir} "git clone https://codeberg.org/cjohansen/replicant")
     (let [dir (fs/path dir "replicant")
           shell (partial p/shell {:dir dir})
           squint-local (fs/path dir "node_modules/squint-cljs")]
