@@ -254,7 +254,9 @@
       ;; protocol from another ns: deftype, extend-type and reify dispatch (#955)
       (assert (str/includes? output "proto-deftype: square 2"))
       (assert (str/includes? output "proto-extend-type: circle 3"))
-      (assert (str/includes? output "proto-reify: reified")))
+      (assert (str/includes? output "proto-reify: reified"))
+      (assert (str/includes? output "data-reader: point 1 2"))
+      (assert (str/includes? output "data-reader-override: inst 2026")))
     (assert (not (str/includes? (slurp "test-project/lib/macros_self.mjs") "G__")))
     ;; a defmacro is compile-time only: no runtime var, no export, and a :refer
     ;; of it emits no runtime import (main.mjs above would fail to run otherwise)
@@ -266,7 +268,8 @@
     (assert (fs/exists? "test-project/lib/greetlib/core.mjs"))
     (assert (fs/exists? "test-project/lib/foo.json"))
     (assert (fs/exists? "test-project/lib/baz.css"))
-    (assert (not (fs/exists? "test-project/lib/bar.json")))))
+    (assert (not (fs/exists? "test-project/lib/bar.json")))
+    (assert (not (fs/exists? "test-project/lib/data_readers.mjs")))))
 
 (defn test-run [_]
   (let [dir "test-project"

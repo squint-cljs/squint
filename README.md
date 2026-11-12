@@ -423,6 +423,31 @@ The following searches for a `foo/macros.cljc` file in the `:paths` described in
 (my-macro 1 2 3)
 ```
 
+## Tagged literals
+
+Map a tag to a reader function in a `data_readers.cljc` file in one of the `:paths` of `squint.edn`:
+
+```clojure
+{my/point my.readers/point}
+```
+
+The reader function runs at compile time in SCI. It receives the form after the tag and returns the form to compile:
+
+```clojure
+(ns my.readers)
+
+(defn point [[x y]]
+  {:x x :y y})
+```
+
+```clojure
+(js/console.log #my/point [1 2]) ;; prints { x: 1, y: 2 }
+```
+
+A tag in `data_readers.cljc` replaces a built-in tag with the same name, e.g. `#js`.
+
+Tagged literals from `data_readers.cljc` work in `squint compile`, `squint watch` and `squint run`.
+
 ## `squint.edn`
 
 In `squint.edn` you can describe the following options:

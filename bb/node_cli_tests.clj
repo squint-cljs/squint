@@ -96,7 +96,7 @@
                :copy-resources #{"foo\\.json"  "test\\.json" :css}})
   (let [{:keys [exit out]} (squint "compile")]
     (is (= 0 exit))
-    (doseq [s ["Compiled sources: 12"
+    (doseq [s ["Compiled sources: 13"
                "Copied resources: 3"]]
       (is (str/includes? out s)))
     (doseq [f ["lib/foo.json"
@@ -116,7 +116,7 @@
                                    "--paths" "src" "--paths" "resources"
                                    "--output-dir" "other-lib")]
     (is (= 0 exit))
-    (doseq [s ["Compiled sources: 11"
+    (doseq [s ["Compiled sources: 12"
                "Copied resources: 3"]]
       (is (str/includes? out s)))
     (doseq [f ["other-lib/foo.json"
@@ -138,7 +138,7 @@
                                    "--copy-resources" "bar\\.json" "--copy-resources" ":css"
                                    "--extension" ".js")]
     (is (= 0 exit))
-    (doseq [s ["Compiled sources: 11"
+    (doseq [s ["Compiled sources: 12"
                "Copied resources: 2"]]
       (is (str/includes? out s)))
     (doseq [f ["other-lib/bar.json"
@@ -219,6 +219,28 @@
     (squint "compile" "--output-dir" "out" "src/app.cljs")
     (is (not (fs/exists? (fs/file test-dir "out/src/app.mjs.map"))))
     (is (not (str/includes? (slurp (fs/file test-dir "out/src/app.mjs")) "sourceMappingURL")))))
+
+(defn- spit-src [f s]
+  (let [f (fs/file test-dir f)]
+    (fs/create-dirs (fs/parent f))
+    (spit f s)))
+
+(deftest data-readers-unqualified-var-test
+  (squint-edn {:paths ["src"]})
+  (spit-src "src/data_readers.cljc" "{my/tag reader}")
+  (spit-src "src/app.cljs" "(ns app)\n(prn #my/tag 1)")
+  (let [{:keys [exit out err]} (squint "compile")]
+    (is (= 1 exit))
+    (is (str/includes? (str out err) "Reader var for tag my/tag must be a qualified symbol"))))
+
+(deftest data-readers-conflicting-tag-test
+  (squint-edn {:paths ["src" "src2"]})
+  (spit-src "src/data_readers.cljc" "{my/tag readers/a}")
+  (spit-src "src2/data_readers.cljc" "{my/tag readers/b}")
+  (spit-src "src/app.cljs" "(ns app)\n(prn #my/tag 1)")
+  (let [{:keys [exit out err]} (squint "compile")]
+    (is (= 1 exit))
+    (is (str/includes? (str out err) "Conflicting data reader mapping for tag my/tag"))))
 
 (defn run-tests [_]
   (let [{:keys [fail error]}

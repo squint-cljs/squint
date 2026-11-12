@@ -64,3 +64,6 @@
 (println "proto-deftype:" (describe (->Square 2)))
 (println "proto-extend-type:" (proto/describe (->Circle 3)))
 (println "proto-reify:" (describe (reify IDescribe (describe [_] "reified"))))
+
+(println "data-reader:" #test/point [1 2])
+(println "data-reader-override:" #inst "2026")

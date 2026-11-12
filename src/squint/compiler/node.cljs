@@ -38,7 +38,9 @@
 
 (defn compile-string [contents opts]
   (let [opts (->opts opts)]
-    (-> (js/Promise.resolve (scan-macros contents opts))
+    (-> (js/Promise.resolve nil)
+        (.then #(ms/load-data-readers dialect opts))
+        (.then #(scan-macros contents opts))
         (.then #(compiler/compile-string* contents opts)))))
 
 (def in-dir? utils/in-dir?)
