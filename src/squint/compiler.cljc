@@ -437,6 +437,8 @@
      ;; uses it to auto-resolve keywords and syntax-quoted symbols (current ns
      ;; + aliases), matching Clojure semantics.
      (e/parse-string-all s (assoc squint-parse-opts
+                                  :readers (merge (:readers squint-parse-opts)
+                                                  (:data-readers ns-state))
                                   :auto-resolve-ns true
                                   :auto-resolve (or aliases {})
                                   :ns-state (atom {}))))))

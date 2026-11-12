@@ -12,6 +12,7 @@
   (:require
    ["crypto" :as crypto]
    ["fs" :as fs]
+   ["path" :as path]
    [clojure.string :as str]
    [edamame.core :as e]
    [squint.compiler-common :as cc]
@@ -201,6 +202,34 @@
 
 (defn self-ref? [the-ns-name libspec]
   (and (sequential? libspec) (= the-ns-name (first libspec))))
+
+(defn- data-readers-files [dialect]
+  (keep (fn [dir]
+          (let [f (path/resolve dir "data_readers.cljc")]
+            (when (fs/existsSync f) f)))
+        (:paths (utils/get-cfg (:config-file dialect)) ["." "src"])))
+
+(defn load-data-readers
+  "Loads the reader fns of every data_readers.cljc on the configured paths into
+  SCI and stores them as :data-readers in ns-state.
+  Returns a promise, or nil if there is no data_readers.cljc."
+  [dialect {:keys [ns-state]}]
+  (when-let [files (seq (data-readers-files dialect))]
+    (let [tag->sym (into {} (map #(e/parse-string (slurp %) {:read-cond :allow
+                                                              :features (:features dialect)}))
+                         files)]
+      (.then ((:import-sci dialect))
+             (fn [_]
+               (let [eval-form (:eval-form @(:sci dialect))
+                     readers (into {}
+                                   (map (fn [[tag sym]]
+                                          (let [reader-ns (symbol (namespace sym))]
+                                            (eval-form (cond-> (list 'require (list 'quote reader-ns))
+                                                         (macro-file-changed? dialect reader-ns)
+                                                         (concat [:reload])))
+                                            [tag (eval-form (list 'deref (list 'var sym)))])))
+                                   tag->sym)]
+                 (swap! ns-state assoc :data-readers readers)))))))
 
 (defn scan-macros [dialect s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) (:parse-opts dialect))]

@@ -75,7 +75,9 @@
                   (-> (js/Promise.resolve prev)
                       (.then
                        (fn []
-                         (if (contains? #{".cljc" ".cljs"} (path/extname f))
+                         (cond
+                           (= "data_readers.cljc" (path/basename f)) nil
+                           (contains? #{".cljc" ".cljs"} (path/extname f))
                            (do (println log-prefix "Compiling CLJS file:" f)
                                (-> (compile-file (assoc opts
                                                         :in-file f
@@ -87,7 +89,7 @@
                                              (print-compile-error dialect f err)
                                              (swap! counts update :failed inc)
                                              nil))))
-                           (copy-file dialect copy-resources f output-dir paths))))
+                           :else (copy-file dialect copy-resources f output-dir paths))))
                       (.then (fn [{:keys [out-file copied-out-file]}]
                                (cond
                                  out-file (do

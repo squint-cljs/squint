@@ -96,7 +96,7 @@
                :copy-resources #{"foo\\.json"  "test\\.json" :css}})
   (let [{:keys [exit out]} (squint "compile")]
     (is (= 0 exit))
-    (doseq [s ["Compiled sources: 12"
+    (doseq [s ["Compiled sources: 13"
                "Copied resources: 3"]]
       (is (str/includes? out s)))
     (doseq [f ["lib/foo.json"
@@ -116,7 +116,7 @@
                                    "--paths" "src" "--paths" "resources"
                                    "--output-dir" "other-lib")]
     (is (= 0 exit))
-    (doseq [s ["Compiled sources: 11"
+    (doseq [s ["Compiled sources: 12"
                "Copied resources: 3"]]
       (is (str/includes? out s)))
     (doseq [f ["other-lib/foo.json"
@@ -138,7 +138,7 @@
                                    "--copy-resources" "bar\\.json" "--copy-resources" ":css"
                                    "--extension" ".js")]
     (is (= 0 exit))
-    (doseq [s ["Compiled sources: 11"
+    (doseq [s ["Compiled sources: 12"
                "Copied resources: 2"]]
       (is (str/includes? out s)))
     (doseq [f ["other-lib/bar.json"
