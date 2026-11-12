@@ -10,7 +10,7 @@
 - `compileStringEx` errors carry `data` as a JS object, e.g. `e.data.line`
 - [#1050](https://github.com/squint-cljs/squint/issues/1050): fix a `catch` binding that needs munging (e.g. `abort-error`) not being found in the catch body ([@mskyan](https://github.com/mskyan))
 - Playground: new layout with resizable panes, dark mode and a menu of built-in examples, each loadable with `?example=<name>` ([#1045](https://github.com/squint-cljs/squint/pull/1045), [#1056](https://github.com/squint-cljs/squint/pull/1056), [@paintparty](https://github.com/paintparty))
-- Playground: mark compile and runtime errors at their source location in the editor
+- Playground: mark compile and runtime errors at their source location in the editor ([@paintparty](https://github.com/paintparty))
 
 ## 0.15.212
 
