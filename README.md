@@ -431,7 +431,7 @@ Map a tag to a reader function in a `data_readers.cljc` file in one of the `:pat
 {my/point my.readers/point}
 ```
 
-The reader function runs at compile time in SCI. It receives the form after the tag and returns the form to compile:
+The reader function runs at compile time in SCI:
 
 ```clojure
 (ns my.readers)
