@@ -212,12 +212,25 @@
 (defn load-data-readers
   "Loads the reader fns of every data_readers.cljc on the configured paths into
   SCI and stores them as :data-readers in ns-state.
+  Removes :data-readers from ns-state if there is no data_readers.cljc.
+  Throws if a reader var is unqualified or two files map a tag to different vars.
   Returns a promise, or nil if there is no data_readers.cljc."
   [dialect {:keys [ns-state]}]
-  (when-let [files (seq (data-readers-files dialect))]
-    (let [tag->sym (into {} (map #(e/parse-string (slurp %) {:read-cond :allow
-                                                              :features (:features dialect)}))
-                         files)]
+  (if-let [files (seq (data-readers-files dialect))]
+    (let [tag->sym (reduce
+                    (fn [acc f]
+                      (reduce-kv
+                       (fn [acc tag sym]
+                         (when-not (qualified-symbol? sym)
+                           (throw (js/Error. (str "Reader var for tag " tag " must be a qualified symbol in " f ": " sym))))
+                         (when (and (contains? acc tag) (not= sym (get acc tag)))
+                           (throw (js/Error. (str "Conflicting data reader mapping for tag " tag " in " f))))
+                         (assoc acc tag sym))
+                       acc
+                       (e/parse-string (slurp f) {:read-cond :allow
+                                                  :features (:features dialect)})))
+                    {}
+                    files)]
       (.then ((:import-sci dialect))
              (fn [_]
                (let [eval-form (:eval-form @(:sci dialect))
@@ -229,7 +242,9 @@
                                                          (concat [:reload])))
                                             [tag (eval-form (list 'deref (list 'var sym)))])))
                                    tag->sym)]
-                 (swap! ns-state assoc :data-readers readers)))))))
+                 (swap! ns-state assoc :data-readers readers)))))
+    (do (swap! ns-state dissoc :data-readers)
+        nil)))
 
 (defn scan-macros [dialect s {:keys [ns-state]}]
   (let [maybe-ns (e/parse-next (e/reader s) (:parse-opts dialect))]

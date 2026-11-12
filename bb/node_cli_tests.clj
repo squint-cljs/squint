@@ -225,3 +225,23 @@
         (t/run-tests 'node-cli-tests)]
     (when (pos? (+ fail error))
       (throw (ex-info "Tests failed" {:babashka/exit 1})))))
+
+(defn- spit-src [f s]
+  (let [f (fs/file test-dir f)]
+    (fs/create-dirs (fs/parent f))
+    (spit f s)))
+
+(deftest data-readers-unqualified-var-test
+  (squint-edn {:paths ["src"]})
+  (spit-src "src/data_readers.cljc" "{my/tag reader}")
+  (spit-src "src/app.cljs" "(ns app)\n(prn #my/tag 1)")
+  (let [{:keys [out err]} (squint "compile")]
+    (is (str/includes? (str out err) "Reader var for tag my/tag must be a qualified symbol"))))
+
+(deftest data-readers-conflicting-tag-test
+  (squint-edn {:paths ["src" "src2"]})
+  (spit-src "src/data_readers.cljc" "{my/tag readers/a}")
+  (spit-src "src2/data_readers.cljc" "{my/tag readers/b}")
+  (spit-src "src/app.cljs" "(ns app)\n(prn #my/tag 1)")
+  (let [{:keys [out err]} (squint "compile")]
+    (is (str/includes? (str out err) "Conflicting data reader mapping for tag my/tag"))))

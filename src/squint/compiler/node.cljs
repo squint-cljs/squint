@@ -38,7 +38,8 @@
 
 (defn compile-string [contents opts]
   (let [opts (->opts opts)]
-    (-> (js/Promise.resolve (ms/load-data-readers dialect opts))
+    (-> (js/Promise.resolve nil)
+        (.then #(ms/load-data-readers dialect opts))
         (.then #(scan-macros contents opts))
         (.then #(compiler/compile-string* contents opts)))))
 
