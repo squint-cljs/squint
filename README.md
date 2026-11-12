@@ -444,8 +444,6 @@ The reader function runs at compile time in SCI. It receives the form after the 
 (js/console.log #my/point [1 2]) ;; prints { x: 1, y: 2 }
 ```
 
-A tag in `data_readers.cljc` replaces a built-in tag with the same name, e.g. `#js`.
-
 Tagged literals from `data_readers.cljc` work in `squint compile`, `squint watch` and `squint run`.
 
 ## `squint.edn`
