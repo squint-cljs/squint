@@ -1825,7 +1825,7 @@
   (emit-return (emit form (expr-env (assoc env :quote true))) env))
 
 (defmethod emit-special 'js-delete [_ env [_ obj key]]
-  (emit-return (emit (list 'js* "delete ~{}[~{}]" obj key) env) env))
+  (emit (list 'js* "delete ~{}[~{}]" obj key) env))
 
 (defmethod emit-special :default [sym env expr]
   (let [f (-> env :emit ::special)]
