@@ -5,58 +5,12 @@
 ## Unreleased
 - [#1061](https://github.com/squint-cljs/squint/issues/1061): read tagged literals with reader functions from `data_readers.cljc` in `:paths`
 - [#1059](https://github.com/squint-cljs/squint/issues/1059): `defclass` methods destructure their arguments
-- [#594](https://github.com/squint-cljs/squint/issues/594): support `for await` in `doseq`, with `^:await` on a binding, `(doseq [^:await x xs] ...)`, or on the binding vector for every binding ([#1053](https://github.com/squint-cljs/squint/pull/1053))
-- [#1052](https://github.com/squint-cljs/squint/pull/1052): `squint run` no longer prints a `Running <file>` banner, so a program's output is only its own
+- [#594](https://github.com/squint-cljs/squint/issues/594): support `for await` in `doseq`, with `^:await` on a binding, `(doseq [^:await x xs] ...)`, or on the binding vector for every binding ([#1053](https://github.com/squint-cljs/squint/pull/1053), [@shaunlebron](https://github.com/shaunlebron))
+- [#1052](https://github.com/squint-cljs/squint/pull/1052): `squint run` no longer prints a `Running <file>` banner, so a program's output is only its own ([@shaunlebron](https://github.com/shaunlebron))
 - `compileStringEx` errors carry `data` as a JS object, e.g. `e.data.line`
-- Playground: Mark compile and runtime errors at their source location in the editor
-- Playground: Make Option+S run `unwrap` on macOS
 - [#1050](https://github.com/squint-cljs/squint/issues/1050): fix a `catch` binding that needs munging (e.g. `abort-error`) not being found in the catch body ([@mskyan](https://github.com/mskyan))
-
-### Squint Playground UI, Phase 2 [#1045](https://github.com/squint-cljs/squint/pull/1045)
-- Playground: Global layout and framing refactor
-- Playground: Fix pane scrolling mechanics (.cm-scroller horizontal scrollbar not in view)
-- Playground: Optimize scrollbar styling
-- Playground: Implement draggable resizing of editor and compile panes
-- Playground: Add Playwright tests for pane resizing 
-- Playground: Implement compiled code section visibility toggle
-- Playground: Support codemirror dark theme across editor, repl output, and compiled code instances
-- Playground: Respect OS color scheme for initial theme state
-- Playground: Add native tooltips optimized for light-dark themes
-- Playground: Unified selection styling
-- Playground: Add Playwright tests for text selection
-- Playground: Normalized, uniform font size across all elements
-- Playground: Add pnpm instructions to readme
-- Playground: Add bb task to stop the port 5173 listener (for detached/leftover server scenario)
-- Playground: Add local (default) tictactoe example, and make it dark-mode friendly
-
-### Squint Playground UI, Phase 3 [#1056](https://github.com/squint-cljs/squint/pull/1056)
-- Playground: Render examples into `#app` inside a resizable DOM frame above the code and output panes, with a size readout and drag handles on the sides, bottom and bottom corners
-- Playground: Let the DOM frame sit above the panes, move into a section at the top of the output pane, or fill the screen, picked from layout icons in the footer
-- Playground: Keep the DOM frame at its previous height while the next example loads, then resize it to fit
-- Playground: Add pill-shaped hover background to control bar buttons
-- Playground: Unify pane borders, scrollbars and the draggable divider on one opaque border color, so crossing lines no longer brighten where they meet
-- Playground: Make REPL-mode and Compiled JS collapsible sections with full-width headers
-- Playground: Rewrite REPL-mode helper text
-- Playground: Move Compile and Share into a control bar at the top, and move "Blank AOC Playground", the theme button and the GitHub star out of it
-- Playground: Add "Select example" popover menu with "DOM examples", "Examples (no DOM)" and Advent of Code columns, marking the current example
-- Playground: Use a native select with the same groups on small screens
-- Playground: Build in every example and load it from `?example=<name>`, and update README links to these URLs instead of encoded `?src=` links and gists
-- Playground: Add built-in examples: Pinball, Tic-tac-toe, Wordle, React, Preact, Preact + hiccup, MobX, MobX + atoms, SolidJS, Vue.js, Mithril, VanJS, Web components, Lit, Quill, Vega-lite, Game of life, Snabbdom, Ohm's law, Idiomorph, Eucalypt, docx and Immer
-- Playground: Add examples without DOM output: edn-data, TC39 Records and Tuples, Immutable-js, Date-fns, defmulti, mutative, Generators and Loading a UMD module
-- Playground: Draw examples into `#app`, the playground's convention for DOM output
-- Playground: Redraw Pinball in one orange with ring bumpers that glow and show their points on a hit, a rounded table outline, a slowly rotating lambda drawn as three bands, and a default height of `555px`
-- Playground: Restart Pinball with the space bar as well as R
-- Playground: Share one example style for buttons, text fields and sliders that works in light and dark: foreground text on a translucent gray, thin gray slider tracks, and no 2px press dip or focus ring on click
-- Playground: Add more room between sliders in the Ohm's law calculators
-- Playground: Fix Mithril and MobX examples
-- Playground: Fix Vega-lite cutting off its actions button and showing scrollbars with nothing to scroll
-- Playground: Fix examples that were unreadable in dark mode: Mithril, Vue.js, VanJS, React, Preact, Ohm's law, Snabbdom, Eucalypt, Idiomorph and Quill
-- Playground: Use a white background for Game of life in light mode
-- Playground: Consolidate the AOC section into the top DOM canvas area, and make its helper text a link that searches for the token instructions in a new tab
-- Playground: Fix console error when a page has no `data-tip` elements
-- Playground: Add a slot in the output pane for errors without a source location (such as a module that fails to resolve).
-
-
+- Playground: new layout with resizable panes, dark mode and a menu of built-in examples, each loadable with `?example=<name>` ([#1045](https://github.com/squint-cljs/squint/pull/1045), [#1056](https://github.com/squint-cljs/squint/pull/1056), [@paintparty](https://github.com/paintparty))
+- Playground: mark compile and runtime errors at their source location in the editor
 
 ## 0.15.212
 

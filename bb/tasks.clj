@@ -347,11 +347,22 @@
       (shell "npm run test")
       (println "eucalypt tests successful!"))))
 
+(defn- clone-with-retries [dir url]
+  (loop [attempt 1]
+    (let [{:keys [exit]} (shell {:dir dir :continue true} "git clone --depth 1" url)]
+      (when-not (zero? exit)
+        (when (= 3 attempt)
+          (throw (ex-info (str "Failed to clone " url) {:attempts attempt})))
+        (println "Clone failed, retrying in 10 seconds")
+        (fs/delete-tree (fs/path dir (fs/file-name url)))
+        (Thread/sleep 10000)
+        (recur (inc attempt))))))
+
 (defn replicant-test []
   (let [dir "libtests"]
     (fs/delete-tree dir)
     (fs/create-dir dir)
-    (shell {:dir dir} "git clone https://codeberg.org/cjohansen/replicant")
+    (clone-with-retries dir "https://codeberg.org/cjohansen/replicant")
     (let [dir (fs/path dir "replicant")
           shell (partial p/shell {:dir dir})
           squint-local (fs/path dir "node_modules/squint-cljs")]
