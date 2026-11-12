@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- [#1062](https://github.com/squint-cljs/squint/issues/1065): `js-delete` in return position emits `return return`
+
 ## 0.16.213
 
 - [#1061](https://github.com/squint-cljs/squint/issues/1061): read tagged literals with reader functions from `data_readers.cljc` in `:paths`
