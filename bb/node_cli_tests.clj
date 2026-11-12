@@ -220,12 +220,6 @@
     (is (not (fs/exists? (fs/file test-dir "out/src/app.mjs.map"))))
     (is (not (str/includes? (slurp (fs/file test-dir "out/src/app.mjs")) "sourceMappingURL")))))
 
-(defn run-tests [_]
-  (let [{:keys [fail error]}
-        (t/run-tests 'node-cli-tests)]
-    (when (pos? (+ fail error))
-      (throw (ex-info "Tests failed" {:babashka/exit 1})))))
-
 (defn- spit-src [f s]
   (let [f (fs/file test-dir f)]
     (fs/create-dirs (fs/parent f))
@@ -235,7 +229,8 @@
   (squint-edn {:paths ["src"]})
   (spit-src "src/data_readers.cljc" "{my/tag reader}")
   (spit-src "src/app.cljs" "(ns app)\n(prn #my/tag 1)")
-  (let [{:keys [out err]} (squint "compile")]
+  (let [{:keys [exit out err]} (squint "compile")]
+    (is (= 1 exit))
     (is (str/includes? (str out err) "Reader var for tag my/tag must be a qualified symbol"))))
 
 (deftest data-readers-conflicting-tag-test
@@ -243,5 +238,12 @@
   (spit-src "src/data_readers.cljc" "{my/tag readers/a}")
   (spit-src "src2/data_readers.cljc" "{my/tag readers/b}")
   (spit-src "src/app.cljs" "(ns app)\n(prn #my/tag 1)")
-  (let [{:keys [out err]} (squint "compile")]
+  (let [{:keys [exit out err]} (squint "compile")]
+    (is (= 1 exit))
     (is (str/includes? (str out err) "Conflicting data reader mapping for tag my/tag"))))
+
+(defn run-tests [_]
+  (let [{:keys [fail error]}
+        (t/run-tests 'node-cli-tests)]
+    (when (pos? (+ fail error))
+      (throw (ex-info "Tests failed" {:babashka/exit 1})))))
