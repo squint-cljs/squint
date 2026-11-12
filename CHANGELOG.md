@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-- [#1062](https://github.com/squint-cljs/squint/issues/1065): `js-delete` in return position emits `return return`
+- [#1065](https://github.com/squint-cljs/squint/issues/1065): fix `js-delete` as the last expression of a function body emitting `return return` ([@jasalt](https://github.com/jasalt))
 
 ## 0.16.213
 
