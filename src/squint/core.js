@@ -3071,13 +3071,13 @@ export function fnil(f, ...defaults) {
 export function every_QMARK_(pred, coll) {
   pred = __toFn(pred);
   if (Array.isArray(coll)) {
-    for (let i = 0; i < coll.length; i++) if (!pred(coll[i])) return false;
+    for (let i = 0; i < coll.length; i++) if (!truth_(pred(coll[i]))) return false;
     return true;
   }
   const next = chunkCursor(coll);
   let ch;
   while ((ch = next()) !== null) {
-    for (let i = 0; i < ch.length; i++) if (!pred(ch[i])) return false;
+    for (let i = 0; i < ch.length; i++) if (!truth_(pred(ch[i]))) return false;
   }
   return true;
 }
@@ -3540,11 +3540,11 @@ export function map_QMARK_(coll) {
 }
 
 export function every_pred(...preds) {
+  preds = preds.map(__toFn);
   return (...args) => {
     for (const p of preds) {
       for (const a of args) {
-        const res = p(a);
-        if (!res) {
+        if (!truth_(p(a))) {
           return false;
         }
       }

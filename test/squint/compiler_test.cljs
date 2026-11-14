@@ -2736,7 +2736,15 @@ with `backticks`")))]
   (is (false? (jsv! '(every? odd? [1 3 6]))))
   (is (true? (jsv! '(every? str [1 3 6]))))
   (is (true? (jsv! '(every? str [0 1 3 6]))))
-  (is (false? (jsv! '(every? identity [0 1 3 6])))))
+  (is (true? (jsv! '(every? identity [0 "" 3 6]))))
+  (is (false? (jsv! '(every? identity [1 false]))))
+  (is (false? (jsv! '(every? identity (map identity [1 nil]))))))
+
+(deftest every-pred-test
+  (is (true? (jsv! '((every-pred identity) 0 ""))))
+  (is (false? (jsv! '((every-pred identity) 1 false))))
+  (is (true? (jsv! '((every-pred :a) {:a 1}))))
+  (is (false? (jsv! '((every-pred :a odd?) {:a 1} 2)))))
 
 (deftest not-every?-test
   (is (false? (jsv! '(not-every? odd? []))))
