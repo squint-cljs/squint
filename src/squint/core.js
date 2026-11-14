@@ -3554,6 +3554,7 @@ export function every_pred(...preds) {
 }
 
 export function some_fn(...fns) {
+  fns = fns.map(__toFn);
   return (...args) => {
     let res;
     for (const f of fns) {

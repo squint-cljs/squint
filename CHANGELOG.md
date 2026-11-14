@@ -16,6 +16,7 @@
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `clojure.string/join` returns `""` for an `undefined` coll and joins `nil` elements of a seq as `""`
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `partition-by` returns an empty seq for a `nil` or empty coll and compares keys with `=`
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): the `filter` transducer accepts a keyword or collection as pred
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `some-fn` accepts keywords and collections
 
 ## 0.16.213
 

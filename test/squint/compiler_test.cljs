@@ -2189,7 +2189,10 @@ with `backticks`")))]
 (deftest some-fn-test
   (is (false? (jsv! '((some-fn odd?) 2))))
   (is (true? (jsv! '((some-fn odd?) 2 3))))
-  (is (= 0 (jsv! '((some-fn identity) 0)))))
+  (is (= 0 (jsv! '((some-fn identity) 0))))
+  (testing "some-fn accepts a keyword or set"
+    (is (= 1 (jsv! '((some-fn :a) {:a 1}))))
+    (is (= "x" (jsv! '((some-fn #{"x"}) "y" "x"))))))
 
 (deftest cons-non-seqable-test
   (is (thrown? js/Error (jsv! '(cons 1 42))))
