@@ -3742,17 +3742,17 @@ export function keys(obj) {
       if (obj[IKVReduce__kv_reduce] !== undefined) {
         const ks = obj[IKVReduce__kv_reduce](obj, (acc, k, _) => (acc.push(k), acc), []);
         if (ks.length) return ks;
-        return;
+        return null;
       }
     // fall through
     case OBJECT_TYPE: {
       const ks = Object.keys(obj);
       if (ks.length) return ks;
-      return;
+      return null;
     }
     case MAP_TYPE:
       if (obj.size) return Array.from(obj.keys());
-      return;
+      return null;
   }
   // not a map: nil when empty, like seq in CLJS, else throw
   for (const _ of iterable(obj)) {
@@ -3773,17 +3773,17 @@ export function vals(obj) {
       if (obj[IKVReduce__kv_reduce] !== undefined) {
         const vs = obj[IKVReduce__kv_reduce](obj, (acc, _, v) => (acc.push(v), acc), []);
         if (vs.length) return vs;
-        return;
+        return null;
       }
     // fall through
     case OBJECT_TYPE: {
       const vs = Object.values(obj);
       if (vs.length) return vs;
-      return;
+      return null;
     }
     case MAP_TYPE:
       if (obj.size) return Array.from(obj.values());
-      return;
+      return null;
   }
   // not a map: nil when empty, like seq in CLJS, else throw
   for (const _ of iterable(obj)) {

@@ -4697,6 +4697,11 @@ new Foo();")
     (is (true? (jsv! "(nil? (keys nil))")))
     (is (true? (jsv! "(nil? (vals {}))")))
     (is (true? (jsv! "(nil? (vals nil))"))))
+  (testing "empty maps return js/null"
+    (is (true? (jsv! "(identical? js/null (keys {}))")))
+    (is (true? (jsv! "(identical? js/null (keys (js/Map.)))")))
+    (is (true? (jsv! "(identical? js/null (vals {}))")))
+    (is (true? (jsv! "(identical? js/null (vals (js/Map.)))"))))
   (testing "js-keys still returns an array for empty input"
     (is (eq [] (jsv! "(js-keys {})")))))
 

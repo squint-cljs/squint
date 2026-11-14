@@ -12,6 +12,7 @@
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `assoc-in` and `assoc-in!` create a map for a missing level under a vector root, e.g. `(assoc-in [] [0 :a] 1)` returns `[{:a 1}]`
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `into` with a transducer keeps `undefined` values as `nil` and returns a vector for a `nil` target
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `memoize` caches an `undefined` result
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `keys` and `vals` of an empty map return `null` instead of `undefined`
 
 ## 0.16.213
 
