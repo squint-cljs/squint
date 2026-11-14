@@ -33,7 +33,10 @@
 (deftest-eval join-test
   (do (ns foo (:require [squint.string :as str]
                         [cljs.test :refer [is]]))
-      (is (= "0--1--2--3--4--5--6--7--8--9" (str/join "--" (range 10))))))
+      (is (= "0--1--2--3--4--5--6--7--8--9" (str/join "--" (range 10))))
+      (is (= "" (str/join "," (:missing {}))))
+      (is (= "1,,2" (str/join "," (map identity [1 nil 2]))))
+      (is (= "12" (str/join (map identity [1 nil 2]))))))
 
 (deftest-eval replace-test
   (do (ns foo (:require [squint.string :as str]
