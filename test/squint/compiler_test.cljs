@@ -2801,7 +2801,11 @@ with `backticks`")))]
   (is (eq (sort [4 2 3 1]) (jsv! '(sort [4 2 3 1]))))
   (is (eq (sort - [4 2 3 1]) (jsv! '(sort - [4 2 3 1]))))
   (is (eq (sort nil) (jsv! '(sort nil))))
-  (is (eq (sort "zoob") (jsv! '(sort "zoob")))))
+  (is (eq (sort "zoob") (jsv! '(sort "zoob"))))
+  (testing "sort accepts a boolean comparator"
+    (is (eq [3 2 1] (jsv! '(sort > [1 3 2]))))
+    (is (eq [1 2 3] (jsv! '(sort < [3 1 2]))))
+    (is (eq ["a" "bb" "ccc"] (jsv! '(sort #(< (count %1) (count %2)) ["ccc" "a" "bb"]))))))
 
 (deftest compare-test
   (is (eq 0 (jsv! '(compare nil nil))))
@@ -2840,7 +2844,9 @@ with `backticks`")))]
           (jsv! '(sort-by (juxt :entity :attribute)
                           [{:entity 119 :attribute "a"}
                            {:entity 100 :attribute "c"}
-                           {:entity 100 :attribute "b"}])))))
+                           {:entity 100 :attribute "b"}]))))
+  (testing "sort-by accepts a boolean comparator"
+    (is (eq ["ccc" "bb" "a"] (jsv! '(sort-by count > ["a" "ccc" "bb"]))))))
 
 (deftest shuffle-test
   (let [shuffled (jsv! '(shuffle [1 2 3 4]))]
