@@ -1610,7 +1610,9 @@ with `backticks`")))]
     (is (thrown? js/Error (jsv! '(assoc-in "foo" [0] 2))))
     (is (eq #js {"0" #js {"1" 2}, "1" "foo"} (jsv! '(assoc-in {"1" "foo"} [0 1] 2)))))
   (testing "nil levels become maps"
-    (is (eq #js {:a #js {:b 1}} (jsv! '(assoc-in {:a nil} [:a :b] 1)))))
+    (is (eq #js {:a #js {:b 1}} (jsv! '(assoc-in {:a nil} [:a :b] 1))))
+    (is (eq #js [#js {:a 1}] (jsv! '(assoc-in [] [0 :a] 1))))
+    (is (eq true (jsv! '(instance? js/Map (get (assoc-in (js/Map.) [:a :b] 1) :a))))))
   (testing "0 and false levels and a false root throw"
     (is (thrown? js/Error (jsv! '(assoc-in {:a 0} [:a :b] 1))))
     (is (thrown? js/Error (jsv! '(assoc-in {:a false} [:a :b] 1))))
@@ -1634,7 +1636,9 @@ with `backticks`")))]
   (testing "invalid data in path"
     (is (thrown? js/Error (jsv! '(assoc-in! "foo" [0] 2)))))
   (testing "nil levels become maps"
-    (is (eq #js {:a #js {:b 1}} (jsv! '(assoc-in! {:a nil} [:a :b] 1)))))
+    (is (eq #js {:a #js {:b 1}} (jsv! '(assoc-in! {:a nil} [:a :b] 1))))
+    (is (eq #js [#js {:a 1}] (jsv! '(assoc-in! [] [0 :a] 1))))
+    (is (eq true (jsv! '(instance? js/Map (get (assoc-in! (js/Map.) [:a :b] 1) :a))))))
   (testing "immutable in the middle"
     (is (eq #js {:a #js {:b 3}} (jsv! '(assoc-in! (doto {:a {:b 2}} (js/Object.freeze)) [:a :b] 3))))))
 

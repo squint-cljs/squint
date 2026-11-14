@@ -529,8 +529,7 @@ function assoc_in_with(f, fname, o, keys, value) {
       chainValue = lastInChain[ILookup__lookup](lastInChain, k, undefined);
     } else chainValue = lastInChain[k];
     if (chainValue == null) {
-      // an instance root has no empty-of-type: missing levels become plain maps
-      chainValue = emptyOfType(baseType) ?? {};
+      chainValue = baseType === MAP_TYPE ? new Map() : {};
     }
     chain.push(chainValue);
     lastInChain = chainValue;
@@ -556,7 +555,7 @@ export function assoc_in_BANG_(o, keys, value) {
   for (const k of keys.splice(0, keys.length - 1)) {
     let v = get(currObj, k);
     if (v == null) {
-      v = emptyOfType(baseType);
+      v = baseType === MAP_TYPE ? new Map() : {};
       assoc_BANG_(currObj, k, v);
     }
     currObj = v;
