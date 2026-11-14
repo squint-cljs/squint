@@ -13,6 +13,7 @@
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `into` with a transducer keeps `undefined` values as `nil` and returns a vector for a `nil` target
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `memoize` caches an `undefined` result
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `keys` and `vals` of an empty map return `null` instead of `undefined`
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `clojure.string/join` returns `""` for an `undefined` coll and joins `nil` elements of a seq as `""`
 
 ## 0.16.213
 

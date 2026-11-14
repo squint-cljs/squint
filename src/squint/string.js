@@ -23,7 +23,7 @@ export function escape(s, cmap) {
 }
 
 export function join(sep, coll) {
-  if (coll === undefined) {
+  if (arguments.length === 1) {
     coll = sep;
     sep = '';
   }
@@ -34,7 +34,7 @@ export function join(sep, coll) {
   let addSep = false;
   for (const o of iterable(coll)) {
     if (addSep) ret += sep;
-    ret += o;
+    if (o != null) ret += o;
     addSep = true;
   }
   return ret;
