@@ -708,7 +708,7 @@ export function conj(...xs) {
     case ARRAY_TYPE:
       return copyMeta(o, [...o, ...rest]);
     case MAP_TYPE:
-      m = new Map(o);
+      m = o[SORTED_TAG] ? new o.constructor(o) : new Map(o);
       for (const x of rest) {
         if (isVectorArray(x)) { asMapEntry(x); m.set(x[0], x[1]); }
         else for (const kv of mapEntriesOf(x)) m.set(kv[0], kv[1]);
@@ -2661,6 +2661,7 @@ export function empty(coll) {
       // emptyable collection, like CLJS
       return coll.constructor === undefined ? copyMeta(coll, {}) : null;
     }
+    if (coll[SORTED_TAG]) return copyMeta(coll, new coll.constructor(null, coll._cmp));
     return copyMeta(coll, emptyOfType(type));
   }
   // non-collections give nil, like CLJS
@@ -4534,7 +4535,7 @@ export function pop_BANG_(v) {
 }
 
 export function update_keys(m, f) {
-  const m2 = empty(m);
+  const m2 = m != null && m[SORTED_TAG] ? new Map() : empty(m);
   if (m2 != null && m2[IAssociative__assoc] !== undefined) {
     return reduce_kv((acc, k, v) => acc[IAssociative__assoc](acc, f(k), v), m2, m);
   }
@@ -4550,7 +4551,7 @@ export function update_keys(m, f) {
 }
 
 export function update_vals(m, f) {
-  const m2 = empty(m);
+  const m2 = m != null && m[SORTED_TAG] ? new Map() : empty(m);
   if (m2 != null && m2[IAssociative__assoc] !== undefined) {
     return reduce_kv((acc, k, v) => acc[IAssociative__assoc](acc, k, f(v)), m2, m);
   }

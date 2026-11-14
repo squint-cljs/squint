@@ -19,6 +19,7 @@
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `some-fn` accepts keywords and collections
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `sort` accepts a boolean comparator, e.g. `(sort > [1 3 2])`
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `clojure.string/replace` and `replace-first` pass `[match g1 g2 ...]` to a replacement fn if the regex has groups
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `empty`, `conj` and `merge` keep a sorted set or map sorted, with its comparator
 
 ## 0.16.213
 
