@@ -9,6 +9,7 @@
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `every?` and `every-pred` treat `0` and `""` as truthy, and `every-pred` accepts keywords and collections
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `keep` and `keep-indexed` keep `false` results, and the `keep-indexed` transducer accepts keywords and collections
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `assoc-in` throws on a `0` or `false` level or root instead of replacing it, and `assoc-in!` creates a map for a `nil` level
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `assoc-in` and `assoc-in!` create a map for a missing level under a vector root, e.g. `(assoc-in [] [0 :a] 1)` returns `[{:a 1}]`
 
 ## 0.16.213
 
