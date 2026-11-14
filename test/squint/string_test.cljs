@@ -41,7 +41,11 @@
 (deftest-eval replace-test
   (do (ns foo (:require [squint.string :as str]
                         [cljs.test :refer [is]]))
-      (is (= "yyxxyyxx" (str/replace "--xx--xx" "--" "yy")))))
+      (is (= "yyxxyyxx" (str/replace "--xx--xx" "--" "yy")))
+      (is (= "1a2b" (str/replace "a1b2" #"([a-z])(\d)" (fn [[_ l d]] (str d l)))))
+      (is (= "a<12>" (str/replace "a12" #"\d+" (fn [m] (str "<" m ">")))))
+      (is (= "a[1|nil]" (str/replace "a1" #"(x)?1" (fn [[m g]] (str "[" m "|" (pr-str g) "]")))))
+      (is (= "1a2b" (str/replace "a1b2" #"(?<l>[a-z])(\d)" (fn [[_ l d]] (str d l)))))))
 
 (deftest-eval replace-first-test
   (do (ns foo (:require [squint.string :as str]
@@ -50,6 +54,7 @@
       (is (= "yyxx--xx" (str/replace-first "--xx--xx" #"--" "yy")))
       (is (= "a[b]c" (str/replace-first "abc" #"(b)" "[$1]")))
       (is (= "a$xc" (str/replace-first "abc" "b" "$x")))
+      (is (= "1ab2" (str/replace-first "a1b2" #"([a-z])(\d)" (fn [[_ l d]] (str d l)))))
       (is (= "abc" (str/replace-first "abc" #"x" "y")))))
 
 (deftest-eval split-test
