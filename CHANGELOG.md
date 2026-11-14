@@ -6,7 +6,7 @@
 
 - [#1065](https://github.com/squint-cljs/squint/issues/1065): fix `js-delete` as the last expression of a function body emitting `return return` ([@jasalt](https://github.com/jasalt))
 - [#1067](https://github.com/squint-cljs/squint/issues/1067): `if` with a keyword or non-empty string test, such as the `:else` of a `cond`, emits only the then branch instead of `if ("else")` and a dead `return null` ([@staab](https://github.com/staab))
-- [#1069](https://github.com/squint-cljs/squint/issues/1069): `every?` and `every-pred` treat `0` and `""` as truthy, and `every-pred` accepts keywords and collections ([@staab](https://github.com/staab))
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `every?` and `every-pred` treat `0` and `""` as truthy, and `every-pred` accepts keywords and collections
 
 ## 0.16.213
 
