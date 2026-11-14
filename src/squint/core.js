@@ -1456,10 +1456,10 @@ function filter1(pred) {
 }
 
 export function filter(pred, coll) {
+  pred = __toFn(pred);
   if (arguments.length === 1) {
     return filter1(pred);
   }
-  pred = __toFn(pred);
   return mapChunks(coll, (ch) => {
     const out = [];
     for (let i = 0; i < ch.length; i++) {
