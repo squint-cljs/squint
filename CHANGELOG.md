@@ -8,6 +8,7 @@
 - [#1067](https://github.com/squint-cljs/squint/issues/1067): `if` with a keyword or non-empty string test, such as the `:else` of a `cond`, emits only the then branch instead of `if ("else")` and a dead `return null` ([@staab](https://github.com/staab))
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `every?` and `every-pred` treat `0` and `""` as truthy, and `every-pred` accepts keywords and collections
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `keep` and `keep-indexed` keep `false` results, and the `keep-indexed` transducer accepts keywords and collections
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `assoc-in` throws on a `0` or `false` level or root instead of replacing it, and `assoc-in!` creates a map for a `nil` level
 
 ## 0.16.213
 
