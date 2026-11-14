@@ -1845,30 +1845,31 @@
   ;; but this caused issues with recur in return position:
   ;; (defn foo [x] (if x 1 (recur (dec x)))) We might fix this another time, but
   ;; tools like eslint will rewrite in the short form anyway.
-  (let [expr-env (assoc env :context :expr)
-        naked-condition (emit test expr-env)
-        skip-truth? (or (truthy-literal? test)
-                        (skip-truth? (:tag naked-condition))
-                        (skip-truth? (:tag (meta expr)))
-                        (skip-truth? (:tag (meta test))))
-        condition (if skip-truth?
-                    naked-condition
-                    (emit (list 'clojure.core/truth_ (list 'js* naked-condition)) expr-env))]
-    (if (= :expr (:context env))
-      (->
-       ;; NOTE: we wrap the entire expression in parens here because some macros like bitshift-left expect their args to be already wrapped in parens
-       ;; So far we've taken the approach that at the location where arguments are used we wrap those in parens which is a bit contradictory
-       ;; At some point we may want to clean this up a bit. See #622 as well.
-       (ast/node {:type :conditional-expression
-                  :test condition
-                  :consequent (emit then env)
-                  :alternate (emit else env)})
-       (emit-return env))
-      (ast/node {:type :if-statement
-                 :test condition
-                 :consequent (ast/node {:type :block-statement :body (emit then env)})
-                 :alternate (when (= 4 (count expr)) ;; explicit else branch
-                             (ast/node {:type :block-statement :body (emit else env)}))}))))
+  (if (truthy-literal? test)
+    (emit then env)
+    (let [expr-env (assoc env :context :expr)
+          naked-condition (emit test expr-env)
+          skip-truth? (or (skip-truth? (:tag naked-condition))
+                          (skip-truth? (:tag (meta expr)))
+                          (skip-truth? (:tag (meta test))))
+          condition (if skip-truth?
+                      naked-condition
+                      (emit (list 'clojure.core/truth_ (list 'js* naked-condition)) expr-env))]
+      (if (= :expr (:context env))
+        (->
+         ;; NOTE: we wrap the entire expression in parens here because some macros like bitshift-left expect their args to be already wrapped in parens
+         ;; So far we've taken the approach that at the location where arguments are used we wrap those in parens which is a bit contradictory
+         ;; At some point we may want to clean this up a bit. See #622 as well.
+         (ast/node {:type :conditional-expression
+                    :test condition
+                    :consequent (emit then env)
+                    :alternate (emit else env)})
+         (emit-return env))
+        (ast/node {:type :if-statement
+                   :test condition
+                   :consequent (ast/node {:type :block-statement :body (emit then env)})
+                   :alternate (when (= 4 (count expr)) ;; explicit else branch
+                               (ast/node {:type :block-statement :body (emit else env)}))})))))
 
 (defn wrap-double-quotes [x]
   (str \" x \"))
