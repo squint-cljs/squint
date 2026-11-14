@@ -2526,7 +2526,12 @@ with `backticks`")))]
     (is (eq (into [] (map inc) [1 2 3])
             (jsv! '(into [] (map inc) [1 2 3]))))
     (is (eq (new js/Set (into #{} (map inc) [1 2 3]))
-            (jsv! '(into #{} (map inc) [1 2 3]))))))
+            (jsv! '(into #{} (map inc) [1 2 3])))))
+  (testing "xform keeps undefined values as nil"
+    (is (true? (jsv! '(= [1 nil] (into [] (map :a) [{:a 1} {:b 2}]))))))
+  (testing "xform into nil returns a vector"
+    (is (eq [2 3] (jsv! '(into nil (map inc) [1 2]))))
+    (is (true? (jsv! '(vector? (into nil (map inc) [1 2])))))))
 
 (deftest iterable-protocol
   (is (eq [true true [1 2 3 4 5]]

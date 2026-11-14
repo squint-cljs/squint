@@ -2765,12 +2765,12 @@ export function into(...args) {
       }
       return reduce(conj_BANG_, copy(to), args[1]);
     case 3:
-      to = args[0];
+      to = args[0] ?? [];
       xform = args[1];
       from = args[2];
-      c = to != null && to[ICollection__conj] !== undefined ? to : copy(to);
-      rf = (coll, v) => {
-        if (v === undefined) {
+      c = to[ICollection__conj] !== undefined ? to : copy(to);
+      rf = function (coll, v) {
+        if (arguments.length === 1) {
           return coll;
         }
         return coll != null && coll[ICollection__conj] !== undefined
