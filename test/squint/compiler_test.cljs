@@ -2466,7 +2466,16 @@ with `backticks`")))]
   (is (eq [ [ 1, 1, 1 ], [ 2, 2 ], [ 3, 3 ] ]
           (jsv! '(vec (partition-by odd? [1 1 1 2 2 3 3])))))
   (is (eq #js [#js [1 1 1] #js [2 2 2] #js [3 3 3]]
-          (jsv! "(into [] (partition-by odd?) [1 1 1 2 2 2 3 3 3])"))))
+          (jsv! "(into [] (partition-by odd?) [1 1 1 2 2 2 3 3 3])")))
+  (testing "nil and empty colls return an empty seq"
+    (is (eq [] (jsv! '(vec (partition-by odd? nil)))))
+    (is (eq [] (jsv! '(vec (partition-by odd? []))))))
+  (testing "keys compare with ="
+    (is (eq [[1 3] [2 4]] (jsv! '(vec (partition-by (fn [x] [(odd? x)]) [1 3 2 4])))))
+    (is (eq [[0] [false]] (jsv! '(vec (partition-by identity [0 false])))))
+    (is (eq [[1 3] [2 4]] (jsv! '(into [] (partition-by (fn [x] [(odd? x)])) [1 3 2 4]))))
+    (is (eq [[0] [false]] (jsv! '(into [] (partition-by identity) [0 false]))))
+    (is (true? (jsv! '(= 1 (count (into [] (partition-by identity) [nil (:x {})]))))))))
 
 (deftest merge-test
   (testing "corner cases"

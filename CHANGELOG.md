@@ -14,6 +14,7 @@
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `memoize` caches an `undefined` result
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `keys` and `vals` of an empty map return `null` instead of `undefined`
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `clojure.string/join` returns `""` for an `undefined` coll and joins `nil` elements of a seq as `""`
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `partition-by` returns an empty seq for a `nil` or empty coll and compares keys with `=`
 
 ## 0.16.213
 
