@@ -4298,7 +4298,15 @@ new Foo();")
           (jsv! "(def state (atom 0))
                  (defn foo ([x] (swap! state inc) x) ([x y] (swap! state inc) [x y]))
                  (def foo (memoize foo))
-                 (foo 1) (foo 1 2) (foo 2 3) [(foo 1) (foo 1 2) @state]"))))
+                 (foo 1) (foo 1 2) (foo 2 3) [(foo 1) (foo 1 2) @state]")))
+  (testing "an undefined result is cached"
+    (is (= 1 (jsv! "(def calls (atom 0))
+                    (def f (memoize (fn [] (swap! calls inc) js/undefined)))
+                    (f) (f) (f)
+                    @calls")))
+    (is (true? (jsv! "(def g (memoize (fn [] js/undefined)))
+                      (g)
+                      (undefined? (g))")))))
 
 (deftest peek-pop-test
   (is (= 3 (jsv! '(peek [1 2 3]))))

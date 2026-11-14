@@ -4477,6 +4477,8 @@ export function rem(n, d) {
   return n - d * q;
 }
 
+const MEMO_UNDEFINED = {};
+
 export function memoize(f) {
   const cache = new Map();
   return (...xs) => {
@@ -4484,9 +4486,10 @@ export function memoize(f) {
     const res = get_in(cache, path);
     if (res === undefined) {
       const v = f(...xs);
-      assoc_in_BANG_(cache, path, v);
+      assoc_in_BANG_(cache, path, v === undefined ? MEMO_UNDEFINED : v);
       return v;
-    } else return res;
+    }
+    return res === MEMO_UNDEFINED ? undefined : res;
   };
 }
 
