@@ -1990,6 +1990,9 @@ with `backticks`")))]
   (is (every? (set (jsv! '(vec (filter even? #{1 2 3 4 5 6 7 8 9}))))
               [2 4 6 8]))
   (is (eq [[:a 1]] (jsv! '(vec (filter #(= :a (first %)) {:a 1 :b 2})))))
+  (testing "the transducer arity accepts a keyword or set as pred"
+    (is (eq [{:a 1}] (jsv! '(into [] (filter :a) [{:a 1} {:b 2}]))))
+    (is (eq [1 3] (jsv! '(into [] (filter #{1 3}) [1 2 3])))))
   (testing "nil"
     (is (eq () (jsv! '(vec (filter even? nil)))))
     (is (eq () (jsv! '(vec (filter even? js/undefined))))))
