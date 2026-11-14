@@ -17,6 +17,7 @@
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `partition-by` returns an empty seq for a `nil` or empty coll and compares keys with `=`
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): the `filter` transducer accepts a keyword or collection as pred
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `some-fn` accepts keywords and collections
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `sort` accepts a boolean comparator, e.g. `(sort > [1 3 2])`
 
 ## 0.16.213
 

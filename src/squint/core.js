@@ -3135,7 +3135,7 @@ export function sort(f, coll) {
   // need a copy since .sort works in place and .toSorted isn't on Node < 20
   const clone = toArray(coll);
   // result is guaranteed to be stable since ES2019, like CLJS
-  return clone.sort(f || compare);
+  return clone.sort(f ? fnToComparator(f) : compare);
 }
 
 function fnToComparator(f) {
@@ -3163,13 +3163,8 @@ export function sort_by(keyfn, comp, coll) {
     comp = compare;
   }
   keyfn = __toFn(keyfn);
-  comp = __toFn(comp);
-  return sort((x, y) => {
-    const f = fnToComparator(comp);
-    const kx = keyfn(x);
-    const ky = keyfn(y);
-    return f(kx, ky);
-  }, coll);
+  const f = fnToComparator(__toFn(comp));
+  return toArray(coll).sort((x, y) => f(keyfn(x), keyfn(y)));
 }
 
 export function shuffle(coll) {
