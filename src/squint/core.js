@@ -511,7 +511,7 @@ function typeConst(obj) {
 
 function assoc_in_with(f, fname, o, keys, value) {
   keys = vec(keys);
-  o = o || {}; // default nil behavior is JS object
+  o = o ?? {}; // default nil behavior is JS object
   const baseType = typeConst(o);
   if (baseType !== MAP_TYPE && baseType !== ARRAY_TYPE && baseType !== OBJECT_TYPE && baseType !== INSTANCE_TYPE)
     throw new Error(
@@ -528,7 +528,7 @@ function assoc_in_with(f, fname, o, keys, value) {
     else if (lastInChain != null && lastInChain[ILookup__lookup] !== undefined) {
       chainValue = lastInChain[ILookup__lookup](lastInChain, k, undefined);
     } else chainValue = lastInChain[k];
-    if (!chainValue) {
+    if (chainValue == null) {
       // an instance root has no empty-of-type: missing levels become plain maps
       chainValue = emptyOfType(baseType) ?? {};
     }
@@ -555,7 +555,7 @@ export function assoc_in_BANG_(o, keys, value) {
   const baseType = typeConst(o);
   for (const k of keys.splice(0, keys.length - 1)) {
     let v = get(currObj, k);
-    if (v === undefined) {
+    if (v == null) {
       v = emptyOfType(baseType);
       assoc_BANG_(currObj, k, v);
     }
