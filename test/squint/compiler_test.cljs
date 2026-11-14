@@ -237,6 +237,9 @@
         (and (nil? v)
              (not (undefined? v))))))
 
+(deftest if-truthy-literal-test
+  (is (= "1;\n" (jss! "(if :else 1 nil)"))))
+
 (deftest zero?-test
   (is (str/includes? (jss! "(if (zero? x) 1 2)") "== 0"))
   (is (not (str/includes? (jss! "(if (zero? x) 1 2)") "truth_")))
