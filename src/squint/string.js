@@ -113,12 +113,9 @@ const replaceAll = function(s, re, replacement) {
 
 const replaceWith = function(f) {
   return (...args) => {
-    const [matches, _,  __] = args;
-    if (matches.length == 1) {
-      return f(matches[0]);
-    } else {
-      return f(matches);
-    }
+    // args: match, groups..., offset, string, and a named-groups object if any
+    const end = args.length - (typeof args[args.length - 1] === 'string' ? 2 : 3);
+    return end === 1 ? f(args[0]) : f(args.slice(0, end));
   };
 };
 
@@ -138,6 +135,9 @@ export function replace(s, match, replacement) {
 }
 
 export function replace_first(s, match, replacement) {
+  if (match instanceof RegExp && typeof replacement === 'function') {
+    return s.replace(match, replaceWith(replacement));
+  }
   return s.replace(match, replacement);
 }
 
