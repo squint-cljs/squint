@@ -1515,13 +1515,14 @@ function keep_indexed2(f, coll) {
     const out = [];
     for (let i = 0; i < ch.length; i++) {
       const v = f(base + i, ch[i]);
-      if (truth_(v)) out.push(v);
+      if (v != null) out.push(v);
     }
     return out;
   });
 }
 
 function keep_indexed1(f) {
+  f = __toFn(f);
   return transducer((rf) => {
     let ia = -1;
     return (r, x) => {
@@ -3100,7 +3101,7 @@ export function keep(pred, coll) {
     const out = [];
     for (let i = 0; i < ch.length; i++) {
       const res = pred(ch[i]);
-      if (truth_(res)) out.push(res);
+      if (res != null) out.push(res);
     }
     return out;
   });

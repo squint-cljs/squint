@@ -2752,7 +2752,9 @@ with `backticks`")))]
 
 (deftest keep-test
   (is (eq (keep #(when (odd? %) (inc %)) [1 2 3])
-          (vec (jsv! '(keep #(when (odd? %) (inc %)) [1 2 3]))))))
+          (vec (jsv! '(keep #(when (odd? %) (inc %)) [1 2 3])))))
+  (is (eq #js [false] (jsv! '(vec (keep identity [false nil])))))
+  (is (eq #js [false] (jsv! '(into [] (keep identity) [false nil])))))
 
 (deftest reverse-test
   (is (eq (reverse nil) (jsv! '(reverse nil))))
@@ -3608,7 +3610,9 @@ globalThis.foo.fs = fs;")))))
 
 (deftest keep-indexed-test
   (is (eq #js [12 14 16 18 20] (jsv! "(vec (keep-indexed (fn [i e] (when (odd? i) (inc e))) (range 10 20)))")))
-  (is (eq #js [12 14 16 18 20] (jsv! "(into [] (keep-indexed (fn [i e] (when (odd? i) (inc e)))) (range 10 20))"))))
+  (is (eq #js [12 14 16 18 20] (jsv! "(into [] (keep-indexed (fn [i e] (when (odd? i) (inc e)))) (range 10 20))")))
+  (is (eq #js [false] (jsv! "(vec (keep-indexed (fn [_ e] e) [false nil]))")))
+  (is (eq #js ["x" "y"] (jsv! "(into [] (keep-indexed [:x :y]) [1 2])"))))
 
 (deftest into-array-test
   (is (eq (clj->js [[1 2 3] [1 2 3]]) (jsv! "[(into-array [1 2 3]) (into-array String [1 2 3])]"))))
