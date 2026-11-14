@@ -2599,7 +2599,7 @@ function partition_by1(f) {
         const pval = pa;
         const val = f(input);
         pa = val;
-        if (pval === none || val === pval) {
+        if (pval === none || dequal(val, pval)) {
           a.push(input);
           return result;
         } else {
@@ -2621,11 +2621,11 @@ export function partition_by(f, coll) {
   if (arguments.length === 1) {
     return partition_by1(f);
   }
-  const iter = es6_iterator(coll);
+  const iter = es6_iterator(iterable(coll));
   return lazy(function* () {
     const _fst = iter.next();
     if (_fst.done) {
-      yield* null;
+      return;
     }
     const fst = _fst.value;
     let fv = f(fst);
@@ -2639,7 +2639,7 @@ export function partition_by(f, coll) {
       }
       const _v = next.value;
       const _fv = f(_v);
-      if (fv == _fv) {
+      if (dequal(fv, _fv)) {
         run.push(_v);
       } else {
         yield run;
