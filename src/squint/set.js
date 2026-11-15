@@ -245,7 +245,7 @@ export function map_invert(xmap) {
   if (xmap === undefined) {
     return {};
   }
-  const empty = core.empty(xmap);
+  const empty = core.sorted_QMARK_(xmap) ? new Map() : core.empty(xmap);
   if (slotMap(empty)) {
     return core.reduce_kv((m, k, v) => core.assoc(m, v, k), empty, xmap);
   }

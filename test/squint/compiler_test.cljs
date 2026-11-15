@@ -4131,13 +4131,15 @@ globalThis.foo.fs = fs;")))))
                                [(set/map-invert)
                                 (set/map-invert {})
                                 (set/map-invert {:a 1, :b 2, :c 3})
-                                (set/map-invert (new js/Map [[:a 1] [:d 3]]))]" {:repl true
+                                (set/map-invert (new js/Map [[:a 1] [:d 3]]))
+                                (sorted? (set/map-invert (sorted-map :a 1)))]" {:repl true
                                                                                  :context :return})
                  vs (js/eval (wrap-async js))]
            (let [expected [{}
                            {}
                            {1 :a 2 :b 3 :c}
-                           (new js/Map (clj->js [[1 :a] [3 :d]]))]
+                           (new js/Map (clj->js [[1 :a] [3 :d]]))
+                           false]
                  pairs (map vector expected vs)]
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"
@@ -4248,7 +4250,10 @@ new Foo();")
     (is (true? (jsv! '(= #{1 2 3} (sorted-set 3 1 2)))))
     (is (true? (jsv! '(= (sorted-set 3 1 2) #{1 2 3}))))
     (is (true? (jsv! '(= (sorted-set-by > 1 2) (sorted-set-by < 1 2)))))
-    (is (false? (jsv! '(= #{1 2} (sorted-set 1 2 3)))))))
+    (is (false? (jsv! '(= #{1 2} (sorted-set 1 2 3))))))
+  (testing "empty keeps the comparator"
+    (is (eq [3 2 1] (jsv! '(vec (conj (empty (sorted-set-by > 1 2)) 1 2 3)))))
+    (is (true? (jsv! '(sorted? (empty (sorted-set 1))))))))
 
 (deftest sorted-map-test
   (testing "keeps keys sorted"
@@ -4267,7 +4272,15 @@ new Foo();")
   (testing "prints with real keys, keeping the map tag"
     (is (= "#js/Map {1 \"a\", 2 \"b\"}" (jsv! '(pr-str (sorted-map 2 :b 1 :a))))))
   (testing "sorted-map-by with a custom comparator"
-    (is (eq [3 2 1] (jsv! '(vec (keys (sorted-map-by > 1 :a 3 :c 2 :b))))))))
+    (is (eq [3 2 1] (jsv! '(vec (keys (sorted-map-by > 1 :a 3 :c 2 :b)))))))
+  (testing "empty, conj and merge keep the map sorted"
+    (is (eq [3 2] (jsv! '(vec (keys (into (empty (sorted-map-by > 1 :a)) [[2 :b] [3 :c]]))))))
+    (is (eq ["a" "b"] (jsv! '(vec (keys (conj (sorted-map :b 2) [:a 1]))))))
+    (is (eq ["a" "b"] (jsv! '(vec (keys (merge (sorted-map :b 2) {:a 1}))))))
+    (is (true? (jsv! '(sorted? (merge (sorted-map :b 2) {:a 1}))))))
+  (testing "update-keys and update-vals return a hash map"
+    (is (false? (jsv! '(sorted? (update-keys (sorted-map :a 1) identity)))))
+    (is (false? (jsv! '(sorted? (update-vals (sorted-map :a 1) inc)))))))
 
 (deftest subseq-test
   (is (eq [1] (jsv! '(subseq (sorted-set 1 2 3 4) < 2))))
