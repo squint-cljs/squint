@@ -24,6 +24,7 @@
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `.forEach` on a sorted set calls the function with each element in sorted order instead of throwing
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `.clear` on a sorted set sets its `size` to `0`
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `clojure.set` functions treat a `nil` set as empty, `map-invert` returns `{}` for `nil`, and `rename-keys` accepts an empty key map
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `count` of a map or record counts its entries instead of returning a `:length` or `:size` value
 
 ## 0.16.213
 

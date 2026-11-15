@@ -2932,7 +2932,12 @@ with `backticks`")))]
   (is (= 0 (jsv! '(count nil))))
   (is (= 0 (jsv! '(count []))))
   (is (= 3 (jsv! '(count [1 2 3]))))
-  (is (= 3 (jsv! '(count (take 3 (range)))))))
+  (is (= 3 (jsv! '(count (take 3 (range))))))
+  (testing "a map or record counts its entries, not a :length or :size key"
+    (is (= 0 (jsv! '(count {}))))
+    (is (= 2 (jsv! '(count {:length 5 :a 1}))))
+    (is (= 1 (jsv! '(count {:size 3}))))
+    (is (= 2 (jsv! '(do (defrecord Shirt [size color]) (count (->Shirt 5 :red))))))))
 
 (deftest logic-return
   (is (= 2 (jsv! '(do (defn foo [a b] (and a b)) (foo 1 2)))))
