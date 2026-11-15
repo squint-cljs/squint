@@ -4266,7 +4266,9 @@ new Foo();")
     (is (eq [3 2 1] (jsv! '(vec (conj (empty (sorted-set-by > 1 2)) 1 2 3)))))
     (is (true? (jsv! '(sorted? (empty (sorted-set 1)))))))
   (testing ".forEach visits elements in sorted order"
-    (is (eq [3 3 2 2 1 1] (jsv! '(let [acc []] (.forEach (sorted-set-by > 1 3 2) (fn [x y] (.push acc x y))) acc))))))
+    (is (eq [3 3 2 2 1 1] (jsv! '(let [acc []] (.forEach (sorted-set-by > 1 3 2) (fn [x y] (.push acc x y))) acc)))))
+  (testing ".clear sets size and count to 0"
+    (is (eq [0 0] (jsv! '(let [s (sorted-set 3 1 2)] (.clear s) [(.-size s) (count s)]))))))
 
 (deftest sorted-map-test
   (testing "keeps keys sorted"

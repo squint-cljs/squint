@@ -4266,7 +4266,8 @@ class SortedSet {
   }
   clear() {
     this._elts = [];
-    this._set = new Set(this._elts);
+    this._set = new Set();
+    this.size = 0;
   }
   [Symbol.iterator]() {
     return this.keys();
