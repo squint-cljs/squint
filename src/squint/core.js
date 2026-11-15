@@ -4216,7 +4216,6 @@ class SortedSet {
     // we don't re-use xs since xs can contain duplicates
     this._elts = [...s];
     this._set = s;
-    this.size = this._elts.length;
   }
   add(x) {
     if (this._set.has(x)) return this;
@@ -4237,7 +4236,6 @@ class SortedSet {
     } else {
       this._set = new Set(xs);
     }
-    this.size = xs.length;
     return this;
   }
   delete(x) {
@@ -4246,8 +4244,10 @@ class SortedSet {
     const idx = xs.indexOf(x);
     xs.splice(idx, 1);
     this._set = new Set(xs);
-    this.size = xs.length;
     return this;
+  }
+  get size() {
+    return this._elts.length;
   }
   has(x) {
     return this._set.has(x);
@@ -4266,7 +4266,7 @@ class SortedSet {
   }
   clear() {
     this._elts = [];
-    this._set = new Set(this._elts);
+    this._set = new Set();
   }
   [Symbol.iterator]() {
     return this.keys();
@@ -4292,7 +4292,6 @@ class SortedMap {
     this._cmp = cmp ?? entries?._cmp;
     this._map = new Map();
     this._keys = [];
-    this.size = 0;
     if (entries) {
       for (const [k, v] of entries) this.set(k, v);
     }
@@ -4306,8 +4305,10 @@ class SortedMap {
       ks.splice(i, 0, k);
     }
     this._map.set(k, v);
-    this.size = this._map.size;
     return this;
+  }
+  get size() {
+    return this._keys.length;
   }
   get(k) {
     return this._map.get(k);
@@ -4318,7 +4319,6 @@ class SortedMap {
   delete(k) {
     if (this._map.delete(k)) {
       this._keys.splice(this._keys.indexOf(k), 1);
-      this.size = this._map.size;
     }
     return this;
   }
@@ -4337,7 +4337,6 @@ class SortedMap {
   clear() {
     this._map.clear();
     this._keys = [];
-    this.size = 0;
   }
   [Symbol.iterator]() {
     return this.entries();

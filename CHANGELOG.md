@@ -22,6 +22,7 @@
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `empty`, `conj` and `merge` keep a sorted set or map sorted, with its comparator
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `clojure.set` `union`, `intersection`, `difference` and `select` return a sorted set for a sorted set input
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `.forEach` on a sorted set calls the function with each element in sorted order instead of throwing
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `.clear` on a sorted set sets its `size` to `0`
 
 ## 0.16.213
 
