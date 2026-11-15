@@ -3319,11 +3319,14 @@ export function split_with(pred, coll) {
 
 export function count(coll) {
   if (!coll) return 0;
+  if (typeof coll === 'string' || Array.isArray(coll)) return coll.length;
+  if (coll instanceof Set || coll instanceof Map) return coll.size;
+  if (isObj(coll)) return Object.keys(coll).length;
+  if (coll[ICounted__count] !== undefined) return coll[ICounted__count](coll);
   const len = coll.length || coll.size;
   if (typeof len === 'number') {
     return len;
   }
-  if (coll[ICounted__count] !== undefined) return coll[ICounted__count](coll);
   // sum chunk lengths instead of counting elements one by one
   const next = chunkCursor(coll);
   let ret = 0;
