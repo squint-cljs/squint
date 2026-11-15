@@ -4261,8 +4261,8 @@ class SortedSet {
   entries() {
     return this._set.entries();
   }
-  forEach(...xs) {
-    return this.set.forEach(...xs);
+  forEach(f, thisArg) {
+    for (const x of this._elts) f.call(thisArg, x, x, this);
   }
   clear() {
     this._elts = [];

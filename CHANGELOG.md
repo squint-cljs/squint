@@ -21,6 +21,7 @@
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `clojure.string/replace` and `replace-first` pass `[match g1 g2 ...]` to a replacement fn if the regex has groups
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `empty`, `conj` and `merge` keep a sorted set or map sorted, with its comparator
 - [#1069](https://github.com/squint-cljs/squint/issues/1069): `clojure.set` `union`, `intersection`, `difference` and `select` return a sorted set for a sorted set input
+- [#1069](https://github.com/squint-cljs/squint/issues/1069): `.forEach` on a sorted set calls the function with each element in sorted order instead of throwing
 
 ## 0.16.213
 
