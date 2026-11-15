@@ -4264,7 +4264,9 @@ new Foo();")
     (is (false? (jsv! '(= #{1 2} (sorted-set 1 2 3))))))
   (testing "empty keeps the comparator"
     (is (eq [3 2 1] (jsv! '(vec (conj (empty (sorted-set-by > 1 2)) 1 2 3)))))
-    (is (true? (jsv! '(sorted? (empty (sorted-set 1))))))))
+    (is (true? (jsv! '(sorted? (empty (sorted-set 1)))))))
+  (testing ".forEach visits elements in sorted order"
+    (is (eq [3 3 2 2 1 1] (jsv! '(let [acc []] (.forEach (sorted-set-by > 1 3 2) (fn [x y] (.push acc x y))) acc))))))
 
 (deftest sorted-map-test
   (testing "keeps keys sorted"
