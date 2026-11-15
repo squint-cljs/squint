@@ -25,10 +25,12 @@ function jsSetLike(x) {
 // symbols are tiny consts, where the core wrapper fns (count, conj!, ...)
 // drag their whole dispatch chains into js-Set-only bundles
 function setSize(x) {
+  if (x == null) return 0;
   return typeof x.size === 'number' ? x.size : x[ICounted__count](x);
 }
 
 function setHas(x, e) {
+  if (x == null) return false;
   return jsSetLike(x) ? x.has(e) : x[IAssociative__contains_key_QMARK_](x, e);
 }
 
@@ -79,6 +81,7 @@ function _intersection2(x, y) {
     y = x;
     x = tmp;
   }
+  if (x == null) return null;
   if (jsSetLike(x)) {
     const res = setLike(x, null);
     for (const elem of x) {
@@ -102,6 +105,7 @@ export function intersection(...xs) {
 }
 
 function _difference2(x, y) {
+  if (x == null || y == null) return x;
   if (jsSetLike(x)) {
     const res = setLike(x, null);
     for (const elem of x) {
@@ -137,6 +141,7 @@ function _union2(x, y) {
     y = x;
     x = tmp;
   }
+  if (y == null) return x;
   return addAll(x, y);
 }
 
@@ -159,12 +164,6 @@ function _subset_QMARK_2(x, y) {
 }
 
 export function subset_QMARK_(x, y) {
-  if (x === undefined) {
-    return true;
-  }
-  if (y === undefined) {
-    return false;
-  }
   if (setSize(x) > setSize(y)) {
     return false;
   }
@@ -172,12 +171,6 @@ export function subset_QMARK_(x, y) {
 }
 
 export function superset_QMARK_(x, y) {
-  if (x === undefined) {
-    return true;
-  }
-  if (y === undefined) {
-    return true;
-  }
   if (setSize(x) < setSize(y)) {
     return false;
   }
@@ -185,7 +178,7 @@ export function superset_QMARK_(x, y) {
 }
 
 export function select(pred, xset) {
-  if (xset === undefined) {
+  if (xset == null) {
     return null;
   }
   if (jsSetLike(xset)) {
@@ -206,7 +199,7 @@ function slotMap(m) {
 }
 
 export function rename_keys(map, kmap) {
-  const ks = core.keys(kmap);
+  const ks = core.keys(kmap) ?? [];
   let without = core.dissoc(map, ...ks);
   if (slotMap(without)) {
     return ks.reduce((m, k) => {
@@ -246,7 +239,7 @@ function into_set_like(rel, elems) {
 }
 
 export function map_invert(xmap) {
-  if (xmap === undefined) {
+  if (xmap == null) {
     return {};
   }
   const empty = core.sorted_QMARK_(xmap) ? new Map() : core.empty(xmap);

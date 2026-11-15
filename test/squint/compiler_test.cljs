@@ -4111,6 +4111,23 @@ globalThis.foo.fs = fs;")))))
                                                                         :context :return})
                  v (js/eval (wrap-async js))]
            (is (true? v))))
+       (testing "set operations treat nil as an empty set"
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
+                        (and (= #{:a} (set/union nil #{:a}))
+                             (= #{:a} (set/union #{:a} nil))
+                             (nil? (set/intersection #{:a} nil))
+                             (= #{:a} (set/difference #{:a} nil))
+                             (nil? (set/difference nil #{:a}))
+                             (true? (set/subset? nil #{:a}))
+                             (true? (set/subset? #{} nil))
+                             (false? (set/superset? nil #{:a}))
+                             (nil? (set/select odd? nil))
+                             (= {} (set/map-invert nil))
+                             (= {:a 1} (set/rename-keys {:a 1} {})))" {:repl true
+                                                                       :elide-exports true
+                                                                       :context :return})
+                 v (js/eval (wrap-async js))]
+           (is (true? v))))
        (testing "set operations on a sorted set return a sorted set"
          (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                         (and (= [3 2 1] (vec (set/union (sorted-set-by > 3 1) #{2})))
