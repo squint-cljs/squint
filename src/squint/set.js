@@ -37,7 +37,7 @@ function setHas(x, e) {
 // persistent -conj otherwise (a set type need not implement transients)
 function addAll(target, elems) {
   if (jsSetLike(target)) {
-    const res = new Set(target);
+    const res = core.sorted_QMARK_(target) ? new target.constructor(target) : new Set(target);
     for (const e of elems) res.add(e);
     return res;
   }
@@ -50,6 +50,10 @@ function addAll(target, elems) {
   let res = target;
   for (const e of es) res = res[ICollection__conj](res, e);
   return res;
+}
+
+function emptySet(x) {
+  return core.sorted_QMARK_(x) ? new x.constructor(null, x._cmp) : new Set();
 }
 
 // remove each elem for which pred is true, preserving the set's type
@@ -76,7 +80,7 @@ function _intersection2(x, y) {
     x = tmp;
   }
   if (jsSetLike(x)) {
-    const res = new Set();
+    const res = emptySet(x);
     for (const elem of x) {
       if (setHas(y, elem)) {
         res.add(elem);
@@ -99,7 +103,7 @@ export function intersection(...xs) {
 
 function _difference2(x, y) {
   if (jsSetLike(x)) {
-    const res = new Set();
+    const res = emptySet(x);
     for (const elem of x) {
       if (!setHas(y, elem)) {
         res.add(elem);
@@ -185,7 +189,7 @@ export function select(pred, xset) {
     return null;
   }
   if (jsSetLike(xset)) {
-    const res = new Set();
+    const res = emptySet(xset);
     for (const elem of xset) {
       if (core.truth_(pred(elem))) {
         res.add(elem);

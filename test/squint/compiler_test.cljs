@@ -4111,6 +4111,17 @@ globalThis.foo.fs = fs;")))))
                                                                         :context :return})
                  v (js/eval (wrap-async js))]
            (is (true? v))))
+       (testing "set operations on a sorted set return a sorted set"
+         (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
+                        (and (= [3 2 1] (vec (set/union (sorted-set-by > 3 1) #{2})))
+                             (sorted? (set/intersection (sorted-set 3 1) #{1 3}))
+                             (= [3 1] (vec (set/intersection (sorted-set-by > 3 2 1) #{1 3 4})))
+                             (= [3 1] (vec (set/difference (sorted-set-by > 3 2 1) #{2})))
+                             (= [3 1] (vec (set/select odd? (sorted-set-by > 1 2 3)))))" {:repl true
+                                                                                     :elide-exports true
+                                                                                     :context :return})
+                 v (js/eval (wrap-async js))]
+           (is (true? v))))
        (testing "project"
          (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                         [(set/project #{ {:a 1, :b 2, :c 3} {:a 4, :b 5, :c 6} } [:a :b])
