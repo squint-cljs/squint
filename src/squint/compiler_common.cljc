@@ -1485,7 +1485,8 @@
 
 (defmethod emit-special 'new [_type env [_new class & args]]
   (emit-return (wrap-parens (ast/node {:type :new-expression
-                                       :callee (emit class (expr-env env))
+                                       :callee (as-> (emit class (expr-env env)) js
+                                                 (cond-> js (str/includes? (ast/generate js) "(") wrap-parens))
                                        :arguments (vec (emit-args env args))}))
                env))
 

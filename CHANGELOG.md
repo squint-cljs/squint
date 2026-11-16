@@ -6,6 +6,7 @@
 
 - [#1092](https://github.com/squint-cljs/squint/issues/1092): fix a `defclass` that implements a protocol other than `Object` compiling to invalid JavaScript ([@staab](https://github.com/staab))
 - [#1094](https://github.com/squint-cljs/squint/issues/1094): fix `clojure.set/union` of nil and an empty set throwing instead of returning nil, as in ClojureScript ([@staab](https://github.com/staab))
+- [#1094](https://github.com/squint-cljs/squint/issues/1094): fix `new` with a call as its class, such as `(new (klass) 0)`, passing the arguments to the call's result ([@staab](https://github.com/staab))
 
 ## 0.16.214
 
