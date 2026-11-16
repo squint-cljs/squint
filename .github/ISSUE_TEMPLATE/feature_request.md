@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-To upvote this issue, give it a thumbs up. See [this list](https://github.com/clj-kondo/clj-kondo/issues?q=is%3Aissue+is%3Aopen+sort%3Areactions-%2B1-desc) for the most upvoted issues.
+To upvote this issue, give it a thumbs up. See [this list](https://github.com/squint-cljs/squint/issues?q=is%3Aissue+is%3Aopen+sort%3Areactions-%2B1-desc) for the most upvoted issues.
 
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
