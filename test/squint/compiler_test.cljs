@@ -4123,6 +4123,7 @@ globalThis.foo.fs = fs;")))))
          (p/let [js (squint/compile-string "(ns foo (:require [clojure.set :as set]))
                         (and (= #{:a} (set/union nil #{:a}))
                              (= #{:a} (set/union #{:a} nil))
+                             (nil? (set/union nil #{}))
                              (nil? (set/intersection #{:a} nil))
                              (= #{:a} (set/difference #{:a} nil))
                              (nil? (set/difference nil #{:a}))
@@ -4229,6 +4230,7 @@ globalThis.foo.fs = fs;")))))
              (doseq [[expected s] pairs]
                (is (eq expected s) (str "expected vs actual:"
                                         (util/inspect expected) (util/inspect s))))))))
+     (p/catch (fn [err] (is (throw err))))
      (p/finally done))))
 
 (deftest Symbol_iterator-is-destructurable-test
