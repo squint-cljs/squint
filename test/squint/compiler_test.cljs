@@ -3555,6 +3555,12 @@ globalThis.foo.fs = fs;")))))
     (is (thrown? js/Error (jss! "(defclass A Object (^:get ^:async x [this] 1))")))
     (is (thrown? js/Error (jss! "(defclass A Object (^:get ^:gen x [this] 1))")))))
 
+(deftest object-method-test
+  (is (= "1x2cm" (jsv! "(deftype Rect [w h] Object (describe [_ unit] (str w \"x\" h unit)))
+                        (.describe (->Rect 1 2) \"cm\")")))
+  (is (= "done" (jsv! "(deftype C [] Object (count-down [_ n] (if (pos? n) (recur (dec n)) :done)))
+                       (.count-down (C.) 3)"))))
+
 (deftest defclass-protocol-test
   (is (= 1 (jsv! "(defprotocol P (f [_])) (defclass A P (f [_] 1)) (f (A.))"))))
 
