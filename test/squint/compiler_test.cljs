@@ -3554,6 +3554,9 @@ globalThis.foo.fs = fs;")))))
     (is (thrown? js/Error (jss! "(defclass A Object (^:get ^:async x [this] 1))")))
     (is (thrown? js/Error (jss! "(defclass A Object (^:get ^:gen x [this] 1))")))))
 
+(deftest defclass-protocol-test
+  (is (= 1 (jsv! "(defprotocol P (f [_])) (defclass A P (f [_] 1)) (f (A.))"))))
+
 (deftest defclass-test
   (async done
     #_(println (jss! (str (fs/readFileSync "test-resources/defclass_test.cljs"))))

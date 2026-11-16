@@ -2,6 +2,10 @@
 
 [Squint](https://github.com/squint-cljs/squint): Light-weight ClojureScript dialect
 
+## Unreleased
+
+- [#1092](https://github.com/squint-cljs/squint/issues/1092): fix a `defclass` that implements a protocol other than `Object` compiling to invalid JavaScript ([@staab](https://github.com/staab))
+
 ## 0.16.214
 
 - [#1065](https://github.com/squint-cljs/squint/issues/1065): fix `js-delete` as the last expression of a function body emitting `return return` ([@jasalt](https://github.com/jasalt))

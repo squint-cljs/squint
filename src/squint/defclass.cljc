@@ -228,11 +228,12 @@
         "  }\n"))
      (interpose "\n" (mapv #(emit-object-fn fields-env emit-fn emit-params async-fn %) object-fns))
      "};\n"
-     (emit-fn extend-form fields-env)
-     (when extend
-       (str extend))
      (when true #_(:repl env)
        (emit-fn (list 'def classname (list 'js* (munge classname*))) env))
+     (when (some #(not= 'Object (:protocol-name %)) protocols)
+       (ast/raw (emit-fn extend-form fields-env) ";\n"))
+     (when extend
+       (str extend))
      (when (= :return (:context env*))
        (emit-return (munge classname) env*)))))
 
