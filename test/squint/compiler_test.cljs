@@ -534,7 +534,10 @@
           (jsv! '(.match "foo foo" #"foo")))))
 
 (deftest new-test
-  (is (eq "hello" (jsv! '(str (js/String. "hello"))))))
+  (is (eq "hello" (jsv! '(str (js/String. "hello")))))
+  (testing "new with a call as its class constructs the call's result"
+    (is (= 0 (jsv! '(do (defn klass [] js/Date) (.getTime (new (klass) 0))))))
+    (is (= 1 (jsv! "(defn get-ns [] #js {:Foo js/Date}) (.getTime (new (.-Foo (get-ns)) 1))")))))
 
 (deftest name-test
   (is (= "foo" (jsv! '(name :foo))))
