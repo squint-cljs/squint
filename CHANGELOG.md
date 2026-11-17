@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- [#1094](https://github.com/squint-cljs/squint/issues/1094): `clojure.set/union` of `nil` and an empty set returns `nil` instead of throwing
 - [#1092](https://github.com/squint-cljs/squint/issues/1092): fix a `defclass` that implements a protocol other than `Object` compiling to invalid JavaScript ([@staab](https://github.com/staab))
 
 ## 0.16.214

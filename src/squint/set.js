@@ -136,12 +136,13 @@ export function difference(...xs) {
 }
 
 function _union2(x, y) {
-  if (setSize(x) < setSize(y)) {
+  const xn = setSize(x), yn = setSize(y);
+  if (xn < yn) {
     const tmp = y;
     y = x;
     x = tmp;
   }
-  if (y == null) return x;
+  if (xn === 0 || yn === 0) return x;
   return addAll(x, y);
 }
 
