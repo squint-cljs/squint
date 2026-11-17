@@ -906,6 +906,28 @@
     (testing "js/eval emits eval"
       (is (= 2 (jsv! "(js/eval \"1 + 1\")" opts))))))
 
+(deftest object-method-test
+  (testing "an Object method takes only the arguments after this"
+    (is (eq ["1x2cm" true]
+            (jsv! '(do (deftype Rect [w h]
+                         Object
+                         (describe [_ unit] (str w "x" h unit))
+                         (self? [this] (identical? this (.-me this))))
+                       (let [r (->Rect 1 2)]
+                         (set! (.-me r) r)
+                         [(.describe r "cm") (.self? r)])))))
+    (is (= 1 (jsv! '(do (defrecord R [a] Object (get-a [_] a)) (.get-a (->R 1))))))
+    (is (= 2 (jsv! '(.hi (reify Object (hi [_ x] (inc x))) 1))))
+    (is (eq [0 7] (jsv! '(do (deftype T [])
+                             (extend-type T Object (ar ([_] 0) ([_ x] x)))
+                             [(.ar (T.)) (.ar (T.) 7)])))))
+  (testing "an Object method with a dash in its name is called by its munged name"
+    (is (= 2 (jsv! '(do (deftype Rect [w] Object (half-width [_] (/ w 2)))
+                        (.half-width (->Rect 4)))))))
+  (testing "recur in an Object method rebinds the arguments after this"
+    (is (= "done" (jsv! '(do (deftype C [] Object (count-down [_ n] (if (pos? n) (recur (dec n)) :done)))
+                             (.count-down (C.) 3)))))))
+
 (deftest reify-map?-test
   (doseq [repl [false true]
           :let [opts {:repl repl}]]

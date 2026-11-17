@@ -5,7 +5,7 @@
    #?(:cljs [goog.string.format])
    [clojure.string :as str]
    [squint.compiler.js-ast :as ast]
-   [squint.compiler.utils :as utils :refer [munge]]
+   [squint.compiler.utils :as utils :refer [munge munge**]]
    [squint.defclass :as defclass]
    [squint.internal.macros :as macros]))
 
@@ -220,14 +220,6 @@
       (and (str/ends-with? munged "$")
            (contains? keep (str expr)))
       (str/replace #"\$$" ""))))
-
-(defn munge**
-  "Same as munge but does not do any renaming of reserved words"
-  [x]
-  (let [munged (str (munge x))]
-    (if (contains? utils/js-reserved-words (str x))
-      (subs munged 0 (dec (count munged)))
-      munged)))
 
 (defmethod emit nil [_ env]
   (when-not (= :statement (:context env))

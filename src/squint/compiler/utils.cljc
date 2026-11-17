@@ -30,3 +30,11 @@
         (symbol (str munged "$"))
         (str munged "$"))
       munged)))
+
+(defn munge**
+  "Same as munge but does not do any renaming of reserved words"
+  [x]
+  (let [munged (str (munge x))]
+    (if (contains? js-reserved-words (str x))
+      (subs munged 0 (dec (count munged)))
+      munged)))
