@@ -1,5 +1,6 @@
 (ns squint.internal.protocols
-  (:require [clojure.core :as core]))
+  (:require [clojure.core :as core]
+            [squint.compiler.utils :as utils]))
 
 (core/defn- registry-key
   "Global-registry key for a protocol's marker or slot symbol: the qualified
@@ -98,6 +99,18 @@
     ;; multi-arity
     (map insert-this method-bodies)))
 
+(defn- object-method
+  "Returns the arities of an Object method without the this param.
+  Each body binds the this param to the receiver."
+  [method-bodies]
+  (if (vector? (first method-bodies))
+    (let [[[this-sym & params :as sig] & body] method-bodies]
+      (list (with-meta (vec params) (meta sig))
+            (with-meta (list 'js* "const self__ = this;")
+              {:context :statement})
+            `(let [~this-sym (~'js* "self__")] ~@body)))
+    (map object-method method-bodies)))
+
 (core/defn- protocol-ns
   "Namespace to qualify a protocol's slot vars with: psym's own namespace,
   or the source ns when psym is :refer'd into the current ns."
@@ -117,10 +130,11 @@
                       (not pns))
                 mname
                 (symbol pns (name mname)))
-        msym (if (= 'Object psym)
-               (str mname)
+        object? (= 'Object psym)
+        msym (if object?
+               (utils/munge** (name mname))
                (symbol pns (str (name psym) "_" (name mname))))
-        f `(fn ~@(insert-this (rest method)))]
+        f `(fn ~@((if object? object-method insert-this) (rest method)))]
     (if (nil? type-sym)
       `(let [f# ~f]
          (cljs.core/unchecked-set
