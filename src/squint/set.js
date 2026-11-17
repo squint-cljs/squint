@@ -141,7 +141,7 @@ function _union2(x, y) {
     y = x;
     x = tmp;
   }
-  if (y == null) return x;
+  if (x == null || y == null) return x;
   return addAll(x, y);
 }
 
