@@ -101,16 +101,14 @@
 
 (defn- object-method
   "Returns the arities of an Object method without the this param.
-  Each body binds the this param to the receiver, unless the param is _."
+  Each body binds the this param to the receiver."
   [method-bodies]
   (if (vector? (first method-bodies))
     (let [[[this-sym & params :as sig] & body] method-bodies]
-      (list* (with-meta (vec params) (meta sig))
-             (with-meta (list 'js* "const self__ = this;")
-               {:context :statement})
-             (if (= '_ this-sym)
-               body
-               [`(let [~this-sym (~'js* "self__")] ~@body)])))
+      (list (with-meta (vec params) (meta sig))
+            (with-meta (list 'js* "const self__ = this;")
+              {:context :statement})
+            `(let [~this-sym (~'js* "self__")] ~@body)))
     (map object-method method-bodies)))
 
 (core/defn- protocol-ns
