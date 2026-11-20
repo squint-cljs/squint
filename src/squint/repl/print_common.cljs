@@ -5,7 +5,7 @@
 (def promise-print-timeout-ms
   "How long the REPL waits on a top-level Promise before giving up and showing
   it as `#<Promise pending>`. Kept tight so the REPL stays responsive; a slow
-  Promise can be re-evaluated with an explicit `(js-await ..)`."
+  Promise can be re-evaluated with an explicit `(await ..)`."
   1000)
 
 (defn pr-str-repl
