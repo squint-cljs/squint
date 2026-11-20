@@ -4600,14 +4600,14 @@ new Foo();")
     (->
      (p/do
        (p/let [;; def as the last expression
-               js (squint/compile-string "(def x (js/Promise.resolve 3)) (js-await x) (def y (inc (js-await x)))"
+               js (squint/compile-string "(def x (js/Promise.resolve 3)) (await x) (def y (inc (await x)))"
                                          {:context :return
                                           :repl true
                                           :elide-exports true})
                v (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))]
          (is (= 4 v)))
        (p/let [;; def as the last expression
-               js (squint/compile-string "(def x (js/Promise.resolve 3)) (js-await x) (def y (inc (js-await x))) y"
+               js (squint/compile-string "(def x (js/Promise.resolve 3)) (await x) (def y (inc (await x))) y"
                                          {:context :return
                                           :repl true
                                           :elide-exports true})

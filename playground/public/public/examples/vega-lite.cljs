@@ -1,11 +1,11 @@
 (defn ^:async eval-script [url]
-  (let [resp (js-await (js/fetch url))
-        script (js-await (.text resp))]
+  (let [resp (await (js/fetch url))
+        script (await (.text resp))]
     (js/eval.call js/globalThis script)))
 
-(js-await (eval-script "https://cdn.jsdelivr.net/npm/vega@5"))
-(js-await (eval-script "https://cdn.jsdelivr.net/npm/vega-lite@4"))
-(js-await (eval-script "https://cdn.jsdelivr.net/npm/vega-embed@6"))
+(await (eval-script "https://cdn.jsdelivr.net/npm/vega@5"))
+(await (eval-script "https://cdn.jsdelivr.net/npm/vega-lite@4"))
+(await (eval-script "https://cdn.jsdelivr.net/npm/vega-embed@6"))
 
 ;; Squint Playground convention:
 ;; DOM always goes into the element with the id "app".
