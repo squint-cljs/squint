@@ -2703,7 +2703,12 @@ with `backticks`")))]
     (is (eq [3 4 5] (vec dropped)))
     ;; iterating over dropped second time, still works:
     (is (eq [3 4 5] (vec dropped))))
-  (is (eq (drop 2 nil) (vec (jsv! '(drop 2 nil))))))
+  (is (eq (drop 2 nil) (vec (jsv! '(drop 2 nil)))))
+  (testing "##Inf and 1e300 counts return an empty seq"
+    (is (eq [] (jsv! '(vec (drop ##Inf [1 2 3])))))
+    (is (eq [] (jsv! '(vec (drop 1e300 (range 3))))))
+    (is (eq [] (jsv! '(vec (drop-last ##Inf [1 2 3])))))
+    (is (eq [[1 2 3] []] (jsv! '(mapv vec (split-at ##Inf [1 2 3])))))))
 
 (deftest drop-while-test
   (let [dropped (jsv! '(drop-while odd? [1 1 1 2 3 4]))]

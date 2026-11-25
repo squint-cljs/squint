@@ -2954,7 +2954,7 @@ export function drop(n, xs) {
   if (arguments.length === 1) return drop1(n);
   return lazyIter(xs, function* (iter) {
     for (let x = 0; x < n; x++) {
-      iter.next();
+      if (iter.next().done) return;
     }
     yield* iter;
   });
