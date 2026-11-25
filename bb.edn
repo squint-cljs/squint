@@ -19,6 +19,8 @@
                            :task (shell "sh" "-c" "pids=$(lsof -tiTCP:5173 -sTCP:LISTEN); [ -z \"$pids\" ] || kill -TERM $pids")}
          bump-versions    (load-file "script/bump_versions.clj")
          -dev             {:depends [watch serve-playground]}
+         fuzz             {:doc  "Diff core fns on edge inputs against nbb"
+                           :task (exec 'fuzz/-main)}
          test:node        {:doc  "Run tests in Node.js"
                            :task (t/test-squint)}
          test:bb          {:doc         "Run tests in bb"
