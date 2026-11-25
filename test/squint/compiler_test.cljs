@@ -2648,7 +2648,10 @@ with `backticks`")))]
   (testing "empty or nil coll returns nil"
     (is (true? (jsv! '(nil? (take-last 2 nil)))))
     (is (true? (jsv! '(nil? (take-last 2 [])))))
-    (is (true? (jsv! '(nil? (take-last 2 '())))))))
+    (is (true? (jsv! '(nil? (take-last 2 '()))))))
+  (testing "a count above the max array length returns all elements"
+    (is (eq [0 1 2] (jsv! '(vec (take-last ##Inf (range 3))))))
+    (is (eq [0 1 2] (jsv! '(vec (take-last 1e10 (range 3))))))))
 
 (deftest +-test
   (is (zero? (jsv! '(apply + []))))
