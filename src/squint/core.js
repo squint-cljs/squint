@@ -2905,7 +2905,10 @@ export function take_nth(n, coll) {
   assertNumber(n);
   if (arguments.length === 1) return take_nth1(n);
   if (n <= 0) {
-    return repeat(first(coll));
+    return lazyIter(coll, function* (it) {
+      const r = it.next();
+      if (!r.done) while (true) yield r.value;
+    });
   }
 
   return lazyIter(coll, function* (it) {
