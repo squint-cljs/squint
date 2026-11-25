@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- [#1100](https://github.com/squint-cljs/squint/issues/1100): `drop`, `drop-last` and `split-at` with an `##Inf` or huge count return instead of hanging
 - [#1094](https://github.com/squint-cljs/squint/issues/1094): `clojure.set/union` of `nil` and an empty set returns `nil` instead of throwing
 - [#1094](https://github.com/squint-cljs/squint/issues/1094): `new` with a call as its class, e.g. `(new (klass) 0)`, constructs the call's result instead of passing the arguments to it
 - [#1094](https://github.com/squint-cljs/squint/issues/1094): an `Object` method of `deftype`, `defrecord`, `reify` or `extend-type` binds its first param to `this` instead of to the first argument, and is stored under its munged name
