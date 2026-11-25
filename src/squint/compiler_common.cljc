@@ -1041,19 +1041,19 @@
       (let [skip-var? (:squint.compiler/skip-var (meta expr))]
         (emit-var more skip-var? env)))))
 
-(defn js-await [env more]
+(defn emit-await [env more]
   (emit-return
    (wrap-await (emit more (expr-env env)) env)
    env))
 
 (defmethod emit-special 'js/await [_ env [_await more]]
-  (js-await env more))
+  (emit-await env more))
 
 (defmethod emit-special 'js-await [_ env [_await more]]
-  (js-await env more))
+  (emit-await env more))
 
 (defmethod emit-special 'await [_ env [_await more]]
-  (js-await env more))
+  (emit-await env more))
 
 #_(defn wrap-iife [s env]
     (cond-> (format "(%sfunction () {\n %s\n})()" (if (:async env) "async " "") s)

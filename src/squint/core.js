@@ -2860,7 +2860,7 @@ export function take_last(n, coll) {
   if (Array.isArray(coll)) {
     return seq(coll.slice(-n));
   } else {
-    const lastN = new Array(n);
+    const lastN = Number.isInteger(n) && n <= 4294967295 ? new Array(n) : []; // max array length
     let i = 0;
     for (const x of iterable(coll)) {
       lastN[i % n] = x;
@@ -2905,7 +2905,10 @@ export function take_nth(n, coll) {
   assertNumber(n);
   if (arguments.length === 1) return take_nth1(n);
   if (n <= 0) {
-    return repeat(first(coll));
+    return lazyIter(coll, function* (it) {
+      const r = it.next();
+      if (!r.done) while (true) yield r.value;
+    });
   }
 
   return lazyIter(coll, function* (it) {
@@ -2954,7 +2957,7 @@ export function drop(n, xs) {
   if (arguments.length === 1) return drop1(n);
   return lazyIter(xs, function* (iter) {
     for (let x = 0; x < n; x++) {
-      iter.next();
+      if (iter.next().done) return;
     }
     yield* iter;
   });
