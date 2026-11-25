@@ -2633,7 +2633,10 @@ with `backticks`")))]
   (is (eq [1 4 7] (jsv! '(vec (take-nth 3 [1 2 3 4 5 6 7 8 9])))))
   (testing "a non-number count throws instead of looping"
     (is (thrown? js/Error (jsv! '(doall (take-nth nil [1 2 3])))))
-    (is (thrown? js/Error (jsv! '(transduce (take-nth nil) conj [] [1 2 3]))))))
+    (is (thrown? js/Error (jsv! '(transduce (take-nth nil) conj [] [1 2 3])))))
+  (testing "a count of 0 or less on an empty or nil coll returns an empty seq"
+    (is (eq [] (jsv! '(vec (take 3 (take-nth 0 []))))))
+    (is (eq [] (jsv! '(vec (take 3 (take-nth -1 nil))))))))
 
 (deftest take-last-test
   (is (nil? (jsv! '(take-last 0 [1 2 3 4]))))

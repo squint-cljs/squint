@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- [#1102](https://github.com/squint-cljs/squint/issues/1102): `take-nth` with a count of 0 or less returns an empty seq for an empty or `nil` coll
 - [#1101](https://github.com/squint-cljs/squint/issues/1101): `take-last` with a count above the max array length returns all elements instead of throwing
 - [#1100](https://github.com/squint-cljs/squint/issues/1100): `drop`, `drop-last` and `split-at` with an `##Inf` or huge count return instead of hanging
 - [#1094](https://github.com/squint-cljs/squint/issues/1094): `clojure.set/union` of `nil` and an empty set returns `nil` instead of throwing
