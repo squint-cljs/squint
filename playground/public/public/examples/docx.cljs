@@ -26,7 +26,7 @@
                :bold true})]})]}]}))
 
 (defn ^:async download []
-  (let [bytes (js-await (Packer.toBuffer doc))
+  (let [bytes (await (Packer.toBuffer doc))
         blob (js/Blob. [bytes] {:type "application/docx"})
         link (.createElement js/document "a")]
     (set! (.-href link) (js/URL.createObjectURL blob))

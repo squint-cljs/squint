@@ -2706,7 +2706,12 @@ with `backticks`")))]
     (is (eq [3 4 5] (vec dropped)))
     ;; iterating over dropped second time, still works:
     (is (eq [3 4 5] (vec dropped))))
-  (is (eq (drop 2 nil) (vec (jsv! '(drop 2 nil))))))
+  (is (eq (drop 2 nil) (vec (jsv! '(drop 2 nil)))))
+  (testing "##Inf and 1e300 counts return an empty seq"
+    (is (eq [] (jsv! '(vec (drop ##Inf [1 2 3])))))
+    (is (eq [] (jsv! '(vec (drop 1e300 (range 3))))))
+    (is (eq [] (jsv! '(vec (drop-last ##Inf [1 2 3])))))
+    (is (eq [[1 2 3] []] (jsv! '(mapv vec (split-at ##Inf [1 2 3])))))))
 
 (deftest drop-while-test
   (let [dropped (jsv! '(drop-while odd? [1 1 1 2 3 4]))]
@@ -4603,14 +4608,14 @@ new Foo();")
     (->
      (p/do
        (p/let [;; def as the last expression
-               js (squint/compile-string "(def x (js/Promise.resolve 3)) (js-await x) (def y (inc (js-await x)))"
+               js (squint/compile-string "(def x (js/Promise.resolve 3)) (await x) (def y (inc (await x)))"
                                          {:context :return
                                           :repl true
                                           :elide-exports true})
                v (js/eval (str/replace "(async function () {\n%s\n})()" "%s" js))]
          (is (= 4 v)))
        (p/let [;; def as the last expression
-               js (squint/compile-string "(def x (js/Promise.resolve 3)) (js-await x) (def y (inc (js-await x))) y"
+               js (squint/compile-string "(def x (js/Promise.resolve 3)) (await x) (def y (inc (await x))) y"
                                          {:context :return
                                           :repl true
                                           :elide-exports true})
