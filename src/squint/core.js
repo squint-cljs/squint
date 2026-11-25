@@ -2860,7 +2860,7 @@ export function take_last(n, coll) {
   if (Array.isArray(coll)) {
     return seq(coll.slice(-n));
   } else {
-    const lastN = new Array(n);
+    const lastN = [];
     let i = 0;
     for (const x of iterable(coll)) {
       lastN[i % n] = x;
