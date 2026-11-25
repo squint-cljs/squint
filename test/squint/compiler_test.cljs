@@ -2844,6 +2844,9 @@ with `backticks`")))]
     (is (eq ["a" "bb" "ccc"] (jsv! '(sort #(< (count %1) (count %2)) ["ccc" "a" "bb"]))))))
 
 (deftest compare-test
+  (testing "##NaN compares as 0 in both argument orders"
+    (is (eq 0 (jsv! '(compare 1 ##NaN))))
+    (is (eq 0 (jsv! '(compare ##NaN 1)))))
   (is (eq 0 (jsv! '(compare nil nil))))
   (is (eq -1 (jsv! '(compare nil 3))))
   (is (eq 1 (jsv! '(compare 3 nil))))

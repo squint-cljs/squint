@@ -3651,7 +3651,10 @@ export function compare(x, y) {
       if (x < y) {
         return -1;
       }
-      return 1;
+      if (x > y) {
+        return 1;
+      }
+      return 0;
     } else if (Array.isArray(x) && Array.isArray(y)) {
       // Implemented like `APersistentVector.compareTo`.
       if (x.length < y.length) {
