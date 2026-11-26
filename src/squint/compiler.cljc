@@ -56,6 +56,7 @@
                          'squint.impl/defonce
                          ]))
 
+#_{:clj-kondo/ignore [:macro-as-value]}
 (def built-in-macros (merge {'-> macros/core->
                              '->> macros/core->>
                              'as-> macros/core-as->
